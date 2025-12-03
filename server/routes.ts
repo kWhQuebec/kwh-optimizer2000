@@ -12,6 +12,12 @@ import {
   insertClientSchema,
   insertSiteSchema,
   insertComponentCatalogSchema,
+  AnalysisAssumptions, 
+  defaultAnalysisAssumptions, 
+  CashflowEntry, 
+  FinancialBreakdown,
+  HourlyProfileEntry,
+  PeakWeekEntry,
 } from "@shared/schema";
 import { z } from "zod";
 import * as zoho from "./zohoClient";
@@ -973,26 +979,73 @@ async function parseHydroQuebecCSV(
   return readings;
 }
 
-function runPotentialAnalysis(readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>): {
+interface AnalysisResult {
+  // System sizing
   pvSizeKW: number;
   battEnergyKWh: number;
   battPowerKW: number;
   demandShavingSetpointKW: number;
+  
+  // Consumption metrics
   annualConsumptionKWh: number;
+  peakDemandKW: number;
   annualEnergySavingsKWh: number;
   annualDemandReductionKW: number;
+  selfConsumptionKWh: number;
+  selfSufficiencyPercent: number;
+  
+  // Cost metrics
   annualCostBefore: number;
   annualCostAfter: number;
   annualSavings: number;
-  npv20: number;
-  irr20: number;
-  npv10: number;
-  irr10: number;
-  simplePaybackYears: number;
+  savingsYear1: number;
+  
+  // CAPEX breakdown
+  capexGross: number;
+  capexPV: number;
+  capexBattery: number;
+  
+  // Incentives
+  incentivesHQ: number;
+  incentivesHQSolar: number;
+  incentivesHQBattery: number;
+  incentivesFederal: number;
+  taxShield: number;
+  totalIncentives: number;
   capexNet: number;
+  
+  // Financial metrics
+  npv25: number;
+  npv10: number;
+  npv20: number;
+  irr25: number;
+  irr10: number;
+  irr20: number;
+  simplePaybackYears: number;
+  lcoe: number;
+  
+  // Environmental
   co2AvoidedTonnesPerYear: number;
-} {
-  // Calculate key metrics from readings using loops (avoid stack overflow with large datasets)
+  
+  // Detailed data
+  assumptions: AnalysisAssumptions;
+  cashflows: CashflowEntry[];
+  breakdown: FinancialBreakdown;
+  hourlyProfile: HourlyProfileEntry[];
+  peakWeekData: PeakWeekEntry[];
+}
+
+function runPotentialAnalysis(
+  readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>,
+  assumptions: AnalysisAssumptions = defaultAnalysisAssumptions
+): AnalysisResult {
+  const h = assumptions;
+  
+  // ========== STEP 1: Build 8760-hour simulation data ==========
+  // Aggregate readings into hourly consumption and peak power
+  const hourlyData = buildHourlyData(readings);
+  
+  // Calculate annual metrics from readings
   let totalKWh = 0;
   let peakKW = 0;
   
@@ -1007,79 +1060,533 @@ function runPotentialAnalysis(readings: Array<{ kWh: number | null; kW: number |
     ? (new Date(readings[readings.length - 1].timestamp).getTime() - new Date(readings[0].timestamp).getTime()) / (1000 * 60 * 60 * 24)
     : 365;
   const annualizationFactor = 365 / Math.max(dataSpanDays, 1);
-  
   const annualConsumptionKWh = totalKWh * annualizationFactor;
   
-  // Sizing recommendations based on consumption
-  const pvSizeKW = Math.round(annualConsumptionKWh / 1200); // ~1200 kWh/kWp in Quebec
-  const battEnergyKWh = Math.round(peakKW * 2); // 2 hours of peak capacity
+  // ========== STEP 2: System sizing with roof constraint ==========
+  const usableRoofSqFt = h.roofAreaSqFt * h.roofUtilizationRatio;
+  const maxPVFromRoof = usableRoofSqFt / 100; // ~100 sq ft per kW
+  
+  // Target PV size based on consumption (120% of load coverage target)
+  const targetPVSize = (annualConsumptionKWh / 1150) * 1.2;
+  const pvSizeKW = Math.min(Math.round(targetPVSize), Math.round(maxPVFromRoof));
+  
+  // Battery sizing
   const battPowerKW = Math.round(peakKW * 0.3); // 30% of peak for shaving
-  const demandShavingSetpointKW = Math.round(peakKW * 0.85); // Target 15% peak reduction
-
-  // Financial calculations
-  const electricityRate = 0.073; // $/kWh (Hydro-Quebec industrial rate)
-  const demandRate = 15.5; // $/kW/month
+  const battEnergyKWh = Math.round(battPowerKW * 2); // 2-hour duration
+  const demandShavingSetpointKW = Math.round(peakKW * 0.90); // Target 10% peak reduction
   
-  const annualCostBefore = annualConsumptionKWh * electricityRate + peakKW * demandRate * 12;
+  // ========== STEP 3: Run hourly simulation ==========
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW);
   
-  // Estimate savings
-  const pvProduction = pvSizeKW * 1200;
-  const selfConsumption = Math.min(pvProduction * 0.7, annualConsumptionKWh * 0.3);
-  const peakReduction = peakKW * 0.15;
+  // Extract metrics from simulation
+  const selfConsumptionKWh = simResult.totalSelfConsumption;
+  const peakDemandKW = peakKW;
+  const peakAfterKW = simResult.peakAfter;
+  const annualDemandReductionKW = peakKW - peakAfterKW;
+  const selfSufficiencyPercent = annualConsumptionKWh > 0 ? (selfConsumptionKWh / annualConsumptionKWh) * 100 : 0;
   
-  const energySavings = selfConsumption * electricityRate;
-  const demandSavings = peakReduction * demandRate * 12;
+  // ========== STEP 4: Calculate annual costs and savings ==========
+  const annualCostBefore = annualConsumptionKWh * h.tariffEnergy + peakKW * h.tariffPower * 12;
+  const energySavings = selfConsumptionKWh * h.tariffEnergy;
+  const demandSavings = annualDemandReductionKW * h.tariffPower * 12;
   const annualSavings = energySavings + demandSavings;
   const annualCostAfter = annualCostBefore - annualSavings;
-
-  // CAPEX estimation
-  const pvCost = pvSizeKW * 1.2 * 1000; // $1.2/W
-  const batteryCost = battEnergyKWh * 350; // $350/kWh
-  const capexNet = pvCost + batteryCost;
-
-  // Financial metrics
-  const discountRate = 0.06;
-  const years = 20;
+  const savingsYear1 = annualSavings; // First year savings (before inflation)
   
-  // NPV calculation
-  let npv20 = -capexNet;
-  for (let y = 1; y <= years; y++) {
-    npv20 += annualSavings / Math.pow(1 + discountRate, y);
+  // ========== STEP 5: Calculate CAPEX ==========
+  const capexPV = pvSizeKW * 1000 * h.solarCostPerW;
+  const capexBattery = battEnergyKWh * h.batteryCapacityCost + battPowerKW * h.batteryPowerCost;
+  const capexGross = capexPV + capexBattery;
+  
+  // ========== STEP 6: Calculate Quebec (HQ) incentives ==========
+  // Hydro-Québec: $1000/kW for solar, $300/kW for battery, capped at 40% of total CAPEX
+  const potentialHQSolar = pvSizeKW * 1000;
+  const potentialHQBattery = battPowerKW * 300;
+  const totalPotentialHQ = potentialHQSolar + potentialHQBattery;
+  const cap40Percent = capexGross * 0.40;
+  const totalHQ = Math.min(totalPotentialHQ, cap40Percent);
+  
+  // Distribute HQ incentive proportionally
+  let incentivesHQSolar = 0;
+  let incentivesHQBattery = 0;
+  if (totalPotentialHQ > 0) {
+    const solarRatio = potentialHQSolar / totalPotentialHQ;
+    incentivesHQSolar = totalHQ * solarRatio;
+    incentivesHQBattery = totalHQ * (1 - solarRatio);
+  }
+  const incentivesHQ = incentivesHQSolar + incentivesHQBattery;
+  
+  // Battery HQ incentive: 50% year 0, 50% year 1
+  const batterySubY0 = incentivesHQBattery * 0.5;
+  const batterySubY1 = incentivesHQBattery * 0.5;
+  
+  // ========== STEP 7: Federal ITC (30% of remaining cost) ==========
+  const itcBasis = capexGross - incentivesHQ;
+  const incentivesFederal = itcBasis * 0.30;
+  
+  // ========== STEP 8: Tax shield (DPA/CCA) ==========
+  const capexNetAccounting = Math.max(0, capexGross - incentivesHQ - incentivesFederal);
+  const taxShield = capexNetAccounting * h.taxRate * 0.90; // 90% of net CAPEX * tax rate
+  
+  // ========== STEP 9: Calculate net CAPEX and equity ==========
+  const totalIncentives = incentivesHQ + incentivesFederal + taxShield;
+  const capexNet = capexGross - totalIncentives;
+  const equityInitial = capexGross - incentivesHQSolar - batterySubY0;
+  
+  // ========== STEP 10: Build 25-year cashflows ==========
+  const cashflows: CashflowEntry[] = [];
+  const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
+  let cumulative = -equityInitial;
+  
+  // Year 0
+  cashflows.push({
+    year: 0,
+    revenue: 0,
+    opex: 0,
+    ebitda: 0,
+    investment: -equityInitial,
+    dpa: 0,
+    incentives: 0,
+    netCashflow: -equityInitial,
+    cumulative: cumulative,
+  });
+  
+  // Years 1-25
+  for (let y = 1; y <= h.analysisYears; y++) {
+    const revenue = annualSavings * Math.pow(1 + h.inflationRate, y - 1);
+    const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);
+    const ebitda = revenue - opex;
+    
+    let investment = 0;
+    let dpa = 0;
+    let incentives = 0;
+    
+    // Year 1: Tax shield and remaining battery HQ incentive
+    if (y === 1) {
+      dpa = taxShield;
+      incentives = batterySubY1;
+    }
+    
+    // Year 2: Federal ITC
+    if (y === 2) {
+      incentives = incentivesFederal;
+    }
+    
+    // Year 10: Battery replacement (60% of battery cost)
+    if (y === 10 && battEnergyKWh > 0) {
+      investment = -capexBattery * 0.60;
+    }
+    
+    const netCashflow = ebitda + investment + dpa + incentives;
+    cumulative += netCashflow;
+    
+    cashflows.push({
+      year: y,
+      revenue,
+      opex: -opex,
+      ebitda,
+      investment,
+      dpa,
+      incentives,
+      netCashflow,
+      cumulative,
+    });
   }
   
-  let npv10 = -capexNet;
-  for (let y = 1; y <= 10; y++) {
-    npv10 += annualSavings / Math.pow(1 + discountRate, y);
-  }
-
+  // ========== STEP 11: Calculate financial metrics ==========
+  const cashflowValues = cashflows.map(c => c.netCashflow);
+  
+  // NPV calculations
+  const npv25 = calculateNPV(cashflowValues, h.discountRate, 25);
+  const npv20 = calculateNPV(cashflowValues, h.discountRate, 20);
+  const npv10 = calculateNPV(cashflowValues, h.discountRate, 10);
+  
+  // IRR calculations
+  const irr25 = calculateIRR(cashflowValues.slice(0, 26));
+  const irr20 = calculateIRR(cashflowValues.slice(0, 21));
+  const irr10 = calculateIRR(cashflowValues.slice(0, 11));
+  
   // Simple payback
-  const simplePaybackYears = capexNet / annualSavings;
-
-  // IRR estimation (simplified)
-  const irr20 = annualSavings / capexNet * (1 - 1 / Math.pow(1.06, 20)) / (1 - 1 / 1.06);
-  const irr10 = annualSavings / capexNet * (1 - 1 / Math.pow(1.06, 10)) / (1 - 1 / 1.06);
-
-  // CO2 avoided (Quebec grid is very clean, ~0.002 kg CO2/kWh)
-  const co2Factor = 0.002; // kg CO2/kWh
-  const co2AvoidedTonnesPerYear = (selfConsumption * co2Factor) / 1000;
-
+  let simplePaybackYears = h.analysisYears;
+  for (let i = 1; i < cashflows.length; i++) {
+    if (cashflows[i].cumulative >= 0) {
+      simplePaybackYears = i;
+      break;
+    }
+  }
+  
+  // LCOE (Levelized Cost of Energy)
+  const totalProduction = pvSizeKW * 1150 * h.analysisYears; // kWh over lifetime
+  const totalLifetimeCost = capexNet + (opexBase * h.analysisYears);
+  const lcoe = totalProduction > 0 ? totalLifetimeCost / totalProduction : 0;
+  
+  // ========== STEP 12: Environmental impact ==========
+  const co2Factor = 0.002; // kg CO2/kWh for Quebec grid
+  const co2AvoidedTonnesPerYear = (selfConsumptionKWh * co2Factor) / 1000;
+  
+  // ========== STEP 13: Build breakdown ==========
+  const breakdown: FinancialBreakdown = {
+    capexSolar: capexPV,
+    capexBattery: capexBattery,
+    capexGross: capexGross,
+    potentialHQSolar: potentialHQSolar,
+    potentialHQBattery: potentialHQBattery,
+    cap40Percent: cap40Percent,
+    actualHQSolar: incentivesHQSolar,
+    actualHQBattery: incentivesHQBattery,
+    totalHQ: incentivesHQ,
+    itcBasis: itcBasis,
+    itcAmount: incentivesFederal,
+    depreciableBasis: capexNetAccounting,
+    taxShield: taxShield,
+    equityInitial: equityInitial,
+    batterySubY0: batterySubY0,
+    batterySubY1: batterySubY1,
+    capexNet: capexNet,
+  };
+  
   return {
     pvSizeKW,
     battEnergyKWh,
     battPowerKW,
     demandShavingSetpointKW,
     annualConsumptionKWh,
-    annualEnergySavingsKWh: selfConsumption,
-    annualDemandReductionKW: peakReduction,
+    peakDemandKW,
+    annualEnergySavingsKWh: selfConsumptionKWh,
+    annualDemandReductionKW,
+    selfConsumptionKWh,
+    selfSufficiencyPercent,
     annualCostBefore,
     annualCostAfter,
     annualSavings,
-    npv20,
-    irr20,
-    npv10,
-    irr10,
-    simplePaybackYears,
+    savingsYear1,
+    capexGross,
+    capexPV,
+    capexBattery,
+    incentivesHQ,
+    incentivesHQSolar,
+    incentivesHQBattery,
+    incentivesFederal,
+    taxShield,
+    totalIncentives,
     capexNet,
+    npv25,
+    npv10,
+    npv20,
+    irr25,
+    irr10,
+    irr20,
+    simplePaybackYears,
+    lcoe,
     co2AvoidedTonnesPerYear,
+    assumptions: h,
+    cashflows,
+    breakdown,
+    hourlyProfile: simResult.hourlyProfile,
+    peakWeekData: simResult.peakWeekData,
   };
+}
+
+// Build hourly data from readings (8760 hours)
+function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>): Array<{
+  hour: number;
+  month: number;
+  consumption: number;
+  peak: number;
+}> {
+  // Group readings by hour of day and month to create average profile
+  const hourlyByHourMonth: Map<string, { totalKWh: number; maxKW: number; count: number }> = new Map();
+  
+  for (const r of readings) {
+    const hour = r.timestamp.getHours();
+    const month = r.timestamp.getMonth() + 1;
+    const key = `${month}-${hour}`;
+    
+    const existing = hourlyByHourMonth.get(key) || { totalKWh: 0, maxKW: 0, count: 0 };
+    existing.totalKWh += r.kWh || 0;
+    existing.maxKW = Math.max(existing.maxKW, r.kW || 0);
+    existing.count++;
+    hourlyByHourMonth.set(key, existing);
+  }
+  
+  // Build 8760-hour profile
+  const hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }> = [];
+  
+  for (let month = 1; month <= 12; month++) {
+    const daysInMonth = new Date(2025, month, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        const key = `${month}-${hour}`;
+        const data = hourlyByHourMonth.get(key);
+        
+        if (data && data.count > 0) {
+          hourlyData.push({
+            hour,
+            month,
+            consumption: data.totalKWh / data.count,
+            peak: data.maxKW,
+          });
+        } else {
+          // Use default values if no data
+          hourlyData.push({
+            hour,
+            month,
+            consumption: 0,
+            peak: 0,
+          });
+        }
+      }
+    }
+  }
+  
+  return hourlyData;
+}
+
+// Run hourly solar + battery simulation
+function runHourlySimulation(
+  hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>,
+  pvSizeKW: number,
+  battEnergyKWh: number,
+  battPowerKW: number,
+  threshold: number
+): {
+  totalSelfConsumption: number;
+  peakAfter: number;
+  hourlyProfile: HourlyProfileEntry[];
+  peakWeekData: PeakWeekEntry[];
+} {
+  const hourlyProfile: HourlyProfileEntry[] = [];
+  let soc = battEnergyKWh * 0.5; // Start at 50% SOC
+  let totalSelfConsumption = 0;
+  let peakAfter = 0;
+  let maxPeakIndex = 0;
+  let maxPeakValue = 0;
+  
+  // Guard for empty data
+  if (hourlyData.length === 0) {
+    return {
+      totalSelfConsumption: 0,
+      peakAfter: 0,
+      hourlyProfile: [],
+      peakWeekData: [],
+    };
+  }
+  
+  for (let i = 0; i < hourlyData.length; i++) {
+    const { hour, month, consumption, peak } = hourlyData[i];
+    
+    // Solar production: Gaussian curve centered at 1pm, with seasonal factor
+    const bell = Math.exp(-Math.pow(hour - 13, 2) / 8);
+    const season = 1 - 0.4 * Math.cos((month - 6) * 2 * Math.PI / 12);
+    const isDaytime = hour >= 5 && hour <= 20;
+    // Clamp production to non-negative and reasonable values
+    const rawProduction = pvSizeKW * bell * season * 0.75 * (isDaytime ? 1 : 0);
+    const production = Math.max(0, rawProduction);
+    
+    // Net load (consumption - production)
+    const net = consumption - production;
+    
+    // Battery algorithm (peak shaving)
+    let battAction = 0;
+    const peakBefore = peak;
+    let peakFinal = peak;
+    
+    if (battPowerKW > 0 && battEnergyKWh > 0) {
+      if (peak > threshold && soc > 0) {
+        // Discharge to shave peak
+        battAction = -Math.min(peak - threshold, battPowerKW, soc);
+      } else if (net < 0 && soc < battEnergyKWh) {
+        // Charge from excess solar
+        battAction = Math.min(Math.abs(net), battPowerKW, battEnergyKWh - soc);
+      } else if (hour >= 22 && soc < battEnergyKWh) {
+        // Night charging
+        battAction = Math.min(battPowerKW, battEnergyKWh - soc);
+      }
+      
+      soc += battAction;
+      peakFinal = Math.max(0, peak + (battAction < 0 ? battAction : 0));
+    }
+    
+    // Track peak
+    if (peak > maxPeakValue) {
+      maxPeakValue = peak;
+      maxPeakIndex = i;
+    }
+    peakAfter = Math.max(peakAfter, peakFinal);
+    
+    // Self-consumption
+    const discharge = battAction < 0 ? -battAction : 0;
+    const selfCons = Math.min(consumption, production + discharge);
+    totalSelfConsumption += selfCons;
+    
+    hourlyProfile.push({
+      hour,
+      month,
+      consumption,
+      production,
+      peakBefore,
+      peakAfter: peakFinal,
+      batterySOC: soc,
+    });
+  }
+  
+  // Extract peak week data (80 hours around max peak) with guards for short data
+  const peakWeekData: PeakWeekEntry[] = [];
+  
+  // Only extract if we have enough data
+  if (hourlyData.length > 0 && hourlyProfile.length > 0) {
+    const startIdx = Math.max(0, maxPeakIndex - 40);
+    const endIdx = Math.min(hourlyData.length, maxPeakIndex + 40);
+    
+    for (let i = startIdx; i < endIdx; i++) {
+      if (hourlyData[i] && hourlyProfile[i]) {
+        peakWeekData.push({
+          timestamp: `Hour ${i}`,
+          peakBefore: hourlyData[i].peak,
+          peakAfter: hourlyProfile[i].peakAfter,
+        });
+      }
+    }
+  }
+  
+  return {
+    totalSelfConsumption,
+    peakAfter,
+    hourlyProfile,
+    peakWeekData,
+  };
+}
+
+// Calculate NPV
+function calculateNPV(cashflows: number[], rate: number, years: number): number {
+  let npv = 0;
+  for (let y = 0; y <= Math.min(years, cashflows.length - 1); y++) {
+    npv += cashflows[y] / Math.pow(1 + rate, y);
+  }
+  return npv;
+}
+
+// Calculate IRR using Newton-Raphson method with robust fallback
+function calculateIRR(cashflows: number[]): number {
+  if (cashflows.length < 2) return 0;
+  
+  // Check if there's at least one sign change (required for valid IRR)
+  let hasNegative = false;
+  let hasPositive = false;
+  for (const cf of cashflows) {
+    if (cf < 0) hasNegative = true;
+    if (cf > 0) hasPositive = true;
+  }
+  
+  // If no sign change, IRR doesn't exist
+  if (!hasNegative || !hasPositive) {
+    return hasPositive ? 1.0 : 0; // All positive = infinite return, all negative/zero = no return
+  }
+  
+  let irr = 0.1; // Initial guess
+  const maxIterations = 200;
+  const tolerance = 0.0001;
+  
+  for (let i = 0; i < maxIterations; i++) {
+    let npv = 0;
+    let dnpv = 0;
+    
+    for (let t = 0; t < cashflows.length; t++) {
+      const denominator = Math.pow(1 + irr, t);
+      if (denominator === 0 || !isFinite(denominator)) continue;
+      
+      const pv = cashflows[t] / denominator;
+      npv += pv;
+      if (t > 0) {
+        dnpv -= t * cashflows[t] / Math.pow(1 + irr, t + 1);
+      }
+    }
+    
+    // Guard against division by zero
+    if (Math.abs(dnpv) < 1e-10) {
+      // Try bisection method as fallback
+      return bisectionIRR(cashflows);
+    }
+    
+    const newIrr = irr - npv / dnpv;
+    
+    // Guard against NaN or Infinity
+    if (!isFinite(newIrr)) {
+      return bisectionIRR(cashflows);
+    }
+    
+    // Clamp to reasonable bounds
+    const clampedIrr = Math.max(-0.99, Math.min(5, newIrr));
+    
+    if (Math.abs(clampedIrr - irr) < tolerance) {
+      return Math.max(0, Math.min(1, clampedIrr)); // Final clamp to 0-100%
+    }
+    
+    irr = clampedIrr;
+  }
+  
+  // Fallback to bisection method
+  return bisectionIRR(cashflows);
+}
+
+// Bisection method for IRR as robust fallback
+function bisectionIRR(cashflows: number[]): number {
+  let low = -0.99;
+  let high = 2.0;
+  const maxIterations = 100;
+  const tolerance = 0.0001;
+  
+  const npvAtRate = (rate: number): number => {
+    let npv = 0;
+    for (let t = 0; t < cashflows.length; t++) {
+      npv += cashflows[t] / Math.pow(1 + rate, t);
+    }
+    return npv;
+  };
+  
+  // Find bounds where NPV changes sign
+  let npvLow = npvAtRate(low);
+  let npvHigh = npvAtRate(high);
+  
+  // If same sign at both bounds, try to find a crossing
+  if (npvLow * npvHigh > 0) {
+    // Search for a crossing point
+    for (let rate = low; rate <= high; rate += 0.1) {
+      const npv = npvAtRate(rate);
+      if (npvLow * npv < 0) {
+        high = rate;
+        npvHigh = npv;
+        break;
+      }
+      if (npv * npvHigh < 0) {
+        low = rate;
+        npvLow = npv;
+        break;
+      }
+    }
+    
+    // If still no crossing, return 0
+    if (npvLow * npvHigh > 0) {
+      return 0;
+    }
+  }
+  
+  for (let i = 0; i < maxIterations; i++) {
+    const mid = (low + high) / 2;
+    const npvMid = npvAtRate(mid);
+    
+    if (Math.abs(npvMid) < tolerance || (high - low) / 2 < tolerance) {
+      return Math.max(0, Math.min(1, mid));
+    }
+    
+    if (npvLow * npvMid < 0) {
+      high = mid;
+      npvHigh = npvMid;
+    } else {
+      low = mid;
+      npvLow = npvMid;
+    }
+  }
+  
+  return Math.max(0, Math.min(1, (low + high) / 2));
 }

@@ -85,23 +85,63 @@ export const simulationRuns = pgTable("simulation_runs", {
   siteId: varchar("site_id").notNull().references(() => sites.id),
   label: text("label"),
   type: text("type").notNull(), // "BASELINE" or "SCENARIO"
+  
+  // System sizing
   pvSizeKW: real("pv_size_kw"),
   battEnergyKWh: real("batt_energy_kwh"),
   battPowerKW: real("batt_power_kw"),
   demandShavingSetpointKW: real("demand_shaving_setpoint_kw"),
+  
+  // Consumption metrics
   annualConsumptionKWh: real("annual_consumption_kwh"),
+  peakDemandKW: real("peak_demand_kw"),
   annualEnergySavingsKWh: real("annual_energy_savings_kwh"),
   annualDemandReductionKW: real("annual_demand_reduction_kw"),
+  selfConsumptionKWh: real("self_consumption_kwh"),
+  selfSufficiencyPercent: real("self_sufficiency_percent"),
+  
+  // Cost metrics
   annualCostBefore: real("annual_cost_before"),
   annualCostAfter: real("annual_cost_after"),
   annualSavings: real("annual_savings"),
-  npv20: real("npv_20"),
-  irr20: real("irr_20"),
-  npv10: real("npv_10"),
-  irr10: real("irr_10"),
-  simplePaybackYears: real("simple_payback_years"),
+  savingsYear1: real("savings_year_1"),
+  
+  // CAPEX breakdown
+  capexGross: real("capex_gross"),
+  capexPV: real("capex_pv"),
+  capexBattery: real("capex_battery"),
+  
+  // Incentives
+  incentivesHQ: real("incentives_hq"),
+  incentivesHQSolar: real("incentives_hq_solar"),
+  incentivesHQBattery: real("incentives_hq_battery"),
+  incentivesFederal: real("incentives_federal"),
+  taxShield: real("tax_shield"),
+  totalIncentives: real("total_incentives"),
   capexNet: real("capex_net"),
+  
+  // Financial metrics
+  npv25: real("npv_25"),
+  npv10: real("npv_10"),
+  npv20: real("npv_20"),
+  irr25: real("irr_25"),
+  irr10: real("irr_10"),
+  irr20: real("irr_20"),
+  simplePaybackYears: real("simple_payback_years"),
+  lcoe: real("lcoe"),
+  
+  // Environmental
   co2AvoidedTonnesPerYear: real("co2_avoided_tonnes_per_year"),
+  
+  // Input assumptions (stored as JSON)
+  assumptions: jsonb("assumptions"),
+  
+  // Detailed outputs (stored as JSON)
+  cashflows: jsonb("cashflows"),
+  breakdown: jsonb("breakdown"),
+  hourlyProfile: jsonb("hourly_profile"),
+  peakWeekData: jsonb("peak_week_data"),
+  
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -248,3 +288,113 @@ export type ComponentCatalog = typeof componentCatalog.$inferSelect;
 export type SiteWithClient = Site & { client: Client };
 export type SimulationRunWithSite = SimulationRun & { site: SiteWithClient };
 export type DesignWithBom = Design & { bomItems: BomItem[] };
+
+// Analysis input parameters (matching Streamlit script)
+export interface AnalysisAssumptions {
+  // Tariffs
+  tariffEnergy: number;      // $/kWh - default 0.057
+  tariffPower: number;       // $/kW/month - default 17.57
+  
+  // Financial
+  inflationRate: number;     // % as decimal - default 0.048
+  discountRate: number;      // WACC % as decimal - default 0.08
+  taxRate: number;           // Corporate tax % as decimal - default 0.265
+  
+  // CAPEX costs
+  solarCostPerW: number;     // $/W - default 2.25
+  batteryCapacityCost: number; // $/kWh - default 550
+  batteryPowerCost: number;   // $/kW - default 800
+  
+  // O&M
+  omSolarPercent: number;    // % of CAPEX - default 0.01
+  omBatteryPercent: number;  // % of CAPEX - default 0.005
+  omEscalation: number;      // % per year - default 0.025
+  
+  // Roof constraints
+  roofAreaSqFt: number;      // Total roof area in sq ft
+  roofUtilizationRatio: number; // % usable - default 0.80
+  
+  // Analysis period
+  analysisYears: number;     // default 25
+}
+
+// Default analysis assumptions
+export const defaultAnalysisAssumptions: AnalysisAssumptions = {
+  tariffEnergy: 0.057,
+  tariffPower: 17.57,
+  inflationRate: 0.048,
+  discountRate: 0.08,
+  taxRate: 0.265,
+  solarCostPerW: 2.25,
+  batteryCapacityCost: 550,
+  batteryPowerCost: 800,
+  omSolarPercent: 0.01,
+  omBatteryPercent: 0.005,
+  omEscalation: 0.025,
+  roofAreaSqFt: 10000,
+  roofUtilizationRatio: 0.80,
+  analysisYears: 25,
+};
+
+// Cashflow entry for detailed analysis
+export interface CashflowEntry {
+  year: number;
+  revenue: number;
+  opex: number;
+  ebitda: number;
+  investment: number;
+  dpa: number;         // Tax depreciation
+  incentives: number;
+  netCashflow: number;
+  cumulative: number;
+}
+
+// Financial breakdown
+export interface FinancialBreakdown {
+  // CAPEX
+  capexSolar: number;
+  capexBattery: number;
+  capexGross: number;
+  
+  // Incentives
+  potentialHQSolar: number;     // $1000/kW
+  potentialHQBattery: number;   // $300/kW
+  cap40Percent: number;         // 40% cap
+  actualHQSolar: number;
+  actualHQBattery: number;
+  totalHQ: number;
+  
+  // Federal ITC
+  itcBasis: number;
+  itcAmount: number;           // 30% of basis
+  
+  // Tax shield
+  depreciableBasis: number;
+  taxShield: number;           // 90% * basis * tax_rate
+  
+  // Timing
+  equityInitial: number;
+  batterySubY0: number;
+  batterySubY1: number;
+  
+  // Net
+  capexNet: number;
+}
+
+// Hourly profile data for charts
+export interface HourlyProfileEntry {
+  hour: number;
+  month: number;
+  consumption: number;
+  production: number;
+  peakBefore: number;
+  peakAfter: number;
+  batterySOC: number;
+}
+
+// Peak week data for charts
+export interface PeakWeekEntry {
+  timestamp: string;
+  peakBefore: number;
+  peakAfter: number;
+}

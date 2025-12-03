@@ -32,8 +32,13 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Legend
+  Legend,
+  ComposedChart,
+  Line,
+  ReferenceLine,
+  Cell
 } from "recharts";
+import type { CashflowEntry, FinancialBreakdown } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -312,7 +317,8 @@ function DownloadReportButton({ simulationId }: { simulationId: string }) {
 }
 
 function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const loadProfileData = Array.from({ length: 24 }, (_, i) => ({
     hour: `${i}h`,
@@ -321,9 +327,26 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
   }));
 
   const comparisonData = [
-    { name: "Consommation", before: simulation.annualConsumptionKWh || 0, after: (simulation.annualConsumptionKWh || 0) - (simulation.annualEnergySavingsKWh || 0) },
-    { name: "Pic kW", before: simulation.demandShavingSetpointKW || 0, after: (simulation.demandShavingSetpointKW || 0) - (simulation.annualDemandReductionKW || 0) },
+    { 
+      name: language === "fr" ? "Consommation" : "Consumption", 
+      before: simulation.annualConsumptionKWh || 0, 
+      after: (simulation.annualConsumptionKWh || 0) - (simulation.annualEnergySavingsKWh || 0) 
+    },
+    { 
+      name: language === "fr" ? "Pic kW" : "Peak kW", 
+      before: (simulation.peakDemandKW || simulation.demandShavingSetpointKW || 0), 
+      after: ((simulation.peakDemandKW || simulation.demandShavingSetpointKW || 0) - (simulation.annualDemandReductionKW || 0)) 
+    },
   ];
+  
+  const cashflows = (simulation.cashflows as CashflowEntry[] | null) || [];
+  const breakdown = simulation.breakdown as FinancialBreakdown | null;
+  
+  const cashflowChartData = cashflows.map(cf => ({
+    year: cf.year,
+    cashflow: cf.netCashflow / 1000,
+    cumulative: cf.cumulative / 1000,
+  }));
 
   return (
     <div className="space-y-6">
@@ -465,14 +488,165 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="before" fill="hsl(var(--chart-2))" name="Avant" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="after" fill="hsl(var(--chart-1))" name="Après" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="before" fill="hsl(var(--chart-2))" name={language === "fr" ? "Avant" : "Before"} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="after" fill="hsl(var(--chart-1))" name={language === "fr" ? "Après" : "After"} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
       </div>
+      
+      {/* 25-Year Cashflow Chart */}
+      {cashflowChartData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {language === "fr" ? "Flux de trésorerie sur 25 ans" : "25-Year Cashflow Analysis"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={cashflowChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="year" className="text-xs" label={{ value: language === "fr" ? "Année" : "Year", position: "bottom" }} />
+                  <YAxis 
+                    yAxisId="left" 
+                    className="text-xs" 
+                    label={{ value: "k$", angle: -90, position: "insideLeft" }}
+                  />
+                  <YAxis 
+                    yAxisId="right" 
+                    orientation="right" 
+                    className="text-xs"
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px"
+                    }}
+                    formatter={(value: number) => `$${value.toFixed(1)}k`}
+                  />
+                  <Legend />
+                  <ReferenceLine yAxisId="left" y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                  <Bar 
+                    yAxisId="left" 
+                    dataKey="cashflow" 
+                    name={language === "fr" ? "Flux annuel" : "Annual Cashflow"}
+                    radius={[4, 4, 0, 0]}
+                  >
+                    {cashflowChartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.cashflow >= 0 ? "hsl(var(--chart-1))" : "hsl(var(--destructive))"} 
+                      />
+                    ))}
+                  </Bar>
+                  <Line 
+                    yAxisId="right" 
+                    type="monotone" 
+                    dataKey="cumulative" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    name={language === "fr" ? "Cumulatif" : "Cumulative"}
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Financial Breakdown */}
+      {breakdown && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-lg">
+              {language === "fr" ? "Ventilation financière" : "Financial Breakdown"}
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setShowBreakdown(!showBreakdown)}>
+              {showBreakdown ? (language === "fr" ? "Masquer" : "Hide") : (language === "fr" ? "Afficher" : "Show")}
+            </Button>
+          </CardHeader>
+          {showBreakdown && (
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    {language === "fr" ? "CAPEX" : "Capital Costs"}
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">{language === "fr" ? "Solaire PV" : "Solar PV"}</span>
+                      <span className="font-mono text-sm">${((breakdown.capexSolar || 0) / 1000).toFixed(1)}k</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">{language === "fr" ? "Batterie" : "Battery"}</span>
+                      <span className="font-mono text-sm">${((breakdown.capexBattery || 0) / 1000).toFixed(1)}k</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-sm font-medium">{language === "fr" ? "CAPEX brut" : "Gross CAPEX"}</span>
+                      <span className="font-mono text-sm font-bold">${((breakdown.capexGross || 0) / 1000).toFixed(1)}k</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    {language === "fr" ? "Incitatifs" : "Incentives"}
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">{language === "fr" ? "Hydro-Québec (solaire)" : "HQ Solar"}</span>
+                      <span className="font-mono text-sm text-primary">-${((breakdown.actualHQSolar || 0) / 1000).toFixed(1)}k</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">{language === "fr" ? "Hydro-Québec (batterie)" : "HQ Battery"}</span>
+                      <span className="font-mono text-sm text-primary">-${((breakdown.actualHQBattery || 0) / 1000).toFixed(1)}k</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">{language === "fr" ? "CII fédéral (30%)" : "Federal ITC (30%)"}</span>
+                      <span className="font-mono text-sm text-primary">-${((breakdown.itcAmount || 0) / 1000).toFixed(1)}k</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">{language === "fr" ? "Bouclier fiscal (DPA)" : "Tax Shield (CCA)"}</span>
+                      <span className="font-mono text-sm text-primary">-${((breakdown.taxShield || 0) / 1000).toFixed(1)}k</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-sm font-medium">{language === "fr" ? "CAPEX net" : "Net CAPEX"}</span>
+                      <span className="font-mono text-sm font-bold">${((breakdown.capexNet || 0) / 1000).toFixed(1)}k</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{language === "fr" ? "Autosuffisance" : "Self-sufficiency"}</p>
+                    <p className="text-lg font-bold font-mono">{(simulation.selfSufficiencyPercent || 0).toFixed(1)}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">LCOE</p>
+                    <p className="text-lg font-bold font-mono">${(simulation.lcoe || 0).toFixed(3)}/kWh</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">VAN 25 ans</p>
+                    <p className="text-lg font-bold font-mono">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">TRI 25 ans</p>
+                    <p className="text-lg font-bold font-mono">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

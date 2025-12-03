@@ -93,8 +93,25 @@ The application uses a unified TypeScript codebase with client-side React and se
 - Handles Latin-1 encoding, semicolon delimiters, French decimal format
 - Accent-insensitive header detection for reliable parsing
 
-**Analysis Engine**: Calculates solar production potential, battery sizing, economic metrics
-**Report Generation**: Produces detailed potential reports (implementation pending)
+**Advanced Analysis Engine** (server/routes.ts - `runPotentialAnalysis`):
+- 8760-hour solar production simulation using Gaussian curve + seasonal adjustment
+- Battery peak-shaving algorithm with SOC tracking
+- Quebec Hydro-Québec incentives ($1000/kW solar + $300/kW battery, 40% cap)
+- Federal ITC 30% calculation on remaining CAPEX
+- Tax shield (DPA/CCA) calculation
+- 25-year cashflow generation with O&M escalation and inflation
+- NPV (10/20/25 year), IRR, LCOE, simple payback calculations
+- Battery replacement at year 10 (60% of original cost)
+- Robust IRR calculation with Newton-Raphson + bisection fallback
+
+**Configurable Analysis Parameters** (shared/schema.ts - `AnalysisAssumptions`):
+- Tariffs: Energy ($/kWh), Power ($/kW/month)
+- Financial: Inflation, WACC/discount rate, corporate tax rate
+- CAPEX: Solar cost ($/W), battery capacity ($/kWh), battery power ($/kW)
+- O&M: Solar/battery percentages, escalation rate
+- Roof constraints: Area, utilization ratio
+
+**Report Generation**: PDF reports with bilingual support (French/English)
 
 **Rationale**: Server-side processing ensures consistent results and protects proprietary analysis algorithms.
 

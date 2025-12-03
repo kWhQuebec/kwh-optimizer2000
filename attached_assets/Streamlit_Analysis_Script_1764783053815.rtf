@@ -1,0 +1,1390 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 import streamlit as st\
+import sys\
+import os\
+\
+# --- CORRECTION DES CHEMINS (HACK IMPORTANT) ---\
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\
+\
+from solar_engine import SolarSystem\
+import pandas as pd\
+import numpy as np\
+import numpy_financial as npf\
+import plotly.graph_objects as go\
+import plotly.express as px\
+import tempfile\
+import io\
+import requests\
+import math\
+from datetime import datetime\
+from fpdf import FPDF\
+from geopy.geocoders import Nominatim\
+import pydeck as pdk\
+\
+# --- CONFIGURATION DE LA PAGE ---\
+st.set_page_config(page_title="\'c9tude pr\'e9liminaire", layout="wide", page_icon="\uc0\u9889 ")\
+\
+# FIX DU LOGO (Position haute)\
+try:\
+    st.logo("logo_kwh.png")\
+except:\
+    pass\
+\
+# --- INITIALISATION VARIABLES SESSION ---\
+if 'lang_choice' not in st.session_state:\
+    st.session_state.lang_choice = "Fran\'e7ais"\
+lang_code = 'fr' if st.session_state.lang_choice == "Fran\'e7ais" else 'en'\
+\
+if 'roof_area_sqft' not in st.session_state:\
+    st.session_state.roof_area_sqft = 10000.0\
+\
+if 'simulation_done' not in st.session_state:\
+    st.session_state.simulation_done = False\
+    \
+if 'valid_address' not in st.session_state:\
+    st.session_state.valid_address = False\
+\
+if 'lat_lon' not in st.session_state:\
+    st.session_state.lat_lon = None\
+\
+# --- GESTION INTELLIGENTE DE LA CL\'c9 API ---\
+if 'google_api_key' not in st.session_state:\
+    if "GOOGLE_API_KEY" in st.secrets:\
+        st.session_state.google_api_key = st.secrets["GOOGLE_API_KEY"]\
+    else:\
+        st.session_state.google_api_key = ""\
+\
+# --- COULEURS DE LA MARQUE ---\
+BRAND_BLUE = "#19459d"\
+BRAND_YELLOW = "#FFB005"\
+BRAND_RGB_BLUE = (25, 69, 157)\
+BRAND_RGB_YELLOW = (255, 176, 5)\
+\
+# --- DICTIONNAIRE DE TRADUCTION ---\
+TRANS = \{\
+    'main_title': \{'fr': "\'c9TUDE PR\'c9LIMINAIRE : SOLAIRE + STOCKAGE", 'en': "PRELIMINARY STUDY: SOLAR + STORAGE"\},\
+    'sidebar_project': \{'fr': "PROJET", 'en': "PROJECT"\},\
+    'sidebar_params': \{'fr': "\uc0\u9881 \u65039  Param\'e8tres avanc\'e9s", 'en': "\u9881 \u65039  Advanced Parameters"\},\
+    \
+    # Steps\
+    'step1_title': \{'fr': "LOCALISATION", 'en': "LOCATION"\}, \
+    'step1_desc': \{'fr': "Identifiez le site du projet.", 'en': "Identify the project site."\},\
+    'step2_title': \{'fr': "CONSOMMATION", 'en': "CONSUMPTION"\},\
+    'step2_desc': \{'fr': "Importez les donn\'e9es historiques.", 'en': "Import historical data."\},\
+    'step3_title': \{'fr': "ANALYSE", 'en': "ANALYSIS"\},\
+    'step3_desc': \{'fr': "Lancez la simulation financi\'e8re.", 'en': "Run financial simulation."\},\
+    \
+    'btn_check': \{'fr': "\uc0\u55357 \u56525  V\'c9RIFIER L'EMPLACEMENT", 'en': "\u55357 \u56525  CHECK LOCATION"\},\
+    'check_ok': \{'fr': "Adresse valid\'e9e", 'en': "Address validated"\},\
+    'check_roof_ok': \{'fr': "Toiture estim\'e9e :", 'en': "Estimated Roof:"\},\
+    'check_roof_warn': \{'fr': "Toiture non d\'e9tect\'e9e. Valeur par d\'e9faut utilis\'e9e (10 000 pi\'b2).", 'en': "Roof not detected. Using default value (10,000 sq ft)."\},\
+    'check_fail': \{'fr': "Adresse introuvable. V\'e9rifiez l'orthographe.", 'en': "Address not found. Check spelling."\},\
+    'addr_found': \{'fr': "Trouv\'e9 :", 'en': "Found:"\},\
+    'api_label': \{'fr': "Cl\'e9 API Google Maps", 'en': "Google Maps API Key"\},\
+    'api_help': \{'fr': "Pour plus de pr\'e9cision (Satellite + Solaire 3D). Si vide, utilise OpenStreetMap.", 'en': "For better accuracy (Satellite + 3D Solar). If empty, uses OpenStreetMap."\},\
+    \
+    'sub_upload': \{'fr': "Donn\'e9es de consommation", 'en': "Consumption Data"\},\
+    'drag_drop': \{'fr': "Glissez vos fichiers CSV Hydro-Qu\'e9bec ici", 'en': "Drag & drop Hydro-Quebec CSV files here"\},\
+    'multi_account_msg': \{'fr': "Mode Multi-Comptes activ\'e9 : Les fichiers seront additionn\'e9s heure par heure.", 'en': "Multi-Account Mode: Files will be summed hour-by-hour."\},\
+    \
+    # Inputs Sidebar\
+    'tar_e': \{'fr': "Tarif \'e9nergie ($/kWh)", 'en': "Energy rate ($/kWh)"\},\
+    'help_tar_e': \{'fr': "Prix moyen du kWh incluant les frais de base.", 'en': "Average kWh price including base fees."\},\
+    'tar_p': \{'fr': "Tarif puissance ($/kW)", 'en': "Power rate ($/kW)"\},\
+    'help_tar_p': \{'fr': "Co\'fbt par kW appliqu\'e9 \'e0 la puissance maximale appel\'e9e.", 'en': "Cost per kW applied to peak power demand."\},\
+    'inf': \{'fr': "Inflation \'e9nerg\'e9tique (%)", 'en': "Energy inflation (%)"\},\
+    'help_inf': \{'fr': "Estimation de l'augmentation annuelle des tarifs.", 'en': "Estimated annual increase in utility rates."\},\
+    'wacc': \{'fr': "Taux d'actualisation (%)", 'en': "Discount rate (WACC %)"\},\
+    'help_wacc': \{'fr': "Co\'fbt moyen pond\'e9r\'e9 du capital.", 'en': "Weighted Average Cost of Capital."\},\
+    'tax': \{'fr': "Taux d'imposition (%)", 'en': "Corporate tax rate (%)"\},\
+    'cost_sol': \{'fr': "Co\'fbt solaire ($/Wc)", 'en': "Solar cost ($/Wp)"\},\
+    'cost_bat_c': \{'fr': "Co\'fbt batterie ($/kWh)", 'en': "Battery cost ($/kWh)"\},\
+    'param_roof_ratio': \{'fr': "Ratio utilisation toiture (%)", 'en': "Roof Utilization Ratio (%)"\},\
+    'roof_area_label': \{'fr': "Superficie toiture / immeuble (pi\'b2)", 'en': "Roof / Building Area (sq ft)"\},\
+    \
+    'project_name': \{'fr': "Nom du projet / Client", 'en': "Project name / Client"\},\
+    'address': \{'fr': "Adresse", 'en': "Address"\},\
+    'postal_code': \{'fr': "Code postal (Optionnel)", 'en': "Postal Code (Optional)"\}, \
+    'roof_photo': \{'fr': "Photo du toit (Optionnel)", 'en': "Roof photo (Optional)"\},\
+    \
+    # Actions\
+    'btn_start_sim': \{'fr': "\uc0\u55357 \u56960  LANCER L'ANALYSE", 'en': "\u55357 \u56960  START ANALYSIS"\},\
+    'warn_no_address': \{'fr': "\uc0\u9888 \u65039  Veuillez entrer une adresse pour activer l'estimation automatique.", 'en': "\u9888 \u65039  Please enter an address to enable automatic roof estimation."\},\
+    'info_roof_manual': \{'fr': "\uc0\u8505 \u65039  Superficie manuelle utilis\'e9e :", 'en': "\u8505 \u65039  Manual area used:"\},\
+    \
+    # Spinner\
+    'analyzing': \{'fr': "Analyse et optimisation de sc\'e9narios en cours...", 'en': "Analyzing and optimizing scenarios..."\},\
+    'roof_limit_msg': \{'fr': "Capacit\'e9 solaire limit\'e9e par la surface de toiture disponible.", 'en': "Solar capacity limited by available roof area."\},\
+    'roof_unlimited_msg': \{'fr': "Optimisation financi\'e8re pure (Toiture ignor\'e9e ou par d\'e9faut).", 'en': "Pure financial optimization (Roof ignored or default)."\},\
+    \
+    # KPI Cards\
+    'savings_y1': \{'fr': "\'c9conomies an 1", 'en': "Year 1 savings"\},\
+    'invest_net': \{'fr': "Investissement net", 'en': "Net investment"\},\
+    'npv': \{'fr': "Profit net (VAN)", 'en': "Net profit (NPV)"\},\
+    'irr': \{'fr': "Rendement (TRI)", 'en': "Return (IRR)"\},\
+    'unit_energy_power': \{'fr': "\'c9nergie + puissance", 'en': "Energy + Power"\},\
+    'unit_after_sub': \{'fr': "Apr\'e8s subventions", 'en': "After incentives"\},\
+    'unit_20y': \{'fr': "Sur 25 ans", 'en': "Over 25 years"\},\
+    'unit_project': \{'fr': "25 ans", 'en': "25 years"\},\
+    \
+    'tech_config': \{'fr': "\uc0\u55357 \u57056 \u65039  Configuration", 'en': "\u55357 \u57056 \u65039  Configuration"\},\
+    'fin_perf': \{'fr': "\uc0\u55357 \u56496  Finance", 'en': "\u55357 \u56496  Finance"\},\
+    \
+    'lbl_sol_pow': \{'fr': "Puissance solaire", 'en': "Solar power"\},\
+    'lbl_bat_cap': \{'fr': "Capacit\'e9 Batterie", 'en': "Battery Capacity"\},\
+    'lbl_bat_pow': \{'fr': "Puissance Batterie", 'en': "Battery Power"\},\
+    'lbl_self_suff': \{'fr': "Autosuffisance", 'en': "Self-sufficiency"\},\
+    'lbl_capex_gross': \{'fr': "CAPEX brut", 'en': "Gross CAPEX"\},\
+    'lbl_incentives': \{'fr': "Subventions totales", 'en': "Total incentives"\},\
+    'lbl_payback': \{'fr': "Retour (payback)", 'en': "Payback period"\},\
+    'lbl_van_10': \{'fr': "VAN (10 ans)", 'en': "NPV (10 years)"\},\
+    'lbl_tri_10': \{'fr': "TRI (10 ans)", 'en': "IRR (10 years)"\},\
+    'lbl_lcoe': \{'fr': "LCOE (Co\'fbt \'c9nergie)", 'en': "LCOE"\},\
+    'lbl_roof_tot': \{'fr': "Toiture totale", 'en': "Total Roof"\},\
+    'lbl_roof_use': \{'fr': "Potentiel solaire", 'en': "Solar Potential"\},\
+    \
+    'chart_main_title': \{'fr': "\uc0\u55357 \u56522  Analyse et preuves", 'en': "\u55357 \u56522  Analysis & Proofs"\},\
+    'chart_cf_title': \{'fr': "Flux de tr\'e9sorerie et retour sur investissement", 'en': "Cashflow & Return on Investment"\},\
+    'chart_prof_title': \{'fr': "Impact sur la pointe (semaine critique)", 'en': "Peak Shaving Impact (Critical Week)"\},\
+    'chart_scatter_title': \{'fr': "Fronti\'e8re d'efficacit\'e9 (tous sc\'e9narios)", 'en': "Efficiency Frontier (All Scenarios)"\},\
+    'chart_scatter_x': \{'fr': "Investissement net ($)", 'en': "Net Investment ($)"\},\
+    'chart_scatter_y': \{'fr': "Profit net (VAN $)", 'en': "Net Profit (NPV $)"\},\
+    'chart_opt_sol': \{'fr': "Optimisation taille solaire (VAN vs kWc)", 'en': "Solar Size Optimization (NPV vs kWp)"\},\
+    'chart_opt_bat': \{'fr': "Optimisation taille batterie (VAN vs kWh)", 'en': "Battery Size Optimization (NPV vs kWh)"\},\
+    'winner_tag': \{'fr': "\uc0\u11088  Sc\'e9nario optimal", 'en': "\u11088  Optimal Scenario"\},\
+    'before': \{'fr': "Avant", 'en': "Before"\},\
+    'after': \{'fr': "Apr\'e8s", 'en': "After"\},\
+    \
+    # Audit Module\
+    'audit_title': \{'fr': "\uc0\u55357 \u56590  D\'e9tails des incitatifs", 'en': "\u55357 \u56590  Incentive details"\},\
+    'sub_prov': \{'fr': "**1. Hydro-Qu\'e9bec (incitatifs)**", 'en': "**1. Hydro-Quebec (Incentives)**"\},\
+    'sub_fed': \{'fr': "**2. F\'e9d\'e9ral (CII)**", 'en': "**2. Federal (ITC)**"\},\
+    'tax_dpa': \{'fr': "**3. Fiscalit\'e9 (DPA)**", 'en': "**3. Tax Shield (CCA)**"\},\
+    'audit_total_capped': \{'fr': "Montant accord\'e9 (plafonn\'e9)", 'en': "Granted amount (capped)"\},\
+    'audit_tax_shield': \{'fr': "Valeur bouclier fiscal", 'en': "Tax shield value"\},\
+    'audit_hq_sol': \{'fr': "Potentiel solaire (1000$/kW)", 'en': "Solar potential ($1000/kW)"\},\
+    'audit_hq_bat': \{'fr': "Potentiel batterie (300$/kW)", 'en': "Battery potential ($300/kW)"\},\
+    'audit_cap_msg': \{'fr': "Plafonn\'e9 \'e0 40 % du co\'fbt total projet (r\'e8gle HQ)", 'en': "Capped at 40% of total project cost (HQ Rule)"\},\
+    'audit_fed_basis': \{'fr': "Assiette (co\'fbt - HQ)", 'en': "Basis (Cost - HQ)"\},\
+    'audit_fed_rate': \{'fr': "Taux 30 %", 'en': "Rate 30%"\},\
+    'audit_dpa_basis': \{'fr': "Base amortissable", 'en': "Depreciable basis"\},\
+    \
+    # Downloads\
+    'downloads': \{'fr': "\uc0\u55357 \u56516  Rapports finaux", 'en': "\u55357 \u56516  Final reports"\},\
+    'btn_report': \{'fr': "Rapport client", 'en': "Client report"\},\
+    'btn_audit': \{'fr': "Hypoth\'e8ses et calculs", 'en': "Assumptions & calcs"\},\
+    'btn_excel': \{'fr': "Mod\'e8le financier (Excel)", 'en': "Financial model (Excel)"\},\
+    \
+    # PDF Specifics\
+    'pdf_feasibility': \{'fr': "\'c9TUDE PR\'c9LIMINAIRE : SOLAIRE + STOCKAGE", 'en': "PRELIMINARY STUDY: SOLAR + STORAGE"\},\
+    'pdf_audit_doc': \{'fr': "DOCUMENT D'AUDIT TECHNIQUE ET FINANCIER", 'en': "TECHNICAL & FINANCIAL AUDIT DOCUMENT"\},\
+    'pdf_confidential': \{'fr': "Document confidentiel | G\'e9n\'e9r\'e9 par kWh Qu\'e9bec", 'en': "Confidential Document | Generated by kWh Quebec"\},\
+    'pdf_detailed_analysis': \{'fr': "ANALYSE D\'c9TAILL\'c9E", 'en': "DETAILED ANALYSIS"\},\
+    'pdf_cashflow_tab': \{'fr': "TABLEAU DES FLUX FINANCIERS", 'en': "FINANCIAL CASHFLOW TABLE"\},\
+    'pdf_annex_proof': \{'fr': "ANNEXE : PREUVES D'OPTIMISATION", 'en': "APPENDIX: OPTIMIZATION PROOFS"\},\
+    'pdf_why_this': \{'fr': "Pourquoi ce sc\'e9nario ? (comparatif)", 'en': "Why this scenario? (Comparative)"\},\
+    'pdf_why_now': \{'fr': "Pourquoi maintenant ? (co\'fbt de l'inaction)", 'en': "Why now? (Cost of Inaction)"\},\
+    'pdf_resilience_sec': \{'fr': "S\'c9CURIT\'c9 \'c9NERG\'c9TIQUE (R\'c9SILIENCE)", 'en': "ENERGY SECURITY (RESILIENCE)"\},\
+    'pdf_inputs': \{'fr': "1. HYPOTH\'c8SES D'ENTR\'c9E (INPUTS)", 'en': "1. INPUT ASSUMPTIONS"\},\
+    'pdf_reconst': \{'fr': "2. RECONSTITUTION DES CO\'dbTS ET INCITATIFS", 'en': "2. COSTS & INCENTIVES BREAKDOWN"\},\
+    'pdf_cashflow_raw': \{'fr': "4. FLUX DE TR\'c9SORERIE (DONN\'c9ES BRUTES)", 'en': "4. CASHFLOW (RAW DATA)"\},\
+    'pdf_methodology': \{'fr': "3. M\'c9THODOLOGIE ET FORMULES DE CALCUL", 'en': "3. METHODOLOGY & CALCULATION FORMULAS"\},\
+    'pdf_sec_config': \{'fr': "CONFIGURATION", 'en': "CONFIGURATION"\},\
+    'pdf_sec_finance': \{'fr': "FINANCE", 'en': "FINANCE"\},\
+    \
+    'row_eq_sol': \{'fr': "\'c9quipement solaire", 'en': "Solar equipment"\},\
+    'row_eq_bat': \{'fr': "\'c9quipement stockage", 'en': "Storage equipment"\},\
+    'row_pot_sol': \{'fr': "Potentiel solaire", 'en': "Solar potential"\},\
+    'row_pot_bat': \{'fr': "Potentiel batterie", 'en': "Battery potential"\},\
+    'row_cap_global': \{'fr': "Plafond global (40 %)", 'en': "Global cap (40%)"\},\
+    'row_sub_prov': \{'fr': "= INCITATIF HYDRO-QU\'c9BEC", 'en': "= HYDRO-QUEBEC INCENTIVE"\},\
+    'row_base_itc': \{'fr': "Assiette CII f\'e9d\'e9ral", 'en': "Federal ITC basis"\},\
+    'row_itc': \{'fr': "Cr\'e9dit CII (technologies propres)", 'en': "Clean tech ITC"\},\
+    'row_capex_net': \{'fr': "= CAPEX NET COMPTABLE", 'en': "= ACCOUNTING NET CAPEX"\},\
+    \
+    'timing_title': \{'fr': "Analyse de tr\'e9sorerie (timing)", 'en': "Cashflow timing analysis"\},\
+    't_y0': \{'fr': "Ann\'e9e 0 (\'e9quit\'e9)", 'en': "Year 0 (Equity)"\},\
+    't_y1': \{'fr': "Ann\'e9e 1 (entr\'e9e)", 'en': "Year 1 (Inflow)"\},\
+    't_y2': \{'fr': "Ann\'e9e 2 (entr\'e9e)", 'en': "Year 2 (Inflow)"\},\
+    \
+    'strat_note_title': \{'fr': "NOTE STRAT\'c9GIQUE : M\'c9CANISME DE FOISONNEMENT", 'en': "STRATEGIC NOTE: POOLING MECHANISM"\},\
+    'strat_note_msg': \{'fr': "Le programme HQ plafonne l'aide \'e0 40 % des co\'fbts totaux. Le solaire sature vite ce plafond. En le combinant avec une batterie co\'fbteuse, on augmente l'assiette totale, ce qui permet de capturer plus de subventions solaires.", 'en': "The HQ program caps aid at 40% of total costs. Solar hits this cap quickly. By combining it with an expensive battery, we increase the total cost basis, allowing us to capture more solar grants that would otherwise be lost."\},\
+    \
+    'tab_results': \{'fr': "R\'e9sultats financiers", 'en': "Financial results"\},\
+    'tab_risks': \{'fr': "Risques et r\'e9silience (vente)", 'en': "Risks & resilience (sales)"\},\
+    'tab_acquisition': \{'fr': "Mod\'e8les d'acquisition (financement)", 'en': "Acquisition models (financing)"\},\
+    \
+    'risk_title': \{'fr': "\uc0\u55357 \u56521  Co\'fbt de l'inaction (inflation)", 'en': "\u55357 \u56521  Cost of inaction (inflation)"\},\
+    'risk_subtitle': \{'fr': "Comparaison : avec vs sans projet sur 25 ans", 'en': "Comparison: With vs Without Project over 25 years"\},\
+    'risk_cumul_diff': \{'fr': "Perte cumulative estim\'e9e (si statu quo)", 'en': "Estimated cumulative loss (status quo)"\},\
+    \
+    'resilience_title': \{'fr': "\uc0\u55357 \u56587  Analyse de r\'e9silience (pannes)", 'en': "\u55357 \u56587  Resilience analysis (outages)"\},\
+    'res_critical_load': \{'fr': "Charges critiques (%)", 'en': "Critical loads (%)"\},\
+    'res_autonomy': \{'fr': "Autonomie estim\'e9e", 'en': "Estimated autonomy"\},\
+    'res_hours': \{'fr': "Heures", 'en': "Hours"\},\
+    'res_msg': \{'fr': "En cas de panne majeure, votre batterie peut maintenir vos op\'e9rations essentielles pendant :", 'en': "In case of major outage, your battery can sustain essential operations for:"\},\
+    \
+    # Tech Details\
+    'meth_sol_title': \{'fr': "A. Production solaire (estim\'e9e)", 'en': "A. Solar production (estimate)"\},\
+    'meth_sol_desc': \{'fr': "Mod\'e9lisation horaire (8760h) bas\'e9e sur une courbe statistique.", 'en': "Hourly modeling (8760h) based on statistical curve."\},\
+    'meth_sol_form': \{'fr': "P_gen(t) = P_install * Gauss(t) * Saison(m) * 0,75", 'en': "P_gen(t) = P_install * Gauss(t) * Season(m) * 0.75"\},\
+    'meth_bat_title': \{'fr': "B. Algorithme batterie (peak shaving)", 'en': "B. Battery algorithm (peak shaving)"\},\
+    'meth_bat_desc': \{'fr': "Logique de r\'e9duction de la demande de pointe (Opex).", 'en': "Peak demand reduction logic (Opex)."\},\
+    'meth_bat_form': \{'fr': "Seuil = 90 % du pic max historique", 'en': "Threshold = 90% of Historical Max Peak"\},\
+    'meth_fin_title': \{'fr': "C. Hypoth\'e8ses financi\'e8res d\'e9taill\'e9es", 'en': "C. Detailed financial assumptions"\},\
+    'op_om_sol': \{'fr': "O&M solaire", 'en': "Solar O&M"\},\
+    'op_om_bat': \{'fr': "O&M batterie", 'en': "Battery O&M"\},\
+    'op_esc': \{'fr': "Indexation O&M", 'en': "O&M escalation"\},\
+    'op_replacement': \{'fr': "Remplacement onduleurs/batterie (an 10)", 'en': "Inverter/Bat replacement (Year 10)"\},\
+    \
+    'acq_title': \{'fr': "Comparaison des mod\'e8les d'acquisition", 'en': "Acquisition models comparison"\},\
+    'acq_cash': \{'fr': "Achat comptant", 'en': "Cash purchase"\},\
+    'acq_loan': \{'fr': "Financement (pr\'eat)", 'en': "Bank loan"\},\
+    'acq_lease': \{'fr': "Cr\'e9dit-bail (lease)", 'en': "Capital lease"\},\
+    'acq_loan_rate': \{'fr': "Taux int\'e9r\'eat pr\'eat (%)", 'en': "Loan interest rate (%)"\},\
+    'acq_lease_rate': \{'fr': "Taux implicite cr\'e9dit-bail (%)", 'en': "Lease implicit rate (%)"\},\
+    'acq_term': \{'fr': "Dur\'e9e (ann\'e9es)", 'en': "Term (years)"\},\
+    'acq_downpayment': \{'fr': "Mise de fonds (%)", 'en': "Down payment (%)"\},\
+    'acq_chart_title': \{'fr': "Comparaison flux tr\'e9sorerie cumul\'e9s", 'en': "Cumulative cashflow comparison"\},\
+    \
+    # Benchmarking / Roof\
+    'roof_area_label': \{'fr': "Superficie toiture / immeuble (pi\'b2)", 'en': "Roof / Building Area (sq ft)"\},\
+    'bench_title': \{'fr': "\uc0\u55356 \u57286  Performance \'e9nerg\'e9tique (benchmark)", 'en': "\u55356 \u57286  Energy performance (benchmark)"\},\
+    'bench_score': \{'fr': "Cote \'e9nerg\'e9tique", 'en': "Energy score"\},\
+    'bench_intensity': \{'fr': "Intensit\'e9 (kWh/pi\'b2)", 'en': "Intensity (kWh/sq ft)"\},\
+    'bench_before': \{'fr': "Actuel", 'en': "Current"\},\
+    'bench_after': \{'fr': "Projet\'e9", 'en': "Projected"\},\
+    'bench_cur_desc': \{'fr': "Consommation actuelle (avant)", 'en': "Current consumption (before)"\},\
+    'bench_proj_desc': \{'fr': "Consommation projet\'e9e (apr\'e8s)", 'en': "Projected consumption (after)"\},\
+    'bench_info': \{'fr': "Cote A < 15 kWh/pi\'b2 | D > 35 kWh/pi\'b2", 'en': "Grade A < 15 kWh/sqft | D > 35 kWh/sqft"\},\
+    \
+    # Sensitivity\
+    'sens_title': \{'fr': "\uc0\u55357 \u56522  Analyse de sensibilit\'e9 (stress test)", 'en': "\u55357 \u56522  Sensitivity analysis (stress test)"\},\
+    'sens_msg': \{'fr': "Impact de l'inflation et du taux d'actualisation sur la VAN du projet.", 'en': "Impact of inflation and discount rate on project NPV."\},\
+    'sens_inf': \{'fr': "Inflation", 'en': "Inflation"\},\
+    'sens_wacc': \{'fr': "Taux act. (WACC)", 'en': "Disc. rate (WACC)"\},\
+    \
+    # NEW: Roof Estimation\
+    'btn_roof': \{'fr': "\uc0\u55357 \u56545  Estimer superficie", 'en': "\u55357 \u56545  Estimate Area"\},\
+    'roof_success': \{'fr': "Toit d\'e9tect\'e9", 'en': "Roof detected"\},\
+    'roof_fail': \{'fr': "B\'e2timent non trouv\'e9 (essayez manuellement)", 'en': "Building not found (try manual)"\},\
+    'roof_area': \{'fr': "Surface estim\'e9e", 'en': "Estimated Area"\},\
+    'roof_avail': \{'fr': "Surface utilisable", 'en': "Usable Area"\}\
+\}\
+\
+# --- STYLE CSS ---\
+st.markdown(f"""\
+<style>\
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap');\
+    \
+    html, body, [class*="css"] \{\{ font-family: 'Montserrat', sans-serif; color: #1f2937; \}\}\
+    :root \{\{ --primary-blue: \{BRAND_BLUE\}; --accent-yellow: \{BRAND_YELLOW\}; \}\}\
+    h1 \{\{ color: var(--primary-blue); font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; \}\}\
+    h2 \{\{ color: #1f2937; font-weight: 700; margin-top: 1.5rem; \}\}\
+    h3 \{\{ color: var(--primary-blue); font-weight: 600; \}\}\
+    .metric-card \{\{ background-color: #ffffff; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb; border-top: 4px solid var(--primary-blue); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 16px; \}\}\
+    .metric-title \{\{ font-size: 0.8rem; font-weight: 600; color: #6b7280; text-transform: uppercase; margin-bottom: 8px; \}\}\
+    .metric-value \{\{ font-size: 2rem; font-weight: 800; color: var(--primary-blue); \}\}\
+    .metric-unit \{\{ font-size: 0.9rem; color: #9ca3af; font-weight: 500; \}\}\
+    .detail-row \{\{ display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6; \}\}\
+    .detail-label \{\{ font-size: 0.9rem; color: #4b5563; \}\}\
+    .detail-val \{\{ font-size: 0.9rem; font-weight: 700; color: #111827; \}\}\
+    .stButton>button \{\{ font-weight: 700; width: 100%; border: none; padding: 16px; border-radius: 6px; text-transform: uppercase; letter-spacing: 1px; \}\}\
+    \
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) button \{\{ background-color: var(--accent-yellow); color: black; box-shadow: 0 4px 6px rgba(255, 176, 5, 0.3); \}\}\
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) button:hover \{\{ background-color: #ffc107; \}\}\
+    \
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) button \{\{ background-color: #10b981; color: white; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3); \}\}\
+    div[data-testid="stHorizontalBlock"] > div:nth-child(2) button:hover \{\{ background-color: #059669; \}\}\
+\
+    div[data-testid="stHorizontalBlock"] > div:nth-child(3) button \{\{ background-color: var(--primary-blue); color: white; box-shadow: 0 4px 6px rgba(25, 69, 157, 0.3); \}\}\
+    div[data-testid="stHorizontalBlock"] > div:nth-child(3) button:hover \{\{ background-color: #153a8a; \}\}\
+    \
+    .bench-badge \{\{ background-color: #f3f4f6; padding: 5px 10px; border-radius: 15px; font-weight: bold; font-size: 0.8em; \}\}\
+    .grade-A \{\{ background-color: #dcfce7; color: #166534; \}\}\
+    .grade-B \{\{ background-color: #fef9c3; color: #854d0e; \}\}\
+    .grade-C \{\{ background-color: #ffedd5; color: #9a3412; \}\}\
+    .grade-D \{\{ background-color: #fee2e2; color: #991b1b; \}\}\
+    \
+    /* Step Badges */\
+    .step-container \{\{ display: flex; align-items: center; margin-bottom: 10px; \}\}\
+    .step-badge \{\{ \
+        background-color: var(--primary-blue); \
+        color: white; \
+        border-radius: 50%; \
+        width: 32px; \
+        height: 32px; \
+        display: flex; \
+        justify-content: center; \
+        align-items: center; \
+        font-weight: bold; \
+        margin-right: 12px;\
+        flex-shrink: 0;\
+    \}\}\
+    .step-title \{\{ font-size: 1.1rem; font-weight: 700; color: #374151; \}\}\
+    .step-desc \{\{ font-size: 0.9rem; color: #6b7280; margin-left: 44px; margin-bottom: 16px; \}\}\
+    \
+    /* START BUTTON STYLE (STEP 3) */\
+    button[kind="primary"] \{\{\
+        background-color: var(--accent-yellow) !important;\
+        color: black !important;\
+        box-shadow: 0 4px 6px rgba(255, 176, 5, 0.4);\
+        border: 1px solid #e09b04 !important;\
+    \}\}\
+    button[kind="primary"]:hover \{\{\
+        background-color: #ffc107 !important;\
+        box-shadow: 0 8px 12px rgba(255, 176, 5, 0.5);\
+    \}\}\
+\
+</style>\
+""", unsafe_allow_html=True)\
+\
+# --- FONCTIONS M\'c9TIER ---\
+\
+def clean_text(text):\
+    if not isinstance(text, str): return str(text)\
+    return text.encode('latin-1', 'ignore').decode('latin-1')\
+\
+def get_trans(key, lang):\
+    if key not in TRANS: return key \
+    return TRANS[key].get(lang, TRANS[key].get('fr', key))\
+\
+def get_energy_grade(intensity):\
+    if intensity < 15: return "A", "grade-A"\
+    elif intensity < 25: return "B", "grade-B"\
+    elif intensity < 35: return "C", "grade-C"\
+    else: return "D", "grade-D"\
+\
+def get_lat_lon(address):\
+    try:\
+        geolocator = Nominatim(user_agent="kwh_app_v5_final_re", timeout=10)\
+        if "Canada" not in address: address += ", Quebec, Canada"\
+        location = geolocator.geocode(address)\
+        if location: return location.latitude, location.longitude\
+        return None\
+    except: return None\
+\
+def estimate_roof_area(lat, lon):\
+    # API Overpass (OSM) - INCREASED RADIUS to 150m AND adding Relations\
+    overpass_url = "http://overpass-api.de/api/interpreter"\
+    overpass_query = f"""\
+    [out:json];\
+    (\
+      way["building"](around:150, \{lat\}, \{lon\});\
+      relation["building"](around:150, \{lat\}, \{lon\});\
+    );\
+    out geom;\
+    """\
+    headers = \{'User-Agent': 'kwh-estimator-app/1.0'\}\
+    try:\
+        response = requests.get(overpass_url, params=\{'data': overpass_query\}, headers=headers, timeout=10)\
+        data = response.json()\
+        total_area = 0.0\
+        if 'elements' in data and len(data['elements']) > 0:\
+            # SUM ALL BUILDINGS FOUND\
+            for el in data['elements']:\
+                geometry = []\
+                if 'geometry' in el:\
+                    geometry = el['geometry']\
+                elif 'members' in el:\
+                    # Try to extract geometry from members (outer role)\
+                    for m in el['members']:\
+                        if m.get('role') == 'outer' and 'geometry' in m:\
+                            geometry = m['geometry']\
+                            break\
+                \
+                if len(geometry) < 3: continue\
+                \
+                R = 6378137\
+                lat_rad = math.radians(lat)\
+                x = []; y = []\
+                for pt in geometry:\
+                    if 'lon' in pt and 'lat' in pt:\
+                        x.append(math.radians(pt['lon']) * R * math.cos(lat_rad))\
+                        y.append(math.radians(pt['lat']) * R)\
+                \
+                if len(x) > 2:\
+                    area = 0.0\
+                    j = len(x) - 1\
+                    for i in range(len(x)):\
+                        area += (x[j] + x[i]) * (y[j] - y[i])\
+                        j = i\
+                    total_area += abs(area / 2.0)\
+            \
+            return total_area\
+    except:\
+        return 0\
+    return 0\
+\
+def get_google_geocoding(address, api_key):\
+    """Uses Google Geocoding API to get Lat/Lon"""\
+    if not api_key: return None\
+    base_url = "https://maps.googleapis.com/maps/api/geocode/json"\
+    params = \{\
+        "address": address,\
+        "key": api_key\
+    \}\
+    try:\
+        response = requests.get(base_url, params=params, timeout=10)\
+        data = response.json()\
+        if data['status'] == 'OK':\
+            loc = data['results'][0]['geometry']['location']\
+            return loc['lat'], loc['lng']\
+    except: return None\
+    return None\
+\
+def get_google_solar_data(lat, lon, api_key):\
+    """Uses Google Solar API (Building Insights) to get roof area"""\
+    if not api_key: return 0\
+    base_url = "https://solar.googleapis.com/v1/buildingInsights:findClosest"\
+    params = \{\
+        "location.latitude": lat,\
+        "location.longitude": lon,\
+        "requiredQuality": "HIGH",\
+        "key": api_key\
+    \}\
+    try:\
+        response = requests.get(base_url, params=params, timeout=10)\
+        data = response.json()\
+        # Check for valid response (keys might vary, focusing on wholeRoofStats)\
+        if 'solarPotential' in data:\
+            # areaMeters2 is the total roof area\
+            return data['solarPotential']['wholeRoofStats']['areaMeters2']\
+    except: return 0\
+    return 0\
+\
+def parse_csv(uploaded_file):\
+    try:\
+        uploaded_file.seek(0)\
+        sample = uploaded_file.read(2048).decode('ISO-8859-1')\
+        uploaded_file.seek(0)\
+        separator = ';' if sample.count(';') > sample.count(',') else ','\
+        df = pd.read_csv(uploaded_file, sep=separator, encoding='ISO-8859-1', engine='python')\
+        col_0 = str(df.columns[0])\
+        if 'Date' not in col_0 and 'Contrat' not in col_0:\
+            uploaded_file.seek(0)\
+            df = pd.read_csv(uploaded_file, sep=separator, encoding='ISO-8859-1', header=1, engine='python')\
+        df.columns = [c.strip() for c in df.columns]\
+        cols = [c.lower() for c in df.columns]\
+        if any('puissance' in c and ('reelle' in c or 'r\'e9elle' in c) for c in cols):\
+            col_target = [c for c in df.columns if 'puissance' in c.lower() and ('reelle' in c.lower() or 'r\'e9elle' in c.lower())][0]\
+            df = df[['Date et heure', col_target]].copy()\
+            df.columns = ['Date', 'kW']\
+            type_file = "15min"\
+        elif any('kwh' in c for c in cols):\
+            col_target = [c for c in df.columns if 'kwh' in c.lower()][0]\
+            df = df[['Date et heure', col_target]].copy()\
+            df.columns = ['Date', 'kWh']\
+            type_file = "Heure"\
+        else: return None, None\
+        df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')\
+        df = df.dropna(subset=['Date'])\
+        col_val = 'kW' if type_file == '15min' else 'kWh'\
+        if df[col_val].dtype == object:\
+            df[col_val] = df[col_val].astype(str).str.replace(',', '.', regex=False)\
+            df[col_val] = pd.to_numeric(df[col_val], errors='coerce').fillna(0)\
+        return type_file, df\
+    except: return None, None\
+\
+def build_simulator_8760(df_15, df_hour):\
+    dates = pd.date_range(start='2025-01-01', end='2025-12-31 23:00:00', freq='h')\
+    sim = pd.DataFrame(\{'Date': dates\})\
+    sim['Month'] = sim['Date'].dt.month\
+    sim['Hour'] = sim['Date'].dt.hour\
+    if df_hour is not None:\
+        if len(df_hour) >= 8760: sim['Conso_kWh'] = df_hour['kWh'].values[:8760]\
+        else: sim['Conso_kWh'] = df_hour['kWh'].mean()\
+    else: sim['Conso_kWh'] = 0\
+    if df_15 is not None:\
+        df_15_h = df_15.set_index('Date').resample('h')['kW'].max().reset_index()\
+        if len(df_15_h) >= 8760: sim['Pic_kW'] = df_15_h['kW'].values[:8760]\
+        else: sim['Pic_kW'] = sim['Conso_kWh'] * 1.5\
+    else: sim['Pic_kW'] = 0\
+    return sim.fillna(0)\
+\
+def run_simulation(sim_df, t_sol, c_bat, p_bat, seuil, h_ch):\
+    df = sim_df.copy()\
+    hours = df['Hour'].values\
+    months = df['Month'].values\
+    bell = np.exp(-((hours - 13) ** 2) / 8)\
+    season = 1 - 0.4 * np.cos((months - 6) * 2 * np.pi / 12)\
+    mask_day = (hours >= 5) & (hours <= 20)\
+    prod_unit = bell * season * 0.75 * mask_day\
+    df['Prod_Sol'] = prod_unit * t_sol\
+    df['Net'] = df['Conso_kWh'] - df['Prod_Sol']\
+    soc = c_bat * 0.5\
+    soc_list, act_list, p_fin_list = [], [], []\
+    pic_vals = df['Pic_kW'].values\
+    net_vals = df['Net'].values\
+    for i in range(len(df)):\
+        pic, net, h = pic_vals[i], net_vals[i], hours[i]\
+        act = 0\
+        if p_bat > 0 and c_bat > 0:\
+            if pic > seuil and soc > 0: act = -min(pic - seuil, p_bat, soc)\
+            elif net < 0 and soc < c_bat: act = min(abs(net), p_bat, c_bat - soc)\
+            elif h >= h_ch and soc < c_bat: act = min(p_bat, c_bat - soc)\
+            soc += act\
+        soc_list.append(soc); act_list.append(act); p_fin_list.append(max(0, pic + (act if act < 0 else 0)))\
+    df['Batt_kW'] = act_list\
+    df['Pic_Final'] = p_fin_list\
+    discharge = np.array(act_list)\
+    discharge = np.where(discharge < 0, -discharge, 0)\
+    df['Autoconsommation'] = np.minimum(df['Conso_kWh'], df['Prod_Sol'] + discharge)\
+    return df\
+\
+def calculate_financials(h, res_df):\
+    total_autocons = res_df['Autoconsommation'].sum()\
+    monthly_pic_av = res_df.groupby('Month')['Pic_kW'].max()\
+    monthly_pic_ap = res_df.groupby('Month')['Pic_Final'].max()\
+    econ_energie = total_autocons * h['tar_e']\
+    econ_puissance = (monthly_pic_av - monthly_pic_ap).sum() * h['tar_p']\
+    \
+    cout_sol = h['t_sol'] * 1000 * h['c_sol_u']\
+    cout_bat = (h['c_bat'] * h['c_bat_c_u'] + h['p_bat'] * h['c_bat_p_u'])\
+    capex_brut = cout_sol + cout_bat\
+    \
+    pot_sub_sol = h['t_sol'] * 1000 \
+    pot_sub_bat = h['p_bat'] * 300   \
+    total_pot_sub = pot_sub_sol + pot_sub_bat\
+    plafond_global = capex_brut * 0.40\
+    total_provincial = min(total_pot_sub, plafond_global)\
+    \
+    if total_pot_sub > 0:\
+        ratio_bat = pot_sub_bat / total_pot_sub\
+        sub_prov_bat = total_provincial * ratio_bat\
+        sub_prov_sol = total_provincial * (1 - ratio_bat)\
+    else: sub_prov_sol = 0; sub_prov_bat = 0\
+    \
+    sub_bat_y0 = sub_prov_bat * 0.5\
+    sub_bat_y1 = sub_prov_bat * 0.5\
+    \
+    assiette_cii = capex_brut - total_provincial\
+    cii_federal = assiette_cii * 0.30 \
+    capex_net_comptable = max(0, capex_brut - total_provincial - cii_federal)\
+    tax_shield = capex_net_comptable * h['tax_rate'] * 0.90 \
+    equity_initial = capex_brut - sub_prov_sol - sub_bat_y0\
+    \
+    cashflows_net = [-equity_initial]\
+    detailed_cashflows = [\{'Annee': 0, 'Revenus': 0, 'OM': 0, 'EBITDA': 0, 'Invest': -equity_initial, 'DPA': 0, 'Incentives': 0, 'FluxNet': -equity_initial, 'Cumul': -equity_initial\}]\
+    opex_base = (cout_sol * h['om_s']) + (cout_bat * h['om_b'])\
+    cumul = -equity_initial\
+\
+    for y in range(1, 26):\
+        revenus = (econ_energie + econ_puissance) * ((1 + h['inf']) ** (y - 1))\
+        opex = opex_base * ((1 + h['om_esc']) ** (y - 1))\
+        ebitda = revenus - opex\
+        incentives_inflow = 0\
+        dpa_inflow = 0\
+        if y == 1: dpa_inflow = tax_shield; incentives_inflow += sub_bat_y1\
+        if y == 2: incentives_inflow += cii_federal\
+        invest = -(cout_bat) * 0.6 if (y == 10 and h['c_bat'] > 0) else 0\
+        flux_net = ebitda + invest + dpa_inflow + incentives_inflow\
+        cumul += flux_net\
+        cashflows_net.append(flux_net)\
+        detailed_cashflows.append(\{'Annee': y, 'Revenus': revenus, 'OM': -opex, 'EBITDA': ebitda, 'Invest': invest, 'DPA': dpa_inflow, 'Incentives': incentives_inflow, 'FluxNet': flux_net, 'Cumul': cumul\})\
+            \
+    van_20 = npf.npv(h['wacc'], cashflows_net)\
+    try: tri_20 = npf.irr(cashflows_net)\
+    except: tri_20 = 0\
+    \
+    payback = 0\
+    running_sum = 0\
+    for i, f in enumerate(cashflows_net):\
+        running_sum += f\
+        if running_sum >= 0: payback = i; break\
+        \
+    van_10 = npf.npv(h['wacc'], cashflows_net[:11])\
+    try: tri_10 = npf.irr(cashflows_net[:11])\
+    except: tri_10 = 0\
+\
+    # LCOE 25 ans\
+    total_prod_25 = res_df['Prod_Sol'].sum() * 25 \
+    lcoe = 0\
+    if total_prod_25 > 0:\
+        total_costs_npv = equity_initial + sum([opex_base * ((1+h['om_esc'])**y) / ((1+h['wacc'])**y) for y in range(25)])\
+        lcoe = total_costs_npv / total_prod_25\
+\
+    return \{\
+        'van': van_20, 'tri': tri_20, 'payback': payback, 'van_10': van_10, 'tri_10': tri_10,\
+        'lcoe': lcoe,\
+        'capex_net': capex_net_comptable, 'capex_brut': capex_brut,\
+        'subventions': total_provincial + cii_federal,\
+        'econ_an1': econ_energie + econ_puissance,\
+        'flux_net_an1': detailed_cashflows[1]['FluxNet'],\
+        'tax_shield': tax_shield,\
+        'cashflows': cashflows_net,\
+        'detailed_cashflows': detailed_cashflows,\
+        't_sol': h['t_sol'], 'c_bat': h['c_bat'], 'p_bat': h['p_bat'],\
+        'self_suff': (total_autocons / res_df['Conso_kWh'].sum()) if res_df['Conso_kWh'].sum() > 0 else 0,\
+        'co2': (total_autocons * 0.010) / 1000,\
+        'econ_kwh': total_autocons,\
+        'breakdown': \{\
+            'cout_sol': cout_sol, 'cout_bat': cout_bat,\
+            'sub_prov_sol': sub_prov_sol, 'sub_prov_bat': sub_prov_bat,\
+            'sub_bat_y0': sub_bat_y0, 'sub_bat_y1': sub_bat_y1,\
+            'assiette_cii': assiette_cii, 'cii_fed': cii_federal,\
+            'tax_shield': tax_shield, 'equity_initial': equity_initial,\
+            'pot_sub_sol': pot_sub_sol, 'pot_sub_bat': pot_sub_bat, 'plafond_global': plafond_global\
+        \},\
+        'res_sim': res_df\
+    \}\
+\
+def get_excel_file(scenario):\
+    output = io.BytesIO()\
+    try:\
+        with pd.ExcelWriter(output) as writer:\
+            df_cf = pd.DataFrame(scenario['detailed_cashflows'])\
+            df_cf.to_excel(writer, sheet_name='Cashflow Detail', index=False)\
+            res = scenario['res_sim'].copy()\
+            res['Month'] = res['Date'].dt.to_period('M')\
+            monthly = res.groupby('Month').agg(\{'Conso_kWh': 'sum', 'Prod_Sol': 'sum', 'Autoconsommation': 'sum', 'Pic_kW': 'max', 'Pic_Final': 'max'\}).reset_index()\
+            monthly['Month'] = monthly['Month'].astype(str)\
+            monthly.to_excel(writer, sheet_name='Simulation Monthly', index=False)\
+            bd = scenario['breakdown']\
+            params = pd.DataFrame(list(bd.items()), columns=['Parameter', 'Value'])\
+            params.to_excel(writer, sheet_name='Parameters', index=False)\
+        return output.getvalue(), "xlsx"\
+    except Exception:\
+        output = io.BytesIO()\
+        pd.DataFrame(scenario['detailed_cashflows']).to_csv(output, index=False, sep=';')\
+        return output.getvalue(), "csv"\
+\
+# --- PDF GENERATOR (BRANDED) ---\
+\
+class ClientPDF(FPDF):\
+    def __init__(self, lang_code='fr'):\
+        super().__init__()\
+        self.lang = lang_code\
+\
+    def header(self):\
+        self.set_fill_color(255, 255, 255)\
+        self.rect(0, 0, 210, 30, 'F')\
+        if os.path.exists("logo_kwh.png"):\
+            self.image("logo_kwh.png", x=10, y=8, h=18) \
+        self.set_font('Arial', 'B', 16)\
+        self.set_text_color(*BRAND_RGB_BLUE) # Brand Blue\
+        self.set_xy(0, 10)\
+        self.cell(200, 10, clean_text(get_trans('pdf_feasibility', self.lang)), 0, 1, 'R')\
+        self.set_font('Arial', '', 9)\
+        self.set_text_color(100, 100, 100)\
+        self.set_xy(0, 18)\
+        self.cell(200, 10, f'\{datetime.now().strftime("%d/%m/%Y")\}', 0, 1, 'R')\
+        self.set_draw_color(*BRAND_RGB_BLUE)\
+        self.set_line_width(0.5)\
+        self.line(10, 32, 200, 32)\
+\
+    def footer(self):\
+        self.set_y(-15)\
+        self.set_font('Arial', '', 8)\
+        self.set_text_color(150)\
+        self.cell(0, 10, clean_text(f"\{get_trans('pdf_confidential', self.lang)\} | Page \{self.page_no()\}"), 0, 0, 'C')\
+\
+def create_client_pdf(scenario, client_name, address, figs, lang_code, roof_img=None, extra_data=None):\
+    pdf = ClientPDF(lang_code)\
+    pdf.set_auto_page_break(auto=True, margin=15)\
+    pdf.add_page()\
+    pdf.ln(25)\
+    \
+    # Title\
+    pdf.set_font("Arial", 'B', 20)\
+    pdf.set_text_color(30, 30, 30)\
+    pdf.cell(0, 10, clean_text(f"\{client_name\}"), ln=True)\
+    if address:\
+        pdf.set_font("Arial", '', 11)\
+        pdf.set_text_color(100)\
+        pdf.cell(0, 8, clean_text(address), ln=True)\
+    pdf.ln(10)\
+\
+    if roof_img:\
+        try:\
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:\
+                tmp.write(roof_img.read())\
+                pdf.image(tmp.name, x=65, w=80, h=50, type='PNG') \
+                pdf.ln(55)\
+        except: pass\
+\
+    y_kpi = pdf.get_y()\
+    def draw_card(x, title, value, unit=""):\
+        pdf.set_fill_color(250, 250, 250)\
+        pdf.set_draw_color(200)\
+        pdf.rect(x, y_kpi, 45, 28, 'DF')\
+        pdf.set_fill_color(*BRAND_RGB_BLUE)\
+        pdf.rect(x, y_kpi, 45, 1.5, 'F') \
+        pdf.set_xy(x, y_kpi+4)\
+        pdf.set_font("Arial", 'B', 8)\
+        pdf.set_text_color(100)\
+        pdf.cell(45, 5, clean_text(title.upper()), 0, 1, 'C')\
+        pdf.set_xy(x, y_kpi+12)\
+        pdf.set_font("Arial", 'B', 14)\
+        pdf.set_text_color(*BRAND_RGB_BLUE)\
+        pdf.cell(45, 8, clean_text(value), 0, 1, 'C')\
+        if unit:\
+            pdf.set_xy(x, y_kpi+20)\
+            pdf.set_font("Arial", '', 8)\
+            pdf.set_text_color(150)\
+            pdf.cell(45, 4, clean_text(unit), 0, 1, 'C')\
+\
+    draw_card(10, get_trans('savings_y1', lang_code), f"\{scenario['econ_an1']:,.0f\} $")\
+    draw_card(60, get_trans('invest_net', lang_code), f"\{scenario['capex_net']:,.0f\} $")\
+    draw_card(110, get_trans('npv', lang_code), f"\{scenario['van']:,.0f\} $", get_trans('unit_20y', lang_code))\
+    draw_card(160, get_trans('irr', lang_code), f"\{scenario['tri']*100:.1f\} %", get_trans('unit_project', lang_code))\
+    pdf.ln(35)\
+    \
+    pdf.set_font("Arial", 'B', 12)\
+    pdf.set_text_color(30)\
+    \
+    def section_header(title):\
+        pdf.ln(5)\
+        pdf.set_fill_color(*BRAND_RGB_BLUE)\
+        pdf.set_text_color(255, 255, 255)\
+        pdf.set_font("Arial", 'B', 12)\
+        pdf.cell(0, 10, f"  \{clean_text(title)\}", 0, 1, 'L', 1)\
+        pdf.set_text_color(0)\
+        pdf.ln(2)\
+\
+    section_header(get_trans('pdf_detailed_analysis', lang_code))\
+    \
+    col1_x, col2_x, curr_y = 10, 110, pdf.get_y()\
+    def add_detail_row(x, label, value, bold=False):\
+        pdf.set_xy(x, pdf.get_y())\
+        pdf.set_font("Arial", '' if not bold else 'B', 10)\
+        pdf.set_text_color(80)\
+        pdf.cell(60, 8, clean_text(label + " :"), 0, 0)\
+        pdf.set_font("Arial", 'B', 10)\
+        pdf.set_text_color(30)\
+        pdf.cell(30, 8, clean_text(value), 0, 1, 'R')\
+        pdf.set_draw_color(240)\
+        pdf.line(x, pdf.get_y(), x+90, pdf.get_y())\
+        pdf.ln(8)\
+\
+    pdf.set_xy(col1_x, curr_y)\
+    pdf.set_font("Arial", 'B', 10); pdf.set_text_color(*BRAND_RGB_BLUE)\
+    pdf.cell(90, 8, clean_text(get_trans('pdf_sec_config', lang_code)), 0, 1)\
+    add_detail_row(col1_x, get_trans('lbl_sol_pow', lang_code), f"\{scenario['t_sol']\} kWc")\
+    add_detail_row(col1_x, get_trans('lbl_bat_cap', lang_code), f"\{scenario['c_bat']\} kWh")\
+    add_detail_row(col1_x, get_trans('lbl_bat_pow', lang_code), f"\{scenario['p_bat']\} kW")\
+    \
+    # ADDED ROOF INFO TO PDF\
+    if extra_data and 'roof_total' in extra_data:\
+        add_detail_row(col1_x, get_trans('lbl_roof_tot', lang_code), f"\{extra_data['roof_total']:,.0f\} pi2")\
+        \
+        # Fix dynamic label for PDF\
+        roof_pct_label = f"\{get_trans('lbl_roof_use', lang_code)\} (\{extra_data.get('roof_ratio_display', 0.8)*100:.0f\}%)"\
+        add_detail_row(col1_x, roof_pct_label, f"\{extra_data['roof_usable']:,.0f\} pi2")\
+    \
+    pdf.set_xy(col2_x, curr_y)\
+    pdf.set_font("Arial", 'B', 10); pdf.set_text_color(*BRAND_RGB_BLUE)\
+    pdf.cell(90, 8, clean_text(get_trans('pdf_sec_finance', lang_code)), 0, 1)\
+    add_detail_row(col2_x, get_trans('lbl_capex_gross', lang_code), f"\{scenario['capex_brut']:,.0f\} $")\
+    add_detail_row(col2_x, get_trans('lbl_incentives', lang_code), f"- \{scenario['subventions']:,.0f\} $", True)\
+    add_detail_row(col2_x, "VAN (10)", f"\{scenario['van_10']:,.0f\} $")\
+    add_detail_row(col2_x, get_trans('lbl_lcoe', lang_code), f"\{scenario['lcoe']:.3f\} $/kWh")\
+\
+    pdf.ln(10)\
+\
+    def add_chart(fig, title, h=80):\
+        if pdf.get_y() + h + 20 > 270: pdf.add_page(); pdf.ln(20)\
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:\
+            fig.write_image(tmp.name, format="png", width=1200, height=600, scale=2)\
+            pdf.set_font("Arial", 'B', 11)\
+            pdf.set_text_color(*BRAND_RGB_BLUE)\
+            pdf.cell(0, 10, clean_text(title), ln=True)\
+            pdf.image(tmp.name, x=10, w=190, h=h)\
+            pdf.ln(5)\
+\
+    if figs.get('scatter'): add_chart(figs['scatter'], get_trans('pdf_why_this', lang_code), h=90)\
+    if figs.get('cf'): add_chart(figs['cf'], get_trans('chart_cf_title', lang_code), h=75)\
+    if figs.get('prof'): add_chart(figs['prof'], get_trans('chart_prof_title', lang_code), h=85)\
+    \
+    if figs.get('risk') or extra_data:\
+        pdf.add_page(); pdf.ln(20)\
+        if figs.get('risk'): add_chart(figs['risk'], get_trans('pdf_why_now', lang_code), h=90)\
+        pdf.ln(10)\
+        if extra_data and 'autonomy' in extra_data:\
+            pdf.set_fill_color(240, 248, 255)\
+            pdf.rect(10, pdf.get_y(), 190, 30, 'F')\
+            pdf.set_xy(15, pdf.get_y() + 5)\
+            pdf.set_font("Arial", 'B', 12)\
+            pdf.set_text_color(*BRAND_RGB_BLUE)\
+            pdf.cell(0, 8, clean_text(f"\{get_trans('pdf_resilience_sec', lang_code)\}"), ln=True)\
+            pdf.set_font("Arial", '', 10)\
+            pdf.set_text_color(50)\
+            pdf.multi_cell(180, 5, clean_text(get_trans('res_msg', lang_code)))\
+            pdf.set_font("Arial", 'B', 14)\
+            pdf.set_text_color(*BRAND_RGB_YELLOW)\
+            pdf.set_xy(160, pdf.get_y() - 12)\
+            pdf.cell(30, 10, clean_text(f"\{extra_data['autonomy']:.1f\} \{get_trans('res_hours', lang_code)\}"), 0, 0, 'R')\
+            pdf.ln(15)\
+\
+    pdf.add_page(); pdf.ln(20)\
+    section_header(get_trans('pdf_cashflow_tab', lang_code))\
+    pdf.set_font("Arial", 'B', 8)\
+    pdf.set_fill_color(243, 244, 246); pdf.set_text_color(55, 65, 81)\
+    cols = ["Year", "Rev", "O&M", "Invest", "Tax", "NET", "CUMUL"]\
+    w = [10, 30, 25, 30, 25, 35, 35]\
+    for i, c in enumerate(cols): pdf.cell(w[i], 10, c, 0, 0, 'C', 1)\
+    pdf.ln()\
+    pdf.set_font("Arial", '', 8)\
+    for i, row in enumerate(scenario['detailed_cashflows']):\
+        if i % 2 == 0: pdf.set_fill_color(255, 255, 255)\
+        else: pdf.set_fill_color(250, 250, 250)\
+        pdf.cell(w[0], 8, str(row['Annee']), 0, 0, 'C', 1)\
+        pdf.cell(w[1], 8, f"\{row['Revenus']:,.0f\}", 0, 0, 'R', 1)\
+        pdf.cell(w[2], 8, f"\{row['OM']:,.0f\}", 0, 0, 'R', 1)\
+        pdf.cell(w[3], 8, f"\{row['Invest']:,.0f\}", 0, 0, 'R', 1)\
+        pdf.cell(w[4], 8, f"\{row['DPA']:,.0f\}", 0, 0, 'R', 1)\
+        pdf.set_font("Arial", 'B', 8)\
+        if row['FluxNet'] < 0: pdf.set_text_color(220, 38, 38)\
+        else: pdf.set_text_color(5, 150, 105)\
+        pdf.cell(w[5], 8, f"\{row['FluxNet']:,.0f\}", 0, 0, 'R', 1)\
+        pdf.set_text_color(55, 65, 81)\
+        pdf.set_font("Arial", '', 8)\
+        pdf.cell(w[6], 8, f"\{row['Cumul']:,.0f\}", 0, 1, 'R', 1)\
+\
+    if figs.get('opt_sol') and figs.get('opt_bat'):\
+        pdf.add_page(); pdf.ln(20)\
+        section_header(get_trans('pdf_annex_proof', lang_code))\
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:\
+            figs['opt_sol'].write_image(tmp.name, format="png", width=1200, height=550, scale=2)\
+            pdf.image(tmp.name, x=10, w=190)\
+            pdf.ln(5)\
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:\
+            figs['opt_bat'].write_image(tmp.name, format="png", width=1200, height=550, scale=2)\
+            pdf.image(tmp.name, x=10, w=190)\
+\
+    return pdf.output(dest='S').encode('latin-1', 'replace')\
+\
+class TechPDF(FPDF):\
+    def __init__(self, lang_code='fr'):\
+        super().__init__()\
+        self.lang = lang_code\
+    def header(self):\
+        self.set_font('Arial', 'B', 10)\
+        self.set_text_color(100)\
+        self.cell(0, 10, clean_text(get_trans('pdf_audit_doc', self.lang)), 0, 1, 'L')\
+        self.set_draw_color(200); self.line(10, 18, 200, 18); self.ln(10)\
+    def footer(self):\
+        self.set_y(-15); self.set_font('Arial', 'I', 8)\
+        self.cell(0, 10, f"Usage Interne / Internal Use | Page \{self.page_no()\}", 0, 0, 'C')\
+\
+def create_tech_pdf(h, best_scenario, client_name, lang_code):\
+    pdf = TechPDF(lang_code)\
+    pdf.set_auto_page_break(auto=True, margin=15)\
+    pdf.add_page()\
+    pdf.set_font("Arial", 'B', 14); pdf.set_text_color(0)\
+    pdf.cell(0, 10, clean_text(f"Audit : \{client_name\}"), ln=True)\
+    pdf.set_font("Arial", '', 9)\
+    pdf.cell(0, 5, f"Date : \{datetime.now().strftime('%d/%m/%Y %H:%M')\}", ln=True)\
+    pdf.ln(10)\
+\
+    pdf.set_fill_color(240); pdf.set_font("Arial", 'B', 10)\
+    pdf.cell(0, 8, clean_text(get_trans('pdf_inputs', lang_code)), 1, 1, 'L', 1)\
+    pdf.ln(2); pdf.set_font("Arial", '', 9)\
+    inputs = [(get_trans('tar_e', lang_code), f"\{h['tar_e']:.4f\}"), (get_trans('tar_p', lang_code), f"\{h['tar_p']:.2f\}"), \
+              (get_trans('inf', lang_code), f"\{h['inf']*100:.2f\}"), (get_trans('wacc', lang_code), f"\{h['wacc']*100:.2f\}")]\
+    for k, v in inputs: pdf.cell(95, 6, clean_text(k), 1); pdf.cell(95, 6, v, 1, 1)\
+    pdf.ln(5)\
+\
+    pdf.set_font("Arial", 'B', 10); pdf.set_fill_color(240)\
+    pdf.cell(0, 8, clean_text(get_trans('pdf_reconst', lang_code)), 1, 1, 'L', 1)\
+    pdf.ln(5)\
+    bd = best_scenario['breakdown']\
+    pdf.set_font("Arial", 'B', 8); pdf.set_fill_color(245)\
+    pdf.cell(100, 6, "ITEM", 1, 0, 'L', 1); pdf.cell(30, 6, "AMOUNT", 1, 0, 'R', 1); pdf.cell(60, 6, "NOTE", 1, 1, 'L', 1)\
+    pdf.set_font("Arial", '', 8)\
+    def add_row(l, v, n, b=False, f=255):\
+        if b: pdf.set_font("Arial", 'B', 8)\
+        pdf.set_fill_color(f); pdf.cell(100, 6, clean_text(l), 1, 0, 'L', 1); pdf.cell(30, 6, f"\{v:,.0f\} $", 1, 0, 'R', 1)\
+        pdf.set_font("Arial", 'I', 7); pdf.cell(60, 6, clean_text(n), 1, 1, 'L', 1); pdf.set_font("Arial", '', 8)\
+\
+    add_row(get_trans('row_eq_sol', lang_code), bd['cout_sol'], "Solaire")\
+    add_row(get_trans('row_eq_bat', lang_code), bd['cout_bat'], "Batterie")\
+    add_row("= CAPEX BRUT", best_scenario['capex_brut'], "Total", True, 240)\
+    pdf.ln(1)\
+    pdf.set_text_color(0, 100, 0)\
+    add_row(get_trans('row_sub_prov', lang_code), -(bd['sub_prov_sol']+bd['sub_prov_bat']), "Min(Potentiel, Plafond 40%)", True, 230)\
+    pdf.set_text_color(0)\
+    add_row(get_trans('row_itc', lang_code), -bd['cii_fed'], "30% ITC (Refundable)", False, 255)\
+    add_row(get_trans('row_capex_net', lang_code), best_scenario['capex_net'], "Base DPA", True, 240)\
+    pdf.ln(5)\
+    \
+    pdf.set_font("Arial", 'B', 9)\
+    pdf.cell(0, 6, clean_text(get_trans('timing_title', lang_code)), ln=True)\
+    pdf.set_font("Arial", '', 8)\
+    pdf.cell(40, 6, clean_text(get_trans('t_y0', lang_code)), 1); pdf.cell(30, 6, f"\{bd['equity_initial']:,.0f\} $", 1, 0, 'R'); pdf.cell(0, 6, " Cash Out", 1, 1)\
+    pdf.cell(40, 6, clean_text(get_trans('t_y1', lang_code)), 1); pdf.cell(30, 6, f"\{bd['sub_bat_y1'] + bd['tax_shield']:,.0f\} $", 1, 0, 'R'); pdf.cell(0, 6, " Bat 50% + Tax Shield", 1, 1)\
+    pdf.cell(40, 6, clean_text(get_trans('t_y2', lang_code)), 1); pdf.cell(30, 6, f"\{bd['cii_fed']:,.0f\} $", 1, 0, 'R'); pdf.cell(0, 6, " Fed ITC", 1, 1)\
+    pdf.ln(10)\
+    \
+    pdf.set_font("Arial", 'B', 10); pdf.set_fill_color(240)\
+    pdf.cell(0, 8, clean_text(get_trans('pdf_methodology', lang_code)), 1, 1, 'L', 1)\
+    pdf.ln(2)\
+    pdf.set_font("Arial", 'B', 9); pdf.cell(0, 6, clean_text(get_trans('meth_sol_title', lang_code)), ln=True)\
+    pdf.set_font("Arial", '', 8); pdf.multi_cell(0, 4, clean_text(f"\{get_trans('meth_sol_desc', lang_code)\}\\n\{get_trans('meth_sol_form', lang_code)\}"))\
+    pdf.ln(2)\
+    \
+    pdf.set_font("Arial", 'B', 9); pdf.cell(0, 6, clean_text(get_trans('meth_bat_title', lang_code)), ln=True)\
+    pdf.set_font("Arial", '', 8); pdf.multi_cell(0, 4, clean_text(f"\{get_trans('meth_bat_desc', lang_code)\}\\n\{get_trans('meth_bat_form', lang_code)\}\\nMax Discharge: 0.5C (\{best_scenario['p_bat']\} kW)"))\
+    pdf.ln(2)\
+    \
+    pdf.set_font("Arial", 'B', 9); pdf.cell(0, 6, clean_text(get_trans('meth_fin_title', lang_code)), ln=True)\
+    pdf.set_font("Arial", '', 8)\
+    pdf.cell(60, 5, clean_text(get_trans('op_om_sol', lang_code)), 1); pdf.cell(40, 5, f"\{h['om_s']*100\}% CAPEX", 1, 1)\
+    pdf.cell(60, 5, clean_text(get_trans('op_om_bat', lang_code)), 1); pdf.cell(40, 5, f"\{h['om_b']*100\}% CAPEX", 1, 1)\
+    pdf.cell(60, 5, clean_text(get_trans('op_esc', lang_code)), 1); pdf.cell(40, 5, f"\{h['om_esc']*100\}% / year", 1, 1)\
+    pdf.cell(60, 5, clean_text(get_trans('op_replacement', lang_code)), 1); pdf.cell(40, 5, f"60% Value", 1, 1)\
+    pdf.ln(10)\
+\
+    pdf.set_font("Arial", 'B', 10); pdf.set_fill_color(240)\
+    pdf.cell(0, 8, clean_text(get_trans('pdf_cashflow_raw', lang_code)), 1, 1, 'L', 1)\
+    pdf.set_font("Courier", '', 7)\
+    header = f"\{'Y':<3\}|\{'REV':<10\}|\{'O&M':<8\}|\{'EBITDA':<10\}|\{'INV':<10\}|\{'TAX':<10\}|\{'INC':<10\}|\{'NET':<10\}"\
+    pdf.cell(0, 5, header, ln=True); pdf.line(10, pdf.get_y(), 200, pdf.get_y())\
+    for row in best_scenario['detailed_cashflows']:\
+        inc = row.get('Incentives', 0)\
+        line = f"\{row['Annee']:<3\}|\{row['Revenus']:<10.0f\}|\{row['OM']:<8.0f\}|\{row['EBITDA']:<10.0f\}|\{row['Invest']:<10.0f\}|\{row['DPA']:<10.0f\}|\{inc:<10.0f\}|\{row['FluxNet']:<10.0f\}"\
+        pdf.cell(0, 4, line, ln=True)\
+    return pdf.output(dest='S').encode('latin-1', 'replace')\
+\
+# --- MAIN APP LOGIC ---\
+# (Suppression de la section Logo redondante ici)\
+\
+# 2. Project Name (Back in Sidebar)\
+st.sidebar.header(get_trans('sidebar_project', lang_code))\
+client_name = st.sidebar.text_input(get_trans('project_name', lang_code), "Projet A")\
+\
+# 4. Parameters (Hidden)\
+with st.sidebar.expander(get_trans('sidebar_params', lang_code), expanded=False):\
+    h = \{\
+        'tar_e': st.number_input(get_trans('tar_e', lang_code), 0.04, 0.20, 0.057, 0.001, help=get_trans('help_tar_e', lang_code)),\
+        'tar_p': st.number_input(get_trans('tar_p', lang_code), 10.0, 30.0, 17.57, 0.1, help=get_trans('help_tar_p', lang_code)),\
+        'inf': st.number_input(get_trans('inf', lang_code), 0.0, 10.0, 4.8, help=get_trans('help_inf', lang_code)) / 100,\
+        'wacc': st.number_input(get_trans('wacc', lang_code), 0.0, 15.0, 8.0, help=get_trans('help_wacc', lang_code)) / 100,\
+        'tax_rate': st.number_input(get_trans('tax', lang_code), 0.0, 50.0, 26.5) / 100,\
+        'c_sol_u': st.number_input(get_trans('cost_sol', lang_code), 1.0, 4.0, 2.25),\
+        'c_bat_c_u': 550, 'c_bat_p_u': 800, 'om_s': 0.01, 'om_b': 0.005, 'om_esc': 0.025\
+    \}\
+    st.markdown("---")\
+    roof_ratio_val = st.number_input(get_trans('param_roof_ratio', lang_code), 10, 100, 80, 5) / 100.0\
+    # ROOF INPUT\
+    roof_area_input = st.number_input(\
+        get_trans('roof_area_label', lang_code), \
+        min_value=0.0, \
+        value=float(st.session_state.roof_area_sqft),\
+        step=100.0,\
+        key='roof_area_input_widget'\
+    )\
+    if roof_area_input != st.session_state.roof_area_sqft:\
+         st.session_state.roof_area_sqft = roof_area_input\
+    \
+    st.markdown("---")\
+    # GOOGLE API KEY (G\'e9r\'e9 au d\'e9but)\
+    if "GOOGLE_API_KEY" in st.secrets:\
+        st.success("\uc0\u9989  API Key charg\'e9e (Secrets)")\
+    else:\
+        google_api_key = st.text_input(\
+            get_trans('api_label', lang_code), \
+            value=st.session_state.google_api_key, \
+            type="password", \
+            help=get_trans('api_help', lang_code)\
+        )\
+        if google_api_key: \
+            st.session_state.google_api_key = google_api_key\
+\
+st.sidebar.markdown("---")\
+st.sidebar.radio("Language", ["Fran\'e7ais", "English"], key="lang_choice", horizontal=True, label_visibility="collapsed")\
+\
+# --- MAIN PAGE ---\
+st.title(get_trans('main_title', lang_code))\
+st.caption(f"\{datetime.now().strftime('%d/%m/%Y')\}")\
+\
+# STEPS UI\
+col_step1, col_step2, col_step3 = st.columns(3)\
+with col_step1:\
+    st.markdown(f"""<div class="step-container"><div class="step-badge">1</div><div class="step-title">\{get_trans('step1_title', lang_code)\}</div></div>""", unsafe_allow_html=True)\
+    st.caption(get_trans('step1_desc', lang_code))\
+    \
+    address = st.text_input(get_trans('address', lang_code), "Montreal, QC")\
+    postal_code = st.text_input(get_trans('postal_code', lang_code), "")\
+    \
+    if st.button(get_trans('btn_check', lang_code)):\
+         search_address = address\
+         if postal_code: search_address += f", \{postal_code\}"\
+         \
+         if search_address:\
+             if st.session_state.google_api_key:\
+                 lat_lon = get_google_geocoding(search_address, st.session_state.google_api_key)\
+                 if lat_lon:\
+                     st.session_state.lat_lon = lat_lon\
+                     area_m2 = get_google_solar_data(lat_lon[0], lat_lon[1], st.session_state.google_api_key)\
+                     if area_m2 > 0:\
+                         st.session_state.roof_area_sqft = area_m2 * 10.7639\
+                         st.session_state.valid_address = True\
+                         st.rerun()\
+             \
+             lat_lon = get_lat_lon(search_address)\
+             if lat_lon:\
+                 st.session_state.lat_lon = lat_lon\
+                 lat, lon = lat_lon\
+                 area_m2 = estimate_roof_area(lat, lon)\
+                 if area_m2 > 0:\
+                     st.session_state.roof_area_sqft = area_m2 * 10.7639\
+                     st.session_state.valid_address = True\
+                     st.rerun()\
+                 else:\
+                     st.session_state.valid_address = False \
+                     st.warning(get_trans('check_roof_warn', lang_code))\
+             else:\
+                 st.session_state.valid_address = False \
+                 st.error(get_trans('check_fail', lang_code))\
+         else:\
+             st.session_state.valid_address = False \
+\
+    if st.session_state.get('lat_lon'):\
+         st.success(f"\{get_trans('addr_found', lang_code)\} \{st.session_state.lat_lon\}")\
+         \
+         if st.session_state.get('valid_address', False):\
+            st.success(f"\{get_trans('check_roof_ok', lang_code)\} \{st.session_state.roof_area_sqft:,.0f\} pi\'b2")\
+         \
+         if st.session_state.google_api_key:\
+             map_url = f"https://maps.googleapis.com/maps/api/staticmap?center=\{st.session_state.lat_lon[0]\},\{st.session_state.lat_lon[1]\}&zoom=18&size=400x300&maptype=satellite&key=\{st.session_state.google_api_key\}"\
+             st.image(map_url)\
+         else:\
+             view_state = pdk.ViewState(latitude=st.session_state.lat_lon[0], longitude=st.session_state.lat_lon[1], zoom=16, pitch=0)\
+             layer = pdk.Layer(\
+                 "ScatterplotLayer", \
+                 data=pd.DataFrame(\{'lat': [st.session_state.lat_lon[0]], 'lon': [st.session_state.lat_lon[1]]\}), \
+                 get_position='[lon, lat]', \
+                 get_color=[255, 176, 5, 200], \
+                 get_radius=30\
+             )\
+             st.pydeck_chart(pdk.Deck(initial_view_state=view_state, layers=[layer], map_style='mapbox://styles/mapbox/satellite-v9'), use_container_width=True)\
+    \
+    roof_photo = st.file_uploader(get_trans('roof_photo', lang_code), type=['png', 'jpg', 'jpeg'])\
+\
+with col_step2:\
+    st.markdown(f"""<div class="step-container"><div class="step-badge">2</div><div class="step-title">\{get_trans('step2_title', lang_code)\}</div></div>""", unsafe_allow_html=True)\
+    st.caption(get_trans('step2_desc', lang_code))\
+    st.markdown(f"*\{get_trans('multi_account_msg', lang_code)\}*")\
+    uploaded_files = st.file_uploader(get_trans('drag_drop', lang_code), accept_multiple_files=True, type=['csv'], label_visibility="collapsed")\
+\
+with col_step3:\
+    st.markdown(f"""<div class="step-container"><div class="step-badge">3</div><div class="step-title">\{get_trans('step3_title', lang_code)\}</div></div>""", unsafe_allow_html=True)\
+    st.caption(get_trans('step3_desc', lang_code))\
+    start_btn = st.button(get_trans('btn_start_sim', lang_code), type="primary")\
+\
+if start_btn:\
+    st.session_state.simulation_done = True\
+    if address and not st.session_state.get('valid_address', False):\
+        search_address = address\
+        if postal_code: search_address += f", \{postal_code\}"\
+        lat_lon = get_lat_lon(search_address)\
+        if lat_lon:\
+            st.session_state.lat_lon = lat_lon\
+            lat, lon = lat_lon\
+            area_m2 = estimate_roof_area(lat, lon)\
+            if area_m2 > 0:\
+                st.session_state.roof_area_sqft = area_m2 * 10.7639\
+                st.session_state.valid_address = True\
+                st.rerun() \
+\
+if uploaded_files and st.session_state.simulation_done:\
+    with st.spinner(get_trans('analyzing', lang_code)):\
+        list_15, list_h = [], []\
+        for f in uploaded_files:\
+            ftype, df = parse_csv(f)\
+            if ftype == "15min": list_15.append(df)\
+            elif ftype == "Heure": list_h.append(df)\
+            \
+        if not list_15 and not list_h:\
+             st.error("Erreur: Aucun fichier valide trouv\'e9. Veuillez utiliser des fichiers CSV d'Hydro-Qu\'e9bec.")\
+        else:\
+            if list_15:\
+                df_15_all = pd.concat(list_15)\
+                df_15_agg = df_15_all.groupby('Date')[['kW']].sum().reset_index().sort_values('Date')\
+                sim_data_15 = df_15_agg\
+            else:\
+                sim_data_15 = None\
+            \
+            if list_h:\
+                df_h_all = pd.concat(list_h)\
+                df_h_agg = df_h_all.groupby('Date')[['kWh']].sum().reset_index().sort_values('Date')\
+                sim_data_h = df_h_agg\
+            else:\
+                sim_data_h = None\
+            \
+            sim_data = build_simulator_8760(sim_data_15, sim_data_h)\
+            conso_an = sim_data['Conso_kWh'].sum()\
+            pic_max = sim_data['Pic_kW'].max()\
+            \
+            usable_roof_sqft = st.session_state.roof_area_sqft * roof_ratio_val\
+            max_kW_roof = usable_roof_sqft / 100.0\
+            \
+            target_s_conso = (conso_an / 1150) * 1.2\
+            max_scan = max(50, int(np.ceil(target_s_conso / 50.0)) * 50)\
+            \
+            is_roof_constrained = st.session_state.get('valid_address', False) or (st.session_state.roof_area_sqft != 10000.0)\
+            \
+            if is_roof_constrained:\
+                if max_kW_roof < max_scan:\
+                    max_scan = int(max_kW_roof)\
+                    st.info(f"\{get_trans('roof_limit_msg', lang_code)\} (\{max_scan\} kWc)")\
+            else:\
+                 st.caption(f"\{get_trans('roof_unlimited_msg', lang_code)\}")\
+            \
+            if max_scan < 50: max_scan = 50\
+\
+            target_b, max_bat = pic_max * 4, max(50, int(np.ceil(pic_max * 4 / 50.0)) * 50)\
+            \
+            results, best_van, best_scenario = [], -1e9, None\
+            solar_step = max(50, int(max_scan/10)) if max_scan >= 50 else 50\
+            solar_range = range(0, max_scan + 1, solar_step)\
+            \
+            batt_range = range(0, max_bat+1, max(50, int(max_bat/10)))\
+            prog = st.progress(0); count = 0; total = len(solar_range) * len(batt_range)\
+            \
+            for s in solar_range:\
+                for b in batt_range:\
+                    p = min(150, b/2)\
+                    h_loop = h.copy(); h_loop.update(\{'t_sol': s, 'c_bat': b, 'p_bat': p\})\
+                    res_sim = run_simulation(sim_data, s, b, p, pic_max * 0.90, 22)\
+                    fin = calculate_financials(h_loop, res_sim)\
+                    type_s = 'Solaire' if b==0 else ('Batterie' if s==0 else 'Hybride')\
+                    results.append(\{'Solaire': s, 'Batterie': b, 'VAN': fin['van'], 'Invest': fin['capex_net'], 'Type': type_s\})\
+                    if fin['van'] > best_van: best_van = fin['van']; best_scenario = \{**h_loop, **fin, 'res_sim': res_sim\}\
+                    count += 1\
+                    if count % 5 == 0: prog.progress(count/total)\
+            prog.empty()\
+            \
+            # --- SAUVEGARDE POUR PAGE 2 (CONNEXION) ---\
+            st.session_state['suggested_pv_size'] = float(best_scenario['t_sol'])\
+            st.session_state['suggested_bat_size'] = float(best_scenario['c_bat'])\
+\
+            st.markdown("---")\
+            k1, k2, k3, k4 = st.columns(4)\
+            def metric_card(col, title, value, unit=""):\
+                col.markdown(f"<div class='metric-card'><div class='metric-title'>\{title\}</div><div class='metric-value'>\{value\}</div><div class='metric-unit'>\{unit\}</div></div>", unsafe_allow_html=True)\
+            metric_card(k1, get_trans('savings_y1', lang_code), f"\{best_scenario['econ_an1']:,.0f\} $", get_trans('unit_energy_power', lang_code))\
+            metric_card(k2, get_trans('invest_net', lang_code), f"\{best_scenario['capex_net']:,.0f\} $", get_trans('unit_after_sub', lang_code))\
+            metric_card(k3, get_trans('npv', lang_code), f"\{best_scenario['van']:,.0f\} $", get_trans('unit_20y', lang_code))\
+            metric_card(k4, get_trans('irr', lang_code), f"\{best_scenario['tri']*100:.1f\} %", get_trans('unit_project', lang_code))\
+            \
+            years = list(range(26))\
+            base_bill = (conso_an * h['tar_e']) + (pic_max * 12 * h['tar_p'])\
+            cumul_sq_low, cumul_sq_high = [], []\
+            curr_sq_l, curr_sq_h = 0, 0\
+            rate_high = h['inf'] + 0.02\
+            for y in years:\
+                sav_l = (best_scenario['econ_an1']) * ((1 + h['inf']) ** y)\
+                sav_h = (best_scenario['econ_an1']) * ((1 + rate_high) ** y)\
+                curr_sq_l += sav_l; curr_sq_h += sav_h\
+                cumul_sq_low.append(curr_sq_l); cumul_sq_high.append(curr_sq_h)\
+            fig_risk = go.Figure()\
+            fig_risk.add_trace(go.Scatter(x=years, y=cumul_sq_low, name="Inflation Standard", fill='tozeroy', line=dict(color='grey')))\
+            fig_risk.add_trace(go.Scatter(x=years, y=cumul_sq_high, name="Inflation +2% (Risque)", fill='tonexty', line=dict(color='#ef4444')))\
+            fig_risk.update_layout(title=get_trans('risk_cumul_diff', lang_code), yaxis_title="$ Perdus", plot_bgcolor='white')\
+            \
+            crit_load_val = 30 \
+            avg_load_kw = pic_max * (crit_load_val/100)\
+            hours_autonomy_val = best_scenario['c_bat'] / avg_load_kw if avg_load_kw > 0 else 0\
+            extra_data = \{\
+                'autonomy': hours_autonomy_val,\
+                'roof_total': st.session_state.roof_area_sqft,\
+                'roof_usable': st.session_state.roof_area_sqft * roof_ratio_val,\
+                'roof_ratio_display': roof_ratio_val\
+            \}\
+\
+            tab1, tab2, tab3 = st.tabs([get_trans('tab_results', lang_code), get_trans('tab_risks', lang_code), get_trans('tab_acquisition', lang_code)])\
+            \
+            with tab1:\
+                c_tech, c_fin = st.columns(2)\
+                with c_tech:\
+                    st.markdown(f"### \{get_trans('tech_config', lang_code)\}")\
+                    st.markdown(f"""<div class='metric-card'>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_sol_pow', lang_code)\} :</span><span class='detail-val'>\{best_scenario['t_sol']\} kWc</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_bat_cap', lang_code)\} :</span><span class='detail-val'>\{best_scenario['c_bat']\} kWh</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_bat_pow', lang_code)\} :</span><span class='detail-val'>\{best_scenario['p_bat']\} kW</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_self_suff', lang_code)\} :</span><span class='detail-val'>\{best_scenario['self_suff']*100:.1f\} %</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_roof_tot', lang_code)\} :</span><span class='detail-val'>\{st.session_state.roof_area_sqft:,.0f\} pi\'b2</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_roof_use', lang_code)\} (\{roof_ratio_val*100:.0f\} %) :</span><span class='detail-val'>\{st.session_state.roof_area_sqft*roof_ratio_val:,.0f\} pi\'b2</span></div>\
+                    </div>""", unsafe_allow_html=True)\
+                    \
+                    surface_area = st.session_state.roof_area_sqft\
+                    if surface_area > 0:\
+                        intensity_pre = conso_an / surface_area\
+                        grade_pre, color_pre = get_energy_grade(intensity_pre)\
+                        conso_post = conso_an - best_scenario['econ_kwh']\
+                        intensity_post = conso_post / surface_area\
+                        grade_post, color_post = get_energy_grade(intensity_post)\
+                        \
+                        st.markdown(f"#### \{get_trans('bench_title', lang_code)\}")\
+                        b1, b2 = st.columns(2)\
+                        b1.markdown(f"\{get_trans('bench_before', lang_code)\}<br><span class='bench-badge \{color_pre\}'>\{grade_pre\}</span> \{intensity_pre:.1f\}", unsafe_allow_html=True)\
+                        b1.caption(get_trans('bench_cur_desc', lang_code))\
+                        b2.markdown(f"\{get_trans('bench_after', lang_code)\}<br><span class='bench-badge \{color_post\}'>\{grade_post\}</span> \{intensity_post:.1f\}", unsafe_allow_html=True)\
+                        b2.caption(get_trans('bench_proj_desc', lang_code))\
+                        st.caption(get_trans('bench_info', lang_code))\
+\
+                with c_fin:\
+                    st.markdown(f"### \{get_trans('fin_perf', lang_code)\}")\
+                    st.markdown(f"""<div class='metric-card'>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_capex_gross', lang_code)\} :</span><span class='detail-val'>\{best_scenario['capex_brut']:,.0f\} $</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_incentives', lang_code)\} :</span><span class='detail-val'>- \{best_scenario['subventions']:,.0f\} $</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_van_10', lang_code)\} :</span><span class='detail-val'>\{best_scenario['van_10']:,.0f\} $</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_tri_10', lang_code)\} :</span><span class='detail-val'>\{best_scenario['tri_10']*100:.1f\} %</span></div>\
+                        <div class='detail-row'><span class='detail-label'>\{get_trans('lbl_lcoe', lang_code)\} :</span><span class='detail-val'>\{best_scenario['lcoe']:.3f\} $/kWh</span></div>\
+                    </div>""", unsafe_allow_html=True)\
+                    \
+                    with st.expander(get_trans('sens_title', lang_code)):\
+                        st.caption(get_trans('sens_msg', lang_code))\
+                        sens_res = []\
+                        base_inf = h['inf']; base_wacc = h['wacc']\
+                        for i_var in [-0.01, 0, 0.01]:\
+                            row = []\
+                            for w_var in [-0.01, 0, 0.01]:\
+                                h_sens = h.copy(); h_sens['inf'] = base_inf + i_var; h_sens['wacc'] = base_wacc + w_var\
+                                h_sens['t_sol'] = best_scenario['t_sol']; h_sens['c_bat'] = best_scenario['c_bat']; h_sens['p_bat'] = best_scenario['p_bat']\
+                                res_sens = calculate_financials(h_sens, best_scenario['res_sim'])\
+                                row.append(f"\{res_sens['van']:,.0f\} $")\
+                            sens_res.append(row)\
+                        df_sens = pd.DataFrame(sens_res, columns=[f"WACC \{(base_wacc-0.01)*100:.0f\}%", f"WACC \{base_wacc*100:.0f\}%", f"WACC \{(base_wacc+0.01)*100:.0f\}%"], index=[f"Inf. \{(base_inf-0.01)*100:.0f\}%", f"Inf. \{base_inf*100:.0f\}%", f"Inf. \{(base_inf+0.01)*100:.0f\}%"])\
+                        st.dataframe(df_sens, use_container_width=True)\
+\
+                st.markdown(f"### \{get_trans('chart_main_title', lang_code)\}")\
+                cf_df = pd.DataFrame(\{'Ann\'e9e': range(26), 'Flux': best_scenario['cashflows']\}); cf_df['Cumul'] = cf_df['Flux'].cumsum()\
+                fig_cf = px.bar(cf_df, x='Ann\'e9e', y='Flux', title=get_trans('chart_cf_title', lang_code))\
+                fig_cf.add_trace(go.Scatter(x=cf_df['Ann\'e9e'], y=cf_df['Cumul'], mode='lines', name='Cumul', line=dict(color=BRAND_YELLOW, width=3)))\
+                fig_cf.update_traces(marker_color=BRAND_BLUE, selector=dict(type='bar'))\
+                fig_cf.update_layout(plot_bgcolor='white', hovermode="x unified")\
+                \
+                idx_max = best_scenario['res_sim']['Pic_kW'].idxmax()\
+                zoom = best_scenario['res_sim'].iloc[max(0, idx_max-80):min(8760, idx_max+80)]\
+                fig_prof = go.Figure()\
+                fig_prof.add_trace(go.Scatter(x=zoom['Date'], y=zoom['Pic_kW'], name=get_trans('before', lang_code), line=dict(color='#9ca3af', dash='dash')))\
+                fig_prof.add_trace(go.Scatter(x=zoom['Date'], y=zoom['Pic_Final'], name=get_trans('after', lang_code), line=dict(color=BRAND_YELLOW, width=3)))\
+                fig_prof.update_layout(title=get_trans('chart_prof_title', lang_code), yaxis_title="kW", plot_bgcolor='white', legend=dict(orientation="h", y=1.1))\
+\
+                col_g1, col_g2 = st.columns(2)\
+                col_g1.plotly_chart(fig_cf, use_container_width=True)\
+                col_g2.plotly_chart(fig_prof, use_container_width=True)\
+                \
+                df_res = pd.DataFrame(results)\
+                fig_scatter = px.scatter(df_res, x="Invest", y="VAN", color="Type", title=get_trans('chart_scatter_title', lang_code), labels=\{"Invest": get_trans('chart_scatter_x', lang_code), "VAN": get_trans('chart_scatter_y', lang_code)\}, color_discrete_map=\{"Solaire": BRAND_YELLOW, "Batterie": BRAND_BLUE, "Hybride": "#10b981"\})\
+                fig_scatter.add_annotation(x=best_scenario['capex_net'], y=best_scenario['van'], text=get_trans('winner_tag', lang_code), showarrow=True, arrowhead=2, ax=0, ay=-40, font=dict(color="black", size=12, family="Arial Black"))\
+                fig_scatter.update_traces(marker=dict(size=8, opacity=0.7)); fig_scatter.update_layout(plot_bgcolor='#f9fafb', height=500)\
+                \
+                df_sol_opt = df_res[df_res['Batterie'] == 0].sort_values('Solaire')\
+                fig_sol_opt = px.line(df_sol_opt, x="Solaire", y="VAN", title=get_trans('chart_opt_sol', lang_code))\
+                fig_sol_opt.update_traces(line_color=BRAND_YELLOW, line_width=4); fig_sol_opt.add_vline(x=best_scenario['t_sol'], line_dash="dash", line_color="grey")\
+                \
+                best_sol_val = best_scenario['t_sol']\
+                df_bat_opt = df_res[df_res['Solaire'] == best_sol_val].sort_values('Batterie')\
+                fig_bat_opt = px.line(df_bat_opt, x="Batterie", y="VAN", title=get_trans('chart_opt_bat', lang_code))\
+                fig_bat_opt.update_traces(line_color=BRAND_BLUE, line_width=4); fig_bat_opt.add_vline(x=best_scenario['c_bat'], line_dash="dash", line_color="grey")\
+\
+                st.markdown(f"#### \{get_trans('chart_scatter_title', lang_code)\}")\
+                st.plotly_chart(fig_scatter, use_container_width=True)\
+                c1, c2 = st.columns(2)\
+                c1.plotly_chart(fig_sol_opt, use_container_width=True); c2.plotly_chart(fig_bat_opt, use_container_width=True)\
+\
+                with st.expander(get_trans('audit_title', lang_code)):\
+                    bd = best_scenario['breakdown']\
+                    c_aud1, c_aud2 = st.columns(2)\
+                    with c_aud1:\
+                        st.markdown(get_trans('sub_prov', lang_code))\
+                        st.caption(get_trans('audit_hq_sol', lang_code) + f": \{bd['pot_sub_sol']:,.0f\} $")\
+                        st.caption(get_trans('audit_hq_bat', lang_code) + f": \{bd['pot_sub_bat']:,.0f\} $")\
+                        st.write(f"\{get_trans('audit_total_capped', lang_code)\}: **\{(bd['sub_prov_sol']+bd['sub_prov_bat']):,.0f\} $**")\
+                        st.caption(get_trans('audit_cap_msg', lang_code))\
+                        st.markdown("---")\
+                        st.markdown(get_trans('sub_fed', lang_code))\
+                        st.caption(f"\{get_trans('audit_fed_basis', lang_code)\}: \{bd['assiette_cii']:,.0f\} $")\
+                        st.write(f"**ITC (\{get_trans('audit_fed_rate', lang_code)\}): \{bd['cii_fed']:,.0f\} $**")\
+                    with c_aud2:\
+                        st.markdown(get_trans('tax_dpa', lang_code))\
+                        st.caption(f"\{get_trans('audit_dpa_basis', lang_code)\}: \{best_scenario['capex_net']:,.0f\} $")\
+                        st.write(f"**\{get_trans('audit_tax_shield', lang_code)\}: \{bd['tax_shield']:,.0f\} $**")\
+            \
+            with tab2:\
+                st.markdown(f"### \{get_trans('risk_title', lang_code)\}")\
+                st.caption(get_trans('risk_subtitle', lang_code))\
+                st.plotly_chart(fig_risk, use_container_width=True)\
+                st.markdown("---")\
+                st.markdown(f"### \{get_trans('resilience_title', lang_code)\}")\
+                col_res1, col_res2 = st.columns(2)\
+                with col_res1:\
+                    st.info(get_trans('res_msg', lang_code))\
+                with col_res2:\
+                    crit_load = st.slider(get_trans('res_critical_load', lang_code), 10, 100, 30)\
+                    avg_load_disp = pic_max * (crit_load/100)\
+                    hrs_disp = best_scenario['c_bat'] / avg_load_disp if avg_load_disp > 0 else 0\
+                    st.metric(get_trans('res_autonomy', lang_code), f"\{hrs_disp:.1f\} \{get_trans('res_hours', lang_code)\}")\
+\
+            with tab3:\
+                st.markdown(f"### \{get_trans('acq_title', lang_code)\}")\
+                col_acq_in, col_acq_chart = st.columns([1, 2])\
+                with col_acq_in:\
+                    st.markdown("#### Options financement")\
+                    loan_rate = st.slider(get_trans('acq_loan_rate', lang_code), 0.0, 15.0, 7.0, 0.5) / 100\
+                    loan_term = st.slider(get_trans('acq_term', lang_code), 5, 20, 15, 1)\
+                    down_pay = st.slider(get_trans('acq_downpayment', lang_code), 0, 100, 30, 5) / 100\
+                    lease_rate = st.number_input(get_trans('acq_lease_rate', lang_code), 0.0, 20.0, 8.5) / 100\
+                \
+                cf_base = [r['FluxNet'] for r in best_scenario['detailed_cashflows']]\
+                cum_cash = np.cumsum(cf_base)\
+                \
+                capex_net = best_scenario['capex_net']\
+                loan_principal = capex_net * (1 - down_pay)\
+                loan_pmt = npf.pmt(loan_rate, loan_term, -loan_principal)\
+                cf_loan = [cf_base[0] + loan_principal]\
+                outstanding = loan_principal\
+                for i in range(1, 26):\
+                    base_flow = cf_base[i]\
+                    if i <= loan_term:\
+                        interest = outstanding * loan_rate; principal = loan_pmt - interest; outstanding -= principal\
+                        tx_shield = interest * h['tax_rate']\
+                        flow = base_flow - loan_pmt + tx_shield\
+                    else: flow = base_flow\
+                    cf_loan.append(flow)\
+                cum_loan = np.cumsum(cf_loan)\
+                \
+                lease_pmt = npf.pmt(lease_rate, loan_term, -capex_net)\
+                cf_lease = [0]\
+                for i in range(1, 26):\
+                    row = best_scenario['detailed_cashflows'][i]\
+                    op_flow = row['FluxNet'] - row['DPA']\
+                    if i <= loan_term: shield = lease_pmt * h['tax_rate']; flow = op_flow - lease_pmt + shield\
+                    else: flow = op_flow\
+                    cf_lease.append(flow)\
+                cum_lease = np.cumsum(cf_lease)\
+                \
+                with col_acq_chart:\
+                    fig_acq = go.Figure()\
+                    fig_acq.add_trace(go.Scatter(x=years, y=cum_cash, name=get_trans('acq_cash', lang_code), line=dict(color='#10b981', width=3)))\
+                    fig_acq.add_trace(go.Scatter(x=years, y=cum_loan, name=get_trans('acq_loan', lang_code), line=dict(color='#3b82f6', width=3)))\
+                    fig_acq.add_trace(go.Scatter(x=years, y=cum_lease, name=get_trans('acq_lease', lang_code), line=dict(color='#f59e0b', width=3)))\
+                    fig_acq.update_layout(title=get_trans('acq_chart_title', lang_code), yaxis_title="Cashflow Cumul ($)", plot_bgcolor='white')\
+                    st.plotly_chart(fig_acq, use_container_width=True)\
+\
+            figs_dict = \{'scatter': fig_scatter, 'risk': fig_risk, 'cf': fig_cf, 'prof': fig_prof, 'opt_sol': fig_sol_opt, 'opt_bat': fig_bat_opt\}\
+            st.markdown(f"### \{get_trans('downloads', lang_code)\}")\
+            col_btn1, col_btn2, col_btn3 = st.columns(3)\
+            with col_btn1:\
+                with st.spinner("..."):\
+                    pdf_client = create_client_pdf(best_scenario, client_name, address, figs_dict, lang_code, roof_photo, extra_data)\
+                st.download_button(get_trans('btn_report', lang_code), pdf_client, f"Report_Client_\{client_name\}.pdf", "application/pdf")\
+            with col_btn2:\
+                excel_data, excel_format = get_excel_file(best_scenario)\
+                if excel_format == "xlsx": label = get_trans('btn_excel', lang_code); mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"; fname = f"Modele_Financier_\{client_name\}.xlsx"\
+                else: label = f"\{get_trans('btn_excel', lang_code)\} (CSV)"; mime = "text/csv"; fname = f"Modele_Financier_\{client_name\}.csv"\
+                st.download_button(label, excel_data, fname, mime)\
+            with col_btn3:\
+                with st.spinner("..."):\
+                    pdf_tech = create_tech_pdf(h, best_scenario, client_name, lang_code)\
+                st.download_button(get_trans('btn_audit', lang_code), pdf_tech, f"Audit_\{client_name\}.pdf", "application/pdf")}
