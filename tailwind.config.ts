@@ -83,7 +83,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["Montserrat", "var(--font-sans)", "system-ui", "sans-serif"],
         serif: ["var(--font-serif)"],
         mono: ["JetBrains Mono", "var(--font-mono)", "monospace"],
       },

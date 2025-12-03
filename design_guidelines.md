@@ -13,10 +13,24 @@
 
 ---
 
+## Brand Identity
+
+**Brand Colors:**
+- Primary Blue: #003DA6 (HSL: 218, 100%, 33%) - Main brand color, sidebar background, buttons
+- Accent Gold: #FFB005 (HSL: 41, 100%, 51%) - Highlights, CTAs, accent elements
+- Neutral Gray: #AAAAAA - Secondary text, borders
+
+**Logo Assets:**
+- French: kWh_Quebec_Logo-01 (color on light background), solaire_fr (white on blue for sidebar)
+- English: kWh_Quebec_Logo-02 (color on light background), solaire_en (white on blue for sidebar)
+- Logo automatically switches based on user's language preference
+
+---
+
 ## Typography System
 
 **Font Families:**
-- Primary: Inter (CDN) - Clean, modern, excellent for data
+- Primary: Montserrat (Google Fonts CDN) - Bold, modern, excellent for headings and brand presence
 - Monospace: JetBrains Mono - For technical values, metrics, file names
 
 **Hierarchy:**

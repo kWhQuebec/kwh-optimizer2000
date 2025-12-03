@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Zap, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import logoFr from "@assets/kWh_Quebec_Logo-01_1764778562811.png";
+import logoEn from "@assets/kWh_Quebec_Logo-02_1764778562811.png";
 
 const loginSchema = z.object({
   email: z.string().email("Courriel invalide"),
@@ -22,11 +24,12 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { login } = useAuth();
   const [, setLocation] = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -56,11 +59,13 @@ export default function LoginPage() {
       <header className="border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
-            <a href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-semibold tracking-tight">kWh Québec</span>
+            <a href="/">
+              <img 
+                src={currentLogo} 
+                alt="kWh Québec" 
+                className="h-10 w-auto"
+                data-testid="logo-login-header"
+              />
             </a>
             
             <div className="flex items-center gap-2">
@@ -75,9 +80,12 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
-              <Zap className="w-6 h-6 text-primary" />
-            </div>
+            <img 
+              src={currentLogo} 
+              alt="kWh Québec" 
+              className="h-12 w-auto mx-auto mb-2"
+              data-testid="logo-login-card"
+            />
             <CardTitle className="text-2xl">{t("login.title")}</CardTitle>
           </CardHeader>
           <CardContent>

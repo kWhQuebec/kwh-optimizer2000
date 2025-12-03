@@ -6,8 +6,7 @@ import {
   BarChart3, 
   PenTool,
   Package,
-  LogOut,
-  Zap
+  LogOut
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,11 +22,14 @@ import {
 } from "@/components/ui/sidebar";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import sidebarLogoFr from "@assets/solaire_fr_1764778573075.png";
+import sidebarLogoEn from "@assets/solaire_en_1764778591753.png";
 
 export function AppSidebar() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  const currentLogo = language === "fr" ? sidebarLogoFr : sidebarLogoEn;
 
   const mainItems = [
     {
@@ -74,12 +76,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-4 py-3">
-        <Link href="/app" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Zap className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-semibold">kWh Québec</span>
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
+        <Link href="/app">
+          <img 
+            src={currentLogo} 
+            alt="kWh Québec" 
+            className="h-8 w-auto"
+            data-testid="logo-sidebar"
+          />
         </Link>
       </SidebarHeader>
 

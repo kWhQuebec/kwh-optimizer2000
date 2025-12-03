@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Sun, Battery, FileBarChart, Zap, Building2, Factory, School, HelpCircle, CheckCircle2, ArrowRight, BarChart3, Leaf } from "lucide-react";
+import { Sun, Battery, FileBarChart, Building2, Factory, School, HelpCircle, CheckCircle2, ArrowRight, BarChart3, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
+import logoFr from "@assets/kWh_Quebec_Logo-01_1764778562811.png";
+import logoEn from "@assets/kWh_Quebec_Logo-02_1764778562811.png";
 
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
@@ -31,8 +33,9 @@ const leadFormSchema = z.object({
 type LeadFormValues = z.infer<typeof leadFormSchema>;
 
 export default function LandingPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [submitted, setSubmitted] = useState(false);
+  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
@@ -75,12 +78,14 @@ export default function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-semibold tracking-tight">kWh Québec</span>
-            </div>
+            <Link href="/">
+              <img 
+                src={currentLogo} 
+                alt="kWh Québec" 
+                className="h-10 w-auto"
+                data-testid="logo-header"
+              />
+            </Link>
             
             <nav className="hidden md:flex items-center gap-6">
               <a href="#process" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-process">
@@ -455,12 +460,12 @@ export default function LandingPage() {
       <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-semibold">kWh Québec</span>
-            </div>
+            <img 
+              src={currentLogo} 
+              alt="kWh Québec" 
+              className="h-10 w-auto"
+              data-testid="logo-footer"
+            />
             
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">{t("footer.privacy")}</a>
