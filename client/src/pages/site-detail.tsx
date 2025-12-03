@@ -196,6 +196,51 @@ function FileStatusBadge({ status }: { status: string }) {
   }
 }
 
+function DownloadReportButton({ simulationId }: { simulationId: string }) {
+  const { t, language } = useI18n();
+  const { token } = useAuth();
+  const { toast } = useToast();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch(`/api/simulation-runs/${simulationId}/report-pdf?lang=${language}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error("Download failed");
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rapport-potentiel-${simulationId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({ title: language === "fr" ? "Rapport téléchargé" : "Report downloaded" });
+    } catch (error) {
+      toast({ title: language === "fr" ? "Erreur lors du téléchargement" : "Download error", variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Button variant="outline" className="gap-2" onClick={handleDownload} disabled={downloading} data-testid="button-download-report">
+      <Download className="w-4 h-4" />
+      {downloading ? "..." : t("site.downloadReport")}
+    </Button>
+  );
+}
+
 function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
   const { t } = useI18n();
 
@@ -458,12 +503,7 @@ export default function SiteDetailPage() {
         <div className="flex items-center gap-2">
           {latestSimulation && (
             <>
-              <a href={`/api/simulation-runs/${latestSimulation.id}/report.pdf`} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" className="gap-2" data-testid="button-download-report">
-                  <Download className="w-4 h-4" />
-                  {t("site.downloadReport")}
-                </Button>
-              </a>
+              <DownloadReportButton simulationId={latestSimulation.id} />
               <Link href={`/app/analyses/${latestSimulation.id}/design`}>
                 <Button className="gap-2" data-testid="button-create-design">
                   <PenTool className="w-4 h-4" />
