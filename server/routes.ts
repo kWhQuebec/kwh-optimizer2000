@@ -23,7 +23,7 @@ if (!JWT_SECRET) {
 const upload = multer({ 
   dest: "uploads/",
   limits: {
-    files: 100,
+    files: 200, // Support up to 200 files (24+ months of hourly + 15-min data)
     fileSize: 50 * 1024 * 1024 // 50MB per file
   }
 });
