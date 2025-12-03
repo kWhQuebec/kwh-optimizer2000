@@ -1416,9 +1416,14 @@ export default function SiteDetailPage() {
   }, [site, assumptionsInitialized]);
 
   const runAnalysisMutation = useMutation({
-    mutationFn: async (assumptions: Partial<AnalysisAssumptions>) => {
+    mutationFn: async (customAssumptionsOverrides: Partial<AnalysisAssumptions>) => {
+      // Merge with defaults to ensure all parameters are sent
+      const mergedAssumptions: AnalysisAssumptions = { 
+        ...defaultAnalysisAssumptions, 
+        ...customAssumptionsOverrides 
+      };
       // Wrap assumptions in the expected format for the API
-      return apiRequest("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions });
+      return apiRequest("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions: mergedAssumptions });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });

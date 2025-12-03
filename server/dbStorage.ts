@@ -135,7 +135,7 @@ export class DatabaseStorage implements IStorage {
     if (!client) return undefined;
     
     const siteFiles = await db.select().from(meterFiles).where(eq(meterFiles.siteId, id));
-    const simRuns = await db.select().from(simulationRuns).where(eq(simulationRuns.siteId, id));
+    const simRuns = await db.select().from(simulationRuns).where(eq(simulationRuns.siteId, id)).orderBy(desc(simulationRuns.createdAt));
     
     return { ...site, client, meterFiles: siteFiles, simulationRuns: simRuns };
   }

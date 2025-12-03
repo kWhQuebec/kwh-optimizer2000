@@ -251,11 +251,17 @@ export class MemStorage implements IStorage {
     if (!site) return undefined;
     const client = this.clients.get(site.clientId);
     if (!client) return undefined;
+    
+    // Sort simulation runs by createdAt descending so the latest is first
+    const simRuns = Array.from(this.simulationRuns.values())
+      .filter(r => r.siteId === id)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    
     return {
       ...site,
       client,
       meterFiles: Array.from(this.meterFiles.values()).filter(f => f.siteId === id),
-      simulationRuns: Array.from(this.simulationRuns.values()).filter(r => r.siteId === id),
+      simulationRuns: simRuns,
     };
   }
 
