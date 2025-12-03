@@ -75,14 +75,20 @@ export function generateProfessionalPDF(
   const contentWidth = pageWidth - 2 * margin;
 
   // Helper functions
-  const formatCurrency = (value: number, compact = false): string => {
+  const formatCurrency = (value: number | null | undefined, compact = false): string => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return "0 $";
+    }
     if (compact && Math.abs(value) >= 1000) {
       return `${(value / 1000).toFixed(0)}k $`;
     }
     return `${value.toLocaleString("fr-CA", { maximumFractionDigits: 0 })} $`;
   };
 
-  const formatPercent = (value: number): string => {
+  const formatPercent = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return "0.0 %";
+    }
     return `${(value * 100).toFixed(1)} %`;
   };
 
