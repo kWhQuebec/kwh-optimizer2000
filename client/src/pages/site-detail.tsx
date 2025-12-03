@@ -92,17 +92,21 @@ function MetricCard({
 }
 
 function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; onUploadComplete: () => void }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { toast } = useToast();
   const { token } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadPhase, setUploadPhase] = useState<"uploading" | "processing" | "done">("uploading");
+  const [fileCount, setFileCount] = useState(0);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
     setUploading(true);
     setProgress(0);
+    setUploadPhase("uploading");
+    setFileCount(acceptedFiles.length);
 
     const formData = new FormData();
     acceptedFiles.forEach((file) => {
@@ -110,28 +114,55 @@ function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; onUpload
     });
 
     try {
-      const response = await fetch(`/api/sites/${siteId}/upload-meters`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            setProgress(percentComplete);
+            if (percentComplete >= 100) {
+              setUploadPhase("processing");
+            }
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadPhase("done");
+            resolve();
+          } else {
+            reject(new Error("Upload failed"));
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          reject(new Error("Upload failed"));
+        });
+
+        xhr.open("POST", `/api/sites/${siteId}/upload-meters`);
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.send(formData);
       });
 
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
-
       setProgress(100);
-      toast({ title: "Fichiers téléversés avec succès" });
+      toast({ 
+        title: language === "fr" 
+          ? `${acceptedFiles.length} fichier(s) téléversé(s) avec succès` 
+          : `${acceptedFiles.length} file(s) uploaded successfully`
+      });
       onUploadComplete();
     } catch (error) {
-      toast({ title: "Erreur lors du téléversement", variant: "destructive" });
+      toast({ 
+        title: language === "fr" ? "Erreur lors du téléversement" : "Upload error", 
+        variant: "destructive" 
+      });
     } finally {
       setUploading(false);
       setProgress(0);
+      setUploadPhase("uploading");
     }
-  }, [siteId, token, toast, onUploadComplete]);
+  }, [siteId, token, toast, onUploadComplete, language]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -141,28 +172,66 @@ function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; onUpload
     disabled: uploading,
   });
 
+  const getPhaseText = () => {
+    if (uploadPhase === "uploading") {
+      return language === "fr" 
+        ? `Téléversement de ${fileCount} fichier(s)... ${progress}%`
+        : `Uploading ${fileCount} file(s)... ${progress}%`;
+    }
+    if (uploadPhase === "processing") {
+      return language === "fr"
+        ? "Traitement des fichiers CSV..."
+        : "Processing CSV files...";
+    }
+    return language === "fr" ? "Terminé!" : "Done!";
+  };
+
   return (
     <div
       {...getRootProps()}
       className={`
         border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors
         ${isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"}
-        ${uploading ? "pointer-events-none opacity-50" : ""}
+        ${uploading ? "pointer-events-none" : ""}
       `}
       data-testid="dropzone-upload"
     >
       <input {...getInputProps()} />
       <div className="space-y-3">
-        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto">
-          <Upload className="w-6 h-6 text-muted-foreground" />
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto ${uploading ? "bg-primary/10" : "bg-muted"}`}>
+          {uploading ? (
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Upload className="w-6 h-6 text-muted-foreground" />
+          )}
         </div>
         <div>
-          <p className="font-medium">{t("site.dropzone")}</p>
-          <p className="text-sm text-muted-foreground mt-1">{t("site.fileType")}</p>
+          {uploading ? (
+            <>
+              <p className="font-medium text-primary">{getPhaseText()}</p>
+              <div className="mt-3 max-w-xs mx-auto space-y-2">
+                <Progress value={uploadPhase === "processing" ? 100 : progress} className="h-2" />
+                {uploadPhase === "processing" && (
+                  <p className="text-xs text-muted-foreground">
+                    {language === "fr" 
+                      ? "Analyse des données de consommation..." 
+                      : "Analyzing consumption data..."}
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">{t("site.dropzone")}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t("site.fileType")}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {language === "fr" 
+                  ? "Jusqu'à 200 fichiers simultanément" 
+                  : "Up to 200 files at once"}
+              </p>
+            </>
+          )}
         </div>
-        {uploading && (
-          <Progress value={progress} className="w-48 mx-auto" />
-        )}
       </div>
     </div>
   );
