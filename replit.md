@@ -124,11 +124,13 @@ The application uses a unified TypeScript codebase with client-side React and se
 **Configurable Analysis Parameters** (shared/schema.ts - `AnalysisAssumptions`):
 - Tariff code selection: D, G, M, L with auto-populated rates
 - Tariffs: Energy ($/kWh), Power ($/kW/month) - editable overrides
-- Financial: Inflation, WACC/discount rate, corporate tax rate
+- Financial: Inflation tarif HQ (4.8% default - Quebec electricity rate escalation), WACC/discount rate, corporate tax rate
 - CAPEX: Solar cost ($/W), battery capacity ($/kWh), battery power ($/kW)
 - O&M: Solar/battery percentages, escalation rate
 - Battery replacement: Year, cost factor (% of original), price decline rate (%/year)
 - Roof constraints: Area, utilization ratio
+
+**Optimal Sizing Logic**: The analysis engine runs sensitivity sweeps and automatically selects the optimal system size (best NPV) rather than a heuristic maximum. This ensures the recommended system matches the optimal point shown in optimization charts.
 
 **Report Generation**: PDF reports with bilingual support (French/English)
 
@@ -156,9 +158,13 @@ The application uses a unified TypeScript codebase with client-side React and se
   - "Parameters Used" section showing the assumptions used for each analysis run
 - **Optimization Analysis Section** (when sensitivity data available):
   - Efficiency Frontier ScatterChart: CAPEX net vs NPV 25yr with colored points (gold=solar, blue=battery, green=hybrid)
+  - NPV=0 reference line (red dashed) to indicate profitability threshold
+  - Points with NPV < 0 have reduced opacity (30%) to visually distinguish unprofitable scenarios
   - Solar Size Optimization LineChart: PV capacity (kWc) vs NPV 25yr
   - Battery Size Optimization LineChart: Battery capacity (kWh) vs NPV 25yr
-  - Optimal point highlighted with circle marker on all charts
+  - Optimal point highlighted with star marker and black stroke on efficiency frontier
+  - "Recommandation" box showing optimal scenario details below efficiency frontier
+  - Text below each line chart showing optimal value (e.g., "Optimal: 120 kWc → VAN 45,234 $")
 
 **Rationale**: Recharts integrates well with React and provides responsive, accessible charts suitable for data-heavy B2B interfaces. The Analysis Parameters editor enables quick scenario comparisons without code changes.
 
