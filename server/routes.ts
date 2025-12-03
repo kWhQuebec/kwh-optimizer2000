@@ -421,10 +421,10 @@ export async function registerRoutes(
     }
   });
 
-  // PDF Report Generation
+  // PDF Report Generation - Professional multi-page report
   app.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req, res) => {
     try {
-      const lang = (req.query.lang as string) || "fr";
+      const lang = (req.query.lang as string) === "en" ? "en" : "fr";
       const simulation = await storage.getSimulationRun(req.params.id);
       
       if (!simulation) {
@@ -434,102 +434,13 @@ export async function registerRoutes(
       const doc = new PDFDocument({ size: "LETTER", margin: 50 });
       
       res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="rapport-potentiel-${simulation.id.slice(0, 8)}.pdf"`);
+      res.setHeader("Content-Disposition", `attachment; filename="etude-solaire-stockage-${simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
       
       doc.pipe(res);
 
-      // Header
-      doc.fontSize(24).fillColor("#2D915F").text("kWh Québec", { align: "center" });
-      doc.moveDown(0.5);
-      doc.fontSize(18).fillColor("#333333").text(
-        lang === "fr" ? "Rapport d'Analyse de Potentiel Solaire + Stockage" : "Solar + Storage Potential Analysis Report",
-        { align: "center" }
-      );
-      doc.moveDown(0.3);
-      doc.fontSize(12).fillColor("#666666").text(
-        `${simulation.site.name} - ${simulation.site.client.name}`,
-        { align: "center" }
-      );
-      doc.moveDown(0.2);
-      doc.fontSize(10).text(
-        new Date().toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { year: "numeric", month: "long", day: "numeric" }),
-        { align: "center" }
-      );
-      doc.moveDown(1.5);
-
-      // Separator line
-      doc.strokeColor("#2D915F").lineWidth(2).moveTo(50, doc.y).lineTo(562, doc.y).stroke();
-      doc.moveDown(1);
-
-      // Section: Summary
-      doc.fontSize(16).fillColor("#2D915F").text(lang === "fr" ? "Sommaire de l'Analyse" : "Analysis Summary");
-      doc.moveDown(0.5);
-      doc.fontSize(11).fillColor("#333333");
-
-      const summaryData = [
-        [lang === "fr" ? "Consommation annuelle" : "Annual consumption", `${((simulation.annualConsumptionKWh || 0) / 1000).toFixed(0)} MWh`],
-        [lang === "fr" ? "Coût annuel actuel" : "Current annual cost", `${(simulation.annualCostBefore || 0).toLocaleString()} $`],
-      ];
-
-      summaryData.forEach(([label, value]) => {
-        doc.text(`${label}: `, { continued: true }).font("Helvetica-Bold").text(value).font("Helvetica");
-      });
-      doc.moveDown(1);
-
-      // Section: Recommended System
-      doc.fontSize(16).fillColor("#2D915F").text(lang === "fr" ? "Système Recommandé" : "Recommended System");
-      doc.moveDown(0.5);
-      doc.fontSize(11).fillColor("#333333");
-
-      const systemData = [
-        [lang === "fr" ? "Capacité PV recommandée" : "Recommended PV capacity", `${(simulation.pvSizeKW || 0).toFixed(0)} kWc`],
-        [lang === "fr" ? "Capacité batterie" : "Battery capacity", `${(simulation.battEnergyKWh || 0).toFixed(0)} kWh / ${(simulation.battPowerKW || 0).toFixed(0)} kW`],
-        [lang === "fr" ? "Seuil d'écrêtage" : "Shaving setpoint", `${(simulation.demandShavingSetpointKW || 0).toFixed(0)} kW`],
-      ];
-
-      systemData.forEach(([label, value]) => {
-        doc.text(`${label}: `, { continued: true }).font("Helvetica-Bold").text(value).font("Helvetica");
-      });
-      doc.moveDown(1);
-
-      // Section: Financial Analysis
-      doc.fontSize(16).fillColor("#2D915F").text(lang === "fr" ? "Analyse Financière" : "Financial Analysis");
-      doc.moveDown(0.5);
-      doc.fontSize(11).fillColor("#333333");
-
-      const financialData = [
-        [lang === "fr" ? "Investissement estimé (CAPEX)" : "Estimated investment (CAPEX)", `${(simulation.capexNet || 0).toLocaleString()} $`],
-        [lang === "fr" ? "Économies annuelles estimées" : "Estimated annual savings", `${(simulation.annualSavings || 0).toLocaleString()} $/an`],
-        [lang === "fr" ? "Retour simple sur investissement" : "Simple payback period", `${(simulation.simplePaybackYears || 0).toFixed(1)} ${lang === "fr" ? "ans" : "years"}`],
-        [lang === "fr" ? "VAN sur 20 ans (6%)" : "NPV over 20 years (6%)", `${(simulation.npv20 || 0).toLocaleString()} $`],
-        [lang === "fr" ? "TRI estimé sur 20 ans" : "Estimated IRR over 20 years", `${((simulation.irr20 || 0) * 100).toFixed(1)} %`],
-      ];
-
-      financialData.forEach(([label, value]) => {
-        doc.text(`${label}: `, { continued: true }).font("Helvetica-Bold").text(value).font("Helvetica");
-      });
-      doc.moveDown(1);
-
-      // Section: Environmental Impact
-      doc.fontSize(16).fillColor("#2D915F").text(lang === "fr" ? "Impact Environnemental" : "Environmental Impact");
-      doc.moveDown(0.5);
-      doc.fontSize(11).fillColor("#333333");
-
-      doc.text(
-        `${lang === "fr" ? "CO₂ évité annuellement" : "CO₂ avoided annually"}: `,
-        { continued: true }
-      ).font("Helvetica-Bold").text(`${(simulation.co2AvoidedTonnesPerYear || 0).toFixed(1)} ${lang === "fr" ? "tonnes/an" : "tonnes/year"}`).font("Helvetica");
-      doc.moveDown(1.5);
-
-      // Footer
-      doc.fontSize(9).fillColor("#999999").text(
-        lang === "fr" 
-          ? "Ce rapport est fourni à titre indicatif. Les valeurs réelles peuvent varier en fonction des conditions d'installation."
-          : "This report is provided for informational purposes. Actual values may vary based on installation conditions.",
-        { align: "center" }
-      );
-      doc.moveDown(0.3);
-      doc.text("© kWh Québec - www.kwhquebec.com", { align: "center" });
+      // Use the professional PDF generator
+      const { generateProfessionalPDF } = await import("./pdfGenerator");
+      generateProfessionalPDF(doc, simulation as any, lang);
 
       doc.end();
     } catch (error) {
@@ -1179,9 +1090,22 @@ function runPotentialAnalysis(
       incentives = incentivesFederal;
     }
     
-    // Year 10: Battery replacement (60% of battery cost)
-    if (y === 10 && battEnergyKWh > 0) {
-      investment = -capexBattery * 0.60;
+    // Battery replacement at configured year (adjusted for inflation and price decline)
+    const replacementYear = h.batteryReplacementYear || 10;
+    const replacementFactor = h.batteryReplacementCostFactor || 0.60;
+    const priceDecline = h.batteryPriceDeclineRate || 0.05;
+    
+    if (y === replacementYear && battEnergyKWh > 0) {
+      // Battery cost adjusted: inflation increases cost, but battery prices decline
+      // Net effect: original_cost * replacement_factor * (1 + inflation - price_decline)^years
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    
+    // Second replacement at year 20 if analysis goes to 25 years
+    if (y === 20 && h.analysisYears >= 25 && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
     }
     
     const netCashflow = ebitda + investment + dpa + incentives;

@@ -101,14 +101,24 @@ The application uses a unified TypeScript codebase with client-side React and se
 - Tax shield (DPA/CCA) calculation
 - 25-year cashflow generation with O&M escalation and inflation
 - NPV (10/20/25 year), IRR, LCOE, simple payback calculations
-- Battery replacement at year 10 (60% of original cost)
+- Configurable battery replacement (year, cost factor, price decline rate) with inflation adjustment
 - Robust IRR calculation with Newton-Raphson + bisection fallback
 
+**HQ Tariff Module** (server/hqTariffs.ts):
+- Official Hydro-Québec tariffs effective April 2025
+- Supported tariffs: D (Domestic), G (Small <65kW), M (Medium 65kW-5MW), L (Large >5MW)
+- Flex tariffs with peak event pricing (Flex D, Flex G, Flex M)
+- Auto-detection based on peak demand from consumption data
+- Monthly cost calculation with tiered energy rates and demand charges
+- Simplified rate extraction for analysis engine
+
 **Configurable Analysis Parameters** (shared/schema.ts - `AnalysisAssumptions`):
-- Tariffs: Energy ($/kWh), Power ($/kW/month)
+- Tariff code selection: D, G, M, L with auto-populated rates
+- Tariffs: Energy ($/kWh), Power ($/kW/month) - editable overrides
 - Financial: Inflation, WACC/discount rate, corporate tax rate
 - CAPEX: Solar cost ($/W), battery capacity ($/kWh), battery power ($/kW)
 - O&M: Solar/battery percentages, escalation rate
+- Battery replacement: Year, cost factor (% of original), price decline rate (%/year)
 - Roof constraints: Area, utilization ratio
 
 **Report Generation**: PDF reports with bilingual support (French/English)

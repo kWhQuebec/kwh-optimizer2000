@@ -282,6 +282,31 @@ function FileStatusBadge({ status }: { status: string }) {
   }
 }
 
+// HQ Tariff rates (April 2025) - Weighted average rates for simplified analysis
+// Source: Hydro-Québec official rate schedule April 1, 2025
+function getTariffRates(code: string): { energyRate: number; demandRate: number } {
+  switch (code) {
+    case "D":
+      // Domestic: 46.154¢/day access + 6.905¢/kWh first 40kWh/day + 10.652¢/kWh rest
+      // Using tier 1 rate as most residential consumption is in this tier
+      return { energyRate: 0.06905, demandRate: 0 }; 
+    case "G":
+      // Small Power (<65kW): $14.86/mo access + $21.261/kW above 50kW
+      // Energy: 11.933¢/kWh first 15,090 kWh/mo + 9.184¢/kWh rest
+      // Using tier 1 rate and demand only above 50kW threshold
+      return { energyRate: 0.11933, demandRate: 21.261 };
+    case "M":
+      // Medium Power (65kW-5MW): $17.573/kW (all power billed)
+      // Energy: 6.061¢/kWh first 210,000 kWh/mo + 4.495¢/kWh rest
+      return { energyRate: 0.06061, demandRate: 17.573 };
+    case "L":
+      // Large Power (>5MW): $14.476/kW + 3.681¢/kWh flat rate
+      return { energyRate: 0.03681, demandRate: 14.476 };
+    default:
+      return { energyRate: 0.06061, demandRate: 17.573 }; // Default to M
+  }
+}
+
 function AnalysisParametersEditor({ 
   value, 
   onChange,
@@ -328,9 +353,33 @@ function AnalysisParametersEditor({
             <div className="space-y-3">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
-                {language === "fr" ? "Tarifs Hydro-Québec" : "Hydro-Québec Tariffs"}
+                {language === "fr" ? "Tarifs Hydro-Québec (Avril 2025)" : "Hydro-Québec Tariffs (April 2025)"}
               </h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Code tarifaire" : "Tariff Code"}</Label>
+                  <select
+                    value={merged.tariffCode || "M"}
+                    onChange={(e) => {
+                      const code = e.target.value;
+                      const rates = getTariffRates(code);
+                      onChange({ 
+                        ...value, 
+                        tariffCode: code,
+                        tariffEnergy: rates.energyRate,
+                        tariffPower: rates.demandRate
+                      });
+                    }}
+                    disabled={disabled}
+                    className="h-8 w-full text-sm font-mono rounded-md border border-input bg-background px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
+                    data-testid="select-tariff-code"
+                  >
+                    <option value="D">D - {language === "fr" ? "Domestique" : "Domestic"}</option>
+                    <option value="G">G - {language === "fr" ? "Petite puissance (<65kW)" : "Small Power (<65kW)"}</option>
+                    <option value="M">M - {language === "fr" ? "Moyenne puissance (65kW-5MW)" : "Medium Power (65kW-5MW)"}</option>
+                    <option value="L">L - {language === "fr" ? "Grande puissance (>5MW)" : "Large Power (>5MW)"}</option>
+                  </select>
+                </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">{language === "fr" ? "Énergie ($/kWh)" : "Energy ($/kWh)"}</Label>
                   <Input
@@ -356,6 +405,12 @@ function AnalysisParametersEditor({
                   />
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                {language === "fr" 
+                  ? "Les tarifs sont basés sur la grille HQ avril 2025. Vous pouvez les ajuster manuellement." 
+                  : "Tariffs based on HQ April 2025 rates. You can adjust them manually."}
+              </p>
             </div>
 
             {/* CAPEX Section */}
@@ -494,6 +549,64 @@ function AnalysisParametersEditor({
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Battery Replacement Section */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Battery className="w-4 h-4 text-primary" />
+                {language === "fr" ? "Remplacement de batterie" : "Battery Replacement"}
+              </h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Année de remplacement" : "Replacement Year"}</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="5"
+                    max="20"
+                    value={merged.batteryReplacementYear || 10}
+                    onChange={(e) => updateField("batteryReplacementYear", parseInt(e.target.value) || 10)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-battery-replacement-year"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Coût rempl. (% original)" : "Repl. Cost (% original)"}</Label>
+                  <Input
+                    type="number"
+                    step="5"
+                    min="20"
+                    max="100"
+                    value={((merged.batteryReplacementCostFactor || 0.6) * 100).toFixed(0)}
+                    onChange={(e) => updateField("batteryReplacementCostFactor", (parseFloat(e.target.value) || 60) / 100)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-battery-replacement-cost"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Baisse prix batt. (%/an)" : "Batt. price decline (%/yr)"}</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="15"
+                    value={((merged.batteryPriceDeclineRate || 0.05) * 100).toFixed(1)}
+                    onChange={(e) => updateField("batteryPriceDeclineRate", (parseFloat(e.target.value) || 5) / 100)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-battery-price-decline"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                {language === "fr" 
+                  ? `Coût estimé an ${merged.batteryReplacementYear || 10}: ${((merged.batteryReplacementCostFactor || 0.6) * Math.pow(1 + (merged.inflationRate || 0.025) - (merged.batteryPriceDeclineRate || 0.05), merged.batteryReplacementYear || 10) * 100).toFixed(0)}% du coût original` 
+                  : `Estimated cost year ${merged.batteryReplacementYear || 10}: ${((merged.batteryReplacementCostFactor || 0.6) * Math.pow(1 + (merged.inflationRate || 0.025) - (merged.batteryPriceDeclineRate || 0.05), merged.batteryReplacementYear || 10) * 100).toFixed(0)}% of original cost`}
+              </p>
             </div>
 
             {/* Roof Constraints Section */}

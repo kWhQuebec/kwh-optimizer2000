@@ -293,9 +293,12 @@ export type DesignWithBom = Design & { bomItems: BomItem[] };
 
 // Analysis input parameters (matching Streamlit script)
 export interface AnalysisAssumptions {
-  // Tariffs
-  tariffEnergy: number;      // $/kWh - default 0.057
-  tariffPower: number;       // $/kW/month - default 17.57
+  // Tariff selection
+  tariffCode?: string;       // HQ tariff code: D, G, M, L, etc. - auto-detected if not set
+  
+  // Tariffs (can be overridden or auto-populated from tariffCode)
+  tariffEnergy: number;      // $/kWh - default 0.057 (M tariff tier 1)
+  tariffPower: number;       // $/kW/month - default 17.57 (M tariff)
   
   // Financial
   inflationRate: number;     // % as decimal - default 0.048
@@ -316,26 +319,35 @@ export interface AnalysisAssumptions {
   roofAreaSqFt: number;      // Total roof area in sq ft
   roofUtilizationRatio: number; // % usable - default 0.80
   
+  // Battery replacement (NEW)
+  batteryReplacementYear: number;   // Year to replace battery - default 10
+  batteryReplacementCostFactor: number; // % of original cost - default 0.60 (60%)
+  batteryPriceDeclineRate: number;  // Annual price decline % - default 0.05 (5%/year)
+  
   // Analysis period
   analysisYears: number;     // default 25
 }
 
 // Default analysis assumptions
 export const defaultAnalysisAssumptions: AnalysisAssumptions = {
-  tariffEnergy: 0.057,
-  tariffPower: 17.57,
-  inflationRate: 0.048,
-  discountRate: 0.08,
-  taxRate: 0.265,
-  solarCostPerW: 2.25,
-  batteryCapacityCost: 550,
-  batteryPowerCost: 800,
-  omSolarPercent: 0.01,
-  omBatteryPercent: 0.005,
-  omEscalation: 0.025,
-  roofAreaSqFt: 10000,
-  roofUtilizationRatio: 0.80,
-  analysisYears: 25,
+  tariffCode: "M", // Default to Medium Power tariff
+  tariffEnergy: 0.06061, // Tarif M 2025: 6.061¢/kWh (tier 1)
+  tariffPower: 17.573, // Tarif M 2025: $17.573/kW
+  inflationRate: 0.025, // 2.5% inflation
+  discountRate: 0.08, // 8% WACC
+  taxRate: 0.265, // 26.5% corporate tax
+  solarCostPerW: 2.25, // $2.25/Wc
+  batteryCapacityCost: 550, // $550/kWh
+  batteryPowerCost: 800, // $800/kW
+  omSolarPercent: 0.01, // 1% of solar CAPEX
+  omBatteryPercent: 0.005, // 0.5% of battery CAPEX
+  omEscalation: 0.025, // 2.5% annual O&M escalation
+  roofAreaSqFt: 10000, // Default roof area
+  roofUtilizationRatio: 0.80, // 80% usable
+  batteryReplacementYear: 10, // Replace battery at year 10
+  batteryReplacementCostFactor: 0.60, // 60% of original cost
+  batteryPriceDeclineRate: 0.05, // 5% annual price decline
+  analysisYears: 25, // 25-year analysis
 };
 
 // Cashflow entry for detailed analysis
