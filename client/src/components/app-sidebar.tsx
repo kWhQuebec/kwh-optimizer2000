@@ -76,12 +76,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <Link href="/app">
           <img 
             src={currentLogo} 
             alt="kWh Québec" 
-            className="h-8 w-auto"
+            className="h-12 w-auto"
             data-testid="logo-sidebar"
           />
         </Link>

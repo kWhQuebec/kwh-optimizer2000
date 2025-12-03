@@ -655,6 +655,7 @@ export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, language } = useI18n();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("consumption");
 
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
     queryKey: ["/api/sites", id],
@@ -667,10 +668,11 @@ export default function SiteDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
-      toast({ title: "Analyse lancée avec succès" });
+      toast({ title: language === "fr" ? "Analyse terminée avec succès" : "Analysis completed successfully" });
+      setActiveTab("analysis");
     },
     onError: () => {
-      toast({ title: "Erreur lors de l'analyse", variant: "destructive" });
+      toast({ title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis", variant: "destructive" });
     },
   });
 
@@ -760,7 +762,7 @@ export default function SiteDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="consumption" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="consumption" data-testid="tab-consumption">{t("site.consumption")}</TabsTrigger>
           <TabsTrigger value="analysis" data-testid="tab-analysis">{t("analysis.title")}</TabsTrigger>
