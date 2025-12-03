@@ -13,8 +13,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import logoFr from "@assets/kWh_Quebec_Logo-01_1764778562811.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_1764778562811.png";
+import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
+import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 const loginSchema = z.object({
   email: z.string().email("Courriel invalide"),
@@ -63,7 +63,7 @@ export default function LoginPage() {
               <img 
                 src={currentLogo} 
                 alt="kWh Québec" 
-                className="h-14 w-auto"
+                className="h-12 w-auto"
                 data-testid="logo-login-header"
               />
             </a>
@@ -83,7 +83,7 @@ export default function LoginPage() {
             <img 
               src={currentLogo} 
               alt="kWh Québec" 
-              className="h-16 w-auto mx-auto mb-2"
+              className="h-14 w-auto mx-auto mb-2"
               data-testid="logo-login-card"
             />
             <CardTitle className="text-2xl">{t("login.title")}</CardTitle>
