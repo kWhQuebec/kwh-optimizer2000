@@ -514,12 +514,32 @@ export function generateProfessionalPDF(
   doc.text(formatCurrency(simulation.taxShield), margin + 3 * (incentiveCardWidth + 10) + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
   doc.font("Helvetica");
 
-  // Total incentives row
-  doc.y = incentiveY + incentiveCardHeight + 10;
+  // Total row - separated into subsidies and tax benefits
+  doc.y = incentiveY + incentiveCardHeight + 15;
+  
+  // Subsidies total (HQ Solar + HQ Battery + Federal ITC)
+  doc.fontSize(10).fillColor(COLORS.mediumGray);
+  doc.text(t("Subventions directes (HQ + ITC):", "Direct subsidies (HQ + ITC):"), margin, doc.y);
+  doc.fontSize(12).fillColor(COLORS.blue).font("Helvetica-Bold");
+  doc.text(formatCurrency(simulation.totalIncentives), margin + 220, doc.y - 1);
+  doc.font("Helvetica");
+  
+  doc.y += 18;
+  
+  // Tax shield row
+  doc.fontSize(10).fillColor(COLORS.mediumGray);
+  doc.text(t("Avantage fiscal (DPA):", "Tax benefit (CCA):"), margin, doc.y);
+  doc.fontSize(12).fillColor(COLORS.gold).font("Helvetica-Bold");
+  doc.text(formatCurrency(simulation.taxShield), margin + 220, doc.y - 1);
+  doc.font("Helvetica");
+  
+  doc.y += 18;
+  
+  // Grand total
   doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
-  doc.text(t("TOTAL DES INCITATIFS:", "TOTAL INCENTIVES:"), margin, doc.y);
+  doc.text(t("TOTAL (SUBVENTIONS + AVANTAGE FISCAL):", "TOTAL (SUBSIDIES + TAX BENEFIT):"), margin, doc.y);
   doc.fontSize(14).fillColor(COLORS.blue);
-  doc.text(formatCurrency(simulation.totalIncentives + simulation.taxShield), margin + 180, doc.y - 2);
+  doc.text(formatCurrency(simulation.totalIncentives + simulation.taxShield), margin + 280, doc.y - 2);
   doc.font("Helvetica");
 
   // Footer
@@ -539,10 +559,8 @@ export function generateProfessionalPDF(
   doc.moveDown(2);
 
   // Scenario Comparison Chart - VAN sur 25 ans par scénario
-  // PV seul estimé: savings from solar only, without battery peak shaving benefits
-  // Rough estimate: if battery provides ~30-40% of demand savings via peak shaving,
-  // PV-only provides roughly 65-75% of total NPV
-  const pvOnlyEstimatedNPV = simulation.npv25 * 0.72; // Conservative estimate
+  // Show only calculated scenarios: Status quo vs PV+Battery recommendation
+  // Note: PV-only would require a separate simulation; we show only the analyzed scenario
   
   drawBarChart(
     margin,
@@ -551,13 +569,21 @@ export function generateProfessionalPDF(
     150,
     [
       { label: t("Statu quo\n(aucun investissement)", "Status quo\n(no investment)"), value: 0, color: COLORS.lightGray },
-      { label: t("PV seul\n(sans stockage)", "PV only\n(no storage)"), value: pvOnlyEstimatedNPV, color: COLORS.gold },
-      { label: t("PV + Batterie\n(recommandé)", "PV + Battery\n(recommended)"), value: simulation.npv25, color: COLORS.green },
+      { label: t("PV + Batterie\n(scénario analysé)", "PV + Battery\n(analyzed scenario)"), value: simulation.npv25, color: COLORS.green },
     ],
-    t("COMPARAISON DES SCÉNARIOS - VAN 25 ans", "SCENARIO COMPARISON - 25yr NPV")
+    t("COMPARAISON: VAN 25 ans (Valeur Actuelle Nette)", "COMPARISON: 25yr NPV (Net Present Value)")
+  );
+  
+  // Add note about the comparison
+  doc.y += 155;
+  doc.fontSize(8).fillColor(COLORS.lightGray);
+  doc.text(
+    t("Note: Le scénario analysé inclut PV + stockage. D'autres configurations peuvent être analysées sur demande.",
+      "Note: The analyzed scenario includes PV + storage. Other configurations can be analyzed upon request."),
+    margin, doc.y, { width: contentWidth, align: "center" }
   );
 
-  doc.y += 170;
+  doc.y += 30;
 
   // Cash Flow Chart
   drawCashflowChart(
