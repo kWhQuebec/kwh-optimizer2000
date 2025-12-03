@@ -20,7 +20,13 @@ const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
   throw new Error("SESSION_SECRET environment variable is required");
 }
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ 
+  dest: "uploads/",
+  limits: {
+    files: 100,
+    fileSize: 50 * 1024 * 1024 // 50MB per file
+  }
+});
 
 interface AuthRequest extends Request {
   userId?: string;
@@ -304,8 +310,11 @@ export async function registerRoutes(
       const meterFiles = [];
       
       for (const file of files) {
-        // Determine granularity from filename or default
-        const granularity = file.originalname.toLowerCase().includes("15min") ? "FIFTEEN_MIN" : "HOUR";
+        // Determine granularity from filename
+        // Hydro-Québec uses "15min" for 15-minute data and "heure" for hourly data
+        const filename = file.originalname.toLowerCase();
+        const granularity = filename.includes("15min") ? "FIFTEEN_MIN" : 
+                           filename.includes("heure") ? "HOUR" : "HOUR";
         
         const meterFile = await storage.createMeterFile({
           siteId,
@@ -837,8 +846,22 @@ async function parseHydroQuebecCSV(
   kWh: number | null;
   kW: number | null;
 }>> {
-  const content = fs.readFileSync(filePath, "utf-8");
-  const lines = content.split("\n").filter(line => line.trim());
+  // Read file with Latin-1 encoding (common for Hydro-Québec exports)
+  const buffer = fs.readFileSync(filePath);
+  let content: string;
+  
+  // Try to decode as Latin-1 first, fall back to UTF-8
+  try {
+    content = buffer.toString("latin1");
+  } catch {
+    content = buffer.toString("utf-8");
+  }
+  
+  // Split lines and filter empty ones
+  const lines = content.split(/\r?\n/).filter(line => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && trimmed !== ";";
+  });
   
   const readings: Array<{
     meterFileId: string;
@@ -848,36 +871,104 @@ async function parseHydroQuebecCSV(
     kW: number | null;
   }> = [];
 
-  // Skip header line
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    const parts = line.split(",");
+  if (lines.length < 2) return readings; // Need at least header + 1 data row
+
+  // Detect delimiter (semicolon for Hydro-Québec, comma for generic CSV)
+  const headerLine = lines[0];
+  const delimiter = headerLine.includes(";") ? ";" : ",";
+  
+  // Normalize header for accent-insensitive matching
+  const normalizeForMatch = (str: string): string => {
+    return str.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+  
+  // Parse header to find column indices
+  const headers = headerLine.split(delimiter).map(h => normalizeForMatch(h));
+  
+  // Detect if this is a Hydro-Québec format by checking headers
+  const isHydroQuebecFormat = headers.some(h => 
+    h.includes("contrat") || h.includes("date et heure")
+  );
+  
+  // Find relevant column indices
+  let dateColIndex = -1;
+  let valueColIndex = -1;
+  let detectedDataType: "kWh" | "kW" = granularity === "HOUR" ? "kWh" : "kW";
+  
+  if (isHydroQuebecFormat) {
+    // Find date column (usually "Date et heure")
+    dateColIndex = headers.findIndex(h => h.includes("date"));
     
-    if (parts.length >= 2) {
-      try {
-        // Parse date and value
-        const dateStr = parts[0].trim().replace(/"/g, "");
-        const valueStr = parts[1].trim().replace(/"/g, "");
-        
-        // Try to parse the date
-        const timestamp = new Date(dateStr);
-        if (isNaN(timestamp.getTime())) continue;
-        
-        const value = parseFloat(valueStr);
-        if (isNaN(value)) continue;
-        
-        readings.push({
-          meterFileId,
-          timestamp,
-          granularity,
-          kWh: granularity === "HOUR" ? value : value / 4, // Convert 15-min to hourly equivalent
-          kW: value,
-        });
-      } catch (e) {
-        continue;
-      }
+    // Try to find kWh column (hourly energy files)
+    const kwhIndex = headers.findIndex(h => /kwh/i.test(h));
+    
+    // Try to find kW column (15-min power files) - look for "puissance" or "(kw)"
+    const kwIndex = headers.findIndex(h => 
+      h.includes("puissance") || /\(kw\)/i.test(h) || /kw\)/i.test(h)
+    );
+    
+    // Select value column based on what's available
+    if (kwhIndex !== -1) {
+      valueColIndex = kwhIndex;
+      detectedDataType = "kWh";
+    } else if (kwIndex !== -1) {
+      valueColIndex = kwIndex;
+      detectedDataType = "kW";
+    }
+    
+    // Fallback to standard Hydro-Québec positions: date=1, value=2
+    if (dateColIndex === -1) dateColIndex = 1;
+    if (valueColIndex === -1) valueColIndex = 2;
+  } else {
+    // Generic CSV format: assume first column is date, second is value
+    dateColIndex = 0;
+    valueColIndex = 1;
+  }
+
+  // Parse data lines
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line === delimiter) continue;
+    
+    const parts = line.split(delimiter);
+    
+    if (parts.length <= Math.max(dateColIndex, valueColIndex)) continue;
+    
+    try {
+      // Parse date
+      const dateStr = parts[dateColIndex]?.trim().replace(/"/g, "");
+      if (!dateStr) continue;
+      
+      const timestamp = new Date(dateStr);
+      if (isNaN(timestamp.getTime())) continue;
+      
+      // Parse value - handle French decimal format (comma as decimal separator)
+      let valueStr = parts[valueColIndex]?.trim().replace(/"/g, "") || "";
+      if (!valueStr) continue;
+      
+      // Remove spaces and convert French decimal to standard
+      valueStr = valueStr.replace(/\s/g, "").replace(",", ".");
+      
+      const value = parseFloat(valueStr);
+      if (isNaN(value)) continue;
+      
+      readings.push({
+        meterFileId,
+        timestamp,
+        granularity,
+        kWh: detectedDataType === "kWh" ? value : null,
+        kW: detectedDataType === "kW" ? value : null,
+      });
+    } catch (e) {
+      continue;
     }
   }
+
+  // Sort readings by timestamp (oldest first)
+  readings.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   return readings;
 }
