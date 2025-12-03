@@ -457,6 +457,71 @@ export function generateProfessionalPDF(
     currentY += 18;
   });
 
+  // ================= INCENTIVES BREAKDOWN =================
+  doc.y = Math.max(currentY, colY + 110) + 20;
+  
+  doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
+  doc.text(t("DÉTAIL DES INCITATIFS", "INCENTIVES BREAKDOWN"), margin, doc.y);
+  doc.font("Helvetica");
+  doc.moveDown(1);
+
+  // Draw incentives breakdown cards
+  const incentiveY = doc.y;
+  const incentiveCardWidth = (contentWidth - 30) / 4;
+  const incentiveCardHeight = 70;
+
+  // HQ Solar Incentive
+  drawRoundedRect(margin, incentiveY, incentiveCardWidth, incentiveCardHeight, 6, COLORS.white);
+  doc.roundedRect(margin, incentiveY, incentiveCardWidth, incentiveCardHeight, 6).strokeColor(COLORS.blue).lineWidth(1).stroke();
+  doc.fontSize(8).fillColor(COLORS.mediumGray);
+  doc.text(t("HYDRO-QUÉBEC SOLAIRE", "HYDRO-QUÉBEC SOLAR"), margin + 8, incentiveY + 8, { width: incentiveCardWidth - 16, align: "center" });
+  doc.fontSize(7).fillColor(COLORS.lightGray);
+  doc.text(t("1 000 $/kW (max 40%)", "$1,000/kW (max 40%)"), margin + 8, incentiveY + 20, { width: incentiveCardWidth - 16, align: "center" });
+  doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
+  doc.text(formatCurrency(simulation.incentivesHQSolar), margin + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
+  doc.font("Helvetica");
+
+  // HQ Battery Incentive
+  drawRoundedRect(margin + incentiveCardWidth + 10, incentiveY, incentiveCardWidth, incentiveCardHeight, 6, COLORS.white);
+  doc.roundedRect(margin + incentiveCardWidth + 10, incentiveY, incentiveCardWidth, incentiveCardHeight, 6).strokeColor(COLORS.blue).lineWidth(1).stroke();
+  doc.fontSize(8).fillColor(COLORS.mediumGray);
+  doc.text(t("HYDRO-QUÉBEC BATTERIE", "HYDRO-QUÉBEC BATTERY"), margin + incentiveCardWidth + 18, incentiveY + 8, { width: incentiveCardWidth - 16, align: "center" });
+  doc.fontSize(7).fillColor(COLORS.lightGray);
+  doc.text(t("300 $/kW (max 40%)", "$300/kW (max 40%)"), margin + incentiveCardWidth + 18, incentiveY + 20, { width: incentiveCardWidth - 16, align: "center" });
+  doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
+  doc.text(formatCurrency(simulation.incentivesHQBattery), margin + incentiveCardWidth + 18, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
+  doc.font("Helvetica");
+
+  // Federal ITC
+  drawRoundedRect(margin + 2 * (incentiveCardWidth + 10), incentiveY, incentiveCardWidth, incentiveCardHeight, 6, COLORS.white);
+  doc.roundedRect(margin + 2 * (incentiveCardWidth + 10), incentiveY, incentiveCardWidth, incentiveCardHeight, 6).strokeColor(COLORS.green).lineWidth(1).stroke();
+  doc.fontSize(8).fillColor(COLORS.mediumGray);
+  doc.text(t("ITC FÉDÉRAL", "FEDERAL ITC"), margin + 2 * (incentiveCardWidth + 10) + 8, incentiveY + 8, { width: incentiveCardWidth - 16, align: "center" });
+  doc.fontSize(7).fillColor(COLORS.lightGray);
+  doc.text(t("30% du CAPEX net", "30% of net CAPEX"), margin + 2 * (incentiveCardWidth + 10) + 8, incentiveY + 20, { width: incentiveCardWidth - 16, align: "center" });
+  doc.fontSize(14).fillColor(COLORS.green).font("Helvetica-Bold");
+  doc.text(formatCurrency(simulation.incentivesFederal), margin + 2 * (incentiveCardWidth + 10) + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
+  doc.font("Helvetica");
+
+  // Tax Shield (DPA/CCA)
+  drawRoundedRect(margin + 3 * (incentiveCardWidth + 10), incentiveY, incentiveCardWidth, incentiveCardHeight, 6, COLORS.white);
+  doc.roundedRect(margin + 3 * (incentiveCardWidth + 10), incentiveY, incentiveCardWidth, incentiveCardHeight, 6).strokeColor(COLORS.gold).lineWidth(1).stroke();
+  doc.fontSize(8).fillColor(COLORS.mediumGray);
+  doc.text(t("BOUCLIER FISCAL", "TAX SHIELD"), margin + 3 * (incentiveCardWidth + 10) + 8, incentiveY + 8, { width: incentiveCardWidth - 16, align: "center" });
+  doc.fontSize(7).fillColor(COLORS.lightGray);
+  doc.text(t("DPA/CCA Classe 43.2", "CCA Class 43.2"), margin + 3 * (incentiveCardWidth + 10) + 8, incentiveY + 20, { width: incentiveCardWidth - 16, align: "center" });
+  doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
+  doc.text(formatCurrency(simulation.taxShield), margin + 3 * (incentiveCardWidth + 10) + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
+  doc.font("Helvetica");
+
+  // Total incentives row
+  doc.y = incentiveY + incentiveCardHeight + 10;
+  doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
+  doc.text(t("TOTAL DES INCITATIFS:", "TOTAL INCENTIVES:"), margin, doc.y);
+  doc.fontSize(14).fillColor(COLORS.blue);
+  doc.text(formatCurrency(simulation.totalIncentives + simulation.taxShield), margin + 180, doc.y - 2);
+  doc.font("Helvetica");
+
   // Footer
   doc.fontSize(8).fillColor(COLORS.lightGray);
   doc.text(t("Document confidentiel | Généré par kWh Québec | Page 1", "Confidential document | Generated by kWh Québec | Page 1"), margin, pageHeight - 30, { align: "center", width: contentWidth });
@@ -473,18 +538,23 @@ export function generateProfessionalPDF(
 
   doc.moveDown(2);
 
-  // Scenario Comparison Chart
+  // Scenario Comparison Chart - VAN sur 25 ans par scénario
+  // PV seul estimé: savings from solar only, without battery peak shaving benefits
+  // Rough estimate: if battery provides ~30-40% of demand savings via peak shaving,
+  // PV-only provides roughly 65-75% of total NPV
+  const pvOnlyEstimatedNPV = simulation.npv25 * 0.72; // Conservative estimate
+  
   drawBarChart(
     margin,
     doc.y,
     contentWidth,
     150,
     [
-      { label: t("Statu quo", "Status quo"), value: 0, color: COLORS.lightGray },
-      { label: t("PV seul", "PV only"), value: simulation.npv25 * 0.7, color: COLORS.gold },
-      { label: t("PV + Batterie", "PV + Battery"), value: simulation.npv25, color: COLORS.green },
+      { label: t("Statu quo\n(aucun investissement)", "Status quo\n(no investment)"), value: 0, color: COLORS.lightGray },
+      { label: t("PV seul\n(sans stockage)", "PV only\n(no storage)"), value: pvOnlyEstimatedNPV, color: COLORS.gold },
+      { label: t("PV + Batterie\n(recommandé)", "PV + Battery\n(recommended)"), value: simulation.npv25, color: COLORS.green },
     ],
-    t("Pourquoi ce scénario ? (comparatif)", "Why this scenario? (comparison)")
+    t("COMPARAISON DES SCÉNARIOS - VAN 25 ans", "SCENARIO COMPARISON - 25yr NPV")
   );
 
   doc.y += 170;
