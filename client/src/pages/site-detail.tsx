@@ -336,8 +336,8 @@ function AnalysisParametersEditor({
                   <Input
                     type="number"
                     step="0.001"
-                    value={merged.energyTariffPerKWh || ""}
-                    onChange={(e) => updateField("energyTariffPerKWh", parseFloat(e.target.value) || 0)}
+                    value={merged.tariffEnergy || ""}
+                    onChange={(e) => updateField("tariffEnergy", parseFloat(e.target.value) || 0)}
                     disabled={disabled}
                     className="h-8 text-sm font-mono"
                     data-testid="input-energy-tariff"
@@ -348,8 +348,8 @@ function AnalysisParametersEditor({
                   <Input
                     type="number"
                     step="0.01"
-                    value={merged.demandTariffPerKW || ""}
-                    onChange={(e) => updateField("demandTariffPerKW", parseFloat(e.target.value) || 0)}
+                    value={merged.tariffPower || ""}
+                    onChange={(e) => updateField("tariffPower", parseFloat(e.target.value) || 0)}
                     disabled={disabled}
                     className="h-8 text-sm font-mono"
                     data-testid="input-demand-tariff"
@@ -370,8 +370,8 @@ function AnalysisParametersEditor({
                   <Input
                     type="number"
                     step="0.01"
-                    value={merged.solarCostPerWatt}
-                    onChange={(e) => updateField("solarCostPerWatt", parseFloat(e.target.value) || 0)}
+                    value={merged.solarCostPerW || ""}
+                    onChange={(e) => updateField("solarCostPerW", parseFloat(e.target.value) || 0)}
                     disabled={disabled}
                     className="h-8 text-sm font-mono"
                     data-testid="input-solar-cost"
@@ -382,8 +382,8 @@ function AnalysisParametersEditor({
                   <Input
                     type="number"
                     step="1"
-                    value={merged.batteryEnergyCapexPerKWh}
-                    onChange={(e) => updateField("batteryEnergyCapexPerKWh", parseFloat(e.target.value) || 0)}
+                    value={merged.batteryCapacityCost || ""}
+                    onChange={(e) => updateField("batteryCapacityCost", parseFloat(e.target.value) || 0)}
                     disabled={disabled}
                     className="h-8 text-sm font-mono"
                     data-testid="input-battery-energy-cost"
@@ -394,8 +394,8 @@ function AnalysisParametersEditor({
                   <Input
                     type="number"
                     step="1"
-                    value={merged.batteryPowerCapexPerKW}
-                    onChange={(e) => updateField("batteryPowerCapexPerKW", parseFloat(e.target.value) || 0)}
+                    value={merged.batteryPowerCost || ""}
+                    onChange={(e) => updateField("batteryPowerCost", parseFloat(e.target.value) || 0)}
                     disabled={disabled}
                     className="h-8 text-sm font-mono"
                     data-testid="input-battery-power-cost"
@@ -440,8 +440,8 @@ function AnalysisParametersEditor({
                   <Input
                     type="number"
                     step="0.1"
-                    value={(merged.corporateTaxRate * 100).toFixed(1)}
-                    onChange={(e) => updateField("corporateTaxRate", (parseFloat(e.target.value) || 0) / 100)}
+                    value={(merged.taxRate * 100).toFixed(1)}
+                    onChange={(e) => updateField("taxRate", (parseFloat(e.target.value) || 0) / 100)}
                     disabled={disabled}
                     className="h-8 text-sm font-mono"
                     data-testid="input-tax-rate"
@@ -486,8 +486,8 @@ function AnalysisParametersEditor({
                   <Input
                     type="number"
                     step="0.1"
-                    value={(merged.omEscalationRate * 100).toFixed(1)}
-                    onChange={(e) => updateField("omEscalationRate", (parseFloat(e.target.value) || 0) / 100)}
+                    value={(merged.omEscalation * 100).toFixed(1)}
+                    onChange={(e) => updateField("omEscalation", (parseFloat(e.target.value) || 0) / 100)}
                     disabled={disabled}
                     className="h-8 text-sm font-mono"
                     data-testid="input-om-escalation"
@@ -1012,15 +1012,15 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div>
               <p className="text-muted-foreground">{language === "fr" ? "Tarif énergie" : "Energy tariff"}</p>
-              <p className="font-mono">${assumptions.energyTariffPerKWh}/kWh</p>
+              <p className="font-mono">${assumptions.tariffEnergy}/kWh</p>
             </div>
             <div>
               <p className="text-muted-foreground">{language === "fr" ? "Tarif puissance" : "Power tariff"}</p>
-              <p className="font-mono">${assumptions.demandTariffPerKW}/kW/mois</p>
+              <p className="font-mono">${assumptions.tariffPower}/kW/mois</p>
             </div>
             <div>
               <p className="text-muted-foreground">{language === "fr" ? "Coût solaire" : "Solar cost"}</p>
-              <p className="font-mono">${assumptions.solarCostPerWatt}/Wc</p>
+              <p className="font-mono">${assumptions.solarCostPerW}/Wc</p>
             </div>
             <div>
               <p className="text-muted-foreground">{language === "fr" ? "Taux actualisation" : "Discount rate"}</p>
@@ -1040,7 +1040,7 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
             </div>
             <div>
               <p className="text-muted-foreground">{language === "fr" ? "Taux imposition" : "Tax rate"}</p>
-              <p className="font-mono">{(assumptions.corporateTaxRate * 100).toFixed(1)}%</p>
+              <p className="font-mono">{(assumptions.taxRate * 100).toFixed(1)}%</p>
             </div>
           </div>
         </CardContent>
@@ -1293,7 +1293,7 @@ export default function SiteDetailPage() {
                     : "Import CSV files and run an analysis to see results."}
                 </p>
                 <Button 
-                  onClick={() => runAnalysisMutation.mutate()}
+                  onClick={() => runAnalysisMutation.mutate(customAssumptions)}
                   disabled={!site.meterFiles?.length || runAnalysisMutation.isPending}
                   className="gap-2"
                 >
