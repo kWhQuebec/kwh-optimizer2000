@@ -366,6 +366,9 @@ export async function registerRoutes(
     try {
       const siteId = req.params.siteId;
       
+      // Get custom assumptions from request body (if provided)
+      const customAssumptions = req.body?.assumptions as Partial<AnalysisAssumptions> | undefined;
+      
       // Get meter readings for the site
       const readings = await storage.getMeterReadingsBySite(siteId);
       
@@ -373,10 +376,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No meter data available" });
       }
 
-      // Run the analysis
-      const analysisResult = runPotentialAnalysis(readings);
+      // Run the analysis with custom assumptions
+      const analysisResult = runPotentialAnalysis(readings, customAssumptions);
       
-      // Create simulation run
+      // Create simulation run with assumptions stored
       const simulation = await storage.createSimulationRun({
         siteId,
         label: `Analyse ${new Date().toLocaleDateString("fr-CA")}`,
@@ -384,8 +387,11 @@ export async function registerRoutes(
         ...analysisResult,
       });
 
-      // Update site to mark analysis as available
-      await storage.updateSite(siteId, { analysisAvailable: true });
+      // Update site to mark analysis as available and save assumptions
+      await storage.updateSite(siteId, { 
+        analysisAvailable: true,
+        analysisAssumptions: customAssumptions || null,
+      });
 
       res.status(201).json(simulation);
     } catch (error) {
@@ -1037,9 +1043,10 @@ interface AnalysisResult {
 
 function runPotentialAnalysis(
   readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>,
-  assumptions: AnalysisAssumptions = defaultAnalysisAssumptions
+  customAssumptions?: Partial<AnalysisAssumptions>
 ): AnalysisResult {
-  const h = assumptions;
+  // Merge custom assumptions with defaults
+  const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
   
   // ========== STEP 1: Build 8760-hour simulation data ==========
   // Aggregate readings into hourly consumption and peak power

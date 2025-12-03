@@ -120,7 +120,23 @@ The application uses a unified TypeScript codebase with client-side React and se
 **Charts**: Recharts library for consumption profiles, production simulations, and financial projections
 **Data Tables**: shadcn/ui table components for BOM listings and detailed metrics
 
-**Rationale**: Recharts integrates well with React and provides responsive, accessible charts suitable for data-heavy B2B interfaces.
+**Site Detail Page** (`client/src/pages/site-detail.tsx`):
+- **Analysis Parameters Editor**: Collapsible form for customizing analysis inputs before running
+  - Hydro-Québec tariffs (energy $/kWh, power $/kW/month)
+  - CAPEX costs (solar $/Wp, battery energy $/kWh, battery power $/kW)
+  - Financial assumptions (discount rate, inflation, corporate tax rate)
+  - O&M parameters (solar %, battery %, escalation rate)
+  - Roof constraints (area sq ft, utilization ratio) with live max PV capacity estimate
+- **Enhanced Analysis Results Display**:
+  - Main KPIs: NPV 25yr, IRR 25yr, Simple Payback, LCOE (prominently displayed)
+  - Secondary KPIs: NPV 10yr, IRR 10yr, Year 1 Savings, CO₂ avoided
+  - Recommended System section with roof capacity constraint indicator
+  - Self-sufficiency progress bar
+  - 25-Year Cashflow chart with cumulative line
+  - Detailed Financial Breakdown (CAPEX + Incentives: HQ solar/battery, Federal ITC, Tax Shield DPA)
+  - "Parameters Used" section showing the assumptions used for each analysis run
+
+**Rationale**: Recharts integrates well with React and provides responsive, accessible charts suitable for data-heavy B2B interfaces. The Analysis Parameters editor enables quick scenario comparisons without code changes.
 
 ## External Dependencies
 

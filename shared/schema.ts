@@ -53,6 +53,8 @@ export const sites = pgTable("sites", {
   province: text("province"),
   postalCode: text("postal_code"),
   notes: text("notes"),
+  roofAreaSqM: real("roof_area_sqm"),
+  analysisAssumptions: jsonb("analysis_assumptions"),
   analysisAvailable: boolean("analysis_available").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
