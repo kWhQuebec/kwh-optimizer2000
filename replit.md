@@ -104,6 +104,15 @@ The application uses a unified TypeScript codebase with client-side React and se
 - Configurable battery replacement (year, cost factor, price decline rate) with inflation adjustment
 - Robust IRR calculation with Newton-Raphson + bisection fallback
 
+**Sensitivity Analysis Engine** (server/routes.ts - `runSensitivityAnalysis`):
+- Multi-scenario optimization sweeping different system sizes
+- Solar-only scenarios (varying PV size from 10% to 100% of max roof capacity)
+- Battery-only scenarios (varying battery capacity)
+- Hybrid scenarios (combined PV + battery configurations)
+- Efficiency frontier calculation (CAPEX vs NPV trade-off)
+- Optimal point identification based on maximum NPV
+- Data persisted in simulationRuns.sensitivity jsonb column
+
 **HQ Tariff Module** (server/hqTariffs.ts):
 - Official Hydro-Québec tariffs effective April 2025
 - Supported tariffs: D (Domestic), G (Small <65kW), M (Medium 65kW-5MW), L (Large >5MW)
@@ -145,6 +154,11 @@ The application uses a unified TypeScript codebase with client-side React and se
   - 25-Year Cashflow chart with cumulative line
   - Detailed Financial Breakdown (CAPEX + Incentives: HQ solar/battery, Federal ITC, Tax Shield DPA)
   - "Parameters Used" section showing the assumptions used for each analysis run
+- **Optimization Analysis Section** (when sensitivity data available):
+  - Efficiency Frontier ScatterChart: CAPEX net vs NPV 25yr with colored points (gold=solar, blue=battery, green=hybrid)
+  - Solar Size Optimization LineChart: PV capacity (kWc) vs NPV 25yr
+  - Battery Size Optimization LineChart: Battery capacity (kWh) vs NPV 25yr
+  - Optimal point highlighted with circle marker on all charts
 
 **Rationale**: Recharts integrates well with React and provides responsive, accessible charts suitable for data-heavy B2B interfaces. The Analysis Parameters editor enables quick scenario comparisons without code changes.
 
