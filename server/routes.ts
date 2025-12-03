@@ -1194,6 +1194,218 @@ function runPotentialAnalysis(
     h
   );
   
+  // ========== STEP 15: Find optimal scenario and recalculate if better ==========
+  // The sensitivity analysis explores many scenarios - use the best one
+  const optimalScenario = sensitivity.frontier.find(p => p.isOptimal);
+  
+  // If the optimal scenario has better NPV than our initial calculation, use its sizing
+  if (optimalScenario && optimalScenario.npv25 > npv25) {
+    // Recalculate with optimal sizing
+    const optPvSizeKW = optimalScenario.pvSizeKW;
+    const optBattEnergyKWh = optimalScenario.battEnergyKWh;
+    const optBattPowerKW = optimalScenario.battPowerKW;
+    const optDemandShavingSetpointKW = Math.round(peakKW * 0.90);
+    
+    // Run simulation with optimal sizing
+    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW);
+    
+    // Recalculate all financials with optimal sizing
+    const optSelfConsumptionKWh = optSimResult.totalSelfConsumption;
+    const optPeakAfterKW = optSimResult.peakAfter;
+    const optAnnualDemandReductionKW = peakKW - optPeakAfterKW;
+    const optSelfSufficiencyPercent = annualConsumptionKWh > 0 ? (optSelfConsumptionKWh / annualConsumptionKWh) * 100 : 0;
+    
+    const optEnergySavings = optSelfConsumptionKWh * h.tariffEnergy;
+    const optDemandSavings = optAnnualDemandReductionKW * h.tariffPower * 12;
+    const optAnnualSavings = optEnergySavings + optDemandSavings;
+    const optAnnualCostAfter = annualCostBefore - optAnnualSavings;
+    const optSavingsYear1 = optAnnualSavings;
+    
+    const optCapexPV = optPvSizeKW * 1000 * h.solarCostPerW;
+    const optCapexBattery = optBattEnergyKWh * h.batteryCapacityCost + optBattPowerKW * h.batteryPowerCost;
+    const optCapexGross = optCapexPV + optCapexBattery;
+    
+    // HQ incentives for optimal sizing
+    const optPotentialHQSolar = optPvSizeKW * 1000;
+    const optPotentialHQBattery = optBattPowerKW * 300;
+    const optTotalPotentialHQ = optPotentialHQSolar + optPotentialHQBattery;
+    const optCap40Percent = optCapexGross * 0.40;
+    const optTotalHQ = Math.min(optTotalPotentialHQ, optCap40Percent);
+    
+    let optIncentivesHQSolar = 0;
+    let optIncentivesHQBattery = 0;
+    if (optTotalPotentialHQ > 0) {
+      const solarRatio = optPotentialHQSolar / optTotalPotentialHQ;
+      optIncentivesHQSolar = optTotalHQ * solarRatio;
+      optIncentivesHQBattery = optTotalHQ * (1 - solarRatio);
+    }
+    const optIncentivesHQ = optIncentivesHQSolar + optIncentivesHQBattery;
+    const optBatterySubY0 = optIncentivesHQBattery * 0.5;
+    const optBatterySubY1 = optIncentivesHQBattery * 0.5;
+    
+    // Federal ITC
+    const optItcBasis = optCapexGross - optIncentivesHQ;
+    const optIncentivesFederal = optItcBasis * 0.30;
+    
+    // Tax shield
+    const optCapexNetAccounting = Math.max(0, optCapexGross - optIncentivesHQ - optIncentivesFederal);
+    const optTaxShield = optCapexNetAccounting * h.taxRate * 0.90;
+    
+    const optTotalIncentives = optIncentivesHQ + optIncentivesFederal + optTaxShield;
+    const optCapexNet = optCapexGross - optTotalIncentives;
+    const optEquityInitial = optCapexGross - optIncentivesHQSolar - optBatterySubY0;
+    
+    // Build cashflows for optimal scenario
+    const optCashflows: CashflowEntry[] = [];
+    const optOpexBase = optCapexPV * h.omSolarPercent + optCapexBattery * h.omBatteryPercent;
+    let optCumulative = -optEquityInitial;
+    optCashflows.push({
+      year: 0,
+      revenue: 0,
+      opex: 0,
+      ebitda: 0,
+      investment: -optEquityInitial,
+      dpa: 0,
+      incentives: 0,
+      netCashflow: -optEquityInitial,
+      cumulative: optCumulative,
+    });
+    
+    const optCashflowValues = [-optEquityInitial];
+    for (let y = 1; y <= h.analysisYears; y++) {
+      const revenue = optAnnualSavings * Math.pow(1 + h.inflationRate, y - 1);
+      const opex = optOpexBase * Math.pow(1 + h.omEscalation, y - 1);
+      const ebitda = revenue - opex;
+      
+      const dpaRate = y <= 5 ? 0.30 : (y <= 10 ? 0.15 : 0.05);
+      const dpa = optCapexNetAccounting * dpaRate * h.taxRate;
+      
+      let investment = 0;
+      let incentives = 0;
+      if (y === 1) {
+        incentives = optBatterySubY1 + optIncentivesFederal;
+      }
+      
+      const replacementYear = h.batteryReplacementYear || 10;
+      const replacementFactor = h.batteryReplacementCostFactor || 0.60;
+      const priceDecline = h.batteryPriceDeclineRate || 0.05;
+      
+      if (y === replacementYear && optBattEnergyKWh > 0) {
+        const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+        investment = -optCapexBattery * replacementFactor * netPriceChange;
+      }
+      if (y === 20 && h.analysisYears >= 25 && optBattEnergyKWh > 0) {
+        const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+        investment = -optCapexBattery * replacementFactor * netPriceChange;
+      }
+      
+      const netCashflow = ebitda + investment + dpa + incentives;
+      optCumulative += netCashflow;
+      
+      optCashflows.push({
+        year: y,
+        revenue,
+        opex,
+        ebitda,
+        investment,
+        dpa,
+        incentives,
+        netCashflow,
+        cumulative: optCumulative,
+      });
+      optCashflowValues.push(ebitda + investment + dpa + incentives);
+    }
+    
+    // Calculate NPV and IRR for optimal
+    const optNpv25 = calculateNPV(optCashflowValues, h.discountRate, 25);
+    const optNpv10 = calculateNPV(optCashflowValues, h.discountRate, 10);
+    const optNpv20 = calculateNPV(optCashflowValues, h.discountRate, 20);
+    const optIrr25 = calculateIRR(optCashflowValues.slice(0, 26));
+    const optIrr10 = calculateIRR(optCashflowValues.slice(0, 11));
+    const optIrr20 = calculateIRR(optCashflowValues.slice(0, 21));
+    
+    // Simple payback
+    let optSimplePaybackYears = h.analysisYears;
+    for (const cf of optCashflows) {
+      if (cf.cumulative >= 0 && cf.year > 0) {
+        optSimplePaybackYears = cf.year;
+        break;
+      }
+    }
+    
+    // LCOE
+    const optTotalProduction = optPvSizeKW * 1150 * h.analysisYears;
+    const optTotalLifetimeCost = optCapexNet + (optOpexBase * h.analysisYears);
+    const optLcoe = optTotalProduction > 0 ? optTotalLifetimeCost / optTotalProduction : 0;
+    
+    // CO2
+    const optCo2AvoidedTonnesPerYear = (optSelfConsumptionKWh * 0.002) / 1000;
+    
+    // Build breakdown
+    const optBreakdown: FinancialBreakdown = {
+      capexSolar: optCapexPV,
+      capexBattery: optCapexBattery,
+      capexGross: optCapexGross,
+      potentialHQSolar: optPotentialHQSolar,
+      potentialHQBattery: optPotentialHQBattery,
+      cap40Percent: optCap40Percent,
+      actualHQSolar: optIncentivesHQSolar,
+      actualHQBattery: optIncentivesHQBattery,
+      totalHQ: optIncentivesHQ,
+      itcBasis: optItcBasis,
+      itcAmount: optIncentivesFederal,
+      depreciableBasis: optCapexNetAccounting,
+      taxShield: optTaxShield,
+      equityInitial: optEquityInitial,
+      batterySubY0: optBatterySubY0,
+      batterySubY1: optBatterySubY1,
+      capexNet: optCapexNet,
+    };
+    
+    return {
+      pvSizeKW: optPvSizeKW,
+      battEnergyKWh: optBattEnergyKWh,
+      battPowerKW: optBattPowerKW,
+      demandShavingSetpointKW: optDemandShavingSetpointKW,
+      annualConsumptionKWh,
+      peakDemandKW,
+      annualEnergySavingsKWh: optSelfConsumptionKWh,
+      annualDemandReductionKW: optAnnualDemandReductionKW,
+      selfConsumptionKWh: optSelfConsumptionKWh,
+      selfSufficiencyPercent: optSelfSufficiencyPercent,
+      annualCostBefore,
+      annualCostAfter: optAnnualCostAfter,
+      annualSavings: optAnnualSavings,
+      savingsYear1: optSavingsYear1,
+      capexGross: optCapexGross,
+      capexPV: optCapexPV,
+      capexBattery: optCapexBattery,
+      incentivesHQ: optIncentivesHQ,
+      incentivesHQSolar: optIncentivesHQSolar,
+      incentivesHQBattery: optIncentivesHQBattery,
+      incentivesFederal: optIncentivesFederal,
+      taxShield: optTaxShield,
+      totalIncentives: optTotalIncentives,
+      capexNet: optCapexNet,
+      npv25: optNpv25,
+      npv10: optNpv10,
+      npv20: optNpv20,
+      irr25: optIrr25,
+      irr10: optIrr10,
+      irr20: optIrr20,
+      simplePaybackYears: optSimplePaybackYears,
+      lcoe: optLcoe,
+      co2AvoidedTonnesPerYear: optCo2AvoidedTonnesPerYear,
+      assumptions: h,
+      cashflows: optCashflows,
+      breakdown: optBreakdown,
+      hourlyProfile: optSimResult.hourlyProfile,
+      peakWeekData: optSimResult.peakWeekData,
+      sensitivity,
+    };
+  }
+  
+  // Return initial calculation if it's already optimal
   return {
     pvSizeKW,
     battEnergyKWh,

@@ -491,7 +491,7 @@ function AnalysisParametersEditor({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">{language === "fr" ? "Inflation (%)" : "Inflation (%)"}</Label>
+                  <Label className="text-xs">{language === "fr" ? "Inflation tarif HQ (%)" : "HQ Tariff Inflation (%)"}</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -1161,6 +1161,8 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
                       className="text-xs"
                     />
                     <ZAxis type="number" range={[60, 200]} />
+                    {/* Profitability threshold line */}
+                    <ReferenceLine y={0} stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeWidth={2} />
                     <Tooltip 
                       cursor={{ strokeDasharray: '3 3' }}
                       contentStyle={{ 
@@ -1177,37 +1179,85 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
                       labelFormatter={(label: string) => label}
                     />
                     <Legend />
-                    {/* Solar-only points (orange) */}
+                    {/* Solar-only profitable points (solid orange) */}
                     <Scatter
-                      name={language === "fr" ? "Solaire" : "Solar"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar')}
+                      name={language === "fr" ? "Solaire rentable" : "Solar profitable"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar' && p.npv25 >= 0)}
                       fill="#FFB005"
                     />
-                    {/* Battery-only points (blue) */}
+                    {/* Solar-only unprofitable points (faded) */}
                     <Scatter
-                      name={language === "fr" ? "Batterie" : "Battery"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery')}
+                      name={language === "fr" ? "Solaire non rentable" : "Solar unprofitable"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar' && p.npv25 < 0)}
+                      fill="#FFB005"
+                      fillOpacity={0.25}
+                    />
+                    {/* Battery-only profitable points (solid blue) */}
+                    <Scatter
+                      name={language === "fr" ? "Batterie rentable" : "Battery profitable"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery' && p.npv25 >= 0)}
                       fill="#003DA6"
                     />
-                    {/* Hybrid points (green) */}
+                    {/* Battery-only unprofitable points (faded) */}
                     <Scatter
-                      name={language === "fr" ? "Hybride" : "Hybrid"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid')}
+                      name={language === "fr" ? "Batterie non rentable" : "Battery unprofitable"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery' && p.npv25 < 0)}
+                      fill="#003DA6"
+                      fillOpacity={0.25}
+                    />
+                    {/* Hybrid profitable points (solid green) */}
+                    <Scatter
+                      name={language === "fr" ? "Hybride rentable" : "Hybrid profitable"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && p.npv25 >= 0)}
                       fill="#22C55E"
+                    />
+                    {/* Hybrid unprofitable points (faded) */}
+                    <Scatter
+                      name={language === "fr" ? "Hybride non rentable" : "Hybrid unprofitable"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && p.npv25 < 0)}
+                      fill="#22C55E"
+                      fillOpacity={0.25}
+                    />
+                    {/* Optimal point highlighted with special marker */}
+                    <Scatter
+                      name={language === "fr" ? "Point optimal" : "Optimal point"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.isOptimal)}
+                      fill="#FFD700"
+                      stroke="#000"
+                      strokeWidth={2}
+                      shape="star"
                     />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
+              {/* Legend clarification */}
+              <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-0.5 bg-destructive" style={{ borderStyle: 'dashed' }}></div>
+                  <span>{language === "fr" ? "Seuil de rentabilité (VAN = 0)" : "Profitability threshold (NPV = 0)"}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-base">⭐</span>
+                  <span>{language === "fr" ? "Scénario optimal (meilleure VAN)" : "Optimal scenario (best NPV)"}</span>
+                </div>
+              </div>
               {/* Optimal scenario indicator */}
               {(simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal) && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="text-lg">⭐</span>
-                  <span>
-                    {language === "fr" ? "Scénario optimal: " : "Optimal scenario: "}
-                    <span className="font-medium text-foreground">
-                      {(simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal)?.label}
-                    </span>
-                  </span>
+                <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-3">
+                  <span className="text-2xl">⭐</span>
+                  <div>
+                    <p className="text-sm font-medium">
+                      {language === "fr" ? "Recommandation: " : "Recommendation: "}
+                      <span className="text-primary">
+                        {(simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal)?.label}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" 
+                        ? "Ce scénario offre le meilleur retour sur investissement (VAN maximale)"
+                        : "This scenario offers the best return on investment (maximum NPV)"}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -1255,18 +1305,65 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
                         formatter={(value: number) => [`$${(value / 1000).toFixed(1)}k`, "VAN 25 ans"]}
                         labelFormatter={(v) => `${v} kWc`}
                       />
-                      <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                      <ReferenceLine 
+                        y={0} 
+                        stroke="hsl(var(--destructive))" 
+                        strokeDasharray="5 5" 
+                        strokeWidth={1.5}
+                        label={{ 
+                          value: language === "fr" ? "Seuil rentabilité" : "Breakeven", 
+                          position: "right",
+                          fontSize: 10,
+                          fill: "hsl(var(--muted-foreground))"
+                        }}
+                      />
                       <Line 
                         type="monotone" 
                         dataKey="npv25" 
                         stroke="#FFB005" 
                         strokeWidth={2}
-                        dot={{ fill: "#FFB005", strokeWidth: 0, r: 4 }}
+                        dot={(props: any) => {
+                          const { cx, cy, payload } = props;
+                          const isProfitable = payload.npv25 >= 0;
+                          const isOptimal = payload.isOptimal;
+                          return (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={isOptimal ? 8 : 4}
+                              fill={isProfitable ? "#FFB005" : "#FFB005"}
+                              fillOpacity={isProfitable ? 1 : 0.3}
+                              stroke={isOptimal ? "#000" : "none"}
+                              strokeWidth={isOptimal ? 2 : 0}
+                            />
+                          );
+                        }}
                         activeDot={{ r: 6 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+                {/* Find and display optimal solar point */}
+                {(() => {
+                  const solarSweep = (simulation.sensitivity as SensitivityAnalysis).solarSweep;
+                  const optimalSolar = solarSweep.reduce((best, curr) => 
+                    (curr.npv25 > (best?.npv25 || -Infinity)) ? curr : best, solarSweep[0]);
+                  if (optimalSolar && optimalSolar.npv25 > 0) {
+                    return (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {language === "fr" ? "Optimal: " : "Optimal: "}
+                        <span className="font-medium text-foreground">{optimalSolar.pvSizeKW} kWc</span>
+                        {" → VAN "}
+                        <span className="font-medium text-primary">${(optimalSolar.npv25 / 1000).toFixed(1)}k</span>
+                      </p>
+                    );
+                  }
+                  return (
+                    <p className="text-xs text-destructive mt-2">
+                      {language === "fr" ? "Aucune taille solaire rentable" : "No profitable solar size"}
+                    </p>
+                  );
+                })()}
               </div>
 
               {/* Battery Size Optimization */}
@@ -1310,18 +1407,62 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
                         formatter={(value: number) => [`$${(value / 1000).toFixed(1)}k`, "VAN 25 ans"]}
                         labelFormatter={(v) => `${v} kWh`}
                       />
-                      <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                      <ReferenceLine 
+                        y={0} 
+                        stroke="hsl(var(--destructive))" 
+                        strokeDasharray="5 5" 
+                        strokeWidth={1.5}
+                        label={{ 
+                          value: language === "fr" ? "Seuil rentabilité" : "Breakeven", 
+                          position: "right",
+                          fontSize: 10,
+                          fill: "hsl(var(--muted-foreground))"
+                        }}
+                      />
                       <Line 
                         type="monotone" 
                         dataKey="npv25" 
                         stroke="#003DA6" 
                         strokeWidth={2}
-                        dot={{ fill: "#003DA6", strokeWidth: 0, r: 4 }}
+                        dot={(props: any) => {
+                          const { cx, cy, payload } = props;
+                          const isProfitable = payload.npv25 >= 0;
+                          return (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={4}
+                              fill={isProfitable ? "#003DA6" : "#003DA6"}
+                              fillOpacity={isProfitable ? 1 : 0.3}
+                            />
+                          );
+                        }}
                         activeDot={{ r: 6 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+                {/* Find and display optimal battery point */}
+                {(() => {
+                  const batterySweep = (simulation.sensitivity as SensitivityAnalysis).batterySweep;
+                  const optimalBattery = batterySweep.reduce((best, curr) => 
+                    (curr.npv25 > (best?.npv25 || -Infinity)) ? curr : best, batterySweep[0]);
+                  if (optimalBattery && optimalBattery.npv25 > 0) {
+                    return (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {language === "fr" ? "Optimal: " : "Optimal: "}
+                        <span className="font-medium text-foreground">{optimalBattery.battEnergyKWh} kWh</span>
+                        {" → VAN "}
+                        <span className="font-medium text-primary">${(optimalBattery.npv25 / 1000).toFixed(1)}k</span>
+                      </p>
+                    );
+                  }
+                  return (
+                    <p className="text-xs text-amber-600 mt-2">
+                      {language === "fr" ? "Batterie seule non rentable (VAN négative)" : "Battery alone not profitable (negative NPV)"}
+                    </p>
+                  );
+                })()}
               </div>
             </div>
           </CardContent>
@@ -1365,7 +1506,7 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
               <p className="font-mono">{(assumptions.roofUtilizationRatio * 100).toFixed(0)}%</p>
             </div>
             <div>
-              <p className="text-muted-foreground">{language === "fr" ? "Inflation" : "Inflation"}</p>
+              <p className="text-muted-foreground">{language === "fr" ? "Inflation HQ" : "HQ Inflation"}</p>
               <p className="font-mono">{(assumptions.inflationRate * 100).toFixed(1)}%</p>
             </div>
             <div>

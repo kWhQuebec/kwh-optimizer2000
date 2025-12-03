@@ -334,7 +334,7 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   tariffCode: "M", // Default to Medium Power tariff
   tariffEnergy: 0.06061, // Tarif M 2025: 6.061¢/kWh (tier 1)
   tariffPower: 17.573, // Tarif M 2025: $17.573/kW
-  inflationRate: 0.025, // 2.5% inflation
+  inflationRate: 0.048, // 4.8% HQ tariff inflation
   discountRate: 0.08, // 8% WACC
   taxRate: 0.265, // 26.5% corporate tax
   solarCostPerW: 2.25, // $2.25/Wc
