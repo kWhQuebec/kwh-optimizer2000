@@ -1,16 +1,159 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { I18nProvider } from "@/lib/i18n";
+import { AuthProvider, useAuth } from "@/lib/auth";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import LandingPage from "@/pages/landing";
+import LoginPage from "@/pages/login";
+import DashboardPage from "@/pages/dashboard";
+import ClientsPage from "@/pages/clients";
+import SitesPage from "@/pages/sites";
+import SiteDetailPage from "@/pages/site-detail";
+import AnalysesPage from "@/pages/analyses";
+import DesignPage from "@/pages/design";
+import DesignsPage from "@/pages/designs";
+import CatalogPage from "@/pages/catalog";
 import NotFound from "@/pages/not-found";
 
-function Router() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="space-y-4 text-center">
+          <Skeleton className="h-12 w-12 rounded-xl mx-auto" />
+          <Skeleton className="h-4 w-32 mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    setLocation("/login");
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+function AppLayout({ children }: { children: React.ReactNode }) {
+  const style = {
+    "--sidebar-width": "16rem",
+    "--sidebar-width-icon": "3.5rem",
+  };
+
+  return (
+    <SidebarProvider style={style as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 min-w-0">
+          <header className="flex items-center justify-between gap-4 px-4 h-14 border-b shrink-0">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <div className="flex items-center gap-2">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto p-6">
+            {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+function AppRoutes() {
   return (
     <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
+      {/* Public routes */}
+      <Route path="/" component={LandingPage} />
+      <Route path="/login" component={LoginPage} />
+
+      {/* Protected routes */}
+      <Route path="/app">
+        <ProtectedRoute>
+          <AppLayout>
+            <DashboardPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/clients">
+        <ProtectedRoute>
+          <AppLayout>
+            <ClientsPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/clients/:clientId/sites">
+        <ProtectedRoute>
+          <AppLayout>
+            <SitesPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/sites">
+        <ProtectedRoute>
+          <AppLayout>
+            <SitesPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/sites/:id">
+        <ProtectedRoute>
+          <AppLayout>
+            <SiteDetailPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/analyses">
+        <ProtectedRoute>
+          <AppLayout>
+            <AnalysesPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/analyses/:simulationId/design">
+        <ProtectedRoute>
+          <AppLayout>
+            <DesignPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/designs">
+        <ProtectedRoute>
+          <AppLayout>
+            <DesignsPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/catalog">
+        <ProtectedRoute>
+          <AppLayout>
+            <CatalogPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Fallback */}
       <Route component={NotFound} />
     </Switch>
   );
@@ -19,10 +162,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <AppRoutes />
+          </TooltipProvider>
+        </AuthProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }
