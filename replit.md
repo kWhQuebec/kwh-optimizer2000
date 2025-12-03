@@ -103,11 +103,17 @@ The application uses a unified TypeScript codebase with client-side React and se
 
 ### Third-Party Services
 
-**Zoho CRM Integration**:
-- OAuth2 authentication for API access
-- Lead sync from public website form submissions
-- Deal creation from completed system designs
-- Environment variables for credentials: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`
+**Zoho CRM Integration** (`server/zohoClient.ts`):
+- OAuth2 authentication with automatic token refresh (cached tokens with expiry handling)
+- Lead sync from public website form submissions (automatic on form submit)
+- Deal creation/update from system designs (via "Sync to Zoho" button)
+- Mock mode: Falls back gracefully when credentials not configured (returns MOCK_* IDs)
+- Environment variables for credentials:
+  - `ZOHO_CLIENT_ID`: OAuth client ID from Zoho API Console
+  - `ZOHO_CLIENT_SECRET`: OAuth client secret
+  - `ZOHO_REFRESH_TOKEN`: Long-lived refresh token for offline access
+  - `ZOHO_BASE_URL`: API base URL (default: https://www.zohoapis.com)
+- API status endpoint: `GET /api/zoho/status` - Check if integration is configured
 
 **Neon Database** (PostgreSQL):
 - Serverless PostgreSQL via `@neondatabase/serverless`

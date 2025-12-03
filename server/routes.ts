@@ -14,6 +14,7 @@ import {
   insertComponentCatalogSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import * as zoho from "./zohoClient";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -107,8 +108,40 @@ export async function registerRoutes(
         return res.status(400).json({ error: parsed.error.errors });
       }
       
-      const lead = await storage.createLead(parsed.data);
-      res.status(201).json(lead);
+      // Create lead in local database first
+      let lead = await storage.createLead(parsed.data);
+      let zohoSyncStatus: { synced: boolean; error?: string; isMock?: boolean } = { synced: false };
+      
+      // Attempt to sync to Zoho CRM
+      try {
+        const nameParts = (parsed.data.name || "").split(" ");
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "-";
+        
+        const zohoResult = await zoho.createLead({
+          firstName,
+          lastName,
+          email: parsed.data.email,
+          phone: parsed.data.phone || undefined,
+          company: parsed.data.company || undefined,
+          description: parsed.data.message || undefined,
+          source: "Website - kWh Québec",
+        });
+        
+        if (zohoResult.success && zohoResult.data) {
+          lead = await storage.updateLead(lead.id, { zohoLeadId: zohoResult.data }) || lead;
+          zohoSyncStatus = { synced: true, isMock: zohoResult.isMock };
+          console.log(`[Lead] Created and synced to Zoho: ${lead.id} -> ${zohoResult.data}`);
+        } else {
+          zohoSyncStatus = { synced: false, error: zohoResult.error };
+          console.warn(`[Lead] Zoho sync failed: ${zohoResult.error}`);
+        }
+      } catch (zohoError) {
+        console.error("[Zoho] Failed to sync lead:", zohoError);
+        zohoSyncStatus = { synced: false, error: String(zohoError) };
+      }
+      
+      res.status(201).json({ ...lead, zohoSyncStatus });
     } catch (error) {
       console.error("Create lead error:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -628,17 +661,112 @@ export async function registerRoutes(
 
   app.post("/api/designs/:id/sync-zoho", authMiddleware, async (req, res) => {
     try {
-      // Zoho integration would go here
-      // For now, just mark as synced
-      const design = await storage.updateDesign(req.params.id, {
-        zohoDealId: `ZOHO-${Date.now()}`,
-      });
+      const designId = req.params.id;
+      const design = await storage.getDesign(designId);
       
       if (!design) {
         return res.status(404).json({ error: "Design not found" });
       }
+
+      // Get site and client info for the deal
+      const simulation = await storage.getSimulationRun(design.simulationRunId);
+      const site = simulation?.site;
+      const client = site?.client;
+
+      // Validate we have minimum required data
+      const siteName = site?.name || "Site";
+      const clientName = client?.name || "Client";
+
+      // Prepare deal data
+      const dealName = `${siteName} - Solar + Storage System`;
+      const dealDescription = `
+kWh Québec Solar + Storage Design
+
+Site: ${siteName}
+Client: ${clientName}
+Location: ${site?.city || "N/A"}, ${site?.province || "QC"}
+
+System Specifications:
+- PV Capacity: ${design.pvSizeKW?.toFixed(1) || 0} kWc
+- Battery: ${design.battEnergyKWh?.toFixed(0) || 0} kWh / ${design.battPowerKW?.toFixed(0) || 0} kW
+- Module: ${design.moduleSku || "N/A"}
+- Inverter: ${design.inverterSku || "N/A"}
+- Battery Model: ${design.batterySku || "N/A"}
+
+Pricing:
+- Subtotal: ${design.subtotalDollars?.toLocaleString() || 0} $
+- Margin: ${design.marginPercent?.toFixed(1) || 0}%
+- Final Price: ${design.totalPriceDollars?.toLocaleString() || 0} $
+      `.trim();
+
+      let zohoDealId = design.zohoDealId;
+      let zohoSyncResult: { success: boolean; error?: string; isMock?: boolean };
+
+      if (zohoDealId) {
+        // Update existing deal
+        const updateResult = await zoho.updateDeal(zohoDealId, {
+          dealName,
+          amount: design.totalPriceDollars || 0,
+          description: dealDescription,
+          stage: "Proposal/Price Quote",
+        });
+        zohoSyncResult = { success: updateResult.success, error: updateResult.error, isMock: updateResult.isMock };
+        
+        if (updateResult.success) {
+          console.log(`[Zoho] Updated deal: ${zohoDealId}`);
+        }
+      } else {
+        // Create new deal
+        const accountId = client?.zohoAccountId;
+        const createResult = await zoho.createDeal({
+          dealName,
+          amount: design.totalPriceDollars || 0,
+          description: dealDescription,
+          stage: "Qualification",
+          closingDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], // 60 days from now
+        }, accountId && !accountId.startsWith("MOCK_") ? accountId : undefined);
+
+        zohoSyncResult = { success: createResult.success, error: createResult.error, isMock: createResult.isMock };
+
+        if (createResult.success && createResult.data) {
+          zohoDealId = createResult.data;
+          await storage.updateDesign(designId, { zohoDealId });
+          console.log(`[Zoho] Created deal: ${zohoDealId}`);
+        }
+      }
+
+      // Add a note to the deal with latest update (only for real Zoho IDs)
+      if (zohoDealId && !zohoDealId.startsWith("MOCK_") && zohoSyncResult.success) {
+        await zoho.addNote("Deals", zohoDealId, `Design updated via kWh Québec platform at ${new Date().toISOString()}`);
+      }
+
+      const updatedDesign = await storage.getDesign(designId);
       
-      res.json(design);
+      // Return design with sync status
+      res.json({ 
+        ...updatedDesign, 
+        zohoSyncStatus: {
+          synced: zohoSyncResult.success,
+          error: zohoSyncResult.error,
+          isMock: zohoSyncResult.isMock,
+        }
+      });
+    } catch (error) {
+      console.error("Zoho sync error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== ZOHO STATUS ROUTE ====================
+  
+  app.get("/api/zoho/status", authMiddleware, async (req, res) => {
+    try {
+      res.json({
+        configured: zoho.isZohoConfigured(),
+        message: zoho.isZohoConfigured() 
+          ? "Zoho CRM integration is configured and active"
+          : "Zoho CRM integration is running in mock mode (no credentials configured)",
+      });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
