@@ -21,11 +21,12 @@ import bcrypt from "bcrypt";
 
 export class DatabaseStorage implements IStorage {
   async initializeDefaultData(): Promise<void> {
-    const existingAdmin = await db.select().from(users).where(eq(users.email, "admin@kwh.quebec")).limit(1);
+    // Check for new admin email first
+    const existingAdmin = await db.select().from(users).where(eq(users.email, "info@kwh.quebec")).limit(1);
     if (existingAdmin.length === 0) {
-      const passwordHash = await bcrypt.hash("admin123", 10);
+      const passwordHash = await bcrypt.hash("KiloWattHeureQc1$", 10);
       await db.insert(users).values({
-        email: "admin@kwh.quebec",
+        email: "info@kwh.quebec",
         passwordHash,
         role: "admin",
       });

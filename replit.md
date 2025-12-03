@@ -56,7 +56,7 @@ The application uses a unified TypeScript codebase with client-side React and se
 - Tokens stored in localStorage on client
 - Auth middleware validates Bearer tokens on protected routes
 - Simple admin/team user model (not multi-tenant SaaS)
-- Default admin credentials: admin@kwh.quebec / admin123
+- Default admin credentials: info@kwh.quebec / KiloWattHeureQc1$
 
 **Data Access**: In-memory storage implementation (`/server/storage.ts`) with interface designed for future database integration
 - All database operations abstracted behind `IStorage` interface
@@ -87,7 +87,12 @@ The application uses a unified TypeScript codebase with client-side React and se
 
 ### Data Processing & Analysis
 
-**CSV Parsing**: Server-side parsing of consumption data files with validation
+**CSV Parsing**: Server-side parsing of Hydro-Québec consumption data files
+- Supports up to 200 files simultaneously (for 24+ months of data)
+- Auto-detects file type: 15-minute power (kW) vs hourly energy (kWh)
+- Handles Latin-1 encoding, semicolon delimiters, French decimal format
+- Accent-insensitive header detection for reliable parsing
+
 **Analysis Engine**: Calculates solar production potential, battery sizing, economic metrics
 **Report Generation**: Produces detailed potential reports (implementation pending)
 

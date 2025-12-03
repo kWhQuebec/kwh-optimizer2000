@@ -102,11 +102,11 @@ export class MemStorage implements IStorage {
   }
 
   private seedDefaultData() {
-    // Create default admin user with hashed password "admin123"
+    // Create default admin user
     const adminUser: User = {
       id: randomUUID(),
-      email: "admin@kwh.quebec",
-      passwordHash: "$2b$10$RJ35.ZQjNqhIsbIV6f0yxehvnurJcjpTfZCQUuy0ZnHyCjLs44grG", // admin123
+      email: "info@kwh.quebec",
+      passwordHash: "$2b$10$s9n26vylL.JbqEVDwx9EXerv4ElQq0GO9EpyW7KiWl/EDTSO8ZL5K", // KiloWattHeureQc1$
       role: "admin",
       createdAt: new Date(),
       updatedAt: new Date(),
