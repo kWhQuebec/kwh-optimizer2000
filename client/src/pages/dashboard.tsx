@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Building2, BarChart3, DollarSign, Leaf, TrendingUp, Clock } from "lucide-react";
+import { Link } from "wouter";
+import { Building2, BarChart3, DollarSign, Leaf, TrendingUp, Clock, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
@@ -55,15 +56,17 @@ function RecentActivityItem({
   title, 
   subtitle, 
   time, 
-  icon: Icon 
+  icon: Icon,
+  href
 }: { 
   title: string; 
   subtitle: string; 
   time: string; 
   icon: React.ElementType;
+  href?: string;
 }) {
-  return (
-    <div className="flex items-start gap-3 py-3">
+  const content = (
+    <div className={`flex items-start gap-3 py-3 ${href ? "hover-elevate rounded-lg px-2 -mx-2 cursor-pointer" : ""}`}>
       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5">
         <Icon className="w-4 h-4 text-muted-foreground" />
       </div>
@@ -71,12 +74,20 @@ function RecentActivityItem({
         <p className="font-medium truncate">{title}</p>
         <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
       </div>
-      <div className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
-        <Clock className="w-3 h-3" />
-        {time}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          {time}
+        </div>
+        {href && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
       </div>
     </div>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+  return content;
 }
 
 export default function DashboardPage() {
@@ -151,6 +162,7 @@ export default function DashboardPage() {
                     subtitle={`${site.city || ""}, ${site.province || "QC"}`}
                     time={site.createdAt ? new Date(site.createdAt).toLocaleDateString("fr-CA") : ""}
                     icon={Building2}
+                    href={`/app/sites/${site.id}`}
                   />
                 ))}
               </div>
@@ -190,6 +202,7 @@ export default function DashboardPage() {
                     subtitle={`${analysis.pvSizeKW?.toFixed(0) || 0} kWc • ${analysis.annualSavings?.toLocaleString() || 0} $/an`}
                     time={analysis.createdAt ? new Date(analysis.createdAt).toLocaleDateString("fr-CA") : ""}
                     icon={BarChart3}
+                    href={`/app/sites/${analysis.siteId}`}
                   />
                 ))}
               </div>
