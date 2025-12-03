@@ -1168,15 +1168,40 @@ export default function SiteDetailPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("consumption");
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
+  const [assumptionsInitialized, setAssumptionsInitialized] = useState(false);
 
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
     queryKey: ["/api/sites", id],
     enabled: !!id,
   });
 
+  // Initialize assumptions from site data when loaded
+  useEffect(() => {
+    if (site && !assumptionsInitialized) {
+      const initialAssumptions: Partial<AnalysisAssumptions> = {};
+      
+      // Convert site roof area from sq meters to sq feet if available
+      if (site.roofAreaSqM && site.roofAreaSqM > 0) {
+        initialAssumptions.roofAreaSqFt = Math.round(site.roofAreaSqM * 10.764);
+      }
+      
+      // Load saved assumptions from site if they exist
+      if (site.analysisAssumptions) {
+        const savedAssumptions = site.analysisAssumptions as Partial<AnalysisAssumptions>;
+        Object.assign(initialAssumptions, savedAssumptions);
+      }
+      
+      if (Object.keys(initialAssumptions).length > 0) {
+        setCustomAssumptions(initialAssumptions);
+      }
+      setAssumptionsInitialized(true);
+    }
+  }, [site, assumptionsInitialized]);
+
   const runAnalysisMutation = useMutation({
     mutationFn: async (assumptions: Partial<AnalysisAssumptions>) => {
-      return apiRequest("POST", `/api/sites/${id}/run-potential-analysis`, assumptions);
+      // Wrap assumptions in the expected format for the API
+      return apiRequest("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
