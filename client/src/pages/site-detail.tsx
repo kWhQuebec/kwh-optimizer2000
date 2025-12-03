@@ -56,7 +56,8 @@ import type {
   SensitivityAnalysis,
   FrontierPoint,
   SolarSweepPoint,
-  BatterySweepPoint
+  BatterySweepPoint,
+  HourlyProfileEntry
 } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -750,18 +751,55 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
     production: i >= 6 && i <= 18 ? Math.sin((i - 6) / 12 * Math.PI) * 80 : 0,
   }));
 
-  const comparisonData = [
-    { 
-      name: language === "fr" ? "Consommation" : "Consumption", 
-      before: simulation.annualConsumptionKWh || 0, 
-      after: (simulation.annualConsumptionKWh || 0) - (simulation.annualEnergySavingsKWh || 0) 
-    },
-    { 
-      name: language === "fr" ? "Pic kW" : "Peak kW", 
-      before: (simulation.peakDemandKW || simulation.demandShavingSetpointKW || 0), 
-      after: ((simulation.peakDemandKW || simulation.demandShavingSetpointKW || 0) - (simulation.annualDemandReductionKW || 0)) 
-    },
-  ];
+  // Build hourly profile data from simulation.hourlyProfile
+  const hourlyProfileData = (() => {
+    const rawProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
+    if (!rawProfile || rawProfile.length === 0) {
+      return null;
+    }
+    
+    // Aggregate by hour of day (average across all days for "Profil moyen")
+    const byHour: Map<number, { 
+      consumptionSum: number; 
+      productionSum: number; 
+      peakBeforeSum: number; 
+      peakAfterSum: number; 
+      count: number 
+    }> = new Map();
+    
+    for (const entry of rawProfile) {
+      const existing = byHour.get(entry.hour) || { 
+        consumptionSum: 0, 
+        productionSum: 0, 
+        peakBeforeSum: 0, 
+        peakAfterSum: 0, 
+        count: 0 
+      };
+      existing.consumptionSum += entry.consumption;
+      existing.productionSum += entry.production;
+      existing.peakBeforeSum += entry.peakBefore;
+      existing.peakAfterSum += entry.peakAfter;
+      existing.count++;
+      byHour.set(entry.hour, existing);
+    }
+    
+    // Convert to array sorted by hour (all values are averages)
+    const result = [];
+    for (let h = 0; h < 24; h++) {
+      const data = byHour.get(h);
+      if (data && data.count > 0) {
+        const consumptionAfter = (data.consumptionSum - data.productionSum) / data.count;
+        result.push({
+          hour: `${h}h`,
+          consumptionBefore: Math.round(data.consumptionSum / data.count),
+          consumptionAfter: Math.max(0, Math.round(consumptionAfter)), // Clamp negative (exports)
+          peakBefore: Math.round(data.peakBeforeSum / data.count),
+          peakAfter: Math.round(data.peakAfterSum / data.count),
+        });
+      }
+    }
+    return result;
+  })();
 
   return (
     <div className="space-y-6">
@@ -946,28 +984,85 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{t("analysis.charts.beforeAfter")}</CardTitle>
+            <CardTitle className="text-lg">
+              {language === "fr" ? "Profil moyen (Avant vs Après)" : "Average Profile (Before vs After)"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={comparisonData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px"
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="before" fill="hsl(var(--chart-2))" name={language === "fr" ? "Avant" : "Before"} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="after" fill="hsl(var(--chart-1))" name={language === "fr" ? "Après" : "After"} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {hourlyProfileData && hourlyProfileData.length > 0 ? (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={hourlyProfileData} margin={{ top: 10, right: 40, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="hour" 
+                      className="text-xs"
+                      label={{ value: language === "fr" ? "Heure" : "Hour", position: "bottom", offset: 0, style: { fontSize: 11 } }}
+                    />
+                    <YAxis 
+                      yAxisId="left"
+                      className="text-xs" 
+                      label={{ value: "kWh", angle: -90, position: "insideLeft", style: { fontSize: 11 } }}
+                    />
+                    <YAxis 
+                      yAxisId="right" 
+                      orientation="right" 
+                      className="text-xs"
+                      label={{ value: "kW", angle: 90, position: "insideRight", style: { fontSize: 11 } }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px"
+                      }}
+                    />
+                    <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: 10 }} />
+                    {/* Consumption bars */}
+                    <Bar 
+                      yAxisId="left"
+                      dataKey="consumptionBefore" 
+                      fill="hsl(var(--muted-foreground))" 
+                      fillOpacity={0.4}
+                      name={language === "fr" ? "Consommation (kWh) Avant" : "Consumption (kWh) Before"} 
+                      radius={[2, 2, 0, 0]} 
+                      barSize={8}
+                    />
+                    <Bar 
+                      yAxisId="left"
+                      dataKey="consumptionAfter" 
+                      fill="hsl(var(--primary))" 
+                      name={language === "fr" ? "Consommation (kWh) Après" : "Consumption (kWh) After"} 
+                      radius={[2, 2, 0, 0]} 
+                      barSize={8}
+                    />
+                    {/* Peak lines */}
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="peakBefore" 
+                      stroke="#1a1a1a" 
+                      strokeWidth={2}
+                      dot={false}
+                      name={language === "fr" ? "Pointes (kW) Avant" : "Peak (kW) Before"}
+                    />
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="peakAfter" 
+                      stroke="#FFB005" 
+                      strokeWidth={2}
+                      dot={false}
+                      name={language === "fr" ? "Pointes (kW) Après" : "Peak (kW) After"}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                {language === "fr" ? "Données horaires non disponibles" : "Hourly data not available"}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -1170,57 +1265,57 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px"
                       }}
-                      formatter={(value: number, name: string) => [
-                        `$${(value / 1000).toFixed(1)}k`,
-                        name === "capexNet" 
-                          ? (language === "fr" ? "Investissement" : "Investment")
-                          : "VAN 25 ans"
-                      ]}
-                      labelFormatter={(label: string) => label}
+                      content={({ active, payload }) => {
+                        if (!active || !payload || !payload.length) return null;
+                        const point = payload[0]?.payload as FrontierPoint;
+                        if (!point) return null;
+                        return (
+                          <div className="bg-card border rounded-lg p-2 shadow-lg">
+                            <p className="text-sm font-medium">{point.label}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {language === "fr" ? "Investissement" : "Investment"}: ${(point.capexNet / 1000).toFixed(1)}k
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              VAN 25 ans: ${(point.npv25 / 1000).toFixed(1)}k
+                            </p>
+                          </div>
+                        );
+                      }}
                     />
                     <Legend />
-                    {/* Solar-only profitable points (solid orange) */}
+                    {/* Solar points - single series with opacity based on profitability */}
                     <Scatter
-                      name={language === "fr" ? "Solaire rentable" : "Solar profitable"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar' && p.npv25 >= 0)}
+                      name={language === "fr" ? "Solaire" : "Solar"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar' && !p.isOptimal)}
                       fill="#FFB005"
-                    />
-                    {/* Solar-only unprofitable points (faded) */}
+                    >
+                      {(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar' && !p.isOptimal).map((entry, index) => (
+                        <Cell key={`solar-${index}`} fillOpacity={entry.npv25 >= 0 ? 1 : 0.25} />
+                      ))}
+                    </Scatter>
+                    {/* Storage points */}
                     <Scatter
-                      name={language === "fr" ? "Solaire non rentable" : "Solar unprofitable"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar' && p.npv25 < 0)}
-                      fill="#FFB005"
-                      fillOpacity={0.25}
-                    />
-                    {/* Battery-only profitable points (solid blue) */}
-                    <Scatter
-                      name={language === "fr" ? "Batterie rentable" : "Battery profitable"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery' && p.npv25 >= 0)}
+                      name={language === "fr" ? "Stockage" : "Storage"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery' && !p.isOptimal)}
                       fill="#003DA6"
-                    />
-                    {/* Battery-only unprofitable points (faded) */}
+                    >
+                      {(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery' && !p.isOptimal).map((entry, index) => (
+                        <Cell key={`battery-${index}`} fillOpacity={entry.npv25 >= 0 ? 1 : 0.25} />
+                      ))}
+                    </Scatter>
+                    {/* Hybrid points */}
                     <Scatter
-                      name={language === "fr" ? "Batterie non rentable" : "Battery unprofitable"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery' && p.npv25 < 0)}
-                      fill="#003DA6"
-                      fillOpacity={0.25}
-                    />
-                    {/* Hybrid profitable points (solid green) */}
-                    <Scatter
-                      name={language === "fr" ? "Hybride rentable" : "Hybrid profitable"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && p.npv25 >= 0)}
+                      name={language === "fr" ? "Hybride" : "Hybrid"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal)}
                       fill="#22C55E"
-                    />
-                    {/* Hybrid unprofitable points (faded) */}
-                    <Scatter
-                      name={language === "fr" ? "Hybride non rentable" : "Hybrid unprofitable"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && p.npv25 < 0)}
-                      fill="#22C55E"
-                      fillOpacity={0.25}
-                    />
+                    >
+                      {(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal).map((entry, index) => (
+                        <Cell key={`hybrid-${index}`} fillOpacity={entry.npv25 >= 0 ? 1 : 0.25} />
+                      ))}
+                    </Scatter>
                     {/* Optimal point highlighted with special marker */}
                     <Scatter
-                      name={language === "fr" ? "Point optimal" : "Optimal point"}
+                      name={language === "fr" ? "Optimal" : "Optimal"}
                       data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.isOptimal)}
                       fill="#FFD700"
                       stroke="#000"
@@ -1237,8 +1332,8 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
                   <span>{language === "fr" ? "Seuil de rentabilité (VAN = 0)" : "Profitability threshold (NPV = 0)"}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-base">⭐</span>
-                  <span>{language === "fr" ? "Scénario optimal (meilleure VAN)" : "Optimal scenario (best NPV)"}</span>
+                  <span className="opacity-30">●</span>
+                  <span>{language === "fr" ? "Points pâles = non rentable" : "Faded points = not profitable"}</span>
                 </div>
               </div>
               {/* Optimal scenario indicator */}
