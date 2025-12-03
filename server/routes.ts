@@ -18,6 +18,10 @@ import {
   FinancialBreakdown,
   HourlyProfileEntry,
   PeakWeekEntry,
+  SensitivityAnalysis,
+  FrontierPoint,
+  SolarSweepPoint,
+  BatterySweepPoint,
 } from "@shared/schema";
 import { z } from "zod";
 import * as zoho from "./zohoClient";
@@ -950,6 +954,9 @@ interface AnalysisResult {
   breakdown: FinancialBreakdown;
   hourlyProfile: HourlyProfileEntry[];
   peakWeekData: PeakWeekEntry[];
+  
+  // Sensitivity analysis (optimization charts)
+  sensitivity: SensitivityAnalysis;
 }
 
 function runPotentialAnalysis(
@@ -1176,6 +1183,17 @@ function runPotentialAnalysis(
     capexNet: capexNet,
   };
   
+  // ========== STEP 14: Run sensitivity analysis ==========
+  const sensitivity = runSensitivityAnalysis(
+    hourlyData,
+    pvSizeKW,
+    battEnergyKWh,
+    battPowerKW,
+    peakKW,
+    annualConsumptionKWh,
+    h
+  );
+  
   return {
     pvSizeKW,
     battEnergyKWh,
@@ -1215,6 +1233,7 @@ function runPotentialAnalysis(
     breakdown,
     hourlyProfile: simResult.hourlyProfile,
     peakWeekData: simResult.peakWeekData,
+    sensitivity,
   };
 }
 
@@ -1520,4 +1539,275 @@ function bisectionIRR(cashflows: number[]): number {
   }
   
   return Math.max(0, Math.min(1, (low + high) / 2));
+}
+
+// ==================== SENSITIVITY ANALYSIS ====================
+
+// Run analysis with specified system sizing (instead of auto-sizing)
+function runScenarioWithSizing(
+  hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>,
+  pvSizeKW: number,
+  battEnergyKWh: number,
+  battPowerKW: number,
+  peakKW: number,
+  annualConsumptionKWh: number,
+  assumptions: AnalysisAssumptions
+): { npv25: number; capexNet: number; irr25: number } {
+  const h = assumptions;
+  
+  // Run simulation with specified sizes
+  const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW);
+  
+  // Calculate savings
+  const selfConsumptionKWh = simResult.totalSelfConsumption;
+  const peakAfterKW = simResult.peakAfter;
+  const annualDemandReductionKW = peakKW - peakAfterKW;
+  
+  const annualCostBefore = annualConsumptionKWh * h.tariffEnergy + peakKW * h.tariffPower * 12;
+  const energySavings = selfConsumptionKWh * h.tariffEnergy;
+  const demandSavings = annualDemandReductionKW * h.tariffPower * 12;
+  const annualSavings = energySavings + demandSavings;
+  
+  // CAPEX
+  const capexPV = pvSizeKW * 1000 * h.solarCostPerW;
+  const capexBattery = battEnergyKWh * h.batteryCapacityCost + battPowerKW * h.batteryPowerCost;
+  const capexGross = capexPV + capexBattery;
+  
+  if (capexGross === 0) {
+    return { npv25: 0, capexNet: 0, irr25: 0 };
+  }
+  
+  // HQ incentives
+  const potentialHQSolar = pvSizeKW * 1000;
+  const potentialHQBattery = battPowerKW * 300;
+  const totalPotentialHQ = potentialHQSolar + potentialHQBattery;
+  const cap40Percent = capexGross * 0.40;
+  const totalHQ = Math.min(totalPotentialHQ, cap40Percent);
+  
+  let incentivesHQSolar = 0;
+  let incentivesHQBattery = 0;
+  if (totalPotentialHQ > 0) {
+    const solarRatio = potentialHQSolar / totalPotentialHQ;
+    incentivesHQSolar = totalHQ * solarRatio;
+    incentivesHQBattery = totalHQ * (1 - solarRatio);
+  }
+  const incentivesHQ = incentivesHQSolar + incentivesHQBattery;
+  
+  // Federal ITC
+  const itcBasis = capexGross - incentivesHQ;
+  const incentivesFederal = itcBasis * 0.30;
+  
+  // Tax shield
+  const capexNetAccounting = Math.max(0, capexGross - incentivesHQ - incentivesFederal);
+  const taxShield = capexNetAccounting * h.taxRate * 0.90;
+  
+  // Net CAPEX
+  const totalIncentives = incentivesHQ + incentivesFederal + taxShield;
+  const capexNet = capexGross - totalIncentives;
+  
+  // Equity and cashflows
+  const batterySubY0 = incentivesHQBattery * 0.5;
+  const equityInitial = capexGross - incentivesHQSolar - batterySubY0;
+  const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
+  
+  const cashflowValues: number[] = [-equityInitial];
+  
+  for (let y = 1; y <= h.analysisYears; y++) {
+    const revenue = annualSavings * Math.pow(1 + h.inflationRate, y - 1);
+    const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);
+    const ebitda = revenue - opex;
+    
+    let investment = 0;
+    let dpa = 0;
+    let incentives = 0;
+    
+    if (y === 1) {
+      dpa = taxShield;
+      incentives = incentivesHQBattery * 0.5;
+    }
+    if (y === 2) {
+      incentives = incentivesFederal;
+    }
+    
+    // Battery replacement
+    const replacementYear = h.batteryReplacementYear || 10;
+    const replacementFactor = h.batteryReplacementCostFactor || 0.60;
+    const priceDecline = h.batteryPriceDeclineRate || 0.05;
+    
+    if (y === replacementYear && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    if (y === 20 && h.analysisYears >= 25 && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    
+    cashflowValues.push(ebitda + investment + dpa + incentives);
+  }
+  
+  const npv25 = calculateNPV(cashflowValues, h.discountRate, 25);
+  const irr25 = calculateIRR(cashflowValues.slice(0, 26));
+  
+  return { npv25, capexNet, irr25 };
+}
+
+// Generate sensitivity analysis with multiple scenarios
+function runSensitivityAnalysis(
+  hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>,
+  optimalPvSizeKW: number,
+  optimalBattEnergyKWh: number,
+  optimalBattPowerKW: number,
+  peakKW: number,
+  annualConsumptionKWh: number,
+  assumptions: AnalysisAssumptions
+): SensitivityAnalysis {
+  const frontier: FrontierPoint[] = [];
+  const solarSweep: SolarSweepPoint[] = [];
+  const batterySweep: BatterySweepPoint[] = [];
+  
+  // Calculate max roof capacity for solar sweep
+  const usableRoofSqFt = assumptions.roofAreaSqFt * assumptions.roofUtilizationRatio;
+  const maxPVFromRoof = Math.round(usableRoofSqFt / 100);
+  
+  // Solar sweep: 0 to max PV capacity in ~10 steps, with optimal battery
+  const solarSteps = 10;
+  const solarMax = Math.max(optimalPvSizeKW * 1.5, maxPVFromRoof);
+  const solarStep = Math.max(10, Math.round(solarMax / solarSteps / 10) * 10);
+  
+  for (let pvSize = 0; pvSize <= solarMax; pvSize += solarStep) {
+    const result = runScenarioWithSizing(
+      hourlyData, pvSize, optimalBattEnergyKWh, optimalBattPowerKW,
+      peakKW, annualConsumptionKWh, assumptions
+    );
+    solarSweep.push({ pvSizeKW: pvSize, npv25: result.npv25 });
+    
+    // Add to frontier as hybrid if battery > 0
+    if (pvSize > 0 && optimalBattEnergyKWh > 0) {
+      frontier.push({
+        id: `hybrid-pv${pvSize}`,
+        type: 'hybrid',
+        label: `${pvSize}kW PV + ${optimalBattEnergyKWh}kWh`,
+        pvSizeKW: pvSize,
+        battEnergyKWh: optimalBattEnergyKWh,
+        battPowerKW: optimalBattPowerKW,
+        capexNet: result.capexNet,
+        npv25: result.npv25,
+        isOptimal: pvSize === optimalPvSizeKW,
+      });
+    }
+  }
+  
+  // Battery sweep: 0 to 200% of optimal battery in ~10 steps, with optimal PV
+  const batterySteps = 10;
+  const batteryMax = Math.max(optimalBattEnergyKWh * 2, 500);
+  const batteryStep = Math.max(20, Math.round(batteryMax / batterySteps / 10) * 10);
+  
+  for (let battSize = 0; battSize <= batteryMax; battSize += batteryStep) {
+    const battPower = Math.round(battSize / 2); // 2-hour duration
+    const result = runScenarioWithSizing(
+      hourlyData, optimalPvSizeKW, battSize, battPower,
+      peakKW, annualConsumptionKWh, assumptions
+    );
+    batterySweep.push({ battEnergyKWh: battSize, npv25: result.npv25 });
+    
+    // Add to frontier as hybrid
+    if (battSize > 0 && optimalPvSizeKW > 0) {
+      frontier.push({
+        id: `hybrid-batt${battSize}`,
+        type: 'hybrid',
+        label: `${optimalPvSizeKW}kW PV + ${battSize}kWh`,
+        pvSizeKW: optimalPvSizeKW,
+        battEnergyKWh: battSize,
+        battPowerKW: battPower,
+        capexNet: result.capexNet,
+        npv25: result.npv25,
+        isOptimal: battSize === optimalBattEnergyKWh,
+      });
+    }
+  }
+  
+  // Solar-only scenarios (no battery)
+  for (let pvSize = solarStep; pvSize <= solarMax; pvSize += solarStep) {
+    const result = runScenarioWithSizing(
+      hourlyData, pvSize, 0, 0,
+      peakKW, annualConsumptionKWh, assumptions
+    );
+    frontier.push({
+      id: `solar-${pvSize}`,
+      type: 'solar',
+      label: `${pvSize}kW PV seul`,
+      pvSizeKW: pvSize,
+      battEnergyKWh: 0,
+      battPowerKW: 0,
+      capexNet: result.capexNet,
+      npv25: result.npv25,
+      isOptimal: false,
+    });
+  }
+  
+  // Battery-only scenarios (no PV) - typically negative NPV
+  for (let battSize = batteryStep; battSize <= batteryMax; battSize += batteryStep * 2) {
+    const battPower = Math.round(battSize / 2);
+    const result = runScenarioWithSizing(
+      hourlyData, 0, battSize, battPower,
+      peakKW, annualConsumptionKWh, assumptions
+    );
+    frontier.push({
+      id: `battery-${battSize}`,
+      type: 'battery',
+      label: `${battSize}kWh batterie seule`,
+      pvSizeKW: 0,
+      battEnergyKWh: battSize,
+      battPowerKW: battPower,
+      capexNet: result.capexNet,
+      npv25: result.npv25,
+      isOptimal: false,
+    });
+  }
+  
+  // Find optimal scenario
+  let optimalId: string | null = null;
+  let maxNpv = -Infinity;
+  for (const point of frontier) {
+    if (point.npv25 > maxNpv) {
+      maxNpv = point.npv25;
+      optimalId = point.id;
+    }
+  }
+  
+  // Mark optimal
+  for (const point of frontier) {
+    point.isOptimal = point.id === optimalId;
+  }
+  
+  // Mark optimal point in solar sweep
+  let maxSolarNpv = -Infinity;
+  for (const point of solarSweep) {
+    if (point.npv25 > maxSolarNpv) {
+      maxSolarNpv = point.npv25;
+    }
+  }
+  for (const point of solarSweep) {
+    point.isOptimal = point.npv25 === maxSolarNpv;
+  }
+  
+  // Mark optimal point in battery sweep
+  let maxBattNpv = -Infinity;
+  for (const point of batterySweep) {
+    if (point.npv25 > maxBattNpv) {
+      maxBattNpv = point.npv25;
+    }
+  }
+  for (const point of batterySweep) {
+    point.isOptimal = point.npv25 === maxBattNpv;
+  }
+  
+  return {
+    frontier,
+    solarSweep,
+    batterySweep,
+    optimalScenarioId: optimalId,
+  };
 }

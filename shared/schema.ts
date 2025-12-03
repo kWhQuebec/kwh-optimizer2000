@@ -143,6 +143,7 @@ export const simulationRuns = pgTable("simulation_runs", {
   breakdown: jsonb("breakdown"),
   hourlyProfile: jsonb("hourly_profile"),
   peakWeekData: jsonb("peak_week_data"),
+  sensitivity: jsonb("sensitivity"),
   
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -432,12 +433,14 @@ export interface FrontierPoint {
 export interface SolarSweepPoint {
   pvSizeKW: number;      // X-axis: Solar capacity (kWc)
   npv25: number;         // Y-axis: VAN ($)
+  isOptimal?: boolean;   // Mark optimal point
 }
 
 // Battery size sweep point
 export interface BatterySweepPoint {
   battEnergyKWh: number; // X-axis: Battery capacity (kWh)
   npv25: number;         // Y-axis: VAN ($)
+  isOptimal?: boolean;   // Mark optimal point
 }
 
 // Complete sensitivity analysis result

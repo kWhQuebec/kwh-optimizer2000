@@ -43,9 +43,21 @@ import {
   ComposedChart,
   Line,
   ReferenceLine,
-  Cell
+  Cell,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  LineChart
 } from "recharts";
-import type { CashflowEntry, FinancialBreakdown, AnalysisAssumptions } from "@shared/schema";
+import type { 
+  CashflowEntry, 
+  FinancialBreakdown, 
+  AnalysisAssumptions,
+  SensitivityAnalysis,
+  FrontierPoint,
+  SolarSweepPoint,
+  BatterySweepPoint
+} from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1108,6 +1120,211 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
               </div>
             </CardContent>
           )}
+        </Card>
+      )}
+
+      {/* Sensitivity Analysis / Optimization Charts */}
+      {simulation.sensitivity && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {language === "fr" ? "Analyse d'optimisation" : "Optimization Analysis"}
+            </CardTitle>
+            <CardDescription>
+              {language === "fr" 
+                ? "Comparaison des scénarios et optimisation des tailles de système"
+                : "Scenario comparison and system sizing optimization"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            {/* Efficiency Frontier Chart */}
+            <div>
+              <h4 className="text-sm font-semibold mb-4">
+                {language === "fr" ? "Frontière d'efficacité (tous scénarios)" : "Efficiency Frontier (all scenarios)"}
+              </h4>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      type="number" 
+                      dataKey="capexNet" 
+                      name={language === "fr" ? "Investissement net" : "Net Investment"}
+                      tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                      className="text-xs"
+                    />
+                    <YAxis 
+                      type="number" 
+                      dataKey="npv25" 
+                      name="VAN"
+                      tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                      className="text-xs"
+                    />
+                    <ZAxis type="number" range={[60, 200]} />
+                    <Tooltip 
+                      cursor={{ strokeDasharray: '3 3' }}
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px"
+                      }}
+                      formatter={(value: number, name: string) => [
+                        `$${(value / 1000).toFixed(1)}k`,
+                        name === "capexNet" 
+                          ? (language === "fr" ? "Investissement" : "Investment")
+                          : "VAN 25 ans"
+                      ]}
+                      labelFormatter={(label: string) => label}
+                    />
+                    <Legend />
+                    {/* Solar-only points (orange) */}
+                    <Scatter
+                      name={language === "fr" ? "Solaire" : "Solar"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar')}
+                      fill="#FFB005"
+                    />
+                    {/* Battery-only points (blue) */}
+                    <Scatter
+                      name={language === "fr" ? "Batterie" : "Battery"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery')}
+                      fill="#003DA6"
+                    />
+                    {/* Hybrid points (green) */}
+                    <Scatter
+                      name={language === "fr" ? "Hybride" : "Hybrid"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid')}
+                      fill="#22C55E"
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Optimal scenario indicator */}
+              {(simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal) && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="text-lg">⭐</span>
+                  <span>
+                    {language === "fr" ? "Scénario optimal: " : "Optimal scenario: "}
+                    <span className="font-medium text-foreground">
+                      {(simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal)?.label}
+                    </span>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Solar and Battery Optimization Charts - Side by Side */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Solar Size Optimization */}
+              <div>
+                <h4 className="text-sm font-semibold mb-4">
+                  {language === "fr" ? "Optimisation taille solaire (VAN vs kWc)" : "Solar Size Optimization (NPV vs kWc)"}
+                </h4>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart 
+                      data={(simulation.sensitivity as SensitivityAnalysis).solarSweep}
+                      margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="pvSizeKW" 
+                        className="text-xs"
+                        label={{ 
+                          value: language === "fr" ? "Solaire (kWc)" : "Solar (kWp)", 
+                          position: "bottom",
+                          offset: 0,
+                          style: { fontSize: 11 }
+                        }}
+                      />
+                      <YAxis 
+                        tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                        className="text-xs"
+                        label={{ 
+                          value: "VAN", 
+                          angle: -90, 
+                          position: "insideLeft",
+                          style: { fontSize: 11 }
+                        }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px"
+                        }}
+                        formatter={(value: number) => [`$${(value / 1000).toFixed(1)}k`, "VAN 25 ans"]}
+                        labelFormatter={(v) => `${v} kWc`}
+                      />
+                      <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                      <Line 
+                        type="monotone" 
+                        dataKey="npv25" 
+                        stroke="#FFB005" 
+                        strokeWidth={2}
+                        dot={{ fill: "#FFB005", strokeWidth: 0, r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Battery Size Optimization */}
+              <div>
+                <h4 className="text-sm font-semibold mb-4">
+                  {language === "fr" ? "Optimisation taille batterie (VAN vs kWh)" : "Battery Size Optimization (NPV vs kWh)"}
+                </h4>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart 
+                      data={(simulation.sensitivity as SensitivityAnalysis).batterySweep}
+                      margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="battEnergyKWh" 
+                        className="text-xs"
+                        label={{ 
+                          value: language === "fr" ? "Batterie (kWh)" : "Battery (kWh)", 
+                          position: "bottom",
+                          offset: 0,
+                          style: { fontSize: 11 }
+                        }}
+                      />
+                      <YAxis 
+                        tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                        className="text-xs"
+                        label={{ 
+                          value: "VAN", 
+                          angle: -90, 
+                          position: "insideLeft",
+                          style: { fontSize: 11 }
+                        }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px"
+                        }}
+                        formatter={(value: number) => [`$${(value / 1000).toFixed(1)}k`, "VAN 25 ans"]}
+                        labelFormatter={(v) => `${v} kWh`}
+                      />
+                      <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                      <Line 
+                        type="monotone" 
+                        dataKey="npv25" 
+                        stroke="#003DA6" 
+                        strokeWidth={2}
+                        dot={{ fill: "#003DA6", strokeWidth: 0, r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </CardContent>
         </Card>
       )}
 

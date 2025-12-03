@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import { CashflowEntry, FinancialBreakdown, HourlyProfileEntry, PeakWeekEntry } from "@shared/schema";
+import { CashflowEntry, FinancialBreakdown, HourlyProfileEntry, PeakWeekEntry, SensitivityAnalysis, FrontierPoint, SolarSweepPoint, BatterySweepPoint } from "@shared/schema";
 
 // Brand colors
 const COLORS = {
@@ -61,6 +61,7 @@ interface SimulationData {
   breakdown: FinancialBreakdown;
   hourlyProfile?: HourlyProfileEntry[];
   peakWeekData?: PeakWeekEntry[];
+  sensitivity?: SensitivityAnalysis;
 }
 
 export function generateProfessionalPDF(
@@ -329,6 +330,162 @@ export function generateProfessionalPDF(
     doc.text(t("Demande actuelle", "Current demand"), x + 35, legendY);
     doc.strokeColor(COLORS.green).lineWidth(2).moveTo(x + 130, legendY + 4).lineTo(x + 150, legendY + 4).stroke();
     doc.text(t("Après PV+Batterie", "After PV+Battery"), x + 155, legendY);
+  };
+
+  const drawFrontierScatterChart = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    frontier: FrontierPoint[],
+    title: string
+  ) => {
+    doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica-Bold");
+    doc.text(title, x, y, { width });
+    doc.font("Helvetica");
+
+    if (!frontier || frontier.length === 0) {
+      doc.fontSize(8).fillColor(COLORS.lightGray);
+      doc.text(t("Données non disponibles", "Data not available"), x + 20, y + 30);
+      return;
+    }
+
+    const chartHeight = height - 40;
+    const chartWidth = width - 60;
+    const chartX = x + 50;
+    const chartY = y + 25;
+
+    const capexValues = frontier.map(p => p.capexNet || 0);
+    const npvValues = frontier.map(p => p.npv25 || 0);
+    const maxCapex = Math.max(...capexValues) * 1.1 || 1;
+    const minCapex = Math.min(...capexValues, 0) * 0.9;
+    const maxNpv = Math.max(...npvValues) * 1.1;
+    const minNpv = Math.min(...npvValues, 0) * 1.1;
+    const npvRange = maxNpv - minNpv || 1;
+    const capexRange = maxCapex - minCapex || 1;
+
+    // Draw axes
+    doc.strokeColor(COLORS.lightGray).lineWidth(0.5);
+    doc.moveTo(chartX, chartY).lineTo(chartX, chartY + chartHeight).stroke();
+    doc.moveTo(chartX, chartY + chartHeight).lineTo(chartX + chartWidth, chartY + chartHeight).stroke();
+
+    // Axis labels
+    doc.fontSize(7).fillColor(COLORS.mediumGray);
+    doc.text(t("CAPEX ($)", "CAPEX ($)"), chartX + chartWidth / 2 - 20, chartY + chartHeight + 8);
+    doc.save();
+    doc.translate(x + 8, chartY + chartHeight / 2);
+    doc.rotate(-90);
+    doc.text(t("VAN 25 ans ($)", "NPV 25yr ($)"), -30, 0);
+    doc.restore();
+
+    // Draw points by type with different colors
+    frontier.forEach((point) => {
+      const px = chartX + ((point.capexNet - minCapex) / capexRange) * chartWidth;
+      const py = chartY + chartHeight - ((point.npv25 - minNpv) / npvRange) * chartHeight;
+      
+      let color = COLORS.lightGray;
+      if (point.type === "solar") color = COLORS.gold;
+      else if (point.type === "battery") color = COLORS.blue;
+      else if (point.type === "hybrid") color = COLORS.green;
+      
+      doc.circle(px, py, point.isOptimal ? 5 : 3).fillColor(color).fill();
+      if (point.isOptimal) {
+        doc.circle(px, py, 6).strokeColor(COLORS.darkGray).lineWidth(1.5).stroke();
+      }
+    });
+
+    // Legend
+    const legendY = y + height - 8;
+    doc.fontSize(6).fillColor(COLORS.mediumGray);
+    doc.circle(x + 15, legendY, 3).fillColor(COLORS.gold).fill();
+    doc.text(t("Solaire", "Solar"), x + 22, legendY - 3);
+    doc.circle(x + 60, legendY, 3).fillColor(COLORS.blue).fill();
+    doc.text(t("Batterie", "Battery"), x + 67, legendY - 3);
+    doc.circle(x + 115, legendY, 3).fillColor(COLORS.green).fill();
+    doc.text(t("Hybride", "Hybrid"), x + 122, legendY - 3);
+    doc.circle(x + 170, legendY, 5).strokeColor(COLORS.darkGray).lineWidth(1).stroke();
+    doc.text(t("Optimal", "Optimal"), x + 180, legendY - 3);
+  };
+
+  const drawOptimizationLineChart = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    data: Array<{ x: number; y: number; isOptimal?: boolean }>,
+    title: string,
+    xLabel: string,
+    yLabel: string,
+    lineColor: string = COLORS.blue
+  ) => {
+    doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica-Bold");
+    doc.text(title, x, y, { width });
+    doc.font("Helvetica");
+
+    if (!data || data.length === 0) {
+      doc.fontSize(8).fillColor(COLORS.lightGray);
+      doc.text(t("Données non disponibles", "Data not available"), x + 20, y + 30);
+      return;
+    }
+
+    const chartHeight = height - 40;
+    const chartWidth = width - 60;
+    const chartX = x + 50;
+    const chartY = y + 25;
+
+    const xValues = data.map(p => p.x);
+    const yValues = data.map(p => p.y);
+    const maxX = Math.max(...xValues) * 1.05 || 1;
+    const minX = Math.min(...xValues) * 0.95;
+    const maxY = Math.max(...yValues) * 1.1;
+    const minY = Math.min(...yValues, 0) * 1.1;
+    const xRange = maxX - minX || 1;
+    const yRange = maxY - minY || 1;
+
+    // Draw axes
+    doc.strokeColor(COLORS.lightGray).lineWidth(0.5);
+    doc.moveTo(chartX, chartY).lineTo(chartX, chartY + chartHeight).stroke();
+    doc.moveTo(chartX, chartY + chartHeight).lineTo(chartX + chartWidth, chartY + chartHeight).stroke();
+
+    // Axis labels
+    doc.fontSize(7).fillColor(COLORS.mediumGray);
+    doc.text(xLabel, chartX + chartWidth / 2 - 20, chartY + chartHeight + 8);
+    doc.save();
+    doc.translate(x + 8, chartY + chartHeight / 2);
+    doc.rotate(-90);
+    doc.text(yLabel, -30, 0);
+    doc.restore();
+
+    // Draw line
+    doc.strokeColor(lineColor).lineWidth(1.5);
+    const sortedData = [...data].sort((a, b) => a.x - b.x);
+    sortedData.forEach((point, i) => {
+      const px = chartX + ((point.x - minX) / xRange) * chartWidth;
+      const py = chartY + chartHeight - ((point.y - minY) / yRange) * chartHeight;
+      if (i === 0) doc.moveTo(px, py);
+      else doc.lineTo(px, py);
+    });
+    doc.stroke();
+
+    // Draw points
+    sortedData.forEach((point) => {
+      const px = chartX + ((point.x - minX) / xRange) * chartWidth;
+      const py = chartY + chartHeight - ((point.y - minY) / yRange) * chartHeight;
+      doc.circle(px, py, 2).fillColor(lineColor).fill();
+      if (point.isOptimal) {
+        doc.circle(px, py, 5).strokeColor(COLORS.darkGray).lineWidth(1.5).stroke();
+      }
+    });
+
+    // Mark optimal point with star
+    const optimalPoint = sortedData.find(p => p.isOptimal);
+    if (optimalPoint) {
+      const px = chartX + ((optimalPoint.x - minX) / xRange) * chartWidth;
+      const py = chartY + chartHeight - ((optimalPoint.y - minY) / yRange) * chartHeight;
+      doc.fontSize(7).fillColor(COLORS.green).font("Helvetica-Bold");
+      doc.text(t("Optimal", "Optimal"), px + 8, py - 10);
+      doc.font("Helvetica");
+    }
   };
 
   // ================= PAGE 1: TITLE & MAIN KPIs =================
@@ -922,49 +1079,169 @@ export function generateProfessionalPDF(
   doc.fontSize(8).fillColor(COLORS.lightGray);
   doc.text(t("Document confidentiel | Généré par kWh Québec | Page 6", "Confidential document | Generated by kWh Québec | Page 6"), margin, pageHeight - 30, { align: "center", width: contentWidth });
 
-  // ================= PAGE 7: APPENDIX - OPTIMIZATION =================
-  doc.addPage();
+  // ================= PAGE 7: APPENDIX - OPTIMIZATION (Conditional) =================
+  const hasSensitivityData = simulation.sensitivity && (
+    (simulation.sensitivity.frontier && simulation.sensitivity.frontier.length > 0) ||
+    (simulation.sensitivity.solarSweep && simulation.sensitivity.solarSweep.length > 0) ||
+    (simulation.sensitivity.batterySweep && simulation.sensitivity.batterySweep.length > 0)
+  );
 
-  // Header
-  doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
-  doc.font("Helvetica");
-  doc.fontSize(10).fillColor(COLORS.mediumGray);
-  doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
+  if (hasSensitivityData) {
+    doc.addPage();
 
-  doc.moveDown(2);
-
-  // Appendix Title
-  doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("ANNEXE : PREUVES D'OPTIMISATION", "APPENDIX: OPTIMIZATION PROOF"), margin, doc.y);
-  doc.font("Helvetica");
-  doc.moveDown(1.5);
-
-  // Optimization summary
-  doc.fontSize(10).fillColor(COLORS.darkGray);
-  doc.text(t(
-    "Le système recommandé a été optimisé pour maximiser la Valeur Actuelle Nette (VAN) tout en respectant les contraintes de toiture et de budget.",
-    "The recommended system was optimized to maximize Net Present Value (NPV) while respecting roof and budget constraints."
-  ), margin, doc.y, { width: contentWidth });
-  doc.moveDown(1);
-
-  // Key optimization metrics
-  const optMetrics = [
-    [t("Taille PV optimale", "Optimal PV size"), `${simulation.pvSizeKW.toFixed(0)} kWc`],
-    [t("Capacité batterie optimale", "Optimal battery capacity"), `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW`],
-    [t("Autosuffisance atteinte", "Self-sufficiency achieved"), formatPercent(simulation.selfSufficiencyPercent / 100)],
-    [t("Retour sur investissement", "Payback period"), `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "years")}`],
-  ];
-
-  currentY = doc.y;
-  optMetrics.forEach(([label, value]) => {
-    doc.fontSize(10).fillColor(COLORS.mediumGray).text(label, margin + 20, currentY);
-    doc.fillColor(COLORS.darkGray).font("Helvetica-Bold").text(value, margin + contentWidth - 150, currentY, { width: 130, align: "right" });
+    // Header
+    doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
     doc.font("Helvetica");
-    currentY += 22;
-  });
+    doc.fontSize(10).fillColor(COLORS.mediumGray);
+    doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
 
-  // Footer
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | Généré par kWh Québec | Page 7", "Confidential document | Generated by kWh Québec | Page 7"), margin, pageHeight - 30, { align: "center", width: contentWidth });
+    doc.moveDown(2);
+
+    // Appendix Title
+    doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text(t("ANNEXE : ANALYSE D'OPTIMISATION", "APPENDIX: OPTIMIZATION ANALYSIS"), margin, doc.y);
+    doc.font("Helvetica");
+    doc.moveDown(0.5);
+
+    // Optimization summary
+    doc.fontSize(9).fillColor(COLORS.darkGray);
+    doc.text(t(
+      "Les graphiques ci-dessous montrent comment la VAN varie selon différentes configurations. Le point optimal est identifié.",
+      "The charts below show how NPV varies with different system configurations. The optimal point is identified."
+    ), margin, doc.y, { width: contentWidth });
+    doc.moveDown(1);
+
+    const chartHeight = 160;
+    const halfWidth = (contentWidth - 10) / 2;
+
+    // 1. Efficiency Frontier (full width)
+    if (simulation.sensitivity.frontier && simulation.sensitivity.frontier.length > 0) {
+      drawFrontierScatterChart(
+        margin,
+        doc.y,
+        contentWidth,
+        chartHeight,
+        simulation.sensitivity.frontier,
+        t("Frontière d'efficacité (CAPEX vs VAN)", "Efficiency Frontier (CAPEX vs NPV)")
+      );
+      doc.y += chartHeight + 15;
+    }
+
+    // 2. Solar Sweep & Battery Sweep (side by side)
+    const row2Y = doc.y;
+    
+    // Solar optimization chart
+    if (simulation.sensitivity.solarSweep && simulation.sensitivity.solarSweep.length > 0) {
+      const solarData = simulation.sensitivity.solarSweep.map(p => ({
+        x: p.pvSizeKW,
+        y: p.npv25,
+        isOptimal: p.isOptimal
+      }));
+      drawOptimizationLineChart(
+        margin,
+        row2Y,
+        halfWidth,
+        chartHeight,
+        solarData,
+        t("Optimisation Solaire", "Solar Optimization"),
+        t("Taille PV (kWc)", "PV Size (kWc)"),
+        t("VAN 25 ans ($)", "NPV 25yr ($)"),
+        COLORS.gold
+      );
+    }
+
+    // Battery optimization chart
+    if (simulation.sensitivity.batterySweep && simulation.sensitivity.batterySweep.length > 0) {
+      const batteryData = simulation.sensitivity.batterySweep.map(p => ({
+        x: p.battEnergyKWh,
+        y: p.npv25,
+        isOptimal: p.isOptimal
+      }));
+      drawOptimizationLineChart(
+        margin + halfWidth + 10,
+        row2Y,
+        halfWidth,
+        chartHeight,
+        batteryData,
+        t("Optimisation Batterie", "Battery Optimization"),
+        t("Capacité (kWh)", "Capacity (kWh)"),
+        t("VAN 25 ans ($)", "NPV 25yr ($)"),
+        COLORS.blue
+      );
+    }
+
+    doc.y = row2Y + chartHeight + 20;
+
+    // Key optimization metrics
+    doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
+    doc.text(t("Configuration optimale recommandée", "Recommended optimal configuration"), margin, doc.y);
+    doc.font("Helvetica");
+    doc.moveDown(0.5);
+
+    const optMetrics = [
+      [t("Taille PV optimale", "Optimal PV size"), `${simulation.pvSizeKW.toFixed(0)} kWc`],
+      [t("Capacité batterie optimale", "Optimal battery capacity"), `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW`],
+      [t("Autosuffisance atteinte", "Self-sufficiency achieved"), formatPercent(simulation.selfSufficiencyPercent / 100)],
+      [t("Retour sur investissement", "Payback period"), `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "years")}`],
+    ];
+
+    currentY = doc.y;
+    optMetrics.forEach(([label, value]) => {
+      doc.fontSize(9).fillColor(COLORS.mediumGray).text(label, margin + 20, currentY);
+      doc.fillColor(COLORS.darkGray).font("Helvetica-Bold").text(value, margin + contentWidth - 150, currentY, { width: 130, align: "right" });
+      doc.font("Helvetica");
+      currentY += 18;
+    });
+
+    // Footer
+    doc.fontSize(8).fillColor(COLORS.lightGray);
+    doc.text(t("Document confidentiel | Généré par kWh Québec | Page 7", "Confidential document | Generated by kWh Québec | Page 7"), margin, pageHeight - 30, { align: "center", width: contentWidth });
+  } else {
+    // Basic Page 7 without charts when no sensitivity data
+    doc.addPage();
+
+    // Header
+    doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+    doc.font("Helvetica");
+    doc.fontSize(10).fillColor(COLORS.mediumGray);
+    doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
+
+    doc.moveDown(2);
+
+    // Appendix Title
+    doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text(t("ANNEXE : PREUVES D'OPTIMISATION", "APPENDIX: OPTIMIZATION PROOF"), margin, doc.y);
+    doc.font("Helvetica");
+    doc.moveDown(1.5);
+
+    // Optimization summary
+    doc.fontSize(10).fillColor(COLORS.darkGray);
+    doc.text(t(
+      "Le système recommandé a été optimisé pour maximiser la Valeur Actuelle Nette (VAN) tout en respectant les contraintes de toiture et de budget.",
+      "The recommended system was optimized to maximize Net Present Value (NPV) while respecting roof and budget constraints."
+    ), margin, doc.y, { width: contentWidth });
+    doc.moveDown(1);
+
+    // Key optimization metrics
+    const optMetrics = [
+      [t("Taille PV optimale", "Optimal PV size"), `${simulation.pvSizeKW.toFixed(0)} kWc`],
+      [t("Capacité batterie optimale", "Optimal battery capacity"), `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW`],
+      [t("Autosuffisance atteinte", "Self-sufficiency achieved"), formatPercent(simulation.selfSufficiencyPercent / 100)],
+      [t("Retour sur investissement", "Payback period"), `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "years")}`],
+    ];
+
+    currentY = doc.y;
+    optMetrics.forEach(([label, value]) => {
+      doc.fontSize(10).fillColor(COLORS.mediumGray).text(label, margin + 20, currentY);
+      doc.fillColor(COLORS.darkGray).font("Helvetica-Bold").text(value, margin + contentWidth - 150, currentY, { width: 130, align: "right" });
+      doc.font("Helvetica");
+      currentY += 22;
+    });
+
+    // Footer
+    doc.fontSize(8).fillColor(COLORS.lightGray);
+    doc.text(t("Document confidentiel | Généré par kWh Québec | Page 7", "Confidential document | Generated by kWh Québec | Page 7"), margin, pageHeight - 30, { align: "center", width: contentWidth });
+  }
 }
