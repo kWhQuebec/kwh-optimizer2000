@@ -1,0 +1,541 @@
+You are a senior full-stack architect and developer.  
+Your job is to build, inside this Replit project, a production-ready MVP web application for a solar + storage company in Québec called “kWh Québec”. (Website: www.kWh.quebec)
+
+The app must do **three main things** end-to-end:
+
+1. Lead generation on the public website (with Zoho CRM integration).  
+2. Import and analysis of consumption CSV files (hourly kWh and 15-min kW) to produce a **Solar + Storage Potential Report** for one building or a portfolio of buildings.  
+3. A **design module** that generates a complete PV + Battery system design with a Bill of Materials (BOM) and detailed pricing, and syncs high-level results to Zoho (Zoho One / Zoho CRM).
+
+The owner is in Québec; UI text should be offered in French (fr-CA) and English (En-CA), code and comments in English.
+
+------------------------------------------------------------
+HIGH-LEVEL TECH STACK & ARCHITECTURE
+------------------------------------------------------------
+
+Use a classic full-stack setup in this single Replit:
+
+- Backend:
+  - Node.js
+  - TypeScript
+  - Express
+  - Prisma ORM
+  - SQLite for now (easiest inside Replit; later can be swapped to Postgres).
+
+- Frontend:
+  - React + TypeScript
+  - Vite as build tool
+  - Tailwind CSS for styling (simple, utility-based)
+  - React Router for navigation
+
+- Other:
+  - Authentication: basic email + password with JWT (single internal admin user / small team, not a full SaaS auth system).
+  - CSV parsing: use a robust Node CSV parser (e.g., `csv-parse` or equivalent).
+  - Charts on frontend: use a simple charting library (e.g., `recharts`).
+  - PDF report generation: for MVP, use a Node library (e.g., `pdfkit` or `puppeteer` with HTML template); choose what works best in Replit.
+  - Zoho integration: direct HTTPS calls to Zoho CRM REST APIs with OAuth2 using environment variables.
+
+Create a **monorepo-like structure** inside this Replit:
+
+- `/backend`
+  - `src/server.ts`
+  - `src/routes/*.ts`
+  - `src/controllers/*.ts`
+  - `src/services/*.ts`
+  - `src/zoho/*.ts`
+  - `src/analysis/*.ts` (solar/storage logic)
+  - `src/design/*.ts` (design + BOM logic)
+  - `prisma/schema.prisma`
+
+- `/frontend`
+  - `index.html`
+  - `src/main.tsx`
+  - `src/App.tsx`
+  - `src/pages/*`
+  - `src/components/*`
+  - `src/lib/api.ts`
+  - `tailwind.config.js`, etc.
+
+- Root:
+  - `package.json` with both frontend & backend scripts
+  - `README.md`
+  - `.env.example`
+
+IMPORTANT: 
+- Implement things incrementally and always maintain correct imports and working TypeScript builds.
+- Avoid pseudo-code. Write real, compilable code with proper types.
+
+------------------------------------------------------------
+DOMAIN & DATA MODEL
+------------------------------------------------------------
+
+Define the following main entities in Prisma (schema.prisma):
+
+- `User`
+  - id
+  - email
+  - passwordHash
+  - role (e.g., "admin")
+  - timestamps
+
+- `Lead`
+  - id
+  - createdAt
+  - updatedAt
+  - companyName
+  - contactName
+  - email
+  - phone
+  - city
+  - province
+  - estimatedMonthlyBill (number)
+  - buildingType (string, e.g., “industriel”, “commercial”, etc.)
+  - notes
+  - source (e.g., “web_form”)
+  - zohoLeadId (string | null)
+
+- `Client`
+  - id
+  - name
+  - mainContactName
+  - email
+  - phone
+  - address
+  - city
+  - province
+  - postalCode
+  - zohoAccountId (string | null)
+
+- `Site` (building / facility)
+  - id
+  - clientId (FK -> Client)
+  - name (e.g., “Usine A – Montréal”)
+  - address
+  - city
+  - province
+  - postalCode
+  - notes
+
+- `MeterFile`
+  - id
+  - siteId (FK)
+  - fileName
+  - periodStart (Date)
+  - periodEnd (Date)
+  - granularity ("HOUR" or "FIFTEEN_MIN")
+  - originalStoragePath or rawFileRef (string)
+  - status ("UPLOADED" | "PARSED" | "FAILED")
+  - errorMessage (string | null)
+
+- `MeterReading`
+  - id
+  - meterFileId (FK)
+  - timestamp (Date)
+  - granularity ("HOUR" | "FIFTEEN_MIN")
+  - kWh (Float | nullable, for hourly)
+  - kW (Float | nullable, for 15-min)
+
+- `SimulationRun`
+  - id
+  - siteId (FK)
+  - label (e.g., “Baseline-2023”, “Scenario PV+Batt v1”)
+  - type ("BASELINE" | "SCENARIO")
+  - pvSizeKW (Float)              // recommended or tested PV size
+  - battEnergyKWh (Float)
+  - battPowerKW (Float)
+  - demandShavingSetpointKW (Float)
+  - annualConsumptionKWh (Float)
+  - annualEnergySavingsKWh (Float)
+  - annualDemandReductionKW (Float)
+  - annualCostBefore (Float)
+  - annualCostAfter (Float)
+  - annualSavings (Float)
+  - npv20 (Float)
+  - irr20 (Float)
+  - npv10 (Float)
+  - irr10 (Float)
+  - simplePaybackYears (Float)
+  - capexNet (Float)
+  - co2AvoidedTonnesPerYear (Float)
+  - createdAt
+
+- `Design`
+  - id
+  - simulationRunId (FK)
+  - designName
+  - pvSizeKW
+  - moduleModel
+  - moduleWattage
+  - modulesCount
+  - inverterModel
+  - invertersCount
+  - batteryModel
+  - batteryEnergyKWh
+  - batteryUnits
+  - rackingSystem
+  - notes
+  - totalCapex
+  - totalCapexPV
+  - totalCapexBattery
+  - totalCapexBOS
+  - marginPercent
+  - totalSellPrice
+  - zohoDealId (string | null)
+
+- `BomItem`
+  - id
+  - designId (FK)
+  - category (e.g., "MODULE", "INVERTER", "BATTERY", "RACKING", "CABLE", "BOS")
+  - description
+  - quantity
+  - unit
+  - unitCost
+  - unitSellPrice
+  - lineTotalCost
+  - lineTotalSell
+
+- `ComponentCatalogItem`
+  - id
+  - category
+  - manufacturer
+  - model
+  - specJson (JSON field with technical specs)
+  - unitCost
+  - unitSellPrice
+  - active (boolean)
+
+Use migrations to create all tables.
+
+------------------------------------------------------------
+MODULE 1 – LEAD GENERATION (PUBLIC SITE)
+------------------------------------------------------------
+
+Goal: simple French landing page that captures leads and pushes them to Zoho CRM.
+
+Frontend:
+
+- Public page `/` with:
+  - Hero section (headline + subtext in FR about “Optimisez votre facture d’électricité grâce au solaire et au stockage”).
+  - Short explainer of the 3-step process:
+    1) Analyse de vos données de consommation
+    2) Rapport de potentiel solaire + stockage
+    3) Design complet du système avec prix détaillés
+  - **Lead form** with fields:
+    - Nom de l’entreprise
+    - Nom du contact
+    - Courriel
+    - Téléphone
+    - Ville
+    - Province
+    - Montant mensuel moyen de la facture d’électricité ($)
+    - Type de bâtiment (liste déroulante: Industriel, Commercial, Institutionnel, Autre)
+    - Champ texte libre “Commentaires / Particularités”
+  - Button “Obtenir une analyse préliminaire”.
+
+- On submit:
+  - Validate fields client-side.
+  - Call backend POST `/api/leads`.
+  - Show success message in French.
+
+Backend:
+
+- Route: `POST /api/leads`
+  - Validate payload.
+  - Persist in `Lead` table.
+  - Call a Zoho CRM helper to create/update a Lead in Zoho.
+  - Save returned `zohoLeadId` into DB.
+  - Return JSON with the new lead info.
+
+Zoho integration:
+
+- Provide a Zoho CRM client in `/backend/src/zoho/zohoClient.ts` that:
+  - Uses environment variables:
+    - ZOHO_CLIENT_ID
+    - ZOHO_CLIENT_SECRET
+    - ZOHO_REFRESH_TOKEN
+    - ZOHO_BASE_URL (e.g., https://www.zohoapis.com or region-specific)
+    - ZOHO_CRM_ORG_ID if needed
+  - Implements:
+    - `async getAccessToken()` that refreshes an access token when needed.
+    - `async createLeadFromWebForm(lead: Lead)` that calls Zoho CRM `Leads` module with mapped fields.
+  - Handles errors gracefully and logs them.
+
+Security: do not hard-code secrets. Read them from environment variables and create a `.env.example`.
+
+------------------------------------------------------------
+MODULE 2 – CSV IMPORT & POTENTIAL ANALYSIS
+------------------------------------------------------------
+
+Goal: allow an internal user to log in, create a Client + Site, upload consumption CSVs (hourly kWh and 15-min kW), parse and store them, and then compute a **Solar + Storage Potential Report** with basic economics.
+
+Frontend (internal portal):
+
+- Create a simple login page `/login` (for internal staff).
+- After login, show an internal dashboard `/app` with:
+  - Menu:
+    - Sites
+    - Analyses
+    - Designs
+  - Page “Sites”:
+    - List of clients and sites.
+    - Button “Créer un client”
+    - Button “Ajouter un site”
+
+- Site detail page `/app/sites/:siteId`:
+  - Show site info.
+  - Section “Données de consommation”:
+    - Button “Importer des fichiers CSV”
+    - Accept multiple files at once (both hourly and 15-min).
+  - Table of MeterFiles showing:
+    - File name
+    - Granularity
+    - Period
+    - Status (Uploaded / Parsed / Failed)
+
+- After parsing, show a **Summary card**:
+  - Consommation annuelle (kWh)
+  - Pic de puissance (kW)
+  - Coût estimé avant projet (énergie + puissance)
+  - Recommended PV size (kWc)
+  - Recommended battery size (kWh / kW)
+  - Rough annual savings estimate
+
+- Also show charts:
+  - Typical daily load profile (kWh per hour)
+  - Peak demand distribution
+  - Before/After demand shaved example (for a chosen scenario)
+
+Backend – file upload & parsing:
+
+- Use Express with a route like `POST /api/sites/:siteId/upload-meters`.
+- Use Multer or a similar library to handle file upload.
+- For each file:
+  - Store minimal file metadata into `MeterFile`.
+  - Parse file line by line using `csv-parse` or similar.
+  - The CSVs come from Hydro-Québec style exports (but design the parser to be configurable):
+    - For hourly files: fields like [Date/Time, kWh, ...].
+    - For 15-minute files: fields like [Date/Time, kW, ...].
+  - Normalize:
+    - Convert timestamps to JS Date with timezone America/Toronto.
+    - Replace commas with periods in numeric fields.
+  - Insert into `MeterReading` table with correct granularity.
+
+Analysis logic:
+
+- Implement a service, e.g. `/backend/src/analysis/potentialService.ts`, with functions:
+
+  - `buildTypicalYear(siteId: string)`:  
+    - Use the imported data for the last 12–24 months.
+    - Build a “representative year” with 8760 hourly values by averaging patterns per hour + month, similar to the existing Google Sheets approach.
+    - Compute:
+      - Annual kWh
+      - Baseline peak kW
+      - Baseline annual cost (energy + demand)
+        - Use configurable tariffs loaded from a config file or DB:
+          - `tariffEnergy` (e.g. $/kWh)
+          - `tariffDemand` (e.g. $/kW/month * 12)
+
+  - `suggestPVandBattery(typicalYear, tariffConfig)`:  
+    - Implement a simple heuristic:
+      - PV size = ~25–35% of annual consumption / 1100 (kWh/kWc).
+      - Battery power ≈ 15–25% of baseline peak.
+      - Battery energy ≈ 2x battery power (hours of duration).
+    - Return recommended sizes (kWc, kWh, kW).
+
+  - `simulateScenario(typicalYear, pvSizeKW, batteryEnergyKWh, batteryPowerKW, demandSetpointKW, tariffConfig)`:  
+    - For each hour:
+      - Calculate simple PV production using monthly/seasonal factors and hourly profile (you can embed a simple function similar to the Google Sheets implementation).
+      - Model battery:
+        - Discharge to keep net demand below `demandSetpointKW` when possible.
+        - Charge from PV surplus first; optionally charge from grid at night.
+      - Track:
+        - New net kWh from grid.
+        - New peak kW.
+    - Aggregate results:
+      - Annual energy savings (kWh)
+      - Annual kW peak reduction
+      - Annual cost before vs after
+      - Annual savings (dollars)
+      - CO2 avoided per year (using configurable gCO2/kWh factor).
+    - Estimate CAPEX from sizes using:
+      - `costPV_perW`
+      - `costBattEnergy_perKWh`
+      - `costBattPower_perKW`
+      - Apply simple subsidies (e.g., HQ solar incentive, federal credit).
+    - Build a cashflow array for 20 years:
+      - Year 0: -CAPEX net.
+      - Year 1–20: annual savings, O&M costs, optional battery replacement at a given year with % of initial cost.
+      - Include a tax rate and depreciation model (can use simple linear or 100% in year 1).
+    - Compute:
+      - NPV 10 years & 20 years
+      - IRR 10 years & 20 years
+      - Simple payback.
+
+- Expose an endpoint:
+  - `POST /api/sites/:siteId/run-potential-analysis`
+    - Runs the typical year build + recommended sizes + one scenario simulation.
+    - Stores a `SimulationRun` with `type = "BASELINE"` and `type = "SCENARIO"` records (or at least a scenario).
+    - Returns the computed KPIs.
+
+Frontend – analysis UI:
+
+- On the Site detail page, add a button “Lancer l’analyse de potentiel”.
+- When clicked:
+  - Call the endpoint.
+  - Show a loading indicator.
+  - Display results in French:
+    - “Économies annuelles estimées”
+    - “Investissement net estimé”
+    - “VAN (20 ans)”
+    - “TRI (20 ans)”
+    - “Retour simple (années)”
+    - “CO₂ évité (tonnes/an)”
+
+- Add a button “Télécharger le rapport PDF”.
+  - Call `GET /api/simulation-runs/:id/report.pdf` that generates a PDF with:
+    - Client + site info
+    - Summary KPIs
+    - Charts (either rendered as simple tables or export chart images from the frontend via a simple protocol; for MVP, PDF can be mostly text + tabular numbers).
+
+------------------------------------------------------------
+MODULE 3 – DESIGN + BOM + PRICING
+------------------------------------------------------------
+
+Goal: starting from a `SimulationRun` (recommended sizes), allow the internal user to refine a PV + Battery system design, automatically generate a BOM and pricing, and update Zoho (e.g. as a Deal / Opportunity).
+
+Backend – design logic:
+
+- Create a service `/backend/src/design/designService.ts` with functions:
+
+  - `createDesignFromSimulation(simulationRunId, designInput)`:
+    - `designInput` includes:
+      - selectedModuleModelId
+      - selectedInverterModelId
+      - selectedBatteryModelId
+      - targetPVSizeKW (can adjust from suggested size)
+      - targetBatteryEnergyKWh
+      - targetBatteryPowerKW
+      - marginPercent
+    - Read component specs from `ComponentCatalogItem`.
+    - Compute:
+      - Number of modules = ceil(targetPVSizeKW * 1000 / moduleWattage)
+      - Rough number of inverters = ceil(targetPVSizeKW / inverterACRatingKW)
+      - Number of battery units = ceil(targetBatteryEnergyKWh / batteryUnitKWh)
+      - Basic BOS line items:
+        - Racking = modulesCount * some factor.
+        - Combiner boxes, cables, miscellaneous (can be simple multipliers).
+    - For each line, create `BomItem`:
+      - Category, description, quantity, unit, unitCost, unitSellPrice, totals.
+    - Aggregate totals into `Design` record:
+      - totalCapexPV, totalCapexBattery, totalCapexBOS, totalCapex, marginPercent, totalSellPrice.
+
+  - `syncDesignToZoho(designId)`:
+    - Build a summary payload:
+      - Deal name = `DesignName – Client – Site`
+      - Amount = `totalSellPrice`
+      - Key fields: PV kW, Battery kWh, expected savings, payback.
+    - Create or update a Deal/Opportunity in Zoho CRM.
+    - Save `zohoDealId` back on the `Design`.
+
+Backend – routes:
+
+- `GET /api/simulation-runs/:id`
+  - Returns simulation run data and site info.
+
+- `POST /api/designs`
+  - Body: designInput + simulationRunId.
+  - Creates `Design` + `BomItem[]` via `designService`.
+  - Returns design with BOM.
+
+- `POST /api/designs/:id/sync-zoho`
+  - Calls `syncDesignToZoho`.
+
+Frontend – design UI:
+
+- Page `/app/analyses/:simulationRunId/design`:
+  - Shows the key KPIs from the analysis (PV size suggestion, battery suggestion, economics).
+  - Form elements:
+    - Drop-downs to select module, inverter, battery from catalog.
+    - Inputs to tweak PV size (kW) and battery size (kWh / kW).
+    - Margin percentage.
+  - Button “Générer le design + BOM”.
+  - After generation:
+    - Show a table with BOM items.
+    - Show total costs and sell price.
+    - Button “Créer/mettre à jour l’offre dans Zoho”.
+
+------------------------------------------------------------
+AUTOMATION & INTEGRATION FLOW
+------------------------------------------------------------
+
+Implement the following basic automations:
+
+1. When a web lead is created:
+   - Create the Lead in Zoho.
+   - Optionally, immediately create a local placeholder `Client` + `Site` from lead info (or enable a manual “Convertir en client” flow later).
+
+2. When CSVs are imported and parsed for a Site:
+   - Allow the user to click “Lancer l’analyse de potentiel”.
+   - On completion, mark the Site as “analyse_disponible = true` (add this as a boolean field to Site).
+   - Optionally add a note/comment in the corresponding Zoho Lead/Account indicating that an analysis is ready.
+
+3. When a Design is generated:
+   - Provide a button to sync with Zoho (Deal or Quote).
+   - Update the Zoho record with the main KPIs.
+
+------------------------------------------------------------
+AUTHENTICATION & BASIC SECURITY
+------------------------------------------------------------
+
+- Implement minimal authentication for internal routes (not for public lead form):
+  - `POST /api/auth/login` with email & password.
+  - Store password as bcrypt hash.
+  - Generate JWT with a secret from env.
+  - Protect `/api/sites/*`, `/api/analyses/*`, `/api/designs/*` routes with middleware checking JWT.
+  - Frontend stores token in memory or secure storage (for MVP, localStorage is acceptable with basic precautions).
+
+------------------------------------------------------------
+DEV EXPERIENCE & SCRIPTS
+------------------------------------------------------------
+
+- At root `package.json`, add scripts:
+  - `"dev:backend": "cd backend && ts-node-dev src/server.ts"`
+  - `"dev:frontend": "cd frontend && vite"`
+  - `"dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""`  
+    (also add `concurrently` as a dev dependency).
+
+- Add a `README.md` with:
+  - How to install dependencies.
+  - How to run migrations (`npx prisma migrate dev`).
+  - How to run dev servers.
+  - How to configure `.env` with Zoho credentials and JWT secret.
+
+- Add `.env.example` documenting:
+  - DATABASE_URL
+  - JWT_SECRET
+  - ZOHO_CLIENT_ID
+  - ZOHO_CLIENT_SECRET
+  - ZOHO_REFRESH_TOKEN
+  - ZOHO_BASE_URL
+  - ZOHO_CRM_ORG_ID
+
+------------------------------------------------------------
+WORK IN CLEAR, INCREMENTAL STEPS
+------------------------------------------------------------
+
+Follow this sequence:
+
+1. Create project structure (backend + frontend folders, package.json, TypeScript configs, etc.).
+2. Set up Prisma + SQLite, define schema, run initial migration.
+3. Implement backend server, auth routes, and simple health check.
+4. Implement Zoho client with mocked calls first, then real HTTP calls.
+5. Implement Lead API + public frontend landing page + form.
+6. Implement Clients & Sites models, API and basic internal UI.
+7. Implement CSV upload endpoints and parsing, store MeterReadings.
+8. Implement potential analysis service + API + internal analysis UI with charts and KPIs.
+9. Implement Design module (catalog, design generation, BOM, pricing) + UI.
+10. Implement Zoho sync for designs.
+11. Add PDF report endpoint and plug it into analysis UI.
+12. Do a quick pass to clean up UI, add French labels, and ensure there are no TypeScript or runtime errors.
+
+Always output complete file contents when creating or editing files, so the project can run without manual fixes. Keep imports consistent and avoid dangling references.
