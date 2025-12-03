@@ -412,3 +412,38 @@ export interface PeakWeekEntry {
   peakBefore: number;
   peakAfter: number;
 }
+
+// Sensitivity analysis types for optimization charts
+
+// Single scenario point for efficiency frontier
+export interface FrontierPoint {
+  id: string;
+  type: 'solar' | 'battery' | 'hybrid';
+  label: string;
+  pvSizeKW: number;
+  battEnergyKWh: number;
+  battPowerKW: number;
+  capexNet: number;      // X-axis: Investment net ($)
+  npv25: number;         // Y-axis: Profit net (VAN $)
+  isOptimal: boolean;
+}
+
+// Solar size sweep point
+export interface SolarSweepPoint {
+  pvSizeKW: number;      // X-axis: Solar capacity (kWc)
+  npv25: number;         // Y-axis: VAN ($)
+}
+
+// Battery size sweep point
+export interface BatterySweepPoint {
+  battEnergyKWh: number; // X-axis: Battery capacity (kWh)
+  npv25: number;         // Y-axis: VAN ($)
+}
+
+// Complete sensitivity analysis result
+export interface SensitivityAnalysis {
+  frontier: FrontierPoint[];        // Efficiency frontier scatter points
+  solarSweep: SolarSweepPoint[];    // Solar optimization curve
+  batterySweep: BatterySweepPoint[]; // Battery optimization curve
+  optimalScenarioId: string | null;  // ID of the optimal scenario
+}
