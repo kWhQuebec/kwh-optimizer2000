@@ -82,7 +82,7 @@ export default function LandingPage() {
               <img 
                 src={currentLogo} 
                 alt="kWh Québec" 
-                className="h-10 w-auto"
+                className="h-14 w-auto"
                 data-testid="logo-header"
               />
             </Link>
@@ -463,7 +463,7 @@ export default function LandingPage() {
             <img 
               src={currentLogo} 
               alt="kWh Québec" 
-              className="h-10 w-auto"
+              className="h-14 w-auto"
               data-testid="logo-footer"
             />
             
