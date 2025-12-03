@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useDropzone } from "react-dropzone";
@@ -19,7 +19,8 @@ import {
   DollarSign,
   Leaf,
   TrendingUp,
-  PenTool
+  PenTool,
+  Loader2
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -478,7 +479,7 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
 
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { toast } = useToast();
 
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
@@ -612,8 +613,17 @@ export default function SiteDetailPage() {
                 className="gap-2"
                 data-testid="button-run-analysis"
               >
-                <Play className="w-4 h-4" />
-                {runAnalysisMutation.isPending ? t("common.loading") : t("site.runAnalysis")}
+                {runAnalysisMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    {t("site.runAnalysis")}
+                  </>
+                )}
               </Button>
             </CardHeader>
             <CardContent>
@@ -664,15 +674,39 @@ export default function SiteDetailPage() {
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-6">
-          {latestSimulation ? (
+          {runAnalysisMutation.isPending ? (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">
+                  {language === "fr" ? "Analyse en cours..." : "Analysis in progress..."}
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  {language === "fr" 
+                    ? "Traitement des données de consommation et calcul du dimensionnement optimal du système solaire et stockage."
+                    : "Processing consumption data and calculating optimal solar and storage system sizing."}
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  {language === "fr" ? "Cela peut prendre quelques instants..." : "This may take a moment..."}
+                </div>
+              </CardContent>
+            </Card>
+          ) : latestSimulation ? (
             <AnalysisResults simulation={latestSimulation} />
           ) : (
             <Card>
               <CardContent className="py-16 text-center">
                 <BarChart3 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-1">Aucune analyse disponible</h3>
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Aucune analyse disponible" : "No analysis available"}
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  Importez des fichiers CSV et lancez une analyse pour voir les résultats.
+                  {language === "fr" 
+                    ? "Importez des fichiers CSV et lancez une analyse pour voir les résultats."
+                    : "Import CSV files and run an analysis to see results."}
                 </p>
                 <Button 
                   onClick={() => runAnalysisMutation.mutate()}
