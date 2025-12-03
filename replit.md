@@ -56,6 +56,7 @@ The application uses a unified TypeScript codebase with client-side React and se
 - Tokens stored in localStorage on client
 - Auth middleware validates Bearer tokens on protected routes
 - Simple admin/team user model (not multi-tenant SaaS)
+- Default admin credentials: admin@kwh.quebec / admin123
 
 **Data Access**: In-memory storage implementation (`/server/storage.ts`) with interface designed for future database integration
 - All database operations abstracted behind `IStorage` interface
