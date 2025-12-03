@@ -992,9 +992,15 @@ function runPotentialAnalysis(readings: Array<{ kWh: number | null; kW: number |
   capexNet: number;
   co2AvoidedTonnesPerYear: number;
 } {
-  // Calculate key metrics from readings
-  const totalKWh = readings.reduce((sum, r) => sum + (r.kWh || 0), 0);
-  const peakKW = Math.max(...readings.map(r => r.kW || 0));
+  // Calculate key metrics from readings using loops (avoid stack overflow with large datasets)
+  let totalKWh = 0;
+  let peakKW = 0;
+  
+  for (const r of readings) {
+    totalKWh += r.kWh || 0;
+    const kw = r.kW || 0;
+    if (kw > peakKW) peakKW = kw;
+  }
   
   // Estimate annual values (if we have partial data)
   const dataSpanDays = readings.length > 0 
