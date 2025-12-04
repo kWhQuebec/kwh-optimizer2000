@@ -25,6 +25,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import * as zoho from "./zohoClient";
+import * as googleSolar from "./googleSolarService";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -302,6 +303,87 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== GOOGLE SOLAR API ROUTES ====================
+
+  app.get("/api/google-solar/status", authMiddleware, async (req, res) => {
+    res.json({ configured: googleSolar.isGoogleSolarConfigured() });
+  });
+
+  app.post("/api/sites/:id/roof-estimate", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.id;
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      if (!googleSolar.isGoogleSolarConfigured()) {
+        return res.status(503).json({ error: "Google Solar API not configured" });
+      }
+
+      let result: googleSolar.RoofEstimateResult;
+
+      if (site.latitude && site.longitude) {
+        result = await googleSolar.estimateRoofFromLocation({
+          latitude: site.latitude,
+          longitude: site.longitude
+        });
+      } else {
+        const fullAddress = [
+          site.address,
+          site.city,
+          site.province,
+          site.postalCode,
+          "Canada"
+        ].filter(Boolean).join(", ");
+
+        if (!fullAddress || fullAddress === "Canada") {
+          return res.status(400).json({ error: "Site address is required for roof estimation" });
+        }
+
+        result = await googleSolar.estimateRoofFromAddress(fullAddress);
+      }
+
+      if (!result.success) {
+        return res.status(422).json({ 
+          error: result.error || "Could not estimate roof area for this location",
+          latitude: result.latitude,
+          longitude: result.longitude
+        });
+      }
+
+      const updatedSite = await storage.updateSite(siteId, {
+        latitude: result.latitude,
+        longitude: result.longitude,
+        roofAreaAutoSqM: result.roofAreaSqM,
+        roofAreaAutoSource: "google_solar",
+        roofAreaAutoTimestamp: new Date(),
+        roofAreaAutoDetails: result.details as any,
+      });
+
+      res.json({
+        success: true,
+        site: updatedSite,
+        roofEstimate: {
+          roofAreaSqM: result.roofAreaSqM,
+          roofAreaSqFt: result.roofAreaSqM * 10.764,
+          maxArrayAreaSqM: result.maxArrayAreaSqM,
+          maxArrayAreaSqFt: result.maxArrayAreaSqM * 10.764,
+          maxSunshineHoursPerYear: result.maxSunshineHoursPerYear,
+          imageryDate: result.imageryDate,
+          imageryQuality: result.imageryQuality,
+          roofSegmentsCount: result.roofSegmentsCount,
+          latitude: result.latitude,
+          longitude: result.longitude,
+        }
+      });
+    } catch (error) {
+      console.error("Roof estimate error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
