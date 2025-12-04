@@ -8,6 +8,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { GlobalSearch } from "@/components/global-search";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -59,6 +60,9 @@ function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex items-center justify-between gap-4 px-4 h-14 border-b shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <div className="flex-1 flex items-center justify-center max-w-xl">
+              <GlobalSearch />
+            </div>
             <div className="flex items-center gap-2">
               <LanguageToggle />
               <ThemeToggle />
