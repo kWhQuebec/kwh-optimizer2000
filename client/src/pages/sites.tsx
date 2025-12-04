@@ -3,8 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3 } from "lucide-react";
+import { Link, useParams } from "wouter";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -268,16 +268,29 @@ function SiteForm({
 export default function SitesPage() {
   const { t } = useI18n();
   const { toast } = useToast();
+  const params = useParams<{ clientId?: string }>();
+  const clientId = params.clientId;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
 
-  const { data: sites, isLoading } = useQuery<SiteWithClient[]>({
+  // Fetch all sites
+  const { data: allSites, isLoading } = useQuery<SiteWithClient[]>({
     queryKey: ["/api/sites"],
   });
+
+  // Filter sites by clientId if provided
+  const sites = clientId 
+    ? allSites?.filter(site => site.clientId === clientId)
+    : allSites;
 
   const { data: clients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
   });
+
+  // Get the current client if filtering
+  const currentClient = clientId 
+    ? clients?.find(c => c.id === clientId)
+    : null;
 
   const createMutation = useMutation({
     mutationFn: async (data: SiteFormValues) => {
@@ -331,12 +344,42 @@ export default function SitesPage() {
     }
   };
 
+  // When creating a new site for a specific client, pre-select the client
+  const handleCreateWithClient = (data: SiteFormValues) => {
+    createMutation.mutate(clientId ? { ...data, clientId } : data);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Back button and breadcrumb when viewing a specific client's sites */}
+      {currentClient && (
+        <div className="flex items-center gap-3">
+          <Link href="/app/clients">
+            <Button variant="ghost" size="icon" data-testid="button-back-clients">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Users className="w-4 h-4" />
+            <span>{currentClient.name}</span>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("sites.title")}</h1>
-          <p className="text-muted-foreground mt-1">Gérez les sites et leurs données de consommation</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {currentClient 
+              ? `${t("sites.title")} - ${currentClient.name}`
+              : t("sites.title")
+            }
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {currentClient 
+              ? `${sites?.length || 0} site(s) pour ce client`
+              : "Gérez les sites et leurs données de consommation"
+            }
+          </p>
         </div>
         
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -351,8 +394,9 @@ export default function SitesPage() {
               <DialogTitle>{t("sites.add")}</DialogTitle>
             </DialogHeader>
             <SiteForm
-              clients={clients || []}
-              onSubmit={handleCreate}
+              site={clientId ? { clientId } as Site : undefined}
+              clients={clientId ? clients?.filter(c => c.id === clientId) || [] : clients || []}
+              onSubmit={handleCreateWithClient}
               onCancel={() => setDialogOpen(false)}
               isLoading={createMutation.isPending}
             />
