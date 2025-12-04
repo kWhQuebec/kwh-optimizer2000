@@ -1857,12 +1857,33 @@ export default function SiteDetailPage() {
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
               <span>{site.client?.name}</span>
               {(site.city || site.province) && (
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" />
                   {[site.city, site.province].filter(Boolean).join(", ")}
+                </span>
+              )}
+              {/* Roof Estimation Status Badge */}
+              {site.roofEstimateStatus === "pending" && (
+                <span className="flex items-center gap-1 text-primary">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  {language === "fr" ? "Estimation toit..." : "Estimating roof..."}
+                </span>
+              )}
+              {site.roofEstimateStatus === "success" && site.roofAreaAutoSqM && (
+                <span className="flex items-center gap-1 text-green-600">
+                  <Satellite className="w-3.5 h-3.5" />
+                  {language === "fr" 
+                    ? `Toit: ${Math.round(site.roofAreaAutoSqM)} m²`
+                    : `Roof: ${Math.round(site.roofAreaAutoSqM)} m²`}
+                </span>
+              )}
+              {site.roofEstimateStatus === "failed" && (
+                <span className="flex items-center gap-1 text-destructive">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {language === "fr" ? "Estimation échouée" : "Estimation failed"}
                 </span>
               )}
             </div>
