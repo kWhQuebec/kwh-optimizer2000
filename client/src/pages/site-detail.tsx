@@ -27,7 +27,9 @@ import {
   Home,
   Calculator,
   Percent,
-  Info
+  Info,
+  Satellite,
+  RefreshCw
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -323,16 +325,67 @@ function getTariffRates(code: string): { energyRate: number; demandRate: number 
 function AnalysisParametersEditor({ 
   value, 
   onChange,
-  disabled = false 
+  disabled = false,
+  site,
+  onSiteRefresh
 }: { 
   value: Partial<AnalysisAssumptions>; 
   onChange: (value: Partial<AnalysisAssumptions>) => void;
   disabled?: boolean;
+  site?: Site;
+  onSiteRefresh?: () => void;
 }) {
   const { language } = useI18n();
+  const { token } = useAuth();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [isEstimating, setIsEstimating] = useState(false);
 
   const merged: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...value };
+
+  // Roof estimation mutation
+  const handleRoofEstimate = async () => {
+    if (!site || !token) return;
+    
+    setIsEstimating(true);
+    try {
+      const response = await fetch(`/api/sites/${site.id}/roof-estimate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Estimation failed");
+      }
+      
+      // Apply the estimated value to analysis parameters (convert m² to sq ft)
+      if (data.roofEstimate?.roofAreaSqFt) {
+        onChange({ ...value, roofAreaSqFt: Math.round(data.roofEstimate.roofAreaSqFt) });
+      }
+      
+      toast({
+        title: language === "fr" ? "Estimation réussie" : "Estimation successful",
+        description: language === "fr" 
+          ? `Surface estimée: ${Math.round(data.roofEstimate.roofAreaSqM)} m² (${Math.round(data.roofEstimate.roofAreaSqFt)} pi²)`
+          : `Estimated area: ${Math.round(data.roofEstimate.roofAreaSqM)} m² (${Math.round(data.roofEstimate.roofAreaSqFt)} sq ft)`,
+      });
+      
+      onSiteRefresh?.();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: language === "fr" ? "Erreur d'estimation" : "Estimation error",
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsEstimating(false);
+    }
+  };
 
   const updateField = (field: keyof AnalysisAssumptions, newValue: number) => {
     onChange({ ...value, [field]: newValue });
@@ -628,6 +681,81 @@ function AnalysisParametersEditor({
                 <Home className="w-4 h-4 text-primary" />
                 {language === "fr" ? "Contraintes de toiture" : "Roof Constraints"}
               </h4>
+              
+              {/* Satellite Estimation Status & Button */}
+              {site && (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                  {site.roofEstimateStatus === "pending" && (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-xs text-muted-foreground">
+                        {language === "fr" ? "Estimation satellite en cours..." : "Satellite estimation in progress..."}
+                      </span>
+                    </>
+                  )}
+                  {site.roofEstimateStatus === "success" && site.roofAreaAutoSqM && (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <span className="text-xs">
+                        {language === "fr" 
+                          ? `Estimation satellite: ${Math.round(site.roofAreaAutoSqM)} m² (${Math.round(site.roofAreaAutoSqM * 10.764)} pi²)`
+                          : `Satellite estimate: ${Math.round(site.roofAreaAutoSqM)} m² (${Math.round(site.roofAreaAutoSqM * 10.764)} sq ft)`}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (site.roofAreaAutoSqM) {
+                            updateField("roofAreaSqFt", Math.round(site.roofAreaAutoSqM * 10.764));
+                          }
+                        }}
+                        className="h-6 text-xs ml-auto"
+                        disabled={disabled}
+                        data-testid="button-apply-satellite-estimate"
+                      >
+                        {language === "fr" ? "Appliquer" : "Apply"}
+                      </Button>
+                    </>
+                  )}
+                  {site.roofEstimateStatus === "failed" && (
+                    <>
+                      <AlertCircle className="w-4 h-4 text-destructive" />
+                      <span className="text-xs text-destructive">
+                        {language === "fr" ? "Estimation échouée" : "Estimation failed"}
+                        {site.roofEstimateError && `: ${site.roofEstimateError}`}
+                      </span>
+                    </>
+                  )}
+                  {(!site.roofEstimateStatus || site.roofEstimateStatus === "none" || site.roofEstimateStatus === "skipped") && (
+                    <span className="text-xs text-muted-foreground">
+                      {language === "fr" ? "Aucune estimation satellite disponible" : "No satellite estimation available"}
+                    </span>
+                  )}
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRoofEstimate}
+                    disabled={disabled || isEstimating || site.roofEstimateStatus === "pending"}
+                    className="h-7 text-xs gap-1.5 ml-auto"
+                    data-testid="button-estimate-roof-satellite"
+                  >
+                    {isEstimating ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : site.roofEstimateStatus === "success" ? (
+                      <RefreshCw className="w-3 h-3" />
+                    ) : (
+                      <Satellite className="w-3 h-3" />
+                    )}
+                    {isEstimating 
+                      ? (language === "fr" ? "Estimation..." : "Estimating...")
+                      : site.roofEstimateStatus === "success"
+                        ? (language === "fr" ? "Recalculer" : "Recalculate")
+                        : (language === "fr" ? "Estimer via satellite" : "Estimate from satellite")}
+                  </Button>
+                </div>
+              )}
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">{language === "fr" ? "Surface de toit (pi²)" : "Roof Area (sq ft)"}</Label>
@@ -1780,6 +1908,8 @@ export default function SiteDetailPage() {
               value={customAssumptions}
               onChange={setCustomAssumptions}
               disabled={runAnalysisMutation.isPending}
+              site={site}
+              onSiteRefresh={() => refetch()}
             />
           )}
 

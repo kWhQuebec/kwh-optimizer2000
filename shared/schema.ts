@@ -64,6 +64,8 @@ export const sites = pgTable("sites", {
   roofAreaAutoSource: text("roof_area_auto_source"), // "google_solar" or null
   roofAreaAutoTimestamp: timestamp("roof_area_auto_timestamp"),
   roofAreaAutoDetails: jsonb("roof_area_auto_details"), // Full Solar API response for reference
+  roofEstimateStatus: text("roof_estimate_status").default("none"), // "none" | "pending" | "success" | "failed" | "skipped"
+  roofEstimateError: text("roof_estimate_error"), // Error message if failed
   
   analysisAssumptions: jsonb("analysis_assumptions"),
   analysisAvailable: boolean("analysis_available").default(false),

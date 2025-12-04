@@ -59,6 +59,75 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   }
 }
 
+// Helper function for async roof estimation (fire-and-forget)
+async function triggerRoofEstimation(siteId: string): Promise<void> {
+  try {
+    const site = await storage.getSite(siteId);
+    if (!site) {
+      console.error(`Roof estimation: Site ${siteId} not found`);
+      return;
+    }
+
+    let result: googleSolar.RoofEstimateResult;
+
+    if (site.latitude && site.longitude) {
+      result = await googleSolar.estimateRoofFromLocation({
+        latitude: site.latitude,
+        longitude: site.longitude
+      });
+    } else {
+      const fullAddress = [
+        site.address,
+        site.city,
+        site.province,
+        site.postalCode,
+        "Canada"
+      ].filter(Boolean).join(", ");
+
+      if (!fullAddress || fullAddress === "Canada") {
+        await storage.updateSite(siteId, {
+          roofEstimateStatus: "skipped",
+          roofEstimateError: "No address provided"
+        });
+        return;
+      }
+
+      result = await googleSolar.estimateRoofFromAddress(fullAddress);
+    }
+
+    if (!result.success) {
+      await storage.updateSite(siteId, {
+        roofEstimateStatus: "failed",
+        roofEstimateError: result.error || "Could not estimate roof area",
+        latitude: result.latitude || null,
+        longitude: result.longitude || null,
+      });
+      console.log(`Roof estimation failed for site ${siteId}: ${result.error}`);
+      return;
+    }
+
+    // Success - update site with roof data
+    await storage.updateSite(siteId, {
+      latitude: result.latitude,
+      longitude: result.longitude,
+      roofAreaAutoSqM: result.roofAreaSqM,
+      roofAreaAutoSource: "google_solar",
+      roofAreaAutoTimestamp: new Date(),
+      roofAreaAutoDetails: result.details as any,
+      roofEstimateStatus: "success",
+      roofEstimateError: null,
+    });
+
+    console.log(`Roof estimation success for site ${siteId}: ${result.roofAreaSqM.toFixed(1)} m²`);
+  } catch (error) {
+    console.error(`Roof estimation error for site ${siteId}:`, error);
+    await storage.updateSite(siteId, {
+      roofEstimateStatus: "failed",
+      roofEstimateError: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -277,6 +346,19 @@ export async function registerRoutes(
       }
       
       const site = await storage.createSite(parsed.data);
+      
+      // Trigger automatic roof estimation if address is provided and Google Solar is configured
+      const hasAddress = site.address || site.city || site.postalCode;
+      if (hasAddress && googleSolar.isGoogleSolarConfigured()) {
+        // Mark as pending and trigger async estimation
+        await storage.updateSite(site.id, { roofEstimateStatus: "pending" });
+        
+        // Fire-and-forget: don't await, let it run in background
+        triggerRoofEstimation(site.id).catch(err => {
+          console.error("Background roof estimation failed:", err);
+        });
+      }
+      
       res.status(201).json(site);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
