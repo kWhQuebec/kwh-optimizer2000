@@ -54,6 +54,17 @@ export const sites = pgTable("sites", {
   postalCode: text("postal_code"),
   notes: text("notes"),
   roofAreaSqM: real("roof_area_sqm"),
+  
+  // Geolocation for Google Solar API
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  
+  // Auto-estimated roof data from Google Solar API
+  roofAreaAutoSqM: real("roof_area_auto_sqm"),
+  roofAreaAutoSource: text("roof_area_auto_source"), // "google_solar" or null
+  roofAreaAutoTimestamp: timestamp("roof_area_auto_timestamp"),
+  roofAreaAutoDetails: jsonb("roof_area_auto_details"), // Full Solar API response for reference
+  
   analysisAssumptions: jsonb("analysis_assumptions"),
   analysisAvailable: boolean("analysis_available").default(false),
   createdAt: timestamp("created_at").defaultNow(),
