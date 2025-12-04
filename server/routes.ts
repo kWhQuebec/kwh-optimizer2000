@@ -453,6 +453,28 @@ export async function registerRoutes(
     }
   });
 
+  // Methodology Documentation PDF
+  app.get("/api/methodology/pdf", authMiddleware, async (req, res) => {
+    try {
+      const lang = req.headers["accept-language"]?.includes("en") ? "en" : "fr";
+      
+      const doc = new PDFDocument({ size: "LETTER", margin: 50 });
+      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="methodology-${lang}.pdf"`);
+      
+      doc.pipe(res);
+
+      const { generateMethodologyPDF } = await import("./pdfGenerator");
+      generateMethodologyPDF(doc, lang);
+
+      doc.end();
+    } catch (error) {
+      console.error("Methodology PDF generation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== DESIGN ROUTES ====================
   
   app.get("/api/designs", authMiddleware, async (req, res) => {

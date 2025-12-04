@@ -6,6 +6,7 @@ import {
   BarChart3, 
   PenTool,
   Package,
+  FileText,
   LogOut
 } from "lucide-react";
 import {
@@ -64,6 +65,11 @@ export function AppSidebar() {
       title: t("nav.catalog"),
       url: "/app/catalog",
       icon: Package,
+    },
+    {
+      title: t("nav.methodology"),
+      url: "/app/methodology",
+      icon: FileText,
     },
   ];
 

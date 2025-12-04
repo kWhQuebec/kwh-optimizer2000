@@ -22,6 +22,7 @@ import AnalysesPage from "@/pages/analyses";
 import DesignPage from "@/pages/design";
 import DesignsPage from "@/pages/designs";
 import CatalogPage from "@/pages/catalog";
+import MethodologyPage from "@/pages/methodology";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -153,6 +154,14 @@ function AppRoutes() {
         <ProtectedRoute>
           <AppLayout>
             <CatalogPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/methodology">
+        <ProtectedRoute>
+          <AppLayout>
+            <MethodologyPage />
           </AppLayout>
         </ProtectedRoute>
       </Route>
