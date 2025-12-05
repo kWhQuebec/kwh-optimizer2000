@@ -46,7 +46,10 @@ The platform includes advanced scenario comparison and variant creation tools:
 
 - **Scenario Comparison Dashboard**: Side-by-side comparison of multiple simulation runs with metrics table and four comparison charts (NPV, annual savings, payback period, system sizing). Accessible via the "Compare" tab on site detail pages.
 - **Create Variant Dialog** (Staff only): Allows cloning an existing simulation with modified parameters (PV size, battery size, battery power) to create new "what-if" scenarios. Backend validates and clamps sizing values to reasonable ranges.
-- **Financing Calculator**: Interactive comparison of financing options (cash purchase, loan, lease, PPA) with adjustable parameters like loan term, interest rate, and down payment. Calculates monthly payments and 20-year net savings for each option.
+- **Financing Calculator**: Interactive comparison of financing options (cash purchase, loan, lease, PPA) with adjustable parameters like loan term, interest rate, and down payment. Features realistic cash flow timing that shows when incentives actually return to the client:
+  - **Cash Purchase**: Shows upfront equity needed (Gross CAPEX - HQ Solar rebate - 50% HQ Battery), with Year 1 returns (remaining HQ battery + CCA tax shield) and Year 2 returns (Federal ITC 30%)
+  - **Loan Option**: Shows down payment, monthly payments over term, and incentive timeline with net cost calculation
+  - **Timeline Breakdown**: Visual cash flow timeline for cash and loan options showing exactly when each incentive returns
 
 ### Role-Based Access Control (RBAC)
 
