@@ -2755,6 +2755,27 @@ function runSensitivityAnalysis(
     });
   }
   
+  // Validate and fix type classification based on actual sizing
+  for (const point of frontier) {
+    const hasPV = point.pvSizeKW > 0;
+    const hasBatt = point.battEnergyKWh > 0;
+    const correctType = hasPV && hasBatt ? 'hybrid' : hasPV ? 'solar' : 'battery';
+    
+    if (point.type !== correctType) {
+      console.warn(`Frontier point ${point.id} type mismatch: was '${point.type}', corrected to '${correctType}'`);
+      point.type = correctType;
+      
+      // Update label to match corrected type
+      if (correctType === 'hybrid') {
+        point.label = `${point.pvSizeKW}kW PV + ${point.battEnergyKWh}kWh`;
+      } else if (correctType === 'solar') {
+        point.label = `${point.pvSizeKW}kW solar only`;
+      } else {
+        point.label = `${point.battEnergyKWh}kWh storage only`;
+      }
+    }
+  }
+  
   // Find optimal scenario
   let optimalId: string | null = null;
   let maxNpv = -Infinity;

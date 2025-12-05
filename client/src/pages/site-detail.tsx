@@ -2533,15 +2533,44 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                         if (!active || !payload || !payload.length) return null;
                         const point = payload[0]?.payload as FrontierPoint;
                         if (!point) return null;
+                        
+                        const pvKW = point.pvSizeKW || 0;
+                        const battKWh = point.battEnergyKWh || 0;
+                        const actualType = pvKW > 0 && battKWh > 0 ? 'hybrid' : 
+                                          pvKW > 0 ? 'solar' : 
+                                          battKWh > 0 ? 'battery' : 'none';
+                        
+                        const typeLabel = actualType === 'hybrid' 
+                          ? (language === "fr" ? "Hybride" : "Hybrid")
+                          : actualType === 'solar' 
+                            ? (language === "fr" ? "Solaire" : "Solar")
+                            : (language === "fr" ? "Stockage" : "Storage");
+                        
+                        const sizingLabel = actualType === 'hybrid'
+                          ? `${pvKW}kW PV + ${battKWh}kWh`
+                          : actualType === 'solar'
+                            ? `${pvKW}kW PV`
+                            : `${battKWh}kWh`;
+                        
                         return (
                           <div className="bg-card border rounded-lg p-2 shadow-lg">
-                            <p className="text-sm font-medium">{point.label}</p>
+                            <p className="text-sm font-medium">
+                              <span className="inline-block w-2 h-2 rounded-full mr-1.5" 
+                                style={{ backgroundColor: actualType === 'solar' ? '#FFB005' : actualType === 'battery' ? '#003DA6' : '#22C55E' }} 
+                              />
+                              {typeLabel}: {sizingLabel}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {language === "fr" ? "Investissement" : "Investment"}: ${(point.capexNet / 1000).toFixed(1)}k
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              VAN 25 ans: ${(point.npv25 / 1000).toFixed(1)}k
+                              {language === "fr" ? "VAN 25 ans" : "NPV 25 years"}: ${(point.npv25 / 1000).toFixed(1)}k
                             </p>
+                            {point.isOptimal && (
+                              <p className="text-xs font-medium text-primary mt-1">
+                                ★ {language === "fr" ? "Optimal" : "Optimal"}
+                              </p>
+                            )}
                           </div>
                         );
                       }}
@@ -2577,14 +2606,18 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                         <Cell key={`hybrid-${index}`} fillOpacity={entry.npv25 >= 0 ? 1 : 0.25} />
                       ))}
                     </Scatter>
-                    {/* Optimal point highlighted with special marker - uses type color with star shape */}
+                    {/* Optimal point highlighted with special marker - uses corrected type color with star shape */}
                     <Scatter
                       name={language === "fr" ? "Optimal ★" : "Optimal ★"}
                       data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.isOptimal)}
                       shape={(props: any) => {
                         const { cx, cy, payload } = props;
-                        const color = payload.type === 'solar' ? '#FFB005' : 
-                                      payload.type === 'battery' ? '#003DA6' : '#22C55E';
+                        const pvKW = payload.pvSizeKW || 0;
+                        const battKWh = payload.battEnergyKWh || 0;
+                        const actualType = pvKW > 0 && battKWh > 0 ? 'hybrid' : 
+                                          pvKW > 0 ? 'solar' : 'battery';
+                        const color = actualType === 'solar' ? '#FFB005' : 
+                                      actualType === 'battery' ? '#003DA6' : '#22C55E';
                         return (
                           <g>
                             <circle cx={cx} cy={cy} r={12} fill={color} stroke="#000" strokeWidth={3} />
@@ -2614,6 +2647,26 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                 
                 if (!optimal) return null;
                 
+                const pvKW = optimal.pvSizeKW || 0;
+                const battKWh = optimal.battEnergyKWh || 0;
+                const actualType = pvKW > 0 && battKWh > 0 ? 'hybrid' : 
+                                  pvKW > 0 ? 'solar' : 
+                                  battKWh > 0 ? 'battery' : 'none';
+                
+                const typeLabel = actualType === 'hybrid' 
+                  ? (language === "fr" ? "Hybride" : "Hybrid")
+                  : actualType === 'solar' 
+                    ? (language === "fr" ? "Solaire seul" : "Solar only")
+                    : (language === "fr" ? "Stockage seul" : "Storage only");
+                
+                const sizingLabel = actualType === 'hybrid'
+                  ? `${pvKW}kW PV + ${battKWh}kWh`
+                  : actualType === 'solar'
+                    ? `${pvKW}kW PV`
+                    : `${battKWh}kWh`;
+                
+                const correctedLabel = `${typeLabel} - ${sizingLabel}`;
+                
                 if (isProfitable) {
                   return (
                     <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-3">
@@ -2621,7 +2674,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                       <div>
                         <p className="text-sm font-medium">
                           {language === "fr" ? "Recommandation: " : "Recommendation: "}
-                          <span className="text-primary">{optimal.label}</span>
+                          <span className="text-primary">{correctedLabel}</span>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {language === "fr" 
