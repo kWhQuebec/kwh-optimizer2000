@@ -657,7 +657,9 @@ export async function registerRoutes(
             count++;
           }
           
-          mergedAssumptions.orientationFactor = count > 0 ? totalQuality / count : 1.0;
+          // Clamp orientation factor to 0.6-1.0 range
+          const avgQuality = count > 0 ? totalQuality / count : 1.0;
+          mergedAssumptions.orientationFactor = Math.max(0.6, Math.min(1.0, avgQuality));
         }
       }
 

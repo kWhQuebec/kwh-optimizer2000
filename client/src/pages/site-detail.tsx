@@ -537,6 +537,50 @@ function AnalysisParametersEditor({
               </div>
             </div>
 
+            {/* Solar Production Parameters */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Sun className="w-4 h-4 text-primary" />
+                {language === "fr" ? "Production solaire" : "Solar Production"}
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Rendement (kWh/kWc/an)" : "Yield (kWh/kWp/yr)"}</Label>
+                  <Input
+                    type="number"
+                    step="10"
+                    min="800"
+                    max="1500"
+                    value={merged.solarYieldKWhPerKWp || 1150}
+                    onChange={(e) => updateField("solarYieldKWhPerKWp", parseInt(e.target.value) || 1150)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-solar-yield"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Facteur orientation/inclinaison" : "Orientation/Tilt Factor"}</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.6"
+                    max="1.0"
+                    value={(merged.orientationFactor || 1.0).toFixed(2)}
+                    onChange={(e) => updateField("orientationFactor", parseFloat(e.target.value) || 1.0)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-orientation-factor"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                {language === "fr" 
+                  ? `Rendement effectif: ${Math.round((merged.solarYieldKWhPerKWp || 1150) * (merged.orientationFactor || 1.0))} kWh/kWc/an${site?.roofAreaAutoDetails ? " (calibré via Google Solar)" : ""}`
+                  : `Effective yield: ${Math.round((merged.solarYieldKWhPerKWp || 1150) * (merged.orientationFactor || 1.0))} kWh/kWp/yr${site?.roofAreaAutoDetails ? " (calibrated via Google Solar)" : ""}`}
+              </p>
+            </div>
+
             {/* Financial Assumptions Section */}
             <div className="space-y-3">
               <h4 className="text-sm font-semibold flex items-center gap-2">
@@ -2277,6 +2321,10 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
             <div>
               <p className="text-muted-foreground">{language === "fr" ? "Coût solaire" : "Solar cost"}</p>
               <p className="font-mono">${assumptions.solarCostPerW}/Wc</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">{language === "fr" ? "Rendement solaire" : "Solar yield"}</p>
+              <p className="font-mono">{Math.round((assumptions.solarYieldKWhPerKWp || 1150) * (assumptions.orientationFactor || 1.0))} kWh/kWc</p>
             </div>
             <div>
               <p className="text-muted-foreground">{language === "fr" ? "Taux actualisation" : "Discount rate"}</p>

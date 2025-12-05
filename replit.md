@@ -2,13 +2,7 @@
 
 ## Overview
 
-kWh Québec is a B2B solar + storage analysis and design platform for commercial, industrial, and institutional buildings in Québec. The application serves three primary functions:
-
-1. **Lead Generation**: Public-facing website with lead capture forms that integrate with Zoho CRM
-2. **Energy Analysis**: Import and analyze consumption data (CSV files with hourly kWh and 15-min kW readings) to generate solar + storage potential reports for individual buildings or portfolios
-3. **System Design**: Generate complete PV + Battery system designs with detailed Bill of Materials (BOM), pricing calculations, and Zoho CRM synchronization
-
-The platform is designed for internal use by kWh Québec's team to streamline their solar assessment and proposal workflow.
+kWh Québec is a B2B solar + storage analysis and design platform for commercial, industrial, and institutional buildings in Québec. Its primary purpose is to streamline solar assessment and proposal workflows for the kWh Québec team. The platform offers lead generation, comprehensive energy analysis from consumption data, and detailed PV + Battery system design with Bill of Materials, pricing, and CRM synchronization.
 
 ## User Preferences
 
@@ -18,229 +12,44 @@ Preferred communication style: Simple, everyday language.
 
 ### Full-Stack Monorepo Structure
 
-The application uses a unified TypeScript codebase with client-side React and server-side Express within a single Replit project:
+The application uses a unified TypeScript codebase within a single Replit project, separating client-side React from server-side Express. This approach simplifies deployment and ensures type safety across the stack.
 
-- **Backend**: Node.js + Express + TypeScript
-- **Frontend**: React + TypeScript + Vite
+- **Backend**: Node.js, Express, TypeScript
+- **Frontend**: React, TypeScript, Vite
 - **Database**: PostgreSQL via Drizzle ORM (configured for Neon serverless)
 - **Styling**: Tailwind CSS with shadcn/ui component library
 - **Routing**: Wouter (lightweight client-side routing)
 
-**Design Rationale**: This monorepo approach simplifies deployment on Replit while maintaining clear separation between frontend and backend code. The shared TypeScript types between client and server ensure type safety across the stack.
-
 ### Frontend Architecture
 
-**Component Framework**: React with functional components and hooks, organized into:
-- `/client/src/pages/*` - Route-level page components
-- `/client/src/components/*` - Shared components and shadcn/ui elements
-- `/client/src/lib/*` - Utility functions, API client, authentication context, and i18n
-
-**State Management**: 
-- **TanStack Query** for server state management (data fetching, caching, mutations)
-- **React Context** for authentication state and internationalization
-- **React Hook Form** with Zod validation for form state
-
-**UI Design System**: 
-- Professional, data-focused design inspired by Linear and Stripe
-- Bilingual support (French/English) with i18n context provider
-- Custom Tailwind configuration with design tokens for consistent spacing, typography, and colors
-- Inter font for UI text, JetBrains Mono for technical/numeric values
-
-**Rationale**: TanStack Query eliminates boilerplate for API calls and provides automatic caching/refetching. The shadcn/ui component library offers accessible, customizable components that match the professional design requirements. React Hook Form with Zod provides type-safe form validation.
+The frontend utilizes React with functional components, organized into pages, shared components, and utility functions. State management is handled by TanStack Query for server state, React Context for authentication and internationalization, and React Hook Form with Zod for form validation. The UI features a professional, data-focused design with bilingual support, custom Tailwind CSS, and specific font choices for readability.
 
 ### Backend Architecture
 
-**API Layer**: RESTful API with Express routes in `/server/routes.ts`
+The backend provides a RESTful API with JWT-based authentication. Data access is abstracted through an `IStorage` interface, currently using in-memory storage but designed for Drizzle ORM + PostgreSQL migration. Multer middleware handles CSV file uploads. The backend also includes a sophisticated data processing and analysis engine for solar simulation, battery peak-shaving, financial calculations (NPV, IRR, LCOE), and sensitivity analysis, utilizing official Hydro-Québec tariffs and configurable parameters.
 
-**Authentication**: JWT-based authentication with bcrypt password hashing
-- Tokens stored in localStorage on client
-- Auth middleware validates Bearer tokens on protected routes
-- Simple admin/team user model (not multi-tenant SaaS)
-- Default admin credentials: info@kwh.quebec / KiloWattHeureQc1$
+### Database Schema
 
-**Data Access**: In-memory storage implementation (`/server/storage.ts`) with interface designed for future database integration
-- All database operations abstracted behind `IStorage` interface
-- Currently using mock in-memory data structures
-- Ready for Drizzle ORM + PostgreSQL migration
-
-**File Handling**: Multer middleware for CSV file uploads to `/uploads` directory
-
-**Rationale**: The storage interface abstraction allows the application to function with mock data while the database schema is being developed, enabling parallel frontend/backend work. JWT authentication is lightweight and sufficient for small internal teams.
-
-### Database Schema (Drizzle ORM)
-
-**Core Entities**:
-- **users**: Authentication and role-based access
-- **leads**: Web form submissions from public site
-- **clients**: Customer accounts
-- **sites**: Physical locations/buildings per client
-- **meterFiles**: Uploaded consumption CSV files
-- **meterReadings**: Parsed time-series consumption data
-- **simulationRuns**: Analysis scenarios with PV/battery sizing
-- **designs**: Complete system designs with component selections
-- **bomItems**: Bill of materials line items
-- **componentCatalog**: Product library (modules, inverters, batteries, BOS)
-
-**Schema Design**: PostgreSQL with UUID primary keys, timestamp tracking, and foreign key relationships. The schema supports portfolio analysis (multiple sites per client) and scenario comparison (multiple simulation runs per site).
-
-**Rationale**: Drizzle provides type-safe database queries with excellent TypeScript integration. The schema separates raw meter data from analysis results, allowing re-analysis without re-uploading files.
+The PostgreSQL database schema, managed by Drizzle ORM, includes core entities such as `users`, `leads`, `clients`, `sites`, `meterFiles`, `meterReadings`, `simulationRuns`, `designs`, `bomItems`, and `componentCatalog`. It uses UUID primary keys, timestamp tracking, and foreign key relationships to support portfolio analysis and scenario comparison.
 
 ### Data Processing & Analysis
 
-**CSV Parsing**: Server-side parsing of Hydro-Québec consumption data files
-- Supports up to 200 files simultaneously (for 24+ months of data)
-- Auto-detects file type: 15-minute power (kW) vs hourly energy (kWh)
-- Handles Latin-1 encoding, semicolon delimiters, French decimal format
-- Accent-insensitive header detection for reliable parsing
-
-**Missing Data Interpolation**: Smart handling of incomplete consumption data
-- Detects months with no consumption data in uploaded CSV files
-- Interpolates missing months using average of adjacent months (e.g., Jan + Mar for Feb)
-- Circular wrap-around for edge months (December uses Nov/Jan, January uses Dec/Feb)
-- Defaults to zero when no adjacent data available (prevents NaN propagation)
-- Tracks interpolated months and displays amber warning badge in UI
-- Documented in Méthodologie page under "Interpolation des Données Manquantes"
-
-**Advanced Analysis Engine** (server/routes.ts - `runPotentialAnalysis`):
-- 8760-hour solar production simulation using Gaussian curve + seasonal adjustment
-- Battery peak-shaving algorithm with SOC tracking
-- Quebec Hydro-Québec incentives ($1000/kW solar + $300/kW battery, 40% cap)
-- Federal ITC 30% calculation on remaining CAPEX
-- Tax shield (DPA/CCA) calculation
-- 25-year cashflow generation with O&M escalation and inflation
-- NPV (10/20/25 year), IRR, LCOE, simple payback calculations
-- Configurable battery replacement (year, cost factor, price decline rate) with inflation adjustment
-- Robust IRR calculation with Newton-Raphson + bisection fallback
-
-**Sensitivity Analysis Engine** (server/routes.ts - `runSensitivityAnalysis`):
-- Multi-scenario optimization sweeping different system sizes
-- Solar-only scenarios (varying PV size from 10% to 100% of max roof capacity)
-- Battery-only scenarios (varying battery capacity)
-- Hybrid scenarios (combined PV + battery configurations)
-- Efficiency frontier calculation (CAPEX vs NPV trade-off)
-- Optimal point identification based on maximum NPV
-- Data persisted in simulationRuns.sensitivity jsonb column
-
-**HQ Tariff Module** (server/hqTariffs.ts):
-- Official Hydro-Québec tariffs effective April 2025
-- Supported tariffs: D (Domestic), G (Small <65kW), M (Medium 65kW-5MW), L (Large >5MW)
-- Flex tariffs with peak event pricing (Flex D, Flex G, Flex M)
-- Auto-detection based on peak demand from consumption data
-- Monthly cost calculation with tiered energy rates and demand charges
-- Simplified rate extraction for analysis engine
-
-**Configurable Analysis Parameters** (shared/schema.ts - `AnalysisAssumptions`):
-- Tariff code selection: D, G, M, L with auto-populated rates
-- Tariffs: Energy ($/kWh), Power ($/kW/month) - editable overrides
-- Financial: Inflation tarif HQ (4.8% default - Quebec electricity rate escalation), WACC/discount rate, corporate tax rate
-- CAPEX: Solar cost ($/W), battery capacity ($/kWh), battery power ($/kW)
-- O&M: Solar/battery percentages, escalation rate
-- Battery replacement: Year, cost factor (% of original), price decline rate (%/year)
-- Roof constraints: Area, utilization ratio
-
-**Optimal Sizing Logic**: The analysis engine runs sensitivity sweeps and automatically selects the optimal system size (best NPV) rather than a heuristic maximum. This ensures the recommended system matches the optimal point shown in optimization charts.
-
-**Report Generation**: PDF reports with bilingual support (French/English)
-
-**Rationale**: Server-side processing ensures consistent results and protects proprietary analysis algorithms.
+The server-side data processing handles CSV parsing of Hydro-Québec consumption data, including auto-detection of file types, encoding, and missing data interpolation. An advanced analysis engine performs 8760-hour solar production simulations, battery peak-shaving, calculates Québec and Federal incentives, tax shields, and generates 25-year cashflows. A sensitivity analysis engine optimizes system sizing by sweeping different configurations and identifying the optimal point based on maximum NPV. The HQ Tariff Module incorporates official Hydro-Québec tariffs for various customer types. Analysis parameters are highly configurable.
 
 ### UI Visualization
 
-**Charts**: Recharts library for consumption profiles, production simulations, and financial projections
-**Data Tables**: shadcn/ui table components for BOM listings and detailed metrics
-
-**Site Detail Page** (`client/src/pages/site-detail.tsx`):
-- **Analysis Parameters Editor**: Collapsible form for customizing analysis inputs before running
-  - Hydro-Québec tariffs (energy $/kWh, power $/kW/month)
-  - CAPEX costs (solar $/Wp, battery energy $/kWh, battery power $/kW)
-  - Financial assumptions (discount rate, inflation, corporate tax rate)
-  - O&M parameters (solar %, battery %, escalation rate)
-  - Roof constraints (area sq ft, utilization ratio) with live max PV capacity estimate
-- **Enhanced Analysis Results Display**:
-  - Main KPIs: NPV 25yr, IRR 25yr, Simple Payback, LCOE (prominently displayed)
-  - Secondary KPIs: NPV 10yr, IRR 10yr, Year 1 Savings, CO₂ avoided
-  - Recommended System section with roof capacity constraint indicator
-  - Self-sufficiency progress bar
-  - 25-Year Cashflow chart with cumulative line
-  - Detailed Financial Breakdown (CAPEX + Incentives: HQ solar/battery, Federal ITC, Tax Shield DPA)
-  - "Parameters Used" section showing the assumptions used for each analysis run
-- **Optimization Analysis Section** (when sensitivity data available):
-  - Efficiency Frontier ScatterChart: CAPEX net vs NPV 25yr with colored points (gold=solar, blue=battery, green=hybrid)
-  - NPV=0 reference line (red dashed) to indicate profitability threshold
-  - Points with NPV < 0 have reduced opacity (30%) to visually distinguish unprofitable scenarios
-  - Solar Size Optimization LineChart: PV capacity (kWc) vs NPV 25yr
-  - Battery Size Optimization LineChart: Battery capacity (kWh) vs NPV 25yr
-  - Optimal point highlighted with star marker and black stroke on efficiency frontier
-  - "Recommandation" box showing optimal scenario details below efficiency frontier
-  - Text below each line chart showing optimal value (e.g., "Optimal: 120 kWc → VAN 45,234 $")
-
-**Rationale**: Recharts integrates well with React and provides responsive, accessible charts suitable for data-heavy B2B interfaces. The Analysis Parameters editor enables quick scenario comparisons without code changes.
+The UI uses Recharts for interactive charts displaying consumption profiles, production simulations, and financial projections. shadcn/ui table components are used for BOMs and detailed metrics. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display with key KPIs, and an Optimization Analysis Section with interactive charts for efficiency frontier, solar size, and battery size optimization.
 
 ## External Dependencies
 
 ### Third-Party Services
 
-**Google Solar API Integration** (`server/googleSolarService.ts`):
-- Building Insights API: Roof area estimation, segment detection, and solar production potential
-  - Auto-detects roof segments with orientation (azimuth), pitch, and usable area
-  - Returns maximum sunshine hours per year for location
-  - Provides panel configuration options with production estimates
-- Data Layers API: Satellite imagery and solar irradiance data
-  - RGB satellite imagery URL
-  - Roof segment mask URL
-  - Digital Surface Model (DSM) URL
-  - Annual solar flux heatmap URL
-- Solar quality scoring: Orientation + pitch heuristic (south-facing ~30-35° optimal for Quebec)
-- Cross-validation: Compare internal 8760-hour simulation with Google's annual production estimates
-- API endpoints:
-  - `POST /api/sites/:id/roof-estimate` - Fetch and store Building Insights data
-  - `GET /api/sites/:id/roof-imagery` - Fetch Data Layers imagery URLs
-- Environment variables:
-  - `GOOGLE_SOLAR_API_KEY`: Google Cloud API key with Solar API enabled
-  - `VITE_GOOGLE_MAPS_API_KEY`: Client-side Maps Embed API key for satellite views
-- Graceful fallback: Uses stored data when API unavailable, allows manual override
-
-**Zoho CRM Integration** (`server/zohoClient.ts`):
-- OAuth2 authentication with automatic token refresh (cached tokens with expiry handling)
-- Lead sync from public website form submissions (automatic on form submit)
-- Deal creation/update from system designs (via "Sync to Zoho" button)
-- Mock mode: Falls back gracefully when credentials not configured (returns MOCK_* IDs)
-- Environment variables for credentials:
-  - `ZOHO_CLIENT_ID`: OAuth client ID from Zoho API Console
-  - `ZOHO_CLIENT_SECRET`: OAuth client secret
-  - `ZOHO_REFRESH_TOKEN`: Long-lived refresh token for offline access
-  - `ZOHO_BASE_URL`: API base URL (default: https://www.zohoapis.com)
-- API status endpoint: `GET /api/zoho/status` - Check if integration is configured
-
-**Neon Database** (PostgreSQL):
-- Serverless PostgreSQL via `@neondatabase/serverless`
-- Connection string in `DATABASE_URL` environment variable
-- Drizzle ORM for migrations and queries
+-   **Google Solar API**: Integration for roof area estimation, solar production potential, and imagery via Building Insights and Data Layers APIs. It also provides automatic yield calibration for simulations.
+-   **Zoho CRM**: OAuth2 authenticated integration for lead synchronization from the public website and deal creation/updates from system designs.
+-   **Neon Database**: Serverless PostgreSQL solution used for the database.
 
 ### Key npm Packages
 
-**Backend**:
-- `express` - Web framework
-- `drizzle-orm` + `drizzle-kit` - Database ORM and migrations
-- `@neondatabase/serverless` - PostgreSQL client
-- `bcrypt` - Password hashing
-- `jsonwebtoken` - JWT authentication
-- `multer` - File upload handling
-- `zod` - Schema validation
-
-**Frontend**:
-- `react` + `react-dom` - UI framework
-- `wouter` - Client-side routing
-- `@tanstack/react-query` - Server state management
-- `react-hook-form` + `@hookform/resolvers` - Form handling
-- `recharts` - Data visualization
-- `@radix-ui/*` - Accessible UI primitives (via shadcn/ui)
-- `tailwindcss` - Utility-first CSS
-- `clsx` + `tailwind-merge` - Class name utilities
-
-**Build Tools**:
-- `vite` - Frontend build tool and dev server
-- `esbuild` - Backend bundler
-- `typescript` - Type checking across the stack
-
-**Rationale**: These dependencies provide production-ready solutions for common requirements (authentication, forms, data fetching) while maintaining bundle size efficiency and developer experience.
+-   **Backend**: `express`, `drizzle-orm`, `drizzle-kit`, `@neondatabase/serverless`, `bcrypt`, `jsonwebtoken`, `multer`, `zod`.
+-   **Frontend**: `react`, `react-dom`, `wouter`, `@tanstack/react-query`, `react-hook-form`, `@hookform/resolvers`, `recharts`, `@radix-ui/*`, `tailwindcss`, `clsx`, `tailwind-merge`.
+-   **Build Tools**: `vite`, `esbuild`, `typescript`.
