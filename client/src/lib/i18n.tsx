@@ -349,6 +349,21 @@ const translations: Translations = {
   "users.userDeletedDesc": { fr: "Le compte a été supprimé.", en: "The account has been deleted." },
   "users.adminOnly": { fr: "Réservé aux administrateurs", en: "Admin only" },
   "users.accessDenied": { fr: "Accès refusé", en: "Access denied" },
+
+  // Scenario Comparison
+  "compare.title": { fr: "Comparer", en: "Compare" },
+  "compare.scenarios": { fr: "Comparaison des scénarios", en: "Scenario Comparison" },
+  "compare.noScenarios": { fr: "Exécutez plusieurs analyses pour comparer les scénarios.", en: "Run multiple analyses to compare scenarios." },
+  "compare.scenario": { fr: "Scénario", en: "Scenario" },
+  "compare.best": { fr: "Meilleur", en: "Best" },
+  "compare.pvSize": { fr: "PV (kWc)", en: "PV (kWp)" },
+  "compare.batterySize": { fr: "Batterie (kWh)", en: "Battery (kWh)" },
+  "compare.investment": { fr: "Investissement net", en: "Net Investment" },
+  "compare.savings": { fr: "Économies/an", en: "Savings/yr" },
+  "compare.npv": { fr: "VAN (20 ans)", en: "NPV (20 yrs)" },
+  "compare.irr": { fr: "TRI", en: "IRR" },
+  "compare.payback": { fr: "Retour", en: "Payback" },
+  "compare.co2": { fr: "CO₂ évité", en: "CO₂ avoided" },
 };
 
 interface I18nContextType {

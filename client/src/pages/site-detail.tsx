@@ -1076,6 +1076,334 @@ function DownloadReportButton({ simulationId }: { simulationId: string }) {
 const MONTH_NAMES_FR = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const MONTH_NAMES_EN = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[]; site: SiteWithDetails }) {
+  const { t, language } = useI18n();
+  
+  const scenarios = simulations.filter(s => s.type === "SCENARIO");
+  
+  if (scenarios.length < 2) {
+    return (
+      <Card>
+        <CardContent className="py-16 text-center">
+          <Layers className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-1">
+            {language === "fr" ? "Comparaison de scénarios" : "Scenario Comparison"}
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {language === "fr" 
+              ? "Exécutez plusieurs analyses avec différents paramètres pour comparer les scénarios."
+              : "Run multiple analyses with different parameters to compare scenarios."}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return "-";
+    return new Intl.NumberFormat(language === "fr" ? "fr-CA" : "en-CA", {
+      style: "currency",
+      currency: "CAD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+  
+  const formatNumber = (value: number | null | undefined, decimals = 0) => {
+    if (value === null || value === undefined) return "-";
+    return value.toLocaleString(language === "fr" ? "fr-CA" : "en-CA", {
+      maximumFractionDigits: decimals,
+    });
+  };
+  
+  const formatPercent = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return "-";
+    return `${(value * 100).toFixed(1)}%`;
+  };
+  
+  const getScenarioColor = (index: number) => {
+    const colors = ["#f5a623", "#3b82f6", "#22c55e", "#a855f7", "#ec4899"];
+    return colors[index % colors.length];
+  };
+  
+  const getScenarioLabel = (sim: SimulationRun, index: number) => {
+    if (sim.label) return sim.label;
+    if (sim.pvSizeKW && sim.battEnergyKWh) {
+      return language === "fr" ? `Hybride ${index + 1}` : `Hybrid ${index + 1}`;
+    }
+    if (sim.pvSizeKW && !sim.battEnergyKWh) {
+      return language === "fr" ? `Solaire seul ${index + 1}` : `Solar Only ${index + 1}`;
+    }
+    if (!sim.pvSizeKW && sim.battEnergyKWh) {
+      return language === "fr" ? `Stockage seul ${index + 1}` : `Storage Only ${index + 1}`;
+    }
+    return `Scenario ${index + 1}`;
+  };
+  
+  const comparisonData = scenarios.map((sim, index) => ({
+    name: getScenarioLabel(sim, index),
+    color: getScenarioColor(index),
+    pvSize: sim.pvSizeKW || 0,
+    batterySize: sim.battEnergyKWh || 0,
+    annualSavings: sim.annualSavings || 0,
+    npv20: sim.npv20 || 0,
+    irr20: sim.irr20 || 0,
+    payback: sim.simplePaybackYears || 0,
+    capexNet: sim.capexNet || 0,
+    co2: sim.co2AvoidedTonnesPerYear || 0,
+  }));
+  
+  const bestNPV = Math.max(...comparisonData.map(d => d.npv20));
+  const bestPayback = Math.min(...comparisonData.filter(d => d.payback > 0).map(d => d.payback));
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Layers className="w-5 h-5" />
+            {language === "fr" ? "Comparaison des scénarios" : "Scenario Comparison"}
+          </CardTitle>
+          <CardDescription>
+            {language === "fr" 
+              ? `${scenarios.length} scénarios disponibles pour ce site`
+              : `${scenarios.length} scenarios available for this site`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[180px]">
+                    {language === "fr" ? "Scénario" : "Scenario"}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {language === "fr" ? "PV (kWc)" : "PV (kWp)"}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {language === "fr" ? "Batterie (kWh)" : "Battery (kWh)"}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {language === "fr" ? "Investissement net" : "Net Investment"}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {language === "fr" ? "Économies/an" : "Savings/yr"}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {language === "fr" ? "VAN (20 ans)" : "NPV (20 yrs)"}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {language === "fr" ? "TRI" : "IRR"}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {language === "fr" ? "Retour" : "Payback"}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    CO₂ {language === "fr" ? "évité" : "avoided"}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {comparisonData.map((row, index) => (
+                  <TableRow key={index} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: row.color }}
+                        />
+                        <span className="font-medium">{row.name}</span>
+                        {row.npv20 === bestNPV && row.npv20 > 0 && (
+                          <Badge variant="default" className="text-xs gap-1">
+                            <Award className="w-3 h-3" />
+                            {language === "fr" ? "Meilleur" : "Best"}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(row.pvSize, 0)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {row.batterySize > 0 ? formatNumber(row.batterySize, 0) : "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatCurrency(row.capexNet)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-primary">
+                      {formatCurrency(row.annualSavings)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      <span className={row.npv20 === bestNPV ? "text-primary font-bold" : ""}>
+                        {formatCurrency(row.npv20)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatPercent(row.irr20)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      <span className={row.payback === bestPayback && row.payback > 0 ? "text-primary font-bold" : ""}>
+                        {row.payback > 0 ? `${formatNumber(row.payback, 1)} ${language === "fr" ? "ans" : "yrs"}` : "-"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-green-600">
+                      {formatNumber(row.co2, 1)} t
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">
+              {language === "fr" ? "Comparaison VAN (20 ans)" : "NPV Comparison (20 yrs)"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={comparisonData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <XAxis 
+                    type="number" 
+                    tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    width={100}
+                    fontSize={12}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    labelFormatter={(label) => label}
+                  />
+                  <Bar dataKey="npv20" name="NPV">
+                    {comparisonData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">
+              {language === "fr" ? "Économies annuelles" : "Annual Savings"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={comparisonData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <XAxis 
+                    type="number" 
+                    tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    width={100}
+                    fontSize={12}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    labelFormatter={(label) => label}
+                  />
+                  <Bar dataKey="annualSavings" name={language === "fr" ? "Économies" : "Savings"}>
+                    {comparisonData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">
+              {language === "fr" ? "Retour sur investissement" : "Payback Period"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={comparisonData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <XAxis 
+                    type="number" 
+                    tickFormatter={(v) => `${v} ${language === "fr" ? "ans" : "yrs"}`}
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    width={100}
+                    fontSize={12}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => `${value.toFixed(1)} ${language === "fr" ? "ans" : "years"}`}
+                    labelFormatter={(label) => label}
+                  />
+                  <Bar dataKey="payback" name={language === "fr" ? "Retour" : "Payback"}>
+                    {comparisonData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">
+              {language === "fr" ? "Dimensionnement du système" : "System Sizing"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={comparisonData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" fontSize={12} />
+                  <YAxis fontSize={12} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar 
+                    dataKey="pvSize" 
+                    name={language === "fr" ? "PV (kWc)" : "PV (kWp)"} 
+                    fill="#f5a623" 
+                  />
+                  <Bar 
+                    dataKey="batterySize" 
+                    name={language === "fr" ? "Batterie (kWh)" : "Battery (kWh)"} 
+                    fill="#3b82f6" 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site: SiteWithDetails }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
@@ -2563,6 +2891,9 @@ export default function SiteDetailPage() {
         <TabsList>
           <TabsTrigger value="consumption" data-testid="tab-consumption">{t("site.consumption")}</TabsTrigger>
           <TabsTrigger value="analysis" data-testid="tab-analysis">{t("analysis.title")}</TabsTrigger>
+          <TabsTrigger value="compare" data-testid="tab-compare">
+            {language === "fr" ? "Comparer" : "Compare"}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="consumption" className="space-y-6">
@@ -2714,6 +3045,10 @@ export default function SiteDetailPage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="compare" className="space-y-6">
+          <ScenarioComparison simulations={site.simulationRuns || []} site={site} />
         </TabsContent>
       </Tabs>
     </div>
