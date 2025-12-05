@@ -1167,7 +1167,7 @@ function ScenarioComparison({
   const validScenarios = simulations.filter(s => 
     s.type === "SCENARIO" && 
     (s.pvSizeKW !== null || s.battEnergyKWh !== null) &&
-    s.npv20 !== null
+    s.npv25 !== null
   );
   
   if (validScenarios.length < 2) {
@@ -1233,16 +1233,18 @@ function ScenarioComparison({
     pvSize: sim.pvSizeKW || 0,
     batterySize: sim.battEnergyKWh || 0,
     annualSavings: sim.annualSavings || 0,
-    npv20: sim.npv20 || 0,
-    irr20: sim.irr20 || 0,
+    npv25: sim.npv25 || 0,
+    irr25: sim.irr25 || 0,
     payback: sim.simplePaybackYears && sim.simplePaybackYears > 0 ? sim.simplePaybackYears : 0,
     capexNet: sim.capexNet || 0,
     co2: sim.co2AvoidedTonnesPerYear || 0,
   }));
   
-  const validNPVs = comparisonData.filter(d => d.npv20 > 0).map(d => d.npv20);
+  const validNPVs = comparisonData.filter(d => d.npv25 > 0).map(d => d.npv25);
   const bestNPV = validNPVs.length > 0 ? Math.max(...validNPVs) : null;
   const validPaybacks = comparisonData.filter(d => d.payback > 0).map(d => d.payback);
+  const validIRRs = comparisonData.filter(d => d.irr25 > 0).map(d => d.irr25);
+  const bestIRR = validIRRs.length > 0 ? Math.max(...validIRRs) : null;
   const bestPayback = validPaybacks.length > 0 ? Math.min(...validPaybacks) : null;
 
   return (
@@ -1312,7 +1314,7 @@ function ScenarioComparison({
                             style={{ backgroundColor: row.color }}
                           />
                           <span className="font-medium" data-testid={`text-scenario-name-${index}`}>{row.name}</span>
-                          {bestNPV !== null && row.npv20 === bestNPV && row.npv20 > 0 && (
+                          {bestNPV !== null && row.npv25 === bestNPV && row.npv25 > 0 && (
                             <Badge variant="default" className="text-xs gap-1" data-testid={`badge-best-${index}`}>
                               <Award className="w-3 h-3" />
                               {t("compare.best")}
@@ -1339,12 +1341,14 @@ function ScenarioComparison({
                         {formatCurrency(row.annualSavings)}
                       </TableCell>
                       <TableCell className="text-right font-mono" data-testid={`text-npv-${index}`}>
-                        <span className={bestNPV !== null && row.npv20 === bestNPV ? "text-primary font-bold" : ""}>
-                          {formatCurrency(row.npv20)}
+                        <span className={bestNPV !== null && row.npv25 === bestNPV ? "text-primary font-bold" : ""}>
+                          {formatCurrency(row.npv25)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-mono" data-testid={`text-irr-${index}`}>
-                        {formatPercent(row.irr20)}
+                        <span className={bestIRR !== null && row.irr25 === bestIRR && row.irr25 > 0 ? "text-primary font-bold" : ""}>
+                          {formatPercent(row.irr25)}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right font-mono" data-testid={`text-payback-${index}`}>
                         <span className={bestPayback !== null && row.payback === bestPayback && row.payback > 0 ? "text-primary font-bold" : ""}>
@@ -1383,7 +1387,7 @@ function ScenarioComparison({
         <Card data-testid="card-chart-npv">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">
-              {t("compare.npvChart")}
+              {language === "fr" ? "VAN 25 ans" : "NPV 25 Years"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1406,7 +1410,44 @@ function ScenarioComparison({
                     formatter={(value: number) => formatCurrency(value)}
                     labelFormatter={(label) => label}
                   />
-                  <Bar dataKey="npv20" name={t("compare.npv")}>
+                  <Bar dataKey="npv25" name={language === "fr" ? "VAN 25 ans" : "NPV 25 Years"}>
+                    {comparisonData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card data-testid="card-chart-irr">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">
+              {language === "fr" ? "TRI 25 ans" : "IRR 25 Years"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={comparisonData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <XAxis 
+                    type="number" 
+                    tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    width={100}
+                    fontSize={12}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => `${(value * 100).toFixed(1)}%`}
+                    labelFormatter={(label) => label}
+                  />
+                  <Bar dataKey="irr25" name={language === "fr" ? "TRI 25 ans" : "IRR 25 Years"}>
                     {comparisonData.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
