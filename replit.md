@@ -40,6 +40,14 @@ The server-side data processing handles CSV parsing of Hydro-Québec consumption
 
 The UI uses Recharts for interactive charts displaying consumption profiles, production simulations, and financial projections. shadcn/ui table components are used for BOMs and detailed metrics. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display with key KPIs, and an Optimization Analysis Section with interactive charts for efficiency frontier, solar size, and battery size optimization.
 
+### Multi-Scenario Analysis Features
+
+The platform includes advanced scenario comparison and variant creation tools:
+
+- **Scenario Comparison Dashboard**: Side-by-side comparison of multiple simulation runs with metrics table and four comparison charts (NPV, annual savings, payback period, system sizing). Accessible via the "Compare" tab on site detail pages.
+- **Create Variant Dialog** (Staff only): Allows cloning an existing simulation with modified parameters (PV size, battery size, battery power) to create new "what-if" scenarios. Backend validates and clamps sizing values to reasonable ranges.
+- **Financing Calculator**: Interactive comparison of financing options (cash purchase, loan, lease, PPA) with adjustable parameters like loan term, interest rate, and down payment. Calculates monthly payments and 20-year net savings for each option.
+
 ### Role-Based Access Control (RBAC)
 
 The platform supports three user roles with distinct access levels:

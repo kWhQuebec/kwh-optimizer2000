@@ -37,7 +37,11 @@ import {
   Car,
   TrendingDown,
   Award,
-  Sparkles
+  Sparkles,
+  Copy,
+  CreditCard,
+  Wallet,
+  FileCheck
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -80,6 +84,8 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -1406,7 +1412,364 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
   );
 }
 
-function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site: SiteWithDetails }) {
+function CreateVariantDialog({ 
+  simulation, 
+  siteId, 
+  onSuccess 
+}: { 
+  simulation: SimulationRun; 
+  siteId: string;
+  onSuccess: () => void;
+}) {
+  const { t, language } = useI18n();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [pvSize, setPvSize] = useState(simulation.pvSizeKW || 100);
+  const [batterySize, setBatterySize] = useState(simulation.battEnergyKWh || 0);
+  const [batteryPower, setBatteryPower] = useState(simulation.battPowerKW || 0);
+  
+  const assumptions = (simulation.assumptions as AnalysisAssumptions | null) || defaultAnalysisAssumptions;
+  
+  const createVariantMutation = useMutation({
+    mutationFn: async () => {
+      const modifiedAssumptions: AnalysisAssumptions = {
+        ...assumptions,
+      };
+      return apiRequest("POST", `/api/sites/${siteId}/run-potential-analysis`, { 
+        assumptions: modifiedAssumptions,
+        label: label || undefined,
+        forcePvSize: pvSize,
+        forceBatterySize: batterySize,
+        forceBatteryPower: batteryPower,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
+      toast({ title: t("variant.success") });
+      setOpen(false);
+      onSuccess();
+    },
+    onError: () => {
+      toast({ title: t("variant.error"), variant: "destructive" });
+    },
+  });
+  
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen) {
+      setLabel("");
+      setPvSize(simulation.pvSizeKW || 100);
+      setBatterySize(simulation.battEnergyKWh || 0);
+      setBatteryPower(simulation.battPowerKW || 0);
+    }
+    setOpen(newOpen);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2" data-testid="button-create-variant">
+          <Copy className="w-4 h-4" />
+          {t("variant.createVariant")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("variant.title")}</DialogTitle>
+          <DialogDescription>{t("variant.description")}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="variant-label">{t("variant.label")}</Label>
+            <Input 
+              id="variant-label"
+              placeholder={t("variant.labelPlaceholder")}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              data-testid="input-variant-label"
+            />
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>{t("variant.pvSize")}</Label>
+              <span className="text-sm font-mono font-medium">{pvSize} kWc</span>
+            </div>
+            <Slider
+              value={[pvSize]}
+              onValueChange={([v]) => setPvSize(v)}
+              min={10}
+              max={Math.max(500, (simulation.pvSizeKW || 100) * 2)}
+              step={5}
+              data-testid="slider-pv-size"
+            />
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>{t("variant.batterySize")}</Label>
+              <span className="text-sm font-mono font-medium">{batterySize} kWh</span>
+            </div>
+            <Slider
+              value={[batterySize]}
+              onValueChange={([v]) => setBatterySize(v)}
+              min={0}
+              max={Math.max(1000, (simulation.battEnergyKWh || 100) * 2)}
+              step={10}
+              data-testid="slider-battery-size"
+            />
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>{t("variant.batteryPower")}</Label>
+              <span className="text-sm font-mono font-medium">{batteryPower} kW</span>
+            </div>
+            <Slider
+              value={[batteryPower]}
+              onValueChange={([v]) => setBatteryPower(v)}
+              min={0}
+              max={Math.max(500, (simulation.battPowerKW || 50) * 2)}
+              step={5}
+              data-testid="slider-battery-power"
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setOpen(false)} data-testid="button-variant-cancel">
+            {t("variant.cancel")}
+          </Button>
+          <Button 
+            onClick={() => createVariantMutation.mutate()} 
+            disabled={createVariantMutation.isPending}
+            className="gap-2"
+            data-testid="button-variant-run"
+          >
+            {createVariantMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Play className="w-4 h-4" />
+            )}
+            {t("variant.runAnalysis")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
+  const { t, language } = useI18n();
+  const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease" | "ppa">("cash");
+  const [loanTerm, setLoanTerm] = useState(10);
+  const [interestRate, setInterestRate] = useState(6);
+  const [downPayment, setDownPayment] = useState(20);
+  const [ppaRate, setPpaRate] = useState(0.08);
+  const [leasePayment, setLeasePayment] = useState(500);
+  
+  const capexNet = simulation.capexNet || 0;
+  const annualSavings = simulation.annualSavings || 0;
+  const annualProduction = simulation.annualEnergySavingsKWh || 0;
+  
+  const loanAmount = capexNet * (1 - downPayment / 100);
+  const monthlyRate = interestRate / 100 / 12;
+  const numPayments = loanTerm * 12;
+  const monthlyPayment = monthlyRate > 0 
+    ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1)
+    : loanAmount / numPayments;
+  const totalLoanCost = monthlyPayment * numPayments + (capexNet * downPayment / 100);
+  
+  const leaseTotalCost = leasePayment * 12 * 20;
+  const ppaTotalCost = ppaRate * annualProduction * 20;
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat(language === "fr" ? "fr-CA" : "en-CA", {
+      style: "currency",
+      currency: "CAD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+  
+  const options = [
+    {
+      type: "cash" as const,
+      icon: Wallet,
+      label: t("financing.cash"),
+      totalCost: capexNet,
+      monthlyPayment: 0,
+      netSavings: annualSavings * 20 - capexNet,
+    },
+    {
+      type: "loan" as const,
+      icon: CreditCard,
+      label: t("financing.loan"),
+      totalCost: totalLoanCost,
+      monthlyPayment: monthlyPayment,
+      netSavings: annualSavings * 20 - totalLoanCost,
+    },
+    {
+      type: "lease" as const,
+      icon: FileCheck,
+      label: t("financing.lease"),
+      totalCost: leaseTotalCost,
+      monthlyPayment: leasePayment,
+      netSavings: annualSavings * 20 - leaseTotalCost,
+    },
+    {
+      type: "ppa" as const,
+      icon: Zap,
+      label: t("financing.ppa"),
+      totalCost: ppaTotalCost,
+      monthlyPayment: ppaTotalCost / 240,
+      netSavings: annualSavings * 20 - ppaTotalCost,
+    },
+  ];
+
+  return (
+    <Card data-testid="card-financing-calculator">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="w-5 h-5" />
+          {t("financing.title")}
+        </CardTitle>
+        <CardDescription>{t("financing.description")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {options.map((option) => (
+            <button
+              key={option.type}
+              onClick={() => setFinancingType(option.type)}
+              className={`p-4 rounded-lg border-2 transition-all text-left ${
+                financingType === option.type 
+                  ? "border-primary bg-primary/5" 
+                  : "border-border hover:border-primary/50"
+              }`}
+              data-testid={`button-financing-${option.type}`}
+            >
+              <option.icon className={`w-5 h-5 mb-2 ${financingType === option.type ? "text-primary" : "text-muted-foreground"}`} />
+              <p className="font-medium text-sm">{option.label}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {option.monthlyPayment > 0 
+                  ? `${formatCurrency(option.monthlyPayment)}${language === "fr" ? "/mois" : "/mo"}`
+                  : language === "fr" ? "Paiement unique" : "One-time"
+                }
+              </p>
+            </button>
+          ))}
+        </div>
+        
+        {financingType === "loan" && (
+          <div className="grid md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div className="space-y-2">
+              <Label>{t("financing.loanTerm")}</Label>
+              <div className="flex items-center gap-2">
+                <Slider
+                  value={[loanTerm]}
+                  onValueChange={([v]) => setLoanTerm(v)}
+                  min={5}
+                  max={20}
+                  step={1}
+                  data-testid="slider-loan-term"
+                />
+                <span className="text-sm font-mono w-12">{loanTerm}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t("financing.interestRate")}</Label>
+              <div className="flex items-center gap-2">
+                <Slider
+                  value={[interestRate]}
+                  onValueChange={([v]) => setInterestRate(v)}
+                  min={3}
+                  max={12}
+                  step={0.25}
+                  data-testid="slider-interest-rate"
+                />
+                <span className="text-sm font-mono w-12">{interestRate}%</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t("financing.downPayment")}</Label>
+              <div className="flex items-center gap-2">
+                <Slider
+                  value={[downPayment]}
+                  onValueChange={([v]) => setDownPayment(v)}
+                  min={0}
+                  max={50}
+                  step={5}
+                  data-testid="slider-down-payment"
+                />
+                <span className="text-sm font-mono w-12">{downPayment}%</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {financingType === "ppa" && (
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <div className="space-y-2 max-w-xs">
+              <Label>{t("financing.ppaRate")}</Label>
+              <div className="flex items-center gap-2">
+                <Slider
+                  value={[ppaRate * 100]}
+                  onValueChange={([v]) => setPpaRate(v / 100)}
+                  min={5}
+                  max={15}
+                  step={0.5}
+                  data-testid="slider-ppa-rate"
+                />
+                <span className="text-sm font-mono w-16">${ppaRate.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {financingType === "lease" && (
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <div className="space-y-2 max-w-xs">
+              <Label>{t("financing.leasePayment")}</Label>
+              <div className="flex items-center gap-2">
+                <Slider
+                  value={[leasePayment]}
+                  onValueChange={([v]) => setLeasePayment(v)}
+                  min={100}
+                  max={2000}
+                  step={50}
+                  data-testid="slider-lease-payment"
+                />
+                <span className="text-sm font-mono w-20">{formatCurrency(leasePayment)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-1">{t("financing.totalCost")}</p>
+            <p className="text-xl font-bold font-mono">
+              {formatCurrency(options.find(o => o.type === financingType)?.totalCost || 0)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-1">{t("financing.monthlyPayment")}</p>
+            <p className="text-xl font-bold font-mono">
+              {formatCurrency(options.find(o => o.type === financingType)?.monthlyPayment || 0)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-1">{t("financing.netSavings")} (20 {t("compare.years")})</p>
+            <p className={`text-xl font-bold font-mono ${(options.find(o => o.type === financingType)?.netSavings || 0) > 0 ? "text-green-600" : "text-red-500"}`}>
+              {formatCurrency(options.find(o => o.type === financingType)?.netSavings || 0)}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AnalysisResults({ simulation, site, isStaff = false }: { simulation: SimulationRun; site: SiteWithDetails; isStaff?: boolean }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [showIncentives, setShowIncentives] = useState(true);
@@ -1629,6 +1992,20 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
           </CardContent>
         </Card>
       </div>
+
+      {/* Action Buttons - Create Variant (Staff Only) */}
+      {isStaff && (
+        <div className="flex flex-wrap gap-3" data-testid="analysis-actions">
+          <CreateVariantDialog 
+            simulation={simulation} 
+            siteId={site.id} 
+            onSuccess={() => {}} 
+          />
+        </div>
+      )}
+
+      {/* Financing Options Calculator */}
+      <FinancingCalculator simulation={simulation} />
 
       {/* Recommended System with Roof Constraint */}
       <Card>
@@ -3017,7 +3394,7 @@ export default function SiteDetailPage() {
               </CardContent>
             </Card>
           ) : latestSimulation ? (
-            <AnalysisResults simulation={latestSimulation} site={site} />
+            <AnalysisResults simulation={latestSimulation} site={site} isStaff={isStaff} />
           ) : (
             <Card>
               <CardContent className="py-16 text-center">

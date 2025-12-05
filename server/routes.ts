@@ -889,6 +889,24 @@ export async function registerRoutes(
       // Get custom assumptions from request body (if provided)
       const customAssumptions = req.body?.assumptions as Partial<AnalysisAssumptions> | undefined;
       
+      // Optional forced sizing parameters for variant creation
+      // Validate and clamp to reasonable ranges
+      let forcePvSize = req.body?.forcePvSize as number | undefined;
+      let forceBatterySize = req.body?.forceBatterySize as number | undefined;
+      let forceBatteryPower = req.body?.forceBatteryPower as number | undefined;
+      const customLabel = req.body?.label as string | undefined;
+      
+      // Validate forced sizing values (clamp to reasonable ranges)
+      if (forcePvSize !== undefined) {
+        forcePvSize = Math.max(0, Math.min(10000, forcePvSize)); // 0-10 MW cap
+      }
+      if (forceBatterySize !== undefined) {
+        forceBatterySize = Math.max(0, Math.min(10000, forceBatterySize)); // 0-10 MWh cap
+      }
+      if (forceBatteryPower !== undefined) {
+        forceBatteryPower = Math.max(0, Math.min(5000, forceBatteryPower)); // 0-5 MW cap
+      }
+      
       // Get meter readings for the site
       const readings = await storage.getMeterReadingsBySite(siteId);
       
@@ -947,12 +965,20 @@ export async function registerRoutes(
       }
 
       // Run the analysis with merged assumptions (Google Solar + custom)
-      const analysisResult = runPotentialAnalysis(readings, mergedAssumptions);
+      // If forced sizing is provided, pass it to the analysis function
+      const analysisResult = runPotentialAnalysis(readings, mergedAssumptions, {
+        forcePvSize,
+        forceBatterySize,
+        forceBatteryPower,
+      });
+      
+      // Create label: use custom label or generate from date
+      const label = customLabel || `Analyse ${new Date().toLocaleDateString("fr-CA")}`;
       
       // Create simulation run with assumptions stored
       const simulation = await storage.createSimulationRun({
         siteId,
-        label: `Analyse ${new Date().toLocaleDateString("fr-CA")}`,
+        label,
         type: "SCENARIO",
         ...analysisResult,
       });
@@ -1577,9 +1603,16 @@ interface AnalysisResult {
   interpolatedMonths: number[]; // Months with no data that were estimated from neighbors
 }
 
+interface ForcedSizing {
+  forcePvSize?: number;
+  forceBatterySize?: number;
+  forceBatteryPower?: number;
+}
+
 function runPotentialAnalysis(
   readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>,
-  customAssumptions?: Partial<AnalysisAssumptions>
+  customAssumptions?: Partial<AnalysisAssumptions>,
+  forcedSizing?: ForcedSizing
 ): AnalysisResult {
   // Merge custom assumptions with defaults
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
@@ -1613,11 +1646,19 @@ function runPotentialAnalysis(
   // Use configurable solar yield (default 1150 kWh/kWp, can be set from Google Solar data)
   const effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
   const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
-  const pvSizeKW = Math.min(Math.round(targetPVSize), Math.round(maxPVFromRoof));
   
-  // Battery sizing
-  const battPowerKW = Math.round(peakKW * 0.3); // 30% of peak for shaving
-  const battEnergyKWh = Math.round(battPowerKW * 2); // 2-hour duration
+  // Use forced sizing if provided, otherwise calculate optimal
+  const pvSizeKW = forcedSizing?.forcePvSize !== undefined 
+    ? Math.round(forcedSizing.forcePvSize)
+    : Math.min(Math.round(targetPVSize), Math.round(maxPVFromRoof));
+  
+  // Battery sizing - use forced values if provided
+  const battPowerKW = forcedSizing?.forceBatteryPower !== undefined
+    ? Math.round(forcedSizing.forceBatteryPower)
+    : Math.round(peakKW * 0.3); // 30% of peak for shaving
+  const battEnergyKWh = forcedSizing?.forceBatterySize !== undefined
+    ? Math.round(forcedSizing.forceBatterySize)
+    : Math.round(battPowerKW * 2); // 2-hour duration
   const demandShavingSetpointKW = Math.round(peakKW * 0.90); // Target 10% peak reduction
   
   // ========== STEP 3: Run hourly simulation ==========
