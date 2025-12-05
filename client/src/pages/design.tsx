@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useForm } from "react-hook-form";
@@ -36,18 +36,30 @@ interface DesignWithBom extends Design {
   bomItems: BomItem[];
 }
 
-const designFormSchema = z.object({
-  designName: z.string().min(1, "Ce champ est requis"),
-  moduleModelId: z.string().optional(),
-  inverterModelId: z.string().optional(),
-  batteryModelId: z.string().optional(),
-  pvSizeKW: z.coerce.number().min(0),
-  batteryEnergyKWh: z.coerce.number().min(0),
-  batteryPowerKW: z.coerce.number().min(0),
-  marginPercent: z.coerce.number().min(0).max(100),
-});
+// Schema created inside component to use translations
+function createDesignFormSchema(t: (key: string) => string) {
+  return z.object({
+    designName: z.string().min(1, t("design.designNameRequired")),
+    moduleModelId: z.string().optional(),
+    inverterModelId: z.string().optional(),
+    batteryModelId: z.string().optional(),
+    pvSizeKW: z.coerce.number().min(0),
+    batteryEnergyKWh: z.coerce.number().min(0),
+    batteryPowerKW: z.coerce.number().min(0),
+    marginPercent: z.coerce.number().min(0).max(100),
+  });
+}
 
-type DesignFormValues = z.infer<typeof designFormSchema>;
+type DesignFormValues = {
+  designName: string;
+  moduleModelId?: string;
+  inverterModelId?: string;
+  batteryModelId?: string;
+  pvSizeKW: number;
+  batteryEnergyKWh: number;
+  batteryPowerKW: number;
+  marginPercent: number;
+};
 
 function MetricCard({ 
   title, 
@@ -125,11 +137,11 @@ function BomTable({ items }: { items: BomItem[] }) {
 
       <div className="flex justify-end">
         <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-right">
-          <span className="text-muted-foreground">Coût total:</span>
+          <span className="text-muted-foreground">{t("design.costTotal")}:</span>
           <span className="font-mono font-semibold">${totalCost.toLocaleString()}</span>
-          <span className="text-muted-foreground">Prix de vente:</span>
+          <span className="text-muted-foreground">{t("design.sellPriceTotal")}:</span>
           <span className="font-mono font-semibold text-primary">${totalSell.toLocaleString()}</span>
-          <span className="text-muted-foreground">Marge:</span>
+          <span className="text-muted-foreground">{t("design.marginAmount")}:</span>
           <span className="font-mono font-semibold text-primary">
             ${(totalSell - totalCost).toLocaleString()} ({totalCost > 0 ? (((totalSell - totalCost) / totalCost) * 100).toFixed(1) : 0}%)
           </span>
@@ -158,6 +170,9 @@ export default function DesignPage() {
   const inverters = catalog?.filter(c => c.category === "INVERTER" && c.active) || [];
   const batteries = catalog?.filter(c => c.category === "BATTERY" && c.active) || [];
 
+  // Create schema with translated validation messages
+  const designFormSchema = createDesignFormSchema(t);
+
   const form = useForm<DesignFormValues>({
     resolver: zodResolver(designFormSchema),
     defaultValues: {
@@ -165,12 +180,26 @@ export default function DesignPage() {
       moduleModelId: "",
       inverterModelId: "",
       batteryModelId: "",
-      pvSizeKW: simulation?.pvSizeKW || 0,
-      batteryEnergyKWh: simulation?.battEnergyKWh || 0,
-      batteryPowerKW: simulation?.battPowerKW || 0,
+      pvSizeKW: 0,
+      batteryEnergyKWh: 0,
+      batteryPowerKW: 0,
       marginPercent: 25,
     },
   });
+
+  // Auto-populate form with simulation values when data loads
+  useEffect(() => {
+    if (simulation) {
+      form.setValue("pvSizeKW", simulation.pvSizeKW || 0);
+      form.setValue("batteryEnergyKWh", simulation.battEnergyKWh || 0);
+      form.setValue("batteryPowerKW", simulation.battPowerKW || 0);
+      
+      // Auto-generate design name from site and timestamp
+      const siteName = simulation.site?.name || t("design.title");
+      const dateStr = new Date().toLocaleDateString();
+      form.setValue("designName", `${siteName} - ${dateStr}`);
+    }
+  }, [simulation, form, t]);
 
   const generateMutation = useMutation({
     mutationFn: async (data: DesignFormValues) => {
@@ -262,7 +291,7 @@ export default function DesignPage() {
           icon={Zap}
         />
         <MetricCard
-          title="Batterie recommandée"
+          title={t("design.recommendedBattery")}
           value={(simulation.battEnergyKWh || 0).toFixed(0)}
           unit="kWh"
           icon={Battery}
@@ -284,7 +313,7 @@ export default function DesignPage() {
         {/* Design Form */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Configuration du design</CardTitle>
+            <CardTitle>{t("design.configuration")}</CardTitle>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -317,7 +346,7 @@ export default function DesignPage() {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-module">
-                              <SelectValue placeholder="Sélectionner..." />
+                              <SelectValue placeholder={t("design.selectPlaceholder")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -342,7 +371,7 @@ export default function DesignPage() {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-inverter">
-                              <SelectValue placeholder="Sélectionner..." />
+                              <SelectValue placeholder={t("design.selectPlaceholder")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -367,7 +396,7 @@ export default function DesignPage() {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-battery">
-                              <SelectValue placeholder="Sélectionner..." />
+                              <SelectValue placeholder={t("design.selectPlaceholder")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>

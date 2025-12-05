@@ -40,6 +40,16 @@ The server-side data processing handles CSV parsing of Hydro-Québec consumption
 
 The UI uses Recharts for interactive charts displaying consumption profiles, production simulations, and financial projections. shadcn/ui table components are used for BOMs and detailed metrics. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display with key KPIs, and an Optimization Analysis Section with interactive charts for efficiency frontier, solar size, and battery size optimization.
 
+### System Design Module
+
+The System Design page (`/app/design/:simulationId`) enables staff users to create detailed equipment specifications and bills of materials:
+
+- **Auto-populated Form Fields**: PV size, battery energy, and battery power are automatically populated from the selected simulation's optimal configuration
+- **Auto-generated Design Name**: Combines site name with current date for easy identification
+- **Component Selection**: Dropdowns for selecting modules, inverters, and batteries from the component catalog
+- **Margin Configuration**: Adjustable profit margin percentage for pricing calculations
+- **Full i18n Support**: All UI elements support FR-CA/EN-CA language switching
+
 ### Multi-Scenario Analysis Features
 
 The platform includes advanced scenario comparison and variant creation tools:

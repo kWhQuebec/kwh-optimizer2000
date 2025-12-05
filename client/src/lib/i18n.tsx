@@ -197,6 +197,15 @@ const translations: Translations = {
   "design.totalCapex": { fr: "CAPEX total", en: "Total CAPEX" },
   "design.totalSellPrice": { fr: "Prix de vente total", en: "Total sell price" },
   "design.syncZoho": { fr: "Créer/mettre à jour l'offre dans Zoho", en: "Create/update deal in Zoho" },
+  "design.configuration": { fr: "Configuration du design", en: "Design Configuration" },
+  "design.selectPlaceholder": { fr: "Sélectionner...", en: "Select..." },
+  "design.summary": { fr: "Résumé", en: "Summary" },
+  "design.recommendedBattery": { fr: "Batterie recommandée", en: "Recommended battery" },
+  "design.costTotal": { fr: "Coût total", en: "Total cost" },
+  "design.sellPriceTotal": { fr: "Prix de vente", en: "Sell price" },
+  "design.marginAmount": { fr: "Marge", en: "Margin" },
+  "design.loadOptimal": { fr: "Charger depuis analyse optimale", en: "Load from optimal analysis" },
+  "design.designNameRequired": { fr: "Le nom du design est requis", en: "Design name is required" },
 
   // Common
   "common.save": { fr: "Enregistrer", en: "Save" },

@@ -2282,7 +2282,8 @@ function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null
   return { hourlyData, interpolatedMonths };
 }
 
-// Run hourly solar + battery simulation
+// Run hourly solar + battery simulation with SMART peak shaving
+// Uses look-ahead optimization to target the HIGHEST daily peak for maximum demand savings
 function runHourlySimulation(
   hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>,
   pvSizeKW: number,
@@ -2313,6 +2314,31 @@ function runHourlySimulation(
     };
   }
   
+  // SMART PEAK SHAVING: Pre-calculate daily peak hours for look-ahead optimization
+  // Instead of greedy approach, we identify the highest peak each day and prioritize it
+  const dailyPeakHours = new Map<string, { index: number; peak: number; hour: number }>();
+  
+  // Group by day and find highest peak per day
+  for (let i = 0; i < hourlyData.length; i++) {
+    const { hour, month, peak } = hourlyData[i];
+    // Create day key based on position in year (month + day approximation from index)
+    const dayIndex = Math.floor(i / 24);
+    const dayKey = `${month}-${dayIndex}`;
+    
+    const existing = dailyPeakHours.get(dayKey);
+    if (!existing || peak > existing.peak) {
+      dailyPeakHours.set(dayKey, { index: i, peak, hour });
+    }
+  }
+  
+  // Create a set of peak hours to prioritize (hours that are daily maximums)
+  const priorityPeakIndices = new Set<number>();
+  dailyPeakHours.forEach((dayPeak) => {
+    if (dayPeak.peak > threshold) {
+      priorityPeakIndices.add(dayPeak.index);
+    }
+  });
+  
   for (let i = 0; i < hourlyData.length; i++) {
     const { hour, month, consumption, peak } = hourlyData[i];
     
@@ -2328,20 +2354,45 @@ function runHourlySimulation(
     // Net load (consumption - production)
     const net = consumption - production;
     
-    // Battery algorithm (peak shaving)
+    // SMART Battery algorithm with look-ahead peak shaving
     let battAction = 0;
     const peakBefore = peak;
     let peakFinal = peak;
     
     if (battPowerKW > 0 && battEnergyKWh > 0) {
-      if (peak > threshold && soc > 0) {
-        // Discharge to shave peak
-        battAction = -Math.min(peak - threshold, battPowerKW, soc);
+      // Check if this is a priority peak hour (daily maximum)
+      const isPriorityPeak = priorityPeakIndices.has(i);
+      
+      // Look ahead: check if there's a higher peak coming in the next few hours
+      let higherPeakComing = false;
+      if (!isPriorityPeak && peak > threshold) {
+        // Look ahead up to 6 hours for a higher peak
+        for (let lookahead = 1; lookahead <= 6 && i + lookahead < hourlyData.length; lookahead++) {
+          if (hourlyData[i + lookahead].peak > peak) {
+            higherPeakComing = true;
+            break;
+          }
+        }
+      }
+      
+      // Decision logic for discharge:
+      // 1. Always discharge for priority peaks (daily maximums)
+      // 2. Discharge for non-priority peaks only if no higher peak is coming soon
+      // 3. Reserve more battery for priority peaks
+      const shouldDischarge = peak > threshold && soc > 0 && (isPriorityPeak || !higherPeakComing);
+      
+      if (shouldDischarge) {
+        // For priority peaks, use full available discharge
+        // For secondary peaks, limit discharge to preserve capacity
+        const maxDischarge = isPriorityPeak 
+          ? Math.min(peak - threshold, battPowerKW, soc)
+          : Math.min(peak - threshold, battPowerKW, soc * 0.5); // Use only 50% for non-priority
+        battAction = -maxDischarge;
       } else if (net < 0 && soc < battEnergyKWh) {
         // Charge from excess solar
         battAction = Math.min(Math.abs(net), battPowerKW, battEnergyKWh - soc);
       } else if (hour >= 22 && soc < battEnergyKWh) {
-        // Night charging
+        // Night charging - ensure battery is ready for next day's peak
         battAction = Math.min(battPowerKW, battEnergyKWh - soc);
       }
       
