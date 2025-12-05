@@ -1055,7 +1055,14 @@ function AnalysisParametersEditor({
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">{language === "fr" ? "Surface de toit (pi²)" : "Roof Area (sq ft)"}</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">{language === "fr" ? "Surface de toit (pi²)" : "Roof Area (sq ft)"}</Label>
+                    {site?.roofAreaAutoSqM && site.roofEstimateStatus === "success" && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {language === "fr" ? `Satellite: ${Math.round(site.roofAreaAutoSqM * 10.764).toLocaleString()} pi²` : `Satellite: ${Math.round(site.roofAreaAutoSqM * 10.764).toLocaleString()} sqft`}
+                      </span>
+                    )}
+                  </div>
                   <Input
                     type="number"
                     step="100"
@@ -1079,6 +1086,26 @@ function AnalysisParametersEditor({
                   />
                 </div>
               </div>
+              
+              {/* Manual Override Guidance for Large C&I Buildings */}
+              {merged.roofAreaSqFt > 5000 && (
+                <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-blue-800">
+                      <span className="font-medium">
+                        {language === "fr" ? "Bâtiment C&I de grande taille" : "Large C&I building"}
+                      </span>
+                      <p className="text-blue-700 mt-0.5">
+                        {language === "fr" 
+                          ? "Pour les grands bâtiments, entrez la superficie réelle de toiture. Google Solar API est optimisé pour les toitures résidentielles et peut sous-estimer les grands toits commerciaux."
+                          : "For large buildings, enter actual roof area. Google Solar API is optimized for residential rooftops and may underestimate large commercial roofs."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Info className="w-3 h-3" />
                 {language === "fr" 
@@ -2907,7 +2934,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         icon={Settings}
       />
 
-      {/* Cross-Validation with Google Solar */}
+      {/* Cross-Validation with Google Solar - Yield-Based Comparison */}
       {site && site.roofAreaAutoDetails && (() => {
         const details = site.roofAreaAutoDetails as any;
         const solarPotential = details?.solarPotential;
@@ -2916,22 +2943,13 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         
         if (!panelConfigs || panelConfigs.length === 0) return null;
         
-        // Find closest config to our simulation PV size
+        // Find the MAX config from Google (their largest possible)
         const ourPvKw = simulation.pvSizeKW || 0;
-        let closestConfig = panelConfigs[0];
-        let closestDiff = Infinity;
+        const maxConfig = panelConfigs.reduce((max: any, config: any) => 
+          config.panelsCount > (max?.panelsCount || 0) ? config : max, panelConfigs[0]);
         
-        for (const config of panelConfigs) {
-          const configKw = (config.panelsCount * panelWatts) / 1000;
-          const diff = Math.abs(configKw - ourPvKw);
-          if (diff < closestDiff) {
-            closestDiff = diff;
-            closestConfig = config;
-          }
-        }
-        
-        const googlePvKw = (closestConfig.panelsCount * panelWatts) / 1000;
-        const googleProdDc = closestConfig.yearlyEnergyDcKwh || 0;
+        const googleMaxPvKw = (maxConfig.panelsCount * panelWatts) / 1000;
+        const googleProdDc = maxConfig.yearlyEnergyDcKwh || 0;
         const googleProdAc = googleProdDc * 0.85; // Assume 85% DC-to-AC efficiency
         
         // Calculate our production from hourly profile
@@ -2941,13 +2959,36 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
           ourAnnualProd = hourlyProfile.reduce((sum, h) => sum + (h.production || 0), 0);
         }
         
-        // Calculate specific yield (kWh/kWp)
-        const googleYield = googlePvKw > 0 ? googleProdAc / googlePvKw : 0;
+        // Calculate specific yield (kWh/kWp) - THE KEY METRIC
+        const googleYield = googleMaxPvKw > 0 ? googleProdAc / googleMaxPvKw : 0;
         const ourYield = ourPvKw > 0 ? ourAnnualProd / ourPvKw : 0;
         
-        // Calculate difference percentage
-        const diffPercent = ourAnnualProd > 0 ? ((ourAnnualProd - googleProdAc) / googleProdAc * 100) : 0;
-        const isWithinMargin = Math.abs(diffPercent) <= 15; // Within 15% is acceptable
+        // YIELD difference is the meaningful comparison (not total production!)
+        const yieldDiffPercent = googleYield > 0 ? ((ourYield - googleYield) / googleYield * 100) : 0;
+        const isYieldWithinMargin = Math.abs(yieldDiffPercent) <= 20; // Within 20% is acceptable for yields
+        
+        // Detect system size mismatch (>50% difference = Google API limitation)
+        const sizeMismatchRatio = ourPvKw > 0 && googleMaxPvKw > 0 ? ourPvKw / googleMaxPvKw : 1;
+        const hasSignificantSizeMismatch = sizeMismatchRatio > 1.5; // Our system is 50%+ larger
+        const isGoogleMaxTooSmall = googleMaxPvKw < 50; // Google caps at residential scale
+        
+        // Calibration guidance based on yield difference
+        const getCalibrationStatus = () => {
+          if (Math.abs(yieldDiffPercent) <= 10) {
+            return { status: 'validated', color: 'green', message: language === "fr" 
+              ? "Rendement validé par Google Solar" : "Yield validated by Google Solar" };
+          } else if (yieldDiffPercent > 20) {
+            return { status: 'review', color: 'amber', message: language === "fr" 
+              ? "Vérifier les hypothèses de production" : "Review production assumptions" };
+          } else if (yieldDiffPercent < -20) {
+            return { status: 'conservative', color: 'blue', message: language === "fr" 
+              ? "Estimation conservatrice" : "Conservative estimate" };
+          } else {
+            return { status: 'acceptable', color: 'green', message: language === "fr" 
+              ? "Écart acceptable" : "Acceptable variance" };
+          }
+        };
+        const calibration = getCalibrationStatus();
         
         return (
           <Card className="border-dashed">
@@ -2955,7 +2996,11 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
               <CardTitle className="text-lg flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-primary" />
                 {language === "fr" ? "Validation croisée" : "Cross-Validation"}
-                {isWithinMargin ? (
+                {hasSignificantSizeMismatch ? (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
+                    {language === "fr" ? "Calibration rendement" : "Yield Calibration"}
+                  </Badge>
+                ) : isYieldWithinMargin ? (
                   <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
                     {language === "fr" ? "Cohérent" : "Consistent"}
                   </Badge>
@@ -2967,65 +3012,139 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
               </CardTitle>
               <CardDescription>
                 {language === "fr" 
-                  ? "Comparaison entre nos calculs et les estimations Google Solar API"
-                  : "Comparison between our calculations and Google Solar API estimates"}
+                  ? "Comparaison du rendement spécifique (kWh/kWc) avec Google Solar API"
+                  : "Specific yield (kWh/kWp) comparison with Google Solar API"}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-3 bg-muted/30 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    {language === "fr" ? "Notre simulation" : "Our Simulation"}
-                  </p>
-                  <p className="text-lg font-bold font-mono">{Math.round(ourAnnualProd).toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">kWh/an</p>
+              {/* System Size Mismatch Warning */}
+              {hasSignificantSizeMismatch && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-800">
+                        {language === "fr" 
+                          ? "Différence de taille de système importante" 
+                          : "Significant System Size Difference"}
+                      </p>
+                      <p className="text-blue-700 mt-1">
+                        {language === "fr" 
+                          ? `Votre système de ${ourPvKw.toFixed(0)} kW est ${sizeMismatchRatio.toFixed(1)}× plus grand que la configuration max de Google (${googleMaxPvKw.toFixed(1)} kW). Google Solar API est optimisé pour les toitures résidentielles et plafonne généralement à 25-50 kW.`
+                          : `Your ${ourPvKw.toFixed(0)} kW system is ${sizeMismatchRatio.toFixed(1)}× larger than Google's max config (${googleMaxPvKw.toFixed(1)} kW). Google Solar API is optimized for residential rooftops and typically caps at 25-50 kW.`}
+                      </p>
+                      <p className="text-blue-600 mt-2 font-medium">
+                        {language === "fr" 
+                          ? "→ Comparez le rendement spécifique (kWh/kWc), pas la production totale."
+                          : "→ Compare specific yield (kWh/kWp), not total production."}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+              )}
+
+              {/* Primary Metric: Specific Yield Comparison */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === "fr" ? "Notre rendement" : "Our Yield"}
+                  </p>
+                  <p className="text-2xl font-bold font-mono">{Math.round(ourYield)}</p>
+                  <p className="text-xs text-muted-foreground">kWh/kWp</p>
+                </div>
+                <div className="text-center p-4 bg-primary/10 rounded-lg border border-primary/20">
                   <p className="text-xs text-muted-foreground mb-1">
                     {language === "fr" ? "Google Solar" : "Google Solar"}
                   </p>
-                  <p className="text-lg font-bold font-mono text-primary">{Math.round(googleProdAc).toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">kWh/an</p>
+                  <p className="text-2xl font-bold font-mono text-primary">{Math.round(googleYield)}</p>
+                  <p className="text-xs text-muted-foreground">kWh/kWp</p>
                 </div>
-                <div className={`text-center p-3 rounded-lg ${isWithinMargin ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+                <div className={`text-center p-4 rounded-lg ${
+                  calibration.color === 'green' ? 'bg-green-50 border border-green-200' : 
+                  calibration.color === 'amber' ? 'bg-amber-50 border border-amber-200' : 
+                  'bg-blue-50 border border-blue-200'
+                }`}>
                   <p className="text-xs text-muted-foreground mb-1">
-                    {language === "fr" ? "Écart" : "Difference"}
+                    {language === "fr" ? "Écart rendement" : "Yield Difference"}
                   </p>
-                  <p className={`text-lg font-bold font-mono ${isWithinMargin ? 'text-green-700' : 'text-amber-700'}`}>
-                    {diffPercent >= 0 ? "+" : ""}{diffPercent.toFixed(1)}%
+                  <p className={`text-2xl font-bold font-mono ${
+                    calibration.color === 'green' ? 'text-green-700' : 
+                    calibration.color === 'amber' ? 'text-amber-700' : 
+                    'text-blue-700'
+                  }`}>
+                    {yieldDiffPercent >= 0 ? "+" : ""}{yieldDiffPercent.toFixed(1)}%
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {diffPercent >= 0 
-                      ? (language === "fr" ? "plus élevé" : "higher")
-                      : (language === "fr" ? "plus bas" : "lower")}
+                  <p className={`text-xs ${
+                    calibration.color === 'green' ? 'text-green-600' : 
+                    calibration.color === 'amber' ? 'text-amber-600' : 
+                    'text-blue-600'
+                  }`}>
+                    {calibration.message}
                   </p>
                 </div>
               </div>
               
-              <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{language === "fr" ? "Rendement spécifique (nous)" : "Specific yield (ours)"}</span>
-                  <span className="font-mono">{Math.round(ourYield)} kWh/kWp</span>
+              {/* Secondary: System Size Context */}
+              <div className="mt-4 p-3 bg-muted/20 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{language === "fr" ? "Notre système" : "Our system"}</span>
+                    <span className="font-mono font-medium">{ourPvKw.toFixed(1)} kWc</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{language === "fr" ? "Google max config" : "Google max config"}</span>
+                    <span className="font-mono">{googleMaxPvKw.toFixed(1)} kWc ({maxConfig.panelsCount} pan.)</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{language === "fr" ? "Rendement spécifique (Google)" : "Specific yield (Google)"}</span>
-                  <span className="font-mono">{Math.round(googleYield)} kWh/kWp</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{language === "fr" ? "Taille système analysé" : "System size analyzed"}</span>
-                  <span className="font-mono">{ourPvKw.toFixed(1)} kWc</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{language === "fr" ? "Config. Google comparable" : "Comparable Google config"}</span>
-                  <span className="font-mono">{googlePvKw.toFixed(1)} kWc ({closestConfig.panelsCount} pan.)</span>
-                </div>
+                
+                {/* Calibrated production estimate using Google's yield */}
+                {hasSignificantSizeMismatch && googleYield > 0 && (
+                  <div className="mt-3 pt-3 border-t border-dashed">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sun className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="text-xs font-medium">
+                        {language === "fr" ? "Production calibrée (via rendement Google)" : "Calibrated production (via Google yield)"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{language === "fr" ? "Notre simulation" : "Our simulation"}</span>
+                        <span className="font-mono">{Math.round(ourAnnualProd).toLocaleString()} kWh/an</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{language === "fr" ? "Basé sur rendement Google" : "Based on Google yield"}</span>
+                        <span className="font-mono text-primary">{Math.round(ourPvKw * googleYield).toLocaleString()} kWh/an</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {language === "fr" 
+                        ? `Votre système de ${ourPvKw.toFixed(0)} kWc × rendement Google de ${Math.round(googleYield)} kWh/kWc = ${Math.round(ourPvKw * googleYield).toLocaleString()} kWh/an`
+                        : `Your ${ourPvKw.toFixed(0)} kWp system × Google yield of ${Math.round(googleYield)} kWh/kWp = ${Math.round(ourPvKw * googleYield).toLocaleString()} kWh/yr`}
+                    </p>
+                  </div>
+                )}
+                
+                {!hasSignificantSizeMismatch && (
+                  <div className="mt-2 pt-2 border-t border-dashed text-sm">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{language === "fr" ? "Notre prod." : "Our prod."}</span>
+                        <span className="font-mono">{Math.round(ourAnnualProd).toLocaleString()} kWh/an</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{language === "fr" ? "Google prod." : "Google prod."}</span>
+                        <span className="font-mono">{Math.round(googleProdAc).toLocaleString()} kWh/an</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <p className="mt-4 text-xs text-muted-foreground">
                 <Info className="w-3 h-3 inline mr-1" />
                 {language === "fr" 
-                  ? "Les écarts de ±15% sont normaux et peuvent être dus aux différences de modélisation météo, d'efficacité des panneaux, et d'hypothèses d'ombrage."
-                  : "Differences of ±15% are normal and can be due to weather modeling, panel efficiency, and shading assumption variations."}
+                  ? "Les écarts de ±20% en rendement spécifique sont normaux et peuvent être dus à la météo locale, l'orientation, l'ombrage, et les hypothèses de pertes système."
+                  : "Differences of ±20% in specific yield are normal and can be due to local weather, orientation, shading, and system loss assumptions."}
               </p>
             </CardContent>
           </Card>

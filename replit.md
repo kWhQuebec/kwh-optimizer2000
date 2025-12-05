@@ -107,6 +107,31 @@ This replaces manual PDF report distribution with self-service access, enabling 
 -   **Zoho CRM**: OAuth2 authenticated integration for lead synchronization from the public website and deal creation/updates from system designs.
 -   **Neon Database**: Serverless PostgreSQL solution used for the database.
 
+### Google Solar API Limitations & Best Practices
+
+The Google Solar API is primarily designed for **residential rooftops** and has known limitations for large commercial/industrial (C&I) buildings:
+
+**API Limitations:**
+- **System size caps**: Typically returns configurations up to ~25-50 kW, even if a commercial roof could support 500+ kW
+- **Flat roof accuracy**: Lower segmentation accuracy (~56% IOU) on large flat commercial roofs
+- **Multi-section roofs**: Large industrial buildings with multiple elevations can confuse the segmentation model
+
+**Cross-Validation Approach:**
+The platform uses a **yield-based comparison** (kWh/kWp) rather than total production when validating against Google Solar:
+- Compares specific yields to detect modeling discrepancies
+- Shows "Yield Calibration" badge when system sizes differ by >50%
+- Provides calibration guidance: validated (<10% diff), acceptable (10-20%), review recommended (>20%)
+
+**Best Practices for C&I Buildings:**
+1. **Use Google for yield calibration**: The specific yield (kWh/kWp) from Google is more reliable than total production for large buildings
+2. **Manual roof area entry**: For buildings >5,000 sq ft, manually enter actual roof area from drawings or measurements
+3. **Apply utilization factor**: Default 70% utilization accounts for HVAC, skylights, access paths, structural limitations
+
+**Future Integration Options:**
+- **QGIS + LiDAR**: UMEP/SEBE plugins for detailed shadow analysis (manual workflow, high accuracy)
+- **Nearmap API**: Commercial aerial imagery with AI-powered roof measurement (~$500+/month)
+- **Satellite Reports**: Per-project roof measurement reports ($20-40 each, 95%+ accuracy)
+
 ### Key npm Packages
 
 -   **Backend**: `express`, `drizzle-orm`, `drizzle-kit`, `@neondatabase/serverless`, `bcrypt`, `jsonwebtoken`, `multer`, `zod`.
