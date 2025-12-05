@@ -1079,20 +1079,22 @@ const MONTH_NAMES_EN = ['', 'January', 'February', 'March', 'April', 'May', 'Jun
 function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[]; site: SiteWithDetails }) {
   const { t, language } = useI18n();
   
-  const scenarios = simulations.filter(s => s.type === "SCENARIO");
+  const validScenarios = simulations.filter(s => 
+    s.type === "SCENARIO" && 
+    (s.pvSizeKW !== null || s.battEnergyKWh !== null) &&
+    s.npv20 !== null
+  );
   
-  if (scenarios.length < 2) {
+  if (validScenarios.length < 2) {
     return (
-      <Card>
+      <Card data-testid="card-compare-empty">
         <CardContent className="py-16 text-center">
           <Layers className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-1">
-            {language === "fr" ? "Comparaison de scénarios" : "Scenario Comparison"}
+          <h3 className="text-lg font-medium mb-1" data-testid="text-compare-title">
+            {t("compare.scenarios")}
           </h3>
-          <p className="text-muted-foreground mb-4">
-            {language === "fr" 
-              ? "Exécutez plusieurs analyses avec différents paramètres pour comparer les scénarios."
-              : "Run multiple analyses with different parameters to compare scenarios."}
+          <p className="text-muted-foreground mb-4" data-testid="text-compare-description">
+            {t("compare.noScenarios")}
           </p>
         </CardContent>
       </Card>
@@ -1100,7 +1102,7 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
   }
   
   const formatCurrency = (value: number | null | undefined) => {
-    if (value === null || value === undefined) return "-";
+    if (value === null || value === undefined || isNaN(value)) return "-";
     return new Intl.NumberFormat(language === "fr" ? "fr-CA" : "en-CA", {
       style: "currency",
       currency: "CAD",
@@ -1109,14 +1111,14 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
   };
   
   const formatNumber = (value: number | null | undefined, decimals = 0) => {
-    if (value === null || value === undefined) return "-";
+    if (value === null || value === undefined || isNaN(value)) return "-";
     return value.toLocaleString(language === "fr" ? "fr-CA" : "en-CA", {
       maximumFractionDigits: decimals,
     });
   };
   
   const formatPercent = (value: number | null | undefined) => {
-    if (value === null || value === undefined) return "-";
+    if (value === null || value === undefined || isNaN(value)) return "-";
     return `${(value * 100).toFixed(1)}%`;
   };
   
@@ -1136,10 +1138,10 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
     if (!sim.pvSizeKW && sim.battEnergyKWh) {
       return language === "fr" ? `Stockage seul ${index + 1}` : `Storage Only ${index + 1}`;
     }
-    return `Scenario ${index + 1}`;
+    return `${language === "fr" ? "Scénario" : "Scenario"} ${index + 1}`;
   };
   
-  const comparisonData = scenarios.map((sim, index) => ({
+  const comparisonData = validScenarios.map((sim, index) => ({
     name: getScenarioLabel(sim, index),
     color: getScenarioColor(index),
     pvSize: sim.pvSizeKW || 0,
@@ -1147,106 +1149,106 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
     annualSavings: sim.annualSavings || 0,
     npv20: sim.npv20 || 0,
     irr20: sim.irr20 || 0,
-    payback: sim.simplePaybackYears || 0,
+    payback: sim.simplePaybackYears && sim.simplePaybackYears > 0 ? sim.simplePaybackYears : 0,
     capexNet: sim.capexNet || 0,
     co2: sim.co2AvoidedTonnesPerYear || 0,
   }));
   
-  const bestNPV = Math.max(...comparisonData.map(d => d.npv20));
-  const bestPayback = Math.min(...comparisonData.filter(d => d.payback > 0).map(d => d.payback));
+  const validNPVs = comparisonData.filter(d => d.npv20 > 0).map(d => d.npv20);
+  const bestNPV = validNPVs.length > 0 ? Math.max(...validNPVs) : null;
+  const validPaybacks = comparisonData.filter(d => d.payback > 0).map(d => d.payback);
+  const bestPayback = validPaybacks.length > 0 ? Math.min(...validPaybacks) : null;
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-6" data-testid="section-scenario-comparison">
+      <Card data-testid="card-comparison-table">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Layers className="w-5 h-5" />
-            {language === "fr" ? "Comparaison des scénarios" : "Scenario Comparison"}
+            {t("compare.scenarios")}
           </CardTitle>
           <CardDescription>
-            {language === "fr" 
-              ? `${scenarios.length} scénarios disponibles pour ce site`
-              : `${scenarios.length} scenarios available for this site`}
+            {validScenarios.length} {t("compare.scenarioCount")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
+            <Table data-testid="table-comparison">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[180px]">
-                    {language === "fr" ? "Scénario" : "Scenario"}
+                    {t("compare.scenario")}
                   </TableHead>
                   <TableHead className="text-right">
-                    {language === "fr" ? "PV (kWc)" : "PV (kWp)"}
+                    {t("compare.pvSize")}
                   </TableHead>
                   <TableHead className="text-right">
-                    {language === "fr" ? "Batterie (kWh)" : "Battery (kWh)"}
+                    {t("compare.batterySize")}
                   </TableHead>
                   <TableHead className="text-right">
-                    {language === "fr" ? "Investissement net" : "Net Investment"}
+                    {t("compare.investment")}
                   </TableHead>
                   <TableHead className="text-right">
-                    {language === "fr" ? "Économies/an" : "Savings/yr"}
+                    {t("compare.savings")}
                   </TableHead>
                   <TableHead className="text-right">
-                    {language === "fr" ? "VAN (20 ans)" : "NPV (20 yrs)"}
+                    {t("compare.npv")}
                   </TableHead>
                   <TableHead className="text-right">
-                    {language === "fr" ? "TRI" : "IRR"}
+                    {t("compare.irr")}
                   </TableHead>
                   <TableHead className="text-right">
-                    {language === "fr" ? "Retour" : "Payback"}
+                    {t("compare.payback")}
                   </TableHead>
                   <TableHead className="text-right">
-                    CO₂ {language === "fr" ? "évité" : "avoided"}
+                    {t("compare.co2")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {comparisonData.map((row, index) => (
-                  <TableRow key={index} className="hover:bg-muted/50">
+                  <TableRow key={index} className="hover:bg-muted/50" data-testid={`row-scenario-${index}`}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div 
                           className="w-3 h-3 rounded-full" 
                           style={{ backgroundColor: row.color }}
                         />
-                        <span className="font-medium">{row.name}</span>
-                        {row.npv20 === bestNPV && row.npv20 > 0 && (
-                          <Badge variant="default" className="text-xs gap-1">
+                        <span className="font-medium" data-testid={`text-scenario-name-${index}`}>{row.name}</span>
+                        {bestNPV !== null && row.npv20 === bestNPV && row.npv20 > 0 && (
+                          <Badge variant="default" className="text-xs gap-1" data-testid={`badge-best-${index}`}>
                             <Award className="w-3 h-3" />
-                            {language === "fr" ? "Meilleur" : "Best"}
+                            {t("compare.best")}
                           </Badge>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className="text-right font-mono" data-testid={`text-pv-${index}`}>
                       {formatNumber(row.pvSize, 0)}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className="text-right font-mono" data-testid={`text-battery-${index}`}>
                       {row.batterySize > 0 ? formatNumber(row.batterySize, 0) : "-"}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className="text-right font-mono" data-testid={`text-capex-${index}`}>
                       {formatCurrency(row.capexNet)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-primary">
+                    <TableCell className="text-right font-mono text-primary" data-testid={`text-savings-${index}`}>
                       {formatCurrency(row.annualSavings)}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
-                      <span className={row.npv20 === bestNPV ? "text-primary font-bold" : ""}>
+                    <TableCell className="text-right font-mono" data-testid={`text-npv-${index}`}>
+                      <span className={bestNPV !== null && row.npv20 === bestNPV ? "text-primary font-bold" : ""}>
                         {formatCurrency(row.npv20)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className="text-right font-mono" data-testid={`text-irr-${index}`}>
                       {formatPercent(row.irr20)}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
-                      <span className={row.payback === bestPayback && row.payback > 0 ? "text-primary font-bold" : ""}>
-                        {row.payback > 0 ? `${formatNumber(row.payback, 1)} ${language === "fr" ? "ans" : "yrs"}` : "-"}
+                    <TableCell className="text-right font-mono" data-testid={`text-payback-${index}`}>
+                      <span className={bestPayback !== null && row.payback === bestPayback && row.payback > 0 ? "text-primary font-bold" : ""}>
+                        {row.payback > 0 ? `${formatNumber(row.payback, 1)} ${t("compare.years")}` : "-"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-mono text-green-600">
+                    <TableCell className="text-right font-mono text-green-600" data-testid={`text-co2-${index}`}>
                       {formatNumber(row.co2, 1)} t
                     </TableCell>
                   </TableRow>
@@ -1258,10 +1260,10 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
       </Card>
       
       <div className="grid md:grid-cols-2 gap-6">
-        <Card>
+        <Card data-testid="card-chart-npv">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">
-              {language === "fr" ? "Comparaison VAN (20 ans)" : "NPV Comparison (20 yrs)"}
+              {t("compare.npvChart")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1284,7 +1286,7 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
                     formatter={(value: number) => formatCurrency(value)}
                     labelFormatter={(label) => label}
                   />
-                  <Bar dataKey="npv20" name="NPV">
+                  <Bar dataKey="npv20" name={t("compare.npv")}>
                     {comparisonData.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
@@ -1295,10 +1297,10 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
           </CardContent>
         </Card>
         
-        <Card>
+        <Card data-testid="card-chart-savings">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">
-              {language === "fr" ? "Économies annuelles" : "Annual Savings"}
+              {t("compare.savingsChart")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1321,7 +1323,7 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
                     formatter={(value: number) => formatCurrency(value)}
                     labelFormatter={(label) => label}
                   />
-                  <Bar dataKey="annualSavings" name={language === "fr" ? "Économies" : "Savings"}>
+                  <Bar dataKey="annualSavings" name={t("compare.savings")}>
                     {comparisonData.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
@@ -1332,10 +1334,10 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
           </CardContent>
         </Card>
         
-        <Card>
+        <Card data-testid="card-chart-payback">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">
-              {language === "fr" ? "Retour sur investissement" : "Payback Period"}
+              {t("compare.paybackChart")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1345,7 +1347,7 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                   <XAxis 
                     type="number" 
-                    tickFormatter={(v) => `${v} ${language === "fr" ? "ans" : "yrs"}`}
+                    tickFormatter={(v) => `${v} ${t("compare.years")}`}
                     fontSize={12}
                   />
                   <YAxis 
@@ -1355,10 +1357,10 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
                     fontSize={12}
                   />
                   <Tooltip 
-                    formatter={(value: number) => `${value.toFixed(1)} ${language === "fr" ? "ans" : "years"}`}
+                    formatter={(value: number) => `${value.toFixed(1)} ${t("compare.years")}`}
                     labelFormatter={(label) => label}
                   />
-                  <Bar dataKey="payback" name={language === "fr" ? "Retour" : "Payback"}>
+                  <Bar dataKey="payback" name={t("compare.payback")}>
                     {comparisonData.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
@@ -1369,10 +1371,10 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
           </CardContent>
         </Card>
         
-        <Card>
+        <Card data-testid="card-chart-sizing">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">
-              {language === "fr" ? "Dimensionnement du système" : "System Sizing"}
+              {t("compare.sizingChart")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1386,12 +1388,12 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
                   <Legend />
                   <Bar 
                     dataKey="pvSize" 
-                    name={language === "fr" ? "PV (kWc)" : "PV (kWp)"} 
+                    name={t("compare.pvSize")} 
                     fill="#f5a623" 
                   />
                   <Bar 
                     dataKey="batterySize" 
-                    name={language === "fr" ? "Batterie (kWh)" : "Battery (kWh)"} 
+                    name={t("compare.batterySize")} 
                     fill="#3b82f6" 
                   />
                 </BarChart>

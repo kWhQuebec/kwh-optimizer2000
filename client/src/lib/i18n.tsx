@@ -364,6 +364,12 @@ const translations: Translations = {
   "compare.irr": { fr: "TRI", en: "IRR" },
   "compare.payback": { fr: "Retour", en: "Payback" },
   "compare.co2": { fr: "CO₂ évité", en: "CO₂ avoided" },
+  "compare.npvChart": { fr: "Comparaison VAN (20 ans)", en: "NPV Comparison (20 yrs)" },
+  "compare.savingsChart": { fr: "Économies annuelles", en: "Annual Savings" },
+  "compare.paybackChart": { fr: "Retour sur investissement", en: "Payback Period" },
+  "compare.sizingChart": { fr: "Dimensionnement du système", en: "System Sizing" },
+  "compare.years": { fr: "ans", en: "yrs" },
+  "compare.scenarioCount": { fr: "scénarios disponibles pour ce site", en: "scenarios available for this site" },
 };
 
 interface I18nContextType {
