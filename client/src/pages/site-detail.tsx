@@ -1928,7 +1928,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">VAN 25 ans</p>
+              <p className="text-sm text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25 years"}</p>
             </div>
             <p className="text-2xl font-bold font-mono text-primary">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
           </CardContent>
@@ -1937,7 +1937,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">TRI 25 ans</p>
+              <p className="text-sm text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 years"}</p>
             </div>
             <p className="text-2xl font-bold font-mono text-primary">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
           </CardContent>
@@ -1966,13 +1966,13 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground mb-1">VAN 10 ans</p>
+            <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "VAN 10 ans" : "NPV 10 years"}</p>
             <p className="text-lg font-bold font-mono">${((simulation.npv10 || 0) / 1000).toFixed(0)}k</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground mb-1">TRI 10 ans</p>
+            <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "TRI 10 ans" : "IRR 10 years"}</p>
             <p className="text-lg font-bold font-mono">{((simulation.irr10 || 0) * 100).toFixed(1)}%</p>
           </CardContent>
         </Card>
@@ -2468,11 +2468,11 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                     <p className="text-lg font-bold font-mono">${(simulation.lcoe || 0).toFixed(3)}/kWh</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">VAN 25 ans</p>
+                    <p className="text-xs text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25 years"}</p>
                     <p className="text-lg font-bold font-mono">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">TRI 25 ans</p>
+                    <p className="text-xs text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 years"}</p>
                     <p className="text-lg font-bold font-mono">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
                   </div>
                 </div>
@@ -2496,6 +2496,58 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
+            {/* Data consistency check - warn if frontier data might be stale */}
+            {(() => {
+              const frontier = (simulation.sensitivity as SensitivityAnalysis).frontier;
+              const batterySweep = (simulation.sensitivity as SensitivityAnalysis).batterySweep || [];
+              
+              const optimalPoint = frontier.find(p => p.isOptimal);
+              if (!optimalPoint) return null;
+              
+              const optimalBattKWh = optimalPoint.battEnergyKWh || 0;
+              const optimalPvKW = optimalPoint.pvSizeKW || 0;
+              
+              const actualType = optimalPvKW > 0 && optimalBattKWh > 0 ? 'hybrid' : 
+                                optimalPvKW > 0 ? 'solar' : 'battery';
+              
+              const isTypeMismatch = optimalPoint.type === 'battery' && actualType === 'hybrid';
+              
+              let hasNpvDivergence = false;
+              if (batterySweep.length > 0 && optimalPoint.type === 'battery' && optimalBattKWh > 0) {
+                const closestBatterySweepPoint = batterySweep.reduce((closest, curr) => {
+                  const currDiff = Math.abs(curr.battEnergyKWh - optimalBattKWh);
+                  const closestDiff = closest ? Math.abs(closest.battEnergyKWh - optimalBattKWh) : Infinity;
+                  return currDiff < closestDiff ? curr : closest;
+                }, batterySweep[0]);
+                
+                if (closestBatterySweepPoint) {
+                  const npvDiff = Math.abs(optimalPoint.npv25 - closestBatterySweepPoint.npv25);
+                  const relativeDiff = npvDiff / Math.max(Math.abs(optimalPoint.npv25), 1);
+                  hasNpvDivergence = (optimalPoint.npv25 > 0 && closestBatterySweepPoint.npv25 < 0) ||
+                                     (npvDiff > 50000 && relativeDiff > 0.5);
+                }
+              }
+              
+              if (!isTypeMismatch && !hasNpvDivergence) return null;
+              
+              return (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                      {language === "fr" 
+                        ? "Incohérence de données détectée" 
+                        : "Data inconsistency detected"}
+                    </p>
+                    <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-1">
+                      {language === "fr"
+                        ? "Les données de sensibilité semblent obsolètes. Veuillez relancer l'analyse pour obtenir des résultats cohérents."
+                        : "Sensitivity data appears outdated. Please re-run the analysis to get consistent results."}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
             {/* Efficiency Frontier Chart */}
             <div>
               <h4 className="text-sm font-semibold mb-4">
@@ -2515,7 +2567,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                     <YAxis 
                       type="number" 
                       dataKey="npv25" 
-                      name="VAN"
+                      name={language === "fr" ? "VAN" : "NPV"}
                       tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                       className="text-xs"
                     />
@@ -2886,7 +2938,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                         tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                         className="text-xs"
                         label={{ 
-                          value: "VAN", 
+                          value: language === "fr" ? "VAN" : "NPV", 
                           angle: -90, 
                           position: "insideLeft",
                           style: { fontSize: 11 }
@@ -2898,7 +2950,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                           border: "1px solid hsl(var(--border))",
                           borderRadius: "8px"
                         }}
-                        formatter={(value: number) => [`$${(value / 1000).toFixed(1)}k`, "VAN 25 ans"]}
+                        formatter={(value: number) => [`$${(value / 1000).toFixed(1)}k`, language === "fr" ? "VAN 25 ans" : "NPV 25 years"]}
                         labelFormatter={(v) => `${v} kWc`}
                       />
                       <ReferenceLine 
@@ -2949,7 +3001,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                       <p className="text-xs text-muted-foreground mt-2">
                         {language === "fr" ? "Optimal: " : "Optimal: "}
                         <span className="font-medium text-foreground">{optimalSolar.pvSizeKW} kWc</span>
-                        {" → VAN "}
+                        {language === "fr" ? " → VAN " : " → NPV "}
                         <span className="font-medium text-primary">${(optimalSolar.npv25 / 1000).toFixed(1)}k</span>
                       </p>
                     );
@@ -2993,7 +3045,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                         tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                         className="text-xs"
                         label={{ 
-                          value: "VAN", 
+                          value: language === "fr" ? "VAN" : "NPV", 
                           angle: -90, 
                           position: "insideLeft",
                           style: { fontSize: 11 }
@@ -3005,7 +3057,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                           border: "1px solid hsl(var(--border))",
                           borderRadius: "8px"
                         }}
-                        formatter={(value: number) => [`$${(value / 1000).toFixed(1)}k`, "VAN 25 ans"]}
+                        formatter={(value: number) => [`$${(value / 1000).toFixed(1)}k`, language === "fr" ? "VAN 25 ans" : "NPV 25 years"]}
                         labelFormatter={(v) => `${v} kWh`}
                       />
                       <ReferenceLine 
@@ -3053,7 +3105,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                       <p className="text-xs text-muted-foreground mt-2">
                         {language === "fr" ? "Optimal: " : "Optimal: "}
                         <span className="font-medium text-foreground">{optimalBattery.battEnergyKWh} kWh</span>
-                        {" → VAN "}
+                        {language === "fr" ? " → VAN " : " → NPV "}
                         <span className="font-medium text-primary">${(optimalBattery.npv25 / 1000).toFixed(1)}k</span>
                       </p>
                     );
