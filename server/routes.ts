@@ -612,9 +612,57 @@ export async function registerRoutes(
       if (readings.length === 0) {
         return res.status(400).json({ error: "No meter data available" });
       }
+      
+      // Get site data to check for Google Solar data
+      const site = await storage.getSite(siteId);
+      
+      // Merge Google Solar data into assumptions if available
+      let mergedAssumptions = { ...customAssumptions };
+      
+      if (site?.roofAreaAutoDetails) {
+        const googleData = site.roofAreaAutoDetails as {
+          maxSunshineHoursPerYear?: number;
+          bestOrientation?: { azimuth?: number; pitch?: number };
+          roofSegments?: Array<{ azimuth?: number; pitch?: number }>;
+        };
+        
+        // Use Google Solar's maxSunshineHoursPerYear if not manually overridden
+        if (googleData.maxSunshineHoursPerYear && !customAssumptions?.solarYieldKWhPerKWp) {
+          // Convert sunshine hours to kWh/kWp (roughly 1:1 ratio for well-oriented panels)
+          // Google's maxSunshineHoursPerYear is the max possible, apply ~0.85 derating for realistic yield
+          mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleData.maxSunshineHoursPerYear * 0.85);
+        }
+        
+        // Calculate orientation factor from roof segments if not manually overridden
+        if (googleData.roofSegments && googleData.roofSegments.length > 0 && !customAssumptions?.orientationFactor) {
+          // Best orientation for Quebec: South (180°) at ~30° pitch
+          // Calculate average orientation quality across segments
+          let totalQuality = 0;
+          let count = 0;
+          
+          for (const segment of googleData.roofSegments) {
+            const azimuth = segment.azimuth || 180; // Default south
+            const pitch = segment.pitch || 25; // Default 25°
+            
+            // Azimuth factor: South (180°) = 1.0, East/West (90°/270°) = 0.85, North (0°/360°) = 0.6
+            const azimuthNormalized = Math.abs(azimuth - 180) / 180; // 0 = south, 1 = north
+            const azimuthFactor = 1.0 - (azimuthNormalized * 0.4);
+            
+            // Pitch factor: 30° = 1.0, 0° = 0.85, 60° = 0.90
+            const pitchOptimal = 30;
+            const pitchDeviation = Math.abs(pitch - pitchOptimal) / pitchOptimal;
+            const pitchFactor = 1.0 - Math.min(0.15, pitchDeviation * 0.15);
+            
+            totalQuality += azimuthFactor * pitchFactor;
+            count++;
+          }
+          
+          mergedAssumptions.orientationFactor = count > 0 ? totalQuality / count : 1.0;
+        }
+      }
 
-      // Run the analysis with custom assumptions
-      const analysisResult = runPotentialAnalysis(readings, customAssumptions);
+      // Run the analysis with merged assumptions (Google Solar + custom)
+      const analysisResult = runPotentialAnalysis(readings, mergedAssumptions);
       
       // Create simulation run with assumptions stored
       const simulation = await storage.createSimulationRun({
@@ -1250,7 +1298,9 @@ function runPotentialAnalysis(
   const maxPVFromRoof = usableRoofSqFt / 100; // ~100 sq ft per kW
   
   // Target PV size based on consumption (120% of load coverage target)
-  const targetPVSize = (annualConsumptionKWh / 1150) * 1.2;
+  // Use configurable solar yield (default 1150 kWh/kWp, can be set from Google Solar data)
+  const effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+  const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
   const pvSizeKW = Math.min(Math.round(targetPVSize), Math.round(maxPVFromRoof));
   
   // Battery sizing
@@ -1259,7 +1309,9 @@ function runPotentialAnalysis(
   const demandShavingSetpointKW = Math.round(peakKW * 0.90); // Target 10% peak reduction
   
   // ========== STEP 3: Run hourly simulation ==========
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW);
+  // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)
+  const yieldFactor = effectiveYield / 1150;
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor);
   
   // Extract metrics from simulation
   const selfConsumptionKWh = simResult.totalSelfConsumption;
@@ -1412,7 +1464,7 @@ function runPotentialAnalysis(
   }
   
   // LCOE (Levelized Cost of Energy)
-  const totalProduction = pvSizeKW * 1150 * h.analysisYears; // kWh over lifetime
+  const totalProduction = pvSizeKW * effectiveYield * h.analysisYears; // kWh over lifetime
   const totalLifetimeCost = capexNet + (opexBase * h.analysisYears);
   const lcoe = totalProduction > 0 ? totalLifetimeCost / totalProduction : 0;
   
@@ -1465,7 +1517,7 @@ function runPotentialAnalysis(
     const optDemandShavingSetpointKW = Math.round(peakKW * 0.90);
     
     // Run simulation with optimal sizing
-    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW);
+    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor);
     
     // Recalculate all financials with optimal sizing
     const optSelfConsumptionKWh = optSimResult.totalSelfConsumption;
@@ -1592,7 +1644,8 @@ function runPotentialAnalysis(
     }
     
     // LCOE
-    const optTotalProduction = optPvSizeKW * 1150 * h.analysisYears;
+    const optEffectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+    const optTotalProduction = optPvSizeKW * optEffectiveYield * h.analysisYears;
     const optTotalLifetimeCost = optCapexNet + (optOpexBase * h.analysisYears);
     const optLcoe = optTotalProduction > 0 ? optTotalLifetimeCost / optTotalProduction : 0;
     
@@ -1866,7 +1919,8 @@ function runHourlySimulation(
   pvSizeKW: number,
   battEnergyKWh: number,
   battPowerKW: number,
-  threshold: number
+  threshold: number,
+  solarYieldFactor: number = 1.0 // Multiplier to adjust production (1.0 = default 1150 kWh/kWp)
 ): {
   totalSelfConsumption: number;
   peakAfter: number;
@@ -1894,11 +1948,12 @@ function runHourlySimulation(
     const { hour, month, consumption, peak } = hourlyData[i];
     
     // Solar production: Gaussian curve centered at 1pm, with seasonal factor
+    // Base capacity factor 0.75 produces ~1150 kWh/kWp/year, adjusted by solarYieldFactor
     const bell = Math.exp(-Math.pow(hour - 13, 2) / 8);
     const season = 1 - 0.4 * Math.cos((month - 6) * 2 * Math.PI / 12);
     const isDaytime = hour >= 5 && hour <= 20;
-    // Clamp production to non-negative and reasonable values
-    const rawProduction = pvSizeKW * bell * season * 0.75 * (isDaytime ? 1 : 0);
+    // Apply solarYieldFactor to scale production (1.0 = baseline 1150 kWh/kWp/year)
+    const rawProduction = pvSizeKW * bell * season * 0.75 * solarYieldFactor * (isDaytime ? 1 : 0);
     const production = Math.max(0, rawProduction);
     
     // Net load (consumption - production)
@@ -2124,8 +2179,11 @@ function runScenarioWithSizing(
   const h = assumptions;
   
   // Run simulation with specified sizes
+  // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)
+  const effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+  const yieldFactor = effectiveYield / 1150;
   const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW);
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor);
   
   // Calculate savings
   const selfConsumptionKWh = simResult.totalSelfConsumption;

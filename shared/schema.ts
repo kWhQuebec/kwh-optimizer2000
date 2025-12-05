@@ -317,6 +317,10 @@ export interface AnalysisAssumptions {
   tariffEnergy: number;      // $/kWh - default 0.057 (M tariff tier 1)
   tariffPower: number;       // $/kW/month - default 17.57 (M tariff)
   
+  // Solar production parameters
+  solarYieldKWhPerKWp: number; // kWh/kWp/year - default 1150, can be overridden with Google Solar data
+  orientationFactor: number;   // 0-1 multiplier for roof orientation (1.0 = optimal south-facing)
+  
   // Financial
   inflationRate: number;     // % as decimal - default 0.048
   discountRate: number;      // WACC % as decimal - default 0.08
@@ -350,6 +354,8 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   tariffCode: "M", // Default to Medium Power tariff
   tariffEnergy: 0.06061, // Tarif M 2025: 6.061¢/kWh (tier 1)
   tariffPower: 17.573, // Tarif M 2025: $17.573/kW
+  solarYieldKWhPerKWp: 1150, // Quebec average: 1100-1200 kWh/kWp/year
+  orientationFactor: 1.0, // 1.0 = optimal south-facing, reduced for E/W orientations
   inflationRate: 0.048, // 4.8% HQ tariff inflation
   discountRate: 0.08, // 8% WACC
   taxRate: 0.265, // 26.5% corporate tax
