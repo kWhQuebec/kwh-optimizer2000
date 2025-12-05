@@ -1844,25 +1844,48 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                   <span>{language === "fr" ? "Points pâles = non rentable" : "Faded points = not profitable"}</span>
                 </div>
               </div>
-              {/* Optimal scenario indicator */}
-              {(simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal) && (
-                <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-3">
-                  <span className="text-2xl">⭐</span>
-                  <div>
-                    <p className="text-sm font-medium">
-                      {language === "fr" ? "Recommandation: " : "Recommendation: "}
-                      <span className="text-primary">
-                        {(simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal)?.label}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr" 
-                        ? "Ce scénario offre le meilleur retour sur investissement (VAN maximale)"
-                        : "This scenario offers the best return on investment (maximum NPV)"}
-                    </p>
-                  </div>
-                </div>
-              )}
+              {/* Optimal scenario indicator - only show recommendation if NPV is positive */}
+              {(() => {
+                const optimal = (simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal);
+                const isProfitable = optimal && optimal.npv25 > 0;
+                
+                if (!optimal) return null;
+                
+                if (isProfitable) {
+                  return (
+                    <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-3">
+                      <span className="text-2xl">⭐</span>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {language === "fr" ? "Recommandation: " : "Recommendation: "}
+                          <span className="text-primary">{optimal.label}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {language === "fr" 
+                            ? "Ce scénario offre le meilleur retour sur investissement (VAN maximale)"
+                            : "This scenario offers the best return on investment (maximum NPV)"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="mt-2 p-3 bg-destructive/5 border border-destructive/20 rounded-lg flex items-center gap-3">
+                      <span className="text-2xl">⚠️</span>
+                      <div>
+                        <p className="text-sm font-medium text-destructive">
+                          {language === "fr" ? "Aucun investissement recommandé" : "No investment recommended"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {language === "fr" 
+                            ? "Toutes les configurations ont une VAN négative avec les hypothèses actuelles. Considérez ajuster les paramètres (coûts, tarifs) ou explorer d'autres options."
+                            : "All configurations have negative NPV under current assumptions. Consider adjusting parameters (costs, tariffs) or exploring other options."}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+              })()}
             </div>
 
             {/* Solar and Battery Optimization Charts - Side by Side */}
