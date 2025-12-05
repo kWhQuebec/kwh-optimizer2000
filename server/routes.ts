@@ -1664,7 +1664,15 @@ function runPotentialAnalysis(
   // ========== STEP 3: Run hourly simulation ==========
   // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)
   const yieldFactor = effectiveYield / 1150;
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor);
+  
+  // Build Helioscope-inspired system modeling parameters
+  const systemParams: SystemModelingParams = {
+    inverterLoadRatio: h.inverterLoadRatio || 1.2,
+    temperatureCoefficient: h.temperatureCoefficient || -0.004,
+    wireLossPercent: h.wireLossPercent || 0.02,
+  };
+  
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams);
   
   // Extract metrics from simulation
   const selfConsumptionKWh = simResult.totalSelfConsumption;
@@ -1740,8 +1748,13 @@ function runPotentialAnalysis(
   });
   
   // Years 1-25
+  const degradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
   for (let y = 1; y <= h.analysisYears; y++) {
-    const revenue = annualSavings * Math.pow(1 + h.inflationRate, y - 1);
+    // Apply panel degradation (production decreases each year)
+    // Year 1 = 100%, Year 2 = 99.5%, Year 25 = ~88.6% for 0.5% degradation
+    const degradationFactor = Math.pow(1 - degradationRate, y - 1);
+    // Revenue = base savings * degradation * tariff inflation
+    const revenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);
     const ebitda = revenue - opex;
     
@@ -1816,8 +1829,13 @@ function runPotentialAnalysis(
     }
   }
   
-  // LCOE (Levelized Cost of Energy)
-  const totalProduction = pvSizeKW * effectiveYield * h.analysisYears; // kWh over lifetime
+  // LCOE (Levelized Cost of Energy) - with degradation
+  // Sum production over lifetime: year 1 = 100%, year 2 = (1-deg), etc.
+  let totalProduction = 0;
+  for (let y = 1; y <= h.analysisYears; y++) {
+    const degradationFactor = Math.pow(1 - degradationRate, y - 1);
+    totalProduction += pvSizeKW * effectiveYield * degradationFactor;
+  }
   const totalLifetimeCost = capexNet + (opexBase * h.analysisYears);
   const lcoe = totalProduction > 0 ? totalLifetimeCost / totalProduction : 0;
   
@@ -1873,7 +1891,7 @@ function runPotentialAnalysis(
     const optDemandShavingSetpointKW = Math.round(peakKW * 0.90);
     
     // Run simulation with optimal sizing
-    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor);
+    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams);
     
     // Recalculate all financials with optimal sizing
     const optSelfConsumptionKWh = optSimResult.totalSelfConsumption;
@@ -1938,8 +1956,12 @@ function runPotentialAnalysis(
     });
     
     const optCashflowValues = [-optEquityInitial];
+    const optDegradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
     for (let y = 1; y <= h.analysisYears; y++) {
-      const revenue = optAnnualSavings * Math.pow(1 + h.inflationRate, y - 1);
+      // Apply panel degradation (production decreases each year)
+      const degradationFactor = Math.pow(1 - optDegradationRate, y - 1);
+      // Revenue = base savings * degradation * tariff inflation
+      const revenue = optAnnualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
       const opex = optOpexBase * Math.pow(1 + h.omEscalation, y - 1);
       const ebitda = revenue - opex;
       
@@ -1999,9 +2021,13 @@ function runPotentialAnalysis(
       }
     }
     
-    // LCOE
+    // LCOE - with degradation
     const optEffectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
-    const optTotalProduction = optPvSizeKW * optEffectiveYield * h.analysisYears;
+    let optTotalProduction = 0;
+    for (let y = 1; y <= h.analysisYears; y++) {
+      const degradationFactor = Math.pow(1 - optDegradationRate, y - 1);
+      optTotalProduction += optPvSizeKW * optEffectiveYield * degradationFactor;
+    }
     const optTotalLifetimeCost = optCapexNet + (optOpexBase * h.analysisYears);
     const optLcoe = optTotalProduction > 0 ? optTotalLifetimeCost / optTotalProduction : 0;
     
@@ -2282,20 +2308,35 @@ function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null
   return { hourlyData, interpolatedMonths };
 }
 
+// Helioscope-inspired system modeling parameters
+interface SystemModelingParams {
+  inverterLoadRatio: number;      // DC/AC ratio (ILR) - default 1.2
+  temperatureCoefficient: number; // Power temp coefficient %/°C - default -0.004
+  wireLossPercent: number;        // DC wiring losses - default 0.02
+}
+
+// Quebec typical monthly average temperatures (°C) for temperature correction
+const QUEBEC_MONTHLY_TEMPS = [
+  -10, -8, -2, 6, 13, 18, 21, 20, 15, 8, 2, -6
+]; // Jan-Dec
+
 // Run hourly solar + battery simulation with SMART peak shaving
 // Uses look-ahead optimization to target the HIGHEST daily peak for maximum demand savings
+// Now includes Helioscope-inspired modeling: ILR clipping, temperature correction, wire losses
 function runHourlySimulation(
   hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>,
   pvSizeKW: number,
   battEnergyKWh: number,
   battPowerKW: number,
   threshold: number,
-  solarYieldFactor: number = 1.0 // Multiplier to adjust production (1.0 = default 1150 kWh/kWp)
+  solarYieldFactor: number = 1.0, // Multiplier to adjust production (1.0 = default 1150 kWh/kWp)
+  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.02 }
 ): {
   totalSelfConsumption: number;
   peakAfter: number;
   hourlyProfile: HourlyProfileEntry[];
   peakWeekData: PeakWeekEntry[];
+  clippingLossKWh: number; // Total energy lost to inverter clipping
 } {
   const hourlyProfile: HourlyProfileEntry[] = [];
   let soc = battEnergyKWh * 0.5; // Start at 50% SOC
@@ -2303,6 +2344,10 @@ function runHourlySimulation(
   let peakAfter = 0;
   let maxPeakIndex = 0;
   let maxPeakValue = 0;
+  let clippingLossKWh = 0;
+  
+  // Calculate AC inverter capacity from DC size and ILR
+  const inverterACCapacityKW = pvSizeKW / systemParams.inverterLoadRatio;
   
   // Guard for empty data
   if (hourlyData.length === 0) {
@@ -2311,6 +2356,7 @@ function runHourlySimulation(
       peakAfter: 0,
       hourlyProfile: [],
       peakWeekData: [],
+      clippingLossKWh: 0,
     };
   }
   
@@ -2347,9 +2393,36 @@ function runHourlySimulation(
     const bell = Math.exp(-Math.pow(hour - 13, 2) / 8);
     const season = 1 - 0.4 * Math.cos((month - 6) * 2 * Math.PI / 12);
     const isDaytime = hour >= 5 && hour <= 20;
+    
+    // Helioscope-inspired temperature correction
+    // Cell temp is ~25-30°C above ambient; compare to STC (25°C cell temp)
+    // Temperature effect: colder = higher output, hotter = lower output
+    const ambientTemp = QUEBEC_MONTHLY_TEMPS[month - 1] || 10;
+    // Estimate cell temperature: ambient + 25°C during peak production, less at night/low production
+    const cellTempRise = 25 * bell; // Max 25°C rise at peak production
+    const cellTemp = ambientTemp + cellTempRise;
+    const stcCellTemp = 25; // STC reference
+    // Temperature correction: negative coefficient means higher output when cold
+    const tempCorrectionFactor = 1 + systemParams.temperatureCoefficient * (cellTemp - stcCellTemp);
+    
     // Apply solarYieldFactor to scale production (1.0 = baseline 1150 kWh/kWp/year)
-    const rawProduction = pvSizeKW * bell * season * 0.75 * solarYieldFactor * (isDaytime ? 1 : 0);
-    const production = Math.max(0, rawProduction);
+    let dcProduction = pvSizeKW * bell * season * 0.75 * solarYieldFactor * (isDaytime ? 1 : 0);
+    
+    // Apply temperature correction
+    dcProduction *= tempCorrectionFactor;
+    
+    // Apply wire losses (reduce DC output before inverter)
+    dcProduction *= (1 - systemParams.wireLossPercent);
+    
+    // Apply ILR clipping: DC power is clipped to AC inverter capacity
+    // This happens when DC production exceeds inverter's AC output rating
+    let acProduction = dcProduction;
+    if (dcProduction > inverterACCapacityKW) {
+      clippingLossKWh += (dcProduction - inverterACCapacityKW);
+      acProduction = inverterACCapacityKW;
+    }
+    
+    const production = Math.max(0, acProduction);
     
     // Net load (consumption - production)
     const net = consumption - production;
@@ -2447,6 +2520,7 @@ function runHourlySimulation(
     peakAfter,
     hourlyProfile,
     peakWeekData,
+    clippingLossKWh,
   };
 }
 
@@ -2603,7 +2677,15 @@ function runScenarioWithSizing(
   const effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
   const yieldFactor = effectiveYield / 1150;
   const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor);
+  
+  // Build Helioscope-inspired system modeling parameters
+  const systemParams: SystemModelingParams = {
+    inverterLoadRatio: h.inverterLoadRatio || 1.2,
+    temperatureCoefficient: h.temperatureCoefficient || -0.004,
+    wireLossPercent: h.wireLossPercent || 0.02,
+  };
+  
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams);
   
   // Calculate savings
   const selfConsumptionKWh = simResult.totalSelfConsumption;
@@ -2658,9 +2740,13 @@ function runScenarioWithSizing(
   const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
   
   const cashflowValues: number[] = [-equityInitial];
+  const degradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
   
   for (let y = 1; y <= h.analysisYears; y++) {
-    const revenue = annualSavings * Math.pow(1 + h.inflationRate, y - 1);
+    // Apply panel degradation (production decreases each year)
+    const degradationFactor = Math.pow(1 - degradationRate, y - 1);
+    // Revenue = base savings * degradation * tariff inflation
+    const revenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);
     const ebitda = revenue - opex;
     

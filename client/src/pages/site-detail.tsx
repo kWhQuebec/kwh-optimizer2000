@@ -585,6 +585,72 @@ function AnalysisParametersEditor({
                   ? `Rendement effectif: ${Math.round((merged.solarYieldKWhPerKWp || 1150) * (merged.orientationFactor || 1.0))} kWh/kWc/an${site?.roofAreaAutoDetails ? " (calibré via Google Solar)" : ""}`
                   : `Effective yield: ${Math.round((merged.solarYieldKWhPerKWp || 1150) * (merged.orientationFactor || 1.0))} kWh/kWp/yr${site?.roofAreaAutoDetails ? " (calibrated via Google Solar)" : ""}`}
               </p>
+              
+              {/* Advanced System Modeling (Helioscope-inspired) */}
+              <div className="grid grid-cols-4 gap-3 pt-2 border-t border-dashed">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Ratio DC/AC (ILR)" : "DC/AC Ratio (ILR)"}</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="1.0"
+                    max="2.0"
+                    value={(merged.inverterLoadRatio || 1.2).toFixed(1)}
+                    onChange={(e) => updateField("inverterLoadRatio", parseFloat(e.target.value) || 1.2)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-ilr"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Coeff. temp. (%/°C)" : "Temp. Coeff. (%/°C)"}</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="-0.6"
+                    max="0"
+                    value={((merged.temperatureCoefficient || -0.004) * 100).toFixed(2)}
+                    onChange={(e) => updateField("temperatureCoefficient", (parseFloat(e.target.value) || -0.4) / 100)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-temp-coeff"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Pertes câblage (%)" : "Wire Losses (%)"}</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="10"
+                    value={((merged.wireLossPercent || 0.02) * 100).toFixed(1)}
+                    onChange={(e) => updateField("wireLossPercent", (parseFloat(e.target.value) || 2) / 100)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-wire-loss"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{language === "fr" ? "Dégradation (%/an)" : "Degradation (%/yr)"}</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    value={((merged.degradationRatePercent || 0.005) * 100).toFixed(1)}
+                    onChange={(e) => updateField("degradationRatePercent", (parseFloat(e.target.value) || 0.5) / 100)}
+                    disabled={disabled}
+                    className="h-8 text-sm font-mono"
+                    data-testid="input-degradation"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                {language === "fr" 
+                  ? "Modélisation avancée: ILR typique 1.1-1.5, pertes câblage 1-3%, dégradation 0.5%/an"
+                  : "Advanced modeling: Typical ILR 1.1-1.5, wire losses 1-3%, degradation 0.5%/yr"}
+              </p>
             </div>
 
             {/* Financial Assumptions Section */}
