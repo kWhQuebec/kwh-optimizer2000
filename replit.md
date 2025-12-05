@@ -180,6 +180,26 @@ The application uses a unified TypeScript codebase with client-side React and se
 
 ### Third-Party Services
 
+**Google Solar API Integration** (`server/googleSolarService.ts`):
+- Building Insights API: Roof area estimation, segment detection, and solar production potential
+  - Auto-detects roof segments with orientation (azimuth), pitch, and usable area
+  - Returns maximum sunshine hours per year for location
+  - Provides panel configuration options with production estimates
+- Data Layers API: Satellite imagery and solar irradiance data
+  - RGB satellite imagery URL
+  - Roof segment mask URL
+  - Digital Surface Model (DSM) URL
+  - Annual solar flux heatmap URL
+- Solar quality scoring: Orientation + pitch heuristic (south-facing ~30-35° optimal for Quebec)
+- Cross-validation: Compare internal 8760-hour simulation with Google's annual production estimates
+- API endpoints:
+  - `POST /api/sites/:id/roof-estimate` - Fetch and store Building Insights data
+  - `GET /api/sites/:id/roof-imagery` - Fetch Data Layers imagery URLs
+- Environment variables:
+  - `GOOGLE_SOLAR_API_KEY`: Google Cloud API key with Solar API enabled
+  - `VITE_GOOGLE_MAPS_API_KEY`: Client-side Maps Embed API key for satellite views
+- Graceful fallback: Uses stored data when API unavailable, allows manual override
+
 **Zoho CRM Integration** (`server/zohoClient.ts`):
 - OAuth2 authentication with automatic token refresh (cached tokens with expiry handling)
 - Lead sync from public website form submissions (automatic on form submit)
