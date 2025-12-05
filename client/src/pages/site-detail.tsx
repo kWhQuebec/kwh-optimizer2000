@@ -42,7 +42,9 @@ import {
   CreditCard,
   Wallet,
   FileCheck,
-  Check
+  Check,
+  MousePointerClick,
+  Plus
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -1524,22 +1526,41 @@ function ScenarioComparison({
   );
 }
 
+interface VariantPreset {
+  pvSize: number;
+  batterySize: number;
+  batteryPower: number;
+  label?: string;
+}
+
 function CreateVariantDialog({ 
   simulation, 
   siteId, 
-  onSuccess 
+  onSuccess,
+  externalOpen,
+  onExternalOpenChange,
+  preset,
+  showTrigger = true
 }: { 
   simulation: SimulationRun; 
   siteId: string;
   onSuccess: () => void;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
+  preset?: VariantPreset | null;
+  showTrigger?: boolean;
 }) {
   const { t, language } = useI18n();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [pvSize, setPvSize] = useState(simulation.pvSizeKW || 100);
   const [batterySize, setBatterySize] = useState(simulation.battEnergyKWh || 0);
   const [batteryPower, setBatteryPower] = useState(simulation.battPowerKW || 0);
+  
+  const isControlled = externalOpen !== undefined;
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpen = isControlled ? (onExternalOpenChange || (() => {})) : setInternalOpen;
   
   const assumptions = (simulation.assumptions as AnalysisAssumptions | null) || defaultAnalysisAssumptions;
   
@@ -1569,22 +1590,40 @@ function CreateVariantDialog({
   
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
-      setLabel("");
-      setPvSize(simulation.pvSizeKW || 100);
-      setBatterySize(simulation.battEnergyKWh || 0);
-      setBatteryPower(simulation.battPowerKW || 0);
+      if (preset) {
+        setLabel(preset.label || "");
+        setPvSize(preset.pvSize);
+        setBatterySize(preset.batterySize);
+        setBatteryPower(preset.batteryPower);
+      } else {
+        setLabel("");
+        setPvSize(simulation.pvSizeKW || 100);
+        setBatterySize(simulation.battEnergyKWh || 0);
+        setBatteryPower(simulation.battPowerKW || 0);
+      }
     }
     setOpen(newOpen);
   };
+  
+  useEffect(() => {
+    if (open && preset) {
+      setLabel(preset.label || "");
+      setPvSize(preset.pvSize);
+      setBatterySize(preset.batterySize);
+      setBatteryPower(preset.batteryPower);
+    }
+  }, [open, preset]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2" data-testid="button-create-variant">
-          <Copy className="w-4 h-4" />
-          {t("variant.createVariant")}
-        </Button>
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" className="gap-2" data-testid="button-create-variant">
+            <Copy className="w-4 h-4" />
+            {t("variant.createVariant")}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("variant.title")}</DialogTitle>
@@ -2266,6 +2305,40 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [showIncentives, setShowIncentives] = useState(true);
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false);
+  const [variantPreset, setVariantPreset] = useState<VariantPreset | null>(null);
+  
+  const handleChartPointClick = (data: any, _index: number, event?: React.MouseEvent) => {
+    if (!isStaff) return;
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    
+    const point = (data?.payload || data) as FrontierPoint | undefined;
+    if (!point || !point.type) return;
+    
+    const pvKW = point.pvSizeKW || 0;
+    const battKWh = point.battEnergyKWh || 0;
+    const battPower = point.battPowerKW || Math.round(battKWh / 2);
+    const actualType = pvKW > 0 && battKWh > 0 ? 'hybrid' : 
+                      pvKW > 0 ? 'solar' : 'battery';
+    const typeLabel = actualType === 'hybrid' ? 'Hybride' : 
+                      actualType === 'solar' ? 'Solaire' : 'Stockage';
+    const sizingLabel = actualType === 'hybrid'
+      ? `${pvKW}kW + ${battKWh}kWh`
+      : actualType === 'solar'
+        ? `${pvKW}kW PV`
+        : `${battKWh}kWh`;
+    
+    setVariantPreset({
+      pvSize: pvKW,
+      batterySize: battKWh,
+      batteryPower: battPower,
+      label: `${typeLabel} ${sizingLabel}`,
+    });
+    setVariantDialogOpen(true);
+  };
 
   const assumptions = (simulation.assumptions as AnalysisAssumptions | null) || defaultAnalysisAssumptions;
   const interpolatedMonths = (simulation.interpolatedMonths as number[] | null) || [];
@@ -2941,9 +3014,25 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
               <h4 className="text-sm font-semibold mb-4">
                 {language === "fr" ? "Frontière d'efficacité (tous scénarios)" : "Efficiency Frontier (all scenarios)"}
               </h4>
-              <div className="h-72">
+              <div 
+                className="h-72"
+                onClick={(e) => {
+                  if (isStaff) {
+                    e.stopPropagation();
+                  }
+                }}
+              >
                 <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <ScatterChart 
+                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                    onClick={(data: any, event: React.MouseEvent) => {
+                      if (isStaff && data?.activePayload?.[0]?.payload) {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        handleChartPointClick(data.activePayload[0], 0, event);
+                      }
+                    }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis 
                       type="number" 
@@ -3011,6 +3100,12 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                                 ★ {language === "fr" ? "Optimal" : "Optimal"}
                               </p>
                             )}
+                            {isStaff && (
+                              <p className="text-xs font-medium text-blue-500 mt-1.5 flex items-center gap-1">
+                                <Plus className="w-3 h-3" />
+                                {language === "fr" ? "Cliquer pour créer variante" : "Click to create variant"}
+                              </p>
+                            )}
                           </div>
                         );
                       }}
@@ -3021,31 +3116,85 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                       name={language === "fr" ? "Solaire" : "Solar"}
                       data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar' && !p.isOptimal)}
                       fill="#FFB005"
-                    >
-                      {(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'solar' && !p.isOptimal).map((entry, index) => (
-                        <Cell key={`solar-${index}`} fillOpacity={entry.npv25 >= 0 ? 1 : 0.25} />
-                      ))}
-                    </Scatter>
+                      shape={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        const fillOpacity = payload.npv25 >= 0 ? 1 : 0.25;
+                        return (
+                          <circle 
+                            cx={cx} 
+                            cy={cy} 
+                            r={6} 
+                            fill="#FFB005" 
+                            fillOpacity={fillOpacity}
+                            style={{ cursor: isStaff ? 'pointer' : 'default' }}
+                            data-testid={`scatter-solar-${payload.pvSizeKW}`}
+                            onClick={(e) => {
+                              if (isStaff) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleChartPointClick({ payload }, 0);
+                              }
+                            }}
+                          />
+                        );
+                      }}
+                    />
                     {/* Storage points */}
                     <Scatter
                       name={language === "fr" ? "Stockage" : "Storage"}
                       data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery' && !p.isOptimal)}
                       fill="#003DA6"
-                    >
-                      {(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'battery' && !p.isOptimal).map((entry, index) => (
-                        <Cell key={`battery-${index}`} fillOpacity={entry.npv25 >= 0 ? 1 : 0.25} />
-                      ))}
-                    </Scatter>
+                      shape={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        const fillOpacity = payload.npv25 >= 0 ? 1 : 0.25;
+                        return (
+                          <circle 
+                            cx={cx} 
+                            cy={cy} 
+                            r={6} 
+                            fill="#003DA6" 
+                            fillOpacity={fillOpacity}
+                            style={{ cursor: isStaff ? 'pointer' : 'default' }}
+                            data-testid={`scatter-battery-${payload.battEnergyKWh}`}
+                            onClick={(e) => {
+                              if (isStaff) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleChartPointClick({ payload }, 0);
+                              }
+                            }}
+                          />
+                        );
+                      }}
+                    />
                     {/* Hybrid points */}
                     <Scatter
                       name={language === "fr" ? "Hybride" : "Hybrid"}
                       data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal)}
                       fill="#22C55E"
-                    >
-                      {(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal).map((entry, index) => (
-                        <Cell key={`hybrid-${index}`} fillOpacity={entry.npv25 >= 0 ? 1 : 0.25} />
-                      ))}
-                    </Scatter>
+                      shape={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        const fillOpacity = payload.npv25 >= 0 ? 1 : 0.25;
+                        return (
+                          <circle 
+                            cx={cx} 
+                            cy={cy} 
+                            r={6} 
+                            fill="#22C55E" 
+                            fillOpacity={fillOpacity}
+                            style={{ cursor: isStaff ? 'pointer' : 'default' }}
+                            data-testid={`scatter-hybrid-${payload.pvSizeKW}-${payload.battEnergyKWh}`}
+                            onClick={(e) => {
+                              if (isStaff) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleChartPointClick({ payload }, 0);
+                              }
+                            }}
+                          />
+                        );
+                      }}
+                    />
                     {/* Optimal point highlighted with special marker - uses corrected type color with star shape */}
                     <Scatter
                       name={language === "fr" ? "Optimal ★" : "Optimal ★"}
@@ -3059,7 +3208,17 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                         const color = actualType === 'solar' ? '#FFB005' : 
                                       actualType === 'battery' ? '#003DA6' : '#22C55E';
                         return (
-                          <g>
+                          <g 
+                            style={{ cursor: isStaff ? 'pointer' : 'default' }}
+                            data-testid={`scatter-optimal-${pvKW}-${battKWh}`}
+                            onClick={(e) => {
+                              if (isStaff) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleChartPointClick({ payload }, 0);
+                              }
+                            }}
+                          >
                             <circle cx={cx} cy={cy} r={12} fill={color} stroke="#000" strokeWidth={3} />
                             <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={10} fill="#fff" fontWeight="bold">★</text>
                           </g>
@@ -3079,6 +3238,12 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                   <span className="opacity-30">●</span>
                   <span>{language === "fr" ? "Points pâles = non rentable" : "Faded points = not profitable"}</span>
                 </div>
+                {isStaff && (
+                  <div className="flex items-center gap-1 text-blue-500 font-medium">
+                    <MousePointerClick className="w-3 h-3" />
+                    <span>{language === "fr" ? "Cliquer sur un point pour créer une variante" : "Click on a point to create a variant"}</span>
+                  </div>
+                )}
               </div>
               {/* Optimal scenario indicator - only show recommendation if NPV is positive */}
               {(() => {
@@ -3587,6 +3752,19 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
             </div>
           </CardContent>
         </Card>
+      )}
+      
+      {/* Externally controlled Create Variant Dialog for chart click-to-create */}
+      {isStaff && (
+        <CreateVariantDialog
+          simulation={simulation}
+          siteId={site.id}
+          onSuccess={() => {}}
+          externalOpen={variantDialogOpen}
+          onExternalOpenChange={setVariantDialogOpen}
+          preset={variantPreset}
+          showTrigger={false}
+        />
       )}
     </div>
   );
