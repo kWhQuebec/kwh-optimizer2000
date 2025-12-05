@@ -2702,43 +2702,86 @@ function runSensitivityAnalysis(
   const solarMax = Math.max(configuredPvSizeKW * 1.5, maxPVFromRoof);
   const solarStep = Math.max(10, Math.round(solarMax / solarSteps / 10) * 10);
   
+  // Build set of solar sizes to sweep, ensuring configured size is always included
+  const solarSizes = new Set<number>();
   for (let pvSize = 0; pvSize <= solarMax; pvSize += solarStep) {
-    const result = runScenarioWithSizing(
-      hourlyData, pvSize, configuredBattEnergyKWh, configuredBattPowerKW,
-      peakKW, annualConsumptionKWh, assumptions
-    );
-    solarSweep.push({ pvSizeKW: pvSize, npv25: result.npv25 });
+    solarSizes.add(pvSize);
+  }
+  // Always include the exact configured size for KPI consistency
+  if (configuredPvSizeKW > 0) {
+    solarSizes.add(configuredPvSizeKW);
+  }
+  
+  // Sort and iterate
+  const sortedSolarSizes = Array.from(solarSizes).sort((a, b) => a - b);
+  
+  for (const pvSize of sortedSolarSizes) {
+    // Check if this is the configured solar size - use passed NPV for consistency with main KPIs
+    const isConfiguredSize = pvSize === configuredPvSizeKW;
     
-    // Add to frontier as hybrid if battery > 0 (skip if same as current config)
-    if (pvSize > 0 && configuredBattEnergyKWh > 0 && pvSize !== configuredPvSizeKW) {
-      frontier.push({
-        id: `hybrid-pv${pvSize}`,
-        type: 'hybrid',
-        label: `${pvSize}kW PV + ${configuredBattEnergyKWh}kWh`,
-        pvSizeKW: pvSize,
-        battEnergyKWh: configuredBattEnergyKWh,
-        battPowerKW: configuredBattPowerKW,
-        capexNet: result.capexNet,
-        npv25: result.npv25,
-        isOptimal: false,
-      });
+    if (isConfiguredSize && configuredNpv25 !== undefined) {
+      // Use the authoritative NPV from main analysis for exact match with KPIs
+      solarSweep.push({ pvSizeKW: pvSize, npv25: configuredNpv25 });
+    } else {
+      const result = runScenarioWithSizing(
+        hourlyData, pvSize, configuredBattEnergyKWh, configuredBattPowerKW,
+        peakKW, annualConsumptionKWh, assumptions
+      );
+      solarSweep.push({ pvSizeKW: pvSize, npv25: result.npv25 });
+      
+      // Add to frontier as hybrid if battery > 0 (skip if same as current config)
+      if (pvSize > 0 && configuredBattEnergyKWh > 0 && pvSize !== configuredPvSizeKW) {
+        frontier.push({
+          id: `hybrid-pv${pvSize}`,
+          type: 'hybrid',
+          label: `${pvSize}kW PV + ${configuredBattEnergyKWh}kWh`,
+          pvSizeKW: pvSize,
+          battEnergyKWh: configuredBattEnergyKWh,
+          battPowerKW: configuredBattPowerKW,
+          capexNet: result.capexNet,
+          npv25: result.npv25,
+          isOptimal: false,
+        });
+      }
     }
   }
   
-  // Battery sweep: 0 to 200% of configured battery in ~10 steps, with NO PV
-  // Shows battery-only economics (matching the Storage points on the frontier)
+  // Battery sweep: 0 to 200% of configured battery in ~10 steps
+  // Keeps PV at configured size while varying battery (consistent with solar sweep approach)
   const batterySteps = 10;
   const batteryMax = Math.max(configuredBattEnergyKWh * 2, 500);
   const batteryStep = Math.max(20, Math.round(batteryMax / batterySteps / 10) * 10);
   
+  // Build set of battery sizes to sweep, ensuring configured size is always included
+  const batterySizes = new Set<number>();
   for (let battSize = 0; battSize <= batteryMax; battSize += batteryStep) {
+    batterySizes.add(battSize);
+  }
+  // Always include the exact configured size for KPI consistency
+  if (configuredBattEnergyKWh > 0) {
+    batterySizes.add(configuredBattEnergyKWh);
+  }
+  
+  // Sort and iterate
+  const sortedBatterySizes = Array.from(batterySizes).sort((a, b) => a - b);
+  
+  for (const battSize of sortedBatterySizes) {
     const battPower = Math.round(battSize / 2); // 2-hour duration
-    // Run with PV = 0 for battery-only economics
-    const result = runScenarioWithSizing(
-      hourlyData, 0, battSize, battPower,
-      peakKW, annualConsumptionKWh, assumptions
-    );
-    batterySweep.push({ battEnergyKWh: battSize, npv25: result.npv25 });
+    
+    // Check if this is the configured battery size - use passed NPV for consistency with main KPIs
+    const isConfiguredSize = battSize === configuredBattEnergyKWh;
+    
+    if (isConfiguredSize && configuredNpv25 !== undefined) {
+      // Use the authoritative NPV from main analysis for exact match with KPIs
+      batterySweep.push({ battEnergyKWh: battSize, npv25: configuredNpv25 });
+    } else {
+      // Run with configured PV size for consistent economics
+      const result = runScenarioWithSizing(
+        hourlyData, configuredPvSizeKW, battSize, battPower,
+        peakKW, annualConsumptionKWh, assumptions
+      );
+      batterySweep.push({ battEnergyKWh: battSize, npv25: result.npv25 });
+    }
   }
   
   // Add hybrid frontier points separately (varying battery at configured PV)

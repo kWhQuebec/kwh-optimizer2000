@@ -3014,15 +3014,15 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                 })()}
               </div>
 
-              {/* Battery Size Optimization - Shows battery-only economics */}
+              {/* Storage Size Optimization - Shows hybrid economics at configured PV */}
               <div>
                 <h4 className="text-sm font-semibold mb-4">
-                  {language === "fr" ? "Optimisation taille batterie (VAN vs kWh)" : "Battery Size Optimization (NPV vs kWh)"}
+                  {language === "fr" ? "Optimisation taille stockage (VAN vs kWh)" : "Storage Size Optimization (NPV vs kWh)"}
                 </h4>
                 <p className="text-xs text-muted-foreground -mt-3 mb-3">
                   {language === "fr" 
-                    ? `VAN du stockage seul (sans PV)` 
-                    : `Storage-only NPV (no PV)`}
+                    ? `VAN selon la taille du stockage` 
+                    : `NPV vs storage capacity`}
                 </p>
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
@@ -3035,7 +3035,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                         dataKey="battEnergyKWh" 
                         className="text-xs"
                         label={{ 
-                          value: language === "fr" ? "Batterie (kWh)" : "Battery (kWh)", 
+                          value: language === "fr" ? "Stockage (kWh)" : "Storage (kWh)", 
                           position: "bottom",
                           offset: 0,
                           style: { fontSize: 11 }
