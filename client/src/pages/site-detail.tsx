@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useDropzone } from "react-dropzone";
@@ -31,7 +31,8 @@ import {
   Satellite,
   RefreshCw,
   AlertTriangle,
-  Sun
+  Sun,
+  Layers
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -710,75 +711,212 @@ function AnalysisParametersEditor({
 
               {/* Satellite Estimation Status & Button */}
               {site && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                  {site.roofEstimateStatus === "pending" && (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      <span className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Estimation satellite en cours..." : "Satellite estimation in progress..."}
-                      </span>
-                    </>
-                  )}
-                  {site.roofEstimateStatus === "success" && site.roofAreaAutoSqM && (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                      <span className="text-xs">
-                        {language === "fr" 
-                          ? `Estimation satellite: ${Math.round(site.roofAreaAutoSqM)} m² (${Math.round(site.roofAreaAutoSqM * 10.764)} pi²)`
-                          : `Satellite estimate: ${Math.round(site.roofAreaAutoSqM)} m² (${Math.round(site.roofAreaAutoSqM * 10.764)} sq ft)`}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (site.roofAreaAutoSqM) {
-                            updateField("roofAreaSqFt", Math.round(site.roofAreaAutoSqM * 10.764));
-                          }
-                        }}
-                        className="h-6 text-xs ml-auto"
-                        disabled={disabled}
-                        data-testid="button-apply-satellite-estimate"
-                      >
-                        {language === "fr" ? "Appliquer" : "Apply"}
-                      </Button>
-                    </>
-                  )}
-                  {site.roofEstimateStatus === "failed" && (
-                    <>
-                      <AlertCircle className="w-4 h-4 text-destructive" />
-                      <span className="text-xs text-destructive">
-                        {language === "fr" ? "Estimation échouée" : "Estimation failed"}
-                        {site.roofEstimateError && `: ${site.roofEstimateError}`}
-                      </span>
-                    </>
-                  )}
-                  {(!site.roofEstimateStatus || site.roofEstimateStatus === "none" || site.roofEstimateStatus === "skipped") && (
-                    <span className="text-xs text-muted-foreground">
-                      {language === "fr" ? "Aucune estimation satellite disponible" : "No satellite estimation available"}
-                    </span>
-                  )}
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRoofEstimate}
-                    disabled={disabled || isEstimating || site.roofEstimateStatus === "pending"}
-                    className="h-7 text-xs gap-1.5 ml-auto"
-                    data-testid="button-estimate-roof-satellite"
-                  >
-                    {isEstimating ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : site.roofEstimateStatus === "success" ? (
-                      <RefreshCw className="w-3 h-3" />
-                    ) : (
-                      <Satellite className="w-3 h-3" />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                    {site.roofEstimateStatus === "pending" && (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        <span className="text-xs text-muted-foreground">
+                          {language === "fr" ? "Estimation satellite en cours..." : "Satellite estimation in progress..."}
+                        </span>
+                      </>
                     )}
-                    {isEstimating 
-                      ? (language === "fr" ? "Estimation..." : "Estimating...")
-                      : site.roofEstimateStatus === "success"
-                        ? (language === "fr" ? "Recalculer" : "Recalculate")
-                        : (language === "fr" ? "Estimer via satellite" : "Estimate from satellite")}
-                  </Button>
+                    {site.roofEstimateStatus === "success" && site.roofAreaAutoSqM && (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        <span className="text-xs">
+                          {language === "fr" 
+                            ? `Estimation satellite: ${Math.round(site.roofAreaAutoSqM)} m² (${Math.round(site.roofAreaAutoSqM * 10.764)} pi²)`
+                            : `Satellite estimate: ${Math.round(site.roofAreaAutoSqM)} m² (${Math.round(site.roofAreaAutoSqM * 10.764)} sq ft)`}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (site.roofAreaAutoSqM) {
+                              updateField("roofAreaSqFt", Math.round(site.roofAreaAutoSqM * 10.764));
+                            }
+                          }}
+                          className="h-6 text-xs ml-auto"
+                          disabled={disabled}
+                          data-testid="button-apply-satellite-estimate"
+                        >
+                          {language === "fr" ? "Appliquer" : "Apply"}
+                        </Button>
+                      </>
+                    )}
+                    {site.roofEstimateStatus === "failed" && (
+                      <>
+                        <AlertCircle className="w-4 h-4 text-destructive" />
+                        <span className="text-xs text-destructive">
+                          {language === "fr" ? "Estimation échouée" : "Estimation failed"}
+                          {site.roofEstimateError && `: ${site.roofEstimateError}`}
+                        </span>
+                      </>
+                    )}
+                    {(!site.roofEstimateStatus || site.roofEstimateStatus === "none" || site.roofEstimateStatus === "skipped") && (
+                      <span className="text-xs text-muted-foreground">
+                        {language === "fr" ? "Aucune estimation satellite disponible" : "No satellite estimation available"}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRoofEstimate}
+                      disabled={disabled || isEstimating || site.roofEstimateStatus === "pending"}
+                      className="h-7 text-xs gap-1.5 ml-auto"
+                      data-testid="button-estimate-roof-satellite"
+                    >
+                      {isEstimating ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : site.roofEstimateStatus === "success" ? (
+                        <RefreshCw className="w-3 h-3" />
+                      ) : (
+                        <Satellite className="w-3 h-3" />
+                      )}
+                      {isEstimating 
+                        ? (language === "fr" ? "Estimation..." : "Estimating...")
+                        : site.roofEstimateStatus === "success"
+                          ? (language === "fr" ? "Recalculer" : "Recalculate")
+                          : (language === "fr" ? "Estimer via satellite" : "Estimate from satellite")}
+                    </Button>
+                  </div>
+                  
+                  {/* Roof Segments from Google Solar API */}
+                  {site.roofEstimateStatus === "success" && site.roofAreaAutoDetails && (
+                    (() => {
+                      const details = site.roofAreaAutoDetails as any;
+                      const segments = details?.solarPotential?.roofSegmentStats;
+                      const maxSunshine = details?.solarPotential?.maxSunshineHoursPerYear;
+                      const panelConfigs = details?.solarPotential?.solarPanelConfigs;
+                      const bestConfig = panelConfigs?.[panelConfigs.length - 1];
+                      const panelWatts = details?.solarPotential?.panelCapacityWatts || 400;
+                      
+                      if (!segments || segments.length === 0) return null;
+                      
+                      return (
+                        <div className="p-2 rounded-lg border border-dashed bg-muted/30 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Layers className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-xs font-medium">
+                              {language === "fr" ? "Segments de toit détectés" : "Detected Roof Segments"}
+                            </span>
+                            <Badge variant="secondary" className="text-xs h-5">
+                              {segments.length} {language === "fr" ? "segments" : "segments"}
+                            </Badge>
+                          </div>
+                          
+                          {/* Segment summary table with solar quality */}
+                          <div className="grid grid-cols-5 gap-1 text-xs">
+                            <div className="font-medium text-muted-foreground">#</div>
+                            <div className="font-medium text-muted-foreground">
+                              {language === "fr" ? "Surface" : "Area"}
+                            </div>
+                            <div className="font-medium text-muted-foreground">
+                              {language === "fr" ? "Orientation" : "Orientation"}
+                            </div>
+                            <div className="font-medium text-muted-foreground">
+                              {language === "fr" ? "Incl." : "Pitch"}
+                            </div>
+                            <div className="font-medium text-muted-foreground">
+                              {language === "fr" ? "Qualité" : "Quality"}
+                            </div>
+                            {segments.slice(0, 6).map((seg: any, idx: number) => {
+                              const azimuth = seg.azimuthDegrees || 0;
+                              const pitch = seg.pitchDegrees || 0;
+                              const area = seg.stats?.areaMeters2 || 0;
+                              
+                              // Determine orientation label
+                              let orientation = "?";
+                              if (azimuth >= 337.5 || azimuth < 22.5) orientation = "N";
+                              else if (azimuth >= 22.5 && azimuth < 67.5) orientation = "NE";
+                              else if (azimuth >= 67.5 && azimuth < 112.5) orientation = "E";
+                              else if (azimuth >= 112.5 && azimuth < 157.5) orientation = "SE";
+                              else if (azimuth >= 157.5 && azimuth < 202.5) orientation = "S";
+                              else if (azimuth >= 202.5 && azimuth < 247.5) orientation = "SW";
+                              else if (azimuth >= 247.5 && azimuth < 292.5) orientation = "W";
+                              else if (azimuth >= 292.5 && azimuth < 337.5) orientation = "NW";
+                              
+                              // Calculate solar quality score (0-100) based on orientation and pitch
+                              // South-facing (180°) with 30-35° pitch is optimal for Quebec
+                              const azimuthScore = Math.max(0, 100 - Math.abs(azimuth - 180) * 0.8);
+                              const pitchScore = Math.max(0, 100 - Math.abs(pitch - 32) * 3);
+                              const qualityScore = (azimuthScore * 0.6 + pitchScore * 0.4);
+                              
+                              // Get quality color
+                              let qualityColor = "bg-red-500";
+                              let qualityLabel = "⚠";
+                              if (qualityScore >= 80) { qualityColor = "bg-green-500"; qualityLabel = "★★★"; }
+                              else if (qualityScore >= 60) { qualityColor = "bg-amber-400"; qualityLabel = "★★"; }
+                              else if (qualityScore >= 40) { qualityColor = "bg-orange-400"; qualityLabel = "★"; }
+                              
+                              return (
+                                <Fragment key={idx}>
+                                  <div className="font-mono">{idx + 1}</div>
+                                  <div className="font-mono">{Math.round(area)} m²</div>
+                                  <div className="font-mono">{orientation}</div>
+                                  <div className="font-mono">{Math.round(pitch)}°</div>
+                                  <div className="flex items-center gap-1">
+                                    <div 
+                                      className={`w-2 h-2 rounded-full ${qualityColor}`} 
+                                      title={`${Math.round(qualityScore)}% - ${orientation} @ ${Math.round(pitch)}°`}
+                                    />
+                                    <span className="text-[10px]">{qualityLabel}</span>
+                                  </div>
+                                </Fragment>
+                              );
+                            })}
+                          </div>
+                          {segments.length > 6 && (
+                            <p className="text-xs text-muted-foreground">
+                              {language === "fr" 
+                                ? `+ ${segments.length - 6} autres segments...`
+                                : `+ ${segments.length - 6} more segments...`}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {language === "fr" 
+                              ? "★★★ = Optimal (Sud, 30-35°) | ★★ = Bon | ★ = Acceptable"
+                              : "★★★ = Optimal (South, 30-35°) | ★★ = Good | ★ = Acceptable"}
+                          </p>
+                          
+                          {/* Google production estimate */}
+                          {bestConfig && (
+                            <div className="pt-2 border-t border-dashed">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                                <span className="text-xs font-medium">
+                                  {language === "fr" ? "Estimation Google Solar" : "Google Solar Estimate"}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <span className="text-muted-foreground">{language === "fr" ? "Panneaux" : "Panels"}: </span>
+                                  <span className="font-mono">{bestConfig.panelsCount}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">{language === "fr" ? "Puissance" : "Capacity"}: </span>
+                                  <span className="font-mono">{((bestConfig.panelsCount * panelWatts) / 1000).toFixed(1)} kWc</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">{language === "fr" ? "Prod. annuelle" : "Annual prod."}: </span>
+                                  <span className="font-mono">{Math.round(bestConfig.yearlyEnergyDcKwh * 0.85).toLocaleString()} kWh</span>
+                                </div>
+                              </div>
+                              {maxSunshine && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {language === "fr" 
+                                    ? `Ensoleillement: ${Math.round(maxSunshine).toLocaleString()} h/an`
+                                    : `Sunshine: ${Math.round(maxSunshine).toLocaleString()} h/year`}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()
+                  )}
                 </div>
               )}
               
@@ -1170,6 +1308,131 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
           </div>
         </CardContent>
       </Card>
+
+      {/* Cross-Validation with Google Solar */}
+      {site && site.roofAreaAutoDetails && (() => {
+        const details = site.roofAreaAutoDetails as any;
+        const solarPotential = details?.solarPotential;
+        const panelConfigs = solarPotential?.solarPanelConfigs;
+        const panelWatts = solarPotential?.panelCapacityWatts || 400;
+        
+        if (!panelConfigs || panelConfigs.length === 0) return null;
+        
+        // Find closest config to our simulation PV size
+        const ourPvKw = simulation.pvSizeKW || 0;
+        let closestConfig = panelConfigs[0];
+        let closestDiff = Infinity;
+        
+        for (const config of panelConfigs) {
+          const configKw = (config.panelsCount * panelWatts) / 1000;
+          const diff = Math.abs(configKw - ourPvKw);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closestConfig = config;
+          }
+        }
+        
+        const googlePvKw = (closestConfig.panelsCount * panelWatts) / 1000;
+        const googleProdDc = closestConfig.yearlyEnergyDcKwh || 0;
+        const googleProdAc = googleProdDc * 0.85; // Assume 85% DC-to-AC efficiency
+        
+        // Calculate our production from hourly profile
+        const hourlyProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
+        let ourAnnualProd = 0;
+        if (hourlyProfile && hourlyProfile.length > 0) {
+          ourAnnualProd = hourlyProfile.reduce((sum, h) => sum + (h.production || 0), 0);
+        }
+        
+        // Calculate specific yield (kWh/kWp)
+        const googleYield = googlePvKw > 0 ? googleProdAc / googlePvKw : 0;
+        const ourYield = ourPvKw > 0 ? ourAnnualProd / ourPvKw : 0;
+        
+        // Calculate difference percentage
+        const diffPercent = ourAnnualProd > 0 ? ((ourAnnualProd - googleProdAc) / googleProdAc * 100) : 0;
+        const isWithinMargin = Math.abs(diffPercent) <= 15; // Within 15% is acceptable
+        
+        return (
+          <Card className="border-dashed">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+                {language === "fr" ? "Validation croisée" : "Cross-Validation"}
+                {isWithinMargin ? (
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                    {language === "fr" ? "Cohérent" : "Consistent"}
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                    {language === "fr" ? "Écart détecté" : "Variance Detected"}
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                {language === "fr" 
+                  ? "Comparaison entre nos calculs et les estimations Google Solar API"
+                  : "Comparison between our calculations and Google Solar API estimates"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === "fr" ? "Notre simulation" : "Our Simulation"}
+                  </p>
+                  <p className="text-lg font-bold font-mono">{Math.round(ourAnnualProd).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">kWh/an</p>
+                </div>
+                <div className="text-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === "fr" ? "Google Solar" : "Google Solar"}
+                  </p>
+                  <p className="text-lg font-bold font-mono text-primary">{Math.round(googleProdAc).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">kWh/an</p>
+                </div>
+                <div className={`text-center p-3 rounded-lg ${isWithinMargin ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === "fr" ? "Écart" : "Difference"}
+                  </p>
+                  <p className={`text-lg font-bold font-mono ${isWithinMargin ? 'text-green-700' : 'text-amber-700'}`}>
+                    {diffPercent >= 0 ? "+" : ""}{diffPercent.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {diffPercent >= 0 
+                      ? (language === "fr" ? "plus élevé" : "higher")
+                      : (language === "fr" ? "plus bas" : "lower")}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{language === "fr" ? "Rendement spécifique (nous)" : "Specific yield (ours)"}</span>
+                  <span className="font-mono">{Math.round(ourYield)} kWh/kWp</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{language === "fr" ? "Rendement spécifique (Google)" : "Specific yield (Google)"}</span>
+                  <span className="font-mono">{Math.round(googleYield)} kWh/kWp</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{language === "fr" ? "Taille système analysé" : "System size analyzed"}</span>
+                  <span className="font-mono">{ourPvKw.toFixed(1)} kWc</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{language === "fr" ? "Config. Google comparable" : "Comparable Google config"}</span>
+                  <span className="font-mono">{googlePvKw.toFixed(1)} kWc ({closestConfig.panelsCount} pan.)</span>
+                </div>
+              </div>
+              
+              <p className="mt-4 text-xs text-muted-foreground">
+                <Info className="w-3 h-3 inline mr-1" />
+                {language === "fr" 
+                  ? "Les écarts de ±15% sont normaux et peuvent être dus aux différences de modélisation météo, d'efficacité des panneaux, et d'hypothèses d'ombrage."
+                  : "Differences of ±15% are normal and can be due to weather modeling, panel efficiency, and shading assumption variations."}
+              </p>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-6">
@@ -1895,12 +2158,17 @@ export default function SiteDetailPage() {
     if (site && !assumptionsInitialized) {
       const initialAssumptions: Partial<AnalysisAssumptions> = {};
       
-      // Convert site roof area from sq meters to sq feet if available
-      if (site.roofAreaSqM && site.roofAreaSqM > 0) {
+      // Priority: 1. Saved assumptions, 2. Auto-detected (Google Solar), 3. Manual entry
+      // First check for auto-detected roof area from Google Solar API
+      if (site.roofAreaAutoSqM && site.roofAreaAutoSqM > 0 && site.roofEstimateStatus === "success") {
+        initialAssumptions.roofAreaSqFt = Math.round(site.roofAreaAutoSqM * 10.764);
+      }
+      // Fallback to manually entered roof area
+      else if (site.roofAreaSqM && site.roofAreaSqM > 0) {
         initialAssumptions.roofAreaSqFt = Math.round(site.roofAreaSqM * 10.764);
       }
       
-      // Load saved assumptions from site if they exist
+      // Load saved assumptions from site if they exist (overrides auto-detected)
       if (site.analysisAssumptions) {
         const savedAssumptions = site.analysisAssumptions as Partial<AnalysisAssumptions>;
         Object.assign(initialAssumptions, savedAssumptions);

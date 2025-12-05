@@ -460,6 +460,10 @@ export async function registerRoutes(
           imageryDate: result.imageryDate,
           imageryQuality: result.imageryQuality,
           roofSegmentsCount: result.roofSegmentsCount,
+          roofSegments: result.roofSegments,
+          googleProductionEstimate: result.googleProductionEstimate,
+          panelCapacityWatts: result.panelCapacityWatts,
+          carbonOffsetFactorKgPerMwh: result.carbonOffsetFactorKgPerMwh,
           latitude: result.latitude,
           longitude: result.longitude,
         }
@@ -523,8 +527,11 @@ export async function registerRoutes(
         longitude,
         rgbUrl: result.rgbUrl,
         maskUrl: result.maskUrl,
+        dsmUrl: result.dsmUrl,
+        annualFluxUrl: result.annualFluxUrl,
         imageryDate: result.imageryDate,
-        imageryQuality: result.imageryQuality
+        imageryQuality: result.imageryQuality,
+        imageryProcessedDate: result.imageryProcessedDate
       });
     } catch (error) {
       console.error("Roof imagery error:", error);

@@ -75,6 +75,22 @@ export interface BuildingInsights {
   imageryQuality?: string;
 }
 
+export interface RoofSegmentDetail {
+  index: number;
+  areaMeters2: number;
+  azimuthDegrees: number;
+  pitchDegrees: number;
+  orientationLabel: string;
+  sunshineHoursPerYear?: number;
+}
+
+export interface GoogleProductionEstimate {
+  panelsCount: number;
+  yearlyEnergyDcKwh: number;
+  yearlyEnergyAcKwh: number;
+  systemSizeKw: number;
+}
+
 export interface RoofEstimateResult {
   success: boolean;
   latitude: number;
@@ -85,6 +101,10 @@ export interface RoofEstimateResult {
   imageryDate?: string;
   imageryQuality?: string;
   roofSegmentsCount: number;
+  roofSegments: RoofSegmentDetail[];
+  googleProductionEstimate?: GoogleProductionEstimate;
+  panelCapacityWatts?: number;
+  carbonOffsetFactorKgPerMwh?: number;
   details: BuildingInsights;
   error?: string;
 }
@@ -152,6 +172,18 @@ export async function getBuildingInsights(location: GeoLocation): Promise<Buildi
   }
 }
 
+function getOrientationLabel(azimuth: number): string {
+  if (azimuth >= 337.5 || azimuth < 22.5) return "N";
+  if (azimuth >= 22.5 && azimuth < 67.5) return "NE";
+  if (azimuth >= 67.5 && azimuth < 112.5) return "E";
+  if (azimuth >= 112.5 && azimuth < 157.5) return "SE";
+  if (azimuth >= 157.5 && azimuth < 202.5) return "S";
+  if (azimuth >= 202.5 && azimuth < 247.5) return "SW";
+  if (azimuth >= 247.5 && azimuth < 292.5) return "W";
+  if (azimuth >= 292.5 && azimuth < 337.5) return "NW";
+  return "?";
+}
+
 export async function estimateRoofFromAddress(address: string): Promise<RoofEstimateResult> {
   const location = await geocodeAddress(address);
   
@@ -163,6 +195,7 @@ export async function estimateRoofFromAddress(address: string): Promise<RoofEsti
       roofAreaSqM: 0,
       maxArrayAreaSqM: 0,
       roofSegmentsCount: 0,
+      roofSegments: [],
       details: {} as BuildingInsights,
       error: "Could not geocode address"
     };
@@ -182,6 +215,7 @@ export async function estimateRoofFromLocation(location: GeoLocation): Promise<R
       roofAreaSqM: 0,
       maxArrayAreaSqM: 0,
       roofSegmentsCount: 0,
+      roofSegments: [],
       details: {} as BuildingInsights,
       error: "No building data available for this location"
     };
@@ -191,6 +225,7 @@ export async function estimateRoofFromLocation(location: GeoLocation): Promise<R
   
   let totalRoofAreaSqM = 0;
   let roofSegmentsCount = 0;
+  const roofSegments: RoofSegmentDetail[] = [];
   
   if (solarPotential?.wholeRoofStats?.areaMeters2) {
     totalRoofAreaSqM = solarPotential.wholeRoofStats.areaMeters2;
@@ -204,6 +239,23 @@ export async function estimateRoofFromLocation(location: GeoLocation): Promise<R
         0
       );
     }
+    
+    solarPotential.roofSegmentStats.forEach((seg, index) => {
+      const azimuth = seg.azimuthDegrees || 0;
+      const sunshineQuantiles = seg.stats?.sunshineQuantiles;
+      const avgSunshine = sunshineQuantiles && sunshineQuantiles.length > 0
+        ? sunshineQuantiles.reduce((a, b) => a + b, 0) / sunshineQuantiles.length
+        : undefined;
+      
+      roofSegments.push({
+        index,
+        areaMeters2: seg.stats?.areaMeters2 || 0,
+        azimuthDegrees: azimuth,
+        pitchDegrees: seg.pitchDegrees || 0,
+        orientationLabel: getOrientationLabel(azimuth),
+        sunshineHoursPerYear: avgSunshine
+      });
+    });
   }
   
   const maxArrayAreaSqM = solarPotential?.maxArrayAreaMeters2 || 0;
@@ -212,6 +264,21 @@ export async function estimateRoofFromLocation(location: GeoLocation): Promise<R
   if (insights.imageryDate) {
     const { year, month, day } = insights.imageryDate;
     imageryDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  
+  let googleProductionEstimate: GoogleProductionEstimate | undefined;
+  if (solarPotential?.solarPanelConfigs && solarPotential.solarPanelConfigs.length > 0) {
+    const bestConfig = solarPotential.solarPanelConfigs[solarPotential.solarPanelConfigs.length - 1];
+    const panelWatts = solarPotential.panelCapacityWatts || 400;
+    const systemSizeKw = (bestConfig.panelsCount * panelWatts) / 1000;
+    const yearlyEnergyAcKwh = bestConfig.yearlyEnergyDcKwh * 0.85;
+    
+    googleProductionEstimate = {
+      panelsCount: bestConfig.panelsCount,
+      yearlyEnergyDcKwh: bestConfig.yearlyEnergyDcKwh,
+      yearlyEnergyAcKwh: Math.round(yearlyEnergyAcKwh),
+      systemSizeKw: Math.round(systemSizeKw * 10) / 10
+    };
   }
   
   return {
@@ -224,6 +291,10 @@ export async function estimateRoofFromLocation(location: GeoLocation): Promise<R
     imageryDate,
     imageryQuality: insights.imageryQuality,
     roofSegmentsCount,
+    roofSegments,
+    googleProductionEstimate,
+    panelCapacityWatts: solarPotential?.panelCapacityWatts,
+    carbonOffsetFactorKgPerMwh: solarPotential?.carbonOffsetFactorKgPerMwh,
     details: insights
   };
 }
