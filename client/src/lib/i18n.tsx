@@ -27,6 +27,7 @@ const translations: Translations = {
   "nav.methodology": { fr: "Méthodologie", en: "Methodology" },
   "nav.userManagement": { fr: "Gestion des utilisateurs", en: "User Management" },
   "nav.userSites": { fr: "Sites utilisateur", en: "User Sites" },
+  "nav.mySites": { fr: "Mes sites", en: "My Sites" },
 
   // Landing Page
   "landing.hero.title": { fr: "Optimisez votre facture d'électricité", en: "Optimize your electricity bill" },
