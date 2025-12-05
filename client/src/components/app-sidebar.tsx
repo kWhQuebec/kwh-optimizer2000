@@ -7,7 +7,9 @@ import {
   PenTool,
   Package,
   FileText,
-  LogOut
+  LogOut,
+  FolderOpen,
+  UserCog
 } from "lucide-react";
 import {
   Sidebar,
@@ -21,6 +23,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import sidebarLogoFr from "@assets/solaire_fr_1764778573075.png";
@@ -28,11 +31,11 @@ import sidebarLogoEn from "@assets/solaire_en_1764778591753.png";
 
 export function AppSidebar() {
   const { t, language } = useI18n();
-  const { user, logout } = useAuth();
+  const { user, logout, isStaff, isClient, isAdmin } = useAuth();
   const [location] = useLocation();
   const currentLogo = language === "fr" ? sidebarLogoFr : sidebarLogoEn;
 
-  const mainItems = [
+  const staffMainItems = [
     {
       title: t("nav.dashboard"),
       url: "/app",
@@ -50,7 +53,7 @@ export function AppSidebar() {
     },
   ];
 
-  const analysisItems = [
+  const staffAnalysisItems = [
     {
       title: t("nav.analyses"),
       url: "/app/analyses",
@@ -73,17 +76,42 @@ export function AppSidebar() {
     },
   ];
 
+  const adminItems = [
+    {
+      title: t("nav.userManagement") || "User Management",
+      url: "/app/users",
+      icon: UserCog,
+    },
+  ];
+
+  const clientItems = [
+    {
+      title: t("nav.mySites") || "My Sites",
+      url: "/app/portal",
+      icon: FolderOpen,
+    },
+  ];
+
   const isActive = (url: string) => {
-    if (url === "/app") {
-      return location === "/app";
+    if (url === "/app" || url === "/app/portal") {
+      return location === url;
     }
     return location.startsWith(url);
   };
 
+  const getRoleBadge = () => {
+    if (isAdmin) return { label: "Admin", variant: "default" as const };
+    if (isStaff) return { label: "Analyst", variant: "secondary" as const };
+    if (isClient) return { label: "Client", variant: "outline" as const };
+    return { label: "User", variant: "outline" as const };
+  };
+
+  const roleBadge = getRoleBadge();
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
-        <Link href="/app">
+        <Link href={isClient ? "/app/portal" : "/app"}>
           <img 
             src={currentLogo} 
             alt="kWh Québec" 
@@ -94,49 +122,101 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{t("sidebar.main")}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActive(item.url)}
-                    data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                  >
-                    <Link href={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isClient && (
+          <SidebarGroup>
+            <SidebarGroupLabel>{t("sidebar.portal") || "Portal"}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {clientItems.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive(item.url)}
+                      data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                    >
+                      <Link href={item.url}>
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>{t("sidebar.analysis")}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {analysisItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActive(item.url)}
-                    data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                  >
-                    <Link href={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isStaff && (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>{t("sidebar.main")}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {staffMainItems.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive(item.url)}
+                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>{t("sidebar.analysis")}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {staffAnalysisItems.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive(item.url)}
+                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {isAdmin && (
+              <SidebarGroup>
+                <SidebarGroupLabel>{t("sidebar.admin") || "Administration"}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {adminItems.map((item) => (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={isActive(item.url)}
+                          data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                        >
+                          <Link href={item.url}>
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t px-4 py-3">
@@ -144,12 +224,23 @@ export function AppSidebar() {
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
               <span className="text-sm font-medium">
-                {user?.email?.charAt(0).toUpperCase() || "U"}
+                {(user?.name || user?.email)?.charAt(0).toUpperCase() || "U"}
               </span>
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-medium truncate">{user?.email || "User"}</div>
-              <div className="text-xs text-muted-foreground">Admin</div>
+              <div className="text-sm font-medium truncate">
+                {user?.name || user?.email || "User"}
+              </div>
+              <div className="flex items-center gap-1">
+                <Badge variant={roleBadge.variant} className="text-[10px] h-4 px-1">
+                  {roleBadge.label}
+                </Badge>
+                {user?.clientName && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {user.clientName}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button

@@ -40,6 +40,31 @@ The server-side data processing handles CSV parsing of Hydro-Québec consumption
 
 The UI uses Recharts for interactive charts displaying consumption profiles, production simulations, and financial projections. shadcn/ui table components are used for BOMs and detailed metrics. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display with key KPIs, and an Optimization Analysis Section with interactive charts for efficiency frontier, solar size, and battery size optimization.
 
+### Role-Based Access Control (RBAC)
+
+The platform supports three user roles with distinct access levels:
+
+- **Admin**: Full access to all features plus user management (create/delete client and analyst accounts)
+- **Analyst**: Staff access to all analysis, design, and data management features, but no user management
+- **Client**: Read-only access to their own sites and analysis results via the client portal
+
+Key security features:
+- JWT-based authentication with role stored in token
+- Server-side authorization checks on all protected routes
+- Client users are linked to a specific clientId and can only access their own data
+- Staff-only routes (file upload, analysis runs, design creation) return 403 for clients
+- Admin-only routes (user management) require explicit admin role check
+
+### Client Portal
+
+The client portal (`/app/portal`) provides customers with secure, read-only access to their solar analysis reports:
+
+- **Client Dashboard**: Shows all sites belonging to the client with analysis status badges
+- **Site Detail View (Read-only)**: Displays analysis results, charts, KPIs, and PDF download button
+- **No editing capabilities**: File upload, analysis parameters, and design creation are hidden for clients
+
+This replaces manual PDF report distribution with self-service access, enabling clients to view their analyses at any time.
+
 ## External Dependencies
 
 ### Third-Party Services

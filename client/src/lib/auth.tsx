@@ -1,19 +1,30 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import type { User } from "@shared/schema";
+
+interface AuthUser {
+  id: string;
+  email: string;
+  role: string;
+  name?: string | null;
+  clientId?: string | null;
+  clientName?: string | null;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  isStaff: boolean;
+  isClient: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("token");
@@ -80,6 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const isStaff = user?.role === "admin" || user?.role === "analyst";
+  const isClient = user?.role === "client";
+  const isAdmin = user?.role === "admin";
+
   return (
     <AuthContext.Provider
       value={{
@@ -89,6 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         isAuthenticated: !!user,
+        isStaff,
+        isClient,
+        isAdmin,
       }}
     >
       {children}

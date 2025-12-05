@@ -214,6 +214,91 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== USER MANAGEMENT ROUTES (ADMIN ONLY) ====================
+  
+  // List all users (admin only)
+  app.get("/api/users", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Only admins can list all users
+      if (req.userRole !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const users = await storage.getUsers();
+      // Remove password hashes from response
+      const safeUsers = users.map(({ password, ...user }) => user);
+      res.json(safeUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Create a client user account (admin only)
+  app.post("/api/users", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Only admins can create users
+      if (req.userRole !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const { email, password, name, role, clientId } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+      
+      // Only allow creating client or analyst roles
+      if (role && !["client", "analyst"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role. Only 'client' or 'analyst' allowed." });
+      }
+      
+      // Client users must have a clientId
+      if (role === "client" && !clientId) {
+        return res.status(400).json({ error: "Client users must be linked to a client" });
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        name: name || null,
+        role: role || "client",
+        clientId: clientId || null,
+      });
+      
+      // Return user without password
+      const { password: _, ...safeUser } = user;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error("Create user error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Delete a user (admin only)
+  app.delete("/api/users/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Only admins can delete users
+      if (req.userRole !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      // Prevent deleting self
+      if (req.params.id === req.userId) {
+        return res.status(400).json({ error: "Cannot delete your own account" });
+      }
+      
+      const deleted = await storage.deleteUser(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== LEAD ROUTES (PUBLIC) ====================
   
   app.post("/api/leads", async (req, res) => {
@@ -738,8 +823,18 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/simulation-runs", authMiddleware, async (req, res) => {
+  // Simulation runs - client filtering
+  app.get("/api/simulation-runs", authMiddleware, async (req: AuthRequest, res) => {
     try {
+      // Client users only see simulations for their sites
+      if (req.userRole === "client" && req.userClientId) {
+        const sites = await storage.getSitesByClient(req.userClientId);
+        const siteIds = sites.map(s => s.id);
+        const allRuns = await storage.getSimulationRuns();
+        const filteredRuns = allRuns.filter(run => siteIds.includes(run.siteId));
+        return res.json(filteredRuns);
+      }
+      
       const runs = await storage.getSimulationRuns();
       res.json(runs);
     } catch (error) {
@@ -747,12 +842,21 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/simulation-runs/:id", authMiddleware, async (req, res) => {
+  app.get("/api/simulation-runs/:id", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const run = await storage.getSimulationRun(req.params.id);
       if (!run) {
         return res.status(404).json({ error: "Simulation not found" });
       }
+      
+      // Client users can only access simulations for their own sites
+      if (req.userRole === "client" && req.userClientId) {
+        const site = await storage.getSite(run.siteId);
+        if (!site || site.clientId !== req.userClientId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+      
       res.json(run);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -760,13 +864,21 @@ export async function registerRoutes(
   });
 
   // PDF Report Generation - Professional multi-page report
-  app.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req, res) => {
+  app.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const lang = (req.query.lang as string) === "en" ? "en" : "fr";
       const simulation = await storage.getSimulationRun(req.params.id);
       
       if (!simulation) {
         return res.status(404).json({ error: "Simulation not found" });
+      }
+      
+      // Client users can only download reports for their own sites
+      if (req.userRole === "client" && req.userClientId) {
+        const site = await storage.getSite(simulation.siteId);
+        if (!site || site.clientId !== req.userClientId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
       }
 
       const doc = new PDFDocument({ size: "LETTER", margin: 50 });

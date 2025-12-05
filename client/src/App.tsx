@@ -23,6 +23,8 @@ import DesignPage from "@/pages/design";
 import DesignsPage from "@/pages/designs";
 import CatalogPage from "@/pages/catalog";
 import MethodologyPage from "@/pages/methodology";
+import ClientPortalPage from "@/pages/client-portal";
+import UsersPage from "@/pages/users";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -162,6 +164,24 @@ function AppRoutes() {
         <ProtectedRoute>
           <AppLayout>
             <MethodologyPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Client Portal */}
+      <Route path="/app/portal">
+        <ProtectedRoute>
+          <AppLayout>
+            <ClientPortalPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Admin User Management */}
+      <Route path="/app/users">
+        <ProtectedRoute>
+          <AppLayout>
+            <UsersPage />
           </AppLayout>
         </ProtectedRoute>
       </Route>

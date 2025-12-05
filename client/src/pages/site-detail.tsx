@@ -2380,6 +2380,7 @@ export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, language } = useI18n();
   const { toast } = useToast();
+  const { isStaff, isClient } = useAuth();
   const [activeTab, setActiveTab] = useState("consumption");
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
   const [assumptionsInitialized, setAssumptionsInitialized] = useState(false);
@@ -2475,7 +2476,7 @@ export default function SiteDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-4">
-          <Link href="/app/sites">
+          <Link href={isClient ? "/app/portal" : "/app/sites"}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -2532,12 +2533,14 @@ export default function SiteDetailPage() {
           {latestSimulation && (
             <>
               <DownloadReportButton simulationId={latestSimulation.id} />
-              <Link href={`/app/analyses/${latestSimulation.id}/design`}>
-                <Button className="gap-2" data-testid="button-create-design">
-                  <PenTool className="w-4 h-4" />
-                  {t("analysis.createDesign")}
-                </Button>
-              </Link>
+              {isStaff && (
+                <Link href={`/app/analyses/${latestSimulation.id}/design`}>
+                  <Button className="gap-2" data-testid="button-create-design">
+                    <PenTool className="w-4 h-4" />
+                    {t("analysis.createDesign")}
+                  </Button>
+                </Link>
+              )}
             </>
           )}
         </div>
@@ -2551,48 +2554,54 @@ export default function SiteDetailPage() {
         </TabsList>
 
         <TabsContent value="consumption" className="space-y-6">
-          {/* Upload Zone */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">{t("site.uploadFiles")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FileUploadZone siteId={site.id} onUploadComplete={() => refetch()} />
-            </CardContent>
-          </Card>
+          {/* Upload Zone - Staff only */}
+          {isStaff && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">{t("site.uploadFiles")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FileUploadZone siteId={site.id} onUploadComplete={() => refetch()} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Analysis Parameters - always show for roof estimation, full params when files exist */}
-          <AnalysisParametersEditor 
-            value={customAssumptions}
-            onChange={setCustomAssumptions}
-            disabled={runAnalysisMutation.isPending}
-            site={site}
-            onSiteRefresh={() => refetch()}
-            showOnlyRoofSection={!site.meterFiles?.length}
-          />
+          {isStaff && (
+            <AnalysisParametersEditor 
+              value={customAssumptions}
+              onChange={setCustomAssumptions}
+              disabled={runAnalysisMutation.isPending}
+              site={site}
+              onSiteRefresh={() => refetch()}
+              showOnlyRoofSection={!site.meterFiles?.length}
+            />
+          )}
 
           {/* Files Table */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle className="text-lg">{t("site.files")}</CardTitle>
-              <Button 
-                onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                disabled={!site.meterFiles?.length || runAnalysisMutation.isPending}
-                className="gap-2"
-                data-testid="button-run-analysis"
-              >
-                {runAnalysisMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4" />
-                    {t("site.runAnalysis")}
-                  </>
-                )}
-              </Button>
+              {isStaff && (
+                <Button 
+                  onClick={() => runAnalysisMutation.mutate(customAssumptions)}
+                  disabled={!site.meterFiles?.length || runAnalysisMutation.isPending}
+                  className="gap-2"
+                  data-testid="button-run-analysis"
+                >
+                  {runAnalysisMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4" />
+                      {t("site.runAnalysis")}
+                    </>
+                  )}
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {site.meterFiles && site.meterFiles.length > 0 ? (
@@ -2672,18 +2681,24 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Aucune analyse disponible" : "No analysis available"}
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  {language === "fr" 
-                    ? "Importez des fichiers CSV et lancez une analyse pour voir les résultats."
-                    : "Import CSV files and run an analysis to see results."}
+                  {isClient 
+                    ? (language === "fr" 
+                        ? "L'analyse pour ce site est en cours de préparation par notre équipe."
+                        : "The analysis for this site is being prepared by our team.")
+                    : (language === "fr" 
+                        ? "Importez des fichiers CSV et lancez une analyse pour voir les résultats."
+                        : "Import CSV files and run an analysis to see results.")}
                 </p>
-                <Button 
-                  onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                  disabled={!site.meterFiles?.length || runAnalysisMutation.isPending}
-                  className="gap-2"
-                >
-                  <Play className="w-4 h-4" />
-                  {t("site.runAnalysis")}
-                </Button>
+                {isStaff && (
+                  <Button 
+                    onClick={() => runAnalysisMutation.mutate(customAssumptions)}
+                    disabled={!site.meterFiles?.length || runAnalysisMutation.isPending}
+                    className="gap-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    {t("site.runAnalysis")}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
