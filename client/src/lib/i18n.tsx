@@ -289,6 +289,7 @@ const translations: Translations = {
   "clients.clientCreated": { fr: "Client créé", en: "Client created" },
   "clients.clientUpdated": { fr: "Client mis à jour", en: "Client updated" },
   "clients.clientDeleted": { fr: "Client supprimé", en: "Client deleted" },
+  "clients.grantPortalAccess": { fr: "Accorder l'accès au portail", en: "Grant Portal Access" },
 
   // Analyses
   "analyses.createDesign": { fr: "Créer un design", en: "Create design" },
