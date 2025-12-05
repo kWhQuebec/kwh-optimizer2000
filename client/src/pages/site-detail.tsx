@@ -29,7 +29,8 @@ import {
   Percent,
   Info,
   Satellite,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -878,12 +879,16 @@ function DownloadReportButton({ simulationId }: { simulationId: string }) {
   );
 }
 
+const MONTH_NAMES_FR = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const MONTH_NAMES_EN = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
 function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [showIncentives, setShowIncentives] = useState(true);
 
   const assumptions = (simulation.assumptions as AnalysisAssumptions | null) || defaultAnalysisAssumptions;
+  const interpolatedMonths = (simulation.interpolatedMonths as number[] | null) || [];
   const cashflows = (simulation.cashflows as CashflowEntry[] | null) || [];
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
   
@@ -1801,6 +1806,29 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Data Quality Indicator - Interpolated Months */}
+      {interpolatedMonths.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
+          <CardContent className="py-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-800 dark:text-amber-200">
+                  {language === "fr" 
+                    ? "Données interpolées" 
+                    : "Interpolated Data"}
+                </p>
+                <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+                  {language === "fr" 
+                    ? `Les mois suivants n'avaient pas de données et ont été estimés à partir des mois adjacents: ${interpolatedMonths.filter(m => m >= 1 && m <= 12).map(m => MONTH_NAMES_FR[m]).join(', ')}.`
+                    : `The following months had no data and were estimated from adjacent months: ${interpolatedMonths.filter(m => m >= 1 && m <= 12).map(m => MONTH_NAMES_EN[m]).join(', ')}.`}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

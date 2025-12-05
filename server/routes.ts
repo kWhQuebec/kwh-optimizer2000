@@ -1205,6 +1205,9 @@ interface AnalysisResult {
   
   // Sensitivity analysis (optimization charts)
   sensitivity: SensitivityAnalysis;
+  
+  // Data quality indicators
+  interpolatedMonths: number[]; // Months with no data that were estimated from neighbors
 }
 
 function runPotentialAnalysis(
@@ -1215,8 +1218,8 @@ function runPotentialAnalysis(
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
   
   // ========== STEP 1: Build 8760-hour simulation data ==========
-  // Aggregate readings into hourly consumption and peak power
-  const hourlyData = buildHourlyData(readings);
+  // Aggregate readings into hourly consumption and peak power (with interpolation for missing months)
+  const { hourlyData, interpolatedMonths } = buildHourlyData(readings);
   
   // Calculate annual metrics from readings
   let totalKWh = 0;
@@ -1650,6 +1653,7 @@ function runPotentialAnalysis(
       hourlyProfile: optSimResult.hourlyProfile,
       peakWeekData: optSimResult.peakWeekData,
       sensitivity,
+      interpolatedMonths,
     };
   }
   
@@ -1694,16 +1698,15 @@ function runPotentialAnalysis(
     hourlyProfile: simResult.hourlyProfile,
     peakWeekData: simResult.peakWeekData,
     sensitivity,
+    interpolatedMonths,
   };
 }
 
-// Build hourly data from readings (8760 hours)
-function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>): Array<{
-  hour: number;
-  month: number;
-  consumption: number;
-  peak: number;
-}> {
+// Build hourly data from readings (8760 hours) with interpolation for missing months
+function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>): {
+  hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>;
+  interpolatedMonths: number[];
+} {
   // Group readings by hour of day and month to create average profile
   const hourlyByHourMonth: Map<string, { totalKWh: number; maxKW: number; count: number }> = new Map();
   
@@ -1717,6 +1720,104 @@ function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null
     existing.maxKW = Math.max(existing.maxKW, r.kW || 0);
     existing.count++;
     hourlyByHourMonth.set(key, existing);
+  }
+  
+  // Detect which months have NO data at all (missing entirely)
+  const monthsWithData: Set<number> = new Set();
+  for (let month = 1; month <= 12; month++) {
+    let hasAnyData = false;
+    for (let hour = 0; hour < 24; hour++) {
+      const key = `${month}-${hour}`;
+      const data = hourlyByHourMonth.get(key);
+      if (data && data.count > 0) {
+        hasAnyData = true;
+        break;
+      }
+    }
+    if (hasAnyData) {
+      monthsWithData.add(month);
+    }
+  }
+  
+  // Track which months were interpolated
+  const interpolatedMonths: number[] = [];
+  
+  // For missing months, interpolate from adjacent months
+  for (let month = 1; month <= 12; month++) {
+    if (!monthsWithData.has(month)) {
+      interpolatedMonths.push(month);
+      
+      // Find closest previous month with data
+      let prevMonth: number | null = null;
+      for (let p = month - 1; p >= 1; p--) {
+        if (monthsWithData.has(p)) {
+          prevMonth = p;
+          break;
+        }
+      }
+      // Wrap around to December if needed
+      if (prevMonth === null) {
+        for (let p = 12; p > month; p--) {
+          if (monthsWithData.has(p)) {
+            prevMonth = p;
+            break;
+          }
+        }
+      }
+      
+      // Find closest next month with data
+      let nextMonth: number | null = null;
+      for (let n = month + 1; n <= 12; n++) {
+        if (monthsWithData.has(n)) {
+          nextMonth = n;
+          break;
+        }
+      }
+      // Wrap around to January if needed
+      if (nextMonth === null) {
+        for (let n = 1; n < month; n++) {
+          if (monthsWithData.has(n)) {
+            nextMonth = n;
+            break;
+          }
+        }
+      }
+      
+      // Interpolate each hour for the missing month
+      for (let hour = 0; hour < 24; hour++) {
+        let avgConsumption = 0;
+        let avgPeak = 0;
+        let sourceCount = 0;
+        
+        if (prevMonth !== null) {
+          const prevKey = `${prevMonth}-${hour}`;
+          const prevData = hourlyByHourMonth.get(prevKey);
+          if (prevData && prevData.count > 0) {
+            avgConsumption += prevData.totalKWh / prevData.count;
+            avgPeak += prevData.maxKW;
+            sourceCount++;
+          }
+        }
+        
+        if (nextMonth !== null && nextMonth !== prevMonth) {
+          const nextKey = `${nextMonth}-${hour}`;
+          const nextData = hourlyByHourMonth.get(nextKey);
+          if (nextData && nextData.count > 0) {
+            avgConsumption += nextData.totalKWh / nextData.count;
+            avgPeak += nextData.maxKW;
+            sourceCount++;
+          }
+        }
+        
+        // Store interpolated values (default to 0 if no source data to avoid NaN)
+        const key = `${month}-${hour}`;
+        hourlyByHourMonth.set(key, {
+          totalKWh: sourceCount > 0 ? avgConsumption / sourceCount : 0,
+          maxKW: sourceCount > 0 ? avgPeak / sourceCount : 0,
+          count: 1, // Mark as having 1 "virtual" data point
+        });
+      }
+    }
   }
   
   // Build 8760-hour profile
@@ -1737,7 +1838,7 @@ function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null
             peak: data.maxKW,
           });
         } else {
-          // Use default values if no data
+          // Use default values if no data (shouldn't happen after interpolation unless ALL months missing)
           hourlyData.push({
             hour,
             month,
@@ -1749,7 +1850,7 @@ function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null
     }
   }
   
-  return hourlyData;
+  return { hourlyData, interpolatedMonths };
 }
 
 // Run hourly solar + battery simulation

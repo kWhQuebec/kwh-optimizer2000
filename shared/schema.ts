@@ -158,6 +158,9 @@ export const simulationRuns = pgTable("simulation_runs", {
   peakWeekData: jsonb("peak_week_data"),
   sensitivity: jsonb("sensitivity"),
   
+  // Data quality indicators
+  interpolatedMonths: jsonb("interpolated_months"), // Months that were estimated from neighbors
+  
   createdAt: timestamp("created_at").defaultNow(),
 });
 
