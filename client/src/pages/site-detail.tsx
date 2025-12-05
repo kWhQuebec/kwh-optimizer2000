@@ -682,6 +682,30 @@ function AnalysisParametersEditor({
                 {language === "fr" ? "Contraintes de toiture" : "Roof Constraints"}
               </h4>
               
+              {/* Satellite Roof View */}
+              {site && site.latitude && site.longitude && site.roofAreaAutoSqM && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+                <div className="rounded-lg overflow-hidden border">
+                  <div className="relative">
+                    <iframe
+                      className="w-full h-48"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&center=${site.latitude},${site.longitude}&zoom=20&maptype=satellite`}
+                      title={language === "fr" ? "Vue satellite du toit" : "Satellite roof view"}
+                    />
+                    <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-sm rounded-md px-2 py-1 text-xs font-medium flex items-center gap-1.5">
+                      <Home className="w-3.5 h-3.5 text-primary" />
+                      {Math.round(site.roofAreaAutoSqM)} m² ({Math.round(site.roofAreaAutoSqM * 10.764)} pi²)
+                    </div>
+                    <div className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm rounded-md px-2 py-1 text-xs text-muted-foreground">
+                      {language === "fr" ? "Vue satellite" : "Satellite view"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Satellite Estimation Status & Button */}
               {site && (
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
@@ -873,11 +897,43 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
   const maxPVFromRoof = usableRoofSqFt / 100;
   const isRoofLimited = (simulation.pvSizeKW || 0) >= maxPVFromRoof * 0.95;
 
-  const loadProfileData = Array.from({ length: 24 }, (_, i) => ({
-    hour: `${i}h`,
-    consumption: Math.sin(i / 24 * Math.PI * 2) * 50 + 100 + Math.random() * 20,
-    production: i >= 6 && i <= 18 ? Math.sin((i - 6) / 12 * Math.PI) * 80 : 0,
-  }));
+  const loadProfileData = (() => {
+    const rawProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
+    if (!rawProfile || rawProfile.length === 0) {
+      return null;
+    }
+    
+    const byHour: Map<number, { 
+      consumptionSum: number; 
+      productionSum: number; 
+      count: number 
+    }> = new Map();
+    
+    for (const entry of rawProfile) {
+      const existing = byHour.get(entry.hour) || { 
+        consumptionSum: 0, 
+        productionSum: 0, 
+        count: 0 
+      };
+      existing.consumptionSum += entry.consumption;
+      existing.productionSum += entry.production;
+      existing.count++;
+      byHour.set(entry.hour, existing);
+    }
+    
+    const result = [];
+    for (let h = 0; h < 24; h++) {
+      const data = byHour.get(h);
+      if (data && data.count > 0) {
+        result.push({
+          hour: `${h}h`,
+          consumption: Math.round(data.consumptionSum / data.count),
+          production: Math.round(data.productionSum / data.count),
+        });
+      }
+    }
+    return result;
+  })();
 
   // Build hourly profile data from simulation.hourlyProfile
   const hourlyProfileData = (() => {
@@ -1073,40 +1129,46 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
             <CardTitle className="text-lg">{t("analysis.charts.loadProfile")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={loadProfileData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="hour" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px"
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="consumption" 
-                    stackId="1" 
-                    stroke="hsl(var(--chart-2))" 
-                    fill="hsl(var(--chart-2))" 
-                    fillOpacity={0.3}
-                    name="Consommation (kW)"
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="production" 
-                    stackId="2" 
-                    stroke="hsl(var(--chart-1))" 
-                    fill="hsl(var(--chart-1))" 
-                    fillOpacity={0.3}
-                    name="Production PV (kW)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {loadProfileData && loadProfileData.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={loadProfileData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="hour" className="text-xs" />
+                    <YAxis className="text-xs" label={{ value: "kWh", angle: -90, position: "insideLeft", style: { fontSize: 11 } }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px"
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="consumption" 
+                      stackId="1" 
+                      stroke="hsl(var(--chart-2))" 
+                      fill="hsl(var(--chart-2))" 
+                      fillOpacity={0.3}
+                      name={language === "fr" ? "Consommation (kWh)" : "Consumption (kWh)"}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="production" 
+                      stackId="2" 
+                      stroke="hsl(var(--chart-1))" 
+                      fill="hsl(var(--chart-1))" 
+                      fillOpacity={0.3}
+                      name={language === "fr" ? "Production PV (kWh)" : "PV Production (kWh)"}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                {language === "fr" ? "Données horaires non disponibles" : "Hourly data not available"}
+              </div>
+            )}
           </CardContent>
         </Card>
 

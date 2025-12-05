@@ -470,6 +470,68 @@ export async function registerRoutes(
     }
   });
 
+  // Endpoint to get roof imagery (dataLayers)
+  app.get("/api/sites/:id/roof-imagery", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.id;
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      if (!googleSolar.isGoogleSolarConfigured()) {
+        return res.status(503).json({ error: "Google Solar API not configured" });
+      }
+
+      let latitude = site.latitude;
+      let longitude = site.longitude;
+
+      // If no coordinates, try to geocode
+      if (!latitude || !longitude) {
+        const fullAddress = [
+          site.address,
+          site.city,
+          site.province,
+          site.postalCode,
+          "Canada"
+        ].filter(Boolean).join(", ");
+
+        if (!fullAddress || fullAddress === "Canada") {
+          return res.status(400).json({ error: "Site address is required for roof imagery" });
+        }
+
+        const location = await googleSolar.geocodeAddress(fullAddress);
+        if (!location) {
+          return res.status(422).json({ error: "Could not geocode address" });
+        }
+        latitude = location.latitude;
+        longitude = location.longitude;
+      }
+
+      const result = await googleSolar.getDataLayers({ latitude, longitude }, 75);
+
+      if (!result.success) {
+        return res.status(422).json({ 
+          error: result.error || "Could not get roof imagery for this location"
+        });
+      }
+
+      res.json({
+        success: true,
+        latitude,
+        longitude,
+        rgbUrl: result.rgbUrl,
+        maskUrl: result.maskUrl,
+        imageryDate: result.imageryDate,
+        imageryQuality: result.imageryQuality
+      });
+    } catch (error) {
+      console.error("Roof imagery error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== FILE UPLOAD ROUTES ====================
   
   app.post("/api/sites/:siteId/upload-meters", authMiddleware, upload.array("files"), async (req: AuthRequest, res) => {

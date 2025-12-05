@@ -231,3 +231,113 @@ export async function estimateRoofFromLocation(location: GeoLocation): Promise<R
 export function isGoogleSolarConfigured(): boolean {
   return !!GOOGLE_SOLAR_API_KEY;
 }
+
+export interface DataLayersResult {
+  success: boolean;
+  rgbUrl?: string;
+  maskUrl?: string;
+  dsmUrl?: string;
+  annualFluxUrl?: string;
+  imageryDate?: string;
+  imageryQuality?: string;
+  imageryProcessedDate?: string;
+  error?: string;
+}
+
+export async function getDataLayers(location: GeoLocation, radiusMeters: number = 50): Promise<DataLayersResult> {
+  if (!GOOGLE_SOLAR_API_KEY) {
+    return {
+      success: false,
+      error: "GOOGLE_SOLAR_API_KEY not configured"
+    };
+  }
+
+  try {
+    const params = new URLSearchParams({
+      "location.latitude": location.latitude.toFixed(6),
+      "location.longitude": location.longitude.toFixed(6),
+      "radiusMeters": radiusMeters.toString(),
+      "view": "IMAGERY_LAYERS",
+      "requiredQuality": "HIGH",
+      "key": GOOGLE_SOLAR_API_KEY
+    });
+
+    const url = `${GOOGLE_SOLAR_API_BASE}/dataLayers:get?${params}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Solar API dataLayers error:", response.status, errorText);
+      
+      if (response.status === 404) {
+        const mediumParams = new URLSearchParams({
+          "location.latitude": location.latitude.toFixed(6),
+          "location.longitude": location.longitude.toFixed(6),
+          "radiusMeters": radiusMeters.toString(),
+          "view": "IMAGERY_LAYERS",
+          "requiredQuality": "MEDIUM",
+          "key": GOOGLE_SOLAR_API_KEY
+        });
+        const mediumUrl = `${GOOGLE_SOLAR_API_BASE}/dataLayers:get?${mediumParams}`;
+        const mediumResponse = await fetch(mediumUrl);
+        
+        if (mediumResponse.ok) {
+          const data = await mediumResponse.json();
+          return formatDataLayersResponse(data);
+        }
+      }
+      
+      return {
+        success: false,
+        error: `API error: ${response.status}`
+      };
+    }
+
+    const data = await response.json();
+    return formatDataLayersResponse(data);
+  } catch (error) {
+    console.error("DataLayers error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}
+
+function formatDataLayersResponse(data: any): DataLayersResult {
+  let imageryDate: string | undefined;
+  if (data.imageryDate) {
+    const { year, month, day } = data.imageryDate;
+    imageryDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  
+  let imageryProcessedDate: string | undefined;
+  if (data.imageryProcessedDate) {
+    const { year, month, day } = data.imageryProcessedDate;
+    imageryProcessedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  
+  return {
+    success: true,
+    rgbUrl: data.rgbUrl,
+    maskUrl: data.maskUrl,
+    dsmUrl: data.dsmUrl,
+    annualFluxUrl: data.annualFluxUrl,
+    imageryDate,
+    imageryQuality: data.imageryQuality,
+    imageryProcessedDate
+  };
+}
+
+export async function getRoofImagery(address: string): Promise<DataLayersResult> {
+  const location = await geocodeAddress(address);
+  
+  if (!location) {
+    return {
+      success: false,
+      error: "Could not geocode address"
+    };
+  }
+  
+  return getDataLayers(location);
+}
