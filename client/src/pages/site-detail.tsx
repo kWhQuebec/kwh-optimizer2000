@@ -1567,17 +1567,38 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const [ppaRate, setPpaRate] = useState(0.08);
   const [leasePayment, setLeasePayment] = useState(500);
   
+  const breakdown = simulation.breakdown as FinancialBreakdown | null;
   const capexNet = simulation.capexNet || 0;
+  const capexGross = breakdown?.capexGross || capexNet;
   const annualSavings = simulation.annualSavings || 0;
   const annualProduction = simulation.annualEnergySavingsKWh || 0;
   
-  const loanAmount = capexNet * (1 - downPayment / 100);
+  // Incentive breakdown with timing
+  const hqSolar = breakdown?.actualHQSolar || 0;
+  const hqBattery = breakdown?.actualHQBattery || 0;
+  const federalITC = breakdown?.itcAmount || 0;
+  const taxShield = breakdown?.taxShield || 0;
+  
+  // Realistic cash flow timing for cash purchase:
+  // Day 0: Pay Gross CAPEX, receive HQ Solar rebate immediately (often direct to installer)
+  // Year 0: Receive 50% of HQ Battery rebate
+  // Year 1: Receive remaining 50% HQ Battery + Tax shield (CCA)
+  // Year 2: Federal ITC as tax credit
+  const upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5); // What client actually pays
+  const year1Returns = (hqBattery * 0.5) + taxShield;
+  const year2Returns = federalITC;
+  const totalIncentives = hqSolar + hqBattery + federalITC + taxShield;
+  
+  // Loan calculation: loan on gross CAPEX, incentives return separately
+  const loanDownPaymentAmount = capexGross * downPayment / 100;
+  const loanAmount = capexGross - loanDownPaymentAmount;
   const monthlyRate = interestRate / 100 / 12;
   const numPayments = loanTerm * 12;
   const monthlyPayment = monthlyRate > 0 
     ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1)
     : loanAmount / numPayments;
-  const totalLoanCost = monthlyPayment * numPayments + (capexNet * downPayment / 100);
+  const totalLoanPayments = monthlyPayment * numPayments + loanDownPaymentAmount; // Total cash out for loan
+  const effectiveLoanCost = totalLoanPayments - totalIncentives; // Net after incentives return
   
   const leaseTotalCost = leasePayment * 12 * 20;
   const ppaTotalCost = ppaRate * annualProduction * 20;
@@ -1595,7 +1616,8 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
       type: "cash" as const,
       icon: Wallet,
       label: t("financing.cash"),
-      totalCost: capexNet,
+      upfrontCost: upfrontCashNeeded, // Realistic cash needed at signing
+      totalCost: capexNet, // Net after all incentives return
       monthlyPayment: 0,
       netSavings: annualSavings * 20 - capexNet,
     },
@@ -1603,14 +1625,17 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
       type: "loan" as const,
       icon: CreditCard,
       label: t("financing.loan"),
-      totalCost: totalLoanCost,
+      upfrontCost: loanDownPaymentAmount,
+      totalCost: effectiveLoanCost, // Net after incentives return
+      totalPayments: totalLoanPayments, // Gross cash out
       monthlyPayment: monthlyPayment,
-      netSavings: annualSavings * 20 - totalLoanCost,
+      netSavings: annualSavings * 20 - effectiveLoanCost,
     },
     {
       type: "lease" as const,
       icon: FileCheck,
       label: t("financing.lease"),
+      upfrontCost: 0,
       totalCost: leaseTotalCost,
       monthlyPayment: leasePayment,
       netSavings: annualSavings * 20 - leaseTotalCost,
@@ -1619,6 +1644,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
       type: "ppa" as const,
       icon: Zap,
       label: t("financing.ppa"),
+      upfrontCost: 0,
       totalCost: ppaTotalCost,
       monthlyPayment: ppaTotalCost / 240,
       netSavings: annualSavings * 20 - ppaTotalCost,
@@ -1744,15 +1770,115 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
           </div>
         )}
         
+        {/* Cash Flow Timeline for Cash and Loan */}
+        {(financingType === "cash" || financingType === "loan") && totalIncentives > 0 && (
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              {language === "fr" ? "Flux de trésorerie réaliste" : "Realistic Cash Flow"}
+            </h4>
+            <div className="grid gap-2 text-sm">
+              {financingType === "cash" ? (
+                <>
+                  <div className="flex justify-between items-center py-1 border-b border-dashed">
+                    <span className="text-muted-foreground">
+                      {language === "fr" ? "Jour 0 — Paiement initial" : "Day 0 — Initial Payment"}
+                    </span>
+                    <span className="font-mono font-bold text-destructive">
+                      -{formatCurrency(upfrontCashNeeded)}
+                    </span>
+                  </div>
+                  {hqSolar > 0 && (
+                    <div className="flex justify-between items-center py-1 border-b border-dashed">
+                      <span className="text-muted-foreground text-xs">
+                        {language === "fr" ? "└ Incl. rabais HQ solaire" : "└ Incl. HQ solar rebate"}
+                      </span>
+                      <span className="font-mono text-xs text-primary">
+                        (-{formatCurrency(hqSolar)})
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center py-1 border-b border-dashed">
+                    <span className="text-muted-foreground">
+                      {language === "fr" ? "Jour 0 — Mise de fonds" : "Day 0 — Down Payment"}
+                    </span>
+                    <span className="font-mono font-bold text-destructive">
+                      -{formatCurrency(loanDownPaymentAmount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-dashed">
+                    <span className="text-muted-foreground">
+                      {language === "fr" ? `An 1-${loanTerm} — Paiements` : `Year 1-${loanTerm} — Payments`}
+                    </span>
+                    <span className="font-mono text-muted-foreground">
+                      {formatCurrency(monthlyPayment)}{language === "fr" ? "/mois" : "/mo"}
+                    </span>
+                  </div>
+                </>
+              )}
+              {year1Returns > 0 && (
+                <div className="flex justify-between items-center py-1 border-b border-dashed">
+                  <span className="text-muted-foreground">
+                    {language === "fr" ? "An 1 — Rabais HQ + Crédit CCA" : "Year 1 — HQ Rebate + CCA Credit"}
+                  </span>
+                  <span className="font-mono font-semibold text-primary">
+                    +{formatCurrency(year1Returns)}
+                  </span>
+                </div>
+              )}
+              {year2Returns > 0 && (
+                <div className="flex justify-between items-center py-1 border-b border-dashed">
+                  <span className="text-muted-foreground">
+                    {language === "fr" ? "An 2 — CII fédéral (30%)" : "Year 2 — Federal ITC (30%)"}
+                  </span>
+                  <span className="font-mono font-semibold text-primary">
+                    +{formatCurrency(year2Returns)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center py-1 pt-2 border-t">
+                <span className="font-medium">
+                  {language === "fr" ? "Coût net final" : "Final Net Cost"}
+                </span>
+                <span className="font-mono font-bold">
+                  {formatCurrency(financingType === "cash" ? capexNet : effectiveLoanCost)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-3 gap-4 pt-4 border-t">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-1">{t("financing.totalCost")}</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              {financingType === "cash" 
+                ? (language === "fr" ? "Mise de fonds" : "Upfront Cash")
+                : financingType === "loan"
+                  ? (language === "fr" ? "Coût net" : "Net Cost")
+                  : t("financing.totalCost")
+              }
+            </p>
             <p className="text-xl font-bold font-mono">
-              {formatCurrency(options.find(o => o.type === financingType)?.totalCost || 0)}
+              {formatCurrency(
+                financingType === "cash" 
+                  ? upfrontCashNeeded 
+                  : (options.find(o => o.type === financingType)?.totalCost || 0)
+              )}
             </p>
             {financingType === "cash" && (
               <p className="text-xs text-muted-foreground mt-1">
-                {language === "fr" ? "(après incitatifs)" : "(after incentives)"}
+                {language === "fr" ? `(net: ${formatCurrency(capexNet)})` : `(net: ${formatCurrency(capexNet)})`}
+              </p>
+            )}
+            {financingType === "loan" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === "fr" 
+                  ? `(paiements: ${formatCurrency(totalLoanPayments)})` 
+                  : `(payments: ${formatCurrency(totalLoanPayments)})`
+                }
               </p>
             )}
           </div>
