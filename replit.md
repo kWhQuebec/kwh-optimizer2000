@@ -36,6 +36,17 @@ The PostgreSQL database schema, managed by Drizzle ORM, includes core entities s
 
 The server-side data processing handles CSV parsing of Hydro-Québec consumption data, including auto-detection of file types, encoding, and missing data interpolation. An advanced analysis engine performs 8760-hour solar production simulations, battery peak-shaving, calculates Québec and Federal incentives, tax shields, and generates 25-year cashflows. A sensitivity analysis engine optimizes system sizing by sweeping different configurations and identifying the optimal point based on maximum NPV. The HQ Tariff Module incorporates official Hydro-Québec tariffs for various customer types. Analysis parameters are highly configurable.
 
+### Helioscope-Inspired System Modeling
+
+The hourly simulation engine includes professional-grade PV modeling parameters inspired by industry tools like Helioscope:
+
+- **Inverter Load Ratio (ILR/DC-AC Ratio)**: Configurable oversizing of DC array relative to inverter AC capacity (default 1.2, range 1.0-2.0). Accounts for inverter clipping during peak production hours.
+- **Temperature Coefficient**: Adjusts hourly PV output based on cell temperature using Quebec monthly temperature averages. Default -0.4%/°C typical for crystalline silicon modules. Uses cell temp model (ambient + 25°C).
+- **Wire Losses**: Conductor and wiring losses applied after temperature correction (default 2%, configurable 0-10%).
+- **Degradation Rate**: Annual panel degradation applied in all cashflow calculations and LCOE. Revenue for year Y = baseSavings × (1 - degradation)^(Y-1) × (1 + inflation)^(Y-1). Default 0.5%/year.
+
+These parameters are exposed in the Analysis Parameters Editor with bilingual labels and persist with simulation runs.
+
 ### UI Visualization
 
 The UI uses Recharts for interactive charts displaying consumption profiles, production simulations, and financial projections. shadcn/ui table components are used for BOMs and detailed metrics. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display with key KPIs, and an Optimization Analysis Section with interactive charts for efficiency frontier, solar size, and battery size optimization.
