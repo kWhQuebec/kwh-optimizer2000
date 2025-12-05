@@ -2029,6 +2029,19 @@ function runPotentialAnalysis(
       capexNet: optCapexNet,
     };
     
+    // REGENERATE sensitivity with the FINAL sizing and NPV so charts match KPIs
+    // This ensures the "current-config" point shows the actual NPV being displayed
+    const finalSensitivity = runSensitivityAnalysis(
+      hourlyData,
+      optPvSizeKW,
+      optBattEnergyKWh,
+      optBattPowerKW,
+      peakKW,
+      annualConsumptionKWh,
+      h,
+      optNpv25  // Pass the FINAL NPV from the recalculation
+    );
+    
     return {
       pvSizeKW: optPvSizeKW,
       battEnergyKWh: optBattEnergyKWh,
@@ -2068,7 +2081,7 @@ function runPotentialAnalysis(
       breakdown: optBreakdown,
       hourlyProfile: optSimResult.hourlyProfile,
       peakWeekData: optSimResult.peakWeekData,
-      sensitivity,
+      sensitivity: finalSensitivity,  // Use regenerated sensitivity
       interpolatedMonths,
     };
   }
