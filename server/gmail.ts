@@ -198,6 +198,12 @@ export function generatePortalInvitationEmail(params: {
 }): { subject: string; htmlBody: string; textBody: string } {
   const { clientName, contactName, email, tempPassword, portalUrl, language } = params;
   
+  // Extract base URL for logo
+  const baseUrl = portalUrl.replace(/\/app\/.*$/, '').replace(/\/$/, '');
+  const logoUrl = language === 'fr' 
+    ? `${baseUrl}/assets/logo-fr.png`
+    : `${baseUrl}/assets/logo-en.png`;
+  
   if (language === 'fr') {
     return {
       subject: `Accès au portail client kWh Québec - ${clientName}`,
@@ -210,21 +216,20 @@ export function generatePortalInvitationEmail(params: {
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8f 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-    .header h1 { margin: 0; font-size: 24px; }
+    .header h1 { margin: 0; font-size: 24px; margin-top: 15px; }
+    .header img { max-width: 200px; height: auto; }
     .content { background: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
     .credentials { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f5a623; }
     .credentials p { margin: 8px 0; }
     .credentials strong { color: #1e3a5f; }
     .button { display: inline-block; background: #f5a623; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-    .logo { font-size: 28px; font-weight: bold; }
-    .logo span { color: #f5a623; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">kWh<span>Québec</span></div>
+      <img src="${logoUrl}" alt="kWh Québec" />
       <h1>Bienvenue sur le portail client</h1>
     </div>
     <div class="content">
@@ -289,21 +294,20 @@ L'équipe kWh Québec`
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8f 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-    .header h1 { margin: 0; font-size: 24px; }
+    .header h1 { margin: 0; font-size: 24px; margin-top: 15px; }
+    .header img { max-width: 200px; height: auto; }
     .content { background: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
     .credentials { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f5a623; }
     .credentials p { margin: 8px 0; }
     .credentials strong { color: #1e3a5f; }
     .button { display: inline-block; background: #f5a623; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-    .logo { font-size: 28px; font-weight: bold; }
-    .logo span { color: #f5a623; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">kWh<span>Québec</span></div>
+      <img src="${logoUrl}" alt="kWh Québec" />
       <h1>Welcome to the Client Portal</h1>
     </div>
     <div class="content">

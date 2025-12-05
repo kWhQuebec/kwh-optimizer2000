@@ -25,6 +25,8 @@ const translations: Translations = {
   "nav.designs": { fr: "Designs", en: "Designs" },
   "nav.catalog": { fr: "Catalogue", en: "Catalog" },
   "nav.methodology": { fr: "Méthodologie", en: "Methodology" },
+  "nav.userManagement": { fr: "Gestion des utilisateurs", en: "User Management" },
+  "nav.userSites": { fr: "Sites utilisateur", en: "User Sites" },
 
   // Landing Page
   "landing.hero.title": { fr: "Optimisez votre facture d'électricité", en: "Optimize your electricity bill" },

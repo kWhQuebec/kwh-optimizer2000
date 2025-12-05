@@ -1870,14 +1870,21 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                         <Cell key={`hybrid-${index}`} fillOpacity={entry.npv25 >= 0 ? 1 : 0.25} />
                       ))}
                     </Scatter>
-                    {/* Optimal point highlighted with special marker */}
+                    {/* Optimal point highlighted with special marker - uses type color with star shape */}
                     <Scatter
-                      name={language === "fr" ? "Optimal" : "Optimal"}
+                      name={language === "fr" ? "Optimal ★" : "Optimal ★"}
                       data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.isOptimal)}
-                      fill="#FFD700"
-                      stroke="#000"
-                      strokeWidth={2}
-                      shape="star"
+                      shape={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        const color = payload.type === 'solar' ? '#FFB005' : 
+                                      payload.type === 'battery' ? '#003DA6' : '#22C55E';
+                        return (
+                          <g>
+                            <circle cx={cx} cy={cy} r={12} fill={color} stroke="#000" strokeWidth={3} />
+                            <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={10} fill="#fff" fontWeight="bold">★</text>
+                          </g>
+                        );
+                      }}
                     />
                   </ScatterChart>
                 </ResponsiveContainer>
@@ -2195,15 +2202,15 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                 })()}
               </div>
 
-              {/* Battery Size Optimization - Shows hybrid (PV+Battery) economics */}
+              {/* Battery Size Optimization - Shows battery-only economics */}
               <div>
                 <h4 className="text-sm font-semibold mb-4">
-                  {language === "fr" ? "Impact taille batterie sur système hybride" : "Battery Size Impact on Hybrid System"}
+                  {language === "fr" ? "Optimisation taille batterie (VAN vs kWh)" : "Battery Size Optimization (NPV vs kWh)"}
                 </h4>
                 <p className="text-xs text-muted-foreground -mt-3 mb-3">
                   {language === "fr" 
-                    ? `VAN du système PV + batterie combiné` 
-                    : `NPV of combined PV + battery system`}
+                    ? `VAN du stockage seul (sans PV)` 
+                    : `Storage-only NPV (no PV)`}
                 </p>
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
@@ -2293,7 +2300,7 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                   }
                   return (
                     <p className="text-xs text-amber-600 mt-2">
-                      {language === "fr" ? "Aucune taille de batterie n'améliore la VAN du système" : "No battery size improves system NPV"}
+                      {language === "fr" ? "Stockage seul non rentable (VAN négative)" : "Storage alone not profitable (negative NPV)"}
                     </p>
                   );
                 })()}

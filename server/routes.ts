@@ -152,6 +152,27 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
+  // ==================== STATIC ASSETS (LOGOS) ====================
+  
+  // Serve logo images for emails - publicly accessible
+  app.get("/assets/logo-fr.png", (req, res) => {
+    const logoPath = path.resolve("attached_assets/kWh_Quebec_Logo-01_1764778562811.png");
+    if (fs.existsSync(logoPath)) {
+      res.sendFile(logoPath);
+    } else {
+      res.status(404).send("Logo not found");
+    }
+  });
+  
+  app.get("/assets/logo-en.png", (req, res) => {
+    const logoPath = path.resolve("attached_assets/kWh_Quebec_Logo_Black_Eng-01_1764778562808.png");
+    if (fs.existsSync(logoPath)) {
+      res.sendFile(logoPath);
+    } else {
+      res.status(404).send("Logo not found");
+    }
+  });
+
   // ==================== AUTH ROUTES ====================
   
   app.post("/api/auth/login", async (req, res) => {
@@ -2616,22 +2637,30 @@ function runSensitivityAnalysis(
     }
   }
   
-  // Battery sweep: 0 to 200% of optimal battery in ~10 steps, with optimal PV
-  // Shows how battery sizing affects the hybrid (PV+battery) system economics
+  // Battery sweep: 0 to 200% of optimal battery in ~10 steps, with NO PV
+  // Shows battery-only economics (matching the Storage points on the frontier)
   const batterySteps = 10;
   const batteryMax = Math.max(optimalBattEnergyKWh * 2, 500);
   const batteryStep = Math.max(20, Math.round(batteryMax / batterySteps / 10) * 10);
   
   for (let battSize = 0; battSize <= batteryMax; battSize += batteryStep) {
     const battPower = Math.round(battSize / 2); // 2-hour duration
+    // Run with PV = 0 for battery-only economics
     const result = runScenarioWithSizing(
-      hourlyData, optimalPvSizeKW, battSize, battPower,
+      hourlyData, 0, battSize, battPower,
       peakKW, annualConsumptionKWh, assumptions
     );
     batterySweep.push({ battEnergyKWh: battSize, npv25: result.npv25 });
-    
-    // Add to frontier as hybrid
-    if (battSize > 0 && optimalPvSizeKW > 0) {
+  }
+  
+  // Add hybrid frontier points separately (varying battery at optimal PV)
+  for (let battSize = batteryStep; battSize <= batteryMax; battSize += batteryStep) {
+    if (optimalPvSizeKW > 0) {
+      const battPower = Math.round(battSize / 2);
+      const result = runScenarioWithSizing(
+        hourlyData, optimalPvSizeKW, battSize, battPower,
+        peakKW, annualConsumptionKWh, assumptions
+      );
       frontier.push({
         id: `hybrid-batt${battSize}`,
         type: 'hybrid',
@@ -2655,7 +2684,7 @@ function runSensitivityAnalysis(
     frontier.push({
       id: `solar-${pvSize}`,
       type: 'solar',
-      label: `${pvSize}kW PV seul`,
+      label: `${pvSize}kW solar only`,
       pvSizeKW: pvSize,
       battEnergyKWh: 0,
       battPowerKW: 0,
@@ -2675,7 +2704,7 @@ function runSensitivityAnalysis(
     frontier.push({
       id: `battery-${battSize}`,
       type: 'battery',
-      label: `${battSize}kWh batterie seule`,
+      label: `${battSize}kWh storage only`,
       pvSizeKW: 0,
       battEnergyKWh: battSize,
       battPowerKW: battPower,
