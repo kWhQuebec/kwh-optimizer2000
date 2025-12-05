@@ -41,7 +41,8 @@ import {
   Copy,
   CreditCard,
   Wallet,
-  FileCheck
+  FileCheck,
+  Check
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -1148,7 +1149,17 @@ function DownloadReportButton({ simulationId }: { simulationId: string }) {
 const MONTH_NAMES_FR = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const MONTH_NAMES_EN = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[]; site: SiteWithDetails }) {
+function ScenarioComparison({ 
+  simulations, 
+  site, 
+  selectedSimulationId, 
+  onSelectSimulation 
+}: { 
+  simulations: SimulationRun[]; 
+  site: SiteWithDetails;
+  selectedSimulationId?: string;
+  onSelectSimulation?: (simulationId: string) => void;
+}) {
   const { t, language } = useI18n();
   
   const validScenarios = simulations.filter(s => 
@@ -1214,6 +1225,7 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
   };
   
   const comparisonData = validScenarios.map((sim, index) => ({
+    id: sim.id,
     name: getScenarioLabel(sim, index),
     color: getScenarioColor(index),
     pvSize: sim.pvSizeKW || 0,
@@ -1275,56 +1287,90 @@ function ScenarioComparison({ simulations, site }: { simulations: SimulationRun[
                   <TableHead className="text-right">
                     {t("compare.co2")}
                   </TableHead>
+                  {onSelectSimulation && (
+                    <TableHead className="text-center w-[100px]">
+                      {language === "fr" ? "Sélectionner" : "Select"}
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {comparisonData.map((row, index) => (
-                  <TableRow key={index} className="hover:bg-muted/50" data-testid={`row-scenario-${index}`}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: row.color }}
-                        />
-                        <span className="font-medium" data-testid={`text-scenario-name-${index}`}>{row.name}</span>
-                        {bestNPV !== null && row.npv20 === bestNPV && row.npv20 > 0 && (
-                          <Badge variant="default" className="text-xs gap-1" data-testid={`badge-best-${index}`}>
-                            <Award className="w-3 h-3" />
-                            {t("compare.best")}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono" data-testid={`text-pv-${index}`}>
-                      {formatNumber(row.pvSize, 0)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono" data-testid={`text-battery-${index}`}>
-                      {row.batterySize > 0 ? formatNumber(row.batterySize, 0) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right font-mono" data-testid={`text-capex-${index}`}>
-                      {formatCurrency(row.capexNet)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-primary" data-testid={`text-savings-${index}`}>
-                      {formatCurrency(row.annualSavings)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono" data-testid={`text-npv-${index}`}>
-                      <span className={bestNPV !== null && row.npv20 === bestNPV ? "text-primary font-bold" : ""}>
-                        {formatCurrency(row.npv20)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono" data-testid={`text-irr-${index}`}>
-                      {formatPercent(row.irr20)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono" data-testid={`text-payback-${index}`}>
-                      <span className={bestPayback !== null && row.payback === bestPayback && row.payback > 0 ? "text-primary font-bold" : ""}>
-                        {row.payback > 0 ? `${formatNumber(row.payback, 1)} ${t("compare.years")}` : "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-green-600" data-testid={`text-co2-${index}`}>
-                      {formatNumber(row.co2, 1)} t
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {comparisonData.map((row, index) => {
+                  const isSelected = selectedSimulationId === row.id;
+                  return (
+                    <TableRow 
+                      key={index} 
+                      className={`hover:bg-muted/50 ${isSelected ? "bg-primary/10 border-l-4 border-l-primary" : ""}`} 
+                      data-testid={`row-scenario-${index}`}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: row.color }}
+                          />
+                          <span className="font-medium" data-testid={`text-scenario-name-${index}`}>{row.name}</span>
+                          {bestNPV !== null && row.npv20 === bestNPV && row.npv20 > 0 && (
+                            <Badge variant="default" className="text-xs gap-1" data-testid={`badge-best-${index}`}>
+                              <Award className="w-3 h-3" />
+                              {t("compare.best")}
+                            </Badge>
+                          )}
+                          {isSelected && (
+                            <Badge variant="outline" className="text-xs gap-1 border-primary text-primary" data-testid={`badge-selected-${index}`}>
+                              <Check className="w-3 h-3" />
+                              {language === "fr" ? "Affiché" : "Displayed"}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono" data-testid={`text-pv-${index}`}>
+                        {formatNumber(row.pvSize, 0)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono" data-testid={`text-battery-${index}`}>
+                        {row.batterySize > 0 ? formatNumber(row.batterySize, 0) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right font-mono" data-testid={`text-capex-${index}`}>
+                        {formatCurrency(row.capexNet)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-primary" data-testid={`text-savings-${index}`}>
+                        {formatCurrency(row.annualSavings)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono" data-testid={`text-npv-${index}`}>
+                        <span className={bestNPV !== null && row.npv20 === bestNPV ? "text-primary font-bold" : ""}>
+                          {formatCurrency(row.npv20)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-mono" data-testid={`text-irr-${index}`}>
+                        {formatPercent(row.irr20)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono" data-testid={`text-payback-${index}`}>
+                        <span className={bestPayback !== null && row.payback === bestPayback && row.payback > 0 ? "text-primary font-bold" : ""}>
+                          {row.payback > 0 ? `${formatNumber(row.payback, 1)} ${t("compare.years")}` : "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-green-600" data-testid={`text-co2-${index}`}>
+                        {formatNumber(row.co2, 1)} t
+                      </TableCell>
+                      {onSelectSimulation && (
+                        <TableCell className="text-center">
+                          <Button
+                            variant={isSelected ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => onSelectSimulation(row.id)}
+                            data-testid={`button-select-scenario-${index}`}
+                          >
+                            {isSelected ? (
+                              <Check className="w-4 h-4" />
+                            ) : (
+                              language === "fr" ? "Afficher" : "View"
+                            )}
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -3606,6 +3652,7 @@ export default function SiteDetailPage() {
   const [activeTab, setActiveTab] = useState("consumption");
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
   const [assumptionsInitialized, setAssumptionsInitialized] = useState(false);
+  const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
 
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
     queryKey: ["/api/sites", id],
@@ -3654,13 +3701,38 @@ export default function SiteDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
       toast({ title: language === "fr" ? "Analyse terminée avec succès" : "Analysis completed successfully" });
       setActiveTab("analysis");
+      setSelectedSimulationId(null); // Reset selection so it picks the best new scenario
     },
     onError: () => {
       toast({ title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis", variant: "destructive" });
     },
   });
 
-  const latestSimulation = site?.simulationRuns?.find(s => s.type === "SCENARIO") || site?.simulationRuns?.[0];
+  // Get valid scenarios for comparison
+  const validScenarios = site?.simulationRuns?.filter(s => 
+    s.type === "SCENARIO" && 
+    (s.pvSizeKW !== null || s.battEnergyKWh !== null) &&
+    s.npv20 !== null
+  ) || [];
+
+  // Find the best scenario by NPV
+  const bestScenarioByNPV = validScenarios.length > 0 
+    ? validScenarios.reduce((best, current) => 
+        (current.npv20 || 0) > (best.npv20 || 0) ? current : best
+      )
+    : null;
+
+  // Initialize selected simulation with the best scenario when site loads
+  useEffect(() => {
+    if (site && bestScenarioByNPV && !selectedSimulationId) {
+      setSelectedSimulationId(bestScenarioByNPV.id);
+    }
+  }, [site, bestScenarioByNPV, selectedSimulationId]);
+
+  // The simulation to display - either selected one or fallback to latest/best
+  const latestSimulation = selectedSimulationId 
+    ? site?.simulationRuns?.find(s => s.id === selectedSimulationId)
+    : (bestScenarioByNPV || site?.simulationRuns?.find(s => s.type === "SCENARIO") || site?.simulationRuns?.[0]);
 
   if (isLoading) {
     return (
@@ -3930,7 +4002,21 @@ export default function SiteDetailPage() {
         </TabsContent>
 
         <TabsContent value="compare" className="space-y-6">
-          <ScenarioComparison simulations={site.simulationRuns || []} site={site} />
+          <ScenarioComparison 
+            simulations={site.simulationRuns || []} 
+            site={site} 
+            selectedSimulationId={selectedSimulationId || undefined}
+            onSelectSimulation={(simId) => {
+              setSelectedSimulationId(simId);
+              setActiveTab("analysis");
+              toast({ 
+                title: language === "fr" ? "Scénario sélectionné" : "Scenario selected",
+                description: language === "fr" 
+                  ? "Les résultats affichés correspondent maintenant au scénario choisi."
+                  : "The displayed results now correspond to the selected scenario."
+              });
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>
