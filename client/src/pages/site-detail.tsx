@@ -1794,44 +1794,6 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
   const maxPVFromRoof = usableRoofSqFt / 100;
   const isRoofLimited = (simulation.pvSizeKW || 0) >= maxPVFromRoof * 0.95;
 
-  const loadProfileData = (() => {
-    const rawProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
-    if (!rawProfile || rawProfile.length === 0) {
-      return null;
-    }
-    
-    const byHour: Map<number, { 
-      consumptionSum: number; 
-      productionSum: number; 
-      count: number 
-    }> = new Map();
-    
-    for (const entry of rawProfile) {
-      const existing = byHour.get(entry.hour) || { 
-        consumptionSum: 0, 
-        productionSum: 0, 
-        count: 0 
-      };
-      existing.consumptionSum += entry.consumption;
-      existing.productionSum += entry.production;
-      existing.count++;
-      byHour.set(entry.hour, existing);
-    }
-    
-    const result = [];
-    for (let h = 0; h < 24; h++) {
-      const data = byHour.get(h);
-      if (data && data.count > 0) {
-        result.push({
-          hour: `${h}h`,
-          consumption: Math.round(data.consumptionSum / data.count),
-          production: Math.round(data.productionSum / data.count),
-        });
-      }
-    }
-    return result;
-  })();
-
   // Build hourly profile data from simulation.hourlyProfile
   const hourlyProfileData = (() => {
     const rawProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
@@ -2201,140 +2163,90 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         );
       })()}
 
-      {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{t("analysis.charts.loadProfile")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadProfileData && loadProfileData.length > 0 ? (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={loadProfileData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="hour" className="text-xs" />
-                    <YAxis className="text-xs" label={{ value: "kWh", angle: -90, position: "insideLeft", style: { fontSize: 11 } }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="consumption" 
-                      stackId="1" 
-                      stroke="hsl(var(--chart-2))" 
-                      fill="hsl(var(--chart-2))" 
-                      fillOpacity={0.3}
-                      name={language === "fr" ? "Consommation (kWh)" : "Consumption (kWh)"}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="production" 
-                      stackId="2" 
-                      stroke="hsl(var(--chart-1))" 
-                      fill="hsl(var(--chart-1))" 
-                      fillOpacity={0.3}
-                      name={language === "fr" ? "Production PV (kWh)" : "PV Production (kWh)"}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                {language === "fr" ? "Données horaires non disponibles" : "Hourly data not available"}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              {language === "fr" ? "Profil moyen (Avant vs Après)" : "Average Profile (Before vs After)"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {hourlyProfileData && hourlyProfileData.length > 0 ? (
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={hourlyProfileData} margin={{ top: 10, right: 40, left: 10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis 
-                      dataKey="hour" 
-                      className="text-xs"
-                      label={{ value: language === "fr" ? "Heure" : "Hour", position: "bottom", offset: 0, style: { fontSize: 11 } }}
-                    />
-                    <YAxis 
-                      yAxisId="left"
-                      className="text-xs" 
-                      label={{ value: "kWh", angle: -90, position: "insideLeft", style: { fontSize: 11 } }}
-                    />
-                    <YAxis 
-                      yAxisId="right" 
-                      orientation="right" 
-                      className="text-xs"
-                      label={{ value: "kW", angle: 90, position: "insideRight", style: { fontSize: 11 } }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }}
-                    />
-                    <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: 10 }} />
-                    {/* Consumption bars */}
-                    <Bar 
-                      yAxisId="left"
-                      dataKey="consumptionBefore" 
-                      fill="hsl(var(--muted-foreground))" 
-                      fillOpacity={0.4}
-                      name={language === "fr" ? "kWh Avant" : "kWh Before"} 
-                      radius={[2, 2, 0, 0]} 
-                      barSize={8}
-                    />
-                    <Bar 
-                      yAxisId="left"
-                      dataKey="consumptionAfter" 
-                      fill="hsl(var(--primary))" 
-                      name={language === "fr" ? "kWh Après" : "kWh After"} 
-                      radius={[2, 2, 0, 0]} 
-                      barSize={8}
-                    />
-                    {/* Peak lines */}
-                    <Line 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="peakBefore" 
-                      stroke="#1a1a1a" 
-                      strokeWidth={2}
-                      dot={false}
-                      name={language === "fr" ? "kW Avant" : "kW Before"}
-                    />
-                    <Line 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="peakAfter" 
-                      stroke="#FFB005" 
-                      strokeWidth={2}
-                      dot={false}
-                      name={language === "fr" ? "kW Après" : "kW After"}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                {language === "fr" ? "Données horaires non disponibles" : "Hourly data not available"}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Average Profile Chart - Full Width */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            {language === "fr" ? "Profil moyen (Avant vs Après)" : "Average Profile (Before vs After)"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hourlyProfileData && hourlyProfileData.length > 0 ? (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={hourlyProfileData} margin={{ top: 10, right: 40, left: 10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="hour" 
+                    className="text-xs"
+                    label={{ value: language === "fr" ? "Heure" : "Hour", position: "bottom", offset: 0, style: { fontSize: 11 } }}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    className="text-xs" 
+                    label={{ value: "kWh", angle: -90, position: "insideLeft", style: { fontSize: 11 } }}
+                  />
+                  <YAxis 
+                    yAxisId="right" 
+                    orientation="right" 
+                    className="text-xs"
+                    label={{ value: "kW", angle: 90, position: "insideRight", style: { fontSize: 11 } }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px"
+                    }}
+                  />
+                  <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: 10 }} />
+                  {/* Consumption bars */}
+                  <Bar 
+                    yAxisId="left"
+                    dataKey="consumptionBefore" 
+                    fill="hsl(var(--muted-foreground))" 
+                    fillOpacity={0.4}
+                    name={language === "fr" ? "kWh Avant" : "kWh Before"} 
+                    radius={[2, 2, 0, 0]} 
+                    barSize={8}
+                  />
+                  <Bar 
+                    yAxisId="left"
+                    dataKey="consumptionAfter" 
+                    fill="hsl(var(--primary))" 
+                    name={language === "fr" ? "kWh Après" : "kWh After"} 
+                    radius={[2, 2, 0, 0]} 
+                    barSize={8}
+                  />
+                  {/* Peak lines */}
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="peakBefore" 
+                    stroke="#1a1a1a" 
+                    strokeWidth={2}
+                    dot={false}
+                    name={language === "fr" ? "kW Avant" : "kW Before"}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="peakAfter" 
+                    stroke="#FFB005" 
+                    strokeWidth={2}
+                    dot={false}
+                    name={language === "fr" ? "kW Après" : "kW After"}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-muted-foreground">
+              {language === "fr" ? "Données horaires non disponibles" : "Hourly data not available"}
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
       {/* 25-Year Cashflow Chart */}
       {cashflowChartData.length > 0 && (
