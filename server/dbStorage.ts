@@ -24,7 +24,11 @@ export class DatabaseStorage implements IStorage {
     // Check for new admin email first
     const existingAdmin = await db.select().from(users).where(eq(users.email, "info@kwh.quebec")).limit(1);
     if (existingAdmin.length === 0) {
-      const passwordHash = await bcrypt.hash("KiloWattHeureQc1$", 10);
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      if (!adminPassword) {
+        throw new Error("ADMIN_PASSWORD environment variable is required");
+      }
+      const passwordHash = await bcrypt.hash(adminPassword, 10);
       await db.insert(users).values({
         email: "info@kwh.quebec",
         passwordHash,
