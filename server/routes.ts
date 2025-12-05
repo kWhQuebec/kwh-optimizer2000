@@ -2616,21 +2616,27 @@ function runSensitivityAnalysis(
     }
   }
   
-  // Battery sweep: 0 to 200% of optimal battery in ~10 steps, with optimal PV
+  // Battery sweep: 0 to 200% of optimal battery in ~10 steps
+  // Uses battery-ONLY economics (no PV) to match frontier battery points
   const batterySteps = 10;
   const batteryMax = Math.max(optimalBattEnergyKWh * 2, 500);
   const batteryStep = Math.max(20, Math.round(batteryMax / batterySteps / 10) * 10);
   
   for (let battSize = 0; battSize <= batteryMax; battSize += batteryStep) {
     const battPower = Math.round(battSize / 2); // 2-hour duration
-    const result = runScenarioWithSizing(
-      hourlyData, optimalPvSizeKW, battSize, battPower,
+    // Battery-only economics (0 PV) for consistency with frontier storage points
+    const resultBatteryOnly = runScenarioWithSizing(
+      hourlyData, 0, battSize, battPower,
       peakKW, annualConsumptionKWh, assumptions
     );
-    batterySweep.push({ battEnergyKWh: battSize, npv25: result.npv25 });
+    batterySweep.push({ battEnergyKWh: battSize, npv25: resultBatteryOnly.npv25 });
     
-    // Add to frontier as hybrid
+    // Also calculate hybrid scenario for frontier (with optimal PV)
     if (battSize > 0 && optimalPvSizeKW > 0) {
+      const resultHybrid = runScenarioWithSizing(
+        hourlyData, optimalPvSizeKW, battSize, battPower,
+        peakKW, annualConsumptionKWh, assumptions
+      );
       frontier.push({
         id: `hybrid-batt${battSize}`,
         type: 'hybrid',
@@ -2638,8 +2644,8 @@ function runSensitivityAnalysis(
         pvSizeKW: optimalPvSizeKW,
         battEnergyKWh: battSize,
         battPowerKW: battPower,
-        capexNet: result.capexNet,
-        npv25: result.npv25,
+        capexNet: resultHybrid.capexNet,
+        npv25: resultHybrid.npv25,
         isOptimal: battSize === optimalBattEnergyKWh,
       });
     }
