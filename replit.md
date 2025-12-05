@@ -93,6 +93,14 @@ The application uses a unified TypeScript codebase with client-side React and se
 - Handles Latin-1 encoding, semicolon delimiters, French decimal format
 - Accent-insensitive header detection for reliable parsing
 
+**Missing Data Interpolation**: Smart handling of incomplete consumption data
+- Detects months with no consumption data in uploaded CSV files
+- Interpolates missing months using average of adjacent months (e.g., Jan + Mar for Feb)
+- Circular wrap-around for edge months (December uses Nov/Jan, January uses Dec/Feb)
+- Defaults to zero when no adjacent data available (prevents NaN propagation)
+- Tracks interpolated months and displays amber warning badge in UI
+- Documented in Méthodologie page under "Interpolation des Données Manquantes"
+
 **Advanced Analysis Engine** (server/routes.ts - `runPotentialAnalysis`):
 - 8760-hour solar production simulation using Gaussian curve + seasonal adjustment
 - Battery peak-shaving algorithm with SOC tracking
