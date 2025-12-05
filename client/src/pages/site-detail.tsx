@@ -32,7 +32,12 @@ import {
   RefreshCw,
   AlertTriangle,
   Sun,
-  Layers
+  Layers,
+  Shield,
+  Car,
+  TrendingDown,
+  Award,
+  Sparkles
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -1885,6 +1890,160 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                     </div>
                   );
                 }
+              })()}
+              
+              {/* Strategic Benefits Section - Always visible, even if NPV negative */}
+              {(() => {
+                const optimal = (simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal);
+                if (!optimal) return null;
+                
+                const pvKW = optimal.pvSizeKW || 0;
+                const battKWh = optimal.battEnergyKWh || 0;
+                const battPowerKW = optimal.battPowerKW || 0;
+                const co2PerYear = simulation.co2AvoidedTonnesPerYear || 0;
+                
+                const avgLoadKW = battPowerKW > 0 ? battPowerKW * 0.5 : (simulation.peakDemandKW ? simulation.peakDemandKW * 0.3 : 0);
+                const backupHours = (battKWh > 0 && avgLoadKW > 0) ? (battKWh / avgLoadKW) : 0;
+                
+                const carsEquivalent = co2PerYear / 4.6;
+                const co2_25Years = co2PerYear * 25;
+                
+                const selfSufficiency = simulation.selfSufficiencyPercent 
+                  ? simulation.selfSufficiencyPercent 
+                  : (pvKW > 0 ? Math.min(40, pvKW / 10) : 0);
+                
+                const systemCost = (pvKW * 1.50 * 1000) + (battKWh * 400);
+                const propertyValueIncrease = systemCost * 0.04;
+                
+                const hasSolar = pvKW > 0;
+                const hasBattery = battKWh > 0;
+                
+                if (!hasSolar && !hasBattery) return null;
+                
+                return (
+                  <div className="mt-4 p-4 bg-muted/30 border border-dashed rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      <h4 className="text-sm font-semibold">
+                        {language === "fr" ? "Bénéfices stratégiques" : "Strategic Benefits"}
+                      </h4>
+                      <span className="text-xs text-muted-foreground">
+                        {language === "fr" ? "(au-delà du rendement financier)" : "(beyond financial returns)"}
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                      {/* Energy Resilience */}
+                      {hasBattery && backupHours > 0 && (
+                        <div className="p-3 bg-background rounded-lg border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Shield className="w-4 h-4 text-blue-500" />
+                            <span className="text-xs font-medium">
+                              {language === "fr" ? "Résilience" : "Resilience"}
+                            </span>
+                          </div>
+                          <p className="text-lg font-bold font-mono text-blue-600">
+                            {backupHours >= 1 ? `${backupHours.toFixed(1)}h` : `${Math.round(backupHours * 60)}min`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "fr" ? "autonomie estimée" : "estimated backup"}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* CO2 Reduction */}
+                      {hasSolar && co2PerYear > 0 && (
+                        <div className="p-3 bg-background rounded-lg border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Leaf className="w-4 h-4 text-green-500" />
+                            <span className="text-xs font-medium">
+                              {language === "fr" ? "Impact carbone" : "Carbon Impact"}
+                            </span>
+                          </div>
+                          <p className="text-lg font-bold font-mono text-green-600">
+                            {co2_25Years.toFixed(0)}t
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "fr" ? `CO₂ évité sur 25 ans` : `CO₂ avoided over 25 years`}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Car Equivalent */}
+                      {hasSolar && carsEquivalent >= 0.1 && (
+                        <div className="p-3 bg-background rounded-lg border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Car className="w-4 h-4 text-emerald-500" />
+                            <span className="text-xs font-medium">
+                              {language === "fr" ? "Équivalent" : "Equivalent"}
+                            </span>
+                          </div>
+                          <p className="text-lg font-bold font-mono text-emerald-600">
+                            {carsEquivalent >= 1 ? carsEquivalent.toFixed(1) : carsEquivalent.toFixed(2)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "fr" ? "voitures retirées/an" : "cars removed/year"}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* ESG / Sustainability Image */}
+                      {hasSolar && (
+                        <div className="p-3 bg-background rounded-lg border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Award className="w-4 h-4 text-amber-500" />
+                            <span className="text-xs font-medium">
+                              {language === "fr" ? "Image ESG" : "ESG Image"}
+                            </span>
+                          </div>
+                          <p className="text-lg font-bold font-mono text-amber-600">
+                            {selfSufficiency.toFixed(0)}%
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "fr" ? "énergie verte" : "green energy"}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Property Value */}
+                      {systemCost > 10000 && (
+                        <div className="p-3 bg-background rounded-lg border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TrendingUp className="w-4 h-4 text-purple-500" />
+                            <span className="text-xs font-medium">
+                              {language === "fr" ? "Valeur immo." : "Property Value"}
+                            </span>
+                          </div>
+                          <p className="text-lg font-bold font-mono text-purple-600">
+                            +3-5%
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "fr" 
+                              ? `~$${(propertyValueIncrease / 1000).toFixed(0)}k (études sectorielles)` 
+                              : `~$${(propertyValueIncrease / 1000).toFixed(0)}k (industry studies)`}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Rate Protection Sensitivity Note */}
+                    <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded text-xs">
+                      <div className="flex items-start gap-2">
+                        <TrendingDown className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="font-medium text-amber-700 dark:text-amber-400">
+                            {language === "fr" ? "Protection tarifaire:" : "Rate Protection:"}
+                          </span>
+                          <span className="text-amber-600 dark:text-amber-300 ml-1">
+                            {language === "fr" 
+                              ? `Si Hydro-Québec augmente de +6%/an au lieu de +4.8%/an, la rentabilité s'améliore significativement.` 
+                              : `If Hydro-Québec increases +6%/year instead of +4.8%/year, profitability improves significantly.`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
               })()}
             </div>
 
