@@ -51,13 +51,12 @@ function SiteCard({ site, onEdit, onDelete }: { site: SiteWithClient; onEdit: ()
               <div className="min-w-0">
                 <h3 className="font-semibold truncate">{site.name}</h3>
                 {site.client ? (
-                  <Link href={`/app/clients/${site.client.id}/sites`}>
-                    <span 
-                      className="text-sm text-muted-foreground hover:text-primary hover:underline cursor-pointer truncate block"
-                      data-testid={`link-client-${site.client.id}`}
-                    >
-                      {site.client.name}
-                    </span>
+                  <Link 
+                    href={`/app/clients/${site.client.id}/sites`}
+                    className="text-sm text-muted-foreground hover:text-primary hover:underline cursor-pointer truncate block"
+                    data-testid={`link-client-${site.client.id}`}
+                  >
+                    {site.client.name}
                   </Link>
                 ) : (
                   <p className="text-sm text-muted-foreground truncate">—</p>

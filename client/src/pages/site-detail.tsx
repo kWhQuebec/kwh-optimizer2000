@@ -1562,10 +1562,11 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const { t, language } = useI18n();
   const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease" | "ppa">("cash");
   const [loanTerm, setLoanTerm] = useState(10);
-  const [interestRate, setInterestRate] = useState(6);
-  const [downPayment, setDownPayment] = useState(20);
+  const [interestRate, setInterestRate] = useState(7);
+  const [downPayment, setDownPayment] = useState(30);
   const [ppaRate, setPpaRate] = useState(0.08);
   const [leasePayment, setLeasePayment] = useState(500);
+  const [leaseImplicitRate, setLeaseImplicitRate] = useState(8.5);
   
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
   const capexNet = simulation.capexNet || 0;
@@ -1650,6 +1651,83 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
       netSavings: annualSavings * 20 - ppaTotalCost,
     },
   ];
+
+  // Calculate 25-year cumulative cashflow for each financing option
+  const calculateCumulativeCashflows = () => {
+    const years = 25;
+    const data: { year: number; cash: number; loan: number; lease: number; ppa: number }[] = [];
+    
+    // Cash option: upfront cost, then savings, with incentive returns
+    let cashCumulative = -upfrontCashNeeded;
+    
+    // Loan option: down payment, then monthly payments + savings, with incentive returns
+    let loanCumulative = -loanDownPaymentAmount;
+    const annualLoanPayment = monthlyPayment * 12;
+    
+    // Lease option: no upfront, monthly lease payments, savings
+    // With implicit rate, we calculate lease payment from CAPEX
+    const leaseMonthlyCalc = (capexGross * (leaseImplicitRate / 100)) / 12 + capexGross / (20 * 12);
+    const annualLeasePayment = leaseMonthlyCalc * 12;
+    let leaseCumulative = 0;
+    
+    // PPA option: no upfront, pay per kWh, savings are production value minus PPA cost
+    const annualPpaPayment = ppaRate * annualProduction;
+    let ppaCumulative = 0;
+    
+    for (let year = 0; year <= years; year++) {
+      if (year === 0) {
+        // Year 0: initial investments
+        data.push({
+          year,
+          cash: cashCumulative / 1000,
+          loan: loanCumulative / 1000,
+          lease: leaseCumulative / 1000,
+          ppa: ppaCumulative / 1000,
+        });
+      } else {
+        // Add savings each year
+        cashCumulative += annualSavings;
+        loanCumulative += annualSavings;
+        leaseCumulative += annualSavings;
+        ppaCumulative += annualSavings;
+        
+        // Subtract payments for loan (if still in term)
+        if (year <= loanTerm) {
+          loanCumulative -= annualLoanPayment;
+        }
+        
+        // Subtract lease payments (assume 20-year lease)
+        if (year <= 20) {
+          leaseCumulative -= annualLeasePayment;
+        }
+        
+        // Subtract PPA payments
+        ppaCumulative -= annualPpaPayment;
+        
+        // Add incentive returns for cash and loan
+        if (year === 1) {
+          cashCumulative += year1Returns;
+          loanCumulative += year1Returns;
+        }
+        if (year === 2) {
+          cashCumulative += year2Returns;
+          loanCumulative += year2Returns;
+        }
+        
+        data.push({
+          year,
+          cash: cashCumulative / 1000,
+          loan: loanCumulative / 1000,
+          lease: leaseCumulative / 1000,
+          ppa: ppaCumulative / 1000,
+        });
+      }
+    }
+    
+    return data;
+  };
+  
+  const cumulativeCashflowData = calculateCumulativeCashflows();
 
   return (
     <Card data-testid="card-financing-calculator">
@@ -1753,18 +1831,20 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
         
         {financingType === "lease" && (
           <div className="p-4 bg-muted/50 rounded-lg">
-            <div className="space-y-2 max-w-xs">
-              <Label>{t("financing.leasePayment")}</Label>
-              <div className="flex items-center gap-2">
-                <Slider
-                  value={[leasePayment]}
-                  onValueChange={([v]) => setLeasePayment(v)}
-                  min={100}
-                  max={2000}
-                  step={50}
-                  data-testid="slider-lease-payment"
-                />
-                <span className="text-sm font-mono w-20">{formatCurrency(leasePayment)}</span>
+            <div className="space-y-4 max-w-xs">
+              <div className="space-y-2">
+                <Label>{t("financing.leaseImplicitRate")}</Label>
+                <div className="flex items-center gap-2">
+                  <Slider
+                    value={[leaseImplicitRate]}
+                    onValueChange={([v]) => setLeaseImplicitRate(v)}
+                    min={5}
+                    max={15}
+                    step={0.5}
+                    data-testid="slider-lease-implicit-rate"
+                  />
+                  <span className="text-sm font-mono w-12">{leaseImplicitRate}%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1850,6 +1930,89 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
             </div>
           </div>
         )}
+        
+        {/* Cumulative Cashflow Comparison Chart */}
+        <div className="pt-4 border-t">
+          <h4 className="font-semibold text-sm mb-4 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            {t("financing.cumulativeCashflow")}
+          </h4>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={cumulativeCashflowData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis 
+                  dataKey="year" 
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  tickFormatter={(v) => `${v}k`}
+                  label={{ 
+                    value: language === "fr" ? "Cashflow Cumulé (k$)" : "Cumulative Cashflow (k$)", 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle', fontSize: 11 }
+                  }}
+                />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = {
+                      cash: t("financing.cash"),
+                      loan: t("financing.loan"),
+                      lease: t("financing.lease"),
+                      ppa: t("financing.ppa"),
+                    };
+                    return [formatCurrency(value * 1000), labels[name] || name];
+                  }}
+                  labelFormatter={(year) => `${language === "fr" ? "Année" : "Year"} ${year}`}
+                />
+                <Legend 
+                  formatter={(value: string) => {
+                    const labels: Record<string, string> = {
+                      cash: t("financing.cash"),
+                      loan: t("financing.loan"),
+                      lease: t("financing.lease"),
+                      ppa: t("financing.ppa"),
+                    };
+                    return labels[value] || value;
+                  }}
+                />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                <Line 
+                  type="monotone" 
+                  dataKey="cash" 
+                  stroke="hsl(142, 76%, 36%)" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="loan" 
+                  stroke="hsl(221, 83%, 53%)" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="lease" 
+                  stroke="hsl(24, 94%, 50%)" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="ppa" 
+                  stroke="hsl(280, 65%, 60%)" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
         
         <div className="grid grid-cols-3 gap-4 pt-4 border-t">
           <div className="text-center">

@@ -410,6 +410,10 @@ const translations: Translations = {
   "financing.ppaRate": { fr: "Tarif AAE ($/kWh)", en: "PPA Rate ($/kWh)" },
   "financing.leasePayment": { fr: "Paiement location/mois", en: "Lease Payment/month" },
   "financing.compare": { fr: "Comparer les options", en: "Compare Options" },
+  "financing.leaseImplicitRate": { fr: "Taux implicite crédit-bail (%)", en: "Lease Implicit Rate (%)" },
+  "financing.cumulativeCashflow": { fr: "Comparaison flux trésorerie cumulés", en: "Cumulative Cashflow Comparison" },
+  "financing.cumulativeCashflowAxis": { fr: "Cashflow Cumulé ($)", en: "Cumulative Cashflow ($)" },
+  "financing.years": { fr: "Années", en: "Years" },
 
   // Proposal Builder
   "proposal.title": { fr: "Générateur de proposition", en: "Proposal Builder" },
