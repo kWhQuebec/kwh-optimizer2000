@@ -330,13 +330,15 @@ function AnalysisParametersEditor({
   onChange,
   disabled = false,
   site,
-  onSiteRefresh
+  onSiteRefresh,
+  showOnlyRoofSection = false
 }: { 
   value: Partial<AnalysisAssumptions>; 
   onChange: (value: Partial<AnalysisAssumptions>) => void;
   disabled?: boolean;
   site?: Site;
   onSiteRefresh?: () => void;
+  showOnlyRoofSection?: boolean;
 }) {
   const { language } = useI18n();
   const { token } = useAuth();
@@ -418,7 +420,9 @@ function AnalysisParametersEditor({
         
         <CollapsibleContent>
           <CardContent className="pt-0 space-y-6">
-            {/* Tariffs Section */}
+            {/* Tariffs Section - hidden when only showing roof */}
+            {!showOnlyRoofSection && (
+            <>
             <div className="space-y-3">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
@@ -677,6 +681,8 @@ function AnalysisParametersEditor({
                   : `Estimated cost year ${merged.batteryReplacementYear || 10}: ${((merged.batteryReplacementCostFactor || 0.6) * Math.pow(1 + (merged.inflationRate || 0.025) - (merged.batteryPriceDeclineRate || 0.05), merged.batteryReplacementYear || 10) * 100).toFixed(0)}% of original cost`}
               </p>
             </div>
+            </>
+            )}
 
             {/* Roof Constraints Section */}
             <div className="space-y-3">
@@ -2325,16 +2331,15 @@ export default function SiteDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Analysis Parameters */}
-          {site.meterFiles?.length > 0 && (
-            <AnalysisParametersEditor 
-              value={customAssumptions}
-              onChange={setCustomAssumptions}
-              disabled={runAnalysisMutation.isPending}
-              site={site}
-              onSiteRefresh={() => refetch()}
-            />
-          )}
+          {/* Analysis Parameters - always show for roof estimation, full params when files exist */}
+          <AnalysisParametersEditor 
+            value={customAssumptions}
+            onChange={setCustomAssumptions}
+            disabled={runAnalysisMutation.isPending}
+            site={site}
+            onSiteRefresh={() => refetch()}
+            showOnlyRoofSection={!site.meterFiles?.length}
+          />
 
           {/* Files Table */}
           <Card>
