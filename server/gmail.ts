@@ -4,10 +4,13 @@ import { google } from 'googleapis';
 let connectionSettings: any;
 
 async function getAccessToken() {
+  console.log('[Gmail] Checking for cached access token...');
   if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
+    console.log('[Gmail] Using cached access token (not expired)');
     return connectionSettings.settings.access_token;
   }
   
+  console.log('[Gmail] Fetching new access token from Replit connector...');
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY 
     ? 'repl ' + process.env.REPL_IDENTITY 
@@ -58,8 +61,13 @@ interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  console.log(`[Gmail] Attempting to send email to: ${options.to}`);
+  console.log(`[Gmail] Subject: ${options.subject}`);
+  
   try {
+    console.log('[Gmail] Getting Gmail client...');
     const gmail = await getGmailClient();
+    console.log('[Gmail] Gmail client obtained successfully');
     
     // Build the email message in RFC 2822 format
     const boundary = '----=_Part_' + Date.now();
@@ -91,6 +99,7 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
+    console.log('[Gmail] Sending email via Gmail API...');
     const response = await gmail.users.messages.send({
       userId: 'me',
       requestBody: {
@@ -98,12 +107,25 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
       }
     });
 
+    console.log('[Gmail] Email sent successfully!');
+    console.log(`[Gmail] Response status: ${response.status}`);
+    console.log(`[Gmail] Message ID: ${response.data.id}`);
+    console.log(`[Gmail] Thread ID: ${response.data.threadId}`);
+    console.log(`[Gmail] Labels: ${JSON.stringify(response.data.labelIds)}`);
+
     return {
       success: true,
       messageId: response.data.id || undefined
     };
   } catch (error: any) {
-    console.error('Gmail send error:', error);
+    console.error('[Gmail] ERROR sending email:', error);
+    console.error('[Gmail] Error name:', error.name);
+    console.error('[Gmail] Error message:', error.message);
+    console.error('[Gmail] Error code:', error.code);
+    if (error.response) {
+      console.error('[Gmail] API Response status:', error.response.status);
+      console.error('[Gmail] API Response data:', JSON.stringify(error.response.data));
+    }
     return {
       success: false,
       error: error.message || 'Failed to send email'
