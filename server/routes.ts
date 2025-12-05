@@ -1053,6 +1053,10 @@ export async function registerRoutes(
           return res.status(403).json({ error: "Access denied" });
         }
       }
+      
+      // Fetch all simulations for this site to include scenario comparison
+      const allSimulations = await storage.getSimulationRuns();
+      const siteSimulations = allSimulations.filter(s => s.siteId === simulation.siteId);
 
       const doc = new PDFDocument({ size: "LETTER", margin: 50 });
       
@@ -1061,9 +1065,9 @@ export async function registerRoutes(
       
       doc.pipe(res);
 
-      // Use the professional PDF generator
+      // Use the professional PDF generator with all site simulations for comparison
       const { generateProfessionalPDF } = await import("./pdfGenerator");
-      generateProfessionalPDF(doc, simulation as any, lang);
+      generateProfessionalPDF(doc, simulation as any, lang, siteSimulations as any[]);
 
       doc.end();
     } catch (error) {

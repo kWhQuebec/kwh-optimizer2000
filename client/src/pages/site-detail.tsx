@@ -1624,6 +1624,14 @@ function CreateVariantDialog({
   );
 }
 
+// Financing option color constants - matching chart curves
+const FINANCING_COLORS = {
+  cash: { bg: "bg-emerald-500", text: "text-emerald-500", border: "border-emerald-500", stroke: "#22C55E", hsl: "hsl(142, 76%, 36%)" },
+  loan: { bg: "bg-blue-500", text: "text-blue-500", border: "border-blue-500", stroke: "#3B82F6", hsl: "hsl(221, 83%, 53%)" },
+  lease: { bg: "bg-amber-500", text: "text-amber-500", border: "border-amber-500", stroke: "#F59E0B", hsl: "hsl(38, 92%, 50%)" },
+  ppa: { bg: "bg-purple-500", text: "text-purple-500", border: "border-purple-500", stroke: "#8B5CF6", hsl: "hsl(258, 90%, 66%)" },
+};
+
 function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const { t, language } = useI18n();
   const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease" | "ppa">("cash");
@@ -1839,27 +1847,38 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {options.map((option) => (
-            <button
-              key={option.type}
-              onClick={() => setFinancingType(option.type)}
-              className={`p-4 rounded-lg border-2 transition-all text-left ${
-                financingType === option.type 
-                  ? "border-primary bg-primary/5" 
-                  : "border-border hover:border-primary/50"
-              }`}
-              data-testid={`button-financing-${option.type}`}
-            >
-              <option.icon className={`w-5 h-5 mb-2 ${financingType === option.type ? "text-primary" : "text-muted-foreground"}`} />
-              <p className="font-medium text-sm">{option.label}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {option.monthlyPayment > 0 
-                  ? `${formatCurrency(option.monthlyPayment)}${language === "fr" ? "/mois" : "/mo"}`
-                  : language === "fr" ? "Paiement unique" : "One-time"
-                }
-              </p>
-            </button>
-          ))}
+          {options.map((option) => {
+            const colors = FINANCING_COLORS[option.type];
+            const isSelected = financingType === option.type;
+            return (
+              <button
+                key={option.type}
+                onClick={() => setFinancingType(option.type)}
+                className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  isSelected 
+                    ? `${colors.border} bg-opacity-10` 
+                    : "border-border hover:border-muted-foreground/50"
+                }`}
+                style={isSelected ? { backgroundColor: `${colors.stroke}15` } : undefined}
+                data-testid={`button-financing-${option.type}`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div 
+                    className={`w-3 h-3 rounded-full ${colors.bg}`}
+                    style={{ boxShadow: isSelected ? `0 0 8px ${colors.stroke}` : undefined }}
+                  />
+                  <option.icon className={`w-4 h-4 ${isSelected ? colors.text : "text-muted-foreground"}`} />
+                </div>
+                <p className={`font-medium text-sm ${isSelected ? colors.text : ""}`}>{option.label}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {option.monthlyPayment > 0 
+                    ? `${formatCurrency(option.monthlyPayment)}${language === "fr" ? "/mois" : "/mo"}`
+                    : language === "fr" ? "Paiement unique" : "One-time"
+                  }
+                </p>
+              </button>
+            );
+          })}
         </div>
         
         {financingType === "loan" && (
@@ -2111,37 +2130,44 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
                 <Line 
                   type="monotone" 
                   dataKey="cash" 
-                  stroke="hsl(142, 76%, 36%)" 
-                  strokeWidth={2}
+                  stroke={FINANCING_COLORS.cash.stroke}
+                  strokeWidth={financingType === "cash" ? 3 : 2}
                   dot={false}
+                  opacity={financingType === "cash" ? 1 : 0.6}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="loan" 
-                  stroke="hsl(221, 83%, 53%)" 
-                  strokeWidth={2}
+                  stroke={FINANCING_COLORS.loan.stroke}
+                  strokeWidth={financingType === "loan" ? 3 : 2}
                   dot={false}
+                  opacity={financingType === "loan" ? 1 : 0.6}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="lease" 
-                  stroke="hsl(24, 94%, 50%)" 
-                  strokeWidth={2}
+                  stroke={FINANCING_COLORS.lease.stroke}
+                  strokeWidth={financingType === "lease" ? 3 : 2}
                   dot={false}
+                  opacity={financingType === "lease" ? 1 : 0.6}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="ppa" 
-                  stroke="hsl(280, 65%, 60%)" 
-                  strokeWidth={2}
+                  stroke={FINANCING_COLORS.ppa.stroke}
+                  strokeWidth={financingType === "ppa" ? 3 : 2}
                   dot={false}
+                  opacity={financingType === "ppa" ? 1 : 0.6}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
         
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+        <div 
+          className="grid grid-cols-3 gap-4 pt-4 border-t rounded-lg p-4 mt-2"
+          style={{ backgroundColor: `${FINANCING_COLORS[financingType].stroke}10` }}
+        >
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-1">
               {financingType === "cash" 
@@ -2151,7 +2177,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
                   : t("financing.totalCost")
               }
             </p>
-            <p className="text-xl font-bold font-mono">
+            <p className={`text-xl font-bold font-mono ${FINANCING_COLORS[financingType].text}`}>
               {formatCurrency(
                 financingType === "cash" 
                   ? upfrontCashNeeded 
@@ -2174,13 +2200,13 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
           </div>
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-1">{t("financing.monthlyPayment")}</p>
-            <p className="text-xl font-bold font-mono">
+            <p className={`text-xl font-bold font-mono ${FINANCING_COLORS[financingType].text}`}>
               {formatCurrency(options.find(o => o.type === financingType)?.monthlyPayment || 0)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-1">{t("financing.netSavings")} (20 {t("compare.years")})</p>
-            <p className={`text-xl font-bold font-mono ${(options.find(o => o.type === financingType)?.netSavings || 0) > 0 ? "text-green-600" : "text-red-500"}`}>
+            <p className="text-sm text-muted-foreground mb-1">{t("financing.netSavings")} (25 {t("compare.years")})</p>
+            <p className={`text-xl font-bold font-mono ${(options.find(o => o.type === financingType)?.netSavings || 0) > 0 ? "text-emerald-600" : "text-red-500"}`}>
               {formatCurrency(options.find(o => o.type === financingType)?.netSavings || 0)}
             </p>
           </div>
@@ -2260,6 +2286,17 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
     return result;
   })();
 
+  // Section Divider component for visual hierarchy
+  const SectionDivider = ({ title, icon: Icon }: { title: string; icon?: any }) => (
+    <div className="flex items-center gap-3 py-2">
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className="w-4 h-4 text-primary" />}
+        <span className="text-sm font-semibold text-primary uppercase tracking-wider">{title}</span>
+      </div>
+      <div className="flex-1 h-px bg-gradient-to-r from-primary/30 to-transparent" />
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Satellite Hero Image */}
@@ -2305,6 +2342,12 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         </div>
       )}
 
+      {/* Section: Key Performance Indicators */}
+      <SectionDivider 
+        title={language === "fr" ? "Performance financière" : "Financial Performance"} 
+        icon={DollarSign}
+      />
+      
       {/* Main Financial KPIs - 25 Year Focus */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-primary/20 bg-primary/5">
@@ -2387,8 +2430,20 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         </div>
       )}
 
+      {/* Section: Financing Options */}
+      <SectionDivider 
+        title={language === "fr" ? "Options de financement" : "Financing Options"} 
+        icon={CreditCard}
+      />
+      
       {/* Financing Options Calculator */}
       <FinancingCalculator simulation={simulation} />
+
+      {/* Section: System Specifications */}
+      <SectionDivider 
+        title={language === "fr" ? "Spécifications système" : "System Specifications"} 
+        icon={Zap}
+      />
 
       {/* Recommended System with Roof Constraint */}
       <Card>
@@ -2815,12 +2870,18 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         </Card>
       )}
 
-      {/* Sensitivity Analysis / Optimization Charts */}
+      {/* Section: Analysis & Optimization */}
       {simulation.sensitivity && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              {language === "fr" ? "Analyse d'optimisation" : "Optimization Analysis"}
+        <>
+          <SectionDivider 
+            title={language === "fr" ? "Analyse et optimisation" : "Analysis & Optimization"} 
+            icon={BarChart3}
+          />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {language === "fr" ? "Analyse d'optimisation" : "Optimization Analysis"}
             </CardTitle>
             <CardDescription>
               {language === "fr" 
@@ -3456,6 +3517,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Parameters Used */}
