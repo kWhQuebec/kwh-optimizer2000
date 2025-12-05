@@ -2195,11 +2195,16 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                 })()}
               </div>
 
-              {/* Battery Size Optimization */}
+              {/* Battery Size Optimization - Shows hybrid (PV+Battery) economics */}
               <div>
                 <h4 className="text-sm font-semibold mb-4">
-                  {language === "fr" ? "Optimisation taille batterie (VAN vs kWh)" : "Battery Size Optimization (NPV vs kWh)"}
+                  {language === "fr" ? "Impact taille batterie sur système hybride" : "Battery Size Impact on Hybrid System"}
                 </h4>
+                <p className="text-xs text-muted-foreground -mt-3 mb-3">
+                  {language === "fr" 
+                    ? `VAN du système PV + batterie combiné` 
+                    : `NPV of combined PV + battery system`}
+                </p>
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart 
@@ -2288,7 +2293,7 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                   }
                   return (
                     <p className="text-xs text-amber-600 mt-2">
-                      {language === "fr" ? "Batterie seule non rentable (VAN négative)" : "Battery alone not profitable (negative NPV)"}
+                      {language === "fr" ? "Aucune taille de batterie n'améliore la VAN du système" : "No battery size improves system NPV"}
                     </p>
                   );
                 })()}
