@@ -41,9 +41,11 @@ const upload = multer({
 
 interface AuthRequest extends Request {
   userId?: string;
+  userRole?: string;
+  userClientId?: string | null;
 }
 
-function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -53,10 +55,26 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     req.userId = decoded.userId;
+    
+    // Fetch user to get role and clientId
+    const user = await storage.getUser(decoded.userId);
+    if (user) {
+      req.userRole = user.role;
+      req.userClientId = user.clientId || null;
+    }
+    
     next();
   } catch (error) {
     return res.status(401).json({ error: "Invalid token" });
   }
+}
+
+// Middleware to require admin or analyst role (internal staff only)
+function requireStaff(req: AuthRequest, res: Response, next: NextFunction) {
+  if (req.userRole !== "admin" && req.userRole !== "analyst") {
+    return res.status(403).json({ error: "Access denied" });
+  }
+  next();
 }
 
 // Helper function for async roof estimation (fire-and-forget)
@@ -175,10 +193,21 @@ export async function registerRoutes(
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+      
+      // Include client info for client users
+      let clientName = null;
+      if (user.clientId) {
+        const client = await storage.getClient(user.clientId);
+        clientName = client?.name || null;
+      }
+      
       res.json({
         id: user.id,
         email: user.email,
         role: user.role,
+        name: user.name || null,
+        clientId: user.clientId || null,
+        clientName,
       });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -234,7 +263,8 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/leads", authMiddleware, async (req, res) => {
+  // Staff-only leads access
+  app.get("/api/leads", authMiddleware, requireStaff, async (req, res) => {
     try {
       const leads = await storage.getLeads();
       res.json(leads);
@@ -245,7 +275,8 @@ export async function registerRoutes(
 
   // ==================== DASHBOARD ROUTES ====================
   
-  app.get("/api/dashboard/stats", authMiddleware, async (req, res) => {
+  // Staff-only dashboard
+  app.get("/api/dashboard/stats", authMiddleware, requireStaff, async (req, res) => {
     try {
       const stats = await storage.getDashboardStats();
       res.json(stats);
@@ -256,7 +287,8 @@ export async function registerRoutes(
 
   // ==================== CLIENT ROUTES ====================
   
-  app.get("/api/clients", authMiddleware, async (req, res) => {
+  // Staff-only client management
+  app.get("/api/clients", authMiddleware, requireStaff, async (req, res) => {
     try {
       const clients = await storage.getClients();
       res.json(clients);
@@ -265,7 +297,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/clients/:id", authMiddleware, async (req, res) => {
+  app.get("/api/clients/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const client = await storage.getClient(req.params.id);
       if (!client) {
@@ -277,7 +309,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/clients", authMiddleware, async (req, res) => {
+  app.post("/api/clients", authMiddleware, requireStaff, async (req, res) => {
     try {
       const parsed = insertClientSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -291,7 +323,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/clients/:id", authMiddleware, async (req, res) => {
+  app.patch("/api/clients/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const client = await storage.updateClient(req.params.id, req.body);
       if (!client) {
@@ -303,7 +335,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/clients/:id", authMiddleware, async (req, res) => {
+  app.delete("/api/clients/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const deleted = await storage.deleteClient(req.params.id);
       if (!deleted) {
@@ -317,8 +349,18 @@ export async function registerRoutes(
 
   // ==================== SITE ROUTES ====================
   
-  app.get("/api/sites", authMiddleware, async (req, res) => {
+  app.get("/api/sites", authMiddleware, async (req: AuthRequest, res) => {
     try {
+      // Client users only see their own sites
+      if (req.userRole === "client" && req.userClientId) {
+        const sites = await storage.getSitesByClient(req.userClientId);
+        // Enrich with client data for consistency
+        const client = await storage.getClient(req.userClientId);
+        const enrichedSites = sites.map(site => ({ ...site, client: client || { name: "Unknown" } }));
+        return res.json(enrichedSites);
+      }
+      
+      // Admin/analyst see all sites
       const sites = await storage.getSites();
       res.json(sites);
     } catch (error) {
@@ -326,19 +368,26 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/sites/:id", authMiddleware, async (req, res) => {
+  app.get("/api/sites/:id", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const site = await storage.getSite(req.params.id);
       if (!site) {
         return res.status(404).json({ error: "Site not found" });
       }
+      
+      // Client users can only view their own sites
+      if (req.userRole === "client" && req.userClientId && site.clientId !== req.userClientId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
       res.json(site);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/sites", authMiddleware, async (req, res) => {
+  // Staff-only routes for site management
+  app.post("/api/sites", authMiddleware, requireStaff, async (req, res) => {
     try {
       const parsed = insertSiteSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -365,7 +414,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/sites/:id", authMiddleware, async (req, res) => {
+  app.patch("/api/sites/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const site = await storage.updateSite(req.params.id, req.body);
       if (!site) {
@@ -377,7 +426,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/sites/:id", authMiddleware, async (req, res) => {
+  app.delete("/api/sites/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const deleted = await storage.deleteSite(req.params.id);
       if (!deleted) {
@@ -541,7 +590,8 @@ export async function registerRoutes(
 
   // ==================== FILE UPLOAD ROUTES ====================
   
-  app.post("/api/sites/:siteId/upload-meters", authMiddleware, upload.array("files"), async (req: AuthRequest, res) => {
+  // Staff-only file upload
+  app.post("/api/sites/:siteId/upload-meters", authMiddleware, requireStaff, upload.array("files"), async (req: AuthRequest, res) => {
     try {
       const siteId = req.params.siteId;
       const files = req.files as Express.Multer.File[];
@@ -599,7 +649,8 @@ export async function registerRoutes(
 
   // ==================== ANALYSIS ROUTES ====================
   
-  app.post("/api/sites/:siteId/run-potential-analysis", authMiddleware, async (req, res) => {
+  // Staff-only analysis (clients can only view results)
+  app.post("/api/sites/:siteId/run-potential-analysis", authMiddleware, requireStaff, async (req, res) => {
     try {
       const siteId = req.params.siteId;
       

@@ -7,7 +7,9 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role").notNull().default("admin"),
+  role: text("role").notNull().default("admin"), // "admin" | "analyst" | "client"
+  clientId: varchar("client_id"), // Links client users to their company (null for admin/analyst)
+  name: text("name"), // Display name for the user
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
