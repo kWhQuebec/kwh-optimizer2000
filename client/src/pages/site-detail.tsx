@@ -44,7 +44,10 @@ import {
   FileCheck,
   Check,
   MousePointerClick,
-  Plus
+  Plus,
+  FileSignature,
+  TreePine,
+  Phone
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -2502,149 +2505,57 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         </div>
       )}
 
-      {/* Section: Key Performance Indicators */}
+      {/* ========== SECTION 1: RECOMMENDED SYSTEM ========== */}
       <SectionDivider 
-        title={language === "fr" ? "Performance financière" : "Financial Performance"} 
-        icon={DollarSign}
-      />
-      
-      {/* Main Financial KPIs - 25 Year Focus */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25 years"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono text-primary">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
-          </CardContent>
-        </Card>
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 years"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono text-primary">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "Retour simple" : "Simple Payback"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono">{(simulation.simplePaybackYears || 0).toFixed(1)} <span className="text-sm font-normal text-muted-foreground">{language === "fr" ? "ans" : "years"}</span></p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Calculator className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">LCOE</p>
-            </div>
-            <p className="text-2xl font-bold font-mono">${(simulation.lcoe || 0).toFixed(3)}<span className="text-sm font-normal text-muted-foreground">/kWh</span></p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary KPIs - 10 Year */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "VAN 10 ans" : "NPV 10 years"}</p>
-            <p className="text-lg font-bold font-mono">${((simulation.npv10 || 0) / 1000).toFixed(0)}k</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "TRI 10 ans" : "IRR 10 years"}</p>
-            <p className="text-lg font-bold font-mono">{((simulation.irr10 || 0) * 100).toFixed(1)}%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Économies An 1" : "Year 1 Savings"}</p>
-            <p className="text-lg font-bold font-mono">${((simulation.savingsYear1 || simulation.annualSavings || 0) / 1000).toFixed(1)}k</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-1 mb-1">
-              <Leaf className="w-3 h-3 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">CO₂ {language === "fr" ? "évité" : "avoided"}</p>
-            </div>
-            <p className="text-lg font-bold font-mono">{(simulation.co2AvoidedTonnesPerYear || 0).toFixed(1)} <span className="text-xs font-normal">t/an</span></p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Action Buttons - Create Variant (Staff Only) */}
-      {isStaff && (
-        <div className="flex flex-wrap gap-3" data-testid="analysis-actions">
-          <CreateVariantDialog 
-            simulation={simulation} 
-            siteId={site.id} 
-            onSuccess={() => {}} 
-          />
-        </div>
-      )}
-
-      {/* Section: Financing Options */}
-      <SectionDivider 
-        title={language === "fr" ? "Options de financement" : "Financing Options"} 
-        icon={CreditCard}
-      />
-      
-      {/* Financing Options Calculator */}
-      <FinancingCalculator simulation={simulation} />
-
-      {/* Section: System Specifications */}
-      <SectionDivider 
-        title={language === "fr" ? "Spécifications système" : "System Specifications"} 
+        title={language === "fr" ? "Système recommandé" : "Recommended System"} 
         icon={Zap}
       />
 
-      {/* Recommended System with Roof Constraint */}
-      <Card>
+      {/* Recommended System with Roof Constraint - PROMINENT */}
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary" />
-            {language === "fr" ? "Système recommandé" : "Recommended System"}
+          <CardTitle className="text-xl flex items-center gap-2">
+            <Zap className="w-6 h-6 text-primary" />
+            {language === "fr" ? "Configuration optimale" : "Optimal Configuration"}
           </CardTitle>
+          <CardDescription>
+            {language === "fr" 
+              ? "Le système qui maximise votre retour sur investissement" 
+              : "The system that maximizes your return on investment"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-4 gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Sun className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t("analysis.recommendedPV")}</p>
-                <p className="text-xl font-bold font-mono">{(simulation.pvSizeKW || 0).toFixed(0)} <span className="text-sm font-normal">kWc</span></p>
+                <p className="text-sm text-muted-foreground">{language === "fr" ? "Panneaux solaires" : "Solar Panels"}</p>
+                <p className="text-2xl font-bold font-mono text-primary">{(simulation.pvSizeKW || 0).toFixed(0)} <span className="text-sm font-normal">kWc</span></p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Battery className="w-5 h-5 text-primary" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Battery className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{language === "fr" ? "Énergie batterie" : "Battery Energy"}</p>
-                <p className="text-xl font-bold font-mono">{(simulation.battEnergyKWh || 0).toFixed(0)} <span className="text-sm font-normal">kWh</span></p>
+                <p className="text-sm text-muted-foreground">{language === "fr" ? "Stockage énergie" : "Energy Storage"}</p>
+                <p className="text-2xl font-bold font-mono text-primary">{(simulation.battEnergyKWh || 0).toFixed(0)} <span className="text-sm font-normal">kWh</span></p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Battery className="w-5 h-5 text-primary" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Puissance batterie" : "Battery Power"}</p>
-                <p className="text-xl font-bold font-mono">{(simulation.battPowerKW || 0).toFixed(0)} <span className="text-sm font-normal">kW</span></p>
+                <p className="text-2xl font-bold font-mono text-primary">{(simulation.battPowerKW || 0).toFixed(0)} <span className="text-sm font-normal">kW</span></p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center">
-                <Home className="w-5 h-5 text-muted-foreground" />
+              <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center">
+                <Home className="w-6 h-6 text-muted-foreground" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Capacité toit" : "Roof Capacity"}</p>
@@ -2659,15 +2570,342 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
           </div>
           
           {/* Self-sufficiency bar */}
-          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+          <div className="mt-6 p-4 bg-background rounded-lg border">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">{language === "fr" ? "Autosuffisance" : "Self-sufficiency"}</span>
-              <span className="text-lg font-bold font-mono">{(simulation.selfSufficiencyPercent || 0).toFixed(1)}%</span>
+              <span className="text-sm font-medium">{language === "fr" ? "Autonomie énergétique" : "Energy Independence"}</span>
+              <span className="text-xl font-bold font-mono text-primary">{(simulation.selfSufficiencyPercent || 0).toFixed(0)}%</span>
             </div>
-            <Progress value={simulation.selfSufficiencyPercent || 0} className="h-2" />
+            <Progress value={simulation.selfSufficiencyPercent || 0} className="h-3" />
           </div>
         </CardContent>
       </Card>
+
+      {/* ========== SECTION 2: VALUE PROPOSITION - BIG NUMBERS ========== */}
+      <SectionDivider 
+        title={language === "fr" ? "Votre investissement" : "Your Investment"} 
+        icon={DollarSign}
+      />
+
+      {/* Hero Value Card - Annual Savings Focus */}
+      <Card className="border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent overflow-hidden">
+        <CardContent className="p-6">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="text-center md:text-left">
+              <p className="text-sm text-muted-foreground mb-1">
+                {language === "fr" ? "Économies annuelles estimées" : "Estimated Annual Savings"}
+              </p>
+              <p className="text-5xl font-bold font-mono text-green-600 dark:text-green-400">
+                ${((simulation.annualSavings || 0) / 1000).toFixed(0)}k
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {language === "fr" ? "par année, dès la première année" : "per year, starting year one"}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-background rounded-xl border">
+                <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Investissement net" : "Net Investment"}</p>
+                <p className="text-2xl font-bold font-mono">${((simulation.capexNet || 0) / 1000).toFixed(0)}k</p>
+                <p className="text-xs text-green-600">{language === "fr" ? "après incitatifs" : "after incentives"}</p>
+              </div>
+              <div className="text-center p-4 bg-background rounded-xl border">
+                <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Retour" : "Payback"}</p>
+                <p className="text-2xl font-bold font-mono">{(simulation.simplePaybackYears || 0).toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "années" : "years"}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Main Financial KPIs - 25 Year Focus */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="w-4 h-4 text-primary" />
+              <p className="text-sm text-muted-foreground">{language === "fr" ? "Profit net 25 ans" : "Net Profit 25 years"}</p>
+            </div>
+            <p className="text-2xl font-bold font-mono text-primary">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
+          </CardContent>
+        </Card>
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <p className="text-sm text-muted-foreground">{language === "fr" ? "Rendement" : "Return Rate"}</p>
+            </div>
+            <p className="text-2xl font-bold font-mono text-primary">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Calculator className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">{language === "fr" ? "Coût énergie" : "Energy Cost"}</p>
+            </div>
+            <p className="text-2xl font-bold font-mono">${(simulation.lcoe || 0).toFixed(3)}<span className="text-sm font-normal text-muted-foreground">/kWh</span></p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Leaf className="w-4 h-4 text-green-500" />
+              <p className="text-sm text-muted-foreground">CO₂ {language === "fr" ? "évité" : "avoided"}</p>
+            </div>
+            <p className="text-2xl font-bold font-mono text-green-600">{((simulation.co2AvoidedTonnesPerYear || 0) * 25).toFixed(0)} <span className="text-sm font-normal">t/25 ans</span></p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ========== SECTION 3: WEALTH BUILDING STORY ========== */}
+      {/* 25-Year Cashflow Chart - Visual Story of Money Growing */}
+      {cashflowChartData.length > 0 && (
+        <>
+          <SectionDivider 
+            title={language === "fr" ? "Votre croissance financière" : "Your Financial Growth"} 
+            icon={TrendingUp}
+          />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                {language === "fr" ? "Évolution de vos économies sur 25 ans" : "Your Savings Over 25 Years"}
+              </CardTitle>
+              <CardDescription>
+                {language === "fr" 
+                  ? "Visualisez comment votre investissement génère des profits année après année" 
+                  : "See how your investment generates profits year after year"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={cashflowChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="year" className="text-xs" label={{ value: language === "fr" ? "Année" : "Year", position: "bottom" }} />
+                    <YAxis 
+                      yAxisId="left" 
+                      className="text-xs" 
+                      label={{ value: "k$", angle: -90, position: "insideLeft" }}
+                    />
+                    <YAxis 
+                      yAxisId="right" 
+                      orientation="right" 
+                      className="text-xs"
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px"
+                      }}
+                      formatter={(value: number) => `$${value.toFixed(1)}k`}
+                    />
+                    <Legend />
+                    <ReferenceLine yAxisId="left" y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                    <Bar 
+                      yAxisId="left" 
+                      dataKey="cashflow" 
+                      name={language === "fr" ? "Flux annuel" : "Annual Cashflow"}
+                      radius={[4, 4, 0, 0]}
+                    >
+                      {cashflowChartData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.cashflow >= 0 ? "hsl(var(--chart-1))" : "hsl(var(--destructive))"} 
+                        />
+                      ))}
+                    </Bar>
+                    <Line 
+                      yAxisId="right" 
+                      type="monotone" 
+                      dataKey="cumulative" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      name={language === "fr" ? "Cumulatif" : "Cumulative"}
+                      dot={false}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* ========== SECTION 4: FINANCING OPTIONS ========== */}
+      <SectionDivider 
+        title={language === "fr" ? "Options de financement" : "Financing Options"} 
+        icon={CreditCard}
+      />
+      
+      {/* Financing Options Calculator */}
+      <FinancingCalculator simulation={simulation} />
+
+      {/* ========== SECTION 5: ENVIRONMENTAL IMPACT ========== */}
+      <SectionDivider 
+        title={language === "fr" ? "Impact environnemental" : "Environmental Impact"} 
+        icon={Leaf}
+      />
+
+      {/* Environmental Impact Card */}
+      <Card className="border-green-500/30 bg-gradient-to-br from-green-500/5 to-transparent">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Leaf className="w-5 h-5 text-green-500" />
+            {language === "fr" ? "Votre contribution à l'environnement" : "Your Environmental Contribution"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center p-4 bg-background rounded-xl border">
+              <Leaf className="w-8 h-8 text-green-500 mx-auto mb-2" />
+              <p className="text-3xl font-bold font-mono text-green-600">
+                {((simulation.co2AvoidedTonnesPerYear || 0) * 25).toFixed(0)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "fr" ? "tonnes CO₂ évitées" : "tonnes CO₂ avoided"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "sur 25 ans" : "over 25 years"}</p>
+            </div>
+            <div className="text-center p-4 bg-background rounded-xl border">
+              <Car className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+              <p className="text-3xl font-bold font-mono text-emerald-600">
+                {(((simulation.co2AvoidedTonnesPerYear || 0) / 4.6) * 25).toFixed(0)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "fr" ? "années-auto retirées" : "car-years removed"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "équivalent" : "equivalent"}</p>
+            </div>
+            <div className="text-center p-4 bg-background rounded-xl border">
+              <TreePine className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <p className="text-3xl font-bold font-mono text-green-700">
+                {Math.round(((simulation.co2AvoidedTonnesPerYear || 0) * 25) / 0.022)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "fr" ? "arbres équivalents" : "trees equivalent"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "plantés" : "planted"}</p>
+            </div>
+            <div className="text-center p-4 bg-background rounded-xl border">
+              <Award className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+              <p className="text-3xl font-bold font-mono text-amber-600">
+                {(simulation.selfSufficiencyPercent || 0).toFixed(0)}%
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "fr" ? "énergie verte" : "green energy"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "autosuffisance" : "self-sufficiency"}</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-sm text-green-700 dark:text-green-300 text-center">
+              {language === "fr" 
+                ? "Ce projet contribue directement aux objectifs ESG de votre entreprise et démontre votre engagement envers le développement durable." 
+                : "This project directly contributes to your company's ESG goals and demonstrates your commitment to sustainable development."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ========== SECTION 6: NEXT STEPS CTA ========== */}
+      <SectionDivider 
+        title={language === "fr" ? "Prochaines étapes" : "Next Steps"} 
+        icon={FileSignature}
+      />
+
+      {/* Next Steps CTA Card */}
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <FileSignature className="w-6 h-6 text-primary" />
+            {language === "fr" ? "Prêt à passer à l'action?" : "Ready to Take Action?"}
+          </CardTitle>
+          <CardDescription>
+            {language === "fr" 
+              ? "Signez l'entente de conception et d'ingénierie pour démarrer votre projet solaire" 
+              : "Sign the Design & Engineering Agreement to start your solar project"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">1</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Entente de conception" : "Design Agreement"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? "Notre équipe prépare les plans détaillés et la liste d'équipements" 
+                    : "Our team prepares detailed plans and equipment specifications"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">2</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Soumission finale" : "Final Quote"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? "Vous recevez une soumission détaillée avec prix fermes garantis" 
+                    : "You receive a detailed quote with guaranteed firm pricing"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">3</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Installation" : "Installation"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? "Nous gérons l'installation clé en main et les demandes de subventions" 
+                    : "We manage turnkey installation and incentive applications"}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {isStaff ? (
+              <Link href={`/app/analyses/${simulation.id}/design`}>
+                <Button size="lg" className="gap-2 px-8" data-testid="button-cta-create-design">
+                  <PenTool className="w-5 h-5" />
+                  {language === "fr" ? "Créer le devis" : "Create Design Quote"}
+                </Button>
+              </Link>
+            ) : (
+              <Button size="lg" className="gap-2 px-8" data-testid="button-cta-sign-agreement">
+                <FileSignature className="w-5 h-5" />
+                {language === "fr" ? "Signer l'entente" : "Sign Agreement"}
+              </Button>
+            )}
+            <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
+              <Phone className="w-5 h-5" />
+              {language === "fr" ? "Nous contacter" : "Contact Us"}
+            </Button>
+          </div>
+          
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            {language === "fr" 
+              ? "L'entente de conception est sans engagement pour le projet complet. Frais de conception: 2 500$ + taxes (crédité si vous procédez)." 
+              : "The design agreement is non-binding for the full project. Design fee: $2,500 + taxes (credited if you proceed)."}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* ========== SECTION 7: TECHNICAL DETAILS (Collapsible) ========== */}
+      <SectionDivider 
+        title={language === "fr" ? "Détails techniques" : "Technical Details"} 
+        icon={Settings}
+      />
 
       {/* Cross-Validation with Google Solar */}
       {site && site.roofAreaAutoDetails && (() => {
@@ -2879,69 +3117,6 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         </CardContent>
       </Card>
       
-      {/* 25-Year Cashflow Chart */}
-      {cashflowChartData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              {language === "fr" ? "Flux de trésorerie sur 25 ans" : "25-Year Cashflow Analysis"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={cashflowChartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="year" className="text-xs" label={{ value: language === "fr" ? "Année" : "Year", position: "bottom" }} />
-                  <YAxis 
-                    yAxisId="left" 
-                    className="text-xs" 
-                    label={{ value: "k$", angle: -90, position: "insideLeft" }}
-                  />
-                  <YAxis 
-                    yAxisId="right" 
-                    orientation="right" 
-                    className="text-xs"
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px"
-                    }}
-                    formatter={(value: number) => `$${value.toFixed(1)}k`}
-                  />
-                  <Legend />
-                  <ReferenceLine yAxisId="left" y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                  <Bar 
-                    yAxisId="left" 
-                    dataKey="cashflow" 
-                    name={language === "fr" ? "Flux annuel" : "Annual Cashflow"}
-                    radius={[4, 4, 0, 0]}
-                  >
-                    {cashflowChartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.cashflow >= 0 ? "hsl(var(--chart-1))" : "hsl(var(--destructive))"} 
-                      />
-                    ))}
-                  </Bar>
-                  <Line 
-                    yAxisId="right" 
-                    type="monotone" 
-                    dataKey="cumulative" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2}
-                    name={language === "fr" ? "Cumulatif" : "Cumulative"}
-                    dot={false}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Financial Breakdown */}
       {breakdown && (
         <Card>
