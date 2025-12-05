@@ -13,6 +13,8 @@ const translations: Translations = {
   // Sidebar
   "sidebar.main": { fr: "Principal", en: "Main" },
   "sidebar.analysis": { fr: "Analyse & Design", en: "Analysis & Design" },
+  "sidebar.admin": { fr: "Administration", en: "Administration" },
+  "sidebar.portal": { fr: "Portail client", en: "Client Portal" },
 
   // Navigation
   "nav.home": { fr: "Accueil", en: "Home" },
@@ -207,6 +209,10 @@ const translations: Translations = {
   "common.error": { fr: "Une erreur est survenue", en: "An error occurred" },
   "common.years": { fr: "ans", en: "years" },
   "common.tonnesYear": { fr: "tonnes/an", en: "tonnes/year" },
+  "common.actions": { fr: "Actions", en: "Actions" },
+  "common.creating": { fr: "Création...", en: "Creating..." },
+  "common.deleting": { fr: "Suppression...", en: "Deleting..." },
+  "common.optional": { fr: "Optionnel", en: "Optional" },
 
   // Status
   "status.uploaded": { fr: "Téléversé", en: "Uploaded" },
@@ -306,6 +312,43 @@ const translations: Translations = {
   "analyses.payback": { fr: "Retour", en: "Payback" },
   "analyses.perYear": { fr: "an", en: "yr" },
   "analyses.years": { fr: "ans", en: "yrs" },
+
+  // Client Portal
+  "portal.welcome": { fr: "Bienvenue sur votre portail", en: "Welcome to your portal" },
+  "portal.subtitle": { fr: "Consultez vos analyses solaires et rapports", en: "View your solar analyses and reports" },
+  "portal.noSites": { fr: "Aucun site disponible", en: "No sites available" },
+  "portal.noSitesDescription": { fr: "Vos sites avec analyses apparaîtront ici.", en: "Your sites with analyses will appear here." },
+  "portal.viewDetails": { fr: "Voir les détails", en: "View details" },
+  "portal.viewAnalysis": { fr: "Voir l'analyse", en: "View analysis" },
+  "portal.analysisComplete": { fr: "Analyse complète", en: "Analysis complete" },
+  "portal.analysisPending": { fr: "Analyse en attente", en: "Analysis pending" },
+  "portal.location": { fr: "Emplacement", en: "Location" },
+  "portal.roofArea": { fr: "Surface de toiture", en: "Roof area" },
+  "portal.needHelp": { fr: "Besoin d'aide?", en: "Need help?" },
+  "portal.helpText": { fr: "Contactez-nous pour toute question.", en: "Contact us with any questions." },
+
+  // User Management
+  "users.title": { fr: "Gestion des utilisateurs", en: "User Management" },
+  "users.subtitle": { fr: "Gérez les comptes utilisateurs et les rôles", en: "Manage user accounts and roles" },
+  "users.createUser": { fr: "Créer un utilisateur", en: "Create User" },
+  "users.createUserDesc": { fr: "Ajouter un nouvel utilisateur au système", en: "Add a new user to the system" },
+  "users.allUsers": { fr: "Tous les utilisateurs", en: "All Users" },
+  "users.usersCount": { fr: "utilisateurs", en: "users" },
+  "users.noUsers": { fr: "Aucun utilisateur", en: "No users" },
+  "users.name": { fr: "Nom", en: "Name" },
+  "users.email": { fr: "Courriel", en: "Email" },
+  "users.password": { fr: "Mot de passe", en: "Password" },
+  "users.role": { fr: "Rôle", en: "Role" },
+  "users.linkedClient": { fr: "Client lié", en: "Linked Client" },
+  "users.client": { fr: "Client", en: "Client" },
+  "users.deleteUser": { fr: "Supprimer l'utilisateur", en: "Delete User" },
+  "users.deleteUserConfirm": { fr: "Êtes-vous sûr de vouloir supprimer cet utilisateur?", en: "Are you sure you want to delete this user?" },
+  "users.userCreated": { fr: "Utilisateur créé", en: "User created" },
+  "users.userCreatedDesc": { fr: "Le compte a été créé avec succès.", en: "The account has been created successfully." },
+  "users.userDeleted": { fr: "Utilisateur supprimé", en: "User deleted" },
+  "users.userDeletedDesc": { fr: "Le compte a été supprimé.", en: "The account has been deleted." },
+  "users.adminOnly": { fr: "Réservé aux administrateurs", en: "Admin only" },
+  "users.accessDenied": { fr: "Accès refusé", en: "Access denied" },
 };
 
 interface I18nContextType {
