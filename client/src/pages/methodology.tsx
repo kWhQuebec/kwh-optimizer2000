@@ -119,6 +119,7 @@ export default function MethodologyPage() {
 }
 
 function OverviewSection({ t }: { t: typeof fr }) {
+  const { language } = useI18n();
   return (
     <>
       <Card>
@@ -173,6 +174,35 @@ function OverviewSection({ t }: { t: typeof fr }) {
                 <ul>
                   {t.overview.dataInputs.site.params.map((param, i) => (
                     <li key={i}>{param}</li>
+                  ))}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="interpolation">
+              <AccordionTrigger data-testid="accordion-trigger-interpolation">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4" />
+                  {t.overview.dataInputs.interpolation.title}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="prose dark:prose-invert max-w-none">
+                <p>{t.overview.dataInputs.interpolation.description}</p>
+                
+                <h4>{t.overview.dataInputs.interpolation.method.title}</h4>
+                <ol>
+                  {t.overview.dataInputs.interpolation.method.steps.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
+
+                <h4>{t.overview.dataInputs.interpolation.quality.title}</h4>
+                <p>{t.overview.dataInputs.interpolation.quality.description}</p>
+
+                <h4 className="text-amber-600 dark:text-amber-400">{language === "fr" ? "Limitations" : "Limitations"}</h4>
+                <ul>
+                  {t.overview.dataInputs.interpolation.limitations.map((limitation, i) => (
+                    <li key={i}>{limitation}</li>
                   ))}
                 </ul>
               </AccordionContent>
@@ -564,6 +594,28 @@ const fr = {
           "Contraintes structurelles",
         ],
       },
+      interpolation: {
+        title: "Interpolation des Données Manquantes",
+        description: "Lorsque des mois entiers de données de consommation sont manquants dans les fichiers CSV, le système effectue une interpolation intelligente pour estimer les valeurs.",
+        method: {
+          title: "Méthode d'Interpolation",
+          steps: [
+            "Détection automatique des mois sans aucune donnée de consommation",
+            "Calcul de la moyenne horaire à partir des mois adjacents (ex: janvier + mars pour estimer février)",
+            "Gestion circulaire pour les mois de bordure (décembre utilise novembre/janvier, janvier utilise décembre/février)",
+            "Valeur par défaut à zéro si aucune donnée adjacente disponible",
+          ],
+        },
+        quality: {
+          title: "Indicateur de Qualité des Données",
+          description: "Lorsque des mois sont interpolés, un avertissement est affiché dans l'interface indiquant les mois estimés. Cette transparence permet à l'utilisateur de comprendre la source des données utilisées dans l'analyse.",
+        },
+        limitations: [
+          "L'interpolation ne s'applique qu'aux mois entièrement manquants",
+          "Les mois partiellement incomplets utilisent la moyenne des données disponibles",
+          "Les résultats d'analyse peuvent être moins précis pour les sites avec beaucoup de données interpolées",
+        ],
+      },
     },
     assumptions: {
       title: "Hypothèses par Défaut",
@@ -857,6 +909,28 @@ const en = {
           "Roof utilization ratio (%)",
           "Orientation and tilt (if known)",
           "Structural constraints",
+        ],
+      },
+      interpolation: {
+        title: "Missing Data Interpolation",
+        description: "When entire months of consumption data are missing from the CSV files, the system performs intelligent interpolation to estimate values.",
+        method: {
+          title: "Interpolation Method",
+          steps: [
+            "Automatic detection of months with no consumption data",
+            "Hourly average calculation from adjacent months (e.g., January + March to estimate February)",
+            "Circular handling for edge months (December uses November/January, January uses December/February)",
+            "Default to zero if no adjacent data available",
+          ],
+        },
+        quality: {
+          title: "Data Quality Indicator",
+          description: "When months are interpolated, a warning is displayed in the interface showing which months were estimated. This transparency helps users understand the source of data used in the analysis.",
+        },
+        limitations: [
+          "Interpolation only applies to entirely missing months",
+          "Partially incomplete months use the average of available data",
+          "Analysis results may be less accurate for sites with significant interpolated data",
         ],
       },
     },
