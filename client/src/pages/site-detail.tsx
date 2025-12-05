@@ -2936,58 +2936,6 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-            {/* Data consistency check - warn if frontier data might be stale */}
-            {(() => {
-              const frontier = (simulation.sensitivity as SensitivityAnalysis).frontier;
-              const batterySweep = (simulation.sensitivity as SensitivityAnalysis).batterySweep || [];
-              
-              const optimalPoint = frontier.find(p => p.isOptimal);
-              if (!optimalPoint) return null;
-              
-              const optimalBattKWh = optimalPoint.battEnergyKWh || 0;
-              const optimalPvKW = optimalPoint.pvSizeKW || 0;
-              
-              const actualType = optimalPvKW > 0 && optimalBattKWh > 0 ? 'hybrid' : 
-                                optimalPvKW > 0 ? 'solar' : 'battery';
-              
-              const isTypeMismatch = optimalPoint.type === 'battery' && actualType === 'hybrid';
-              
-              let hasNpvDivergence = false;
-              if (batterySweep.length > 0 && optimalPoint.type === 'battery' && optimalBattKWh > 0) {
-                const closestBatterySweepPoint = batterySweep.reduce((closest, curr) => {
-                  const currDiff = Math.abs(curr.battEnergyKWh - optimalBattKWh);
-                  const closestDiff = closest ? Math.abs(closest.battEnergyKWh - optimalBattKWh) : Infinity;
-                  return currDiff < closestDiff ? curr : closest;
-                }, batterySweep[0]);
-                
-                if (closestBatterySweepPoint) {
-                  const npvDiff = Math.abs(optimalPoint.npv25 - closestBatterySweepPoint.npv25);
-                  const relativeDiff = npvDiff / Math.max(Math.abs(optimalPoint.npv25), 1);
-                  hasNpvDivergence = (optimalPoint.npv25 > 0 && closestBatterySweepPoint.npv25 < 0) ||
-                                     (npvDiff > 50000 && relativeDiff > 0.5);
-                }
-              }
-              
-              if (!isTypeMismatch && !hasNpvDivergence) return null;
-              
-              return (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                      {language === "fr" 
-                        ? "Incohérence de données détectée" 
-                        : "Data inconsistency detected"}
-                    </p>
-                    <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-1">
-                      {language === "fr"
-                        ? "Les données de sensibilité semblent obsolètes. Veuillez relancer l'analyse pour obtenir des résultats cohérents."
-                        : "Sensitivity data appears outdated. Please re-run the analysis to get consistent results."}
-                    </p>
-                  </div>
-                </div>
-              );
-            })()}
             {/* Efficiency Frontier Chart */}
             <div>
               <h4 className="text-sm font-semibold mb-4">
