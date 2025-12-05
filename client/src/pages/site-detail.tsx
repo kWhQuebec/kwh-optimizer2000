@@ -1750,6 +1750,11 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
             <p className="text-xl font-bold font-mono">
               {formatCurrency(options.find(o => o.type === financingType)?.totalCost || 0)}
             </p>
+            {financingType === "cash" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === "fr" ? "(après incitatifs)" : "(after incentives)"}
+              </p>
+            )}
           </div>
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-1">{t("financing.monthlyPayment")}</p>
