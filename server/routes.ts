@@ -225,7 +225,7 @@ export async function registerRoutes(
       }
       const users = await storage.getUsers();
       // Remove password hashes from response
-      const safeUsers = users.map(({ password, ...user }) => user);
+      const safeUsers = users.map(({ passwordHash, ...user }) => user);
       res.json(safeUsers);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -267,8 +267,8 @@ export async function registerRoutes(
         clientId: clientId || null,
       });
       
-      // Return user without password
-      const { password: _, ...safeUser } = user;
+      // Return user without password hash
+      const { passwordHash: _, ...safeUser } = user;
       res.status(201).json(safeUser);
     } catch (error) {
       console.error("Create user error:", error);
