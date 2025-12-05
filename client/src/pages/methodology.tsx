@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileDown, Calculator, Sun, Battery, DollarSign, BarChart3, Zap, TrendingUp, Info } from "lucide-react";
+import { FileDown, Calculator, Sun, Battery, DollarSign, BarChart3, Zap, TrendingUp, Info, Clock, Wallet, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function MethodologyPage() {
@@ -301,6 +301,55 @@ function SolarSection({ t }: { t: typeof fr }) {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-primary" />
+            {t.solar.advancedModeling.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="prose dark:prose-invert max-w-none">
+          <p>{t.solar.advancedModeling.description}</p>
+          
+          <Accordion type="single" collapsible className="w-full">
+            {t.solar.advancedModeling.parameters.map((param, i) => (
+              <AccordionItem key={i} value={`param-${i}`}>
+                <AccordionTrigger data-testid={`accordion-trigger-param-${i}`}>
+                  <div className="flex items-center gap-2 font-semibold">
+                    {param.name}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-2">
+                  <p>{param.description}</p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">Default: {param.default}</Badge>
+                  </div>
+                  <div className="bg-muted p-3 rounded-lg font-mono text-xs">
+                    {param.formula}
+                  </div>
+                  {param.note && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Info className="h-3 w-3" />
+                      {param.note}
+                    </p>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+
+          <h4>{t.solar.advancedModeling.temperatureProfile.title}</h4>
+          <div className="grid grid-cols-4 gap-2 text-sm">
+            {t.solar.advancedModeling.temperatureProfile.months.map((m, i) => (
+              <div key={i} className="flex justify-between border rounded p-2">
+                <span>{m.month}</span>
+                <Badge variant="secondary">{m.temp}</Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </>
   );
 }
@@ -442,6 +491,34 @@ function FinancialSection({ t }: { t: typeof fr }) {
                 </div>
               </AccordionContent>
             </AccordionItem>
+
+            <AccordionItem value="timing">
+              <AccordionTrigger data-testid="accordion-trigger-timing">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {t.financial.incentives.timing.title}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <p>{t.financial.incentives.timing.description}</p>
+                <div className="space-y-2 mt-3">
+                  {t.financial.incentives.timing.timeline.map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 border-l-2 border-primary pl-3">
+                      <Badge variant="outline">{item.year}</Badge>
+                      <ul className="text-sm space-y-1">
+                        {item.items.map((it, j) => (
+                          <li key={j}>{it}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground mt-3 flex items-center gap-1">
+                  <Info className="h-3 w-3" />
+                  {t.financial.incentives.timing.note}
+                </p>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </CardContent>
       </Card>
@@ -462,6 +539,64 @@ function FinancialSection({ t }: { t: typeof fr }) {
           <div className="bg-muted p-4 rounded-lg font-mono text-sm">
             {t.financial.cashflow.costs.formula}
           </div>
+
+          <h4>{t.financial.cashflow.degradation.title}</h4>
+          <p>{t.financial.cashflow.degradation.description}</p>
+          <div className="bg-muted p-4 rounded-lg font-mono text-sm">
+            {t.financial.cashflow.degradation.formula}
+          </div>
+          <p className="text-sm text-muted-foreground">{t.financial.cashflow.degradation.example}</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-primary" />
+            {t.financial.financing.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="prose dark:prose-invert max-w-none">
+          <p>{t.financial.financing.description}</p>
+          
+          <Accordion type="single" collapsible className="w-full">
+            {t.financial.financing.options.map((option, i) => (
+              <AccordionItem key={i} value={`financing-${i}`}>
+                <AccordionTrigger data-testid={`accordion-trigger-financing-${i}`}>
+                  <div className="font-semibold">{option.name}</div>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-3">
+                  <p>{option.description}</p>
+                  <div className="bg-muted p-3 rounded-lg font-mono text-xs">
+                    {option.formula}
+                  </div>
+                  {option.params && (
+                    <ul className="text-sm">
+                      {option.params.map((p, j) => (
+                        <li key={j}>{p}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {option.pros && (
+                    <div className="flex flex-wrap gap-1">
+                      {option.pros.map((p, j) => (
+                        <Badge key={j} variant="secondary" className="text-xs">{p}</Badge>
+                      ))}
+                    </div>
+                  )}
+                  {option.note && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Info className="h-3 w-3" />
+                      {option.note}
+                    </p>
+                  )}
+                  {option.comparison && (
+                    <p className="text-sm font-medium">{option.comparison}</p>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </CardContent>
       </Card>
 
@@ -703,6 +838,56 @@ const fr = {
         selfSufficiency: "Autosuffisance (%) = Production_autoconsommée / Consommation_totale × 100",
       },
     },
+    advancedModeling: {
+      title: "Modélisation Avancée (Paramètres Helioscope)",
+      description: "Le moteur de simulation horaire intègre des paramètres de modélisation professionnels inspirés d'outils industriels comme Helioscope.",
+      parameters: [
+        {
+          name: "Ratio DC/AC (ILR)",
+          description: "Surdimensionnement configurable du champ DC par rapport à la capacité AC de l'onduleur.",
+          default: "1.2 (plage: 1.0-2.0)",
+          formula: "Si Production_DC > Capacité_AC_onduleur: Production_écrêtée = Capacité_AC",
+          note: "Comptabilise les pertes par écrêtage lorsque la production DC dépasse la capacité AC.",
+        },
+        {
+          name: "Coefficient de Température",
+          description: "Ajuste la production PV horaire selon la température cellulaire.",
+          default: "-0.4%/°C (typique pour silicium cristallin)",
+          formula: "P_corrigée = P_base × (1 + Coeff_temp × (T_cellule - 25°C))",
+          note: "Utilise T_cellule = T_ambiante + 25°C avec moyennes mensuelles québécoises.",
+        },
+        {
+          name: "Pertes de Câblage",
+          description: "Pertes dans les conducteurs et le câblage appliquées après correction de température.",
+          default: "2% (configurable 0-10%)",
+          formula: "P_finale = P_après_écrêtage × (1 - Pertes_câblage)",
+        },
+        {
+          name: "Taux de Dégradation",
+          description: "Dégradation annuelle des panneaux appliquée dans tous les calculs financiers.",
+          default: "0.5%/an",
+          formula: "Revenus_année_Y = Économies_base × (1 - dégradation)^(Y-1) × (1 + inflation)^(Y-1)",
+          note: "Affecte le LCOE et la VAN sur 25 ans.",
+        },
+      ],
+      temperatureProfile: {
+        title: "Profil de Température Québec",
+        months: [
+          { month: "Janvier", temp: "-10°C" },
+          { month: "Février", temp: "-8°C" },
+          { month: "Mars", temp: "-2°C" },
+          { month: "Avril", temp: "6°C" },
+          { month: "Mai", temp: "13°C" },
+          { month: "Juin", temp: "18°C" },
+          { month: "Juillet", temp: "21°C" },
+          { month: "Août", temp: "20°C" },
+          { month: "Septembre", temp: "15°C" },
+          { month: "Octobre", temp: "8°C" },
+          { month: "Novembre", temp: "2°C" },
+          { month: "Décembre", temp: "-7°C" },
+        ],
+      },
+    },
   },
 
   battery: {
@@ -787,6 +972,16 @@ const fr = {
         description: "Déductions pour amortissement accéléré sur les équipements solaires (Classe 43.2).",
         formula: "Bouclier_fiscal = CAPEX_net × Taux_CCA × Taux_imposition",
       },
+      timing: {
+        title: "Chronologie des Incitatifs",
+        description: "Les incitatifs sont versés à différents moments, affectant le flux de trésorerie réel.",
+        timeline: [
+          { year: "Année 0", items: ["Subvention HQ Solaire (100%)", "Subvention HQ Batterie (50%)"] },
+          { year: "Année 1", items: ["Subvention HQ Batterie restante (50%)", "Bouclier fiscal (DPA/CCA)"] },
+          { year: "Année 2", items: ["Crédit d'impôt fédéral (CII 30%)"] },
+        ],
+        note: "L'équité initiale requise = CAPEX brut - Subvention HQ Solaire - 50% Subvention HQ Batterie",
+      },
     },
     cashflow: {
       title: "Flux de Trésorerie",
@@ -799,6 +994,44 @@ const fr = {
         title: "Coûts d'Exploitation (O&M)",
         formula: "O&M(an) = CAPEX_PV × %O&M_PV + CAPEX_Batt × %O&M_Batt × (1 + inflation_O&M)^an",
       },
+      degradation: {
+        title: "Impact de la Dégradation",
+        description: "Les revenus annuels diminuent selon le taux de dégradation des panneaux.",
+        formula: "Revenus(an) = Économies_base × (1 - dégradation)^(an-1) × (1 + inflation)^(an-1)",
+        example: "Avec 0.5%/an de dégradation: An 1 = 100%, An 10 = 95.5%, An 25 = 88.6%",
+      },
+    },
+    financing: {
+      title: "Options de Financement",
+      description: "Le calculateur compare quatre options de financement sur un horizon de 25 ans.",
+      options: [
+        {
+          name: "Achat Comptant",
+          description: "Paiement initial complet avec retour maximum des incitatifs.",
+          formula: "Équité = CAPEX_brut - Subv_HQ_Solaire - 50%_Subv_HQ_Batterie",
+          pros: ["Rendement maximum", "Propriété immédiate", "Incitatifs complets"],
+          cons: ["Capital initial élevé"],
+        },
+        {
+          name: "Prêt",
+          description: "Financement par emprunt avec versements mensuels.",
+          formula: "Paiement_mensuel = Principal × [r(1+r)^n] / [(1+r)^n - 1]",
+          params: ["Terme: 5-20 ans", "Taux d'intérêt: variable", "Mise de fonds: 0-30%"],
+        },
+        {
+          name: "Location (Lease)",
+          description: "Paiements mensuels fixes basés sur le CAPEX système.",
+          formula: "Paiement_mensuel = (CAPEX × Facteur_taux_implicite) / (Terme × 12)",
+          note: "Le taux implicite combine l'amortissement et les frais de financement.",
+        },
+        {
+          name: "Contrat d'Achat d'Énergie (PPA)",
+          description: "Achat de l'énergie produite à un tarif fixe plutôt que le système.",
+          formula: "Économies_nettes = (Production × Tarif_HQ) - (Production × Tarif_PPA)",
+          note: "Le tarif PPA est généralement 10-20% inférieur au tarif réseau.",
+          comparison: "Compare le coût évité (tarif HQ) au coût PPA payé.",
+        },
+      ],
     },
     metrics: {
       title: "Métriques Financières",
@@ -1020,6 +1253,56 @@ const en = {
         selfSufficiency: "Self-sufficiency (%) = Self-consumed_production / Total_consumption × 100",
       },
     },
+    advancedModeling: {
+      title: "Advanced Modeling (Helioscope Parameters)",
+      description: "The hourly simulation engine includes professional-grade modeling parameters inspired by industry tools like Helioscope.",
+      parameters: [
+        {
+          name: "DC/AC Ratio (ILR)",
+          description: "Configurable oversizing of DC array relative to inverter AC capacity.",
+          default: "1.2 (range: 1.0-2.0)",
+          formula: "If DC_production > Inverter_AC_capacity: Clipped_production = AC_capacity",
+          note: "Tracks clipping losses when DC production exceeds AC capacity.",
+        },
+        {
+          name: "Temperature Coefficient",
+          description: "Adjusts hourly PV output based on cell temperature.",
+          default: "-0.4%/°C (typical for crystalline silicon)",
+          formula: "P_corrected = P_base × (1 + Temp_coeff × (T_cell - 25°C))",
+          note: "Uses T_cell = T_ambient + 25°C with Quebec monthly averages.",
+        },
+        {
+          name: "Wire Losses",
+          description: "Conductor and wiring losses applied after temperature correction.",
+          default: "2% (configurable 0-10%)",
+          formula: "P_final = P_after_clipping × (1 - Wire_losses)",
+        },
+        {
+          name: "Degradation Rate",
+          description: "Annual panel degradation applied in all financial calculations.",
+          default: "0.5%/year",
+          formula: "Revenue_year_Y = Base_savings × (1 - degradation)^(Y-1) × (1 + inflation)^(Y-1)",
+          note: "Affects LCOE and 25-year NPV.",
+        },
+      ],
+      temperatureProfile: {
+        title: "Quebec Temperature Profile",
+        months: [
+          { month: "January", temp: "-10°C" },
+          { month: "February", temp: "-8°C" },
+          { month: "March", temp: "-2°C" },
+          { month: "April", temp: "6°C" },
+          { month: "May", temp: "13°C" },
+          { month: "June", temp: "18°C" },
+          { month: "July", temp: "21°C" },
+          { month: "August", temp: "20°C" },
+          { month: "September", temp: "15°C" },
+          { month: "October", temp: "8°C" },
+          { month: "November", temp: "2°C" },
+          { month: "December", temp: "-7°C" },
+        ],
+      },
+    },
   },
 
   battery: {
@@ -1104,6 +1387,16 @@ const en = {
         description: "Accelerated capital cost allowance deductions on solar equipment (Class 43.2).",
         formula: "Tax_shield = Net_CAPEX × CCA_rate × Tax_rate",
       },
+      timing: {
+        title: "Incentive Timeline",
+        description: "Incentives are paid at different times, affecting actual cash flow.",
+        timeline: [
+          { year: "Year 0", items: ["HQ Solar Rebate (100%)", "HQ Battery Rebate (50%)"] },
+          { year: "Year 1", items: ["Remaining HQ Battery Rebate (50%)", "Tax Shield (CCA/DPA)"] },
+          { year: "Year 2", items: ["Federal Investment Tax Credit (ITC 30%)"] },
+        ],
+        note: "Initial equity required = Gross CAPEX - HQ Solar Rebate - 50% HQ Battery Rebate",
+      },
     },
     cashflow: {
       title: "Cash Flow",
@@ -1116,6 +1409,44 @@ const en = {
         title: "Operating Costs (O&M)",
         formula: "O&M(year) = CAPEX_PV × %O&M_PV + CAPEX_Batt × %O&M_Batt × (1 + O&M_inflation)^year",
       },
+      degradation: {
+        title: "Degradation Impact",
+        description: "Annual revenue decreases according to panel degradation rate.",
+        formula: "Revenue(year) = Base_savings × (1 - degradation)^(year-1) × (1 + inflation)^(year-1)",
+        example: "With 0.5%/year degradation: Year 1 = 100%, Year 10 = 95.5%, Year 25 = 88.6%",
+      },
+    },
+    financing: {
+      title: "Financing Options",
+      description: "The calculator compares four financing options over a 25-year horizon.",
+      options: [
+        {
+          name: "Cash Purchase",
+          description: "Full upfront payment with maximum incentive returns.",
+          formula: "Equity = Gross_CAPEX - HQ_Solar_Rebate - 50%_HQ_Battery_Rebate",
+          pros: ["Maximum return", "Immediate ownership", "Full incentives"],
+          cons: ["High initial capital"],
+        },
+        {
+          name: "Loan",
+          description: "Debt financing with monthly payments.",
+          formula: "Monthly_payment = Principal × [r(1+r)^n] / [(1+r)^n - 1]",
+          params: ["Term: 5-20 years", "Interest rate: variable", "Down payment: 0-30%"],
+        },
+        {
+          name: "Lease",
+          description: "Fixed monthly payments based on system CAPEX.",
+          formula: "Monthly_payment = (CAPEX × Implicit_rate_factor) / (Term × 12)",
+          note: "Implicit rate combines amortization and financing charges.",
+        },
+        {
+          name: "Power Purchase Agreement (PPA)",
+          description: "Purchase produced energy at a fixed rate rather than the system.",
+          formula: "Net_savings = (Production × HQ_rate) - (Production × PPA_rate)",
+          note: "PPA rate is typically 10-20% below grid rate.",
+          comparison: "Compares avoided cost (HQ rate) to PPA cost paid.",
+        },
+      ],
     },
     metrics: {
       title: "Financial Metrics",
