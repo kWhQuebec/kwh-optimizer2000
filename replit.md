@@ -36,6 +36,8 @@ The PostgreSQL database schema, managed by Drizzle ORM, includes core entities s
 
 The server-side data processing handles CSV parsing of Hydro-Québec consumption data, including auto-detection of file types, encoding, and missing data interpolation. An advanced analysis engine performs 8760-hour solar production simulations, battery peak-shaving, calculates Québec and Federal incentives, tax shields, and generates 25-year cashflows. A sensitivity analysis engine optimizes system sizing by sweeping different configurations and identifying the optimal point based on maximum NPV. The HQ Tariff Module incorporates official Hydro-Québec tariffs for various customer types. Analysis parameters are highly configurable.
 
+**Optimal Configuration Selection**: When sensitivity analysis identifies a hybrid configuration (PV + battery) as optimal, the system uses a >= comparison with $0.01 epsilon tolerance to ensure the optimal frontier configuration is always adopted, even when NPV values are numerically equal to the initial run. This prevents edge cases where floating-point equality could cause the system to show incorrect recommendations.
+
 ### Helioscope-Inspired System Modeling
 
 The hourly simulation engine includes professional-grade PV modeling parameters inspired by industry tools like Helioscope:

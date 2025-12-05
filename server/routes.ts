@@ -1886,8 +1886,11 @@ function runPotentialAnalysis(
   // The sensitivity analysis explores many scenarios - use the best one
   const optimalScenario = sensitivity.frontier.find(p => p.isOptimal);
   
-  // If the optimal scenario has better NPV than our initial calculation, use its sizing
-  if (optimalScenario && optimalScenario.npv25 > npv25) {
+  // If the optimal scenario has equal or better NPV than our initial calculation, use its sizing
+  // Use >= with small epsilon to handle floating-point precision issues
+  // This ensures we always display the globally optimal configuration identified by sensitivity analysis
+  const npvThreshold = npv25 - 0.01; // Allow $0.01 tolerance
+  if (optimalScenario && optimalScenario.npv25 >= npvThreshold) {
     // Recalculate with optimal sizing
     const optPvSizeKW = optimalScenario.pvSizeKW;
     const optBattEnergyKWh = optimalScenario.battEnergyKWh;

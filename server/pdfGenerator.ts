@@ -735,7 +735,7 @@ export function generateProfessionalPDF(
     
     // Header
     doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-    doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+    doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
     doc.font("Helvetica");
     doc.fontSize(10).fillColor(COLORS.mediumGray);
     doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -857,7 +857,7 @@ export function generateProfessionalPDF(
 
   // Header
   doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+  doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
   doc.font("Helvetica");
   doc.fontSize(10).fillColor(COLORS.mediumGray);
   doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -910,7 +910,7 @@ export function generateProfessionalPDF(
 
   // Header
   doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+  doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
   doc.font("Helvetica");
   doc.fontSize(10).fillColor(COLORS.mediumGray);
   doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -936,7 +936,7 @@ export function generateProfessionalPDF(
 
   // Header
   doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+  doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
   doc.font("Helvetica");
   doc.fontSize(10).fillColor(COLORS.mediumGray);
   doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -1034,7 +1034,7 @@ export function generateProfessionalPDF(
 
   // Header
   doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+  doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
   doc.font("Helvetica");
   doc.fontSize(10).fillColor(COLORS.mediumGray);
   doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -1080,7 +1080,7 @@ export function generateProfessionalPDF(
     if (rowY > pageHeight - 60) {
       doc.addPage();
       doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-      doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+      doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
       doc.font("Helvetica");
       doc.fontSize(10).fillColor(COLORS.mediumGray);
       doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -1121,7 +1121,7 @@ export function generateProfessionalPDF(
 
   // Header
   doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+  doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
   doc.font("Helvetica");
   doc.fontSize(10).fillColor(COLORS.mediumGray);
   doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -1320,7 +1320,7 @@ export function generateProfessionalPDF(
 
   // Header
   doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+  doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
   doc.font("Helvetica");
   doc.fontSize(10).fillColor(COLORS.mediumGray);
   doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -1439,7 +1439,7 @@ export function generateProfessionalPDF(
 
     // Header
     doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-    doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+    doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
     doc.font("Helvetica");
     doc.fontSize(10).fillColor(COLORS.mediumGray);
     doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
@@ -1551,7 +1551,7 @@ export function generateProfessionalPDF(
 
     // Header
     doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-    doc.text("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", margin, margin, { align: "center", width: contentWidth });
+    doc.text(t("ÉTUDE PRÉLIMINAIRE : SOLAIRE + STOCKAGE", "PRELIMINARY STUDY: SOLAR + STORAGE"), margin, margin, { align: "center", width: contentWidth });
     doc.font("Helvetica");
     doc.fontSize(10).fillColor(COLORS.mediumGray);
     doc.text(dateStr, margin, margin, { align: "right", width: contentWidth });
