@@ -30,7 +30,8 @@ import {
   Info,
   Satellite,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Sun
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -882,7 +883,7 @@ function DownloadReportButton({ simulationId }: { simulationId: string }) {
 const MONTH_NAMES_FR = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const MONTH_NAMES_EN = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
+function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site: SiteWithDetails }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [showIncentives, setShowIncentives] = useState(true);
@@ -992,6 +993,49 @@ function AnalysisResults({ simulation }: { simulation: SimulationRun }) {
 
   return (
     <div className="space-y-6">
+      {/* Satellite Hero Image */}
+      {site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+        <div className="relative rounded-xl overflow-hidden" data-testid="satellite-hero">
+          <iframe
+            className="w-full h-56 md:h-72"
+            style={{ border: 0 }}
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+            src={`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&center=${site.latitude},${site.longitude}&zoom=19&maptype=satellite`}
+            title={language === "fr" ? "Vue satellite du site" : "Satellite view of site"}
+          />
+          {/* Dark gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+          
+          {/* Building name and stats overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-white mb-1">{site.name}</h2>
+                <p className="text-sm text-white/80">{site.address}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                  <Home className="w-3 h-3 mr-1" />
+                  {assumptions.roofAreaSqFt.toLocaleString()} pi²
+                </Badge>
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                  <Sun className="w-3 h-3 mr-1" />
+                  {Math.round(maxPVFromRoof)} kWc max
+                </Badge>
+                {simulation.pvSizeKW && (
+                  <Badge variant="secondary" className="bg-primary/80 text-white border-primary backdrop-blur-sm">
+                    <Zap className="w-3 h-3 mr-1" />
+                    {Math.round(simulation.pvSizeKW)} kWc
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Financial KPIs - 25 Year Focus */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-primary/20 bg-primary/5">
@@ -2116,7 +2160,7 @@ export default function SiteDetailPage() {
               </CardContent>
             </Card>
           ) : latestSimulation ? (
-            <AnalysisResults simulation={latestSimulation} />
+            <AnalysisResults simulation={latestSimulation} site={site} />
           ) : (
             <Card>
               <CardContent className="py-16 text-center">
