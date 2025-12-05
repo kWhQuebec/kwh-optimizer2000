@@ -2776,7 +2776,8 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                   : (pvKW > 0 ? Math.min(40, pvKW / 10) : 0);
                 
                 const systemCost = (pvKW * 1.50 * 1000) + (battKWh * 400);
-                const propertyValueIncrease = systemCost * 0.04;
+                // Industry standard: ~$1,000 per kW of installed PV capacity (Lawrence Berkeley studies)
+                const propertyValueIncrease = pvKW * 1000;
                 
                 const hasSolar = pvKW > 0;
                 const hasBattery = battKWh > 0;
@@ -2869,7 +2870,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                       )}
                       
                       {/* Property Value */}
-                      {systemCost > 10000 && (
+                      {hasSolar && propertyValueIncrease > 0 && (
                         <div className="p-3 bg-background rounded-lg border">
                           <div className="flex items-center gap-2 mb-1">
                             <TrendingUp className="w-4 h-4 text-purple-500" />
@@ -2878,12 +2879,14 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                             </span>
                           </div>
                           <p className="text-lg font-bold font-mono text-purple-600">
-                            +3-5%
+                            {propertyValueIncrease >= 1000 
+                              ? `+$${(propertyValueIncrease / 1000).toFixed(0)}k`
+                              : `+$${propertyValueIncrease.toFixed(0)}`}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {language === "fr" 
-                              ? `~$${(propertyValueIncrease / 1000).toFixed(0)}k (études sectorielles)` 
-                              : `~$${(propertyValueIncrease / 1000).toFixed(0)}k (industry studies)`}
+                              ? `~$1k/kWc (études sectorielles)` 
+                              : `~$1k/kW (industry studies)`}
                           </p>
                         </div>
                       )}
