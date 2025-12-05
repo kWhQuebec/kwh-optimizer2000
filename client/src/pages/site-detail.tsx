@@ -1635,14 +1635,23 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const leaseTerm = 20; // 20-year lease term
   
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
+  const assumptions = simulation.assumptions as AnalysisAssumptions | null;
   const capexNet = simulation.capexNet || 0;
   const capexGross = breakdown?.capexGross || capexNet;
   const annualSavings = simulation.annualSavings || 0;
-  const annualProduction = simulation.annualEnergySavingsKWh || 0;
+  const selfConsumptionKWh = simulation.annualEnergySavingsKWh || 0;
   
-  // Derive effective utility rate from ownership savings
-  // annualSavings = production × utility_rate, so utility_rate = annualSavings / production
-  const effectiveUtilityRate = annualProduction > 0 ? annualSavings / annualProduction : 0.12;
+  // Calculate total annual solar production = PV size × solar yield
+  // This is what the system actually produces (different from self-consumption)
+  const pvSizeKW = simulation.pvSizeKW || 0;
+  const solarYield = assumptions?.solarYieldKWhPerKWp || 1150; // kWh/kWp/year
+  const totalAnnualProductionKWh = pvSizeKW * solarYield;
+  
+  // Get utility rate from assumptions or derive from savings
+  // annualSavings includes energy + demand savings, so we use the tariff rate for energy
+  const utilityEnergyRate = assumptions?.tariffEnergy || 0.06061; // Tarif M default
+  
+  // For PPA comparison, we use the energy rate since PPA only displaces energy, not demand charges
   
   // Incentive breakdown with timing
   const hqSolar = breakdown?.actualHQSolar || 0;
@@ -1677,10 +1686,14 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const leaseMonthlyPayment = (capexGross / (leaseTerm * 12)) + (capexGross * (leaseImplicitRate / 100) / 12);
   const leaseTotalCost = leaseMonthlyPayment * 12 * leaseTerm;
   
-  // PPA calculation: you pay PPA rate per kWh instead of utility rate
-  // Savings = avoided utility cost - PPA payments = (utility_rate - PPA_rate) × production
-  const annualPpaCost = ppaRate * annualProduction;
-  const annualPpaSavings = (effectiveUtilityRate - ppaRate) * annualProduction;
+  // PPA calculation: you pay PPA rate for ALL energy the system produces
+  // The client saves by avoiding utility energy charges on self-consumed portion
+  // PPA cost = total production × PPA rate (what you pay the PPA provider)
+  // Avoided cost = self-consumed energy × utility energy rate (what you save)
+  // Net savings = avoided cost - PPA cost
+  const annualPpaCost = ppaRate * totalAnnualProductionKWh;
+  const annualAvoidedCost = utilityEnergyRate * selfConsumptionKWh;
+  const annualPpaSavings = annualAvoidedCost - annualPpaCost;
   const ppaTotalCost = annualPpaCost * 25; // 25-year PPA term
   const ppaTotalSavings = annualPpaSavings * 25;
   
@@ -1914,14 +1927,18 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
             </div>
             <div className="text-sm space-y-1 text-muted-foreground">
               <p className="flex justify-between gap-2">
-                <span>{language === "fr" ? "Tarif HQ effectif:" : "Effective HQ rate:"}</span>
-                <span className="font-mono">${effectiveUtilityRate.toFixed(3)}/kWh</span>
+                <span>{language === "fr" ? "Tarif HQ énergie:" : "HQ energy rate:"}</span>
+                <span className="font-mono">${utilityEnergyRate.toFixed(3)}/kWh</span>
               </p>
               <p className="flex justify-between gap-2">
                 <span>{language === "fr" ? "Économie par kWh:" : "Savings per kWh:"}</span>
-                <span className={`font-mono ${effectiveUtilityRate - ppaRate >= 0 ? "text-primary" : "text-destructive"}`}>
-                  ${(effectiveUtilityRate - ppaRate).toFixed(3)}/kWh
+                <span className={`font-mono ${utilityEnergyRate - ppaRate >= 0 ? "text-primary" : "text-destructive"}`}>
+                  ${(utilityEnergyRate - ppaRate).toFixed(3)}/kWh
                 </span>
+              </p>
+              <p className="flex justify-between gap-2">
+                <span>{language === "fr" ? "Production annuelle:" : "Annual production:"}</span>
+                <span className="font-mono">{Math.round(totalAnnualProductionKWh).toLocaleString()} kWh</span>
               </p>
             </div>
           </div>
