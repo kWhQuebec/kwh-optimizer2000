@@ -216,6 +216,92 @@ const translations: Translations = {
   "footer.rights": { fr: "Tous droits réservés", en: "All rights reserved" },
   "footer.contact": { fr: "Contactez-nous", en: "Contact us" },
   "footer.privacy": { fr: "Politique de confidentialité", en: "Privacy Policy" },
+
+  // Catalog
+  "catalog.title": { fr: "Catalogue", en: "Catalog" },
+  "catalog.subtitle": { fr: "Gérez les composants disponibles pour les designs", en: "Manage available components for designs" },
+  "catalog.addComponent": { fr: "Ajouter un composant", en: "Add component" },
+  "catalog.editComponent": { fr: "Modifier le composant", en: "Edit component" },
+  "catalog.category": { fr: "Catégorie", en: "Category" },
+  "catalog.manufacturer": { fr: "Fabricant", en: "Manufacturer" },
+  "catalog.model": { fr: "Modèle", en: "Model" },
+  "catalog.unitCost": { fr: "Coût unitaire ($)", en: "Unit cost ($)" },
+  "catalog.sellPrice": { fr: "Prix de vente ($)", en: "Sell price ($)" },
+  "catalog.active": { fr: "Actif", en: "Active" },
+  "catalog.inactive": { fr: "Inactif", en: "Inactive" },
+  "catalog.activeDescription": { fr: "Rendre ce composant disponible pour les designs", en: "Make this component available for designs" },
+  "catalog.cost": { fr: "Coût", en: "Cost" },
+  "catalog.sale": { fr: "Vente", en: "Sale" },
+  "catalog.noComponents": { fr: "Aucun composant dans le catalogue", en: "No components in the catalog" },
+  "catalog.componentAdded": { fr: "Composant ajouté", en: "Component added" },
+  "catalog.componentUpdated": { fr: "Composant mis à jour", en: "Component updated" },
+  "catalog.componentDeleted": { fr: "Composant supprimé", en: "Component deleted" },
+  "catalog.addError": { fr: "Erreur lors de l'ajout", en: "Error adding component" },
+  "catalog.updateError": { fr: "Erreur lors de la mise à jour", en: "Error updating component" },
+  "catalog.deleteError": { fr: "Erreur lors de la suppression", en: "Error deleting component" },
+  "catalog.module": { fr: "Module PV", en: "PV Module" },
+  "catalog.inverter": { fr: "Onduleur", en: "Inverter" },
+  "catalog.battery": { fr: "Batterie", en: "Battery" },
+  "catalog.racking": { fr: "Structure", en: "Racking" },
+  "catalog.cable": { fr: "Câblage", en: "Cabling" },
+  "catalog.bos": { fr: "BOS", en: "BOS" },
+
+  // Dashboard
+  "dashboard.exportPdf": { fr: "Exporter en PDF", en: "Export to PDF" },
+  "dashboard.subtitle": { fr: "Vue d'ensemble de votre portefeuille", en: "Overview of your portfolio" },
+  "dashboard.recentSites": { fr: "Sites récents", en: "Recent Sites" },
+  "dashboard.recentAnalyses": { fr: "Analyses récentes", en: "Recent Analyses" },
+  "dashboard.noRecentSites": { fr: "Aucun site récent", en: "No recent sites" },
+  "dashboard.noRecentAnalyses": { fr: "Aucune analyse récente", en: "No recent analyses" },
+  "dashboard.perYear": { fr: "an", en: "yr" },
+
+  // Methodology
+  "methodology.title": { fr: "Méthodologie", en: "Methodology" },
+  "methodology.subtitle": { fr: "Documentation technique de notre approche d'analyse", en: "Technical documentation of our analysis approach" },
+  "methodology.exportPdf": { fr: "Exporter en PDF", en: "Export to PDF" },
+  "methodology.overview": { fr: "Aperçu", en: "Overview" },
+  "methodology.financial": { fr: "Financier", en: "Financial" },
+  "methodology.technical": { fr: "Technique", en: "Technical" },
+  "methodology.glossary": { fr: "Glossaire", en: "Glossary" },
+
+  // Design
+  "design.generateError": { fr: "Erreur lors de la génération", en: "Error during generation" },
+  "design.syncError": { fr: "Erreur lors de la synchronisation", en: "Error during sync" },
+  "design.createDesign": { fr: "Créer un design", en: "Create design" },
+  "design.designGenerated": { fr: "Design généré avec succès", en: "Design generated successfully" },
+  "design.zohoSynced": { fr: "Offre synchronisée avec Zoho", en: "Quote synced with Zoho" },
+  "design.simulationNotFound": { fr: "Simulation non trouvée", en: "Simulation not found" },
+
+  // Sites
+  "sites.createError": { fr: "Erreur lors de la création", en: "Error creating site" },
+  "sites.updateError": { fr: "Erreur lors de la mise à jour", en: "Error updating site" },
+  "sites.deleteError": { fr: "Erreur lors de la suppression", en: "Error deleting site" },
+  "sites.createClientFirst": { fr: "Créer un client d'abord", en: "Create a client first" },
+  "sites.siteCreated": { fr: "Site créé", en: "Site created" },
+  "sites.siteUpdated": { fr: "Site mis à jour", en: "Site updated" },
+  "sites.siteDeleted": { fr: "Site supprimé", en: "Site deleted" },
+
+  // Clients
+  "clients.subtitle": { fr: "Gérez vos clients et leurs sites", en: "Manage your clients and their sites" },
+  "clients.createError": { fr: "Erreur lors de la création", en: "Error creating client" },
+  "clients.updateError": { fr: "Erreur lors de la mise à jour", en: "Error updating client" },
+  "clients.deleteError": { fr: "Erreur lors de la suppression", en: "Error deleting client" },
+  "clients.clientCreated": { fr: "Client créé", en: "Client created" },
+  "clients.clientUpdated": { fr: "Client mis à jour", en: "Client updated" },
+  "clients.clientDeleted": { fr: "Client supprimé", en: "Client deleted" },
+
+  // Analyses
+  "analyses.createDesign": { fr: "Créer un design", en: "Create design" },
+  "analyses.noAnalyses": { fr: "Aucune analyse", en: "No analyses" },
+  "analyses.noAnalysesDescription": { fr: "Créez un site et importez des données pour lancer une analyse.", en: "Create a site and import data to run an analysis." },
+  "analyses.subtitle": { fr: "Consultez toutes les analyses de potentiel", en: "View all potential analyses" },
+  "analyses.viewSite": { fr: "Voir le site", en: "View site" },
+  "analyses.scenario": { fr: "Scénario", en: "Scenario" },
+  "analyses.baseline": { fr: "Baseline", en: "Baseline" },
+  "analyses.savings": { fr: "Économies", en: "Savings" },
+  "analyses.payback": { fr: "Retour", en: "Payback" },
+  "analyses.perYear": { fr: "an", en: "yr" },
+  "analyses.years": { fr: "ans", en: "yrs" },
 };
 
 interface I18nContextType {

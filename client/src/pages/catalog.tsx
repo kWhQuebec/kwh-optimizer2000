@@ -31,17 +31,29 @@ const catalogFormSchema = z.object({
 
 type CatalogFormValues = z.infer<typeof catalogFormSchema>;
 
-const categories = [
-  { value: "MODULE", label: "Module PV", icon: Zap },
-  { value: "INVERTER", label: "Onduleur", icon: Settings },
-  { value: "BATTERY", label: "Batterie", icon: Battery },
-  { value: "RACKING", label: "Structure", icon: Package },
-  { value: "CABLE", label: "Câblage", icon: Package },
-  { value: "BOS", label: "BOS", icon: Package },
+const getCategoryLabel = (value: string, t: (key: string) => string) => {
+  const labels: Record<string, string> = {
+    MODULE: t("catalog.module"),
+    INVERTER: t("catalog.inverter"),
+    BATTERY: t("catalog.battery"),
+    RACKING: t("catalog.racking"),
+    CABLE: t("catalog.cable"),
+    BOS: t("catalog.bos"),
+  };
+  return labels[value] || value;
+};
+
+const categoryValues = [
+  { value: "MODULE", icon: Zap },
+  { value: "INVERTER", icon: Settings },
+  { value: "BATTERY", icon: Battery },
+  { value: "RACKING", icon: Package },
+  { value: "CABLE", icon: Package },
+  { value: "BOS", icon: Package },
 ];
 
 function getCategoryIcon(category: string) {
-  const cat = categories.find(c => c.value === category);
+  const cat = categoryValues.find(c => c.value === category);
   return cat?.icon || Package;
 }
 
@@ -50,6 +62,7 @@ function ComponentCard({ component, onEdit, onDelete }: {
   onEdit: () => void; 
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
   const Icon = getCategoryIcon(component.category);
 
   return (
@@ -66,19 +79,19 @@ function ComponentCard({ component, onEdit, onDelete }: {
                 {component.active ? (
                   <Badge variant="default" className="gap-1 shrink-0">
                     <CheckCircle2 className="w-3 h-3" />
-                    Actif
+                    {t("catalog.active")}
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="shrink-0">Inactif</Badge>
+                  <Badge variant="secondary" className="shrink-0">{t("catalog.inactive")}</Badge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground truncate">{component.manufacturer}</p>
               <div className="flex items-center gap-4 mt-2 text-sm">
                 <span className="text-muted-foreground">
-                  Coût: <span className="font-mono">${(component.unitCost || 0).toLocaleString()}</span>
+                  {t("catalog.cost")}: <span className="font-mono">${(component.unitCost || 0).toLocaleString()}</span>
                 </span>
                 <span className="text-primary">
-                  Vente: <span className="font-mono">${(component.unitSellPrice || 0).toLocaleString()}</span>
+                  {t("catalog.sale")}: <span className="font-mono">${(component.unitSellPrice || 0).toLocaleString()}</span>
                 </span>
               </div>
             </div>
@@ -93,11 +106,11 @@ function ComponentCard({ component, onEdit, onDelete }: {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onEdit}>
                 <Pencil className="w-4 h-4 mr-2" />
-                Modifier
+                {t("common.edit")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onDelete} className="text-destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer
+                {t("common.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -140,7 +153,7 @@ function CatalogForm({
           name="category"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Catégorie *</FormLabel>
+              <FormLabel>{t("catalog.category")} *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-category">
@@ -148,9 +161,9 @@ function CatalogForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {categories.map((cat) => (
+                  {categoryValues.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
+                      {getCategoryLabel(cat.value, t)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -166,7 +179,7 @@ function CatalogForm({
             name="manufacturer"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Fabricant *</FormLabel>
+                <FormLabel>{t("catalog.manufacturer")} *</FormLabel>
                 <FormControl>
                   <Input placeholder="Ex: Canadian Solar" {...field} data-testid="input-manufacturer" />
                 </FormControl>
@@ -180,7 +193,7 @@ function CatalogForm({
             name="model"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Modèle *</FormLabel>
+                <FormLabel>{t("catalog.model")} *</FormLabel>
                 <FormControl>
                   <Input placeholder="Ex: CS6R-410MS" {...field} data-testid="input-model" />
                 </FormControl>
@@ -196,7 +209,7 @@ function CatalogForm({
             name="unitCost"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Coût unitaire ($)</FormLabel>
+                <FormLabel>{t("catalog.unitCost")}</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} data-testid="input-unit-cost" />
                 </FormControl>
@@ -210,7 +223,7 @@ function CatalogForm({
             name="unitSellPrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Prix de vente ($)</FormLabel>
+                <FormLabel>{t("catalog.sellPrice")}</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} data-testid="input-unit-sell" />
                 </FormControl>
@@ -226,9 +239,9 @@ function CatalogForm({
           render={({ field }) => (
             <FormItem className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <FormLabel className="text-base">Actif</FormLabel>
+                <FormLabel className="text-base">{t("catalog.active")}</FormLabel>
                 <p className="text-sm text-muted-foreground">
-                  Rendre ce composant disponible pour les designs
+                  {t("catalog.activeDescription")}
                 </p>
               </div>
               <FormControl>
@@ -273,10 +286,10 @@ export default function CatalogPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/catalog"] });
       setDialogOpen(false);
-      toast({ title: "Composant ajouté" });
+      toast({ title: t("catalog.componentAdded") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de l'ajout", variant: "destructive" });
+      toast({ title: t("catalog.addError"), variant: "destructive" });
     },
   });
 
@@ -288,10 +301,10 @@ export default function CatalogPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/catalog"] });
       setEditingComponent(null);
-      toast({ title: "Composant mis à jour" });
+      toast({ title: t("catalog.componentUpdated") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la mise à jour", variant: "destructive" });
+      toast({ title: t("catalog.updateError"), variant: "destructive" });
     },
   });
 
@@ -301,10 +314,10 @@ export default function CatalogPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/catalog"] });
-      toast({ title: "Composant supprimé" });
+      toast({ title: t("catalog.componentDeleted") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la suppression", variant: "destructive" });
+      toast({ title: t("catalog.deleteError"), variant: "destructive" });
     },
   });
 
@@ -315,19 +328,19 @@ export default function CatalogPage() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("nav.catalog")}</h1>
-          <p className="text-muted-foreground mt-1">Gérez les composants disponibles pour les designs</p>
+          <p className="text-muted-foreground mt-1">{t("catalog.subtitle")}</p>
         </div>
         
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2" data-testid="button-add-component">
               <Plus className="w-4 h-4" />
-              Ajouter un composant
+              {t("catalog.addComponent")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Ajouter un composant</DialogTitle>
+              <DialogTitle>{t("catalog.addComponent")}</DialogTitle>
             </DialogHeader>
             <CatalogForm
               onSubmit={(data) => createMutation.mutate(data)}
@@ -340,15 +353,15 @@ export default function CatalogPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          {categories.map((cat) => (
+          {categoryValues.map((cat) => (
             <TabsTrigger key={cat.value} value={cat.value} data-testid={`tab-${cat.value.toLowerCase()}`}>
               <cat.icon className="w-4 h-4 mr-2" />
-              {cat.label}
+              {getCategoryLabel(cat.value, t)}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {categories.map((cat) => (
+        {categoryValues.map((cat) => (
           <TabsContent key={cat.value} value={cat.value} className="mt-6">
             {isLoading ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -381,7 +394,7 @@ export default function CatalogPage() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <cat.icon className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-muted-foreground">Aucun {cat.label.toLowerCase()} dans le catalogue</p>
+                  <p className="text-muted-foreground">{t("catalog.noComponents")}</p>
                 </CardContent>
               </Card>
             )}
@@ -393,7 +406,7 @@ export default function CatalogPage() {
       <Dialog open={!!editingComponent} onOpenChange={(open) => !open && setEditingComponent(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Modifier le composant</DialogTitle>
+            <DialogTitle>{t("catalog.editComponent")}</DialogTitle>
           </DialogHeader>
           {editingComponent && (
             <CatalogForm

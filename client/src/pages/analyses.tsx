@@ -34,7 +34,7 @@ function AnalysisCard({ simulation }: { simulation: SimulationWithSite }) {
               </div>
             </div>
             <Badge variant={simulation.type === "SCENARIO" ? "default" : "secondary"}>
-              {simulation.type === "SCENARIO" ? "Scénario" : "Baseline"}
+              {simulation.type === "SCENARIO" ? t("analyses.scenario") : t("analyses.baseline")}
             </Badge>
           </div>
 
@@ -51,16 +51,16 @@ function AnalysisCard({ simulation }: { simulation: SimulationWithSite }) {
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Économies:</span>
+              <span className="text-muted-foreground">{t("analyses.savings")}:</span>
               <span className="font-mono font-medium text-primary">
-                ${((simulation.annualSavings || 0) / 1000).toFixed(1)}k/an
+                ${((simulation.annualSavings || 0) / 1000).toFixed(1)}k/{t("analyses.perYear")}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Retour:</span>
+              <span className="text-muted-foreground">{t("analyses.payback")}:</span>
               <span className="font-mono font-medium">
-                {(simulation.simplePaybackYears || 0).toFixed(1)} ans
+                {(simulation.simplePaybackYears || 0).toFixed(1)} {t("analyses.years")}
               </span>
             </div>
           </div>
@@ -69,12 +69,12 @@ function AnalysisCard({ simulation }: { simulation: SimulationWithSite }) {
             <Link href={`/app/sites/${simulation.siteId}`}>
               <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-view-site-${simulation.id}`}>
                 <Building2 className="w-3.5 h-3.5" />
-                Voir le site
+                {t("analyses.viewSite")}
               </Button>
             </Link>
             <Link href={`/app/analyses/${simulation.id}/design`}>
               <Button size="sm" className="gap-1.5" data-testid={`button-create-design-${simulation.id}`}>
-                Créer un design
+                {t("analyses.createDesign")}
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </Link>
@@ -96,7 +96,7 @@ export default function AnalysesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t("nav.analyses")}</h1>
-        <p className="text-muted-foreground mt-1">Consultez toutes les analyses de potentiel</p>
+        <p className="text-muted-foreground mt-1">{t("analyses.subtitle")}</p>
       </div>
 
       {isLoading ? (
@@ -129,9 +129,9 @@ export default function AnalysesPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <BarChart3 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-1">Aucune analyse</h3>
+            <h3 className="text-lg font-medium mb-1">{t("analyses.noAnalyses")}</h3>
             <p className="text-muted-foreground mb-4">
-              Créez un site et importez des données pour lancer une analyse.
+              {t("analyses.noAnalysesDescription")}
             </p>
             <Link href="/app/sites">
               <Button variant="outline" className="gap-2">

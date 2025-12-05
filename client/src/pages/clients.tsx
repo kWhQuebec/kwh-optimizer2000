@@ -284,10 +284,10 @@ export default function ClientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       setDialogOpen(false);
-      toast({ title: "Client créé avec succès" });
+      toast({ title: t("clients.clientCreated") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la création", variant: "destructive" });
+      toast({ title: t("clients.createError"), variant: "destructive" });
     },
   });
 
@@ -299,10 +299,10 @@ export default function ClientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       setEditingClient(null);
-      toast({ title: "Client mis à jour" });
+      toast({ title: t("clients.clientUpdated") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la mise à jour", variant: "destructive" });
+      toast({ title: t("clients.updateError"), variant: "destructive" });
     },
   });
 
@@ -312,10 +312,10 @@ export default function ClientsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
-      toast({ title: "Client supprimé" });
+      toast({ title: t("clients.clientDeleted") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la suppression", variant: "destructive" });
+      toast({ title: t("clients.deleteError"), variant: "destructive" });
     },
   });
 
@@ -334,7 +334,7 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("clients.title")}</h1>
-          <p className="text-muted-foreground mt-1">Gérez vos clients et leurs sites</p>
+          <p className="text-muted-foreground mt-1">{t("clients.subtitle")}</p>
         </div>
         
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -182,10 +182,10 @@ export default function DesignPage() {
     },
     onSuccess: (design) => {
       setGeneratedDesign(design);
-      toast({ title: "Design généré avec succès" });
+      toast({ title: t("design.designGenerated") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la génération", variant: "destructive" });
+      toast({ title: t("design.generateError"), variant: "destructive" });
     },
   });
 
@@ -195,10 +195,10 @@ export default function DesignPage() {
       return apiRequest("POST", `/api/designs/${generatedDesign.id}/sync-zoho`);
     },
     onSuccess: () => {
-      toast({ title: "Offre synchronisée avec Zoho" });
+      toast({ title: t("design.zohoSynced") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la synchronisation", variant: "destructive" });
+      toast({ title: t("design.syncError"), variant: "destructive" });
     },
   });
 
@@ -228,7 +228,7 @@ export default function DesignPage() {
     return (
       <div className="text-center py-12">
         <Settings className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Simulation non trouvée</h2>
+        <h2 className="text-xl font-semibold mb-2">{t("design.simulationNotFound")}</h2>
         <Link href="/app/analyses">
           <Button variant="outline">{t("common.back")}</Button>
         </Link>

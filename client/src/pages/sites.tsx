@@ -299,10 +299,10 @@ export default function SitesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       setDialogOpen(false);
-      toast({ title: "Site créé avec succès" });
+      toast({ title: t("sites.siteCreated") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la création", variant: "destructive" });
+      toast({ title: t("sites.createError"), variant: "destructive" });
     },
   });
 
@@ -314,10 +314,10 @@ export default function SitesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       setEditingSite(null);
-      toast({ title: "Site mis à jour" });
+      toast({ title: t("sites.siteUpdated") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la mise à jour", variant: "destructive" });
+      toast({ title: t("sites.updateError"), variant: "destructive" });
     },
   });
 
@@ -327,10 +327,10 @@ export default function SitesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      toast({ title: "Site supprimé" });
+      toast({ title: t("sites.siteDeleted") });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la suppression", variant: "destructive" });
+      toast({ title: t("sites.deleteError"), variant: "destructive" });
     },
   });
 
@@ -448,7 +448,7 @@ export default function SitesPage() {
               <Link href="/app/clients">
                 <Button variant="outline" className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Créer un client d'abord
+                  {t("sites.createClientFirst")}
                 </Button>
               </Link>
             )}

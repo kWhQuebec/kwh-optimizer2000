@@ -101,7 +101,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h1>
-        <p className="text-muted-foreground mt-1">Vue d'ensemble de vos projets solaires et stockage</p>
+        <p className="text-muted-foreground mt-1">{t("dashboard.subtitle")}</p>
       </div>
 
       {/* Stats Grid */}
@@ -137,7 +137,7 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg">Sites récents</CardTitle>
+            <CardTitle className="text-lg">{t("dashboard.recentSites")}</CardTitle>
             <TrendingUp className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -169,7 +169,7 @@ export default function DashboardPage() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Building2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>Aucun site récent</p>
+                <p>{t("dashboard.noRecentSites")}</p>
               </div>
             )}
           </CardContent>
@@ -177,7 +177,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg">Analyses récentes</CardTitle>
+            <CardTitle className="text-lg">{t("dashboard.recentAnalyses")}</CardTitle>
             <BarChart3 className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -198,8 +198,8 @@ export default function DashboardPage() {
                 {stats.recentAnalyses.map((analysis) => (
                   <RecentActivityItem
                     key={analysis.id}
-                    title={analysis.label || `Analyse ${analysis.id.slice(0, 8)}`}
-                    subtitle={`${analysis.pvSizeKW?.toFixed(0) || 0} kWc • ${analysis.annualSavings?.toLocaleString() || 0} $/an`}
+                    title={analysis.label || `${t("nav.analyses")} ${analysis.id.slice(0, 8)}`}
+                    subtitle={`${analysis.pvSizeKW?.toFixed(0) || 0} kWc • ${analysis.annualSavings?.toLocaleString() || 0} $/${t("dashboard.perYear")}`}
                     time={analysis.createdAt ? new Date(analysis.createdAt).toLocaleDateString("fr-CA") : ""}
                     icon={BarChart3}
                     href={`/app/sites/${analysis.siteId}`}
@@ -209,7 +209,7 @@ export default function DashboardPage() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <BarChart3 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>Aucune analyse récente</p>
+                <p>{t("dashboard.noRecentAnalyses")}</p>
               </div>
             )}
           </CardContent>
