@@ -21,7 +21,7 @@ const translations: Translations = {
   "nav.dashboard": { fr: "Tableau de bord", en: "Dashboard" },
   "nav.clients": { fr: "Clients", en: "Clients" },
   "nav.sites": { fr: "Sites", en: "Sites" },
-  "nav.analyses": { fr: "Analyses", en: "Analyses" },
+  "nav.analyses": { fr: "Analyses", en: "Analysis" },
   "nav.designs": { fr: "Designs", en: "Designs" },
   "nav.catalog": { fr: "Catalogue", en: "Catalog" },
   "nav.methodology": { fr: "Méthodologie", en: "Methodology" },

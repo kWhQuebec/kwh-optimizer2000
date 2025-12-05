@@ -1537,7 +1537,7 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                       dataKey="consumptionBefore" 
                       fill="hsl(var(--muted-foreground))" 
                       fillOpacity={0.4}
-                      name={language === "fr" ? "Consommation (kWh) Avant" : "Consumption (kWh) Before"} 
+                      name={language === "fr" ? "kWh Avant" : "kWh Before"} 
                       radius={[2, 2, 0, 0]} 
                       barSize={8}
                     />
@@ -1545,7 +1545,7 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                       yAxisId="left"
                       dataKey="consumptionAfter" 
                       fill="hsl(var(--primary))" 
-                      name={language === "fr" ? "Consommation (kWh) Après" : "Consumption (kWh) After"} 
+                      name={language === "fr" ? "kWh Après" : "kWh After"} 
                       radius={[2, 2, 0, 0]} 
                       barSize={8}
                     />
@@ -1557,7 +1557,7 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                       stroke="#1a1a1a" 
                       strokeWidth={2}
                       dot={false}
-                      name={language === "fr" ? "Pointes (kW) Avant" : "Peak (kW) Before"}
+                      name={language === "fr" ? "kW Avant" : "kW Before"}
                     />
                     <Line 
                       yAxisId="right"
@@ -1566,7 +1566,7 @@ function AnalysisResults({ simulation, site }: { simulation: SimulationRun; site
                       stroke="#FFB005" 
                       strokeWidth={2}
                       dot={false}
-                      name={language === "fr" ? "Pointes (kW) Après" : "Peak (kW) After"}
+                      name={language === "fr" ? "kW Après" : "kW After"}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
