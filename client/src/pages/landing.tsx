@@ -26,10 +26,13 @@ import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
 import roofMeasurement from "@assets/generated_images/commercial_roof_solar_measurement_overlay.png";
-import screenshotSystem from "@assets/Screenshot_2025-12-05_at_4.07.23_PM_1764968848494.png";
-import screenshotFinancial from "@assets/Screenshot_2025-12-05_at_4.07.42_PM_1764968865040.png";
-import screenshotOptimization from "@assets/Screenshot_2025-12-05_at_4.07.56_PM_1764968884930.png";
-import screenshotConsumption from "@assets/Screenshot_2025-12-03_at_4.28.46_PM_1764797356868.png";
+import screenshotSystemEn from "@assets/Screenshot_2025-12-05_at_4.07.23_PM_1764968848494.png";
+import screenshotFinancialEn from "@assets/Screenshot_2025-12-05_at_4.07.42_PM_1764968865040.png";
+import screenshotOptimizationEn from "@assets/Screenshot_2025-12-05_at_4.07.56_PM_1764968884930.png";
+import screenshotConsumptionEn from "@assets/Screenshot_2025-12-05_at_1.50.45_PM_1764960649956.png";
+import screenshotConsumptionFr from "@assets/Screenshot_2025-12-04_at_6.51.04_PM_1764892267879.png";
+import screenshotOptimizationFr from "@assets/Screenshot_2025-12-03_at_4.09.24_PM_1764796169826.png";
+import screenshotFinancialFr from "@assets/Screenshot_2025-12-05_at_2.24.54_PM_1764963093938.png";
 
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
@@ -61,11 +64,17 @@ const staggerContainer = {
   }
 };
 
-const analysisSlides = [
-  { id: "consumption", image: screenshotConsumption, labelFr: "Profil de consommation", labelEn: "Consumption Profile" },
-  { id: "system", image: screenshotSystem, labelFr: "Système recommandé", labelEn: "Recommended System" },
-  { id: "financial", image: screenshotFinancial, labelFr: "Analyse financière", labelEn: "Financial Analysis" },
-  { id: "optimization", image: screenshotOptimization, labelFr: "Optimisation du système", labelEn: "System Optimization" },
+const analysisSlidesEn = [
+  { id: "consumption", image: screenshotConsumptionEn, label: "Consumption Profile" },
+  { id: "system", image: screenshotSystemEn, label: "Recommended System" },
+  { id: "financial", image: screenshotFinancialEn, label: "Financial Breakdown" },
+  { id: "optimization", image: screenshotOptimizationEn, label: "Optimization Analysis" },
+];
+
+const analysisSlidesFr = [
+  { id: "consumption", image: screenshotConsumptionFr, label: "Profil de consommation" },
+  { id: "optimization", image: screenshotOptimizationFr, label: "Analyse d'optimisation" },
+  { id: "financial", image: screenshotFinancialFr, label: "Options de financement" },
 ];
 
 export default function LandingPage() {
@@ -73,13 +82,18 @@ export default function LandingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const currentLogo = language === "fr" ? logoFr : logoEn;
+  const analysisSlides = language === "fr" ? analysisSlidesFr : analysisSlidesEn;
+  
+  useEffect(() => {
+    setActiveSlide(0);
+  }, [language]);
   
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % analysisSlides.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [analysisSlides.length]);
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
@@ -544,7 +558,7 @@ export default function LandingPage() {
                     >
                       <img 
                         src={slide.image} 
-                        alt={language === "fr" ? slide.labelFr : slide.labelEn}
+                        alt={slide.label}
                         className="w-full h-full object-contain bg-white"
                         data-testid={`img-analysis-${slide.id}`}
                       />
@@ -553,7 +567,7 @@ export default function LandingPage() {
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                   <p className="text-white font-medium">
-                    {language === "fr" ? analysisSlides[activeSlide].labelFr : analysisSlides[activeSlide].labelEn}
+                    {analysisSlides[activeSlide]?.label}
                   </p>
                 </div>
               </div>

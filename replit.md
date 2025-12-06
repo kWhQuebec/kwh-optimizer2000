@@ -124,6 +124,14 @@ The public landing page (`/`) serves as the primary lead generation tool with co
 - Trust badges and partner logos
 - Bilingual content (FR-CA/EN-CA)
 
+**Visual Assets:**
+- **Roof Measurement Overlay**: Generated image showing commercial roof with virtual dimensions and solar grid overlay
+- **Installation Team Photo**: Professional stock image with gradient overlay for turnkey messaging
+- **Analysis Screenshots Carousel**: Language-specific slides that auto-rotate every 4 seconds
+  - English (4 slides): Consumption Profile, Recommended System, Financial Breakdown, Optimization Analysis
+  - French (3 slides): Profil de consommation, Analyse d'optimisation, Options de financement
+  - Slides use actual platform screenshots in the matching language
+
 ### Marketing Stack
 
 **Hybrid Website Strategy:**
