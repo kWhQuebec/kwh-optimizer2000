@@ -2208,13 +2208,20 @@ function runPotentialAnalysis(
       const opex = optOpexBase * Math.pow(1 + h.omEscalation, y - 1);
       const ebitda = revenue - opex;
       
-      const dpaRate = y <= 5 ? 0.30 : (y <= 10 ? 0.15 : 0.05);
-      const dpa = optCapexNetAccounting * dpaRate * h.taxRate;
-      
       let investment = 0;
+      let dpa = 0;
       let incentives = 0;
+      
+      // Year 1: Tax shield (CCA) and remaining 50% of HQ Battery incentive
+      // This matches the original calculation and runScenarioWithSizing
       if (y === 1) {
-        incentives = optBatterySubY1 + optIncentivesFederal;
+        dpa = optTaxShield;
+        incentives = optBatterySubY1;
+      }
+      
+      // Year 2: Federal ITC arrives as tax credit
+      if (y === 2) {
+        incentives = optIncentivesFederal;
       }
       
       const replacementYear = h.batteryReplacementYear || 10;
@@ -3077,10 +3084,11 @@ function runSensitivityAnalysis(
   const usableRoofSqFt = assumptions.roofAreaSqFt * assumptions.roofUtilizationRatio;
   const maxPVFromRoof = Math.round(usableRoofSqFt / 100);
   
-  // Solar sweep: 0 to max PV capacity in ~10 steps, with configured battery
-  const solarSteps = 10;
+  // Solar sweep: 0 to max PV capacity in ~20 steps, with configured battery
+  // Increased from 10 to 20 steps for smoother optimization curves
+  const solarSteps = 20;
   const solarMax = Math.max(configuredPvSizeKW * 1.5, maxPVFromRoof);
-  const solarStep = Math.max(10, Math.round(solarMax / solarSteps / 10) * 10);
+  const solarStep = Math.max(5, Math.round(solarMax / solarSteps / 5) * 5);
   
   // Build set of solar sizes to sweep, ensuring configured size is always included
   const solarSizes = new Set<number>();
@@ -3126,11 +3134,12 @@ function runSensitivityAnalysis(
     }
   }
   
-  // Battery sweep: 0 to 200% of configured battery in ~10 steps
+  // Battery sweep: 0 to 200% of configured battery in ~20 steps
   // Keeps PV at configured size while varying battery (consistent with solar sweep approach)
-  const batterySteps = 10;
+  // Increased from 10 to 20 steps for smoother optimization curves
+  const batterySteps = 20;
   const batteryMax = Math.max(configuredBattEnergyKWh * 2, 500);
-  const batteryStep = Math.max(20, Math.round(batteryMax / batterySteps / 10) * 10);
+  const batteryStep = Math.max(10, Math.round(batteryMax / batterySteps / 10) * 10);
   
   // Build set of battery sizes to sweep, ensuring configured size is always included
   const batterySizes = new Set<number>();
