@@ -31,47 +31,87 @@ const translations: Translations = {
   "nav.userSites": { fr: "Sites utilisateur", en: "User Sites" },
   "nav.mySites": { fr: "Mes sites", en: "My Sites" },
 
-  // Landing Page
-  "landing.hero.title": { fr: "Optimisez votre facture d'électricité", en: "Optimize your electricity bill" },
-  "landing.hero.subtitle": { fr: "Grâce au solaire et au stockage d'énergie", en: "With solar and energy storage" },
+  // Landing Page - Hero
+  "landing.hero.title": { fr: "Le moment est venu pour le solaire commercial au Québec", en: "The time for commercial solar in Québec is now" },
+  "landing.hero.subtitle": { fr: "Économisez jusqu'à 40% sur vos coûts énergétiques", en: "Save up to 40% on your energy costs" },
   "landing.hero.description": { 
-    fr: "Solutions sur mesure pour les entreprises industrielles, commerciales et institutionnelles au Québec.", 
-    en: "Custom solutions for industrial, commercial and institutional businesses in Québec." 
+    fr: "Nouvelles subventions provinciales de 1 000$/kW + crédit fédéral de 30%. Fenêtre d'opportunité limitée 2024-2026.", 
+    en: "New $1,000/kW provincial rebate + 30% federal tax credit. Limited 2024-2026 opportunity window." 
   },
-  "landing.hero.cta": { fr: "Obtenir une analyse gratuite", en: "Get a free analysis" },
+  "landing.hero.cta": { fr: "Obtenir mon analyse gratuite", en: "Get my free analysis" },
+  "landing.hero.ctaSecondary": { fr: "Voir la méthodologie", en: "See methodology" },
   
-  "landing.step1.title": { fr: "1. Analyse de données", en: "1. Data Analysis" },
+  // Landing Page - Why Now Section
+  "landing.whyNow.title": { fr: "Pourquoi maintenant?", en: "Why now?" },
+  "landing.whyNow.subtitle": { fr: "Le Québec vit une transformation énergétique historique", en: "Québec is experiencing a historic energy transformation" },
+  "landing.whyNow.hqPlan.title": { fr: "Plan Hydro-Québec 10 G$", en: "Hydro-Québec $10B Plan" },
+  "landing.whyNow.hqPlan.description": { fr: "Programme d'autoproduction solaire pour les entreprises", en: "Solar self-generation program for businesses" },
+  "landing.whyNow.tender.title": { fr: "Appels d'offres 300 MW", en: "300 MW Tenders" },
+  "landing.whyNow.tender.description": { fr: "Objectifs ambitieux pour le solaire C&I", en: "Ambitious targets for C&I solar" },
+  "landing.whyNow.rebate.title": { fr: "Subvention 1 000$/kW", en: "$1,000/kW Rebate" },
+  "landing.whyNow.rebate.description": { fr: "Nouveau programme provincial pour batteries", en: "New provincial program for batteries" },
+  "landing.whyNow.federal.title": { fr: "Crédit d'impôt 30%", en: "30% Tax Credit" },
+  "landing.whyNow.federal.description": { fr: "Programme fédéral d'investissement propre", en: "Federal clean investment program" },
+  "landing.whyNow.deadline": { fr: "Fenêtre d'opportunité: 2024-2026", en: "Opportunity window: 2024-2026" },
+  
+  // Landing Page - Process Steps  
+  "landing.step1.title": { fr: "Envoyez vos données", en: "Send your data" },
   "landing.step1.description": { 
-    fr: "Nous analysons vos données de consommation horaires et de puissance pour comprendre votre profil énergétique.", 
-    en: "We analyze your hourly consumption and power data to understand your energy profile." 
+    fr: "Partagez vos factures Hydro-Québec ou données de consommation. Simple et confidentiel.", 
+    en: "Share your Hydro-Québec bills or consumption data. Simple and confidential." 
   },
-  "landing.step2.title": { fr: "2. Rapport de potentiel", en: "2. Potential Report" },
+  "landing.step1.time": { fr: "5 minutes", en: "5 minutes" },
+  "landing.step2.title": { fr: "Recevez votre analyse", en: "Receive your analysis" },
   "landing.step2.description": { 
-    fr: "Recevez un rapport détaillé avec le potentiel solaire + stockage, les économies estimées et le retour sur investissement.", 
-    en: "Receive a detailed report with solar + storage potential, estimated savings and ROI." 
+    fr: "Notre IA simule 8 760 heures de production et optimise votre système solaire + stockage.", 
+    en: "Our AI simulates 8,760 hours of production and optimizes your solar + storage system." 
   },
-  "landing.step3.title": { fr: "3. Design complet", en: "3. Complete Design" },
+  "landing.step2.time": { fr: "48 heures", en: "48 hours" },
+  "landing.step3.title": { fr: "Passez à l'action", en: "Take action" },
   "landing.step3.description": { 
-    fr: "Obtenez un design système complet avec liste de matériaux détaillée et prix clé en main.", 
-    en: "Get a complete system design with detailed bill of materials and turnkey pricing." 
+    fr: "Devis détaillé avec retour sur investissement garanti. Installation clé en main.", 
+    en: "Detailed quote with guaranteed ROI. Turnkey installation." 
   },
+  "landing.step3.time": { fr: "Clé en main", en: "Turnkey" },
 
-  // Landing Page Extra
-  "landing.process.title": { fr: "Notre processus en 3 étapes", en: "Our 3-step process" },
+  // Landing Page - Process
+  "landing.process.title": { fr: "Du toit au ROI en 48h", en: "From roof to ROI in 48h" },
   "landing.process.subtitle": { 
-    fr: "De l'analyse de vos données à un système clé en main, nous vous accompagnons à chaque étape.", 
-    en: "From analyzing your data to a turnkey system, we support you every step of the way." 
+    fr: "Notre plateforme d'analyse propulsée par l'IA élimine les devinettes du solaire commercial.", 
+    en: "Our AI-powered analysis platform takes the guesswork out of commercial solar." 
   },
+  
+  // Landing Page - Benefits
+  "landing.benefits.title": { fr: "Résultats typiques pour nos clients", en: "Typical results for our clients" },
+  "landing.benefits.subtitle": { fr: "Basés sur des projets réels au Québec", en: "Based on real projects in Québec" },
+  "landing.benefits.payback": { fr: "Temps de retour", en: "Payback time" },
+  "landing.benefits.paybackValue": { fr: "4-7 ans", en: "4-7 years" },
+  "landing.benefits.savings": { fr: "Économies annuelles", en: "Annual savings" },
+  "landing.benefits.savingsValue": { fr: "25-40%", en: "25-40%" },
+  "landing.benefits.incentives": { fr: "Subventions couvertes", en: "Incentives covered" },
+  "landing.benefits.incentivesValue": { fr: "40-50%", en: "40-50%" },
+  "landing.benefits.co2": { fr: "Réduction CO₂", en: "CO₂ reduction" },
+  "landing.benefits.co2Value": { fr: "50-200t/an", en: "50-200t/yr" },
+  
+  // Landing Page - Trust
+  "landing.trust.title": { fr: "Pourquoi nous faire confiance", en: "Why trust us" },
   "landing.trust.certified": { fr: "Partenaire certifié Hydro-Québec", en: "Hydro-Québec certified partner" },
   "landing.trust.experience": { fr: "25+ ans d'expérience", en: "25+ years experience" },
+  "landing.trust.datadriven": { fr: "Analyse basée sur les données", en: "Data-driven analysis" },
+  "landing.trust.partners": { fr: "Partenaires de confiance", en: "Trusted partners" },
+  "landing.trust.partner.rematek": { fr: "Rematek Energy - Distributeur & EPC", en: "Rematek Energy - Distributor & EPC" },
+  "landing.trust.partner.hq": { fr: "Hydro-Québec - Programme d'autoproduction", en: "Hydro-Québec - Self-generation program" },
+  
+  // Landing Page - Form
+  "landing.form.title": { fr: "Commencez votre transition énergétique", en: "Start your energy transition" },
   "landing.form.subtitle": { 
-    fr: "Remplissez le formulaire et recevez une analyse préliminaire de votre potentiel solaire + stockage.", 
-    en: "Fill out the form and receive a preliminary analysis of your solar + storage potential." 
+    fr: "Analyse gratuite et sans engagement. Réponse en 48h.", 
+    en: "Free analysis with no commitment. Response within 48h." 
   },
   "landing.form.benefit1.title": { fr: "Analyse personnalisée", en: "Personalized analysis" },
   "landing.form.benefit1.description": { fr: "Basée sur vos données réelles de consommation", en: "Based on your real consumption data" },
-  "landing.form.benefit2.title": { fr: "Estimation des économies", en: "Savings estimate" },
-  "landing.form.benefit2.description": { fr: "Calcul du ROI et du temps de retour", en: "ROI and payback calculation" },
+  "landing.form.benefit2.title": { fr: "ROI garanti", en: "Guaranteed ROI" },
+  "landing.form.benefit2.description": { fr: "Projections financières sur 25 ans", en: "25-year financial projections" },
   "landing.form.benefit3.title": { fr: "Sans engagement", en: "No commitment" },
   "landing.form.benefit3.description": { fr: "Consultation gratuite et sans obligation", en: "Free consultation with no obligation" },
   "landing.form.privacy": { 
@@ -79,10 +119,15 @@ const translations: Translations = {
     en: "By submitting this form, you accept our privacy policy." 
   },
   "landing.form.select": { fr: "Sélectionner...", en: "Select..." },
-  "landing.hero.pvCapacity": { fr: "Capacité PV", en: "PV capacity" },
+  
+  // Landing Page - Hero Stats
+  "landing.hero.pvCapacity": { fr: "Capacité PV typique", en: "Typical PV capacity" },
   "landing.hero.storage": { fr: "Stockage", en: "Storage" },
-  "landing.hero.peakShaving": { fr: "Écrêtage", en: "Peak shaving" },
-  "landing.hero.co2Year": { fr: "CO₂/an", en: "CO₂/year" },
+  "landing.hero.peakShaving": { fr: "Écrêtage de pointe", en: "Peak shaving" },
+  "landing.hero.co2Year": { fr: "CO₂ évité/an", en: "CO₂ avoided/yr" },
+  
+  // Landing Page - Footer
+  "landing.footer.tagline": { fr: "Accélérez votre transition énergétique", en: "Accelerate your energy transition" },
 
   // Lead Form
   "form.company": { fr: "Nom de l'entreprise", en: "Company name" },

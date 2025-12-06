@@ -783,9 +783,9 @@ const fr = {
         {
           name: "CAPEX",
           items: [
-            { label: "Coût solaire", value: "1.50 $/Wc" },
-            { label: "Coût batterie énergie", value: "400 $/kWh" },
-            { label: "Coût batterie puissance", value: "200 $/kW" },
+            { label: "Coût solaire", value: "2.25 $/Wc" },
+            { label: "Coût batterie énergie", value: "550 $/kWh" },
+            { label: "Coût batterie puissance", value: "800 $/kW" },
           ],
         },
       ],
@@ -1198,9 +1198,9 @@ const en = {
         {
           name: "CAPEX",
           items: [
-            { label: "Solar cost", value: "$1.50/Wp" },
-            { label: "Battery energy cost", value: "$400/kWh" },
-            { label: "Battery power cost", value: "$200/kW" },
+            { label: "Solar cost", value: "$2.25/Wp" },
+            { label: "Battery energy cost", value: "$550/kWh" },
+            { label: "Battery power cost", value: "$800/kW" },
           ],
         },
       ],
