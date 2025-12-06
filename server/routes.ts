@@ -461,7 +461,7 @@ export async function registerRoutes(
       
       // Attempt to sync to Zoho CRM
       try {
-        const nameParts = (parsed.data.name || "").split(" ");
+        const nameParts = (parsed.data.contactName || "").split(" ");
         const firstName = nameParts[0] || "";
         const lastName = nameParts.slice(1).join(" ") || "-";
         
@@ -470,8 +470,8 @@ export async function registerRoutes(
           lastName,
           email: parsed.data.email,
           phone: parsed.data.phone || undefined,
-          company: parsed.data.company || undefined,
-          description: parsed.data.message || undefined,
+          company: parsed.data.companyName || undefined,
+          description: parsed.data.notes || undefined,
           source: "Website - kWh Québec",
         });
         
@@ -488,12 +488,195 @@ export async function registerRoutes(
         zohoSyncStatus = { synced: false, error: String(zohoError) };
       }
       
+      // Trigger automatic roof estimation in the background (non-blocking)
+      if (parsed.data.streetAddress && parsed.data.city) {
+        triggerRoofEstimation(lead.id, parsed.data).catch((err) => {
+          console.error(`[Lead ${lead.id}] Roof estimation failed:`, err);
+        });
+      }
+      
       res.status(201).json({ ...lead, zohoSyncStatus });
     } catch (error) {
       console.error("Create lead error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
+  
+  // Background function to estimate roof potential and send email
+  async function triggerRoofEstimation(leadId: string, data: {
+    streetAddress?: string | null;
+    city?: string | null;
+    province?: string | null;
+    postalCode?: string | null;
+    companyName: string;
+    contactName: string;
+    email: string;
+  }) {
+    try {
+      // Build full address for Google Solar API
+      const addressParts = [
+        data.streetAddress,
+        data.city,
+        data.province || "Québec",
+        data.postalCode,
+        "Canada"
+      ].filter(Boolean);
+      const fullAddress = addressParts.join(", ");
+      
+      console.log(`[Lead ${leadId}] Starting roof estimation for: ${fullAddress}`);
+      
+      // Call Google Solar API
+      const roofEstimate = await googleSolar.estimateRoofFromAddress(fullAddress);
+      
+      if (roofEstimate.success) {
+        // Calculate roof potential: roofArea * 70% utilization * 185W/m² (typical panel density)
+        const utilizationFactor = 0.70;
+        const panelDensityWm2 = 185; // W per m²
+        const usableRoofArea = roofEstimate.roofAreaSqM * utilizationFactor;
+        const roofPotentialKw = Math.round((usableRoofArea * panelDensityWm2) / 1000 * 10) / 10;
+        
+        // Update lead with roof estimate
+        await storage.updateLead(leadId, {
+          status: "roof_estimated",
+          latitude: roofEstimate.latitude,
+          longitude: roofEstimate.longitude,
+          roofAreaSqM: roofEstimate.roofAreaSqM,
+          roofPotentialKw: roofPotentialKw,
+          estimateCompletedAt: new Date(),
+        });
+        
+        console.log(`[Lead ${leadId}] Roof estimate complete: ${roofEstimate.roofAreaSqM.toFixed(0)} m², potential ${roofPotentialKw} kW`);
+        
+        // Send email with roof estimate
+        await sendRoofEstimateEmail(data.email, data.contactName, data.companyName, {
+          address: fullAddress,
+          roofAreaSqM: roofEstimate.roofAreaSqM,
+          roofPotentialKw: roofPotentialKw,
+        });
+        
+      } else {
+        // Update lead with error
+        await storage.updateLead(leadId, {
+          status: "estimate_failed",
+          estimateError: roofEstimate.error || "Unknown error",
+          estimateCompletedAt: new Date(),
+        });
+        
+        console.warn(`[Lead ${leadId}] Roof estimation failed: ${roofEstimate.error}`);
+      }
+    } catch (error) {
+      console.error(`[Lead ${leadId}] Error during roof estimation:`, error);
+      await storage.updateLead(leadId, {
+        status: "estimate_failed",
+        estimateError: String(error),
+        estimateCompletedAt: new Date(),
+      });
+    }
+  }
+  
+  // Send bilingual roof estimate email
+  async function sendRoofEstimateEmail(
+    toEmail: string,
+    contactName: string,
+    companyName: string,
+    estimate: { address: string; roofAreaSqM: number; roofPotentialKw: number }
+  ) {
+    const subject = "Votre potentiel solaire / Your Solar Potential - kWh Québec";
+    
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">kWh Québec</h1>
+        </div>
+        
+        <div style="padding: 32px; background: #f9fafb;">
+          <p style="font-size: 16px; color: #374151;">Bonjour ${contactName},</p>
+          
+          <p style="font-size: 16px; color: #374151;">
+            Merci pour votre intérêt envers le solaire! Voici une estimation préliminaire du potentiel solaire 
+            de votre bâtiment situé au:
+          </p>
+          
+          <div style="background: white; border-radius: 12px; padding: 24px; margin: 24px 0; border: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; margin: 0 0 8px 0; font-size: 14px;">📍 ${estimate.address}</p>
+            
+            <div style="display: flex; gap: 24px; margin-top: 16px;">
+              <div style="flex: 1; text-align: center; padding: 16px; background: #fff7ed; border-radius: 8px;">
+                <div style="font-size: 32px; font-weight: bold; color: #ea580c;">${Math.round(estimate.roofAreaSqM)}</div>
+                <div style="font-size: 14px; color: #9a3412;">m² de toiture</div>
+              </div>
+              <div style="flex: 1; text-align: center; padding: 16px; background: #ecfdf5; border-radius: 8px;">
+                <div style="font-size: 32px; font-weight: bold; color: #059669;">${estimate.roofPotentialKw}</div>
+                <div style="font-size: 14px; color: #047857;">kW potentiel</div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0;">
+            <p style="margin: 0; font-size: 14px; color: #92400e;">
+              <strong>Prochaine étape:</strong> Pour une analyse complète avec vos données de consommation réelles, 
+              nous devons obtenir un accès à votre historique Hydro-Québec. Un conseiller vous contactera 
+              sous peu pour vous accompagner dans cette démarche simple.
+            </p>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;">
+          
+          <p style="font-size: 16px; color: #374151;">Hello ${contactName},</p>
+          
+          <p style="font-size: 16px; color: #374151;">
+            Thank you for your interest in solar! Here is a preliminary estimate of the solar potential 
+            for your building located at:
+          </p>
+          
+          <div style="background: white; border-radius: 12px; padding: 24px; margin: 24px 0; border: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; margin: 0 0 8px 0; font-size: 14px;">📍 ${estimate.address}</p>
+            
+            <div style="display: flex; gap: 24px; margin-top: 16px;">
+              <div style="flex: 1; text-align: center; padding: 16px; background: #fff7ed; border-radius: 8px;">
+                <div style="font-size: 32px; font-weight: bold; color: #ea580c;">${Math.round(estimate.roofAreaSqM)}</div>
+                <div style="font-size: 14px; color: #9a3412;">m² roof area</div>
+              </div>
+              <div style="flex: 1; text-align: center; padding: 16px; background: #ecfdf5; border-radius: 8px;">
+                <div style="font-size: 32px; font-weight: bold; color: #059669;">${estimate.roofPotentialKw}</div>
+                <div style="font-size: 14px; color: #047857;">kW potential</div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0;">
+            <p style="margin: 0; font-size: 14px; color: #92400e;">
+              <strong>Next step:</strong> For a complete analysis with your actual consumption data, 
+              we need access to your Hydro-Québec history. An advisor will contact you shortly 
+              to guide you through this simple process.
+            </p>
+          </div>
+        </div>
+        
+        <div style="padding: 24px; background: #1f2937; text-align: center;">
+          <p style="color: #9ca3af; margin: 0; font-size: 14px;">
+            kWh Québec | Solaire + Stockage pour C&I | Solar + Storage for C&I
+          </p>
+        </div>
+      </div>
+    `;
+    
+    try {
+      const result = await sendEmail({
+        to: toEmail,
+        subject,
+        htmlBody: htmlContent,
+      });
+      
+      if (result.success) {
+        console.log(`[Email] Roof estimate sent to ${toEmail}`);
+      } else {
+        console.error(`[Email] Failed to send roof estimate to ${toEmail}:`, result.error);
+      }
+    } catch (error) {
+      console.error(`[Email] Error sending roof estimate:`, error);
+    }
+  }
 
   // Staff-only leads access
   app.get("/api/leads", authMiddleware, requireStaff, async (req, res) => {

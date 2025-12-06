@@ -30,8 +30,10 @@ const leadFormSchema = z.object({
   contactName: z.string().min(1, "Ce champ est requis"),
   email: z.string().email("Courriel invalide"),
   phone: z.string().optional(),
-  city: z.string().optional(),
+  streetAddress: z.string().min(1, "Ce champ est requis"),
+  city: z.string().min(1, "Ce champ est requis"),
   province: z.string().optional(),
+  postalCode: z.string().optional(),
   estimatedMonthlyBill: z.coerce.number().optional(),
   buildingType: z.string().optional(),
   notes: z.string().optional(),
@@ -65,8 +67,10 @@ export default function LandingPage() {
       contactName: "",
       email: "",
       phone: "",
+      streetAddress: "",
       city: "",
-      province: "QC",
+      province: "Québec",
+      postalCode: "",
       estimatedMonthlyBill: undefined,
       buildingType: "",
       notes: "",
@@ -684,13 +688,31 @@ export default function LandingPage() {
                           />
                         </div>
 
-                        <div className="grid sm:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="streetAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("form.streetAddress")} *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder={language === "fr" ? "123 rue Exemple" : "123 Example Street"} 
+                                  {...field} 
+                                  data-testid="input-street-address"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid sm:grid-cols-3 gap-4">
                           <FormField
                             control={form.control}
                             name="city"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{t("form.city")}</FormLabel>
+                                <FormLabel>{t("form.city")} *</FormLabel>
                                 <FormControl>
                                   <Input {...field} data-testid="input-city" />
                                 </FormControl>
@@ -700,16 +722,28 @@ export default function LandingPage() {
                           />
                           <FormField
                             control={form.control}
-                            name="estimatedMonthlyBill"
+                            name="province"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{t("form.monthlyBill")}</FormLabel>
+                                <FormLabel>{t("form.province")}</FormLabel>
+                                <FormControl>
+                                  <Input {...field} data-testid="input-province" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="postalCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t("form.postalCode")}</FormLabel>
                                 <FormControl>
                                   <Input 
-                                    type="number" 
-                                    placeholder="5000" 
+                                    placeholder="G1A 1A1" 
                                     {...field} 
-                                    data-testid="input-monthly-bill"
+                                    data-testid="input-postal-code"
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -717,6 +751,25 @@ export default function LandingPage() {
                             )}
                           />
                         </div>
+
+                        <FormField
+                          control={form.control}
+                          name="estimatedMonthlyBill"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("form.monthlyBill")}</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="5000" 
+                                  {...field} 
+                                  data-testid="input-monthly-bill"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
                         <FormField
                           control={form.control}

@@ -55,30 +55,30 @@ const translations: Translations = {
   "landing.whyNow.deadline": { fr: "Ces incitatifs peuvent changer à tout moment", en: "These incentives can change at any time" },
   
   // Landing Page - Process Steps  
-  "landing.step1.title": { fr: "Envoyez vos données", en: "Send your data" },
+  "landing.step1.title": { fr: "Estimation du toit", en: "Roof estimate" },
   "landing.step1.description": { 
-    fr: "Partagez vos factures Hydro-Québec ou données de consommation. Simple et confidentiel.", 
-    en: "Share your Hydro-Québec bills or consumption data. Simple and confidential." 
+    fr: "Remplissez le formulaire avec l'adresse de votre bâtiment. Vous recevrez une estimation du potentiel solaire par courriel.", 
+    en: "Fill out the form with your building address. You'll receive a solar potential estimate by email." 
   },
-  "landing.step1.time": { fr: "5 minutes", en: "5 minutes" },
-  "landing.step2.title": { fr: "Recevez votre analyse", en: "Receive your analysis" },
+  "landing.step1.time": { fr: "Quelques minutes", en: "Few minutes" },
+  "landing.step2.title": { fr: "Signez la procuration", en: "Sign the proxy" },
   "landing.step2.description": { 
-    fr: "Notre IA simule 8 760 heures de production et optimise votre système solaire + stockage.", 
-    en: "Our AI simulates 8,760 hours of production and optimizes your solar + storage system." 
+    fr: "Un conseiller vous contacte pour signer la procuration Hydro-Québec. Nous obtenons vos données de consommation.", 
+    en: "An advisor contacts you to sign the Hydro-Québec proxy. We obtain your consumption data." 
   },
-  "landing.step2.time": { fr: "48 heures", en: "48 hours" },
-  "landing.step3.title": { fr: "Passez à l'action", en: "Take action" },
+  "landing.step2.time": { fr: "~3 jours", en: "~3 days" },
+  "landing.step3.title": { fr: "Analyse complète", en: "Complete analysis" },
   "landing.step3.description": { 
-    fr: "Devis détaillé avec retour sur investissement garanti. Installation clé en main.", 
-    en: "Detailed quote with guaranteed ROI. Turnkey installation." 
+    fr: "Simulation 8 760h, dimensionnement optimal, projections financières et devis détaillé.", 
+    en: "8,760h simulation, optimal sizing, financial projections and detailed quote." 
   },
-  "landing.step3.time": { fr: "Clé en main", en: "Turnkey" },
+  "landing.step3.time": { fr: "48h après données", en: "48h after data" },
 
   // Landing Page - Process
-  "landing.process.title": { fr: "Du toit au ROI en 48h", en: "From roof to ROI in 48h" },
+  "landing.process.title": { fr: "Comment ça fonctionne", en: "How it works" },
   "landing.process.subtitle": { 
-    fr: "Notre plateforme d'analyse propulsée par l'IA élimine les devinettes du solaire commercial.", 
-    en: "Our AI-powered analysis platform takes the guesswork out of commercial solar." 
+    fr: "De l'estimation de toit à l'analyse complète en quelques jours", 
+    en: "From roof estimate to complete analysis in just days" 
   },
   
   // Landing Page - Benefits
@@ -103,17 +103,17 @@ const translations: Translations = {
   "landing.trust.partner.hqDesc": { fr: "Accès aux tarifs d'autoproduction et rabais dédiés", en: "Access to self-generation rates and dedicated rebates" },
   
   // Landing Page - Form
-  "landing.form.title": { fr: "Commencez votre transition énergétique", en: "Start your energy transition" },
+  "landing.form.title": { fr: "Estimez le potentiel de votre toiture", en: "Estimate your roof potential" },
   "landing.form.subtitle": { 
-    fr: "Analyse gratuite et sans engagement. Réponse en 48h.", 
-    en: "Free analysis with no commitment. Response within 48h." 
+    fr: "Recevez une estimation gratuite du potentiel solaire de votre bâtiment par courriel.", 
+    en: "Receive a free solar potential estimate for your building by email." 
   },
-  "landing.form.benefit1.title": { fr: "Analyse personnalisée", en: "Personalized analysis" },
-  "landing.form.benefit1.description": { fr: "Basée sur vos données réelles de consommation", en: "Based on your real consumption data" },
-  "landing.form.benefit2.title": { fr: "ROI garanti", en: "Guaranteed ROI" },
-  "landing.form.benefit2.description": { fr: "Projections financières sur 25 ans", en: "25-year financial projections" },
+  "landing.form.benefit1.title": { fr: "Estimation rapide", en: "Quick estimate" },
+  "landing.form.benefit1.description": { fr: "Potentiel de votre toiture en quelques minutes", en: "Your roof potential in just minutes" },
+  "landing.form.benefit2.title": { fr: "Suivi personnalisé", en: "Personal follow-up" },
+  "landing.form.benefit2.description": { fr: "Un conseiller vous accompagne pour la suite", en: "An advisor guides you through next steps" },
   "landing.form.benefit3.title": { fr: "Sans engagement", en: "No commitment" },
-  "landing.form.benefit3.description": { fr: "Consultation gratuite et sans obligation", en: "Free consultation with no obligation" },
+  "landing.form.benefit3.description": { fr: "Estimation gratuite et sans obligation", en: "Free estimate with no obligation" },
   "landing.form.privacy": { 
     fr: "En soumettant ce formulaire, vous acceptez notre politique de confidentialité.", 
     en: "By submitting this form, you accept our privacy policy." 
@@ -138,8 +138,10 @@ const translations: Translations = {
   "form.contact": { fr: "Nom du contact", en: "Contact name" },
   "form.email": { fr: "Courriel", en: "Email" },
   "form.phone": { fr: "Téléphone", en: "Phone" },
+  "form.streetAddress": { fr: "Adresse du bâtiment", en: "Building address" },
   "form.city": { fr: "Ville", en: "City" },
   "form.province": { fr: "Province", en: "Province" },
+  "form.postalCode": { fr: "Code postal", en: "Postal code" },
   "form.monthlyBill": { fr: "Facture mensuelle moyenne ($)", en: "Average monthly bill ($)" },
   "form.buildingType": { fr: "Type de bâtiment", en: "Building type" },
   "form.buildingType.industrial": { fr: "Industriel", en: "Industrial" },
@@ -151,8 +153,8 @@ const translations: Translations = {
   "form.submitting": { fr: "Envoi en cours...", en: "Submitting..." },
   "form.success.title": { fr: "Merci!", en: "Thank you!" },
   "form.success.message": { 
-    fr: "Nous avons bien reçu votre demande. Un conseiller vous contactera sous peu.", 
-    en: "We have received your request. An advisor will contact you shortly." 
+    fr: "Nous analysons le potentiel de votre toiture. Vous recevrez un courriel avec votre estimation sous peu.", 
+    en: "We are analyzing your roof potential. You will receive an email with your estimate shortly." 
   },
   "form.required": { fr: "Ce champ est requis", en: "This field is required" },
   "form.invalidEmail": { fr: "Courriel invalide", en: "Invalid email" },
