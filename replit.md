@@ -101,14 +101,20 @@ This replaces manual PDF report distribution with self-service access, enabling 
 
 ### Public Landing Page
 
-The public landing page (`/`) serves as the primary lead generation tool with a focus on the 2024-2026 Quebec solar opportunity window:
+The public landing page (`/`) serves as the primary lead generation tool with conservative, evergreen messaging:
+
+**Marketing Philosophy:**
+- Conservative approach: Let analysis results exceed expectations rather than overpromising
+- Evergreen messaging: No dated opportunity windows; uses "Incentives can change at any time"
+- EPC positioning: Clear "Turnkey Solar + Storage for C&I buildings" positioning
+- Methodology page: Internal/auditing use only - removed from public navigation
 
 **Key Sections:**
-1. **Hero Section**: Market urgency messaging with urgency badge (2024-2026 window), headline emphasizing timing, and dual CTAs
-2. **Why Now Section**: Four incentive cards (HQ $10B plan, 300 MW tenders, $1,000/kW rebate, 30% federal ITC) with urgency banner
+1. **Hero Section**: EPC positioning with evergreen urgency badge, service-focused stats (Free analysis, 48h response, $0 no obligation, Turnkey EPC)
+2. **Why Now Section**: Four accurate HQ incentive cards (Programme HQ 1,000 kW, Rabais HQ 40% up to $1,000/kW, Federal 30% ITC, Net metering)
 3. **Process Section**: 3-step journey (Send data → Receive analysis → Take action) with time estimates
-4. **Benefits Section**: Key metrics (4-7 year payback, 25-40% savings, 40-50% incentives, 50-200t CO₂/year)
-5. **Trust Section**: Partner cards for Hydro-Québec and Rematek Energy
+4. **Benefits Section**: Service descriptions (Personalized analysis, Financial projections, Detailed design, Turnkey installation)
+5. **Trust Section**: Hydro-Québec partner card only
 6. **Contact Form**: Lead capture with company, contact, email, phone, city, monthly bill, building type
 
 **Design Features:**
