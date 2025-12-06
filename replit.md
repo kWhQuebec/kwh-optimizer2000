@@ -99,6 +99,37 @@ The client portal (`/app/portal`) provides customers with secure, read-only acce
 
 This replaces manual PDF report distribution with self-service access, enabling clients to view their analyses at any time.
 
+### Public Landing Page
+
+The public landing page (`/`) serves as the primary lead generation tool with a focus on the 2024-2026 Quebec solar opportunity window:
+
+**Key Sections:**
+1. **Hero Section**: Market urgency messaging with urgency badge (2024-2026 window), headline emphasizing timing, and dual CTAs
+2. **Why Now Section**: Four incentive cards (HQ $10B plan, 300 MW tenders, $1,000/kW rebate, 30% federal ITC) with urgency banner
+3. **Process Section**: 3-step journey (Send data → Receive analysis → Take action) with time estimates
+4. **Benefits Section**: Key metrics (4-7 year payback, 25-40% savings, 40-50% incentives, 50-200t CO₂/year)
+5. **Trust Section**: Partner cards for Hydro-Québec and Rematek Energy
+6. **Contact Form**: Lead capture with company, contact, email, phone, city, monthly bill, building type
+
+**Design Features:**
+- Framer Motion animations for scroll-triggered effects
+- Responsive grid layouts for all sections
+- Gradient backgrounds and decorative elements
+- Trust badges and partner logos
+- Bilingual content (FR-CA/EN-CA)
+
+### Marketing Stack
+
+**Hybrid Website Strategy:**
+- **Main site on Replit**: Landing page, app dashboard, client portal
+- **Campaign pages on Zoho LandingPage**: PPC, LinkedIn, referral partner campaigns
+- See `docs/zoho-landing-page-content.md` for ready-to-use campaign copy
+
+**CAPEX Defaults (as of Dec 2024):**
+- Solar: $2.25/Wp (turnkey, including installation)
+- Battery energy: $550/kWh (cells and modules)
+- Battery power: $800/kW (inverter and controller)
+
 ## External Dependencies
 
 ### Third-Party Services
