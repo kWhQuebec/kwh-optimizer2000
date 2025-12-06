@@ -46,7 +46,7 @@ The System Design page enables staff users to create detailed equipment specific
 
 ### Multi-Scenario Analysis Features
 
-The platform includes a Scenario Comparison Dashboard and a "Create Variant Dialog" for generating new "what-if" scenarios. A Financing Calculator provides interactive comparisons of Cash, Loan, and Lease options, featuring realistic cash flow timing for incentives.
+The platform includes a Scenario Comparison Dashboard and a "Create Variant Dialog" for generating new "what-if" scenarios. A Financing Calculator provides interactive comparisons of Cash, Loan, and Capital Lease (Crédit-bail) options, featuring realistic cash flow timing for incentives. The capital lease model treats the client as owner for tax purposes, allowing them to receive all incentives (HQ rebates, Federal ITC 30%, CCA tax shield) - typically resulting in positive or break-even cashflows.
 
 ### Role-Based Access Control (RBAC)
 
