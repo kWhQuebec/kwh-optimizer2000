@@ -473,6 +473,10 @@ export async function registerRoutes(
           company: parsed.data.companyName || undefined,
           description: parsed.data.notes || undefined,
           source: "Website - kWh Québec",
+          streetAddress: parsed.data.streetAddress || undefined,
+          city: parsed.data.city || undefined,
+          province: parsed.data.province || "Québec",
+          postalCode: parsed.data.postalCode || undefined,
         });
         
         if (zohoResult.success && zohoResult.data) {
@@ -536,7 +540,7 @@ export async function registerRoutes(
         const roofPotentialKw = Math.round((usableRoofArea * panelDensityWm2) / 1000 * 10) / 10;
         
         // Update lead with roof estimate
-        await storage.updateLead(leadId, {
+        const updatedLead = await storage.updateLead(leadId, {
           status: "roof_estimated",
           latitude: roofEstimate.latitude,
           longitude: roofEstimate.longitude,
@@ -546,6 +550,55 @@ export async function registerRoutes(
         });
         
         console.log(`[Lead ${leadId}] Roof estimate complete: ${roofEstimate.roofAreaSqM.toFixed(0)} m², potential ${roofPotentialKw} kW`);
+        
+        // Sync to Zoho: Update lead status and roof data, create follow-up task
+        if (updatedLead?.zohoLeadId) {
+          try {
+            // Update Zoho lead with roof estimate status and description
+            const updateResult = await zoho.updateLead(updatedLead.zohoLeadId, {
+              stage: "Contacted", // Standard Zoho status - lead has been engaged with estimate
+              description: `[Roof Estimate Completed]\nArea: ${roofEstimate.roofAreaSqM.toFixed(0)} m²\nSolar Potential: ${roofPotentialKw} kW\nAddress: ${fullAddress}`,
+            });
+            
+            if (!updateResult.success && !updateResult.isMock) {
+              console.warn(`[Lead ${leadId}] Zoho lead update failed: ${updateResult.error}`);
+            }
+            
+            // Add note to Zoho lead
+            await zoho.addNote("Leads", updatedLead.zohoLeadId, 
+              `Roof estimate completed via Google Solar API.\n` +
+              `Address: ${fullAddress}\n` +
+              `Roof Area: ${roofEstimate.roofAreaSqM.toFixed(0)} m²\n` +
+              `Solar Potential: ${roofPotentialKw} kW\n` +
+              `Next step: Contact lead to sign HQ proxy.`
+            );
+            
+            // Create follow-up task for sales team
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 1); // Due tomorrow
+            
+            const taskResult = await zoho.createTask({
+              subject: `Follow-up: ${data.companyName} - Roof estimate sent (${roofPotentialKw} kW)`,
+              dueDate: dueDate.toISOString().split("T")[0],
+              priority: roofPotentialKw >= 100 ? "High" : "Normal", // High priority for large projects
+              status: "Not Started",
+              description: `Lead received roof estimate email.\n` +
+                `Company: ${data.companyName}\n` +
+                `Contact: ${data.contactName}\n` +
+                `Solar Potential: ${roofPotentialKw} kW\n\n` +
+                `Action: Call to schedule HQ proxy signature meeting.`,
+              relatedTo: { module: "Leads", id: updatedLead.zohoLeadId },
+            });
+            
+            if (taskResult.success) {
+              console.log(`[Lead ${leadId}] Zoho CRM updated with roof estimate and follow-up task created`);
+            } else if (!taskResult.isMock) {
+              console.warn(`[Lead ${leadId}] Zoho task creation failed: ${taskResult.error}`);
+            }
+          } catch (zohoError) {
+            console.error(`[Lead ${leadId}] Zoho sync failed:`, zohoError);
+          }
+        }
         
         // Send email with roof estimate
         await sendRoofEstimateEmail(data.email, data.contactName, data.companyName, {

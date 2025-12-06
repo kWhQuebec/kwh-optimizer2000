@@ -156,6 +156,27 @@ export interface LeadData {
   company?: string;
   description?: string;
   source?: string;
+  streetAddress?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+}
+
+export interface LeadUpdateData {
+  stage?: string;
+  description?: string;
+  roofAreaSqM?: number;
+  roofPotentialKw?: number;
+  customFields?: Record<string, any>;
+}
+
+export interface TaskData {
+  subject: string;
+  dueDate: string;
+  priority?: "High" | "Highest" | "Low" | "Lowest" | "Normal";
+  status?: "Not Started" | "Deferred" | "In Progress" | "Completed" | "Waiting for input";
+  description?: string;
+  relatedTo?: { module: "Leads" | "Accounts" | "Deals"; id: string };
 }
 
 export interface DealData {
@@ -209,6 +230,11 @@ export async function createLead(leadData: LeadData): Promise<ZohoResult<string>
     Company: company,
     Description: leadData.description || null,
     Lead_Source: leadData.source || "Website",
+    Street: leadData.streetAddress || null,
+    City: leadData.city || null,
+    State: leadData.province || "Québec",
+    Zip_Code: leadData.postalCode || null,
+    Country: "Canada",
   };
 
   const response = await zohoApiRequest("POST", "Leads", {
@@ -222,6 +248,79 @@ export async function createLead(leadData: LeadData): Promise<ZohoResult<string>
 
   const errorMsg = response?.data?.[0]?.message || "Unknown error creating lead";
   console.error("[Zoho] Failed to create lead:", errorMsg);
+  return { success: false, error: errorMsg };
+}
+
+/**
+ * Update an existing Lead in Zoho CRM
+ * Note: Lead_Status values must match those configured in Zoho CRM picklist
+ * Standard Zoho lead statuses: "Not Contacted", "Contacted", "Contact in Future", etc.
+ */
+export async function updateLead(leadId: string, updateData: LeadUpdateData): Promise<ZohoResult<boolean>> {
+  const config = getZohoConfig();
+  
+  if (!config || leadId.startsWith("MOCK_")) {
+    console.log("[Zoho Mock] Would update lead:", leadId, updateData);
+    return { success: true, data: true, isMock: true };
+  }
+
+  const zohoLead: ZohoRecord = {
+    id: leadId,
+  };
+
+  if (updateData.stage) zohoLead.Lead_Status = updateData.stage;
+  if (updateData.description) zohoLead.Description = updateData.description;
+  if (updateData.customFields) Object.assign(zohoLead, updateData.customFields);
+
+  const response = await zohoApiRequest("PUT", "Leads", {
+    data: [zohoLead],
+  });
+
+  if (response?.data?.[0]?.code === "SUCCESS") {
+    console.log("[Zoho] Lead updated:", leadId);
+    return { success: true, data: true };
+  }
+
+  const errorMsg = response?.data?.[0]?.message || "Unknown error updating lead";
+  console.error("[Zoho] Failed to update lead:", errorMsg);
+  return { success: false, error: errorMsg };
+}
+
+/**
+ * Create a follow-up Task in Zoho CRM
+ */
+export async function createTask(taskData: TaskData): Promise<ZohoResult<string>> {
+  const config = getZohoConfig();
+  
+  if (!config) {
+    console.log("[Zoho Mock] Would create task:", taskData);
+    return { success: true, data: `MOCK_TASK_${Date.now()}`, isMock: true };
+  }
+
+  const zohoTask: ZohoRecord = {
+    Subject: taskData.subject,
+    Due_Date: taskData.dueDate,
+    Priority: taskData.priority || "Normal",
+    Status: taskData.status || "Not Started",
+    Description: taskData.description || null,
+  };
+
+  if (taskData.relatedTo && !taskData.relatedTo.id.startsWith("MOCK_")) {
+    zohoTask.$se_module = taskData.relatedTo.module;
+    zohoTask.What_Id = { id: taskData.relatedTo.id };
+  }
+
+  const response = await zohoApiRequest("POST", "Tasks", {
+    data: [zohoTask],
+  });
+
+  if (response?.data?.[0]?.details?.id) {
+    console.log("[Zoho] Task created:", response.data[0].details.id);
+    return { success: true, data: response.data[0].details.id };
+  }
+
+  const errorMsg = response?.data?.[0]?.message || "Unknown error creating task";
+  console.error("[Zoho] Failed to create task:", errorMsg);
   return { success: false, error: errorMsg };
 }
 
