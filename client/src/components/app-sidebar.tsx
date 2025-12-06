@@ -69,11 +69,6 @@ export function AppSidebar() {
       url: "/app/catalog",
       icon: Package,
     },
-    {
-      title: t("nav.methodology"),
-      url: "/app/methodology",
-      icon: FileText,
-    },
   ];
 
   const adminItems = [
@@ -81,6 +76,11 @@ export function AppSidebar() {
       title: t("nav.userManagement") || "User Management",
       url: "/app/users",
       icon: UserCog,
+    },
+    {
+      title: t("nav.methodology"),
+      url: "/app/methodology",
+      icon: FileText,
     },
   ];
 

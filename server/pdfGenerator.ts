@@ -1,4 +1,6 @@
 import PDFDocument from "pdfkit";
+import path from "path";
+import fs from "fs";
 import { CashflowEntry, FinancialBreakdown, HourlyProfileEntry, PeakWeekEntry, SensitivityAnalysis, FrontierPoint, SolarSweepPoint, BatterySweepPoint } from "@shared/schema";
 
 // Brand colors
@@ -489,6 +491,118 @@ export function generateProfessionalPDF(
     }
   };
 
+  // ================= COVER PAGE =================
+  
+  // Try to load brand installation image as background
+  const coverImagePath = path.join(process.cwd(), "attached_assets", "kWh__Quebec_Brand_Guideline_1764967501349.jpg");
+  const logoPath = path.join(process.cwd(), "attached_assets", "kWh_Quebec_Logo-01_1764778562811.png");
+  
+  // Full page background image with dark overlay
+  if (fs.existsSync(coverImagePath)) {
+    try {
+      doc.image(coverImagePath, 0, 0, { 
+        width: pageWidth, 
+        height: pageHeight 
+      });
+    } catch (e) {
+      // Fallback to gradient background if image fails
+      doc.rect(0, 0, pageWidth, pageHeight).fillColor(COLORS.blue).fill();
+    }
+  } else {
+    // Gradient background fallback
+    doc.rect(0, 0, pageWidth, pageHeight).fillColor(COLORS.blue).fill();
+  }
+  
+  // Dark overlay for text readability
+  doc.rect(0, 0, pageWidth, pageHeight).fillColor("black").fillOpacity(0.55).fill();
+  doc.fillOpacity(1);
+  
+  // Logo at top
+  if (fs.existsSync(logoPath)) {
+    try {
+      doc.image(logoPath, margin, margin, { width: 180 });
+    } catch (e) {
+      doc.fontSize(32).fillColor(COLORS.white).font("Helvetica-Bold");
+      doc.text("kWh Québec", margin, margin);
+      doc.font("Helvetica");
+    }
+  } else {
+    doc.fontSize(32).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text("kWh Québec", margin, margin);
+    doc.font("Helvetica");
+  }
+  
+  // Main title - centered in middle of page
+  const centerY = pageHeight / 2 - 80;
+  
+  doc.fontSize(36).fillColor(COLORS.white).font("Helvetica-Bold");
+  doc.text(t("ÉTUDE PRÉLIMINAIRE", "PRELIMINARY STUDY"), margin, centerY, { 
+    width: contentWidth, 
+    align: "center" 
+  });
+  doc.font("Helvetica");
+  
+  doc.fontSize(28).fillColor(COLORS.gold);
+  doc.text(t("SOLAIRE + STOCKAGE", "SOLAR + STORAGE"), margin, centerY + 48, { 
+    width: contentWidth, 
+    align: "center" 
+  });
+  
+  // Gold accent line
+  doc.rect(pageWidth / 2 - 100, centerY + 95, 200, 4).fillColor(COLORS.gold).fill();
+  
+  // Site name
+  doc.fontSize(22).fillColor(COLORS.white).font("Helvetica-Bold");
+  doc.text(simulation.site.name, margin, centerY + 120, { 
+    width: contentWidth, 
+    align: "center" 
+  });
+  doc.font("Helvetica");
+  
+  // Location
+  const locationText = [simulation.site.city, simulation.site.province || "QC"].filter(Boolean).join(", ");
+  doc.fontSize(14).fillColor(COLORS.white).fillOpacity(0.9);
+  doc.text(locationText || "Québec", margin, centerY + 150, { 
+    width: contentWidth, 
+    align: "center" 
+  });
+  doc.fillOpacity(1);
+  
+  // Client info at bottom
+  const bottomY = pageHeight - 150;
+  
+  if (simulation.site.client?.name) {
+    doc.fontSize(12).fillColor(COLORS.white).fillOpacity(0.8);
+    doc.text(t("Préparé pour:", "Prepared for:"), margin, bottomY, { 
+      width: contentWidth, 
+      align: "center" 
+    });
+    doc.fillOpacity(1);
+    
+    doc.fontSize(18).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text(simulation.site.client.name, margin, bottomY + 18, { 
+      width: contentWidth, 
+      align: "center" 
+    });
+    doc.font("Helvetica");
+  }
+  
+  // Date at very bottom
+  const coverDateStr = new Date().toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+  doc.fontSize(12).fillColor(COLORS.white).fillOpacity(0.7);
+  doc.text(coverDateStr, margin, pageHeight - 60, { 
+    width: contentWidth, 
+    align: "center" 
+  });
+  doc.fillOpacity(1);
+  
+  // Add new page for content
+  doc.addPage();
+
   // ================= PAGE 1: TITLE & MAIN KPIs =================
   
   // Professional branded header bar
@@ -753,8 +867,10 @@ export function generateProfessionalPDF(
                "This analysis compares multiple simulated configurations for this site."), margin, doc.y);
     doc.moveDown(1.5);
     
-    // All simulations including current one
-    const allScenarios = [simulation, ...otherSimulations].sort((a, b) => (b.npv25 || 0) - (a.npv25 || 0));
+    // All simulations including current one - limit to top 4 by NPV for readability
+    const allScenarios = [simulation, ...otherSimulations]
+      .sort((a, b) => (b.npv25 || 0) - (a.npv25 || 0))
+      .slice(0, 4);
     
     // Table header
     const tableY = doc.y;
@@ -1167,12 +1283,11 @@ export function generateProfessionalPDF(
     cash: { bg: "#E8F5E9", border: "#22C55E", text: "#16A34A" },
     loan: { bg: "#E3F2FD", border: "#3B82F6", text: "#2563EB" },
     lease: { bg: "#FFF8E1", border: "#F59E0B", text: "#D97706" },
-    ppa: { bg: "#F3E8FF", border: "#8B5CF6", text: "#7C3AED" },
   };
 
-  // Draw 4 financing option cards
+  // Draw 3 financing option cards
   const finCardY = doc.y;
-  const finCardWidth = (contentWidth - 30) / 4;
+  const finCardWidth = (contentWidth - 20) / 3;
   const finCardHeight = 180;
 
   // Cash Purchase Card
@@ -1267,39 +1382,6 @@ export function generateProfessionalPDF(
   
   doc.fontSize(7).fillColor(COLORS.lightGray);
   doc.text(t("*Proprio après 20 ans", "*Owner after 20yr"), leaseX + 5, finCardY + 160, { width: finCardWidth - 10, align: "center" });
-
-  // PPA Card
-  const ppaX = margin + 3 * (finCardWidth + 10);
-  drawRoundedRect(ppaX, finCardY, finCardWidth, finCardHeight, 6, FINANCING_COLORS.ppa.bg);
-  doc.roundedRect(ppaX, finCardY, finCardWidth, finCardHeight, 6).strokeColor(FINANCING_COLORS.ppa.border).lineWidth(2).stroke();
-  
-  doc.fontSize(10).fillColor(FINANCING_COLORS.ppa.text).font("Helvetica-Bold");
-  doc.text("PPA", ppaX + 5, finCardY + 10, { width: finCardWidth - 10, align: "center" });
-  doc.font("Helvetica");
-  
-  doc.fontSize(7).fillColor(COLORS.mediumGray);
-  doc.text(t("Achat d'énergie", "Power Purchase"), ppaX + 5, finCardY + 25, { width: finCardWidth - 10, align: "center" });
-  
-  doc.fontSize(8).fillColor(COLORS.darkGray);
-  doc.text(t("Mise de fonds:", "Upfront:"), ppaX + 5, finCardY + 45, { width: finCardWidth - 10, align: "center" });
-  doc.fontSize(14).fillColor(FINANCING_COLORS.ppa.text).font("Helvetica-Bold");
-  doc.text("$0", ppaX + 5, finCardY + 58, { width: finCardWidth - 10, align: "center" });
-  doc.font("Helvetica");
-  
-  doc.fontSize(8).fillColor(COLORS.darkGray);
-  doc.text(t("Tarif estimé:", "Est. rate:"), ppaX + 5, finCardY + 85, { width: finCardWidth - 10, align: "center" });
-  doc.fontSize(12).fillColor(FINANCING_COLORS.ppa.text).font("Helvetica-Bold");
-  doc.text("~$0.08/kWh", ppaX + 5, finCardY + 98, { width: finCardWidth - 10, align: "center" });
-  doc.font("Helvetica");
-  
-  doc.fontSize(8).fillColor(COLORS.darkGray);
-  doc.text(t("Économies:", "Savings:"), ppaX + 5, finCardY + 125, { width: finCardWidth - 10, align: "center" });
-  doc.fontSize(10).fillColor(COLORS.mediumGray).font("Helvetica-Bold");
-  doc.text(t("Variable", "Variable"), ppaX + 5, finCardY + 138, { width: finCardWidth - 10, align: "center" });
-  doc.font("Helvetica");
-  
-  doc.fontSize(7).fillColor(COLORS.lightGray);
-  doc.text(t("*Jamais proprio", "*Never owner"), ppaX + 5, finCardY + 160, { width: finCardWidth - 10, align: "center" });
 
   doc.y = finCardY + finCardHeight + 20;
 
