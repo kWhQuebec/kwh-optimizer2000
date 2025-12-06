@@ -24,6 +24,12 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
+import roofMeasurement from "@assets/generated_images/commercial_roof_solar_measurement_overlay.png";
+import screenshotSystem from "@assets/Screenshot_2025-12-05_at_4.07.23_PM_1764968848494.png";
+import screenshotFinancial from "@assets/Screenshot_2025-12-05_at_4.07.42_PM_1764968865040.png";
+import screenshotOptimization from "@assets/Screenshot_2025-12-05_at_4.07.56_PM_1764968884930.png";
+import screenshotConsumption from "@assets/Screenshot_2025-12-03_at_4.28.46_PM_1764797356868.png";
 
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
@@ -55,10 +61,25 @@ const staggerContainer = {
   }
 };
 
+const analysisSlides = [
+  { id: "consumption", image: screenshotConsumption, labelFr: "Profil de consommation", labelEn: "Consumption Profile" },
+  { id: "system", image: screenshotSystem, labelFr: "Système recommandé", labelEn: "Recommended System" },
+  { id: "financial", image: screenshotFinancial, labelFr: "Analyse financière", labelEn: "Financial Analysis" },
+  { id: "optimization", image: screenshotOptimization, labelFr: "Optimisation du système", labelEn: "System Optimization" },
+];
+
 export default function LandingPage() {
   const { t, language } = useI18n();
   const [submitted, setSubmitted] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
   const currentLogo = language === "fr" ? logoFr : logoEn;
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % analysisSlides.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
@@ -456,8 +477,143 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== BENEFITS SECTION ========== */}
+      {/* ========== ANALYSIS PREVIEW SECTION ========== */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-7xl mx-auto">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+              {language === "fr" ? "Aperçu de votre analyse" : "Preview of Your Analysis"}
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {language === "fr" 
+                ? "Voici ce que vous recevrez après avoir signé la procuration Hydro-Québec"
+                : "Here's what you'll receive after signing the Hydro-Québec proxy"
+              }
+            </p>
+          </motion.div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Roof Measurement Image */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-4"
+            >
+              <div className="relative rounded-2xl overflow-hidden border shadow-lg">
+                <img 
+                  src={roofMeasurement} 
+                  alt={language === "fr" ? "Analyse du toit avec mesures" : "Roof analysis with measurements"}
+                  className="w-full h-auto"
+                  data-testid="img-roof-measurement"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                  <p className="text-white font-medium">
+                    {language === "fr" ? "Estimation du potentiel de votre toiture" : "Roof potential estimation"}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground text-center">
+                {language === "fr" 
+                  ? "Nous analysons votre toiture pour estimer le potentiel solaire"
+                  : "We analyze your roof to estimate solar potential"
+                }
+              </p>
+            </motion.div>
+
+            {/* Analysis Screenshots Carousel */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-4"
+            >
+              <div className="relative rounded-2xl overflow-hidden border shadow-lg bg-card">
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  {analysisSlides.map((slide, index) => (
+                    <div
+                      key={slide.id}
+                      className={`absolute inset-0 transition-opacity duration-500 ${
+                        index === activeSlide ? "opacity-100" : "opacity-0"
+                      }`}
+                    >
+                      <img 
+                        src={slide.image} 
+                        alt={language === "fr" ? slide.labelFr : slide.labelEn}
+                        className="w-full h-full object-contain bg-white"
+                        data-testid={`img-analysis-${slide.id}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                  <p className="text-white font-medium">
+                    {language === "fr" ? analysisSlides[activeSlide].labelFr : analysisSlides[activeSlide].labelEn}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Carousel dots */}
+              <div className="flex justify-center gap-2">
+                {analysisSlides.map((slide, index) => (
+                  <button
+                    key={slide.id}
+                    onClick={() => setActiveSlide(index)}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      index === activeSlide ? "bg-primary" : "bg-muted-foreground/30"
+                    }`}
+                    data-testid={`button-slide-${slide.id}`}
+                  />
+                ))}
+              </div>
+              
+              <p className="text-sm text-muted-foreground text-center">
+                {language === "fr" 
+                  ? "Analyse complète avec recommandations personnalisées"
+                  : "Complete analysis with personalized recommendations"
+                }
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Installation Photo */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-16"
+          >
+            <div className="relative rounded-2xl overflow-hidden">
+              <img 
+                src={installationPhoto} 
+                alt={language === "fr" ? "Équipe d'installation de panneaux solaires" : "Solar panel installation team"}
+                className="w-full h-64 md:h-80 object-cover"
+                data-testid="img-installation-team"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                  {language === "fr" ? "Installation clé en main" : "Turnkey Installation"}
+                </h3>
+                <p className="text-white/80 max-w-xl">
+                  {language === "fr" 
+                    ? "Notre équipe d'experts s'occupe de tout, de la conception à la mise en service"
+                    : "Our expert team handles everything, from design to commissioning"
+                  }
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ========== BENEFITS SECTION ========== */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <motion.div 
             className="text-center mb-16"
