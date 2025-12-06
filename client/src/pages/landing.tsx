@@ -6,10 +6,10 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { 
-  Sun, Battery, FileBarChart, Building2, Factory, School, HelpCircle, 
-  CheckCircle2, ArrowRight, BarChart3, Leaf, Zap, Clock, DollarSign,
-  TrendingUp, Shield, Award, Users, ChevronRight, Sparkles, Target,
-  Timer, Rocket, Building, BatteryCharging, BadgePercent, Calendar
+  FileBarChart, Building2, Factory, School, HelpCircle, 
+  CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
+  TrendingUp, Shield, Award, Target,
+  Timer, Rocket, BatteryCharging, BadgePercent
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -155,7 +155,7 @@ export default function LandingPage() {
                 transition={{ delay: 0.2 }}
               >
                 <Badge variant="secondary" className="px-4 py-2 text-sm bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  <Timer className="w-4 h-4 mr-2" />
                   {t("landing.whyNow.deadline")}
                 </Badge>
               </motion.div>
@@ -221,10 +221,10 @@ export default function LandingPage() {
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Sun className="w-6 h-6 text-primary" />
+                      <FileBarChart className="w-6 h-6 text-primary" />
                     </div>
-                    <div className="text-3xl font-bold font-mono">250 kWc</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.hero.pvCapacity")}</div>
+                    <div className="text-3xl font-bold">{t("landing.hero.stat1.value")}</div>
+                    <div className="text-sm text-muted-foreground">{t("landing.hero.stat1.label")}</div>
                   </motion.div>
                   
                   <motion.div 
@@ -233,10 +233,10 @@ export default function LandingPage() {
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                      <Battery className="w-6 h-6 text-amber-500" />
+                      <Clock className="w-6 h-6 text-amber-500" />
                     </div>
-                    <div className="text-3xl font-bold font-mono">500 kWh</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.hero.storage")}</div>
+                    <div className="text-3xl font-bold">{t("landing.hero.stat2.value")}</div>
+                    <div className="text-sm text-muted-foreground">{t("landing.hero.stat2.label")}</div>
                   </motion.div>
                   
                   <motion.div 
@@ -245,10 +245,10 @@ export default function LandingPage() {
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-green-500" />
+                      <DollarSign className="w-6 h-6 text-green-500" />
                     </div>
-                    <div className="text-3xl font-bold font-mono">35%</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.hero.peakShaving")}</div>
+                    <div className="text-3xl font-bold">{t("landing.hero.stat3.value")}</div>
+                    <div className="text-sm text-muted-foreground">{t("landing.hero.stat3.label")}</div>
                   </motion.div>
                   
                   <motion.div 
@@ -257,10 +257,10 @@ export default function LandingPage() {
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                      <Leaf className="w-6 h-6 text-emerald-500" />
+                      <Rocket className="w-6 h-6 text-emerald-500" />
                     </div>
-                    <div className="text-3xl font-bold font-mono">120 t</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.hero.co2Year")}</div>
+                    <div className="text-3xl font-bold">{t("landing.hero.stat4.value")}</div>
+                    <div className="text-sm text-muted-foreground">{t("landing.hero.stat4.label")}</div>
                   </motion.div>
                 </div>
               </div>
@@ -278,10 +278,6 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Badge variant="outline" className="mb-4 px-4 py-1">
-              <Calendar className="w-4 h-4 mr-2" />
-              2024-2026
-            </Badge>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">{t("landing.whyNow.title")}</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               {t("landing.whyNow.subtitle")}
@@ -355,8 +351,8 @@ export default function LandingPage() {
                   <p className="font-semibold text-lg">{t("landing.whyNow.deadline")}</p>
                   <p className="text-muted-foreground text-sm">
                     {language === "fr" 
-                      ? "Les subventions sont limitées et attribuées par ordre d'arrivée"
-                      : "Incentives are limited and awarded on a first-come basis"
+                      ? "Profitez de ces programmes maintenant avant qu'il ne soit trop tard"
+                      : "Take advantage of these programs now before it's too late"
                     }
                   </p>
                 </div>
@@ -474,28 +470,32 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { 
-                label: t("landing.benefits.payback"), 
-                value: t("landing.benefits.paybackValue"),
-                icon: Clock,
-                color: "text-blue-500"
+                title: t("landing.benefits.analysis"), 
+                description: t("landing.benefits.analysisDesc"),
+                icon: BarChart3,
+                color: "text-blue-500",
+                bg: "bg-blue-500/10"
               },
               { 
-                label: t("landing.benefits.savings"), 
-                value: t("landing.benefits.savingsValue"),
-                icon: DollarSign,
-                color: "text-green-500"
+                title: t("landing.benefits.financial"), 
+                description: t("landing.benefits.financialDesc"),
+                icon: TrendingUp,
+                color: "text-green-500",
+                bg: "bg-green-500/10"
               },
               { 
-                label: t("landing.benefits.incentives"), 
-                value: t("landing.benefits.incentivesValue"),
-                icon: BadgePercent,
-                color: "text-amber-500"
+                title: t("landing.benefits.design"), 
+                description: t("landing.benefits.designDesc"),
+                icon: FileBarChart,
+                color: "text-amber-500",
+                bg: "bg-amber-500/10"
               },
               { 
-                label: t("landing.benefits.co2"), 
-                value: t("landing.benefits.co2Value"),
-                icon: Leaf,
-                color: "text-emerald-500"
+                title: t("landing.benefits.installation"), 
+                description: t("landing.benefits.installationDesc"),
+                icon: Rocket,
+                color: "text-emerald-500",
+                bg: "bg-emerald-500/10"
               },
             ].map((item, index) => (
               <motion.div
@@ -505,12 +505,12 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="text-center p-8 hover-elevate h-full">
-                  <div className="flex justify-center mb-4">
-                    <item.icon className={`w-8 h-8 ${item.color}`} />
+                <Card className="p-6 hover-elevate h-full">
+                  <div className={`w-12 h-12 rounded-xl ${item.bg} flex items-center justify-center mb-4`}>
+                    <item.icon className={`w-6 h-6 ${item.color}`} />
                   </div>
-                  <div className="text-4xl font-bold font-mono mb-2">{item.value}</div>
-                  <div className="text-muted-foreground">{item.label}</div>
+                  <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
                 </Card>
               </motion.div>
             ))}
@@ -533,47 +533,21 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className="max-w-2xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <Card className="p-6 hover-elevate">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                    <Zap className="w-6 h-6 text-blue-500" />
+              <Card className="p-8 hover-elevate">
+                <div className="flex items-start gap-6">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                    <Zap className="w-8 h-8 text-blue-500" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">{t("landing.trust.partner.hq")}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {language === "fr" 
-                        ? "Accès aux tarifs d'autoproduction et subventions dédiées"
-                        : "Access to self-generation rates and dedicated incentives"
-                      }
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <Card className="p-6 hover-elevate">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                    <Building className="w-6 h-6 text-amber-500" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">{t("landing.trust.partner.rematek")}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {language === "fr" 
-                        ? "Équipements de qualité et installation professionnelle"
-                        : "Quality equipment and professional installation"
-                      }
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-xl">{t("landing.trust.partner.hq")}</h3>
+                    <p className="text-muted-foreground">
+                      {t("landing.trust.partner.hqDesc")}
                     </p>
                   </div>
                 </div>

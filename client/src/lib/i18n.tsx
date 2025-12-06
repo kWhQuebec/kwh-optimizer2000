@@ -33,26 +33,26 @@ const translations: Translations = {
 
   // Landing Page - Hero
   "landing.hero.title": { fr: "Le moment est venu pour le solaire commercial au Québec", en: "The time for commercial solar in Québec is now" },
-  "landing.hero.subtitle": { fr: "Économisez jusqu'à 40% sur vos coûts énergétiques", en: "Save up to 40% on your energy costs" },
+  "landing.hero.subtitle": { fr: "EPC clé en main pour le solaire + stockage", en: "Turnkey EPC for solar + storage" },
   "landing.hero.description": { 
-    fr: "Nouvelles subventions provinciales de 1 000$/kW + crédit fédéral de 30%. Fenêtre d'opportunité limitée 2024-2026.", 
-    en: "New $1,000/kW provincial rebate + 30% federal tax credit. Limited 2024-2026 opportunity window." 
+    fr: "Nous concevons, installons et gérons des systèmes solaires et de stockage pour les bâtiments commerciaux et industriels du Québec. Analyse gratuite en 48h.", 
+    en: "We design, install, and manage solar and storage systems for commercial and industrial buildings in Québec. Free analysis in 48h." 
   },
   "landing.hero.cta": { fr: "Obtenir mon analyse gratuite", en: "Get my free analysis" },
-  "landing.hero.ctaSecondary": { fr: "Voir la méthodologie", en: "See methodology" },
+  "landing.hero.ctaSecondary": { fr: "Accès client", en: "Client access" },
   
   // Landing Page - Why Now Section
   "landing.whyNow.title": { fr: "Pourquoi maintenant?", en: "Why now?" },
   "landing.whyNow.subtitle": { fr: "Le Québec vit une transformation énergétique historique", en: "Québec is experiencing a historic energy transformation" },
-  "landing.whyNow.hqPlan.title": { fr: "Plan Hydro-Québec 10 G$", en: "Hydro-Québec $10B Plan" },
-  "landing.whyNow.hqPlan.description": { fr: "Programme d'autoproduction solaire pour les entreprises", en: "Solar self-generation program for businesses" },
-  "landing.whyNow.tender.title": { fr: "Appels d'offres 300 MW", en: "300 MW Tenders" },
-  "landing.whyNow.tender.description": { fr: "Objectifs ambitieux pour le solaire C&I", en: "Ambitious targets for C&I solar" },
-  "landing.whyNow.rebate.title": { fr: "Subvention 1 000$/kW", en: "$1,000/kW Rebate" },
-  "landing.whyNow.rebate.description": { fr: "Nouveau programme provincial pour batteries", en: "New provincial program for batteries" },
-  "landing.whyNow.federal.title": { fr: "Crédit d'impôt 30%", en: "30% Tax Credit" },
-  "landing.whyNow.federal.description": { fr: "Programme fédéral d'investissement propre", en: "Federal clean investment program" },
-  "landing.whyNow.deadline": { fr: "Fenêtre d'opportunité: 2024-2026", en: "Opportunity window: 2024-2026" },
+  "landing.whyNow.hqPlan.title": { fr: "Programme Hydro-Québec", en: "Hydro-Québec Program" },
+  "landing.whyNow.hqPlan.description": { fr: "Nouvelle limite d'autoproduction de 1 000 kW", en: "New 1,000 kW self-generation limit" },
+  "landing.whyNow.tender.title": { fr: "Rabais HQ 40%", en: "HQ 40% Rebate" },
+  "landing.whyNow.tender.description": { fr: "Jusqu'à 1 000$/kW sur l'installation solaire", en: "Up to $1,000/kW on solar installation" },
+  "landing.whyNow.rebate.title": { fr: "Crédit fédéral 30%", en: "Federal 30% Credit" },
+  "landing.whyNow.rebate.description": { fr: "Crédit d'impôt pour technologies propres", en: "Clean technology investment tax credit" },
+  "landing.whyNow.federal.title": { fr: "Mesurage net", en: "Net Metering" },
+  "landing.whyNow.federal.description": { fr: "Vendez vos surplus à Hydro-Québec", en: "Sell your surplus to Hydro-Québec" },
+  "landing.whyNow.deadline": { fr: "Ces incitatifs peuvent changer à tout moment", en: "These incentives can change at any time" },
   
   // Landing Page - Process Steps  
   "landing.step1.title": { fr: "Envoyez vos données", en: "Send your data" },
@@ -82,25 +82,25 @@ const translations: Translations = {
   },
   
   // Landing Page - Benefits
-  "landing.benefits.title": { fr: "Résultats typiques pour nos clients", en: "Typical results for our clients" },
-  "landing.benefits.subtitle": { fr: "Basés sur des projets réels au Québec", en: "Based on real projects in Québec" },
-  "landing.benefits.payback": { fr: "Temps de retour", en: "Payback time" },
-  "landing.benefits.paybackValue": { fr: "4-7 ans", en: "4-7 years" },
-  "landing.benefits.savings": { fr: "Économies annuelles", en: "Annual savings" },
-  "landing.benefits.savingsValue": { fr: "25-40%", en: "25-40%" },
-  "landing.benefits.incentives": { fr: "Subventions couvertes", en: "Incentives covered" },
-  "landing.benefits.incentivesValue": { fr: "40-50%", en: "40-50%" },
-  "landing.benefits.co2": { fr: "Réduction CO₂", en: "CO₂ reduction" },
-  "landing.benefits.co2Value": { fr: "50-200t/an", en: "50-200t/yr" },
+  "landing.benefits.title": { fr: "Ce que vous obtenez", en: "What you get" },
+  "landing.benefits.subtitle": { fr: "Une approche complète pour votre projet solaire", en: "A complete approach for your solar project" },
+  "landing.benefits.analysis": { fr: "Analyse personnalisée", en: "Personalized analysis" },
+  "landing.benefits.analysisDesc": { fr: "Simulation 8 760h basée sur vos données réelles", en: "8,760h simulation based on your real data" },
+  "landing.benefits.financial": { fr: "Projections financières", en: "Financial projections" },
+  "landing.benefits.financialDesc": { fr: "ROI, VAN, TRI sur 25 ans avec tous les incitatifs", en: "ROI, NPV, IRR over 25 years with all incentives" },
+  "landing.benefits.design": { fr: "Design détaillé", en: "Detailed design" },
+  "landing.benefits.designDesc": { fr: "Liste de matériaux et devis complet", en: "Bill of materials and complete quote" },
+  "landing.benefits.installation": { fr: "Installation clé en main", en: "Turnkey installation" },
+  "landing.benefits.installationDesc": { fr: "Ingénierie, fourniture et construction", en: "Engineering, procurement and construction" },
   
   // Landing Page - Trust
   "landing.trust.title": { fr: "Pourquoi nous faire confiance", en: "Why trust us" },
-  "landing.trust.certified": { fr: "Partenaire certifié Hydro-Québec", en: "Hydro-Québec certified partner" },
-  "landing.trust.experience": { fr: "25+ ans d'expérience", en: "25+ years experience" },
+  "landing.trust.certified": { fr: "Partenaire Hydro-Québec", en: "Hydro-Québec partner" },
+  "landing.trust.experience": { fr: "Expertise C&I au Québec", en: "C&I expertise in Québec" },
   "landing.trust.datadriven": { fr: "Analyse basée sur les données", en: "Data-driven analysis" },
-  "landing.trust.partners": { fr: "Partenaires de confiance", en: "Trusted partners" },
-  "landing.trust.partner.rematek": { fr: "Rematek Energy - Distributeur & EPC", en: "Rematek Energy - Distributor & EPC" },
+  "landing.trust.partners": { fr: "Nous travaillons avec Hydro-Québec", en: "We work with Hydro-Québec" },
   "landing.trust.partner.hq": { fr: "Hydro-Québec - Programme d'autoproduction", en: "Hydro-Québec - Self-generation program" },
+  "landing.trust.partner.hqDesc": { fr: "Accès aux tarifs d'autoproduction et rabais dédiés", en: "Access to self-generation rates and dedicated rebates" },
   
   // Landing Page - Form
   "landing.form.title": { fr: "Commencez votre transition énergétique", en: "Start your energy transition" },
@@ -120,11 +120,15 @@ const translations: Translations = {
   },
   "landing.form.select": { fr: "Sélectionner...", en: "Select..." },
   
-  // Landing Page - Hero Stats
-  "landing.hero.pvCapacity": { fr: "Capacité PV typique", en: "Typical PV capacity" },
-  "landing.hero.storage": { fr: "Stockage", en: "Storage" },
-  "landing.hero.peakShaving": { fr: "Écrêtage de pointe", en: "Peak shaving" },
-  "landing.hero.co2Year": { fr: "CO₂ évité/an", en: "CO₂ avoided/yr" },
+  // Landing Page - Hero Stats (service-focused)
+  "landing.hero.stat1.value": { fr: "Gratuit", en: "Free" },
+  "landing.hero.stat1.label": { fr: "Analyse détaillée", en: "Detailed analysis" },
+  "landing.hero.stat2.value": { fr: "48h", en: "48h" },
+  "landing.hero.stat2.label": { fr: "Délai de réponse", en: "Response time" },
+  "landing.hero.stat3.value": { fr: "0 $", en: "$0" },
+  "landing.hero.stat3.label": { fr: "Sans engagement", en: "No obligation" },
+  "landing.hero.stat4.value": { fr: "Clé en main", en: "Turnkey" },
+  "landing.hero.stat4.label": { fr: "Installation EPC", en: "EPC Installation" },
   
   // Landing Page - Footer
   "landing.footer.tagline": { fr: "Accélérez votre transition énergétique", en: "Accelerate your energy transition" },
