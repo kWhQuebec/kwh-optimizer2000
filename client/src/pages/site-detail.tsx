@@ -1836,11 +1836,13 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const totalLoanPayments = monthlyPayment * numPayments + loanDownPaymentAmount; // Total cash out for loan
   const effectiveLoanCost = totalLoanPayments - totalIncentives; // Net after incentives return
   
-  // Lease calculation: monthly payment based on CAPEX + implicit interest rate
+  // Capital Lease (Crédit-bail) calculation:
+  // In a capital lease, the lessee is treated as owner for tax purposes
   // Formula: Monthly = (CAPEX / term_months) + (CAPEX × implicit_rate / 12)
-  // This amortizes principal + pays interest on remaining balance (simplified)
+  // Client receives incentives (HQ rebates, Federal ITC, tax shield) just like ownership
   const leaseMonthlyPayment = (capexGross / (leaseTerm * 12)) + (capexGross * (leaseImplicitRate / 100) / 12);
-  const leaseTotalCost = leaseMonthlyPayment * 12 * leaseTerm;
+  const leaseTotalPayments = leaseMonthlyPayment * 12 * leaseTerm;
+  const effectiveLeaseCost = leaseTotalPayments - totalIncentives; // Net after incentives return
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat(language === "fr" ? "fr-CA" : "en-CA", {
@@ -1853,8 +1855,9 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   // Use consistent 25-year horizon for all financing comparisons
   const analysisHorizon = 25;
   
-  // Lease: 20-year payments, then 5 years of free energy (you own the system)
-  const leaseNetSavings = (annualSavings * leaseTerm - leaseTotalCost) + (annualSavings * (analysisHorizon - leaseTerm));
+  // Capital Lease: 20-year payments with incentives, then 5 years of free energy (you own the system)
+  // Net savings = Total savings over 25 years - effective cost (lease payments - incentives)
+  const leaseNetSavings = annualSavings * analysisHorizon - effectiveLeaseCost;
   
   const options = [
     {
@@ -1881,9 +1884,10 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
       icon: FileCheck,
       label: t("financing.lease"),
       upfrontCost: 0,
-      totalCost: leaseTotalCost,
+      totalCost: effectiveLeaseCost, // Net after incentives return (like loan)
+      totalPayments: leaseTotalPayments, // Gross lease payments
       monthlyPayment: leaseMonthlyPayment,
-      netSavings: leaseNetSavings, // 20 years of net savings + 5 years free
+      netSavings: leaseNetSavings, // 25 years of savings minus effective cost
     },
   ];
 
@@ -1899,8 +1903,8 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
     let loanCumulative = -loanDownPaymentAmount;
     const annualLoanPayment = monthlyPayment * 12;
     
-    // Lease option: no upfront, monthly lease payments, savings
-    // Use the same formula as defined above for consistency
+    // Capital Lease (Crédit-bail): no upfront, monthly payments, savings + incentive returns
+    // Client receives incentives just like ownership (capital lease = deemed owner for tax purposes)
     const annualLeasePayment = leaseMonthlyPayment * 12;
     let leaseCumulative = 0;
     
@@ -1929,14 +1933,17 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
           leaseCumulative -= annualLeasePayment;
         }
         
-        // Add incentive returns for cash and loan
+        // Add incentive returns for cash, loan, and capital lease
+        // Capital lease client is treated as owner for tax purposes
         if (year === 1) {
           cashCumulative += year1Returns;
           loanCumulative += year1Returns;
+          leaseCumulative += year1Returns; // Crédit-bail: client receives incentives
         }
         if (year === 2) {
           cashCumulative += year2Returns;
           loanCumulative += year2Returns;
+          leaseCumulative += year2Returns; // Crédit-bail: Federal ITC
         }
         
         data.push({

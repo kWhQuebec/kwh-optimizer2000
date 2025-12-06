@@ -1256,10 +1256,10 @@ export function generateProfessionalPDF(
   doc.moveDown(1.5);
 
   // Calculate financing values
+  // Note: totalIncentives from backend already includes HQ + Federal + taxShield
   const capexGross = simulation.capexGross || simulation.capexNet;
   const annualSavings = simulation.annualSavings || 0;
   const totalIncentives = simulation.totalIncentives || 0;
-  const taxShield = simulation.taxShield || 0;
   const hqSolar = simulation.incentivesHQSolar || 0;
   const hqBattery = simulation.incentivesHQBattery || 0;
   const upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5);
@@ -1271,12 +1271,16 @@ export function generateProfessionalPDF(
   const numPayments = 10 * 12;
   const monthlyPayment = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
   const totalLoanPayments = monthlyPayment * numPayments + loanDownPayment;
-  const effectiveLoanCost = totalLoanPayments - totalIncentives - taxShield;
+  // Note: totalIncentives already includes taxShield (HQ + Federal + taxShield)
+  const effectiveLoanCost = totalLoanPayments - totalIncentives;
   
-  // Lease calculations (20-year, 8.5% implicit rate)
+  // Capital Lease (Crédit-bail) calculations (20-year, 8.5% implicit rate)
+  // In capital lease, client is treated as owner for tax purposes and receives all incentives
   const leaseMonthlyPayment = (capexGross / (20 * 12)) + (capexGross * 0.085 / 12);
-  const leaseTotalCost = leaseMonthlyPayment * 12 * 20;
-  const leaseNetSavings = (annualSavings * 20 - leaseTotalCost) + (annualSavings * 5);
+  const leaseTotalPayments = leaseMonthlyPayment * 12 * 20;
+  // totalIncentives already includes taxShield
+  const effectiveLeaseCost = leaseTotalPayments - totalIncentives;
+  const leaseNetSavings = annualSavings * 25 - effectiveLeaseCost;
   
   // Define financing options colors
   const FINANCING_COLORS = {
@@ -1350,13 +1354,13 @@ export function generateProfessionalPDF(
   doc.text(formatCurrency(loanNetSavings), loanX + 5, finCardY + 138, { width: finCardWidth - 10, align: "center" });
   doc.font("Helvetica");
 
-  // Lease Card
+  // Capital Lease (Crédit-bail) Card
   const leaseX = margin + 2 * (finCardWidth + 10);
   drawRoundedRect(leaseX, finCardY, finCardWidth, finCardHeight, 6, FINANCING_COLORS.lease.bg);
   doc.roundedRect(leaseX, finCardY, finCardWidth, finCardHeight, 6).strokeColor(FINANCING_COLORS.lease.border).lineWidth(2).stroke();
   
-  doc.fontSize(10).fillColor(FINANCING_COLORS.lease.text).font("Helvetica-Bold");
-  doc.text(t("BAIL", "LEASE"), leaseX + 5, finCardY + 10, { width: finCardWidth - 10, align: "center" });
+  doc.fontSize(9).fillColor(FINANCING_COLORS.lease.text).font("Helvetica-Bold");
+  doc.text(t("CRÉDIT-BAIL", "CAPITAL LEASE"), leaseX + 5, finCardY + 10, { width: finCardWidth - 10, align: "center" });
   doc.font("Helvetica");
   
   doc.fontSize(7).fillColor(COLORS.mediumGray);
@@ -1369,9 +1373,9 @@ export function generateProfessionalPDF(
   doc.font("Helvetica");
   
   doc.fontSize(8).fillColor(COLORS.darkGray);
-  doc.text(t("Coût total:", "Total cost:"), leaseX + 5, finCardY + 85, { width: finCardWidth - 10, align: "center" });
+  doc.text(t("Coût net:", "Net cost:"), leaseX + 5, finCardY + 85, { width: finCardWidth - 10, align: "center" });
   doc.fontSize(12).fillColor(FINANCING_COLORS.lease.text).font("Helvetica-Bold");
-  doc.text(formatCurrency(leaseTotalCost), leaseX + 5, finCardY + 98, { width: finCardWidth - 10, align: "center" });
+  doc.text(formatCurrency(effectiveLeaseCost), leaseX + 5, finCardY + 98, { width: finCardWidth - 10, align: "center" });
   doc.font("Helvetica");
   
   doc.fontSize(8).fillColor(COLORS.darkGray);
@@ -1381,7 +1385,7 @@ export function generateProfessionalPDF(
   doc.font("Helvetica");
   
   doc.fontSize(7).fillColor(COLORS.lightGray);
-  doc.text(t("*Proprio après 20 ans", "*Owner after 20yr"), leaseX + 5, finCardY + 160, { width: finCardWidth - 10, align: "center" });
+  doc.text(t("*Incitatifs inclus", "*Incentives included"), leaseX + 5, finCardY + 160, { width: finCardWidth - 10, align: "center" });
 
   doc.y = finCardY + finCardHeight + 20;
 
@@ -1390,8 +1394,8 @@ export function generateProfessionalPDF(
   doc.text(t("RECOMMANDATION:", "RECOMMENDATION:"), margin, doc.y);
   doc.font("Helvetica");
   doc.fontSize(9).fillColor(COLORS.mediumGray);
-  doc.text(t(" L'achat comptant maximise la VAN et le rendement. Le prêt est une bonne alternative avec flux de trésorerie positifs dès l'an 1.",
-             " Cash purchase maximizes NPV and returns. Loan is a good alternative with positive cashflows from year 1."), margin + 100, doc.y);
+  doc.text(t(" L'achat comptant maximise la VAN. Le crédit-bail est idéal pour préserver la trésorerie tout en recevant les incitatifs.",
+             " Cash purchase maximizes NPV. Capital lease is ideal to preserve cash flow while still receiving incentives."), margin + 100, doc.y);
 
   // Footer
   doc.fontSize(8).fillColor(COLORS.lightGray);
