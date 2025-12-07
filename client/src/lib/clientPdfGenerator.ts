@@ -1,11 +1,33 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import logoUrl from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 
 interface PDFGeneratorOptions {
   siteName: string;
   clientName?: string;
   location?: string;
   language: "fr" | "en";
+}
+
+async function loadImageAsBase64(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Could not get canvas context"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = url;
+  });
 }
 
 const COLORS = {
@@ -33,14 +55,25 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
 
   let currentPage = 0;
 
-  const addCoverPage = () => {
+  const addCoverPage = async () => {
     pdf.setFillColor(...COLORS.blue);
     pdf.rect(0, 0, pageWidth, pageHeight, "F");
 
-    pdf.setTextColor(...COLORS.white);
-    pdf.setFontSize(28);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("kWh Québec", margin, 35);
+    // Add logo at top
+    try {
+      const logoBase64 = await loadImageAsBase64(logoUrl);
+      // Logo dimensions: maintain aspect ratio, width ~60mm
+      const logoWidth = 60;
+      const logoHeight = 20; // Approximate height based on rectangular logo
+      pdf.addImage(logoBase64, "PNG", margin, 15, logoWidth, logoHeight);
+    } catch (error) {
+      // Fallback to text if logo fails to load
+      console.warn("Logo failed to load, using text fallback:", error);
+      pdf.setTextColor(...COLORS.white);
+      pdf.setFontSize(28);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("kWh Québec", margin, 35);
+    }
 
     const centerY = pageHeight / 2 - 30;
 
@@ -165,7 +198,7 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
     return currentY + scaledHeight + 8;
   };
 
-  addCoverPage();
+  await addCoverPage();
 
   const sections = [
     { id: "pdf-section-system-config", title: t("Configuration du système", "System Configuration") },
