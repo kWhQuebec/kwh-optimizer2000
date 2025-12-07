@@ -1838,22 +1838,22 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   
   // Capital Lease (Crédit-bail) calculation:
   // In a capital lease, the lessee is treated as owner for tax purposes
-  // Incentive flow for lease:
-  //   - HQ solar rebate: Applied to reduce financed amount (bank receives it, lowers principal)
-  //   - HQ battery rebate: Client receives directly (50% Year 0, 50% Year 1)
+  // Full CAPEX is financed - ALL incentives return to client as cash:
+  //   - HQ solar rebate: Client receives (50% Year 0, 50% Year 1) - applied to bill, not to EPC
+  //   - HQ battery rebate: Client receives (50% Year 0, 50% Year 1)
   //   - Federal ITC: Client receives in Year 2
   //   - Tax shield (CCA): Client receives in Year 1
   // Uses standard amortization formula (same as loan) for realistic payment calculation
-  const leaseFinancedAmount = Math.max(0, capexGross - hqSolar); // Guard against negative if hqSolar > capex
+  const leaseFinancedAmount = capexGross; // Full CAPEX financed - HQ rebates go to client, not bank
   const leaseMonthlyRate = leaseImplicitRate / 100 / 12;
   const leaseNumPayments = leaseTerm * 12;
   const leaseMonthlyPayment = leaseFinancedAmount > 0 && leaseMonthlyRate > 0
     ? (leaseFinancedAmount * leaseMonthlyRate * Math.pow(1 + leaseMonthlyRate, leaseNumPayments)) / (Math.pow(1 + leaseMonthlyRate, leaseNumPayments) - 1)
     : leaseFinancedAmount / Math.max(1, leaseNumPayments);
   const leaseTotalPayments = leaseMonthlyPayment * leaseNumPayments;
-  // Remaining incentives that client receives as cash during lease (not applied to principal)
-  const leaseRemainingIncentives = hqBattery + federalITC + taxShield;
-  const effectiveLeaseCost = leaseTotalPayments - leaseRemainingIncentives;
+  // ALL incentives return to client as cash (HQ rebates go to client's bill, not to EPC/bank)
+  const leaseTotalIncentives = hqSolar + hqBattery + federalITC + taxShield;
+  const effectiveLeaseCost = leaseTotalPayments - leaseTotalIncentives;
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat(language === "fr" ? "fr-CA" : "en-CA", {
@@ -1915,10 +1915,10 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
     const annualLoanPayment = monthlyPayment * 12;
     
     // Capital Lease (Crédit-bail): no upfront cash, monthly payments, savings + incentive returns
-    // Client receives incentives just like ownership (capital lease = deemed owner for tax purposes)
-    // HQ solar rebate already applied to reduce financed amount, but client gets HQ battery at Year 0
+    // Client receives ALL incentives as cash (HQ rebates go to client's bill, not to EPC/bank)
+    // Year 0: Receive 50% HQ Solar + 50% HQ Battery as bill credits/cash
     const annualLeasePayment = leaseMonthlyPayment * 12;
-    let leaseCumulative = hqBattery * 0.5; // 50% HQ battery received at Year 0 (same as cash)
+    let leaseCumulative = (hqSolar * 0.5) + (hqBattery * 0.5); // 50% of both HQ rebates at Year 0
     
     for (let year = 0; year <= years; year++) {
       if (year === 0) {
@@ -1947,10 +1947,12 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
         
         // Add incentive returns for cash, loan, and capital lease
         // Capital lease client is treated as owner for tax purposes
+        // Lease gets additional 50% HQ solar that cash/loan don't get (they got it upfront)
         if (year === 1) {
           cashCumulative += year1Returns;
           loanCumulative += year1Returns;
-          leaseCumulative += year1Returns; // Crédit-bail: client receives incentives
+          // Lease Year 1: 50% HQ battery + tax shield (same as cash/loan) PLUS 50% HQ solar
+          leaseCumulative += year1Returns + (hqSolar * 0.5); // Crédit-bail: includes HQ solar tranche
         }
         if (year === 2) {
           cashCumulative += year2Returns;
@@ -2097,21 +2099,17 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
               </div>
             </div>
             <div className="text-sm space-y-1 text-muted-foreground">
-              <p className="flex justify-between gap-2">
-                <span>{language === "fr" ? "Coût système (CAPEX brut):" : "System cost (gross CAPEX):"}</span>
-                <span className="font-mono">{formatCurrency(capexGross)}</span>
-              </p>
-              <p className="flex justify-between gap-2">
-                <span>{language === "fr" ? "Rabais HQ solaire (réduit le bail):" : "HQ solar rebate (reduces lease):"}</span>
-                <span className="font-mono text-primary">-{formatCurrency(hqSolar)}</span>
-              </p>
               <p className="flex justify-between gap-2 font-medium">
-                <span>{language === "fr" ? "Montant financé:" : "Financed amount:"}</span>
+                <span>{language === "fr" ? "Montant financé (CAPEX total):" : "Financed amount (total CAPEX):"}</span>
                 <span className="font-mono">{formatCurrency(leaseFinancedAmount)}</span>
               </p>
               <p className="flex justify-between gap-2 pt-2 border-t">
                 <span>{language === "fr" ? "Paiement mensuel:" : "Monthly payment:"}</span>
                 <span className="font-mono font-semibold">{formatCurrency(leaseMonthlyPayment)}</span>
+              </p>
+              <p className="flex justify-between gap-2 pt-2 border-t text-xs">
+                <span>{language === "fr" ? "Incitatifs retournés au client:" : "Incentives returned to client:"}</span>
+                <span className="font-mono text-primary">+{formatCurrency(leaseTotalIncentives)}</span>
               </p>
             </div>
           </div>
