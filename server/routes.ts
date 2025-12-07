@@ -3110,6 +3110,7 @@ function runSensitivityAnalysis(
       hourlyData, pvSize, configuredBattEnergyKWh, configuredBattPowerKW,
       peakKW, annualConsumptionKWh, assumptions
     );
+    
     solarSweep.push({ pvSizeKW: pvSize, npv25: result.npv25 });
     
     // Add to frontier as hybrid if battery > 0 (skip if same as current config)
