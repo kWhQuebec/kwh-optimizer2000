@@ -1133,37 +1133,29 @@ function AnalysisParametersEditor({
   );
 }
 
-function DownloadReportButton({ simulationId }: { simulationId: string }) {
+function DownloadReportButton({ 
+  simulationId, 
+  siteName, 
+  clientName, 
+  location 
+}: { 
+  simulationId: string;
+  siteName: string;
+  clientName?: string;
+  location?: string;
+}) {
   const { t, language } = useI18n();
-  const { token } = useAuth();
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const response = await fetch(`/api/simulation-runs/${simulationId}/report-pdf?lang=${language}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error("Download failed");
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `rapport-potentiel-${simulationId.slice(0, 8)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      
+      const { downloadClientPDF } = await import("@/lib/clientPdfGenerator");
+      await downloadClientPDF(siteName, clientName, location, language);
       toast({ title: language === "fr" ? "Rapport téléchargé" : "Report downloaded" });
     } catch (error) {
+      console.error("PDF generation error:", error);
       toast({ title: language === "fr" ? "Erreur lors du téléchargement" : "Download error", variant: "destructive" });
     } finally {
       setDownloading(false);
@@ -1975,7 +1967,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const cumulativeCashflowData = calculateCumulativeCashflows();
 
   return (
-    <Card data-testid="card-financing-calculator">
+    <Card id="pdf-section-financing" data-testid="card-financing-calculator">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="w-5 h-5" />
@@ -2197,7 +2189,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
         )}
         
         {/* Cumulative Cashflow Comparison Chart */}
-        <div className="pt-4 border-t">
+        <div id="pdf-section-financing-chart" className="pt-4 border-t">
           <h4 className="font-semibold text-sm mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             {t("financing.cumulativeCashflow")} ({analysisHorizon} {language === "fr" ? "ans" : "years"})
@@ -2492,7 +2484,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
       />
 
       {/* Recommended System with Roof Constraint - PROMINENT */}
-      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+      <Card id="pdf-section-system-config" className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader className="pb-2">
           <CardTitle className="text-xl flex items-center gap-2">
             <Zap className="w-6 h-6 text-primary" />
@@ -2567,7 +2559,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
       />
 
       {/* Hero Value Card - Annual Savings Focus */}
-      <Card className="border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent overflow-hidden">
+      <Card id="pdf-section-value-proposition" className="border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent overflow-hidden">
         <CardContent className="p-6">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="text-center md:text-left">
@@ -2598,7 +2590,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
       </Card>
 
       {/* Main Financial KPIs - 25 Year Focus */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div id="pdf-section-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -2646,7 +2638,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
             icon={TrendingUp}
           />
           
-          <Card>
+          <Card id="pdf-section-cashflow-chart">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
@@ -4240,7 +4232,12 @@ export default function SiteDetailPage() {
         <div className="flex items-center gap-2">
           {latestSimulation && (
             <>
-              <DownloadReportButton simulationId={latestSimulation.id} />
+              <DownloadReportButton 
+                simulationId={latestSimulation.id}
+                siteName={site.name}
+                clientName={site.client?.name}
+                location={[site.city, site.province].filter(Boolean).join(", ")}
+              />
               {isStaff && (
                 <Link href={`/app/analyses/${latestSimulation.id}/design`}>
                   <Button className="gap-2" data-testid="button-create-design">
