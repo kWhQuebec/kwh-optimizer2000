@@ -390,11 +390,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== PROCESS SECTION ========== */}
+      {/* ========== PROCESS SECTION - PROGRESS PATH ========== */}
       <section id="process" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <motion.div 
-            className="text-center mb-16"
+            className="text-center mb-12"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -405,84 +405,115 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="relative">
-            {/* 5 steps process */}
-            <div className="grid md:grid-cols-5 gap-4 lg:gap-6">
-              {[
-                { 
-                  step: 1, 
-                  icon: FileBarChart, 
-                  title: t("landing.step1.title"), 
-                  description: t("landing.step1.description"),
-                  time: t("landing.step1.time"),
-                  color: "from-blue-500 to-blue-600"
-                },
-                { 
-                  step: 2, 
-                  icon: FileSignature, 
-                  title: t("landing.step2.title"), 
-                  description: t("landing.step2.description"),
-                  time: t("landing.step2.time"),
-                  color: "from-amber-500 to-amber-600"
-                },
-                { 
-                  step: 3, 
-                  icon: BarChart3, 
-                  title: t("landing.step3.title"), 
-                  description: t("landing.step3.description"),
-                  time: t("landing.step3.time"),
-                  color: "from-primary to-primary"
-                },
-                { 
-                  step: 4, 
-                  icon: Wrench, 
-                  title: t("landing.step4.title"), 
-                  description: t("landing.step4.description"),
-                  time: t("landing.step4.time"),
-                  color: "from-purple-500 to-purple-600"
-                },
-                { 
-                  step: 5, 
-                  icon: HardHat, 
-                  title: t("landing.step5.title"), 
-                  description: t("landing.step5.description"),
-                  time: t("landing.step5.time"),
-                  color: "from-green-500 to-green-600"
-                },
-              ].map((item, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative"
-                >
-                  <Card className="relative overflow-hidden hover-elevate h-full">
-                    <CardContent className="p-5 space-y-3">
-                      {/* Step number circle */}
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg`}>
-                        <item.icon className="w-6 h-6 text-white" />
+          {/* Step 1 - Hero Focus (80%) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-12"
+          >
+            <Card className="relative overflow-hidden border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-background">
+              <CardContent className="p-6 lg:p-8">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                  {/* You are here marker */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+                        <span className="text-2xl font-bold text-white">1</span>
                       </div>
-                      
+                      <div className="absolute -inset-1 rounded-full bg-primary/30 animate-ping opacity-75" />
+                      <div className="absolute -inset-2 rounded-full border-2 border-primary/20" />
+                    </div>
+                    <div className="hidden sm:block">
+                      <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+                        <Target className="w-3 h-3 mr-1" />
+                        {t("landing.process.youAreHere")}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="text-xl lg:text-2xl font-bold">{t("landing.step1.title")}</h3>
                       <Badge variant="secondary" className="text-xs">
                         <Clock className="w-3 h-3 mr-1" />
-                        {item.time}
+                        {t("landing.step1.time")}
                       </Badge>
-                      
-                      <h3 className="text-lg font-semibold leading-tight">{item.title}</h3>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </CardContent>
-                    
-                    {/* Step number watermark */}
-                    <div className="absolute top-2 right-3 text-4xl font-bold text-muted/10">
-                      {item.step}
                     </div>
-                  </Card>
-                </motion.div>
-              ))}
+                    <p className="text-muted-foreground">
+                      {t("landing.step1.highlight")}
+                    </p>
+                  </div>
+
+                  {/* CTA */}
+                  <a href="#contact" className="flex-shrink-0">
+                    <Button size="lg" className="gap-2" data-testid="button-step1-cta">
+                      {t("landing.hero.cta")}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Steps 2-5 - Compact Progress Path (20%) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="text-center mb-6">
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                {t("landing.process.nextSteps")}
+              </p>
             </div>
-          </div>
+
+            {/* Progress Path - Horizontal Timeline */}
+            <div className="relative">
+              {/* Connecting line - Desktop */}
+              <div className="hidden md:block absolute top-6 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-amber-500 via-primary to-green-500 opacity-30" />
+
+              {/* Step Milestones */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 relative">
+                {[
+                  { step: 2, icon: FileSignature, title: t("landing.step2.title"), time: t("landing.step2.time"), color: "bg-amber-500" },
+                  { step: 3, icon: BarChart3, title: t("landing.step3.title"), time: t("landing.step3.time"), color: "bg-primary" },
+                  { step: 4, icon: Wrench, title: t("landing.step4.title"), time: t("landing.step4.time"), color: "bg-purple-500" },
+                  { step: 5, icon: HardHat, title: t("landing.step5.title"), time: t("landing.step5.time"), color: "bg-green-500" },
+                ].map((item, index) => (
+                  <motion.div
+                    key={item.step}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex flex-col items-center text-center"
+                  >
+                    {/* Numbered circle */}
+                    <div className={`w-12 h-12 rounded-full ${item.color} flex items-center justify-center shadow-md mb-2 relative z-10`}>
+                      <span className="text-lg font-bold text-white">{item.step}</span>
+                    </div>
+                    
+                    <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.time}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Final destination */}
+            <div className="flex justify-center mt-6">
+              <Badge variant="outline" className="gap-1.5 py-1.5 px-3">
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <span className="text-sm">
+                  {language === "fr" ? "Système solaire en opération" : "Solar system in operation"}
+                </span>
+              </Badge>
+            </div>
+          </motion.div>
         </div>
       </section>
 

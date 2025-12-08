@@ -92,6 +92,12 @@ const translations: Translations = {
     fr: "De l'analyse du toit à l'installation clé en main", 
     en: "From roof analysis to turnkey installation" 
   },
+  "landing.process.youAreHere": { fr: "Commencez ici", en: "Start here" },
+  "landing.process.nextSteps": { fr: "Prochaines étapes", en: "Next steps" },
+  "landing.step1.highlight": { 
+    fr: "Obtenez votre estimation en quelques secondes - c'est gratuit et sans engagement.", 
+    en: "Get your estimate in seconds - it's free with no commitment." 
+  },
   
   // Landing Page - Benefits
   "landing.benefits.title": { fr: "Ce que vous obtenez", en: "What you get" },
