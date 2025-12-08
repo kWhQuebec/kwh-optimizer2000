@@ -2189,94 +2189,6 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
           </div>
         )}
         
-        {/* Technical Design Agreement Service Offer */}
-        <div id="pdf-section-service-offer" className="pt-4 border-t">
-          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h4 className="font-bold text-lg text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  {language === "fr" ? "Entente de conception technique" : "Technical Design Agreement"}
-                </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {language === "fr" 
-                    ? "Passez à l'étape suivante avec une conception détaillée" 
-                    : "Move to the next step with a detailed design"}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">5 900 $</p>
-                <p className="text-xs text-gray-500">+ taxes</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-sm">
-                    {language === "fr" ? "1. Visite technique" : "1. Technical Visit"}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {language === "fr" 
-                    ? "Évaluation sur site de la structure du toit, du panneau électrique et des chemins de câblage" 
-                    : "On-site evaluation of roof structure, electrical panel and cable routing"}
-                </p>
-              </div>
-              
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-sm">
-                    {language === "fr" ? "2. Plans et devis" : "2. Plans & Specs"}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {language === "fr" 
-                    ? "Conception d'ingénierie complète avec plans CAD, spécifications techniques et liste de matériaux" 
-                    : "Complete engineering design with CAD drawings, technical specifications and bill of materials"}
-                </p>
-              </div>
-              
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calculator className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-sm">
-                    {language === "fr" ? "3. Estimation finale" : "3. Final Estimate"}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {language === "fr" 
-                    ? "Coût clé-en-main précis pour la réalisation des travaux, valide 60 jours" 
-                    : "Accurate turnkey cost for project completion, valid for 60 days"}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between pt-4 border-t border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  {language === "fr" ? "Délai: 2-3 semaines" : "Timeline: 2-3 weeks"}
-                </span>
-                <span className="flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  {language === "fr" ? "Créditable sur le projet" : "Credited toward project"}
-                </span>
-              </div>
-              <Button 
-                size="sm" 
-                className="gap-2"
-                data-testid="button-request-design"
-              >
-                <ArrowRight className="w-4 h-4" />
-                {language === "fr" ? "Demander une conception" : "Request Design"}
-              </Button>
-            </div>
-          </div>
-        </div>
-        
         <div 
           className="grid grid-cols-3 gap-4 pt-4 border-t rounded-lg p-4 mt-2"
           style={{ backgroundColor: `${FINANCING_COLORS[financingType].stroke}10` }}
@@ -2322,6 +2234,106 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
             <p className={`text-xl font-bold font-mono ${(options.find(o => o.type === financingType)?.netSavings || 0) > 0 ? "text-emerald-600" : "text-red-500"}`}>
               {formatCurrency(options.find(o => o.type === financingType)?.netSavings || 0)}
             </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DesignAgreement() {
+  const { language } = useI18n();
+  
+  return (
+    <Card id="pdf-section-service-offer" data-testid="card-design-agreement">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-blue-600" />
+          {language === "fr" ? "Entente de conception technique" : "Technical Design Agreement"}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h4 className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                {language === "fr" ? "Passez à l'étape suivante" : "Move to the next step"}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {language === "fr" 
+                  ? "Une conception détaillée pour votre projet solaire" 
+                  : "A detailed design for your solar project"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">5 900 $</p>
+              <p className="text-xs text-gray-500">+ taxes</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-blue-600" />
+                <span className="font-semibold text-sm">
+                  {language === "fr" ? "1. Visite technique" : "1. Technical Visit"}
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {language === "fr" 
+                  ? "Évaluation sur site de la structure du toit, du panneau électrique et des chemins de câblage" 
+                  : "On-site evaluation of roof structure, electrical panel and cable routing"}
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-blue-600" />
+                <span className="font-semibold text-sm">
+                  {language === "fr" ? "2. Plans et devis" : "2. Plans & Specs"}
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {language === "fr" 
+                  ? "Conception d'ingénierie complète avec plans CAD, spécifications techniques et liste de matériaux" 
+                  : "Complete engineering design with CAD drawings, technical specifications and bill of materials"}
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <Calculator className="w-4 h-4 text-blue-600" />
+                <span className="font-semibold text-sm">
+                  {language === "fr" ? "3. Estimation finale" : "3. Final Estimate"}
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {language === "fr" 
+                  ? "Coût clé-en-main précis pour la réalisation des travaux, valide 60 jours" 
+                  : "Accurate turnkey cost for project completion, valid for 60 days"}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {language === "fr" ? "Délai: 2-3 semaines" : "Timeline: 2-3 weeks"}
+              </span>
+              <span className="flex items-center gap-1">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                {language === "fr" ? "Créditable sur le projet" : "Credited toward project"}
+              </span>
+            </div>
+            <Button 
+              size="sm" 
+              className="gap-2"
+              data-testid="button-request-design"
+            >
+              <ArrowRight className="w-4 h-4" />
+              {language === "fr" ? "Demander une conception" : "Request Design"}
+            </Button>
           </div>
         </div>
       </CardContent>
@@ -2727,7 +2739,10 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
       {/* Financing Options Calculator */}
       <FinancingCalculator simulation={simulation} />
 
-      {/* ========== SECTION 5: ENVIRONMENTAL IMPACT ========== */}
+      {/* ========== SECTION 5: DESIGN AGREEMENT ========== */}
+      <DesignAgreement />
+
+      {/* ========== SECTION 6: ENVIRONMENTAL IMPACT ========== */}
       <SectionDivider 
         title={language === "fr" ? "Impact environnemental" : "Environmental Impact"} 
         icon={Leaf}

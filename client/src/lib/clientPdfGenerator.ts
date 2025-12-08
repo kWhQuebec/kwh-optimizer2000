@@ -1,6 +1,6 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import logoUrl from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
+import logoUrl from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 interface PDFGeneratorOptions {
   siteName: string;
