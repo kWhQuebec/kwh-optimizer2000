@@ -163,6 +163,25 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
           if (clonedElement) {
             clonedElement.style.backgroundColor = "#ffffff";
             clonedElement.style.padding = "16px";
+            
+            // Sanitize all elements to avoid color() function issues
+            const allElements = clonedElement.querySelectorAll("*");
+            allElements.forEach((el) => {
+              const htmlEl = el as HTMLElement;
+              const computed = window.getComputedStyle(htmlEl);
+              
+              // Replace any problematic colors with safe fallbacks
+              if (computed.color && computed.color.includes("color(")) {
+                htmlEl.style.color = "#333333";
+              }
+              if (computed.backgroundColor && computed.backgroundColor.includes("color(")) {
+                htmlEl.style.backgroundColor = "transparent";
+              }
+              if (computed.borderColor && computed.borderColor.includes("color(")) {
+                htmlEl.style.borderColor = "#e5e7eb";
+              }
+            });
+            
             const cards = clonedElement.querySelectorAll("[class*='card']");
             cards.forEach((card) => {
               (card as HTMLElement).style.backgroundColor = "#ffffff";
@@ -206,7 +225,7 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
     { id: "pdf-section-kpis", title: t("Indicateurs financiers", "Financial Indicators") },
     { id: "pdf-section-cashflow-chart", title: t("Flux de trésorerie", "Cash Flow") },
     { id: "pdf-section-financing", title: t("Options de financement", "Financing Options") },
-    { id: "pdf-section-financing-chart", title: t("Comparaison financement", "Financing Comparison") },
+    { id: "pdf-section-service-offer", title: t("Entente de conception", "Design Agreement") },
   ];
 
   console.log("Looking for PDF sections:", sections.map(s => s.id));
