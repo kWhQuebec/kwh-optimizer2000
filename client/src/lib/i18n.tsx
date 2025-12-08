@@ -32,8 +32,8 @@ const translations: Translations = {
   "nav.mySites": { fr: "Mes sites", en: "My Sites" },
 
   // Landing Page - Hero
-  "landing.hero.title": { fr: "Le moment est venu pour le solaire commercial au Québec", en: "The time for commercial solar in Québec is now" },
-  "landing.hero.subtitle": { fr: "EPC clé en main pour le solaire + stockage", en: "Turnkey EPC for solar + storage" },
+  "landing.hero.title": { fr: "Un investissement rentable maintenant pour votre organisation, et pour les générations futures", en: "A Profitable Investment Now for Your Organization, And for Future Generations" },
+  "landing.hero.subtitle": { fr: "Système solaire + stockage clé en main, optimisé pour les immeubles commerciaux et industriels du Québec", en: "Turnkey solar + storage systems, optimized for commercial and industrial buildings in Québec" },
   "landing.hero.description": { 
     fr: "Nous concevons, installons et gérons des systèmes solaires et de stockage pour les bâtiments commerciaux et industriels du Québec. Analyse gratuite en 48h.", 
     en: "We design, install, and manage solar and storage systems for commercial and industrial buildings in Québec. Free analysis in 48h." 
@@ -54,31 +54,43 @@ const translations: Translations = {
   "landing.whyNow.federal.description": { fr: "Vendez vos surplus à Hydro-Québec", en: "Sell your surplus to Hydro-Québec" },
   "landing.whyNow.deadline": { fr: "Ces incitatifs peuvent changer à tout moment", en: "These incentives can change at any time" },
   
-  // Landing Page - Process Steps  
-  "landing.step1.title": { fr: "Estimation du toit", en: "Roof estimate" },
+  // Landing Page - Process Steps (5 steps)
+  "landing.step1.title": { fr: "Analyse du toit", en: "Roof Analysis" },
   "landing.step1.description": { 
-    fr: "Remplissez le formulaire avec l'adresse de votre bâtiment. Vous recevrez une estimation du potentiel solaire par courriel.", 
-    en: "Fill out the form with your building address. You'll receive a solar potential estimate by email." 
+    fr: "Obtenez en quelques secondes une estimation du potentiel solaire et de la taille PV optimale pour votre bâtiment.", 
+    en: "Get a solar potential estimate and optimal PV size for your building within seconds." 
   },
-  "landing.step1.time": { fr: "Quelques minutes", en: "Few minutes" },
-  "landing.step2.title": { fr: "Signez la procuration", en: "Sign the proxy" },
+  "landing.step1.time": { fr: "Quelques secondes", en: "Within seconds" },
+  "landing.step2.title": { fr: "Procuration HQ", en: "HQ Proxy" },
   "landing.step2.description": { 
-    fr: "Un conseiller vous contacte pour signer la procuration Hydro-Québec. Nous obtenons vos données de consommation.", 
-    en: "An advisor contacts you to sign the Hydro-Québec proxy. We obtain your consumption data." 
+    fr: "Signez la procuration Hydro-Québec pour nous permettre d'accéder à votre profil de consommation et obtenir une analyse détaillée.", 
+    en: "Sign the Hydro-Québec proxy to let us access your consumption profile and get a detailed analysis." 
   },
-  "landing.step2.time": { fr: "~3 jours", en: "~3 days" },
-  "landing.step3.title": { fr: "Analyse complète", en: "Complete analysis" },
+  "landing.step2.time": { fr: "Signature électronique", en: "E-signature" },
+  "landing.step3.title": { fr: "Analyse détaillée", en: "Detailed Analysis" },
   "landing.step3.description": { 
-    fr: "Simulation 8 760h, dimensionnement optimal, projections financières et devis détaillé.", 
-    en: "8,760h simulation, optimal sizing, financial projections and detailed quote." 
+    fr: "Simulation 8 760h de votre système solaire + stockage optimal qui maximise votre retour sur investissement.", 
+    en: "8,760h simulation of your optimal solar + storage system that maximizes your ROI." 
   },
-  "landing.step3.time": { fr: "48h après données", en: "48h after data" },
+  "landing.step3.time": { fr: "48h", en: "48h" },
+  "landing.step4.title": { fr: "Visite et devis", en: "Site Visit & Quote" },
+  "landing.step4.description": { 
+    fr: "Visite sur site, dessins techniques et soumission à prix fixe pour votre projet.", 
+    en: "On-site visit, technical drawings and fixed price quote for your project." 
+  },
+  "landing.step4.time": { fr: "~1 semaine", en: "~1 week" },
+  "landing.step5.title": { fr: "Construction et O&M", en: "Construction & O&M" },
+  "landing.step5.description": { 
+    fr: "Installation clé en main et opération & maintenance continue pour maximiser la performance.", 
+    en: "Turnkey installation and ongoing operation & maintenance to maximize performance." 
+  },
+  "landing.step5.time": { fr: "Clé en main", en: "Turnkey" },
 
   // Landing Page - Process
-  "landing.process.title": { fr: "Comment ça fonctionne", en: "How it works" },
+  "landing.process.title": { fr: "Notre processus", en: "Our Process" },
   "landing.process.subtitle": { 
-    fr: "De l'estimation de toit à l'analyse complète en quelques jours", 
-    en: "From roof estimate to complete analysis in just days" 
+    fr: "De l'analyse du toit à l'installation clé en main", 
+    en: "From roof analysis to turnkey installation" 
   },
   
   // Landing Page - Benefits

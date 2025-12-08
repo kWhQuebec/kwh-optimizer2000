@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { 
   FileBarChart, Building2, Factory, School, HelpCircle, 
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
-  TrendingUp, Shield, Award, Target,
+  TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
   Timer, Rocket, BatteryCharging, BadgePercent
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import { apiRequest } from "@/lib/queryClient";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
-import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
+import roofMeasurement from "@assets/generated_images/commercial_roof_solar_zone_overlay.png";
 import screenshotSystemEn from "@assets/Screenshot_2025-12-05_at_4.07.23_PM_1764968848494.png";
 import screenshotFinancialEn from "@assets/Screenshot_2025-12-05_at_4.07.42_PM_1764968865040.png";
 import screenshotOptimizationEn from "@assets/Screenshot_2025-12-05_at_4.07.56_PM_1764968884930.png";
@@ -187,23 +187,11 @@ export default function LandingPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
             >
-              {/* Urgency badge */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Badge variant="secondary" className="px-4 py-2 text-sm bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
-                  <Timer className="w-4 h-4 mr-2" />
-                  {t("landing.whyNow.deadline")}
-                </Badge>
-              </motion.div>
-
               <div className="space-y-4">
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15]">
                   {t("landing.hero.title")}
                 </h1>
-                <p className="text-2xl sm:text-3xl text-primary font-semibold">
+                <p className="text-xl sm:text-2xl text-primary font-semibold">
                   {t("landing.hero.subtitle")}
                 </p>
                 <p className="text-lg text-muted-foreground max-w-xl">
@@ -218,11 +206,6 @@ export default function LandingPage() {
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </a>
-                <Link href="/login">
-                  <Button variant="outline" size="lg" className="gap-2 text-base" data-testid="button-hero-secondary">
-                    {t("landing.hero.ctaSecondary")}
-                  </Button>
-                </Link>
               </div>
 
               {/* Trust badges */}
@@ -423,10 +406,8 @@ export default function LandingPage() {
           </motion.div>
 
           <div className="relative">
-            {/* Connection line */}
-            <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/50 via-primary to-primary/50 -translate-y-1/2" />
-            
-            <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+            {/* 5 steps process */}
+            <div className="grid md:grid-cols-5 gap-4 lg:gap-6">
               {[
                 { 
                   step: 1, 
@@ -438,18 +419,34 @@ export default function LandingPage() {
                 },
                 { 
                   step: 2, 
-                  icon: BarChart3, 
+                  icon: FileSignature, 
                   title: t("landing.step2.title"), 
                   description: t("landing.step2.description"),
                   time: t("landing.step2.time"),
-                  color: "from-primary to-primary"
+                  color: "from-amber-500 to-amber-600"
                 },
                 { 
                   step: 3, 
-                  icon: Rocket, 
+                  icon: BarChart3, 
                   title: t("landing.step3.title"), 
                   description: t("landing.step3.description"),
                   time: t("landing.step3.time"),
+                  color: "from-primary to-primary"
+                },
+                { 
+                  step: 4, 
+                  icon: Wrench, 
+                  title: t("landing.step4.title"), 
+                  description: t("landing.step4.description"),
+                  time: t("landing.step4.time"),
+                  color: "from-purple-500 to-purple-600"
+                },
+                { 
+                  step: 5, 
+                  icon: HardHat, 
+                  title: t("landing.step5.title"), 
+                  description: t("landing.step5.description"),
+                  time: t("landing.step5.time"),
                   color: "from-green-500 to-green-600"
                 },
               ].map((item, index) => (
@@ -458,29 +455,27 @@ export default function LandingPage() {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.15 }}
+                  transition={{ delay: index * 0.1 }}
                   className="relative"
                 >
                   <Card className="relative overflow-hidden hover-elevate h-full">
-                    <CardContent className="p-8 space-y-4">
+                    <CardContent className="p-5 space-y-3">
                       {/* Step number circle */}
-                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg`}>
-                        <item.icon className="w-8 h-8 text-white" />
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg`}>
+                        <item.icon className="w-6 h-6 text-white" />
                       </div>
                       
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {item.time}
-                        </Badge>
-                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {item.time}
+                      </Badge>
                       
-                      <h3 className="text-xl font-semibold">{item.title}</h3>
-                      <p className="text-muted-foreground">{item.description}</p>
+                      <h3 className="text-lg font-semibold leading-tight">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
                     </CardContent>
                     
                     {/* Step number watermark */}
-                    <div className="absolute top-4 right-4 text-6xl font-bold text-muted/10">
+                    <div className="absolute top-2 right-3 text-4xl font-bold text-muted/10">
                       {item.step}
                     </div>
                   </Card>
