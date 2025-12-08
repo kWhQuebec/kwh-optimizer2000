@@ -1,6 +1,7 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import logoUrl from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import logoFr from "@assets/solaire_fr_1764778573075.png";
+import logoEn from "@assets/solaire_en_1764778591753.png";
 
 interface PDFGeneratorOptions {
   siteName: string;
@@ -59,8 +60,9 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
     pdf.setFillColor(...COLORS.blue);
     pdf.rect(0, 0, pageWidth, pageHeight, "F");
 
-    // Add logo at top
+    // Add logo at top - use bilingual logo that matches sidebar
     try {
+      const logoUrl = language === "fr" ? logoFr : logoEn;
       const logoBase64 = await loadImageAsBase64(logoUrl);
       // Logo dimensions: maintain aspect ratio, width ~60mm
       const logoWidth = 60;
@@ -225,6 +227,7 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
     { id: "pdf-section-kpis", title: t("Indicateurs financiers", "Financial Indicators") },
     { id: "pdf-section-cashflow-chart", title: t("Flux de trésorerie", "Cash Flow") },
     { id: "pdf-section-financing", title: t("Options de financement", "Financing Options") },
+    { id: "pdf-section-financing-chart", title: t("Comparaison des modèles", "Models Comparison") },
     { id: "pdf-section-service-offer", title: t("Entente de conception", "Design Agreement") },
   ];
 

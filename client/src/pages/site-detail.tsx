@@ -2236,6 +2236,75 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
             </p>
           </div>
         </div>
+        
+        {/* Cumulative Cashflow Comparison Chart - All Acquisition Models */}
+        {cumulativeCashflowData.length > 0 && (
+          <div id="pdf-section-financing-chart" className="pt-4 border-t bg-white dark:bg-card rounded-lg p-4">
+            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              {language === "fr" ? "Comparaison des modèles d'acquisition (25 ans)" : "Acquisition Models Comparison (25 years)"}
+            </h4>
+            <div className="h-64 bg-white dark:bg-gray-900 rounded">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={cumulativeCashflowData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="year" 
+                    fontSize={11}
+                    label={{ value: language === "fr" ? "Année" : "Year", position: "bottom", offset: 0, fontSize: 11 }}
+                  />
+                  <YAxis 
+                    fontSize={11}
+                    tickFormatter={(v) => `${v >= 0 ? "" : "-"}$${Math.abs(v).toFixed(0)}k`}
+                    label={{ value: language === "fr" ? "Flux cumulatif ($k)" : "Cumulative Flow ($k)", angle: -90, position: "insideLeft", fontSize: 11 }}
+                  />
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [
+                      `$${(value * 1000).toLocaleString()}`,
+                      name === "cash" ? (language === "fr" ? "Comptant" : "Cash") :
+                      name === "loan" ? (language === "fr" ? "Prêt" : "Loan") :
+                      (language === "fr" ? "Crédit-bail" : "Capital Lease")
+                    ]}
+                    labelFormatter={(year) => `${language === "fr" ? "Année" : "Year"} ${year}`}
+                  />
+                  <Legend 
+                    formatter={(value) => 
+                      value === "cash" ? (language === "fr" ? "Comptant" : "Cash") :
+                      value === "loan" ? (language === "fr" ? "Prêt" : "Loan") :
+                      (language === "fr" ? "Crédit-bail" : "Capital Lease")
+                    }
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="cash" 
+                    stroke={FINANCING_COLORS.cash.stroke}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="loan" 
+                    stroke={FINANCING_COLORS.loan.stroke}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="lease" 
+                    stroke={FINANCING_COLORS.lease.stroke}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              {language === "fr" 
+                ? "Flux de trésorerie cumulatif incluant tous les coûts, économies et incitatifs" 
+                : "Cumulative cash flow including all costs, savings, and incentives"}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
