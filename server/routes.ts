@@ -2206,15 +2206,8 @@ function runPotentialAnalysis(
   
   // ========== STEP 15: Find optimal scenario and recalculate if better ==========
   // The sensitivity analysis explores many scenarios - use the best one
-  const optimalScenario = sensitivity.frontier.find(p => p.isOptimal);
-  
-  // Debug logging to trace optimal scenario selection
-  console.log(`[Analysis] Initial sizing: PV=${pvSizeKW}kW, Batt=${battEnergyKWh}kWh, NPV25=$${npv25.toFixed(0)}`);
-  if (optimalScenario) {
-    console.log(`[Analysis] Optimal from frontier: PV=${optimalScenario.pvSizeKW}kW, Batt=${optimalScenario.battEnergyKWh}kWh, NPV25=$${optimalScenario.npv25.toFixed(0)}, ID=${optimalScenario.id}`);
-  } else {
-    console.log(`[Analysis] No optimal scenario found in frontier!`);
-  }
+  // Use optimalScenarioId (highest NPV) rather than isOptimal (Pareto-efficient)
+  const optimalScenario = sensitivity.frontier.find(p => p.id === sensitivity.optimalScenarioId);
   
   // If forced sizing was provided, skip recalculation - respect user's explicit choice
   const hasForcedSizing = forcedSizing?.forcePvSize !== undefined || 
@@ -2223,13 +2216,13 @@ function runPotentialAnalysis(
   
   // If the optimal scenario has a better NPV than our initial calculation, use its sizing
   // Skip this optimization when user explicitly specified sizing (variant creation)
+  const optimalNpv = optimalScenario?.npv25 || 0;
   const shouldUseOptimal = optimalScenario && 
                            !hasForcedSizing && 
-                           optimalScenario.npv25 > npv25;
+                           optimalNpv > npv25;
   
-  console.log(`[Analysis] hasForcedSizing=${hasForcedSizing}, shouldUseOptimal=${shouldUseOptimal}`);
-  
-  if (shouldUseOptimal) {
+  // Use the optimal scenario if it has the best NPV and no forced sizing
+  if (optimalScenario && !hasForcedSizing && optimalScenario.id !== 'current-config') {
     // Recalculate with optimal sizing
     const optPvSizeKW = optimalScenario.pvSizeKW;
     const optBattEnergyKWh = optimalScenario.battEnergyKWh;
@@ -2425,7 +2418,7 @@ function runPotentialAnalysis(
     
     // REGENERATE sensitivity with the FINAL sizing and NPV so charts match KPIs
     // This ensures the "current-config" point shows the actual NPV being displayed
-    const finalSensitivity = runSensitivityAnalysis(
+    let finalSensitivity = runSensitivityAnalysis(
       hourlyData,
       optPvSizeKW,
       optBattEnergyKWh,
@@ -2436,7 +2429,94 @@ function runPotentialAnalysis(
       optNpv25  // Pass the FINAL NPV from the recalculation
     );
     
+    // Check if regenerated sensitivity found a BETTER optimal (recursive improvement)
+    // This handles cases where initial auto-sizing was far from optimal
+    const regenOptimal = finalSensitivity.frontier.find(p => p.id === finalSensitivity.optimalScenarioId);
+    if (regenOptimal && regenOptimal.id !== 'current-config' && regenOptimal.npv25 > optNpv25) {
+      // Found a better optimal! Use its sizing instead
+      
+      const finalPvSizeKW = regenOptimal.pvSizeKW;
+      const finalBattEnergyKWh = regenOptimal.battEnergyKWh;
+      const finalBattPowerKW = regenOptimal.battPowerKW;
+      
+      // Run full simulation with the truly optimal sizing
+      const finalSimResult = runHourlySimulation(hourlyData, finalPvSizeKW, finalBattEnergyKWh, finalBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams);
+      
+      // Quick recalculate NPV for the truly optimal sizing
+      const finalResult = runScenarioWithSizing(
+        hourlyData, finalPvSizeKW, finalBattEnergyKWh, finalBattPowerKW,
+        peakKW, annualConsumptionKWh, h
+      );
+      
+      // Update the variables for return
+      const trueOptNpv25 = finalResult.npv25;
+      const trueOptCapexNet = finalResult.capexNet;
+      
+      // Regenerate sensitivity one more time with the truly optimal sizing
+      finalSensitivity = runSensitivityAnalysis(
+        hourlyData,
+        finalPvSizeKW,
+        finalBattEnergyKWh,
+        finalBattPowerKW,
+        peakKW,
+        annualConsumptionKWh,
+        h,
+        trueOptNpv25
+      );
+      
+      // Return the truly optimal result
+      return {
+        _debugPath: 'recursive-optimization',
+        _debugFinalOptimalId: regenOptimal.id,
+        pvSizeKW: finalPvSizeKW,
+        battEnergyKWh: finalBattEnergyKWh,
+        battPowerKW: finalBattPowerKW,
+        demandShavingSetpointKW: optDemandShavingSetpointKW,
+        annualConsumptionKWh,
+        peakDemandKW,
+        annualEnergySavingsKWh: finalSimResult.totalSelfConsumption,
+        annualDemandReductionKW: peakKW - finalSimResult.peakAfter,
+        selfConsumptionKWh: finalSimResult.totalSelfConsumption,
+        selfSufficiencyPercent: annualConsumptionKWh > 0 ? (finalSimResult.totalSelfConsumption / annualConsumptionKWh) * 100 : 0,
+        annualCostBefore,
+        annualCostAfter: annualCostBefore - (finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12),
+        annualSavings: finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12,
+        savingsYear1: finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12,
+        capexGross: regenOptimal.capexNet || trueOptCapexNet,
+        capexPV: finalPvSizeKW * 1000 * h.solarCostPerW,
+        capexBattery: finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost,
+        incentivesHQ: 0, // Simplified
+        incentivesHQSolar: 0,
+        incentivesHQBattery: 0,
+        incentivesFederal: 0,
+        taxShield: 0,
+        totalIncentives: 0,
+        capexNet: trueOptCapexNet,
+        npv25: trueOptNpv25,
+        npv10: calculateNPV([trueOptCapexNet], h.discountRate, 10),
+        npv20: calculateNPV([trueOptCapexNet], h.discountRate, 20),
+        irr25: finalResult.irr25,
+        irr10: 0,
+        irr20: 0,
+        simplePaybackYears: trueOptCapexNet > 0 ? Math.ceil(trueOptCapexNet / (finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12)) : 0,
+        lcoe: 0,
+        co2AvoidedTonnesPerYear: 0,
+        assumptions: h,
+        cashflows: [],
+        breakdown: optBreakdown,
+        hourlyProfile: finalSimResult.hourlyProfile,
+        peakWeekData: finalSimResult.peakWeekData,
+        sensitivity: finalSensitivity,
+        interpolatedMonths,
+      };
+    }
+    
+    console.log(`[ANALYSIS] Returning RECALCULATED result: pvSizeKW=${optPvSizeKW}, optimalId=${optimalScenario.id}`);
+    
     return {
+      _debugPath: 'recalculation',
+      _debugOptPvSizeKW: optPvSizeKW,
+      _debugOptimalScenarioId: optimalScenario.id,
       pvSizeKW: optPvSizeKW,
       battEnergyKWh: optBattEnergyKWh,
       battPowerKW: optBattPowerKW,
@@ -2481,7 +2561,14 @@ function runPotentialAnalysis(
   }
   
   // Return initial calculation if it's already optimal
+  console.log(`[ANALYSIS] Returning FALLBACK result: pvSizeKW=${pvSizeKW}, optimalId=${optimalScenario?.id}, hasForcedSizing=${hasForcedSizing}`);
+  
+  // DEBUG: Add flag to identify which path was taken
   return {
+    _debugPath: 'fallback',
+    _debugOptimalId: optimalScenario?.id,
+    _debugHasForcedSizing: hasForcedSizing,
+    _debugForcedSizing: JSON.stringify(forcedSizing),
     pvSizeKW,
     battEnergyKWh,
     battPowerKW,
@@ -3237,10 +3324,14 @@ function runSensitivityAnalysis(
   const sortedSolarSizes = Array.from(solarSizes).sort((a, b) => a - b);
   
   for (const pvSize of sortedSolarSizes) {
+    // Calculate battery power based on energy capacity (2-hour duration) for consistency
+    // This ensures hybrid scenarios use appropriate battery power regardless of baseline config
+    const battPowerForScenario = Math.round(configuredBattEnergyKWh / 2);
+    
     // Always recalculate with runScenarioWithSizing to ensure consistent NPV calculation
     // across all points in the sweep (eliminates potential discrepancies from different code paths)
     const result = runScenarioWithSizing(
-      hourlyData, pvSize, configuredBattEnergyKWh, configuredBattPowerKW,
+      hourlyData, pvSize, configuredBattEnergyKWh, battPowerForScenario,
       peakKW, annualConsumptionKWh, assumptions
     );
     
@@ -3254,7 +3345,7 @@ function runSensitivityAnalysis(
         label: `${pvSize}kW PV + ${configuredBattEnergyKWh}kWh`,
         pvSizeKW: pvSize,
         battEnergyKWh: configuredBattEnergyKWh,
-        battPowerKW: configuredBattPowerKW,
+        battPowerKW: battPowerForScenario,
         capexNet: result.capexNet,
         npv25: result.npv25,
         isOptimal: false,
