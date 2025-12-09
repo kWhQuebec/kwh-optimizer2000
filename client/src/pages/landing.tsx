@@ -25,7 +25,7 @@ import { apiRequest } from "@/lib/queryClient";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
-import roofMeasurement from "@assets/generated_images/commercial_roof_solar_zone_overlay.png";
+import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
 import screenshotSystemEn from "@assets/Screenshot_2025-12-05_at_4.07.23_PM_1764968848494.png";
 import screenshotFinancialEn from "@assets/Screenshot_2025-12-05_at_4.07.42_PM_1764968865040.png";
 import screenshotOptimizationEn from "@assets/Screenshot_2025-12-05_at_4.07.56_PM_1764968884930.png";
@@ -225,7 +225,7 @@ export default function LandingPage() {
               </div>
             </motion.div>
 
-            {/* Hero Stats Grid */}
+            {/* Hero Stats Grid - What you'll learn */}
             <motion.div 
               className="relative"
               initial={{ opacity: 0, x: 20 }}
@@ -236,54 +236,59 @@ export default function LandingPage() {
                 {/* Decorative ring */}
                 <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-3xl" />
                 
-                <div className="relative grid grid-cols-2 gap-4 p-4">
-                  <motion.div 
-                    className="bg-card border rounded-2xl p-6 space-y-3 hover-elevate"
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <FileBarChart className="w-6 h-6 text-primary" />
-                    </div>
-                    <div className="text-3xl font-bold">{t("landing.hero.stat1.value")}</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.hero.stat1.label")}</div>
-                  </motion.div>
-                  
-                  <motion.div 
-                    className="bg-card border rounded-2xl p-6 space-y-3 hover-elevate"
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-amber-500" />
-                    </div>
-                    <div className="text-3xl font-bold">{t("landing.hero.stat2.value")}</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.hero.stat2.label")}</div>
-                  </motion.div>
-                  
-                  <motion.div 
-                    className="bg-card border rounded-2xl p-6 space-y-3 hover-elevate"
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-                      <DollarSign className="w-6 h-6 text-green-500" />
-                    </div>
-                    <div className="text-3xl font-bold">{t("landing.hero.stat3.value")}</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.hero.stat3.label")}</div>
-                  </motion.div>
-                  
-                  <motion.div 
-                    className="bg-card border rounded-2xl p-6 space-y-3 hover-elevate"
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                      <Rocket className="w-6 h-6 text-emerald-500" />
-                    </div>
-                    <div className="text-3xl font-bold">{t("landing.hero.stat4.value")}</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.hero.stat4.label")}</div>
-                  </motion.div>
+                <div className="relative space-y-3 p-4">
+                  <p className="text-sm font-medium text-muted-foreground text-center uppercase tracking-wider">
+                    {language === "fr" ? "Ce que vous découvrirez" : "What you'll discover"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <motion.div 
+                      className="bg-card border rounded-2xl p-5 space-y-2 hover-elevate"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Zap className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="text-2xl font-bold text-primary">{t("landing.hero.stat1.value")}</div>
+                      <div className="text-sm text-muted-foreground leading-tight">{t("landing.hero.stat1.label")}</div>
+                    </motion.div>
+                    
+                    <motion.div 
+                      className="bg-card border rounded-2xl p-5 space-y-2 hover-elevate"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                        <DollarSign className="w-5 h-5 text-accent" />
+                      </div>
+                      <div className="text-2xl font-bold text-accent">{t("landing.hero.stat2.value")}</div>
+                      <div className="text-sm text-muted-foreground leading-tight">{t("landing.hero.stat2.label")}</div>
+                    </motion.div>
+                    
+                    <motion.div 
+                      className="bg-card border rounded-2xl p-5 space-y-2 hover-elevate"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="text-2xl font-bold text-primary">{t("landing.hero.stat3.value")}</div>
+                      <div className="text-sm text-muted-foreground leading-tight">{t("landing.hero.stat3.label")}</div>
+                    </motion.div>
+                    
+                    <motion.div 
+                      className="bg-card border rounded-2xl p-5 space-y-2 hover-elevate"
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                        <CheckCircle2 className="w-5 h-5 text-accent" />
+                      </div>
+                      <div className="text-2xl font-bold text-accent">{t("landing.hero.stat4.value")}</div>
+                      <div className="text-sm text-muted-foreground leading-tight">{t("landing.hero.stat4.label")}</div>
+                    </motion.div>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -306,35 +311,28 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {[
               { 
                 icon: Zap, 
-                title: t("landing.whyNow.hqPlan.title"), 
-                description: t("landing.whyNow.hqPlan.description"),
-                color: "text-blue-500",
-                bg: "bg-blue-500/10"
-              },
-              { 
-                icon: Target, 
-                title: t("landing.whyNow.tender.title"), 
-                description: t("landing.whyNow.tender.description"),
-                color: "text-purple-500",
-                bg: "bg-purple-500/10"
-              },
-              { 
-                icon: BatteryCharging, 
-                title: t("landing.whyNow.rebate.title"), 
-                description: t("landing.whyNow.rebate.description"),
-                color: "text-amber-500",
-                bg: "bg-amber-500/10"
+                title: t("landing.whyNow.hq.title"), 
+                description: t("landing.whyNow.hq.description"),
+                color: "text-primary",
+                bg: "bg-primary/10"
               },
               { 
                 icon: BadgePercent, 
                 title: t("landing.whyNow.federal.title"), 
                 description: t("landing.whyNow.federal.description"),
-                color: "text-green-500",
-                bg: "bg-green-500/10"
+                color: "text-accent",
+                bg: "bg-accent/10"
+              },
+              { 
+                icon: TrendingUp, 
+                title: t("landing.whyNow.fiscal.title"), 
+                description: t("landing.whyNow.fiscal.description"),
+                color: "text-primary",
+                bg: "bg-primary/10"
               },
             ].map((item, index) => (
               <motion.div
@@ -359,7 +357,7 @@ export default function LandingPage() {
 
           {/* Urgency banner */}
           <motion.div 
-            className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-amber-500/10 border border-primary/20"
+            className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border border-primary/20"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -421,7 +419,7 @@ export default function LandingPage() {
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
                         <span className="text-2xl font-bold text-white">1</span>
                       </div>
-                      <div className="absolute -inset-1 rounded-full bg-primary/30 animate-ping opacity-75" />
+                      <div className="absolute -inset-2 rounded-full bg-primary/20" />
                       <div className="absolute -inset-2 rounded-full border-2 border-primary/20" />
                     </div>
                     <div className="hidden sm:block">
@@ -474,15 +472,15 @@ export default function LandingPage() {
             {/* Progress Path - Horizontal Timeline */}
             <div className="relative">
               {/* Connecting line - Desktop */}
-              <div className="hidden md:block absolute top-6 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-amber-500 via-primary to-green-500 opacity-30" />
+              <div className="hidden md:block absolute top-6 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-accent via-primary to-accent opacity-30" />
 
               {/* Step Milestones */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 relative">
                 {[
-                  { step: 2, icon: FileSignature, title: t("landing.step2.title"), time: t("landing.step2.time"), color: "bg-amber-500" },
+                  { step: 2, icon: FileSignature, title: t("landing.step2.title"), time: t("landing.step2.time"), color: "bg-accent" },
                   { step: 3, icon: BarChart3, title: t("landing.step3.title"), time: t("landing.step3.time"), color: "bg-primary" },
-                  { step: 4, icon: Wrench, title: t("landing.step4.title"), time: t("landing.step4.time"), color: "bg-purple-500" },
-                  { step: 5, icon: HardHat, title: t("landing.step5.title"), time: t("landing.step5.time"), color: "bg-green-500" },
+                  { step: 4, icon: Wrench, title: t("landing.step4.title"), time: t("landing.step4.time"), color: "bg-primary/70" },
+                  { step: 5, icon: HardHat, title: t("landing.step5.title"), time: t("landing.step5.time"), color: "bg-accent" },
                 ].map((item, index) => (
                   <motion.div
                     key={item.step}
@@ -507,7 +505,7 @@ export default function LandingPage() {
             {/* Final destination */}
             <div className="flex justify-center mt-6">
               <Badge variant="outline" className="gap-1.5 py-1.5 px-3">
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <CheckCircle2 className="w-4 h-4 text-accent" />
                 <span className="text-sm">
                   {language === "fr" ? "Système solaire en opération" : "Solar system in operation"}
                 </span>
@@ -517,7 +515,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== ANALYSIS PREVIEW SECTION ========== */}
+      {/* ========== ANALYSIS PREVIEW SECTION - SPLIT INTO 2 PARTS ========== */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-7xl mx-auto">
           <motion.div 
@@ -531,122 +529,175 @@ export default function LandingPage() {
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               {language === "fr" 
-                ? "Voici ce que vous recevrez après avoir signé la procuration Hydro-Québec"
-                : "Here's what you'll receive after signing the Hydro-Québec proxy"
+                ? "Un processus en deux temps pour une analyse complète"
+                : "A two-step process for a complete analysis"
               }
             </p>
           </motion.div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Roof Measurement Image */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="space-y-4"
-            >
-              <div className="relative rounded-2xl overflow-hidden border shadow-lg">
-                <img 
-                  src={roofMeasurement} 
-                  alt={language === "fr" ? "Analyse du toit avec mesures" : "Roof analysis with measurements"}
-                  className="w-full h-auto"
-                  data-testid="img-roof-measurement"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                  <p className="text-white font-medium">
-                    {language === "fr" ? "Estimation du potentiel de votre toiture" : "Roof potential estimation"}
-                  </p>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground text-center">
-                {language === "fr" 
-                  ? "Nous analysons votre toiture pour estimer le potentiel solaire"
-                  : "We analyze your roof to estimate solar potential"
-                }
-              </p>
-            </motion.div>
-
-            {/* Analysis Screenshots Carousel */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="space-y-4"
-            >
-              <div className="relative rounded-2xl overflow-hidden border shadow-lg bg-card">
-                <div className="relative aspect-[16/10] overflow-hidden">
-                  {analysisSlides.map((slide, index) => (
-                    <div
-                      key={slide.id}
-                      className={`absolute inset-0 transition-opacity duration-500 ${
-                        index === activeSlide ? "opacity-100" : "opacity-0"
-                      }`}
-                    >
-                      <img 
-                        src={slide.image} 
-                        alt={slide.label}
-                        className="w-full h-full object-contain bg-white"
-                        data-testid={`img-analysis-${slide.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                  <p className="text-white font-medium">
-                    {analysisSlides[activeSlide]?.label}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Carousel dots */}
-              <div className="flex justify-center gap-2">
-                {analysisSlides.map((slide, index) => (
-                  <button
-                    key={slide.id}
-                    onClick={() => setActiveSlide(index)}
-                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                      index === activeSlide ? "bg-primary" : "bg-muted-foreground/30"
-                    }`}
-                    data-testid={`button-slide-${slide.id}`}
-                  />
-                ))}
-              </div>
-              
-              <p className="text-sm text-muted-foreground text-center">
-                {language === "fr" 
-                  ? "Analyse complète avec recommandations personnalisées"
-                  : "Complete analysis with personalized recommendations"
-                }
-              </p>
-            </motion.div>
-          </div>
-
-          {/* Installation Photo */}
+          {/* Step 1 - Instant Results */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mt-16"
+            className="mb-16"
           >
-            <div className="relative rounded-2xl overflow-hidden">
-              <img 
-                src={installationPhoto} 
-                alt={language === "fr" ? "Équipe d'installation de panneaux solaires" : "Solar panel installation team"}
-                className="w-full h-64 md:h-80 object-cover"
-                data-testid="img-installation-team"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                  {language === "fr" ? "Installation clé en main" : "Turnkey Installation"}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                <span className="text-lg font-bold text-white">1</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">
+                  {language === "fr" ? "Ce que vous obtenez immédiatement" : "What you get immediately"}
                 </h3>
-                <p className="text-white/80 max-w-xl">
-                  {language === "fr" 
-                    ? "Notre équipe d'experts s'occupe de tout, de la conception à la mise en service"
-                    : "Our expert team handles everything, from design to commissioning"
-                  }
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" ? "En quelques secondes après votre demande" : "Within seconds of your request"}
                 </p>
               </div>
+            </div>
+            
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-2 gap-0">
+                  <div className="relative aspect-[4/3] md:aspect-auto">
+                    <img 
+                      src={roofMeasurement} 
+                      alt={language === "fr" ? "Analyse du toit avec mesures" : "Roof analysis with measurements"}
+                      className="w-full h-full object-cover"
+                      data-testid="img-roof-measurement"
+                    />
+                  </div>
+                  <div className="p-6 lg:p-8 flex flex-col justify-center space-y-4">
+                    <h4 className="text-lg font-semibold">
+                      {language === "fr" ? "Estimation instantanée du potentiel" : "Instant potential estimate"}
+                    </h4>
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                          {language === "fr" ? "Surface utilisable de votre toiture" : "Usable roof surface area"}
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                          {language === "fr" ? "Capacité PV estimée en kW" : "Estimated PV capacity in kW"}
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                          {language === "fr" ? "Production annuelle approximative" : "Approximate annual production"}
+                        </span>
+                      </li>
+                    </ul>
+                    <a href="#contact">
+                      <Button className="gap-2 mt-2">
+                        {t("landing.hero.cta")}
+                        <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </a>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Step 2/3 - Full Analysis after HQ data */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
+                <span className="text-lg font-bold text-accent-foreground">2</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">
+                  {language === "fr" ? "Ce que vous obtenez après accès aux données HQ" : "What you get after HQ data access"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" ? "Après signature de la procuration Hydro-Québec (48h)" : "After signing the Hydro-Québec proxy (48h)"}
+                </p>
+              </div>
+            </div>
+            
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-2 gap-0">
+                  <div className="p-6 lg:p-8 flex flex-col justify-center space-y-4 order-2 md:order-1">
+                    <h4 className="text-lg font-semibold">
+                      {language === "fr" ? "Analyse détaillée personnalisée" : "Personalized detailed analysis"}
+                    </h4>
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                          {language === "fr" ? "Simulation 8 760h basée sur votre consommation réelle" : "8,760h simulation based on your real consumption"}
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                          {language === "fr" ? "Dimensionnement optimal solaire + stockage" : "Optimal solar + storage sizing"}
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                          {language === "fr" ? "Projections financières sur 25 ans (VAN, TRI, LCOE)" : "25-year financial projections (NPV, IRR, LCOE)"}
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                          {language === "fr" ? "Comparaison des options de financement" : "Financing options comparison"}
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="relative aspect-[4/3] md:aspect-auto order-1 md:order-2 bg-card">
+                    <div className="relative h-full overflow-hidden">
+                      {analysisSlides.map((slide, index) => (
+                        <div
+                          key={slide.id}
+                          className={`absolute inset-0 transition-opacity duration-500 ${
+                            index === activeSlide ? "opacity-100" : "opacity-0"
+                          }`}
+                        >
+                          <img 
+                            src={slide.image} 
+                            alt={slide.label}
+                            className="w-full h-full object-contain bg-white"
+                            data-testid={`img-analysis-${slide.id}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {/* Slide label */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                      <p className="text-white text-sm font-medium">
+                        {analysisSlides[activeSlide]?.label}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Carousel dots */}
+            <div className="flex justify-center gap-2 mt-4">
+              {analysisSlides.map((slide, index) => (
+                <button
+                  key={slide.id}
+                  onClick={() => setActiveSlide(index)}
+                  className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                    index === activeSlide ? "bg-primary" : "bg-muted-foreground/30"
+                  }`}
+                  data-testid={`button-slide-${slide.id}`}
+                />
+              ))}
             </div>
           </motion.div>
         </div>
@@ -673,29 +724,29 @@ export default function LandingPage() {
                 title: t("landing.benefits.analysis"), 
                 description: t("landing.benefits.analysisDesc"),
                 icon: BarChart3,
-                color: "text-blue-500",
-                bg: "bg-blue-500/10"
+                color: "text-primary",
+                bg: "bg-primary/10"
               },
               { 
                 title: t("landing.benefits.financial"), 
                 description: t("landing.benefits.financialDesc"),
                 icon: TrendingUp,
-                color: "text-green-500",
-                bg: "bg-green-500/10"
+                color: "text-accent",
+                bg: "bg-accent/10"
               },
               { 
                 title: t("landing.benefits.design"), 
                 description: t("landing.benefits.designDesc"),
                 icon: FileBarChart,
-                color: "text-amber-500",
-                bg: "bg-amber-500/10"
+                color: "text-primary",
+                bg: "bg-primary/10"
               },
               { 
                 title: t("landing.benefits.installation"), 
                 description: t("landing.benefits.installationDesc"),
                 icon: Rocket,
-                color: "text-emerald-500",
-                bg: "bg-emerald-500/10"
+                color: "text-accent",
+                bg: "bg-accent/10"
               },
             ].map((item, index) => (
               <motion.div
@@ -741,8 +792,8 @@ export default function LandingPage() {
             >
               <Card className="p-8 hover-elevate">
                 <div className="flex items-start gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                    <Zap className="w-8 h-8 text-blue-500" />
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Zap className="w-8 h-8 text-primary" />
                   </div>
                   <div className="space-y-2">
                     <h3 className="font-semibold text-xl">{t("landing.trust.partner.hq")}</h3>
@@ -754,6 +805,50 @@ export default function LandingPage() {
               </Card>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* ========== ABOUT US / TEAM SECTION ========== */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="relative rounded-2xl overflow-hidden">
+              <img 
+                src={installationPhoto} 
+                alt={language === "fr" ? "Équipe d'installation de panneaux solaires" : "Solar panel installation team"}
+                className="w-full h-64 md:h-80 object-cover"
+                data-testid="img-installation-team"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+              <div className="absolute inset-0 flex items-center">
+                <div className="p-6 md:p-10 max-w-xl">
+                  <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                    {language === "fr" ? "Notre équipe" : "Our Team"}
+                  </h2>
+                  <p className="text-white/90 mb-4">
+                    {language === "fr" 
+                      ? "Des experts en énergie solaire au Québec. De la conception à la mise en service, notre équipe s'occupe de tout."
+                      : "Solar energy experts in Québec. From design to commissioning, our team handles everything."
+                    }
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                      <Shield className="w-3 h-3 mr-1" />
+                      {t("landing.trust.certified")}
+                    </Badge>
+                    <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                      <Award className="w-3 h-3 mr-1" />
+                      {t("landing.trust.experience")}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -817,8 +912,8 @@ export default function LandingPage() {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                     >
-                      <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
-                        <CheckCircle2 className="w-10 h-10 text-green-500" />
+                      <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mx-auto">
+                        <CheckCircle2 className="w-10 h-10 text-accent" />
                       </div>
                       <h3 className="text-2xl font-semibold">{t("form.success.title")}</h3>
                       <p className="text-muted-foreground max-w-md mx-auto">{t("form.success.message")}</p>

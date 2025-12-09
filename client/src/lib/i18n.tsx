@@ -41,17 +41,15 @@ const translations: Translations = {
   "landing.hero.cta": { fr: "Obtenir mon analyse gratuite", en: "Get my free analysis" },
   "landing.hero.ctaSecondary": { fr: "Accès client", en: "Client access" },
   
-  // Landing Page - Why Now Section
+  // Landing Page - Why Now Section (3 items only)
   "landing.whyNow.title": { fr: "Pourquoi maintenant?", en: "Why now?" },
   "landing.whyNow.subtitle": { fr: "Le Québec vit une transformation énergétique historique", en: "Québec is experiencing a historic energy transformation" },
-  "landing.whyNow.hqPlan.title": { fr: "Programme Hydro-Québec", en: "Hydro-Québec Program" },
-  "landing.whyNow.hqPlan.description": { fr: "Nouvelle limite d'autoproduction de 1 000 kW", en: "New 1,000 kW self-generation limit" },
-  "landing.whyNow.tender.title": { fr: "Rabais HQ 40%", en: "HQ 40% Rebate" },
-  "landing.whyNow.tender.description": { fr: "Jusqu'à 1 000$/kW sur l'installation solaire", en: "Up to $1,000/kW on solar installation" },
-  "landing.whyNow.rebate.title": { fr: "Crédit fédéral 30%", en: "Federal 30% Credit" },
-  "landing.whyNow.rebate.description": { fr: "Crédit d'impôt pour technologies propres", en: "Clean technology investment tax credit" },
-  "landing.whyNow.federal.title": { fr: "Mesurage net", en: "Net Metering" },
-  "landing.whyNow.federal.description": { fr: "Vendez vos surplus à Hydro-Québec", en: "Sell your surplus to Hydro-Québec" },
+  "landing.whyNow.hq.title": { fr: "Incitatifs Hydro-Québec", en: "Hydro-Québec Incentives" },
+  "landing.whyNow.hq.description": { fr: "Rabais jusqu'à 40% sur le solaire et stockage, limite 1 MW et mesurage net", en: "Up to 40% rebate on solar and storage, 1 MW limit and net metering" },
+  "landing.whyNow.federal.title": { fr: "Crédit fédéral 30%", en: "Federal 30% ITC" },
+  "landing.whyNow.federal.description": { fr: "Crédit d'impôt à l'investissement pour technologies propres", en: "Investment tax credit for clean technology" },
+  "landing.whyNow.fiscal.title": { fr: "Traitement fiscal avantageux", en: "Advantageous Fiscal Treatment" },
+  "landing.whyNow.fiscal.description": { fr: "DPA accéléré et crédit-bail pour minimiser l'impact sur votre bilan", en: "Accelerated CCA and capital lease to minimize balance sheet impact" },
   "landing.whyNow.deadline": { fr: "Ces incitatifs peuvent changer à tout moment", en: "These incentives can change at any time" },
   
   // Landing Page - Process Steps (5 steps)
@@ -138,15 +136,15 @@ const translations: Translations = {
   },
   "landing.form.select": { fr: "Sélectionner...", en: "Select..." },
   
-  // Landing Page - Hero Stats (service-focused)
-  "landing.hero.stat1.value": { fr: "Gratuit", en: "Free" },
-  "landing.hero.stat1.label": { fr: "Analyse détaillée", en: "Detailed analysis" },
-  "landing.hero.stat2.value": { fr: "48h", en: "48h" },
-  "landing.hero.stat2.label": { fr: "Délai de réponse", en: "Response time" },
-  "landing.hero.stat3.value": { fr: "0 $", en: "$0" },
-  "landing.hero.stat3.label": { fr: "Sans engagement", en: "No obligation" },
-  "landing.hero.stat4.value": { fr: "Clé en main", en: "Turnkey" },
-  "landing.hero.stat4.label": { fr: "Installation EPC", en: "EPC Installation" },
+  // Landing Page - Hero Stats (outcome-focused)
+  "landing.hero.stat1.value": { fr: "kW", en: "kW" },
+  "landing.hero.stat1.label": { fr: "Potentiel solaire de votre toit", en: "Your roof's solar potential" },
+  "landing.hero.stat2.value": { fr: "$", en: "$" },
+  "landing.hero.stat2.label": { fr: "Économies annuelles estimées", en: "Estimated annual savings" },
+  "landing.hero.stat3.value": { fr: "Ans", en: "Yrs" },
+  "landing.hero.stat3.label": { fr: "Période de récupération", en: "Payback period" },
+  "landing.hero.stat4.value": { fr: "✓", en: "✓" },
+  "landing.hero.stat4.label": { fr: "Éligibilité aux incitatifs", en: "Incentive eligibility" },
   
   // Landing Page - Footer
   "landing.footer.tagline": { fr: "Accélérez votre transition énergétique", en: "Accelerate your energy transition" },
