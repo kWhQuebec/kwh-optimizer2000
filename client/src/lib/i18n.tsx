@@ -44,12 +44,12 @@ const translations: Translations = {
   // Landing Page - Why Now Section (3 items only)
   "landing.whyNow.title": { fr: "Pourquoi maintenant?", en: "Why now?" },
   "landing.whyNow.subtitle": { fr: "Le Québec vit une transformation énergétique historique", en: "Québec is experiencing a historic energy transformation" },
-  "landing.whyNow.hq.title": { fr: "Incitatifs Hydro-Québec", en: "Hydro-Québec Incentives" },
-  "landing.whyNow.hq.description": { fr: "Crédit jusqu'à 40% sur le solaire et stockage", en: "Up to 40% credit on solar and storage" },
+  "landing.whyNow.hq.title": { fr: "Crédit jusqu'à 40% par Hydro-Québec", en: "Up to 40% Credit by Hydro-Québec" },
+  "landing.whyNow.hq.description": { fr: "Sur les projets solaires et stockage", en: "On solar and storage projects" },
   "landing.whyNow.federal.title": { fr: "Crédit fédéral 30%", en: "Federal 30% ITC" },
   "landing.whyNow.federal.description": { fr: "Crédit d'impôt à l'investissement pour technologies propres", en: "Investment tax credit for clean technology" },
-  "landing.whyNow.fiscal.title": { fr: "Traitement fiscal avantageux", en: "Advantageous Fiscal Treatment" },
-  "landing.whyNow.fiscal.description": { fr: "100% déductible en 1ère année", en: "100% deductible Year 1" },
+  "landing.whyNow.fiscal.title": { fr: "100% déductible en 1ère année", en: "100% Deductible Year 1" },
+  "landing.whyNow.fiscal.description": { fr: "Traitement fiscal avantageux", en: "Advantageous fiscal treatment" },
   "landing.whyNow.deadline": { fr: "Ces incitatifs peuvent changer à tout moment", en: "These incentives can change at any time" },
   
   // Landing Page - Process Steps (5 steps)

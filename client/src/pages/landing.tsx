@@ -26,6 +26,8 @@ import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
 import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
+import heroRoofAnalysis from "@assets/generated_images/industrial_roof_solar_potential_overlay.png";
+import heroCashflow from "@assets/Screenshot_2025-12-07_at_10.53.40_AM_1765122823607.png";
 import screenshotSystemEn from "@assets/Screenshot_2025-12-05_at_4.07.23_PM_1764968848494.png";
 import screenshotFinancialEn from "@assets/Screenshot_2025-12-05_at_4.07.42_PM_1764968865040.png";
 import screenshotOptimizationEn from "@assets/Screenshot_2025-12-05_at_4.07.56_PM_1764968884930.png";
@@ -225,7 +227,7 @@ export default function LandingPage() {
               </div>
             </motion.div>
 
-            {/* Hero Stats Grid - What you'll learn */}
+            {/* Hero Image Grid - What your analysis includes */}
             <motion.div 
               className="relative"
               initial={{ opacity: 0, x: 20 }}
@@ -240,53 +242,73 @@ export default function LandingPage() {
                   <p className="text-sm font-medium text-muted-foreground text-center uppercase tracking-wider">
                     {language === "fr" ? "Ce que vous découvrirez" : "What you'll discover"}
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <motion.div 
-                      className="bg-card border rounded-2xl p-5 space-y-2 hover-elevate"
+                      className="bg-card border rounded-xl overflow-hidden hover-elevate"
                       whileHover={{ scale: 1.02 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Zap className="w-5 h-5 text-primary" />
+                      <img 
+                        src={heroRoofAnalysis} 
+                        alt={language === "fr" ? "Analyse du toit" : "Roof analysis"} 
+                        className="w-full h-24 object-cover"
+                      />
+                      <div className="p-2 text-center">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {language === "fr" ? "Analyse du toit" : "Roof Analysis"}
+                        </span>
                       </div>
-                      <div className="text-2xl font-bold text-primary">{t("landing.hero.stat1.value")}</div>
-                      <div className="text-sm text-muted-foreground leading-tight">{t("landing.hero.stat1.label")}</div>
                     </motion.div>
                     
                     <motion.div 
-                      className="bg-card border rounded-2xl p-5 space-y-2 hover-elevate"
+                      className="bg-card border rounded-xl overflow-hidden hover-elevate"
                       whileHover={{ scale: 1.02 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                        <DollarSign className="w-5 h-5 text-accent" />
+                      <img 
+                        src={language === "fr" ? screenshotConsumptionFr : screenshotConsumptionEn} 
+                        alt={language === "fr" ? "Profil de consommation" : "Consumption profile"} 
+                        className="w-full h-24 object-cover object-top"
+                      />
+                      <div className="p-2 text-center">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {language === "fr" ? "Profil de consommation" : "Consumption Profile"}
+                        </span>
                       </div>
-                      <div className="text-2xl font-bold text-accent">{t("landing.hero.stat2.value")}</div>
-                      <div className="text-sm text-muted-foreground leading-tight">{t("landing.hero.stat2.label")}</div>
                     </motion.div>
                     
                     <motion.div 
-                      className="bg-card border rounded-2xl p-5 space-y-2 hover-elevate"
+                      className="bg-card border rounded-xl overflow-hidden hover-elevate"
                       whileHover={{ scale: 1.02 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-primary" />
+                      <img 
+                        src={language === "fr" ? screenshotOptimizationFr : screenshotOptimizationEn} 
+                        alt={language === "fr" ? "Scénarios optimaux" : "Optimal scenarios"} 
+                        className="w-full h-24 object-cover object-top"
+                      />
+                      <div className="p-2 text-center">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {language === "fr" ? "Scénarios optimaux" : "Optimal Scenarios"}
+                        </span>
                       </div>
-                      <div className="text-2xl font-bold text-primary">{t("landing.hero.stat3.value")}</div>
-                      <div className="text-sm text-muted-foreground leading-tight">{t("landing.hero.stat3.label")}</div>
                     </motion.div>
                     
                     <motion.div 
-                      className="bg-card border rounded-2xl p-5 space-y-2 hover-elevate"
+                      className="bg-card border rounded-xl overflow-hidden hover-elevate"
                       whileHover={{ scale: 1.02 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                        <CheckCircle2 className="w-5 h-5 text-accent" />
+                      <img 
+                        src={heroCashflow} 
+                        alt={language === "fr" ? "Comparaison financement" : "Financing comparison"} 
+                        className="w-full h-24 object-cover object-center"
+                      />
+                      <div className="p-2 text-center">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {language === "fr" ? "Comparaison financement" : "Financing Comparison"}
+                        </span>
                       </div>
-                      <div className="text-2xl font-bold text-accent">{t("landing.hero.stat4.value")}</div>
-                      <div className="text-sm text-muted-foreground leading-tight">{t("landing.hero.stat4.label")}</div>
                     </motion.div>
                   </div>
                 </div>
@@ -318,21 +340,24 @@ export default function LandingPage() {
                 title: t("landing.whyNow.hq.title"), 
                 description: t("landing.whyNow.hq.description"),
                 color: "text-primary",
-                bg: "bg-primary/10"
+                bg: "bg-primary/10",
+                url: "https://www.hydroquebec.com/autoproduction/"
               },
               { 
                 icon: BadgePercent, 
                 title: t("landing.whyNow.federal.title"), 
                 description: t("landing.whyNow.federal.description"),
                 color: "text-accent",
-                bg: "bg-accent/10"
+                bg: "bg-accent/10",
+                url: "https://natural-resources.canada.ca/climate-change/clean-energy-investment-tax-credits/clean-technology-investment-tax-credit/51492"
               },
               { 
                 icon: TrendingUp, 
                 title: t("landing.whyNow.fiscal.title"), 
                 description: t("landing.whyNow.fiscal.description"),
                 color: "text-primary",
-                bg: "bg-primary/10"
+                bg: "bg-primary/10",
+                url: "https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/sole-proprietorships-partnerships/report-business-income-expenses/claiming-capital-cost-allowance/classes-depreciable-property.html"
               },
             ].map((item, index) => (
               <motion.div
@@ -342,15 +367,17 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="h-full hover-elevate border-2 border-transparent hover:border-primary/20 transition-colors">
-                  <CardContent className="p-6 space-y-4">
-                    <div className={`w-14 h-14 rounded-2xl ${item.bg} flex items-center justify-center`}>
-                      <item.icon className={`w-7 h-7 ${item.color}`} />
-                    </div>
-                    <h3 className="text-xl font-semibold">{item.title}</h3>
-                    <p className="text-muted-foreground">{item.description}</p>
-                  </CardContent>
-                </Card>
+                <a href={item.url} target="_blank" rel="noopener noreferrer" className="block h-full">
+                  <Card className="h-full hover-elevate border-2 border-transparent hover:border-primary/20 transition-colors cursor-pointer">
+                    <CardContent className="p-6 space-y-4">
+                      <div className={`w-14 h-14 rounded-2xl ${item.bg} flex items-center justify-center`}>
+                        <item.icon className={`w-7 h-7 ${item.color}`} />
+                      </div>
+                      <h3 className="text-xl font-semibold">{item.title}</h3>
+                      <p className="text-muted-foreground">{item.description}</p>
+                    </CardContent>
+                  </Card>
+                </a>
               </motion.div>
             ))}
           </div>
