@@ -4085,6 +4085,7 @@ export default function SiteDetailPage() {
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
   const [assumptionsInitialized, setAssumptionsInitialized] = useState(false);
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
+  const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
 
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
     queryKey: ["/api/sites", id],
@@ -4157,6 +4158,27 @@ export default function SiteDetailPage() {
       toast({ title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis", variant: "destructive" });
     },
   });
+
+  // Bifacial response mutation
+  const bifacialResponseMutation = useMutation({
+    mutationFn: async (accepted: boolean) => {
+      return apiRequest("POST", `/api/sites/${id}/bifacial-response`, { accepted });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
+      setBifacialDialogOpen(false);
+    },
+  });
+
+  // Show bifacial dialog when white membrane detected and not yet prompted
+  useEffect(() => {
+    if (site && 
+        (site.roofColorType === "white_membrane" || site.roofColorType === "light") && 
+        !site.bifacialAnalysisPrompted && 
+        site.roofEstimateStatus === "success") {
+      setBifacialDialogOpen(true);
+    }
+  }, [site]);
 
   // Get valid scenarios for comparison
   const validScenarios = site?.simulationRuns?.filter(s => 
@@ -4474,6 +4496,41 @@ export default function SiteDetailPage() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Bifacial PV Detection Dialog */}
+      <Dialog open={bifacialDialogOpen} onOpenChange={setBifacialDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sun className="w-5 h-5 text-yellow-500" />
+              {t("bifacial.detected.title")}
+            </DialogTitle>
+            <DialogDescription className="space-y-3">
+              <p>{t("bifacial.detected.description")}</p>
+              <p className="font-medium text-foreground">{t("bifacial.detected.question")}</p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => bifacialResponseMutation.mutate(false)}
+              disabled={bifacialResponseMutation.isPending}
+              data-testid="button-bifacial-decline"
+            >
+              {t("bifacial.detected.decline")}
+            </Button>
+            <Button
+              onClick={() => bifacialResponseMutation.mutate(true)}
+              disabled={bifacialResponseMutation.isPending}
+              className="gap-2"
+              data-testid="button-bifacial-accept"
+            >
+              <Sparkles className="w-4 h-4" />
+              {t("bifacial.detected.accept")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

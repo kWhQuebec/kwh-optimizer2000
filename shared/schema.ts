@@ -78,6 +78,13 @@ export const sites = pgTable("sites", {
   roofEstimateStatus: text("roof_estimate_status").default("none"), // "none" | "pending" | "success" | "failed" | "skipped"
   roofEstimateError: text("roof_estimate_error"), // Error message if failed
   
+  // Roof color detection for bifacial PV analysis
+  roofColorType: text("roof_color_type"), // "white_membrane" | "light" | "dark" | "gravel" | "unknown"
+  roofColorConfidence: real("roof_color_confidence"), // 0-1 confidence score
+  roofColorDetectedAt: timestamp("roof_color_detected_at"),
+  bifacialAnalysisPrompted: boolean("bifacial_analysis_prompted").default(false), // Whether user has been prompted
+  bifacialAnalysisAccepted: boolean("bifacial_analysis_accepted"), // Whether user accepted bifacial analysis
+  
   analysisAssumptions: jsonb("analysis_assumptions"),
   analysisAvailable: boolean("analysis_available").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -371,6 +378,12 @@ export interface AnalysisAssumptions {
   
   // Analysis period
   analysisYears: number;     // default 25
+  
+  // Bifacial PV parameters (for white membrane roofs)
+  bifacialEnabled?: boolean;      // Whether to use bifacial panels
+  bifacialityFactor?: number;     // Rear-side efficiency ratio (0.7-0.9) - default 0.85
+  roofAlbedo?: number;            // Ground/roof reflectivity (0-1) - default 0.7 for white membrane
+  bifacialCostPremium?: number;   // Additional cost per W for bifacial - default 0.10 (10 cents)
 }
 
 // Default analysis assumptions
@@ -402,6 +415,12 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   batteryReplacementCostFactor: 0.60, // 60% of original cost
   batteryPriceDeclineRate: 0.05, // 5% annual price decline
   analysisYears: 25, // 25-year analysis
+  
+  // Bifacial PV defaults (optional - only used when bifacialEnabled is true)
+  bifacialEnabled: false,
+  bifacialityFactor: 0.85, // 85% rear-side efficiency
+  roofAlbedo: 0.70, // White membrane ~70% reflectivity
+  bifacialCostPremium: 0.10, // $0.10/W additional cost
 };
 
 // Cashflow entry for detailed analysis

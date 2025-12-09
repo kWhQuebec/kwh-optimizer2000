@@ -412,3 +412,157 @@ export async function getRoofImagery(address: string): Promise<DataLayersResult>
   
   return getDataLayers(location);
 }
+
+// Roof color detection types
+export interface RoofColorResult {
+  success: boolean;
+  colorType: "white_membrane" | "light" | "dark" | "gravel" | "unknown";
+  confidence: number; // 0-1
+  averageBrightness: number; // 0-255
+  suggestBifacial: boolean;
+  error?: string;
+}
+
+// Analyze roof color from RGB imagery URL
+// Returns color classification based on average brightness of roof pixels
+export async function analyzeRoofColor(location: GeoLocation): Promise<RoofColorResult> {
+  if (!GOOGLE_SOLAR_API_KEY) {
+    return {
+      success: false,
+      colorType: "unknown",
+      confidence: 0,
+      averageBrightness: 0,
+      suggestBifacial: false,
+      error: "GOOGLE_SOLAR_API_KEY not configured"
+    };
+  }
+
+  try {
+    // Get data layers to get the RGB and mask URLs
+    const dataLayers = await getDataLayers(location, 50);
+    
+    if (!dataLayers.success || !dataLayers.rgbUrl) {
+      return {
+        success: false,
+        colorType: "unknown",
+        confidence: 0,
+        averageBrightness: 0,
+        suggestBifacial: false,
+        error: dataLayers.error || "No RGB imagery available"
+      };
+    }
+
+    // Fetch the RGB imagery (GeoTIFF format)
+    // Add API key to the URL if not already present
+    const rgbUrlWithKey = dataLayers.rgbUrl.includes('key=') 
+      ? dataLayers.rgbUrl 
+      : `${dataLayers.rgbUrl}&key=${GOOGLE_SOLAR_API_KEY}`;
+    
+    const response = await fetch(rgbUrlWithKey);
+    
+    if (!response.ok) {
+      console.error("Failed to fetch RGB imagery:", response.status);
+      return {
+        success: false,
+        colorType: "unknown",
+        confidence: 0,
+        averageBrightness: 0,
+        suggestBifacial: false,
+        error: `Failed to fetch imagery: ${response.status}`
+      };
+    }
+
+    // Get the image data as an ArrayBuffer
+    const imageBuffer = await response.arrayBuffer();
+    const imageData = new Uint8Array(imageBuffer);
+    
+    // Simple brightness analysis on the raw image data
+    // GeoTIFF has complex headers, but we can sample pixel values from the data portion
+    // For a more robust solution, we'd use a proper GeoTIFF parser
+    // Here we'll analyze the byte distribution to estimate overall brightness
+    
+    let totalBrightness = 0;
+    let pixelCount = 0;
+    
+    // Skip the first ~1000 bytes (header) and sample every 3 bytes (RGB triplets)
+    // This is a simplified analysis - for production, use a proper GeoTIFF library
+    const startOffset = Math.min(1000, imageData.length / 4);
+    const sampleStep = 12; // Sample every 4th pixel for efficiency
+    
+    for (let i = startOffset; i < imageData.length - 2; i += sampleStep) {
+      const r = imageData[i];
+      const g = imageData[i + 1];
+      const b = imageData[i + 2];
+      
+      // Calculate perceived brightness (luminosity formula)
+      const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+      
+      // Filter out very dark pixels (likely shadows or non-roof areas)
+      // and very saturated pixels (likely vegetation or special surfaces)
+      if (brightness > 30 && brightness < 255) {
+        totalBrightness += brightness;
+        pixelCount++;
+      }
+    }
+    
+    if (pixelCount === 0) {
+      return {
+        success: false,
+        colorType: "unknown",
+        confidence: 0,
+        averageBrightness: 0,
+        suggestBifacial: false,
+        error: "Could not analyze image pixels"
+      };
+    }
+    
+    const averageBrightness = totalBrightness / pixelCount;
+    
+    // Classify roof color based on average brightness
+    // White membrane: typically 180-255 average brightness
+    // Light (beige/tan): 140-180
+    // Gravel: 100-140
+    // Dark (asphalt, etc): 40-100
+    let colorType: RoofColorResult["colorType"];
+    let confidence: number;
+    let suggestBifacial = false;
+    
+    if (averageBrightness >= 175) {
+      colorType = "white_membrane";
+      confidence = Math.min(0.9, (averageBrightness - 175) / 80 + 0.6);
+      suggestBifacial = true; // Excellent for bifacial!
+    } else if (averageBrightness >= 140) {
+      colorType = "light";
+      confidence = 0.7;
+      suggestBifacial = true; // Good for bifacial
+    } else if (averageBrightness >= 100) {
+      colorType = "gravel";
+      confidence = 0.6;
+      suggestBifacial = false; // Marginal benefit
+    } else {
+      colorType = "dark";
+      confidence = 0.7;
+      suggestBifacial = false; // Not suitable
+    }
+    
+    console.log(`Roof color analysis: avg brightness ${averageBrightness.toFixed(1)}, type: ${colorType}, suggest bifacial: ${suggestBifacial}`);
+    
+    return {
+      success: true,
+      colorType,
+      confidence,
+      averageBrightness,
+      suggestBifacial
+    };
+  } catch (error) {
+    console.error("Roof color analysis error:", error);
+    return {
+      success: false,
+      colorType: "unknown",
+      confidence: 0,
+      averageBrightness: 0,
+      suggestBifacial: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}

@@ -223,6 +223,20 @@ const translations: Translations = {
   "site.period": { fr: "Période", en: "Period" },
   "site.runAnalysis": { fr: "Lancer l'analyse de potentiel", en: "Run potential analysis" },
   "site.downloadReport": { fr: "Télécharger le rapport PDF", en: "Download PDF report" },
+  
+  // Bifacial PV detection
+  "bifacial.detected.title": { fr: "Membrane blanche détectée", en: "White membrane detected" },
+  "bifacial.detected.description": { fr: "Notre analyse d'imagerie a détecté une membrane de toiture blanche hautement réfléchissante. Les panneaux PV bi-faciaux peuvent capter la lumière réfléchie du toit, augmentant potentiellement la production d'énergie de 10-15%.", en: "Our imagery analysis detected a highly reflective white roof membrane. Bi-facial PV panels can capture reflected light from the roof, potentially increasing energy production by 10-15%." },
+  "bifacial.detected.question": { fr: "Voulez-vous analyser le PV bi-facial pour ce bâtiment?", en: "Do you want to analyze bi-facial PV for this building?" },
+  "bifacial.detected.accept": { fr: "Oui, analyser bi-facial", en: "Yes, analyze bi-facial" },
+  "bifacial.detected.decline": { fr: "Non, continuer standard", en: "No, continue standard" },
+  "bifacial.enabled": { fr: "PV bi-facial activé", en: "Bi-facial PV enabled" },
+  "bifacial.yieldBoost": { fr: "Gain de production estimé", en: "Estimated yield boost" },
+  "bifacial.roofType.white_membrane": { fr: "Membrane blanche", en: "White membrane" },
+  "bifacial.roofType.light": { fr: "Toit clair", en: "Light roof" },
+  "bifacial.roofType.dark": { fr: "Toit foncé", en: "Dark roof" },
+  "bifacial.roofType.gravel": { fr: "Gravier", en: "Gravel" },
+  "bifacial.roofType.unknown": { fr: "Inconnu", en: "Unknown" },
 
   // Analysis Results
   "analysis.title": { fr: "Résultats de l'analyse", en: "Analysis Results" },

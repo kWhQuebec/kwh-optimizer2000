@@ -138,6 +138,26 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
     });
 
     console.log(`Roof estimation success for site ${siteId}: ${result.roofAreaSqM.toFixed(1)} m²`);
+    
+    // Also run roof color analysis for bifacial detection
+    try {
+      const colorResult = await googleSolar.analyzeRoofColor({
+        latitude: result.latitude,
+        longitude: result.longitude
+      });
+      
+      if (colorResult.success) {
+        await storage.updateSite(siteId, {
+          roofColorType: colorResult.colorType,
+          roofColorConfidence: colorResult.confidence,
+          roofColorDetectedAt: new Date(),
+        });
+        console.log(`Roof color analysis for site ${siteId}: ${colorResult.colorType} (confidence: ${(colorResult.confidence * 100).toFixed(0)}%, suggest bifacial: ${colorResult.suggestBifacial})`);
+      }
+    } catch (colorError) {
+      console.error(`Roof color analysis failed for site ${siteId}:`, colorError);
+      // Don't fail the whole operation if color analysis fails
+    }
   } catch (error) {
     console.error(`Roof estimation error for site ${siteId}:`, error);
     await storage.updateSite(siteId, {
@@ -1056,6 +1076,51 @@ export async function registerRoutes(
     }
   });
 
+  // Endpoint to respond to bifacial analysis prompt
+  app.post("/api/sites/:id/bifacial-response", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.id;
+      const { accepted } = req.body;
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      // Update site with bifacial response
+      const updatedSite = await storage.updateSite(siteId, {
+        bifacialAnalysisPrompted: true,
+        bifacialAnalysisAccepted: accepted === true,
+      });
+
+      // If accepted, also update analysis assumptions to enable bifacial
+      if (accepted === true) {
+        const currentAssumptions = (site.analysisAssumptions || {}) as Record<string, any>;
+        const updatedAssumptions = {
+          ...currentAssumptions,
+          bifacialEnabled: true,
+          bifacialityFactor: 0.85,
+          roofAlbedo: site.roofColorType === "white_membrane" ? 0.70 : 
+                      site.roofColorType === "light" ? 0.50 : 0.25,
+          bifacialCostPremium: 0.10,
+        };
+        
+        await storage.updateSite(siteId, {
+          analysisAssumptions: updatedAssumptions,
+        });
+      }
+
+      res.json({
+        success: true,
+        bifacialEnabled: accepted === true,
+        site: updatedSite
+      });
+    } catch (error) {
+      console.error("Bifacial response error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== FILE UPLOAD ROUTES ====================
   
   // Staff-only file upload
@@ -1884,7 +1949,19 @@ function runPotentialAnalysis(
   
   // Target PV size based on consumption (120% of load coverage target)
   // Use configurable solar yield (default 1150 kWh/kWp, can be set from Google Solar data)
-  const effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+  let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+  
+  // Apply bifacial gain if enabled
+  // Formula: rear gain = bifaciality × albedo × view_factor (0.35 for flat commercial roofs)
+  // Typical boost: 8-15% for white membrane roofs
+  if (h.bifacialEnabled) {
+    const bifacialityFactor = h.bifacialityFactor || 0.85;
+    const roofAlbedo = h.roofAlbedo || 0.70;
+    const viewFactor = 0.35; // Conservative for flat commercial installations
+    const bifacialBoost = 1 + (bifacialityFactor * roofAlbedo * viewFactor);
+    effectiveYield = effectiveYield * bifacialBoost;
+    console.log(`Bifacial enabled: ${(bifacialBoost - 1) * 100}% yield boost applied`);
+  }
   const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
   
   // Use forced sizing if provided, otherwise calculate optimal
@@ -1930,7 +2007,11 @@ function runPotentialAnalysis(
   const savingsYear1 = annualSavings; // First year savings (before inflation)
   
   // ========== STEP 5: Calculate CAPEX ==========
-  const capexPV = pvSizeKW * 1000 * h.solarCostPerW;
+  // Apply bifacial cost premium if enabled (typically 5-10 cents/W more)
+  const effectiveSolarCostPerW = h.bifacialEnabled 
+    ? h.solarCostPerW + (h.bifacialCostPremium || 0.10)
+    : h.solarCostPerW;
+  const capexPV = pvSizeKW * 1000 * effectiveSolarCostPerW;
   const capexBattery = battEnergyKWh * h.batteryCapacityCost + battPowerKW * h.batteryPowerCost;
   const capexGross = capexPV + capexBattery;
   
@@ -2280,7 +2361,15 @@ function runPotentialAnalysis(
     }
     
     // LCOE - with degradation
-    const optEffectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+    let optEffectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+    // Apply bifacial gain if enabled
+    if (h.bifacialEnabled) {
+      const bifacialityFactor = h.bifacialityFactor || 0.85;
+      const roofAlbedo = h.roofAlbedo || 0.70;
+      const viewFactor = 0.35;
+      const bifacialBoost = 1 + (bifacialityFactor * roofAlbedo * viewFactor);
+      optEffectiveYield = optEffectiveYield * bifacialBoost;
+    }
     let optTotalProduction = 0;
     for (let y = 1; y <= h.analysisYears; y++) {
       const degradationFactor = Math.pow(1 - optDegradationRate, y - 1);
@@ -2932,7 +3021,17 @@ function runScenarioWithSizing(
   
   // Run simulation with specified sizes
   // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)
-  const effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+  let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+  
+  // Apply bifacial gain if enabled
+  if (h.bifacialEnabled) {
+    const bifacialityFactor = h.bifacialityFactor || 0.85;
+    const roofAlbedo = h.roofAlbedo || 0.70;
+    const viewFactor = 0.35;
+    const bifacialBoost = 1 + (bifacialityFactor * roofAlbedo * viewFactor);
+    effectiveYield = effectiveYield * bifacialBoost;
+  }
+  
   const yieldFactor = effectiveYield / 1150;
   const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
   
@@ -2955,8 +3054,11 @@ function runScenarioWithSizing(
   const demandSavings = annualDemandReductionKW * h.tariffPower * 12;
   const annualSavings = energySavings + demandSavings;
   
-  // CAPEX
-  const capexPV = pvSizeKW * 1000 * h.solarCostPerW;
+  // CAPEX - apply bifacial cost premium if enabled
+  const effectiveSolarCostPerW = h.bifacialEnabled 
+    ? h.solarCostPerW + (h.bifacialCostPremium || 0.10)
+    : h.solarCostPerW;
+  const capexPV = pvSizeKW * 1000 * effectiveSolarCostPerW;
   const capexBattery = battEnergyKWh * h.batteryCapacityCost + battPowerKW * h.batteryPowerCost;
   const capexGross = capexPV + capexBattery;
   
