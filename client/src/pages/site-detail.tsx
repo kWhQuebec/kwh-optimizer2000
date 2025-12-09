@@ -2310,106 +2310,6 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   );
 }
 
-function DesignAgreement() {
-  const { language } = useI18n();
-  
-  return (
-    <Card id="pdf-section-service-offer" data-testid="card-design-agreement">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-blue-600" />
-          {language === "fr" ? "Entente de conception technique" : "Technical Design Agreement"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h4 className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                {language === "fr" ? "Passez à l'étape suivante" : "Move to the next step"}
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {language === "fr" 
-                  ? "Une conception détaillée pour votre projet solaire" 
-                  : "A detailed design for your solar project"}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">5 900 $</p>
-              <p className="text-xs text-gray-500">+ taxes</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-blue-600" />
-                <span className="font-semibold text-sm">
-                  {language === "fr" ? "1. Visite technique" : "1. Technical Visit"}
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                {language === "fr" 
-                  ? "Évaluation sur site de la structure du toit, du panneau électrique et des chemins de câblage" 
-                  : "On-site evaluation of roof structure, electrical panel and cable routing"}
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-4 h-4 text-blue-600" />
-                <span className="font-semibold text-sm">
-                  {language === "fr" ? "2. Plans et devis" : "2. Plans & Specs"}
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                {language === "fr" 
-                  ? "Conception d'ingénierie complète avec plans CAD, spécifications techniques et liste de matériaux" 
-                  : "Complete engineering design with CAD drawings, technical specifications and bill of materials"}
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-2">
-                <Calculator className="w-4 h-4 text-blue-600" />
-                <span className="font-semibold text-sm">
-                  {language === "fr" ? "3. Estimation finale" : "3. Final Estimate"}
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                {language === "fr" 
-                  ? "Coût clé-en-main précis pour la réalisation des travaux, valide 60 jours" 
-                  : "Accurate turnkey cost for project completion, valid for 60 days"}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-blue-200 dark:border-blue-800">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {language === "fr" ? "Délai: 2-3 semaines" : "Timeline: 2-3 weeks"}
-              </span>
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                {language === "fr" ? "Créditable sur le projet" : "Credited toward project"}
-              </span>
-            </div>
-            <Button 
-              size="sm" 
-              className="gap-2"
-              data-testid="button-request-design"
-            >
-              <ArrowRight className="w-4 h-4" />
-              {language === "fr" ? "Demander une conception" : "Request Design"}
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function AnalysisResults({ simulation, site, isStaff = false }: { simulation: SimulationRun; site: SiteWithDetails; isStaff?: boolean }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
@@ -2697,7 +2597,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "Rendement" : "Return Rate"}</p>
+              <p className="text-sm text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 Year"}</p>
             </div>
             <p className="text-2xl font-bold font-mono text-primary">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
           </CardContent>
@@ -2808,10 +2708,36 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
       {/* Financing Options Calculator */}
       <FinancingCalculator simulation={simulation} />
 
-      {/* ========== SECTION 5: DESIGN AGREEMENT ========== */}
-      <DesignAgreement />
+      {/* Mid-page CTA Banner */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-primary/5">
+        <CardContent className="py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <FileSignature className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">
+                  {language === "fr" ? "Prêt à passer à l'étape suivante?" : "Ready for the next step?"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? "Demandez une conception détaillée et une soumission ferme" 
+                    : "Request detailed engineering and a firm quote"}
+                </p>
+              </div>
+            </div>
+            <a href="#next-steps-cta">
+              <Button className="gap-2" data-testid="button-mid-cta">
+                <ArrowRight className="w-4 h-4" />
+                {language === "fr" ? "Voir les prochaines étapes" : "View next steps"}
+              </Button>
+            </a>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* ========== SECTION 6: ENVIRONMENTAL IMPACT ========== */}
+      {/* ========== SECTION 5: ENVIRONMENTAL IMPACT ========== */}
       <SectionDivider 
         title={language === "fr" ? "Impact environnemental" : "Environmental Impact"} 
         icon={Leaf}
@@ -2879,97 +2805,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
         </CardContent>
       </Card>
 
-      {/* ========== SECTION 6: NEXT STEPS CTA ========== */}
-      <SectionDivider 
-        title={language === "fr" ? "Prochaines étapes" : "Next Steps"} 
-        icon={FileSignature}
-      />
-
-      {/* Next Steps CTA Card */}
-      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2">
-            <FileSignature className="w-6 h-6 text-primary" />
-            {language === "fr" ? "Prêt à passer à l'action?" : "Ready to Take Action?"}
-          </CardTitle>
-          <CardDescription>
-            {language === "fr" 
-              ? "Signez l'entente de conception et d'ingénierie pour démarrer votre projet solaire" 
-              : "Sign the Design & Engineering Agreement to start your solar project"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">1</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Entente de conception" : "Design Agreement"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr" 
-                    ? "Notre équipe prépare les plans détaillés et la liste d'équipements" 
-                    : "Our team prepares detailed plans and equipment specifications"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">2</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Soumission finale" : "Final Quote"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr" 
-                    ? "Vous recevez une soumission détaillée avec prix fermes garantis" 
-                    : "You receive a detailed quote with guaranteed firm pricing"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">3</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Installation" : "Installation"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr" 
-                    ? "Nous gérons l'installation clé en main et les demandes de subventions" 
-                    : "We manage turnkey installation and incentive applications"}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
-            {isStaff ? (
-              <Link href={`/app/analyses/${simulation.id}/design`}>
-                <Button size="lg" className="gap-2 px-8" data-testid="button-cta-create-design">
-                  <PenTool className="w-5 h-5" />
-                  {language === "fr" ? "Créer le devis" : "Create Design Quote"}
-                </Button>
-              </Link>
-            ) : (
-              <Button size="lg" className="gap-2 px-8" data-testid="button-cta-sign-agreement">
-                <FileSignature className="w-5 h-5" />
-                {language === "fr" ? "Signer l'entente" : "Sign Agreement"}
-              </Button>
-            )}
-            <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
-              <Phone className="w-5 h-5" />
-              {language === "fr" ? "Nous contacter" : "Contact Us"}
-            </Button>
-          </div>
-          
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            {language === "fr" 
-              ? "L'entente de conception est sans engagement pour le projet complet. Frais de conception: 2 500$ + taxes (crédité si vous procédez)." 
-              : "The design agreement is non-binding for the full project. Design fee: $2,500 + taxes (credited if you proceed)."}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* ========== SECTION 7: TECHNICAL DETAILS (Collapsible) ========== */}
+      {/* ========== SECTION 6: TECHNICAL DETAILS (Collapsible) ========== */}
       <SectionDivider 
         title={language === "fr" ? "Détails techniques" : "Technical Details"} 
         icon={Settings}
@@ -4129,6 +3965,96 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
           </CardContent>
         </Card>
       )}
+
+      {/* ========== FINAL SECTION: NEXT STEPS CTA ========== */}
+      <SectionDivider 
+        title={language === "fr" ? "Prochaines étapes" : "Next Steps"} 
+        icon={FileSignature}
+      />
+
+      {/* Next Steps CTA Card - Final Call to Action */}
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent" id="next-steps-cta">
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <FileSignature className="w-6 h-6 text-primary" />
+            {language === "fr" ? "Prêt à passer à l'action?" : "Ready to Take Action?"}
+          </CardTitle>
+          <CardDescription>
+            {language === "fr" 
+              ? "Signez l'entente de conception et d'ingénierie pour démarrer votre projet solaire" 
+              : "Sign the Design & Engineering Agreement to start your solar project"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">1</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Entente de conception" : "Design Agreement"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? "Notre équipe prépare les plans détaillés et la liste d'équipements" 
+                    : "Our team prepares detailed plans and equipment specifications"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">2</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Soumission finale" : "Final Quote"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? "Vous recevez une soumission détaillée avec prix fermes garantis" 
+                    : "You receive a detailed quote with guaranteed firm pricing"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">3</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Installation" : "Installation"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? "Nous gérons l'installation clé en main et les demandes de subventions" 
+                    : "We manage turnkey installation and incentive applications"}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {isStaff ? (
+              <Link href={`/app/analyses/${simulation.id}/design`}>
+                <Button size="lg" className="gap-2 px-8" data-testid="button-cta-create-design">
+                  <PenTool className="w-5 h-5" />
+                  {language === "fr" ? "Créer le devis" : "Create Design Quote"}
+                </Button>
+              </Link>
+            ) : (
+              <Button size="lg" className="gap-2 px-8" data-testid="button-cta-sign-agreement">
+                <FileSignature className="w-5 h-5" />
+                {language === "fr" ? "Signer l'entente" : "Sign Agreement"}
+              </Button>
+            )}
+            <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
+              <Phone className="w-5 h-5" />
+              {language === "fr" ? "Nous contacter" : "Contact Us"}
+            </Button>
+          </div>
+          
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            {language === "fr" 
+              ? "L'entente de conception est sans engagement pour le projet complet. Frais de conception: 2 500$ + taxes (crédité si vous procédez)." 
+              : "The design agreement is non-binding for the full project. Design fee: $2,500 + taxes (credited if you proceed)."}
+          </p>
+        </CardContent>
+      </Card>
       
       {/* Externally controlled Create Variant Dialog for chart click-to-create */}
       {isStaff && (
@@ -4174,6 +4100,23 @@ export default function SiteDetailPage() {
       // Fallback to manually entered roof area
       else if (site.roofAreaSqM && site.roofAreaSqM > 0) {
         initialAssumptions.roofAreaSqFt = Math.round(site.roofAreaSqM * 10.764);
+      }
+      
+      // Auto-detect tariff code based on peak demand from consumption data
+      // Tariff G: < 65 kW, Tariff M: >= 65 kW
+      if (site.meterReadings && site.meterReadings.length > 0) {
+        const peakDemandKW = Math.max(
+          ...site.meterReadings
+            .map(r => r.peakDemandKW)
+            .filter((v): v is number => v !== null && v !== undefined && v > 0)
+        );
+        if (peakDemandKW > 0) {
+          const autoTariff = peakDemandKW >= 65 ? "M" : "G";
+          const rates = getTariffRates(autoTariff);
+          initialAssumptions.tariffCode = autoTariff;
+          initialAssumptions.tariffEnergy = rates.energyRate;
+          initialAssumptions.tariffPower = rates.demandRate;
+        }
       }
       
       // Load saved assumptions from site if they exist (overrides auto-detected)

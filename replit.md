@@ -40,6 +40,26 @@ The server-side processes Hydro-Québec consumption data, performs 8760-hour sol
 
 The UI uses Recharts for interactive charts displaying consumption profiles, production simulations, and financial projections. shadcn/ui table components are used for BOMs and detailed metrics. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display with key KPIs, and an Optimization Analysis Section.
 
+### Analysis Page Flow
+
+The Site Detail analysis results follow a logical progression:
+1. **Summary KPIs** - Key financial metrics (NPV, IRR, payback)
+2. **System Configuration** - PV and battery sizing details
+3. **Financial Breakdown** - Costs, incentives, and cashflows
+4. **Financing Options** - Cash, loan, and capital lease comparison
+5. **Mid-page CTA** - "View Next Steps" button linking to final section
+6. **Environmental Impact** - CO2 reduction and sustainability metrics
+7. **Technical Details** - Collapsible parameters and assumptions
+8. **Next Steps CTA** - Final call-to-action with design agreement process
+
+### Tariff Auto-Detection
+
+The platform automatically detects the appropriate Hydro-Québec tariff code based on peak demand from consumption data:
+- **Tariff G**: For sites with peak demand < 65 kW (small power)
+- **Tariff M**: For sites with peak demand ≥ 65 kW (medium power)
+
+This auto-detection runs when initializing analysis assumptions, with saved assumptions taking priority over auto-detected values.
+
 ### System Design Module
 
 The System Design page enables staff users to create detailed equipment specifications and bills of materials, with auto-populated form fields from optimal simulation configurations, component selection, and margin configuration.
