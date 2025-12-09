@@ -102,6 +102,16 @@ The platform uses a hybrid website strategy with the main site on Replit and cam
 -   **Zoho CRM**: OAuth2 authenticated integration for lead synchronization and deal creation/updates.
 -   **Neon Database**: Serverless PostgreSQL solution.
 
+### Bifacial PV Analysis (Dec 2024 Feature)
+
+The platform automatically detects white membrane roofs from Google Solar API RGB imagery and prompts users to enable bifacial PV analysis:
+
+- **Detection**: Analyzes average RGB brightness of roof imagery (threshold > 200 = white membrane)
+- **Bifacial Boost**: Applies yield gain formula: `yield × (1 + bifacialityFactor × roofAlbedo × 0.3)`
+- **Default Parameters**: bifacialityFactor=0.85, roofAlbedo=0.70 (white), 0.20 (gravel), 0.10 (dark)
+- **Cost Premium**: 5% higher cost per watt for bifacial panels vs monofacial
+- **UI Trigger**: Bilingual dialog appears when white roof detected, stored in `bifacialAnalysisPrompted` and `bifacialAnalysisAccepted` fields
+
 ### Google Solar API Limitations & Best Practices
 
 The Google Solar API, primarily designed for residential rooftops, has limitations for large commercial/industrial buildings (e.g., system size caps, flat roof accuracy). The platform addresses this with a yield-based comparison for validation, manual roof area entry for large buildings, and applying a utilization factor.
