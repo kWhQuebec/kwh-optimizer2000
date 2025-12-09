@@ -3156,10 +3156,14 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
                       <span className="text-sm">{language === "fr" ? "Hydro-Québec (solaire)" : "HQ Solar"}</span>
                       <span className="font-mono text-sm text-primary">-${((breakdown.actualHQSolar || 0) / 1000).toFixed(1)}k</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">{language === "fr" ? "Hydro-Québec (batterie)" : "HQ Battery"}</span>
-                      <span className="font-mono text-sm text-primary">-${((breakdown.actualHQBattery || 0) / 1000).toFixed(1)}k</span>
-                    </div>
+                    {(breakdown.actualHQBattery || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          {language === "fr" ? "HQ (crédit stockage jumelé)" : "HQ (paired storage credit)"}
+                        </span>
+                        <span className="font-mono text-sm text-primary">-${((breakdown.actualHQBattery || 0) / 1000).toFixed(1)}k</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-sm">{language === "fr" ? "CII fédéral (30%)" : "Federal ITC (30%)"}</span>
                       <span className="font-mono text-sm text-primary">-${((breakdown.itcAmount || 0) / 1000).toFixed(1)}k</span>
@@ -4102,15 +4106,16 @@ export default function SiteDetailPage() {
         initialAssumptions.roofAreaSqFt = Math.round(site.roofAreaSqM * 10.764);
       }
       
-      // Auto-detect tariff code based on peak demand from consumption data
+      // Auto-detect tariff code based on peak demand from simulation data
       // Tariff G: < 65 kW, Tariff M: >= 65 kW
-      if (site.meterReadings && site.meterReadings.length > 0) {
-        const peakDemandKW = Math.max(
-          ...site.meterReadings
-            .map(r => r.peakDemandKW)
-            .filter((v): v is number => v !== null && v !== undefined && v > 0)
-        );
-        if (peakDemandKW > 0) {
+      if (site.simulationRuns && site.simulationRuns.length > 0) {
+        // Get peak demand from most recent simulation that has it
+        const peakDemands = site.simulationRuns
+          .map(sim => sim.peakDemandKW)
+          .filter((v): v is number => v !== null && v !== undefined && v > 0);
+        
+        if (peakDemands.length > 0) {
+          const peakDemandKW = Math.max(...peakDemands);
           const autoTariff = peakDemandKW >= 65 ? "M" : "G";
           const rates = getTariffRates(autoTariff);
           initialAssumptions.tariffCode = autoTariff;

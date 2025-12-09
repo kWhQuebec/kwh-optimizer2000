@@ -957,10 +957,10 @@ const fr = {
         description: "Programme Autoproduction d'Hydro-Québec pour installations commerciales.",
         details: [
           "Solaire: 1 000 $/kWc installé",
-          "Stockage: 300 $/kW de capacité",
+          "Stockage: crédit uniquement si jumelé au solaire (utilise le reste du plafond)",
           "Plafond: 40% du CAPEX brut",
         ],
-        formula: "Incitatif_HQ = min(PV_kWc × 1000 + Batt_kW × 300, CAPEX × 0.40)",
+        formula: "Incitatif_HQ = min(PV_kWc × 1000, CAPEX × 0.40) + crédit résiduel pour stockage",
       },
       itc: {
         title: "Crédit d'Impôt Fédéral (CII)",
@@ -1372,10 +1372,10 @@ const en = {
         description: "Hydro-Québec Self-Generation program for commercial installations.",
         details: [
           "Solar: $1,000/kWp installed",
-          "Storage: $300/kW capacity",
+          "Storage: credit only when paired with solar (uses remaining cap room)",
           "Cap: 40% of gross CAPEX",
         ],
-        formula: "HQ_incentive = min(PV_kWp × 1000 + Batt_kW × 300, CAPEX × 0.40)",
+        formula: "HQ_incentive = min(PV_kWp × 1000, CAPEX × 0.40) + residual credit for storage",
       },
       itc: {
         title: "Federal Investment Tax Credit (ITC)",

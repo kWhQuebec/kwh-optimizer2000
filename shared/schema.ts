@@ -426,7 +426,7 @@ export interface FinancialBreakdown {
   
   // Incentives
   potentialHQSolar: number;     // $1000/kW
-  potentialHQBattery: number;   // $300/kW
+  potentialHQBattery: number;   // Discontinued Dec 2024 - now $0 (legacy field)
   cap40Percent: number;         // 40% cap
   actualHQSolar: number;
   actualHQBattery: number;

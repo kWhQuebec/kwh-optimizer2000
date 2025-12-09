@@ -1935,21 +1935,26 @@ function runPotentialAnalysis(
   const capexGross = capexPV + capexBattery;
   
   // ========== STEP 6: Calculate Quebec (HQ) incentives ==========
-  // Hydro-Québec: $1000/kW for solar, $300/kW for battery, capped at 40% of total CAPEX
+  // Hydro-Québec: $1000/kW for solar, capped at 40% of total CAPEX
+  // Battery: NO standalone $300/kW incentive (discontinued as of Dec 2024)
+  // Battery can only receive HQ credit if paired with solar AND there's leftover room in the cap
   const potentialHQSolar = pvSizeKW * 1000;
-  const potentialHQBattery = battPowerKW * 300;
-  const totalPotentialHQ = potentialHQSolar + potentialHQBattery;
+  const potentialHQBattery = 0; // Discontinued - no standalone battery incentive
   const cap40Percent = capexGross * 0.40;
-  const totalHQ = Math.min(totalPotentialHQ, cap40Percent);
   
-  // Distribute HQ incentive proportionally
-  let incentivesHQSolar = 0;
+  // Solar gets up to $1000/kW, capped at 40% of CAPEX
+  let incentivesHQSolar = Math.min(potentialHQSolar, cap40Percent);
+  
+  // Battery only gets HQ credit if paired with solar AND there's leftover cap room
   let incentivesHQBattery = 0;
-  if (totalPotentialHQ > 0) {
-    const solarRatio = potentialHQSolar / totalPotentialHQ;
-    incentivesHQSolar = totalHQ * solarRatio;
-    incentivesHQBattery = totalHQ * (1 - solarRatio);
+  if (pvSizeKW > 0 && battEnergyKWh > 0) {
+    // Remaining cap space after solar incentive (clamped to prevent negative values)
+    const remainingCap = Math.max(0, cap40Percent - incentivesHQSolar);
+    // Battery can receive the lesser of: remaining cap OR actual battery cost
+    incentivesHQBattery = Math.min(remainingCap, capexBattery);
   }
+  // Note: Battery-only projects (no solar) receive $0 HQ incentive
+  
   const incentivesHQ = incentivesHQSolar + incentivesHQBattery;
   
   // Battery HQ incentive: 50% year 0, 50% year 1
@@ -2153,19 +2158,22 @@ function runPotentialAnalysis(
     const optCapexGross = optCapexPV + optCapexBattery;
     
     // HQ incentives for optimal sizing
+    // $1000/kW for solar, capped at 40% of CAPEX
+    // Battery: NO standalone incentive (discontinued Dec 2024), only gets overflow from solar cap
     const optPotentialHQSolar = optPvSizeKW * 1000;
-    const optPotentialHQBattery = optBattPowerKW * 300;
-    const optTotalPotentialHQ = optPotentialHQSolar + optPotentialHQBattery;
+    const optPotentialHQBattery = 0; // Discontinued - no standalone battery incentive
     const optCap40Percent = optCapexGross * 0.40;
-    const optTotalHQ = Math.min(optTotalPotentialHQ, optCap40Percent);
     
-    let optIncentivesHQSolar = 0;
+    // Solar gets up to $1000/kW, capped at 40% of CAPEX
+    let optIncentivesHQSolar = Math.min(optPotentialHQSolar, optCap40Percent);
+    
+    // Battery only gets HQ credit if paired with solar AND there's leftover cap room
     let optIncentivesHQBattery = 0;
-    if (optTotalPotentialHQ > 0) {
-      const solarRatio = optPotentialHQSolar / optTotalPotentialHQ;
-      optIncentivesHQSolar = optTotalHQ * solarRatio;
-      optIncentivesHQBattery = optTotalHQ * (1 - solarRatio);
+    if (optPvSizeKW > 0 && optBattEnergyKWh > 0) {
+      const remainingCap = Math.max(0, optCap40Percent - optIncentivesHQSolar);
+      optIncentivesHQBattery = Math.min(remainingCap, optCapexBattery);
     }
+    
     const optIncentivesHQ = optIncentivesHQSolar + optIncentivesHQBattery;
     const optBatterySubY0 = optIncentivesHQBattery * 0.5;
     const optBatterySubY1 = optIncentivesHQBattery * 0.5;
@@ -2956,20 +2964,22 @@ function runScenarioWithSizing(
     return { npv25: 0, capexNet: 0, irr25: 0 };
   }
   
-  // HQ incentives
+  // HQ incentives: $1000/kW for solar, capped at 40% of CAPEX
+  // Battery: NO standalone incentive (discontinued Dec 2024), only gets overflow from solar cap when paired
   const potentialHQSolar = pvSizeKW * 1000;
-  const potentialHQBattery = battPowerKW * 300;
-  const totalPotentialHQ = potentialHQSolar + potentialHQBattery;
+  const potentialHQBattery = 0; // Discontinued - no standalone battery incentive
   const cap40Percent = capexGross * 0.40;
-  const totalHQ = Math.min(totalPotentialHQ, cap40Percent);
   
-  let incentivesHQSolar = 0;
+  // Solar gets up to $1000/kW, capped at 40% of CAPEX
+  let incentivesHQSolar = Math.min(potentialHQSolar, cap40Percent);
+  
+  // Battery only gets HQ credit if paired with solar AND there's leftover cap room
   let incentivesHQBattery = 0;
-  if (totalPotentialHQ > 0) {
-    const solarRatio = potentialHQSolar / totalPotentialHQ;
-    incentivesHQSolar = totalHQ * solarRatio;
-    incentivesHQBattery = totalHQ * (1 - solarRatio);
+  if (pvSizeKW > 0 && battEnergyKWh > 0) {
+    const remainingCap = Math.max(0, cap40Percent - incentivesHQSolar);
+    incentivesHQBattery = Math.min(remainingCap, capexBattery);
   }
+  
   const incentivesHQ = incentivesHQSolar + incentivesHQBattery;
   
   // Federal ITC

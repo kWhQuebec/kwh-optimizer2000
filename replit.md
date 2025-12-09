@@ -54,11 +54,17 @@ The Site Detail analysis results follow a logical progression:
 
 ### Tariff Auto-Detection
 
-The platform automatically detects the appropriate Hydro-Québec tariff code based on peak demand from consumption data:
+The platform automatically detects the appropriate Hydro-Québec tariff code based on peak demand from simulation data:
 - **Tariff G**: For sites with peak demand < 65 kW (small power)
 - **Tariff M**: For sites with peak demand ≥ 65 kW (medium power)
 
 This auto-detection runs when initializing analysis assumptions, with saved assumptions taking priority over auto-detected values.
+
+### HQ Incentive Policy (Dec 2024 Update)
+
+- **Solar**: $1,000/kW installed, capped at 40% of gross CAPEX
+- **Battery**: NO standalone $300/kW incentive (discontinued)
+- **Paired Storage**: Battery can only receive HQ credit when paired with solar AND there's leftover room in the 40% cap after solar incentive is applied
 
 ### System Design Module
 
