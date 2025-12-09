@@ -2464,10 +2464,26 @@ function runPotentialAnalysis(
         trueOptNpv25
       );
       
+      // Calculate LCOE for final sizing
+      const finalEffectiveYield = effectiveYield; // Use same yield factor
+      let finalTotalProduction = 0;
+      for (let y = 1; y <= h.analysisYears; y++) {
+        const degradationFactor = Math.pow(1 - degradationRate, y - 1);
+        finalTotalProduction += finalPvSizeKW * finalEffectiveYield * degradationFactor;
+      }
+      const finalOpexBase = (finalPvSizeKW * 1000 * h.solarCostPerW) * 0.01; // 1% of solar CAPEX
+      const finalTotalLifetimeCost = trueOptCapexNet + (finalOpexBase * h.analysisYears);
+      const finalLcoe = finalTotalProduction > 0 ? finalTotalLifetimeCost / finalTotalProduction : 0;
+      
+      // Calculate CO2 avoided
+      const co2Factor = 0.002; // kg CO2/kWh for Quebec grid
+      const finalCo2AvoidedTonnesPerYear = (finalSimResult.totalSelfConsumption * co2Factor) / 1000;
+      
+      // Calculate annual savings
+      const finalAnnualSavings = finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12;
+      
       // Return the truly optimal result
       return {
-        _debugPath: 'recursive-optimization',
-        _debugFinalOptimalId: regenOptimal.id,
         pvSizeKW: finalPvSizeKW,
         battEnergyKWh: finalBattEnergyKWh,
         battPowerKW: finalBattPowerKW,
@@ -2479,30 +2495,30 @@ function runPotentialAnalysis(
         selfConsumptionKWh: finalSimResult.totalSelfConsumption,
         selfSufficiencyPercent: annualConsumptionKWh > 0 ? (finalSimResult.totalSelfConsumption / annualConsumptionKWh) * 100 : 0,
         annualCostBefore,
-        annualCostAfter: annualCostBefore - (finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12),
-        annualSavings: finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12,
-        savingsYear1: finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12,
-        capexGross: regenOptimal.capexNet || trueOptCapexNet,
+        annualCostAfter: annualCostBefore - finalAnnualSavings,
+        annualSavings: finalAnnualSavings,
+        savingsYear1: finalAnnualSavings,
+        capexGross: (finalPvSizeKW * 1000 * h.solarCostPerW) + (finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost),
         capexPV: finalPvSizeKW * 1000 * h.solarCostPerW,
         capexBattery: finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost,
-        incentivesHQ: 0, // Simplified
-        incentivesHQSolar: 0,
-        incentivesHQBattery: 0,
-        incentivesFederal: 0,
-        taxShield: 0,
-        totalIncentives: 0,
+        incentivesHQ: finalResult.incentivesHQ || 0,
+        incentivesHQSolar: finalResult.incentivesHQSolar || 0,
+        incentivesHQBattery: finalResult.incentivesHQBattery || 0,
+        incentivesFederal: finalResult.incentivesFederal || 0,
+        taxShield: finalResult.taxShield || 0,
+        totalIncentives: (finalResult.incentivesHQ || 0) + (finalResult.incentivesFederal || 0) + (finalResult.taxShield || 0),
         capexNet: trueOptCapexNet,
         npv25: trueOptNpv25,
-        npv10: calculateNPV([trueOptCapexNet], h.discountRate, 10),
-        npv20: calculateNPV([trueOptCapexNet], h.discountRate, 20),
+        npv10: finalResult.npv10 || 0,
+        npv20: finalResult.npv20 || 0,
         irr25: finalResult.irr25,
-        irr10: 0,
-        irr20: 0,
-        simplePaybackYears: trueOptCapexNet > 0 ? Math.ceil(trueOptCapexNet / (finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12)) : 0,
-        lcoe: 0,
-        co2AvoidedTonnesPerYear: 0,
+        irr10: finalResult.irr10 || 0,
+        irr20: finalResult.irr20 || 0,
+        simplePaybackYears: finalAnnualSavings > 0 ? Math.ceil(trueOptCapexNet / finalAnnualSavings) : h.analysisYears,
+        lcoe: finalLcoe,
+        co2AvoidedTonnesPerYear: finalCo2AvoidedTonnesPerYear,
         assumptions: h,
-        cashflows: [],
+        cashflows: finalResult.cashflows || [],
         breakdown: optBreakdown,
         hourlyProfile: finalSimResult.hourlyProfile,
         peakWeekData: finalSimResult.peakWeekData,
@@ -2514,9 +2530,6 @@ function runPotentialAnalysis(
     console.log(`[ANALYSIS] Returning RECALCULATED result: pvSizeKW=${optPvSizeKW}, optimalId=${optimalScenario.id}`);
     
     return {
-      _debugPath: 'recalculation',
-      _debugOptPvSizeKW: optPvSizeKW,
-      _debugOptimalScenarioId: optimalScenario.id,
       pvSizeKW: optPvSizeKW,
       battEnergyKWh: optBattEnergyKWh,
       battPowerKW: optBattPowerKW,
@@ -2561,14 +2574,7 @@ function runPotentialAnalysis(
   }
   
   // Return initial calculation if it's already optimal
-  console.log(`[ANALYSIS] Returning FALLBACK result: pvSizeKW=${pvSizeKW}, optimalId=${optimalScenario?.id}, hasForcedSizing=${hasForcedSizing}`);
-  
-  // DEBUG: Add flag to identify which path was taken
   return {
-    _debugPath: 'fallback',
-    _debugOptimalId: optimalScenario?.id,
-    _debugHasForcedSizing: hasForcedSizing,
-    _debugForcedSizing: JSON.stringify(forcedSizing),
     pvSizeKW,
     battEnergyKWh,
     battPowerKW,
@@ -3124,7 +3130,21 @@ function runScenarioWithSizing(
   peakKW: number,
   annualConsumptionKWh: number,
   assumptions: AnalysisAssumptions
-): { npv25: number; capexNet: number; irr25: number } {
+): { 
+  npv25: number; 
+  npv10: number;
+  npv20: number;
+  capexNet: number; 
+  irr25: number;
+  irr10: number;
+  irr20: number;
+  incentivesHQ: number;
+  incentivesHQSolar: number;
+  incentivesHQBattery: number;
+  incentivesFederal: number;
+  taxShield: number;
+  cashflows: Array<{ year: number; netCashflow: number }>;
+} {
   const h = assumptions;
   
   // Run simulation with specified sizes
@@ -3171,7 +3191,14 @@ function runScenarioWithSizing(
   const capexGross = capexPV + capexBattery;
   
   if (capexGross === 0) {
-    return { npv25: 0, capexNet: 0, irr25: 0 };
+    return { 
+      npv25: 0, npv10: 0, npv20: 0, 
+      capexNet: 0, 
+      irr25: 0, irr10: 0, irr20: 0,
+      incentivesHQ: 0, incentivesHQSolar: 0, incentivesHQBattery: 0, 
+      incentivesFederal: 0, taxShield: 0, 
+      cashflows: [] 
+    };
   }
   
   // HQ incentives: $1000/kW for solar, capped at 40% of CAPEX
@@ -3250,9 +3277,23 @@ function runScenarioWithSizing(
   }
   
   const npv25 = calculateNPV(cashflowValues, h.discountRate, 25);
+  const npv20 = calculateNPV(cashflowValues, h.discountRate, 20);
+  const npv10 = calculateNPV(cashflowValues, h.discountRate, 10);
   const irr25 = calculateIRR(cashflowValues.slice(0, 26));
+  const irr20 = calculateIRR(cashflowValues.slice(0, 21));
+  const irr10 = calculateIRR(cashflowValues.slice(0, 11));
   
-  return { npv25, capexNet, irr25 };
+  // Build cashflows array for return
+  const cashflows = cashflowValues.map((netCashflow, index) => ({ year: index, netCashflow }));
+  
+  return { 
+    npv25, npv10, npv20, 
+    capexNet, 
+    irr25, irr10, irr20,
+    incentivesHQ, incentivesHQSolar, incentivesHQBattery, 
+    incentivesFederal, taxShield, 
+    cashflows 
+  };
 }
 
 // Generate sensitivity analysis with multiple scenarios
