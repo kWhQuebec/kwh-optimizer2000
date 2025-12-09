@@ -2208,11 +2208,28 @@ function runPotentialAnalysis(
   // The sensitivity analysis explores many scenarios - use the best one
   const optimalScenario = sensitivity.frontier.find(p => p.isOptimal);
   
-  // If the optimal scenario has equal or better NPV than our initial calculation, use its sizing
-  // Use >= with small epsilon to handle floating-point precision issues
-  // This ensures we always display the globally optimal configuration identified by sensitivity analysis
-  const npvThreshold = npv25 - 0.01; // Allow $0.01 tolerance
-  if (optimalScenario && optimalScenario.npv25 >= npvThreshold) {
+  // Debug logging to trace optimal scenario selection
+  console.log(`[Analysis] Initial sizing: PV=${pvSizeKW}kW, Batt=${battEnergyKWh}kWh, NPV25=$${npv25.toFixed(0)}`);
+  if (optimalScenario) {
+    console.log(`[Analysis] Optimal from frontier: PV=${optimalScenario.pvSizeKW}kW, Batt=${optimalScenario.battEnergyKWh}kWh, NPV25=$${optimalScenario.npv25.toFixed(0)}, ID=${optimalScenario.id}`);
+  } else {
+    console.log(`[Analysis] No optimal scenario found in frontier!`);
+  }
+  
+  // If forced sizing was provided, skip recalculation - respect user's explicit choice
+  const hasForcedSizing = forcedSizing?.forcePvSize !== undefined || 
+                          forcedSizing?.forceBatterySize !== undefined || 
+                          forcedSizing?.forceBatteryPower !== undefined;
+  
+  // If the optimal scenario has a better NPV than our initial calculation, use its sizing
+  // Skip this optimization when user explicitly specified sizing (variant creation)
+  const shouldUseOptimal = optimalScenario && 
+                           !hasForcedSizing && 
+                           optimalScenario.npv25 > npv25;
+  
+  console.log(`[Analysis] hasForcedSizing=${hasForcedSizing}, shouldUseOptimal=${shouldUseOptimal}`);
+  
+  if (shouldUseOptimal) {
     // Recalculate with optimal sizing
     const optPvSizeKW = optimalScenario.pvSizeKW;
     const optBattEnergyKWh = optimalScenario.battEnergyKWh;
@@ -2234,7 +2251,11 @@ function runPotentialAnalysis(
     const optAnnualCostAfter = annualCostBefore - optAnnualSavings;
     const optSavingsYear1 = optAnnualSavings;
     
-    const optCapexPV = optPvSizeKW * 1000 * h.solarCostPerW;
+    // Apply bifacial cost premium if enabled (same as initial calculation)
+    const optEffectiveSolarCostPerW = h.bifacialEnabled 
+      ? h.solarCostPerW + (h.bifacialCostPremium || 0.10)
+      : h.solarCostPerW;
+    const optCapexPV = optPvSizeKW * 1000 * optEffectiveSolarCostPerW;
     const optCapexBattery = optBattEnergyKWh * h.batteryCapacityCost + optBattPowerKW * h.batteryPowerCost;
     const optCapexGross = optCapexPV + optCapexBattery;
     
