@@ -1,0 +1,80 @@
+C'est une excellente initiative. Basé sur le document "The Big Book of Commercial Solar Software Must-Haves" d'Aurora/Helioscope, j'ai extrait et structuré les fonctionnalités critiques (le "cahier des charges") pour aider l'équipe d'ingénierie de Replit à développer un outil de classe mondiale.
+
+Voici une analyse détaillée des fonctionnalités requises ("Must-Haves") et des éléments visuels à intégrer, divisée par module technique.
+
+### 1. Module de Conception et Ingénierie (Design & Engineering)
+
+Ce module est le cœur du logiciel. Pour rivaliser avec les leaders du marché, l'outil doit intégrer les capacités suivantes :
+
+**Fonctionnalités Critiques :**
+* **Imagerie HD et LIDAR :** L'outil doit intégrer une imagerie aérienne haute définition (comme Nearmap) et surtout des données LIDAR. [cite_start]Cela permet d'obtenir la hauteur précise des bâtiments et des arbres pour une modélisation 3D sans visite sur site[cite: 42, 43, 206, 208].
+* **Conception Assistée (Auto-fill) :** Implémenter des algorithmes qui placent automatiquement les modules pour remplir une zone définie ou atteindre une puissance cible (kWp). [cite_start]Si l'utilisateur change le type de panneau, le système doit recalculer instantanément la disposition [cite: 213-216].
+* [cite_start]**Câblage Automatique (Auto-stringing) :** Le logiciel doit connecter automatiquement les panneaux en chaînes (strings) intelligentes pour minimiser les pertes dues à l'ombrage et calculer les longueurs de conducteurs [cite: 244-246, 248].
+* [cite_start]**Support pour Nouvelles Constructions :** Capacité d'importer des plans d'architecte (Blueprints) ou des images de site pour modéliser des bâtiments qui n'existent pas encore[cite: 225, 226].
+* [cite_start]**Export "Permit-Ready" :** Génération automatique de schémas unifilaires (Single Line Diagrams - SLD) et de fichiers DXF (CAD) pour accélérer les demandes de permis[cite: 142].
+
+**Visualisations à générer (Images/UI) :**
+L'interface doit afficher une vue aérienne avec les couches de données superposées.
+* *Exemple visuel requis :* Une carte thermique d'irradiance sur le toit montrant les zones optimales.
+* *Exemple visuel requis :* Un schéma unifilaire électrique généré automatiquement.
+
+### 2. Module de Simulation et Performance
+
+La précision des prévisions énergétiques est cruciale pour la "bancabilité" du projet.
+
+**Fonctionnalités Critiques :**
+* [cite_start]**Analyse d'Ombrage Validée :** Le moteur de calcul doit prendre en compte les obstructions environnantes (arbres, bâtiments) et être validé par des autorités comme le NREL[cite: 57].
+* [cite_start]**Fichiers Météo Mondiaux (Weather Files) :** Intégration de sources météorologiques mondiales et possibilité d'importer des fichiers météo personnalisés pour des analyses de type P90[cite: 301, 305].
+* **Modélisation de la Consommation :**
+    * Capacité à ingérer des données "Green Button" (intervalles de 15 min).
+    * [cite_start]Algorithmes prédictifs pour estimer la consommation annuelle à partir d'une seule facture[cite: 255].
+    * [cite_start]Éditeur de profil de charge manuel (voir image source 261) permettant d'ajuster la consommation mensuelle [cite: 261-262].
+
+**Données clés à afficher dans l'UI :**
+[cite_start]Selon les captures d'écran du document, le tableau de bord doit afficher en permanence [cite: 79-83, 96-102] :
+* Puissance installée (ex: 444.8 kW Nameplate)
+* Production réseau (ex: 669.3 MWh Grid Power)
+* Couverture énergétique (ex: 82.0% Offset Energy)
+* Temps de retour sur investissement (ex: 3.7 years Payback Period)
+
+
+### 3. Module Financier (Financial Analysis)
+
+Pour le solaire commercial, l'analyse financière est souvent plus importante que l'ingénierie pure.
+
+**Fonctionnalités Critiques :**
+* [cite_start]**Moteur de Tarifs Publics (Utility Rates) :** Une bibliothèque de tarifs commerciaux complexes (Time-of-Use, Demand Charges) et un outil pour construire des tarifs personnalisés [cite: 133-135].
+* [cite_start]**Comparaison de Financement :** Possibilité de comparer côte à côte : Achat comptant (Cash), Prêt (Loan), Location (Lease), et PPA (Power Purchase Agreement) [cite: 377-379].
+* [cite_start]**Base de Données d'Incitatifs :** Intégration automatique des crédits d'impôt fédéraux (ITC), déductions locales et certificats verts[cite: 367].
+* [cite_start]**Amortissement (Depreciation) :** Calcul automatique des tableaux d'amortissement (ex: MACRS) pour montrer la valeur fiscale au client[cite: 385, 386].
+
+**Tableaux financiers à reproduire :**
+[cite_start]L'outil doit générer un tableau de flux de trésorerie (Cash Flow) incluant [cite: 343-355] :
+* Valeur totale de l'énergie économisée.
+* Valeur actualisée nette (VAN / NPV).
+* Taux de rentabilité interne (TRI / IRR).
+* Coût actualisé de l'énergie (LCOE).
+
+
+### 4. Module de Vente et Propositions (Sales)
+
+L'objectif final est de générer une proposition commerciale convaincante.
+
+**Fonctionnalités Critiques :**
+* [cite_start]**Modèles Personnalisables :** Éditeur de propositions permettant de changer le branding, les couleurs et la mise en page ("White-labeling")[cite: 412].
+* [cite_start]**Intégration de la Conception :** La proposition doit intégrer automatiquement les visuels 3D du design technique sans copier-coller manuel[cite: 437, 438].
+* [cite_start]**Support Multi-langues et Devises :** Indispensable pour un déploiement international (comme mentionné dans le document avec le support du Portugais, Allemand, Espagnol, etc.) [cite: 454-463].
+
+### Résumé des Données Techniques Extraites (Pour les développeurs)
+
+Voici des métriques spécifiques trouvées dans les interfaces du document, utiles pour calibrer les valeurs par défaut de votre outil :
+
+* [cite_start]**Pertes par ombrage (Shade Losses) :** Le document montre des pertes typiques autour de **3.3%** pour un bon design[cite: 76].
+* [cite_start]**Seuil d'ombrage (Module Shading Cutoff) :** Configuré à **26%** dans l'exemple (les panneaux ombragés à plus de 26% sont retirés)[cite: 77].
+* [cite_start]**Facteur de performance (Offset) :** Les exemples visent souvent un offset entre **80% et 90%** de la consommation[cite: 66, 81].
+* **Paramètres de Rack (Racking) :**
+    * [cite_start]Azimut : ~141° (variable selon site)[cite: 176].
+    * [cite_start]Tilt (Inclinaison) : 10° (typique pour toiture plate commerciale)[cite: 177].
+    * [cite_start]Espacement inter-rangées (Row Spacing) : 4 ft[cite: 184].
+
+Souhaitez-vous que je détaille la structure logique des données (schéma JSON potentiel) pour l'un de ces modules, comme le moteur de calcul financier ou le module de simulation ?
