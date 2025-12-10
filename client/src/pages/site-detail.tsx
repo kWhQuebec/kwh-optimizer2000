@@ -368,20 +368,25 @@ function AnalysisParametersEditor({
 
   const merged: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...value };
 
-  // Roof estimation mutation
+  // Roof estimation mutation with 20-second timeout
   const handleRoofEstimate = async () => {
     if (!site || !token) return;
     
     setIsEstimating(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    
     try {
       const response = await fetch(`/api/sites/${site.id}/roof-estimate`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
-        }
+        },
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
       const data = await response.json();
       
       if (!response.ok) {
@@ -402,10 +407,16 @@ function AnalysisParametersEditor({
       
       onSiteRefresh?.();
     } catch (error) {
+      clearTimeout(timeoutId);
+      const isTimeout = error instanceof Error && error.name === 'AbortError';
       toast({
         variant: "destructive",
         title: language === "fr" ? "Erreur d'estimation" : "Estimation error",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: isTimeout 
+          ? (language === "fr" 
+              ? "Délai dépassé. Veuillez entrer la surface manuellement." 
+              : "Request timed out. Please enter the area manually.")
+          : (error instanceof Error ? error.message : "Unknown error"),
       });
     } finally {
       setIsEstimating(false);
