@@ -84,7 +84,7 @@ export default function LandingPage() {
   const { t, language } = useI18n();
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
-  const [calcBill, setCalcBill] = useState<number>(5000);
+  const [calcBill, setCalcBill] = useState<string>("");
   const [calcAddress, setCalcAddress] = useState<string>("");
   const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
   const [calcTariff, setCalcTariff] = useState<string>("M");
@@ -118,6 +118,12 @@ export default function LandingPage() {
       return;
     }
     
+    const billAmount = parseInt(calcBill, 10);
+    if (!billAmount || billAmount < 500) {
+      setCalcError(language === "fr" ? "Veuillez entrer une facture d'au moins 500$" : "Please enter a bill of at least $500");
+      return;
+    }
+    
     setCalcLoading(true);
     setCalcError("");
     setCalcResults(null);
@@ -128,7 +134,7 @@ export default function LandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           address: calcAddress,
-          monthlyBill: calcBill,
+          monthlyBill: billAmount,
           buildingType: calcBuildingType,
           tariffCode: calcTariff,
         }),
@@ -439,9 +445,10 @@ export default function LandingPage() {
                     </label>
                     <div className="relative">
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         value={calcBill}
-                        onChange={(e) => setCalcBill(Number(e.target.value) || 0)}
+                        onChange={(e) => setCalcBill(e.target.value.replace(/[^0-9]/g, ""))}
                         className="h-12 pl-8"
                         placeholder="5000"
                         data-testid="input-calc-bill"
