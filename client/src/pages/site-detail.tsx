@@ -593,17 +593,24 @@ function AnalysisParametersEditor({
                 const bifacialBoost = merged.bifacialEnabled 
                   ? (1 + (merged.bifacialityFactor || 0.85) * (merged.roofAlbedo || 0.70) * 0.35)
                   : 1.0;
-                const effectiveYield = Math.round(baseYield * orientationFactor * bifacialBoost);
+                const grossYield = Math.round(baseYield * orientationFactor * bifacialBoost);
                 const bifacialLabel = merged.bifacialEnabled 
-                  ? (language === "fr" ? ` (+${Math.round((bifacialBoost - 1) * 100)}% bifacial)` : ` (+${Math.round((bifacialBoost - 1) * 100)}% bifacial)`)
+                  ? ` (+${Math.round((bifacialBoost - 1) * 100)}% bifacial)`
                   : "";
                 return (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    {language === "fr" 
-                      ? `Rendement effectif: ${effectiveYield} kWh/kWc/an${bifacialLabel}${site?.roofAreaAutoDetails ? " (calibré via Google Solar)" : ""}`
-                      : `Effective yield: ${effectiveYield} kWh/kWp/yr${bifacialLabel}${site?.roofAreaAutoDetails ? " (calibrated via Google Solar)" : ""}`}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      {language === "fr" 
+                        ? `Rendement brut: ${grossYield} kWh/kWc/an${bifacialLabel}`
+                        : `Gross yield: ${grossYield} kWh/kWp/yr${bifacialLabel}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 pl-4">
+                      {language === "fr" 
+                        ? "→ Rendement net après pertes système affiché dans les résultats d'analyse"
+                        : "→ Net yield after system losses shown in analysis results"}
+                    </p>
+                  </div>
                 );
               })()}
               
@@ -4017,10 +4024,39 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
               <p className="text-muted-foreground">{language === "fr" ? "Coût solaire" : "Solar cost"}</p>
               <p className="font-mono">${assumptions.solarCostPerW}/Wc</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">{language === "fr" ? "Rendement solaire" : "Solar yield"}</p>
-              <p className="font-mono">{Math.round((assumptions.solarYieldKWhPerKWp || 1150) * (assumptions.orientationFactor || 1.0))} kWh/kWc</p>
-            </div>
+            {(() => {
+              const baseYield = assumptions.solarYieldKWhPerKWp || 1150;
+              const orientationFactor = assumptions.orientationFactor || 1.0;
+              const bifacialBoost = assumptions.bifacialEnabled 
+                ? (1 + (assumptions.bifacialityFactor || 0.85) * (assumptions.roofAlbedo || 0.70) * 0.35)
+                : 1.0;
+              const grossYield = Math.round(baseYield * orientationFactor * bifacialBoost);
+              
+              // Calculate net yield from actual simulation data
+              const hourlyProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
+              let annualProduction = 0;
+              if (hourlyProfile && hourlyProfile.length > 0) {
+                annualProduction = hourlyProfile.reduce((sum, h) => sum + (h.production || 0), 0);
+              }
+              const pvKW = simulation.pvSizeKW || 0;
+              const netYield = pvKW > 0 ? Math.round(annualProduction / pvKW) : 0;
+              
+              return (
+                <>
+                  <div>
+                    <p className="text-muted-foreground">
+                      {language === "fr" ? "Rendement brut" : "Gross yield"}
+                      {assumptions.bifacialEnabled && <span className="text-primary ml-1">(+bifacial)</span>}
+                    </p>
+                    <p className="font-mono">{grossYield} kWh/kWc</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">{language === "fr" ? "Rendement net livré" : "Net delivered yield"}</p>
+                    <p className="font-mono text-primary font-semibold">{netYield} kWh/kWc</p>
+                  </div>
+                </>
+              );
+            })()}
             <div>
               <p className="text-muted-foreground">{language === "fr" ? "Taux actualisation" : "Discount rate"}</p>
               <p className="font-mono">{(assumptions.discountRate * 100).toFixed(1)}%</p>
