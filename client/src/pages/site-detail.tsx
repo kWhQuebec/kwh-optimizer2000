@@ -4491,6 +4491,74 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
           </p>
         </CardContent>
       </Card>
+
+      {/* PDF-only Design Agreement CTA Section - Hidden from view but captured for PDF */}
+      <div id="pdf-section-service-offer" aria-hidden="true" tabIndex={-1} className="bg-white p-6 rounded-lg" style={{ position: 'absolute', left: '-9999px', top: '0', pointerEvents: 'none' }}>
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-[#003DA6] mb-2">
+            {language === "fr" ? "Prochaine étape: Entente de conception" : "Next Step: Design Agreement"}
+          </h2>
+          <p className="text-gray-600">
+            {language === "fr" 
+              ? "Passez à l'action pour concrétiser votre projet solaire" 
+              : "Take action to make your solar project a reality"}
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-6 mb-6">
+          <div className="text-center p-4 border rounded-lg">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#003DA6]/10 flex items-center justify-center">
+              <span className="text-xl font-bold text-[#003DA6]">1</span>
+            </div>
+            <h4 className="font-semibold mb-2">{language === "fr" ? "Conception détaillée" : "Detailed Design"}</h4>
+            <p className="text-sm text-gray-600">
+              {language === "fr" 
+                ? "Plans d'ingénierie et spécifications techniques" 
+                : "Engineering plans and technical specifications"}
+            </p>
+          </div>
+          <div className="text-center p-4 border rounded-lg">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#003DA6]/10 flex items-center justify-center">
+              <span className="text-xl font-bold text-[#003DA6]">2</span>
+            </div>
+            <h4 className="font-semibold mb-2">{language === "fr" ? "Soumission ferme" : "Firm Quote"}</h4>
+            <p className="text-sm text-gray-600">
+              {language === "fr" 
+                ? "Prix garantis et calendrier d'exécution" 
+                : "Guaranteed pricing and execution timeline"}
+            </p>
+          </div>
+          <div className="text-center p-4 border rounded-lg">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#003DA6]/10 flex items-center justify-center">
+              <span className="text-xl font-bold text-[#003DA6]">3</span>
+            </div>
+            <h4 className="font-semibold mb-2">{language === "fr" ? "Installation clé en main" : "Turnkey Installation"}</h4>
+            <p className="text-sm text-gray-600">
+              {language === "fr" 
+                ? "Gestion complète du projet et subventions" 
+                : "Complete project management and incentives"}
+            </p>
+          </div>
+        </div>
+        
+        <div className="bg-[#003DA6] text-white p-6 rounded-lg text-center">
+          <p className="text-lg font-semibold mb-2">
+            {language === "fr" ? "Frais de conception: 2 500$ + taxes" : "Design Fee: $2,500 + taxes"}
+          </p>
+          <p className="text-sm opacity-90 mb-4">
+            {language === "fr" 
+              ? "Crédité intégralement si vous procédez avec l'installation" 
+              : "Fully credited if you proceed with installation"}
+          </p>
+          <div className="inline-block bg-[#FFB005] text-[#003DA6] font-bold px-8 py-3 rounded-lg">
+            {language === "fr" ? "Contactez-nous pour démarrer" : "Contact us to get started"}
+          </div>
+        </div>
+        
+        <div className="mt-6 text-center text-sm text-gray-500">
+          <p>{language === "fr" ? "Questions?" : "Questions?"} info@kwhquebec.com | 1-800-XXX-XXXX</p>
+        </div>
+      </div>
       
       {/* Externally controlled Create Variant Dialog for chart click-to-create */}
       {isStaff && (
