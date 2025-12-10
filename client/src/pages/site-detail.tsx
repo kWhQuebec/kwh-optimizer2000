@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, Fragment, useRef } from "react";
+import { useState, useCallback, useEffect, Fragment, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useDropzone } from "react-dropzone";
@@ -1293,10 +1293,13 @@ function ScenarioComparison({
 }) {
   const { t, language } = useI18n();
   
-  const validScenarios = simulations.filter(s => 
-    s.type === "SCENARIO" && 
-    (s.pvSizeKW !== null || s.battEnergyKWh !== null) &&
-    s.npv25 !== null
+  const validScenarios = useMemo(() => 
+    simulations.filter(s => 
+      s.type === "SCENARIO" && 
+      (s.pvSizeKW !== null || s.battEnergyKWh !== null) &&
+      s.npv25 !== null
+    ),
+    [simulations]
   );
   
   if (validScenarios.length < 2) {
@@ -1355,26 +1358,35 @@ function ScenarioComparison({
     return `${language === "fr" ? "Scénario" : "Scenario"} ${index + 1}`;
   };
   
-  const comparisonData = validScenarios.map((sim, index) => ({
-    id: sim.id,
-    name: getScenarioLabel(sim, index),
-    color: getScenarioColor(index),
-    pvSize: sim.pvSizeKW || 0,
-    batterySize: sim.battEnergyKWh || 0,
-    annualSavings: sim.annualSavings || 0,
-    npv25: sim.npv25 || 0,
-    irr25: sim.irr25 || 0,
-    payback: sim.simplePaybackYears && sim.simplePaybackYears > 0 ? sim.simplePaybackYears : 0,
-    capexNet: sim.capexNet || 0,
-    co2: sim.co2AvoidedTonnesPerYear || 0,
-  }));
+  // Memoize comparison data transformation
+  const comparisonData = useMemo(() => 
+    validScenarios.map((sim, index) => ({
+      id: sim.id,
+      name: getScenarioLabel(sim, index),
+      color: getScenarioColor(index),
+      pvSize: sim.pvSizeKW || 0,
+      batterySize: sim.battEnergyKWh || 0,
+      annualSavings: sim.annualSavings || 0,
+      npv25: sim.npv25 || 0,
+      irr25: sim.irr25 || 0,
+      payback: sim.simplePaybackYears && sim.simplePaybackYears > 0 ? sim.simplePaybackYears : 0,
+      capexNet: sim.capexNet || 0,
+      co2: sim.co2AvoidedTonnesPerYear || 0,
+    })),
+    [validScenarios]
+  );
   
-  const validNPVs = comparisonData.filter(d => d.npv25 > 0).map(d => d.npv25);
-  const bestNPV = validNPVs.length > 0 ? Math.max(...validNPVs) : null;
-  const validPaybacks = comparisonData.filter(d => d.payback > 0).map(d => d.payback);
-  const validIRRs = comparisonData.filter(d => d.irr25 > 0).map(d => d.irr25);
-  const bestIRR = validIRRs.length > 0 ? Math.max(...validIRRs) : null;
-  const bestPayback = validPaybacks.length > 0 ? Math.min(...validPaybacks) : null;
+  // Memoize best value calculations
+  const { bestNPV, bestIRR, bestPayback } = useMemo(() => {
+    const validNPVs = comparisonData.filter(d => d.npv25 > 0).map(d => d.npv25);
+    const validPaybacks = comparisonData.filter(d => d.payback > 0).map(d => d.payback);
+    const validIRRs = comparisonData.filter(d => d.irr25 > 0).map(d => d.irr25);
+    return {
+      bestNPV: validNPVs.length > 0 ? Math.max(...validNPVs) : null,
+      bestIRR: validIRRs.length > 0 ? Math.max(...validIRRs) : null,
+      bestPayback: validPaybacks.length > 0 ? Math.min(...validPaybacks) : null,
+    };
+  }, [comparisonData]);
 
   return (
     <div className="space-y-6" data-testid="section-scenario-comparison">
@@ -2547,18 +2559,22 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
   const cashflows = (simulation.cashflows as CashflowEntry[] | null) || [];
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
   
-  const cashflowChartData = cashflows.map(cf => ({
-    year: cf.year,
-    cashflow: cf.netCashflow / 1000,
-    cumulative: cf.cumulative / 1000,
-  }));
+  // Memoize expensive cashflow chart data transformation
+  const cashflowChartData = useMemo(() => 
+    cashflows.map(cf => ({
+      year: cf.year,
+      cashflow: cf.netCashflow / 1000,
+      cumulative: cf.cumulative / 1000,
+    })),
+    [cashflows]
+  );
 
   const usableRoofSqFt = assumptions.roofAreaSqFt * assumptions.roofUtilizationRatio;
   const maxPVFromRoof = usableRoofSqFt / 100;
   const isRoofLimited = (simulation.pvSizeKW || 0) >= maxPVFromRoof * 0.95;
 
-  // Build hourly profile data from simulation.hourlyProfile
-  const hourlyProfileData = (() => {
+  // Memoize expensive hourly profile aggregation (8760 entries -> 24 hourly averages)
+  const hourlyProfileData = useMemo(() => {
     const rawProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
     if (!rawProfile || rawProfile.length === 0) {
       return null;
@@ -2605,7 +2621,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
       }
     }
     return result;
-  })();
+  }, [simulation.hourlyProfile]);
 
   // Section Divider component for visual hierarchy
   const SectionDivider = ({ title, icon: Icon }: { title: string; icon?: any }) => (
@@ -2623,7 +2639,7 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
       {/* KPI Dashboard - Quick Overview */}
       <KPIDashboard
         pvSizeKW={simulation.pvSizeKW || 0}
-        productionMWh={((simulation.pvSizeKW || 0) * (assumptions.yieldKWhPerKWp || 1150)) / 1000}
+        productionMWh={((simulation.pvSizeKW || 0) * (assumptions.solarYieldKWhPerKWp || 1150)) / 1000}
         coveragePercent={
           simulation.selfSufficiencyPercent 
             ? simulation.selfSufficiencyPercent 

@@ -1,4 +1,5 @@
 import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Suspense, lazy } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,21 +12,31 @@ import { LanguageToggle } from "@/components/language-toggle";
 import { GlobalSearch } from "@/components/global-search";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
 import ClientsPage from "@/pages/clients";
 import SitesPage from "@/pages/sites";
-import SiteDetailPage from "@/pages/site-detail";
-import AnalysesPage from "@/pages/analyses";
-import DesignPage from "@/pages/design";
-import DesignsPage from "@/pages/designs";
-import CatalogPage from "@/pages/catalog";
-import MethodologyPage from "@/pages/methodology";
-import ClientPortalPage from "@/pages/client-portal";
-import UsersPage from "@/pages/users";
 import NotFound from "@/pages/not-found";
+
+const SiteDetailPage = lazy(() => import("@/pages/site-detail"));
+const AnalysesPage = lazy(() => import("@/pages/analyses"));
+const DesignPage = lazy(() => import("@/pages/design"));
+const DesignsPage = lazy(() => import("@/pages/designs"));
+const CatalogPage = lazy(() => import("@/pages/catalog"));
+const MethodologyPage = lazy(() => import("@/pages/methodology"));
+const ClientPortalPage = lazy(() => import("@/pages/client-portal"));
+const UsersPage = lazy(() => import("@/pages/users"));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -123,7 +134,9 @@ function AppRoutes() {
       <Route path="/app/sites/:id">
         <ProtectedRoute>
           <AppLayout>
-            <SiteDetailPage />
+            <Suspense fallback={<PageLoader />}>
+              <SiteDetailPage />
+            </Suspense>
           </AppLayout>
         </ProtectedRoute>
       </Route>
@@ -131,7 +144,9 @@ function AppRoutes() {
       <Route path="/app/analyses">
         <ProtectedRoute>
           <AppLayout>
-            <AnalysesPage />
+            <Suspense fallback={<PageLoader />}>
+              <AnalysesPage />
+            </Suspense>
           </AppLayout>
         </ProtectedRoute>
       </Route>
@@ -139,7 +154,9 @@ function AppRoutes() {
       <Route path="/app/analyses/:simulationId/design">
         <ProtectedRoute>
           <AppLayout>
-            <DesignPage />
+            <Suspense fallback={<PageLoader />}>
+              <DesignPage />
+            </Suspense>
           </AppLayout>
         </ProtectedRoute>
       </Route>
@@ -147,7 +164,9 @@ function AppRoutes() {
       <Route path="/app/designs">
         <ProtectedRoute>
           <AppLayout>
-            <DesignsPage />
+            <Suspense fallback={<PageLoader />}>
+              <DesignsPage />
+            </Suspense>
           </AppLayout>
         </ProtectedRoute>
       </Route>
@@ -155,7 +174,9 @@ function AppRoutes() {
       <Route path="/app/catalog">
         <ProtectedRoute>
           <AppLayout>
-            <CatalogPage />
+            <Suspense fallback={<PageLoader />}>
+              <CatalogPage />
+            </Suspense>
           </AppLayout>
         </ProtectedRoute>
       </Route>
@@ -163,7 +184,9 @@ function AppRoutes() {
       <Route path="/app/methodology">
         <ProtectedRoute>
           <AppLayout>
-            <MethodologyPage />
+            <Suspense fallback={<PageLoader />}>
+              <MethodologyPage />
+            </Suspense>
           </AppLayout>
         </ProtectedRoute>
       </Route>
@@ -172,7 +195,9 @@ function AppRoutes() {
       <Route path="/app/portal">
         <ProtectedRoute>
           <AppLayout>
-            <ClientPortalPage />
+            <Suspense fallback={<PageLoader />}>
+              <ClientPortalPage />
+            </Suspense>
           </AppLayout>
         </ProtectedRoute>
       </Route>
@@ -181,7 +206,9 @@ function AppRoutes() {
       <Route path="/app/users">
         <ProtectedRoute>
           <AppLayout>
-            <UsersPage />
+            <Suspense fallback={<PageLoader />}>
+              <UsersPage />
+            </Suspense>
           </AppLayout>
         </ProtectedRoute>
       </Route>
