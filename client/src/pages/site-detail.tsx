@@ -366,24 +366,49 @@ function AnalysisParametersEditor({
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isEstimating, setIsEstimating] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [showResetButton, setShowResetButton] = useState(false);
-  const [pendingStartTime] = useState<number>(() => Date.now());
-
-  // Detect stale "pending" status - show reset button after 15 seconds
+  
+  // Stale detection using server-provided timestamp:
+  // - Use roofEstimatePendingAt from server to calculate real elapsed time
+  // - Show reset after 15s from when server started pending
   useEffect(() => {
-    if (site?.roofEstimateStatus === "pending" && !isEstimating) {
+    // If not pending or actively estimating, hide reset button
+    if (site?.roofEstimateStatus !== "pending" || isEstimating) {
+      setShowResetButton(false);
+      return;
+    }
+    
+    // Pending status exists and we're not actively estimating
+    // Use server timestamp if available, otherwise show reset immediately (stale from before timestamp was added)
+    const pendingAt = site.roofEstimatePendingAt ? new Date(site.roofEstimatePendingAt).getTime() : null;
+    
+    if (!pendingAt) {
+      // No timestamp = legacy stale status, show reset immediately
+      setShowResetButton(true);
+      return;
+    }
+    
+    // Calculate remaining time until reset button should show (15s grace period)
+    const elapsed = Date.now() - pendingAt;
+    const remaining = Math.max(0, 15000 - elapsed);
+    
+    if (remaining === 0) {
+      // Already past 15 seconds, show immediately
+      setShowResetButton(true);
+    } else {
+      // Wait for remaining time
       const timer = setTimeout(() => {
         setShowResetButton(true);
-      }, 15000);
+      }, remaining);
       return () => clearTimeout(timer);
-    } else {
-      setShowResetButton(false);
     }
-  }, [site?.roofEstimateStatus, isEstimating]);
+  }, [site?.roofEstimateStatus, site?.roofEstimatePendingAt, isEstimating]);
 
   // Reset stale pending status
   const handleResetStatus = async () => {
-    if (!site || !token) return;
+    if (!site || !token || isResetting) return;
+    setIsResetting(true);
     try {
       const response = await fetch(`/api/sites/${site.id}/reset-roof-status`, {
         method: "POST",
@@ -401,9 +426,26 @@ function AnalysisParametersEditor({
             ? "Vous pouvez maintenant relancer l'estimation" 
             : "You can now retry the estimation",
         });
+      } else {
+        toast({
+          variant: "destructive",
+          title: language === "fr" ? "Erreur" : "Error",
+          description: language === "fr" 
+            ? "Impossible de réinitialiser le statut" 
+            : "Could not reset status",
+        });
       }
     } catch (error) {
       console.error("Failed to reset status:", error);
+      toast({
+        variant: "destructive",
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr" 
+          ? "Impossible de réinitialiser le statut" 
+          : "Could not reset status",
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -414,6 +456,7 @@ function AnalysisParametersEditor({
     if (!site || !token) return;
     
     setIsEstimating(true);
+    setShowResetButton(false); // Hide reset button when starting new estimation
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
     
@@ -1016,10 +1059,15 @@ function AnalysisParametersEditor({
                             variant="ghost"
                             size="sm"
                             onClick={handleResetStatus}
+                            disabled={isResetting}
                             className="h-6 text-xs ml-auto text-destructive hover:text-destructive"
                             data-testid="button-reset-roof-status"
                           >
-                            <XCircle className="w-3 h-3 mr-1" />
+                            {isResetting ? (
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            ) : (
+                              <XCircle className="w-3 h-3 mr-1" />
+                            )}
                             {language === "fr" ? "Réinitialiser" : "Reset"}
                           </Button>
                         )}

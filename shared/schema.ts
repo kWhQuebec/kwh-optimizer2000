@@ -77,6 +77,7 @@ export const sites = pgTable("sites", {
   roofAreaAutoDetails: jsonb("roof_area_auto_details"), // Full Solar API response for reference
   roofEstimateStatus: text("roof_estimate_status").default("none"), // "none" | "pending" | "success" | "failed" | "skipped"
   roofEstimateError: text("roof_estimate_error"), // Error message if failed
+  roofEstimatePendingAt: timestamp("roof_estimate_pending_at"), // When pending status started (for stale detection)
   
   // Roof color detection for bifacial PV analysis
   roofColorType: text("roof_color_type"), // "white_membrane" | "light" | "dark" | "gravel" | "unknown"

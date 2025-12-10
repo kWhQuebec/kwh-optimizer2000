@@ -106,7 +106,8 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
       if (!fullAddress || fullAddress === "Canada") {
         await storage.updateSite(siteId, {
           roofEstimateStatus: "skipped",
-          roofEstimateError: "No address provided"
+          roofEstimateError: "No address provided",
+          roofEstimatePendingAt: null
         });
         return;
       }
@@ -120,6 +121,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
         roofEstimateError: result.error || "Could not estimate roof area",
         latitude: result.latitude || null,
         longitude: result.longitude || null,
+        roofEstimatePendingAt: null
       });
       console.log(`Roof estimation failed for site ${siteId}: ${result.error}`);
       return;
@@ -135,6 +137,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
       roofAreaAutoDetails: result.details as any,
       roofEstimateStatus: "success",
       roofEstimateError: null,
+      roofEstimatePendingAt: null
     });
 
     console.log(`Roof estimation success for site ${siteId}: ${result.roofAreaSqM.toFixed(1)} m²`);
@@ -162,7 +165,8 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
     console.error(`Roof estimation error for site ${siteId}:`, error);
     await storage.updateSite(siteId, {
       roofEstimateStatus: "failed",
-      roofEstimateError: error instanceof Error ? error.message : "Unknown error"
+      roofEstimateError: error instanceof Error ? error.message : "Unknown error",
+      roofEstimatePendingAt: null
     });
   }
 }
@@ -887,8 +891,11 @@ export async function registerRoutes(
       // Trigger automatic roof estimation if address is provided and Google Solar is configured
       const hasAddress = site.address || site.city || site.postalCode;
       if (hasAddress && googleSolar.isGoogleSolarConfigured()) {
-        // Mark as pending and trigger async estimation
-        await storage.updateSite(site.id, { roofEstimateStatus: "pending" });
+        // Mark as pending with timestamp and trigger async estimation
+        await storage.updateSite(site.id, { 
+          roofEstimateStatus: "pending",
+          roofEstimatePendingAt: new Date()
+        });
         
         // Fire-and-forget: don't await, let it run in background
         triggerRoofEstimation(site.id).catch(err => {
@@ -932,8 +939,8 @@ export async function registerRoutes(
     res.json({ configured: googleSolar.isGoogleSolarConfigured() });
   });
 
-  // Reset stale roof estimation status
-  app.post("/api/sites/:id/reset-roof-status", authMiddleware, async (req: AuthRequest, res) => {
+  // Reset stale roof estimation status (staff only)
+  app.post("/api/sites/:id/reset-roof-status", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
       const siteId = req.params.id;
       console.log(`[RoofEstimate] Resetting status for site ${siteId}`);
@@ -945,7 +952,8 @@ export async function registerRoutes(
 
       const updatedSite = await storage.updateSite(siteId, {
         roofEstimateStatus: null,
-        roofEstimateError: null
+        roofEstimateError: null,
+        roofEstimatePendingAt: null
       });
 
       res.json({ success: true, site: updatedSite });
@@ -1014,6 +1022,9 @@ export async function registerRoutes(
         roofAreaAutoSource: "google_solar",
         roofAreaAutoTimestamp: new Date(),
         roofAreaAutoDetails: result.details as any,
+        roofEstimateStatus: "success",
+        roofEstimateError: null,
+        roofEstimatePendingAt: null
       });
 
       res.json({
