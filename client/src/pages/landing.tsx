@@ -201,9 +201,14 @@ export default function LandingPage() {
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15]">
                   {t("landing.hero.title")}
                 </h1>
-                <p className="text-xl sm:text-2xl text-primary font-semibold">
-                  {t("landing.hero.subtitle")}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xl sm:text-2xl text-primary font-semibold">
+                    {t("landing.hero.subtitle")}
+                  </p>
+                  <p className="text-xl sm:text-2xl text-primary font-semibold">
+                    {t("landing.hero.subtitle2")}
+                  </p>
+                </div>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4">

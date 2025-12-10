@@ -33,7 +33,8 @@ const translations: Translations = {
 
   // Landing Page - Hero
   "landing.hero.title": { fr: "Solaire + stockage clé en main pour le secteur commercial et industriel québécois", en: "Turnkey Solar + Storage for Québec C&I Buildings" },
-  "landing.hero.subtitle": { fr: "Analyse gratuite. Incitatifs jusqu'à 40% du projet.", en: "Free analysis. Incentives up to 40% of project cost." },
+  "landing.hero.subtitle": { fr: "Incitatifs jusqu'à 40% du projet.", en: "Incentives up to 40% of project cost." },
+  "landing.hero.subtitle2": { fr: "Analyse gratuite.", en: "Free analysis." },
   "landing.hero.description": { 
     fr: "", 
     en: "" 
