@@ -9,7 +9,8 @@ import {
   FileBarChart, Building2, Factory, School, HelpCircle, 
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
-  Timer, Rocket, BatteryCharging, BadgePercent
+  Timer, Rocket, BatteryCharging, BadgePercent, Calculator, MapPin,
+  Sun, Battery, FileText, Hammer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,8 +84,15 @@ export default function LandingPage() {
   const { t, language } = useI18n();
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [calcBill, setCalcBill] = useState<number>(5000);
+  const [calcShowResults, setCalcShowResults] = useState(false);
   const currentLogo = language === "fr" ? logoFr : logoEn;
   const analysisSlides = language === "fr" ? analysisSlidesFr : analysisSlidesEn;
+  
+  // Quick calculator estimates (conservative values)
+  const estimatedSavings = Math.round(calcBill * 0.35 * 12); // ~35% annual savings
+  const estimatedSystemSize = Math.round(calcBill / 8); // Rough kW estimate
+  const estimatedPayback = 6; // Conservative payback period
   
   useEffect(() => {
     setActiveSlide(0);
@@ -315,6 +323,221 @@ export default function LandingPage() {
               </div>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* ========== QUICK CALCULATOR SECTION ========== */}
+      <section id="calculator" className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/5 to-background">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8"
+          >
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+              <Calculator className="w-3 h-3 mr-1" />
+              {language === "fr" ? "Calculateur rapide" : "Quick Calculator"}
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+              {language === "fr" ? "Estimez vos économies en 10 secondes" : "Estimate your savings in 10 seconds"}
+            </h2>
+            <p className="text-muted-foreground">
+              {language === "fr" 
+                ? "Entrez votre facture mensuelle d'électricité pour voir votre potentiel d'économies"
+                : "Enter your monthly electricity bill to see your savings potential"
+              }
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+          >
+            <Card className="p-6 lg:p-8 border-2 border-primary/20">
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                {/* Input side */}
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-primary" />
+                      {language === "fr" ? "Facture mensuelle moyenne" : "Average monthly bill"}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={calcBill}
+                        onChange={(e) => {
+                          setCalcBill(Number(e.target.value) || 0);
+                          setCalcShowResults(true);
+                        }}
+                        className="text-2xl font-bold h-14 pl-8"
+                        placeholder="5000"
+                        data-testid="input-calc-bill"
+                      />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl text-muted-foreground">$</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" 
+                        ? "Moyenne pour bâtiments commerciaux: 3 000$ - 15 000$/mois"
+                        : "Average for commercial buildings: $3,000 - $15,000/month"
+                      }
+                    </p>
+                  </div>
+                  
+                  <a href="#contact">
+                    <Button size="lg" className="w-full gap-2" data-testid="button-calc-cta">
+                      {language === "fr" ? "Obtenir mon analyse détaillée" : "Get my detailed analysis"}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </a>
+                </div>
+
+                {/* Results side */}
+                <div className={`space-y-4 transition-opacity duration-300 ${calcShowResults ? 'opacity-100' : 'opacity-50'}`}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-primary/10 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {language === "fr" ? "Économies annuelles" : "Annual savings"}
+                      </p>
+                      <p className="text-2xl font-bold text-primary">
+                        ${estimatedSavings.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-accent/10 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {language === "fr" ? "Retour sur investissement" : "Payback period"}
+                      </p>
+                      <p className="text-2xl font-bold text-accent">
+                        ~{estimatedPayback} {language === "fr" ? "ans" : "years"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted text-center">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {language === "fr" ? "Taille système estimée" : "Estimated system size"}
+                    </p>
+                    <p className="text-xl font-bold">
+                      ~{estimatedSystemSize} kW
+                    </p>
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground">
+                    {language === "fr" 
+                      ? "* Estimation préliminaire. L'analyse détaillée fournira des chiffres précis."
+                      : "* Preliminary estimate. Detailed analysis will provide exact figures."
+                    }
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ========== PVCASE-STYLE WORKFLOW SECTION ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+              {language === "fr" ? "Notre processus d'analyse" : "Our Analysis Process"}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {language === "fr" 
+                ? "Une méthodologie éprouvée en 5 étapes pour optimiser votre projet solaire"
+                : "A proven 5-step methodology to optimize your solar project"
+              }
+            </p>
+          </motion.div>
+
+          {/* PVcase-style step cards */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {[
+              { 
+                step: 1, 
+                icon: MapPin, 
+                title: language === "fr" ? "Analyse du toit" : "Roof Analysis",
+                description: language === "fr" ? "Évaluation satellite et estimation de surface" : "Satellite evaluation and area estimation",
+                color: "bg-blue-500"
+              },
+              { 
+                step: 2, 
+                icon: BarChart3, 
+                title: language === "fr" ? "Profil énergétique" : "Energy Profile",
+                description: language === "fr" ? "Analyse de vos données de consommation" : "Analysis of your consumption data",
+                color: "bg-primary"
+              },
+              { 
+                step: 3, 
+                icon: Sun, 
+                title: language === "fr" ? "Dimensionnement" : "System Sizing",
+                description: language === "fr" ? "Optimisation PV + batterie" : "PV + battery optimization",
+                color: "bg-amber-500"
+              },
+              { 
+                step: 4, 
+                icon: DollarSign, 
+                title: language === "fr" ? "Analyse financière" : "Financial Analysis",
+                description: language === "fr" ? "VAN, TRI et options de financement" : "NPV, IRR and financing options",
+                color: "bg-green-500"
+              },
+              { 
+                step: 5, 
+                icon: FileText, 
+                title: language === "fr" ? "Rapport détaillé" : "Detailed Report",
+                description: language === "fr" ? "Document prêt pour la prise de décision" : "Document ready for decision-making",
+                color: "bg-accent"
+              },
+            ].map((item, index) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="p-4 h-full hover-elevate text-center relative overflow-visible">
+                  {/* Step number badge */}
+                  <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full ${item.color} flex items-center justify-center shadow-lg`}>
+                    <span className="text-sm font-bold text-white">{item.step}</span>
+                  </div>
+                  
+                  {/* Connection line (hidden on mobile and last item) */}
+                  {index < 4 && (
+                    <div className="hidden md:block absolute top-4 -right-2 w-4 h-0.5 bg-gradient-to-r from-muted-foreground/30 to-transparent z-10" />
+                  )}
+                  
+                  <div className="pt-4 space-y-3">
+                    <div className={`w-12 h-12 mx-auto rounded-xl ${item.color}/10 flex items-center justify-center`}>
+                      <item.icon className={`w-6 h-6`} style={{ color: item.color.replace('bg-', '').includes('-') ? undefined : 'currentColor' }} />
+                    </div>
+                    <h3 className="font-semibold text-sm">{item.title}</h3>
+                    <p className="text-xs text-muted-foreground">{item.description}</p>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5 }}
+            className="mt-8 text-center"
+          >
+            <a href="#contact">
+              <Button size="lg" className="gap-2">
+                {language === "fr" ? "Démarrer mon analyse gratuite" : "Start my free analysis"}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </a>
+          </motion.div>
         </div>
       </section>
 

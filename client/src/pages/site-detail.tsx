@@ -1388,6 +1388,93 @@ function ScenarioComparison({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Visual Side-by-Side Comparison Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {comparisonData.slice(0, 3).map((scenario, index) => {
+              const isBestNPV = bestNPV !== null && scenario.npv25 === bestNPV;
+              const isBestPayback = bestPayback !== null && scenario.payback > 0 && scenario.payback === bestPayback;
+              const isBestIRR = bestIRR !== null && scenario.irr25 === bestIRR;
+              
+              return (
+                <div 
+                  key={scenario.id}
+                  className={`relative rounded-xl border-2 p-4 transition-all ${
+                    isBestNPV ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20' : 'border-muted hover:border-primary/50'
+                  }`}
+                  data-testid={`card-scenario-${index}`}
+                >
+                  {isBestNPV && (
+                    <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-green-500 text-white border-green-500">
+                      {language === "fr" ? "Meilleur VAN" : "Best NPV"}
+                    </Badge>
+                  )}
+                  
+                  <div className="flex items-center gap-3 mb-4">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md"
+                      style={{ backgroundColor: scenario.color }}
+                    >
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="font-semibold">{scenario.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {scenario.pvSize > 0 && `${formatNumber(scenario.pvSize)} kW`}
+                        {scenario.pvSize > 0 && scenario.batterySize > 0 && " + "}
+                        {scenario.batterySize > 0 && `${formatNumber(scenario.batterySize)} kWh`}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="p-2 rounded-lg bg-primary/5">
+                      <p className="text-xs text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25y"}</p>
+                      <p className={`font-bold ${isBestNPV ? 'text-green-600' : ''}`}>
+                        ${formatNumber(scenario.npv25 / 1000)}k
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-primary/5">
+                      <p className="text-xs text-muted-foreground">{language === "fr" ? "TRI" : "IRR"}</p>
+                      <p className={`font-bold ${isBestIRR ? 'text-green-600' : ''}`}>
+                        {formatPercent(scenario.irr25)}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-primary/5">
+                      <p className="text-xs text-muted-foreground">{language === "fr" ? "Retour" : "Payback"}</p>
+                      <p className={`font-bold ${isBestPayback ? 'text-green-600' : ''}`}>
+                        {scenario.payback > 0 ? `${formatNumber(scenario.payback, 1)} ${language === "fr" ? "ans" : "yrs"}` : "-"}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-primary/5">
+                      <p className="text-xs text-muted-foreground">{language === "fr" ? "Économies/an" : "Savings/yr"}</p>
+                      <p className="font-bold">${formatNumber(scenario.annualSavings / 1000)}k</p>
+                    </div>
+                  </div>
+                  
+                  {onSelectSimulation && (
+                    <Button
+                      variant={selectedSimulationId === scenario.id ? "default" : "outline"}
+                      size="sm"
+                      className="w-full mt-4"
+                      onClick={() => onSelectSimulation(scenario.id)}
+                      data-testid={`button-select-card-scenario-${index}`}
+                    >
+                      {selectedSimulationId === scenario.id ? (
+                        <>
+                          <Check className="w-4 h-4 mr-1" />
+                          {language === "fr" ? "Sélectionné" : "Selected"}
+                        </>
+                      ) : (
+                        language === "fr" ? "Voir détails" : "View details"
+                      )}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Detailed Table */}
           <div className="overflow-x-auto">
             <Table data-testid="table-comparison">
               <TableHeader>
