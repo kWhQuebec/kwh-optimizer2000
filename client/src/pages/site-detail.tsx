@@ -587,12 +587,25 @@ function AnalysisParametersEditor({
                   />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="w-3 h-3" />
-                {language === "fr" 
-                  ? `Rendement effectif: ${Math.round((merged.solarYieldKWhPerKWp || 1150) * (merged.orientationFactor || 1.0))} kWh/kWc/an${site?.roofAreaAutoDetails ? " (calibré via Google Solar)" : ""}`
-                  : `Effective yield: ${Math.round((merged.solarYieldKWhPerKWp || 1150) * (merged.orientationFactor || 1.0))} kWh/kWp/yr${site?.roofAreaAutoDetails ? " (calibrated via Google Solar)" : ""}`}
-              </p>
+              {(() => {
+                const baseYield = merged.solarYieldKWhPerKWp || 1150;
+                const orientationFactor = merged.orientationFactor || 1.0;
+                const bifacialBoost = merged.bifacialEnabled 
+                  ? (1 + (merged.bifacialityFactor || 0.85) * (merged.roofAlbedo || 0.70) * 0.35)
+                  : 1.0;
+                const effectiveYield = Math.round(baseYield * orientationFactor * bifacialBoost);
+                const bifacialLabel = merged.bifacialEnabled 
+                  ? (language === "fr" ? ` (+${Math.round((bifacialBoost - 1) * 100)}% bifacial)` : ` (+${Math.round((bifacialBoost - 1) * 100)}% bifacial)`)
+                  : "";
+                return (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    {language === "fr" 
+                      ? `Rendement effectif: ${effectiveYield} kWh/kWc/an${bifacialLabel}${site?.roofAreaAutoDetails ? " (calibré via Google Solar)" : ""}`
+                      : `Effective yield: ${effectiveYield} kWh/kWp/yr${bifacialLabel}${site?.roofAreaAutoDetails ? " (calibrated via Google Solar)" : ""}`}
+                  </p>
+                );
+              })()}
               
               {/* Advanced System Modeling (Helioscope-inspired) */}
               <div className="grid grid-cols-4 gap-3 pt-2 border-t border-dashed">
