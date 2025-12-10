@@ -324,16 +324,16 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
       description: t("Performance sur 25 ans", "25-Year Performance")
     },
     { 
-      id: "pdf-section-financing", 
-      title: t("Options de financement", "Financing Options"),
+      id: "pdf-section-cashflow-chart", 
+      title: t("Projection financière", "Financial Projection"),
       sectionNum: 4,
-      description: t("Comparez vos options", "Compare Your Options")
+      description: t("Évolution de vos économies sur 25 ans", "Your Savings Growth Over 25 Years")
     },
     { 
-      id: "pdf-section-financing-chart", 
-      title: t("Projection financière", "Financial Projection"),
+      id: "pdf-section-financing", 
+      title: t("Options de financement", "Financing Options"),
       sectionNum: 5,
-      description: t("Flux de trésorerie sur 25 ans", "25-Year Cash Flow")
+      description: t("Comparez vos options", "Compare Your Options")
     },
     { 
       id: "pdf-section-service-offer", 
