@@ -1356,12 +1356,14 @@ function DownloadReportButton({
   simulationId, 
   siteName, 
   clientName, 
-  location 
+  location,
+  onSwitchToAnalysis
 }: { 
   simulationId: string;
   siteName: string;
   clientName?: string;
   location?: string;
+  onSwitchToAnalysis?: () => void;
 }) {
   const { t, language } = useI18n();
   const { toast } = useToast();
@@ -1370,6 +1372,32 @@ function DownloadReportButton({
   const handleDownload = async () => {
     setDownloading(true);
     try {
+      // Switch to Analysis tab first so PDF sections are rendered
+      if (onSwitchToAnalysis) {
+        onSwitchToAnalysis();
+        
+        // Wait deterministically for the PDF sections to be rendered in the DOM
+        const waitForElement = async (elementId: string, maxWaitMs = 3000): Promise<boolean> => {
+          const startTime = Date.now();
+          while (Date.now() - startTime < maxWaitMs) {
+            if (document.getElementById(elementId)) {
+              return true;
+            }
+            await new Promise(resolve => requestAnimationFrame(resolve));
+          }
+          return false;
+        };
+        
+        // Wait for the main PDF section to exist
+        const sectionReady = await waitForElement("pdf-section-system-config");
+        if (!sectionReady) {
+          throw new Error("PDF sections not ready");
+        }
+        
+        // Small additional delay for images and charts to fully render
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
       const { downloadClientPDF } = await import("@/lib/clientPdfGenerator");
       await downloadClientPDF(siteName, clientName, location, language);
       toast({ title: language === "fr" ? "Rapport téléchargé" : "Report downloaded" });
@@ -4687,6 +4715,7 @@ export default function SiteDetailPage() {
                 siteName={site.name}
                 clientName={site.client?.name}
                 location={[site.city, site.province].filter(Boolean).join(", ")}
+                onSwitchToAnalysis={() => setActiveTab("analysis")}
               />
               {isStaff && (
                 <Link href={`/app/analyses/${latestSimulation.id}/design`}>
