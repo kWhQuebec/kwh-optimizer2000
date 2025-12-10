@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, Fragment } from "react";
+import { useState, useCallback, useEffect, Fragment, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useDropzone } from "react-dropzone";
@@ -4168,7 +4168,7 @@ export default function SiteDetailPage() {
   const { isStaff, isClient } = useAuth();
   const [activeTab, setActiveTab] = useState("consumption");
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
-  const [assumptionsInitialized, setAssumptionsInitialized] = useState(false);
+  const assumptionsInitializedRef = useRef(false);
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
   const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
 
@@ -4177,9 +4177,9 @@ export default function SiteDetailPage() {
     enabled: !!id,
   });
 
-  // Initialize assumptions from site data when loaded
+  // Initialize assumptions from site data when loaded (only once per page load)
   useEffect(() => {
-    if (site && !assumptionsInitialized) {
+    if (site && !assumptionsInitializedRef.current) {
       const initialAssumptions: Partial<AnalysisAssumptions> = {};
       
       // Priority: 1. Saved assumptions, 2. Auto-detected (Google Solar), 3. Manual entry
@@ -4219,9 +4219,10 @@ export default function SiteDetailPage() {
       if (Object.keys(initialAssumptions).length > 0) {
         setCustomAssumptions(initialAssumptions);
       }
-      setAssumptionsInitialized(true);
+      // Mark as initialized using ref (persists across re-renders, won't trigger useEffect again)
+      assumptionsInitializedRef.current = true;
     }
-  }, [site, assumptionsInitialized]);
+  }, [site]);
 
   const runAnalysisMutation = useMutation({
     mutationFn: async (customAssumptionsOverrides: Partial<AnalysisAssumptions>) => {
