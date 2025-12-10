@@ -4665,6 +4665,21 @@ export default function SiteDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {isStaff && (
+            <Button 
+              onClick={() => runAnalysisMutation.mutate(customAssumptions)}
+              disabled={runAnalysisMutation.isPending}
+              className="gap-2"
+              data-testid="button-run-analysis-header"
+            >
+              {runAnalysisMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
+              {language === "fr" ? "Lancer analyse" : "Run Analysis"}
+            </Button>
+          )}
           {latestSimulation && (
             <>
               <DownloadReportButton 
