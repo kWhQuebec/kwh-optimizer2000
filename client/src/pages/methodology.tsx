@@ -719,9 +719,6 @@ function FinancialSection({ t }: { t: typeof fr }) {
                       {option.note}
                     </p>
                   )}
-                  {option.comparison && (
-                    <p className="text-sm font-medium">{option.comparison}</p>
-                  )}
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -1207,7 +1204,7 @@ const fr = {
     },
     financing: {
       title: "Options de Financement",
-      description: "Le calculateur compare quatre options de financement sur un horizon de 25 ans.",
+      description: "Le calculateur compare trois options de financement sur un horizon de 25 ans.",
       options: [
         {
           name: "Achat Comptant",
@@ -1223,17 +1220,10 @@ const fr = {
           params: ["Terme: 5-20 ans", "Taux d'intérêt: variable", "Mise de fonds: 0-30%"],
         },
         {
-          name: "Location (Lease)",
-          description: "Paiements mensuels fixes basés sur le CAPEX système.",
+          name: "Crédit-Bail (Capital Lease)",
+          description: "Paiements mensuels fixes avec propriété fiscale au client. Le client reçoit tous les incitatifs (rabais HQ, CII fédéral 30%, bouclier fiscal ACC).",
           formula: "Paiement_mensuel = (CAPEX × Facteur_taux_implicite) / (Terme × 12)",
-          note: "Le taux implicite combine l'amortissement et les frais de financement.",
-        },
-        {
-          name: "Contrat d'Achat d'Énergie (PPA)",
-          description: "Achat de l'énergie produite à un tarif fixe plutôt que le système.",
-          formula: "Économies_nettes = (Production × Tarif_HQ) - (Production × Tarif_PPA)",
-          note: "Le tarif PPA est généralement 10-20% inférieur au tarif réseau.",
-          comparison: "Compare le coût évité (tarif HQ) au coût PPA payé.",
+          note: "Résulte typiquement en flux de trésorerie positifs ou neutres grâce aux incitatifs.",
         },
       ],
     },
@@ -1697,7 +1687,7 @@ const en = {
     },
     financing: {
       title: "Financing Options",
-      description: "The calculator compares four financing options over a 25-year horizon.",
+      description: "The calculator compares three financing options over a 25-year horizon.",
       options: [
         {
           name: "Cash Purchase",
@@ -1713,17 +1703,10 @@ const en = {
           params: ["Term: 5-20 years", "Interest rate: variable", "Down payment: 0-30%"],
         },
         {
-          name: "Lease",
-          description: "Fixed monthly payments based on system CAPEX.",
+          name: "Capital Lease (Crédit-Bail)",
+          description: "Fixed monthly payments with client treated as owner for tax purposes. Client receives all incentives (HQ rebates, Federal ITC 30%, CCA tax shield).",
           formula: "Monthly_payment = (CAPEX × Implicit_rate_factor) / (Term × 12)",
-          note: "Implicit rate combines amortization and financing charges.",
-        },
-        {
-          name: "Power Purchase Agreement (PPA)",
-          description: "Purchase produced energy at a fixed rate rather than the system.",
-          formula: "Net_savings = (Production × HQ_rate) - (Production × PPA_rate)",
-          note: "PPA rate is typically 10-20% below grid rate.",
-          comparison: "Compares avoided cost (HQ rate) to PPA cost paid.",
+          note: "Typically results in positive or break-even cash flows due to incentives.",
         },
       ],
     },
