@@ -472,6 +472,154 @@ export async function registerRoutes(
 
   // ==================== LEAD ROUTES (PUBLIC) ====================
   
+  // Quick estimate endpoint for landing page calculator (no auth required)
+  app.post("/api/quick-estimate", async (req, res) => {
+    try {
+      const { address, monthlyBill, buildingType, tariffCode } = req.body;
+      
+      if (!address || !monthlyBill) {
+        return res.status(400).json({ error: "Address and monthly bill are required" });
+      }
+      
+      // HQ energy rates ($/kWh) - energy portion only
+      const HQ_ENERGY_RATES: Record<string, number> = {
+        G: 0.11933, // Small power (<65 kW)
+        M: 0.06061, // Medium power (65kW-5MW)
+        L: 0.03681, // Large power (>5MW)
+      };
+      
+      // Energy portion factor (what % of bill is energy vs demand charges)
+      const ENERGY_PORTION_FACTORS: Record<string, number> = {
+        G: 0.85, // G tariff: mostly energy
+        M: 0.60, // M tariff: significant demand charges
+        L: 0.50, // L tariff: high demand charges
+      };
+      
+      // Building type load factors (for seasonal adjustment)
+      const BUILDING_FACTORS: Record<string, number> = {
+        office: 1.0,
+        warehouse: 0.85,
+        retail: 1.1,
+        industrial: 0.9,
+        healthcare: 1.15,
+        education: 0.95,
+      };
+      
+      const tariff = tariffCode || "M";
+      const energyRate = HQ_ENERGY_RATES[tariff] || 0.06;
+      const energyPortion = ENERGY_PORTION_FACTORS[tariff] || 0.60;
+      const buildingFactor = BUILDING_FACTORS[buildingType] || 1.0;
+      
+      // Calculate annual consumption from monthly bill
+      const monthlyEnergyBill = monthlyBill * energyPortion;
+      const monthlyKWh = monthlyEnergyBill / energyRate;
+      const annualKWh = monthlyKWh * 12 * buildingFactor;
+      
+      // Call Google Solar API to get roof potential
+      let roofData: googleSolar.RoofEstimateResult | null = null;
+      try {
+        roofData = await googleSolar.estimateRoofFromAddress(address + ", Québec, Canada");
+      } catch (err) {
+        console.error("[Quick Estimate] Google Solar API error:", err);
+      }
+      
+      // Quebec average: ~1200 kWh/kW/year production
+      const QC_PRODUCTION_FACTOR = 1200;
+      
+      // Calculate system size based on consumption (target 70% self-consumption)
+      const targetSelfConsumption = 0.70;
+      const consumptionBasedKW = Math.round((annualKWh * targetSelfConsumption) / QC_PRODUCTION_FACTOR);
+      
+      // If we have roof data, limit by roof capacity
+      let roofBasedKW = consumptionBasedKW;
+      let roofAreaSqM = 0;
+      let hasRoofData = false;
+      
+      if (roofData?.success && roofData.maxArrayAreaSqM > 0) {
+        hasRoofData = true;
+        roofAreaSqM = roofData.maxArrayAreaSqM;
+        // ~185 W/m² panel density, 70% utilization
+        roofBasedKW = Math.round((roofAreaSqM * 0.70 * 185) / 1000);
+      }
+      
+      // Final system size: minimum of consumption-based and roof-based (min 10 kW for commercial)
+      const systemSizeKW = Math.max(10, Math.min(consumptionBasedKW, roofBasedKW));
+      
+      // Annual production - use Google's estimate if available, otherwise Quebec average
+      let annualProductionKWh: number;
+      if (roofData?.success && roofData.googleProductionEstimate?.yearlyEnergyAcKwh) {
+        // Scale Google's estimate to our system size
+        const googleKW = roofData.googleProductionEstimate.systemSizeKw || 1;
+        annualProductionKWh = Math.round((roofData.googleProductionEstimate.yearlyEnergyAcKwh / googleKW) * systemSizeKW);
+      } else {
+        annualProductionKWh = systemSizeKW * QC_PRODUCTION_FACTOR;
+      }
+      
+      // Avoided cost rate - use energy rate only (conservative, no demand savings assumed)
+      const avoidedRate = energyRate;
+      
+      // Annual savings
+      const annualSavings = Math.round(annualProductionKWh * avoidedRate);
+      
+      // CAPEX calculation
+      const solarCostPerKW = 1800; // $/kW installed (commercial scale)
+      const grossCAPEX = systemSizeKW * solarCostPerKW;
+      
+      // HQ incentive: $1000/kW capped at 40% of gross CAPEX
+      // Note: At $1800/kW, 40% cap = $720/kW, which is less than $1000/kW
+      // So incentive = min($1000/kW, 40% of CAPEX) = 40% of CAPEX at these prices
+      const hqIncentive = Math.min(systemSizeKW * 1000, grossCAPEX * 0.40);
+      
+      // Net CAPEX after incentive
+      const netCAPEX = grossCAPEX - hqIncentive;
+      
+      // Simple payback (years) with guard for zero/negative savings
+      const paybackYears = annualSavings > 0 ? Math.max(0, Math.round((netCAPEX / annualSavings) * 10) / 10) : 99;
+      
+      // CO2 reduction (QC grid is ~1.2 g/kWh, so minimal, but still positive)
+      const co2ReductionTons = Math.round(annualProductionKWh * 0.0012 * 10) / 10;
+      
+      res.json({
+        success: true,
+        hasRoofData,
+        inputs: {
+          address,
+          monthlyBill,
+          buildingType: buildingType || "office",
+          tariffCode: tariff,
+        },
+        consumption: {
+          annualKWh: Math.round(annualKWh),
+          monthlyKWh: Math.round(monthlyKWh),
+        },
+        roof: hasRoofData ? {
+          areaM2: Math.round(roofAreaSqM),
+          maxCapacityKW: roofBasedKW,
+          latitude: roofData?.latitude,
+          longitude: roofData?.longitude,
+        } : null,
+        system: {
+          sizeKW: systemSizeKW,
+          annualProductionKWh: Math.round(annualProductionKWh),
+          selfConsumptionRate: targetSelfConsumption,
+        },
+        financial: {
+          annualSavings,
+          grossCAPEX: Math.round(grossCAPEX),
+          hqIncentive: Math.round(hqIncentive),
+          netCAPEX: Math.round(netCAPEX),
+          paybackYears,
+        },
+        environmental: {
+          co2ReductionTons,
+        },
+      });
+    } catch (error) {
+      console.error("Quick estimate error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
   app.post("/api/leads", async (req, res) => {
     try {
       const parsed = insertLeadSchema.safeParse(req.body);

@@ -10,7 +10,7 @@ import {
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
   Timer, Rocket, BatteryCharging, BadgePercent, Calculator, MapPin,
-  Sun, Battery, FileText, Hammer
+  Sun, Battery, FileText, Hammer, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -85,14 +85,68 @@ export default function LandingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [calcBill, setCalcBill] = useState<number>(5000);
-  const [calcShowResults, setCalcShowResults] = useState(false);
+  const [calcAddress, setCalcAddress] = useState<string>("");
+  const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
+  const [calcTariff, setCalcTariff] = useState<string>("M");
+  const [calcLoading, setCalcLoading] = useState(false);
+  const [calcResults, setCalcResults] = useState<{
+    success: boolean;
+    hasRoofData: boolean;
+    system: { sizeKW: number; annualProductionKWh: number };
+    financial: { annualSavings: number; paybackYears: number; hqIncentive: number; netCAPEX: number };
+    roof?: { areaM2: number; maxCapacityKW: number };
+  } | null>(null);
+  const [calcError, setCalcError] = useState<string>("");
+  
   const currentLogo = language === "fr" ? logoFr : logoEn;
   const analysisSlides = language === "fr" ? analysisSlidesFr : analysisSlidesEn;
   
-  // Quick calculator estimates (conservative values)
-  const estimatedSavings = Math.round(calcBill * 0.35 * 12); // ~35% annual savings
-  const estimatedSystemSize = Math.round(calcBill / 8); // Rough kW estimate
-  const estimatedPayback = 6; // Conservative payback period
+  // Building type labels
+  const buildingTypeLabels = language === "fr" 
+    ? { office: "Bureau", warehouse: "Entrepôt", retail: "Commerce", industrial: "Industriel", healthcare: "Santé", education: "Éducation" }
+    : { office: "Office", warehouse: "Warehouse", retail: "Retail", industrial: "Industrial", healthcare: "Healthcare", education: "Education" };
+  
+  // Tariff labels
+  const tariffLabels = language === "fr"
+    ? { G: "G - Petite puissance (<65 kW)", M: "M - Moyenne puissance", L: "L - Grande puissance" }
+    : { G: "G - Small power (<65 kW)", M: "M - Medium power", L: "L - Large power" };
+  
+  // Quick estimate function
+  const handleQuickEstimate = async () => {
+    if (!calcAddress.trim()) {
+      setCalcError(language === "fr" ? "Veuillez entrer une adresse" : "Please enter an address");
+      return;
+    }
+    
+    setCalcLoading(true);
+    setCalcError("");
+    setCalcResults(null);
+    
+    try {
+      const response = await fetch("/api/quick-estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: calcAddress,
+          monthlyBill: calcBill,
+          buildingType: calcBuildingType,
+          tariffCode: calcTariff,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setCalcResults(data);
+      } else {
+        setCalcError(data.error || (language === "fr" ? "Erreur lors de l'analyse" : "Analysis error"));
+      }
+    } catch (err) {
+      setCalcError(language === "fr" ? "Erreur de connexion" : "Connection error");
+    } finally {
+      setCalcLoading(false);
+    }
+  };
   
   useEffect(() => {
     setActiveSlide(0);
@@ -339,15 +393,15 @@ export default function LandingPage() {
           >
             <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
               <Calculator className="w-3 h-3 mr-1" />
-              {language === "fr" ? "Calculateur rapide" : "Quick Calculator"}
+              {language === "fr" ? "Analyse instantanée" : "Instant Analysis"}
             </Badge>
             <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-              {language === "fr" ? "Estimez vos économies en 10 secondes" : "Estimate your savings in 10 seconds"}
+              {language === "fr" ? "Estimez votre potentiel solaire" : "Estimate your solar potential"}
             </h2>
             <p className="text-muted-foreground">
               {language === "fr" 
-                ? "Entrez votre facture mensuelle d'électricité pour voir votre potentiel d'économies"
-                : "Enter your monthly electricity bill to see your savings potential"
+                ? "Entrez l'adresse de votre bâtiment pour une analyse basée sur votre toiture réelle"
+                : "Enter your building address for an analysis based on your actual roof"
               }
             </p>
           </motion.div>
@@ -358,10 +412,27 @@ export default function LandingPage() {
             viewport={{ once: true }}
           >
             <Card className="p-6 lg:p-8 border-2 border-primary/20">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* Input side */}
-                <div className="space-y-6">
-                  <div className="space-y-3">
+              <div className="space-y-6">
+                {/* Input fields */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Address */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      {language === "fr" ? "Adresse du bâtiment" : "Building address"}
+                    </label>
+                    <Input
+                      type="text"
+                      value={calcAddress}
+                      onChange={(e) => setCalcAddress(e.target.value)}
+                      className="h-12"
+                      placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
+                      data-testid="input-calc-address"
+                    />
+                  </div>
+                  
+                  {/* Monthly bill */}
+                  <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-primary" />
                       {language === "fr" ? "Facture mensuelle moyenne" : "Average monthly bill"}
@@ -370,67 +441,152 @@ export default function LandingPage() {
                       <Input
                         type="number"
                         value={calcBill}
-                        onChange={(e) => {
-                          setCalcBill(Number(e.target.value) || 0);
-                          setCalcShowResults(true);
-                        }}
-                        className="text-2xl font-bold h-14 pl-8"
+                        onChange={(e) => setCalcBill(Number(e.target.value) || 0)}
+                        className="h-12 pl-8"
                         placeholder="5000"
                         data-testid="input-calc-bill"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr" 
-                        ? "Moyenne pour bâtiments commerciaux: 3 000$ - 15 000$/mois"
-                        : "Average for commercial buildings: $3,000 - $15,000/month"
-                      }
-                    </p>
                   </div>
                   
-                  <a href="#contact">
-                    <Button size="lg" className="w-full gap-2" data-testid="button-calc-cta">
-                      {language === "fr" ? "Obtenir mon analyse détaillée" : "Get my detailed analysis"}
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </a>
-                </div>
-
-                {/* Results side */}
-                <div className={`space-y-4 transition-opacity duration-300 ${calcShowResults ? 'opacity-100' : 'opacity-50'}`}>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl bg-primary/10 text-center">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        {language === "fr" ? "Économies annuelles" : "Annual savings"}
-                      </p>
-                      <p className="text-2xl font-bold text-primary">
-                        ${estimatedSavings.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-accent/10 text-center">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        {language === "fr" ? "Retour sur investissement" : "Payback period"}
-                      </p>
-                      <p className="text-2xl font-bold text-accent">
-                        ~{estimatedPayback} {language === "fr" ? "ans" : "years"}
-                      </p>
-                    </div>
+                  {/* Building type */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-primary" />
+                      {language === "fr" ? "Type de bâtiment" : "Building type"}
+                    </label>
+                    <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
+                      <SelectTrigger className="h-12" data-testid="select-calc-building-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(buildingTypeLabels).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="p-4 rounded-xl bg-muted text-center">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {language === "fr" ? "Taille système estimée" : "Estimated system size"}
-                    </p>
-                    <p className="text-xl font-bold">
-                      ~{estimatedSystemSize} kW
-                    </p>
+                  
+                  {/* Tariff (optional) */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-primary" />
+                      {language === "fr" ? "Tarif HQ (optionnel)" : "HQ Tariff (optional)"}
+                    </label>
+                    <Select value={calcTariff} onValueChange={setCalcTariff}>
+                      <SelectTrigger className="h-12" data-testid="select-calc-tariff">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(tariffLabels).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <p className="text-xs text-center text-muted-foreground">
-                    {language === "fr" 
-                      ? "* Estimation préliminaire. L'analyse détaillée fournira des chiffres précis."
-                      : "* Preliminary estimate. Detailed analysis will provide exact figures."
-                    }
-                  </p>
                 </div>
+                
+                {/* Error message */}
+                {calcError && (
+                  <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
+                    {calcError}
+                  </div>
+                )}
+                
+                {/* Analyze button */}
+                <Button 
+                  size="lg" 
+                  className="w-full gap-2" 
+                  onClick={handleQuickEstimate}
+                  disabled={calcLoading}
+                  data-testid="button-calc-analyze"
+                >
+                  {calcLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="w-4 h-4" />
+                      {language === "fr" ? "Analyser mon potentiel" : "Analyze my potential"}
+                    </>
+                  )}
+                </Button>
+                
+                {/* Results */}
+                {calcResults && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4 pt-4 border-t"
+                  >
+                    {/* Roof data indicator */}
+                    {calcResults.hasRoofData && calcResults.roof && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-accent" />
+                        {language === "fr" 
+                          ? `Toiture analysée: ${calcResults.roof.areaM2} m² disponibles`
+                          : `Roof analyzed: ${calcResults.roof.areaM2} m² available`
+                        }
+                      </div>
+                    )}
+                    
+                    {/* Main results grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-4 rounded-xl bg-primary/10 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          {language === "fr" ? "Taille système" : "System size"}
+                        </p>
+                        <p className="text-2xl font-bold text-primary" data-testid="text-calc-system-size">
+                          {calcResults.system.sizeKW} kW
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-accent/10 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          {language === "fr" ? "Économies/an" : "Savings/year"}
+                        </p>
+                        <p className="text-2xl font-bold text-accent" data-testid="text-calc-savings">
+                          ${calcResults.financial.annualSavings.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-muted text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          {language === "fr" ? "Retour" : "Payback"}
+                        </p>
+                        <p className="text-2xl font-bold" data-testid="text-calc-payback">
+                          {calcResults.financial.paybackYears} {language === "fr" ? "ans" : "yrs"}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-green-500/10 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          {language === "fr" ? "Incitatif HQ" : "HQ Incentive"}
+                        </p>
+                        <p className="text-2xl font-bold text-green-600" data-testid="text-calc-incentive">
+                          ${calcResults.financial.hqIncentive.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* CTA */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                      <a href="#contact" className="flex-1">
+                        <Button size="lg" className="w-full gap-2" data-testid="button-calc-cta">
+                          {language === "fr" ? "Obtenir mon analyse complète" : "Get my complete analysis"}
+                          <ArrowRight className="w-4 h-4" />
+                        </Button>
+                      </a>
+                    </div>
+                    
+                    <p className="text-xs text-center text-muted-foreground">
+                      {language === "fr" 
+                        ? "* Estimation basée sur les données satellite et les tarifs HQ actuels. L'analyse détaillée inclura vos données de consommation réelles."
+                        : "* Estimate based on satellite data and current HQ rates. Detailed analysis will include your actual consumption data."
+                      }
+                    </p>
+                  </motion.div>
+                )}
               </div>
             </Card>
           </motion.div>
