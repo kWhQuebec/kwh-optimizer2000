@@ -1313,7 +1313,7 @@ function AnalysisParametersEditor({
                     <Info className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div className="text-blue-800">
                       <span className="font-medium">
-                        {language === "fr" ? "Bâtiment C&I de grande taille" : "Large C&I building"}
+                        {language === "fr" ? "Grand bâtiment commercial ou industriel" : "Large C&I building"}
                       </span>
                       <p className="text-blue-700 mt-0.5">
                         {language === "fr" 

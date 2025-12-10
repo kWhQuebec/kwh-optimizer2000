@@ -204,9 +204,6 @@ export default function LandingPage() {
                 <p className="text-xl sm:text-2xl text-primary font-semibold">
                   {t("landing.hero.subtitle")}
                 </p>
-                <p className="text-lg text-muted-foreground max-w-xl">
-                  {t("landing.hero.description")}
-                </p>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4">
@@ -1098,6 +1095,77 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ========== AUTHORIZATION / POWER OF ATTORNEY SECTION ========== */}
+      <section id="authorization" className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Card className="overflow-hidden border-2 border-accent/30 bg-gradient-to-br from-accent/5 via-background to-background">
+              <CardContent className="p-6 lg:p-8">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Badge className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/10">
+                        <FileSignature className="w-3 h-3 mr-1" />
+                        {t("landing.auth.badge")}
+                      </Badge>
+                    </div>
+                    
+                    <h2 className="text-2xl lg:text-3xl font-bold">
+                      {t("landing.auth.title")}
+                    </h2>
+                    
+                    <p className="text-muted-foreground">
+                      {t("landing.auth.subtitle")}
+                    </p>
+                    
+                    <ul className="space-y-2 pt-2">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                        <span className="text-sm text-muted-foreground">{t("landing.auth.benefit1")}</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                        <span className="text-sm text-muted-foreground">{t("landing.auth.benefit2")}</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                        <span className="text-sm text-muted-foreground">{t("landing.auth.benefit3")}</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="w-full lg:w-auto flex flex-col items-center lg:items-end gap-4 pt-4 lg:pt-0">
+                    <div className="w-20 h-20 rounded-2xl bg-accent/10 flex items-center justify-center">
+                      <FileSignature className="w-10 h-10 text-accent" />
+                    </div>
+                    
+                    <Button 
+                      size="lg" 
+                      className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
+                      onClick={() => {
+                        window.open("mailto:info@kwhquebec.com?subject=Demande de procuration HQ&body=Bonjour,%0A%0AJe souhaite signer une procuration pour vous autoriser à accéder à mon profil de consommation Hydro-Québec.%0A%0ANom de l'entreprise:%0ANuméro de client HQ:%0ACourriel:%0ATéléphone:%0A%0AMerci", "_blank");
+                      }}
+                      data-testid="button-authorization-cta"
+                    >
+                      {t("landing.auth.cta")}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                    
+                    <p className="text-xs text-muted-foreground text-center max-w-xs">
+                      {t("landing.auth.note")}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
       </section>

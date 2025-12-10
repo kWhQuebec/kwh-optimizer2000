@@ -1073,7 +1073,7 @@ const fr = {
       description: "Le système effectue une comparaison croisée avec les données de Google Solar API pour valider les estimations de rendement.",
       method: {
         title: "Méthodologie de Comparaison",
-        description: "La comparaison se fait sur le rendement spécifique (kWh/kWc) plutôt que sur la production totale, car Google Solar API est optimisé pour les installations résidentielles et peut sous-estimer la taille des systèmes C&I.",
+        description: "La comparaison se fait sur le rendement spécifique (kWh/kWc) plutôt que sur la production totale, car Google Solar API est optimisé pour les installations résidentielles et peut sous-estimer la taille des systèmes commerciaux et industriels.",
       },
       thresholds: [
         { range: "±10%", status: "Validé", color: "green", description: "Rendement conforme aux données satellite" },
@@ -1084,7 +1084,7 @@ const fr = {
         title: "Limitations Connues",
         list: [
           "Google Solar API plafonne souvent à ~50kWc (échelle résidentielle)",
-          "Les grands bâtiments C&I peuvent dépasser les capacités de l'API",
+          "Les grands bâtiments commerciaux et industriels peuvent dépasser les capacités de l'API",
           "La comparaison du rendement spécifique reste valide même si les tailles diffèrent",
         ],
       },

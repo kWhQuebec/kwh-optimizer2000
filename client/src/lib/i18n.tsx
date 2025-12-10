@@ -32,11 +32,11 @@ const translations: Translations = {
   "nav.mySites": { fr: "Mes sites", en: "My Sites" },
 
   // Landing Page - Hero
-  "landing.hero.title": { fr: "Un investissement rentable maintenant pour votre organisation, et pour les générations futures", en: "A Profitable Investment Now for Your Organization, And for Future Generations" },
-  "landing.hero.subtitle": { fr: "Système solaire + stockage clé en main, optimisé pour les immeubles commerciaux et industriels du Québec", en: "Turnkey solar + storage systems, optimized for commercial and industrial buildings in Québec" },
+  "landing.hero.title": { fr: "Solaire + stockage clé en main pour le secteur commercial et industriel québécois", en: "Turnkey Solar + Storage for Québec C&I Buildings" },
+  "landing.hero.subtitle": { fr: "Analyse gratuite. Incitatifs jusqu'à 40% du projet.", en: "Free analysis. Incentives up to 40% of project cost." },
   "landing.hero.description": { 
-    fr: "Nous concevons, installons et gérons des systèmes solaires et de stockage pour les bâtiments commerciaux et industriels du Québec. Analyse gratuite en 48h.", 
-    en: "We design, install, and manage solar and storage systems for commercial and industrial buildings in Québec. Free analysis in 48h." 
+    fr: "", 
+    en: "" 
   },
   "landing.hero.cta": { fr: "Obtenir mon analyse gratuite", en: "Get my free analysis" },
   "landing.hero.ctaSecondary": { fr: "Accès client", en: "Client access" },
@@ -112,7 +112,7 @@ const translations: Translations = {
   // Landing Page - Trust
   "landing.trust.title": { fr: "Pourquoi nous faire confiance", en: "Why trust us" },
   "landing.trust.certified": { fr: "Partenaire Hydro-Québec", en: "Hydro-Québec partner" },
-  "landing.trust.experience": { fr: "Expertise C&I au Québec", en: "C&I expertise in Québec" },
+  "landing.trust.experience": { fr: "Expertise commerciale et industrielle au Québec", en: "C&I expertise in Québec" },
   "landing.trust.datadriven": { fr: "Analyse basée sur les données", en: "Data-driven analysis" },
   "landing.trust.partners": { fr: "Nous travaillons avec Hydro-Québec", en: "We work with Hydro-Québec" },
   "landing.trust.partner.hq": { fr: "Hydro-Québec - Programme d'autoproduction", en: "Hydro-Québec - Self-generation program" },
@@ -148,6 +148,22 @@ const translations: Translations = {
   
   // Landing Page - Footer
   "landing.footer.tagline": { fr: "Accélérez votre transition énergétique", en: "Accelerate your energy transition" },
+
+  // Landing Page - Authorization Section
+  "landing.auth.title": { fr: "Accélérez votre analyse", en: "Accelerate Your Analysis" },
+  "landing.auth.subtitle": { 
+    fr: "Vous avez déjà un compte Hydro-Québec? Autorisez-nous à accéder à votre profil de consommation pour une analyse plus précise.", 
+    en: "Already have a Hydro-Québec account? Authorize us to access your consumption profile for a more precise analysis." 
+  },
+  "landing.auth.benefit1": { fr: "Analyse basée sur vos vraies données de consommation", en: "Analysis based on your real consumption data" },
+  "landing.auth.benefit2": { fr: "Dimensionnement optimisé pour votre profil énergétique", en: "Sizing optimized for your energy profile" },
+  "landing.auth.benefit3": { fr: "Projections financières plus précises", en: "More accurate financial projections" },
+  "landing.auth.cta": { fr: "Signer la procuration", en: "Sign Authorization" },
+  "landing.auth.note": { 
+    fr: "Ce formulaire autorise kWh Québec à accéder à vos données de consommation Hydro-Québec. Signature électronique sécurisée.", 
+    en: "This form authorizes kWh Québec to access your Hydro-Québec consumption data. Secure electronic signature." 
+  },
+  "landing.auth.badge": { fr: "Étape 2", en: "Step 2" },
 
   // Lead Form
   "form.company": { fr: "Nom de l'entreprise", en: "Company name" },
