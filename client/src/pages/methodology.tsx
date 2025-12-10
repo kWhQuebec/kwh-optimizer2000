@@ -207,6 +207,32 @@ function OverviewSection({ t }: { t: typeof fr }) {
                 </ul>
               </AccordionContent>
             </AccordionItem>
+
+            <AccordionItem value="tariff-detection">
+              <AccordionTrigger data-testid="accordion-trigger-tariff-detection">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  {t.overview.dataInputs.tariffDetection.title}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="prose dark:prose-invert max-w-none">
+                <p>{t.overview.dataInputs.tariffDetection.description}</p>
+                
+                <div className="grid md:grid-cols-2 gap-3 mt-4 not-prose">
+                  {t.overview.dataInputs.tariffDetection.tariffs.map((tariff, i) => (
+                    <div key={i} className="border rounded-lg p-3" data-testid={`card-tariff-${tariff.code}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="default" className="font-mono" data-testid={`badge-tariff-${tariff.code}`}>{language === "fr" ? "Tarif" : "Tariff"} {tariff.code}</Badge>
+                        <span className="text-sm font-medium" data-testid={`text-threshold-${tariff.code}`}>{tariff.threshold}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{tariff.description}</p>
+                    </div>
+                  ))}
+                </div>
+                
+                <p className="text-sm text-muted-foreground mt-4 italic">{t.overview.dataInputs.tariffDetection.note}</p>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </CardContent>
       </Card>
@@ -348,6 +374,109 @@ function SolarSection({ t }: { t: typeof fr }) {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-bifacial">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sun className="h-5 w-5 text-amber-500" />
+            {t.solar.bifacial.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="prose dark:prose-invert max-w-none">
+          <p>{t.solar.bifacial.description}</p>
+          
+          <h4>{t.solar.bifacial.detection.title}</h4>
+          <p>{t.solar.bifacial.detection.description}</p>
+          
+          <h4>{t.solar.bifacial.formula.title}</h4>
+          <div className="bg-muted p-4 rounded-lg font-mono text-sm">
+            {t.solar.bifacial.formula.equation}
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-3 mt-4">
+            {t.solar.bifacial.parameters.map((p, i) => (
+              <div key={i} className="border rounded-lg p-3">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-medium text-sm">{p.name}</span>
+                  <Badge variant="outline">{p.default}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">{p.description}</p>
+              </div>
+            ))}
+          </div>
+          
+          <h4>{t.solar.bifacial.costPremium.title}</h4>
+          <p>{t.solar.bifacial.costPremium.description}</p>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-yield-hierarchy">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            {t.solar.yieldHierarchy.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="prose dark:prose-invert max-w-none">
+          <p>{t.solar.yieldHierarchy.description}</p>
+          
+          <div className="space-y-3 mt-4">
+            {t.solar.yieldHierarchy.levels.map((level, i) => (
+              <div key={i} className="flex items-start gap-4 border-l-4 border-primary pl-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{level.name}</span>
+                    <Badge variant="secondary">{level.value}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{level.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="bg-muted p-4 rounded-lg font-mono text-xs mt-4">
+            {t.solar.yieldHierarchy.formula}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-google-validation">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-blue-500" />
+            {t.solar.googleValidation.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="prose dark:prose-invert max-w-none">
+          <p>{t.solar.googleValidation.description}</p>
+          
+          <h4>{t.solar.googleValidation.method.title}</h4>
+          <p>{t.solar.googleValidation.method.description}</p>
+          
+          <div className="grid md:grid-cols-3 gap-3 mt-4">
+            {t.solar.googleValidation.thresholds.map((threshold, i) => (
+              <div key={i} className={`border rounded-lg p-3 ${
+                threshold.color === 'green' ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20' :
+                threshold.color === 'yellow' ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20' :
+                'border-red-500 bg-red-50/50 dark:bg-red-950/20'
+              }`} data-testid={`card-threshold-${threshold.color}`}>
+                <div className="font-mono font-bold" data-testid={`text-range-${threshold.color}`}>{threshold.range}</div>
+                <Badge variant={threshold.color === 'green' ? 'default' : 'secondary'} className="mt-1" data-testid={`badge-status-${threshold.color}`}>
+                  {threshold.status}
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-2">{threshold.description}</p>
+              </div>
+            ))}
+          </div>
+          
+          <h4>{t.solar.googleValidation.limitations.title}</h4>
+          <ul>
+            {t.solar.googleValidation.limitations.list.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
     </>
@@ -751,6 +880,15 @@ const fr = {
           "Les résultats d'analyse peuvent être moins précis pour les sites avec beaucoup de données interpolées",
         ],
       },
+      tariffDetection: {
+        title: "Détection Automatique du Tarif",
+        description: "Le système détecte automatiquement le code tarifaire Hydro-Québec approprié selon la pointe de puissance simulée.",
+        tariffs: [
+          { code: "G", threshold: "< 65 kW", description: "Tarif petite puissance pour sites avec pointe mensuelle inférieure à 65 kW" },
+          { code: "M", threshold: "≥ 65 kW", description: "Tarif moyenne puissance pour sites avec pointe mensuelle de 65 kW ou plus" },
+        ],
+        note: "La détection s'exécute lors de l'initialisation des hypothèses d'analyse. Les hypothèses sauvegardées ont priorité sur les valeurs auto-détectées.",
+      },
     },
     assumptions: {
       title: "Hypothèses par Défaut",
@@ -885,6 +1023,72 @@ const fr = {
           { month: "Octobre", temp: "8°C" },
           { month: "Novembre", temp: "2°C" },
           { month: "Décembre", temp: "-7°C" },
+        ],
+      },
+    },
+    bifacial: {
+      title: "Analyse Panneaux Bifaciaux",
+      description: "Le système détecte automatiquement les toitures à membrane blanche via l'imagerie satellite de Google Solar API et propose une analyse bifaciale.",
+      detection: {
+        title: "Détection Automatique",
+        description: "L'algorithme analyse la luminosité moyenne RGB de l'imagerie satellite du toit. Un seuil > 200 indique une membrane blanche à haute réflectivité.",
+      },
+      formula: {
+        title: "Formule de Boost Bifacial",
+        equation: "Rendement_bifacial = Rendement_base × (1 + Facteur_bifacialité × Albédo_toit × Facteur_vue)",
+      },
+      parameters: [
+        { name: "Facteur de bifacialité", default: "0.85", description: "Ratio de sensibilité face arrière vs face avant" },
+        { name: "Albédo toit blanc", default: "0.70", description: "Réflectivité membrane blanche TPO/EPDM" },
+        { name: "Albédo toit gravier", default: "0.20", description: "Réflectivité ballast gravier typique" },
+        { name: "Albédo toit foncé", default: "0.10", description: "Réflectivité asphalte/membrane noire" },
+        { name: "Facteur de vue", default: "0.35", description: "Portion du rayonnement réfléchi atteignant l'arrière des panneaux" },
+      ],
+      costPremium: {
+        title: "Prime de Coût",
+        description: "Les panneaux bifaciaux ont une prime de 5% sur le coût par watt par rapport aux panneaux monofaces standard.",
+      },
+    },
+    yieldHierarchy: {
+      title: "Hiérarchie des Rendements",
+      description: "Le système affiche trois niveaux de rendement pour une transparence complète sur les calculs de production.",
+      levels: [
+        { 
+          name: "Rendement de Base", 
+          value: "~1150 kWh/kWc", 
+          description: "Rendement théorique horizontal au Québec avant ajustements" 
+        },
+        { 
+          name: "Rendement Brut", 
+          value: "Variable", 
+          description: "Après ajustements d'orientation, inclinaison et boost bifacial (si applicable)" 
+        },
+        { 
+          name: "Rendement Net Livré", 
+          value: "Variable", 
+          description: "Rendement final après toutes les pertes: température, câblage, ILR, ombrage" 
+        },
+      ],
+      formula: "Rendement_net = Rendement_base × Facteur_orientation × Boost_bifacial × (1 - Pertes_temp) × (1 - Pertes_câblage) × Facteur_ILR",
+    },
+    googleValidation: {
+      title: "Validation Google Solar API",
+      description: "Le système effectue une comparaison croisée avec les données de Google Solar API pour valider les estimations de rendement.",
+      method: {
+        title: "Méthodologie de Comparaison",
+        description: "La comparaison se fait sur le rendement spécifique (kWh/kWc) plutôt que sur la production totale, car Google Solar API est optimisé pour les installations résidentielles et peut sous-estimer la taille des systèmes C&I.",
+      },
+      thresholds: [
+        { range: "±10%", status: "Validé", color: "green", description: "Rendement conforme aux données satellite" },
+        { range: "10-20%", status: "Acceptable", color: "yellow", description: "Écart dans les marges acceptables" },
+        { range: ">20%", status: "À vérifier", color: "red", description: "Recommandation de réviser les paramètres" },
+      ],
+      limitations: {
+        title: "Limitations Connues",
+        list: [
+          "Google Solar API plafonne souvent à ~50kWc (échelle résidentielle)",
+          "Les grands bâtiments C&I peuvent dépasser les capacités de l'API",
+          "La comparaison du rendement spécifique reste valide même si les tailles diffèrent",
         ],
       },
     },
@@ -1166,6 +1370,15 @@ const en = {
           "Analysis results may be less accurate for sites with significant interpolated data",
         ],
       },
+      tariffDetection: {
+        title: "Automatic Tariff Detection",
+        description: "The system automatically detects the appropriate Hydro-Québec tariff code based on simulated peak demand.",
+        tariffs: [
+          { code: "G", threshold: "< 65 kW", description: "Small power tariff for sites with monthly peak under 65 kW" },
+          { code: "M", threshold: "≥ 65 kW", description: "Medium power tariff for sites with monthly peak of 65 kW or more" },
+        ],
+        note: "Detection runs when initializing analysis assumptions. Saved assumptions take priority over auto-detected values.",
+      },
     },
     assumptions: {
       title: "Default Assumptions",
@@ -1300,6 +1513,72 @@ const en = {
           { month: "October", temp: "8°C" },
           { month: "November", temp: "2°C" },
           { month: "December", temp: "-7°C" },
+        ],
+      },
+    },
+    bifacial: {
+      title: "Bifacial Panel Analysis",
+      description: "The system automatically detects white membrane roofs via Google Solar API satellite imagery and offers bifacial analysis.",
+      detection: {
+        title: "Automatic Detection",
+        description: "The algorithm analyzes average RGB brightness of satellite roof imagery. A threshold > 200 indicates a white high-reflectivity membrane.",
+      },
+      formula: {
+        title: "Bifacial Boost Formula",
+        equation: "Bifacial_yield = Base_yield × (1 + Bifaciality_factor × Roof_albedo × View_factor)",
+      },
+      parameters: [
+        { name: "Bifaciality factor", default: "0.85", description: "Back-side to front-side sensitivity ratio" },
+        { name: "White roof albedo", default: "0.70", description: "TPO/EPDM white membrane reflectivity" },
+        { name: "Gravel roof albedo", default: "0.20", description: "Typical gravel ballast reflectivity" },
+        { name: "Dark roof albedo", default: "0.10", description: "Asphalt/black membrane reflectivity" },
+        { name: "View factor", default: "0.35", description: "Portion of reflected radiation reaching panel backs" },
+      ],
+      costPremium: {
+        title: "Cost Premium",
+        description: "Bifacial panels have a 5% premium on cost per watt compared to standard monofacial panels.",
+      },
+    },
+    yieldHierarchy: {
+      title: "Yield Hierarchy",
+      description: "The system displays three yield levels for complete transparency on production calculations.",
+      levels: [
+        { 
+          name: "Base Yield", 
+          value: "~1150 kWh/kWp", 
+          description: "Theoretical horizontal yield in Quebec before adjustments" 
+        },
+        { 
+          name: "Gross Yield", 
+          value: "Variable", 
+          description: "After orientation, tilt, and bifacial boost adjustments (if applicable)" 
+        },
+        { 
+          name: "Net Delivered Yield", 
+          value: "Variable", 
+          description: "Final yield after all losses: temperature, wiring, ILR, shading" 
+        },
+      ],
+      formula: "Net_yield = Base_yield × Orientation_factor × Bifacial_boost × (1 - Temp_losses) × (1 - Wire_losses) × ILR_factor",
+    },
+    googleValidation: {
+      title: "Google Solar API Validation",
+      description: "The system performs cross-validation with Google Solar API data to validate yield estimates.",
+      method: {
+        title: "Comparison Methodology",
+        description: "Comparison is based on specific yield (kWh/kWp) rather than total production, as Google Solar API is optimized for residential installations and may underestimate C&I system sizes.",
+      },
+      thresholds: [
+        { range: "±10%", status: "Validated", color: "green", description: "Yield consistent with satellite data" },
+        { range: "10-20%", status: "Acceptable", color: "yellow", description: "Difference within acceptable margins" },
+        { range: ">20%", status: "Review needed", color: "red", description: "Recommendation to revise parameters" },
+      ],
+      limitations: {
+        title: "Known Limitations",
+        list: [
+          "Google Solar API often caps at ~50kWp (residential scale)",
+          "Large C&I buildings may exceed API capabilities",
+          "Specific yield comparison remains valid even when sizes differ",
         ],
       },
     },
