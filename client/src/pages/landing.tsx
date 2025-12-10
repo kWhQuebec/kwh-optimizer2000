@@ -84,6 +84,7 @@ export default function LandingPage() {
   const { t, language } = useI18n();
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [quickAnalysisExpanded, setQuickAnalysisExpanded] = useState(false);
   const [calcBill, setCalcBill] = useState<string>("");
   const [calcAddress, setCalcAddress] = useState<string>("");
   const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
@@ -413,14 +414,15 @@ export default function LandingPage() {
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-            {/* Option 1: Quick Analysis */}
+            {/* Option 1: Quick Analysis - Expandable */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
+              className={quickAnalysisExpanded ? "md:col-span-2" : ""}
             >
-              <Card className="h-full p-6 lg:p-8 border-2 border-primary/30 hover:border-primary/50 transition-colors hover-elevate">
+              <Card className={`h-full p-6 lg:p-8 border-2 transition-colors ${quickAnalysisExpanded ? 'border-primary' : 'border-primary/30 hover:border-primary/50 hover-elevate'}`}>
                 <div className="flex flex-col h-full">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-3 rounded-xl bg-primary/10">
@@ -438,37 +440,218 @@ export default function LandingPage() {
                     </div>
                   </div>
                   
-                  <p className="text-muted-foreground mb-6 flex-grow">
-                    {language === "fr" 
-                      ? "Faites une estimation par vous-même en quelques minutes. Basée sur l'adresse de votre bâtiment et votre facture mensuelle moyenne."
-                      : "Do a self-service estimate in just minutes. Based on your building address and average monthly bill."
-                    }
-                  </p>
+                  {!quickAnalysisExpanded && (
+                    <>
+                      <p className="text-muted-foreground mb-6 flex-grow">
+                        {language === "fr" 
+                          ? "Faites une estimation par vous-même en quelques minutes. Basée sur l'adresse de votre bâtiment et votre facture mensuelle moyenne."
+                          : "Do a self-service estimate in just minutes. Based on your building address and average monthly bill."
+                        }
+                      </p>
+                      
+                      <ul className="space-y-2 mb-6 text-sm">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <span>{language === "fr" ? "Résultats instantanés" : "Instant results"}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <span>{language === "fr" ? "Analyse de toiture via satellite" : "Satellite roof analysis"}</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <span>{language === "fr" ? "Estimation des économies et incitatifs" : "Savings and incentives estimate"}</span>
+                        </li>
+                      </ul>
+                      
+                      <Button 
+                        size="lg" 
+                        className="w-full"
+                        onClick={() => setQuickAnalysisExpanded(true)}
+                        data-testid="button-option-quick"
+                      >
+                        {language === "fr" ? "Démarrer mon analyse rapide" : "Start my quick analysis"}
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </>
+                  )}
                   
-                  <ul className="space-y-2 mb-6 text-sm">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span>{language === "fr" ? "Résultats instantanés" : "Instant results"}</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span>{language === "fr" ? "Analyse de toiture via satellite" : "Satellite roof analysis"}</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span>{language === "fr" ? "Estimation des économies et incitatifs" : "Savings and incentives estimate"}</span>
-                    </li>
-                  </ul>
-                  
-                  <Button 
-                    size="lg" 
-                    className="w-full"
-                    onClick={() => document.getElementById("calculator")?.scrollIntoView({ behavior: "smooth" })}
-                    data-testid="button-option-quick"
-                  >
-                    {language === "fr" ? "Démarrer mon analyse rapide" : "Start my quick analysis"}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  {/* Expanded Calculator Form */}
+                  {quickAnalysisExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-6"
+                    >
+                      {/* Input fields */}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {/* Address */}
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            {language === "fr" ? "Adresse du bâtiment" : "Building address"}
+                          </label>
+                          <Input
+                            type="text"
+                            value={calcAddress}
+                            onChange={(e) => setCalcAddress(e.target.value)}
+                            className="h-12"
+                            placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
+                            data-testid="input-calc-address"
+                          />
+                        </div>
+                        
+                        {/* Monthly bill */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-primary" />
+                            {language === "fr" ? "Facture mensuelle moyenne" : "Average monthly bill"}
+                          </label>
+                          <div className="relative">
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={calcBill}
+                              onChange={(e) => setCalcBill(e.target.value.replace(/[^0-9]/g, ""))}
+                              className="h-12 pl-8"
+                              placeholder="5000"
+                              data-testid="input-calc-bill"
+                            />
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          </div>
+                        </div>
+                        
+                        {/* Building type */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-primary" />
+                            {language === "fr" ? "Type de bâtiment" : "Building type"}
+                          </label>
+                          <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
+                            <SelectTrigger className="h-12" data-testid="select-calc-building-type">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(buildingTypeLabels).map(([key, label]) => (
+                                <SelectItem key={key} value={key}>{label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {/* Error message */}
+                      {calcError && (
+                        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
+                          {calcError}
+                        </div>
+                      )}
+                      
+                      {/* Analyze button */}
+                      <Button 
+                        size="lg" 
+                        className="w-full gap-2" 
+                        onClick={handleQuickEstimate}
+                        disabled={calcLoading}
+                        data-testid="button-calc-analyze"
+                      >
+                        {calcLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                          </>
+                        ) : (
+                          <>
+                            <Sun className="w-4 h-4" />
+                            {language === "fr" ? "Analyser mon potentiel" : "Analyze my potential"}
+                          </>
+                        )}
+                      </Button>
+                      
+                      {/* Results */}
+                      {calcResults && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-4 pt-4 border-t"
+                        >
+                          {/* Roof data indicator */}
+                          {calcResults.hasRoofData && calcResults.roof && (
+                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              {language === "fr" 
+                                ? `Toiture analysée: ${calcResults.roof.areaM2} m² disponibles`
+                                : `Roof analyzed: ${calcResults.roof.areaM2} m² available`
+                              }
+                            </div>
+                          )}
+                          
+                          {/* Main results grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="p-3 rounded-xl bg-primary/10 text-center">
+                              <p className="text-xs text-muted-foreground mb-1">
+                                {language === "fr" ? "Taille système" : "System size"}
+                              </p>
+                              <p className="text-xl font-bold text-primary" data-testid="text-calc-system-size">
+                                {calcResults.system.sizeKW} kW
+                              </p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-green-500/10 text-center">
+                              <p className="text-xs text-muted-foreground mb-1">
+                                {language === "fr" ? "Économies/an" : "Savings/year"}
+                              </p>
+                              <p className="text-xl font-bold text-green-600" data-testid="text-calc-savings">
+                                ${calcResults.financial.annualSavings.toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-muted text-center">
+                              <p className="text-xs text-muted-foreground mb-1">
+                                {language === "fr" ? "Retour" : "Payback"}
+                              </p>
+                              <p className="text-xl font-bold" data-testid="text-calc-payback">
+                                {calcResults.financial.paybackYears} {language === "fr" ? "ans" : "yrs"}
+                              </p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-amber-500/10 text-center">
+                              <p className="text-xs text-muted-foreground mb-1">
+                                {language === "fr" ? "Incitatif HQ" : "HQ Incentive"}
+                              </p>
+                              <p className="text-xl font-bold text-amber-600" data-testid="text-calc-incentive">
+                                ${calcResults.financial.hqIncentive.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* CTA to detailed analysis */}
+                          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                            <a href="#contact" className="flex-1">
+                              <Button size="lg" className="w-full gap-2" data-testid="button-calc-cta">
+                                {language === "fr" ? "Obtenir mon analyse complète" : "Get my complete analysis"}
+                                <ArrowRight className="w-4 h-4" />
+                              </Button>
+                            </a>
+                          </div>
+                          
+                          <p className="text-xs text-center text-muted-foreground">
+                            {language === "fr" 
+                              ? "* Estimation basée sur les données satellite et les tarifs HQ actuels."
+                              : "* Estimate based on satellite data and current HQ rates."
+                            }
+                          </p>
+                        </motion.div>
+                      )}
+                      
+                      {/* Collapse button */}
+                      <button 
+                        onClick={() => setQuickAnalysisExpanded(false)}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto block"
+                        data-testid="button-collapse-quick"
+                      >
+                        {language === "fr" ? "← Retour aux options" : "← Back to options"}
+                      </button>
+                    </motion.div>
+                  )}
                 </div>
               </Card>
             </motion.div>
@@ -520,232 +703,21 @@ export default function LandingPage() {
                     </li>
                   </ul>
                   
-                  <Button 
-                    size="lg" 
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
-                    data-testid="button-option-detailed"
-                  >
-                    {language === "fr" ? "Demander mon analyse détaillée" : "Request my detailed analysis"}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  <Link href="/analyse-detaillee">
+                    <Button 
+                      size="lg" 
+                      variant="outline"
+                      className="w-full"
+                      data-testid="button-option-detailed"
+                    >
+                      {language === "fr" ? "Demander mon analyse détaillée" : "Request my detailed analysis"}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
                 </div>
               </Card>
             </motion.div>
           </div>
-        </div>
-      </section>
-
-      {/* ========== QUICK CALCULATOR SECTION ========== */}
-      <section id="calculator" className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary/5 to-background">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-8"
-          >
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
-              <Calculator className="w-3 h-3 mr-1" />
-              {language === "fr" ? "Analyse instantanée" : "Instant Analysis"}
-            </Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-              {language === "fr" ? "Estimez votre potentiel solaire" : "Estimate your solar potential"}
-            </h2>
-            <p className="text-muted-foreground">
-              {language === "fr" 
-                ? "Entrez l'adresse de votre bâtiment pour une analyse basée sur votre toiture réelle"
-                : "Enter your building address for an analysis based on your actual roof"
-              }
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-          >
-            <Card className="p-6 lg:p-8 border-2 border-primary/20">
-              <div className="space-y-6">
-                {/* Input fields */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Address */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-primary" />
-                      {language === "fr" ? "Adresse du bâtiment" : "Building address"}
-                    </label>
-                    <Input
-                      type="text"
-                      value={calcAddress}
-                      onChange={(e) => setCalcAddress(e.target.value)}
-                      className="h-12"
-                      placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
-                      data-testid="input-calc-address"
-                    />
-                  </div>
-                  
-                  {/* Monthly bill */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-primary" />
-                      {language === "fr" ? "Facture mensuelle moyenne" : "Average monthly bill"}
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        value={calcBill}
-                        onChange={(e) => setCalcBill(e.target.value.replace(/[^0-9]/g, ""))}
-                        className="h-12 pl-8"
-                        placeholder="5000"
-                        data-testid="input-calc-bill"
-                      />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                    </div>
-                  </div>
-                  
-                  {/* Building type */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-primary" />
-                      {language === "fr" ? "Type de bâtiment" : "Building type"}
-                    </label>
-                    <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
-                      <SelectTrigger className="h-12" data-testid="select-calc-building-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(buildingTypeLabels).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {/* Tariff (optional) */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-primary" />
-                      {language === "fr" ? "Tarif HQ (optionnel)" : "HQ Tariff (optional)"}
-                    </label>
-                    <Select value={calcTariff} onValueChange={setCalcTariff}>
-                      <SelectTrigger className="h-12" data-testid="select-calc-tariff">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(tariffLabels).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                {/* Error message */}
-                {calcError && (
-                  <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-                    {calcError}
-                  </div>
-                )}
-                
-                {/* Analyze button */}
-                <Button 
-                  size="lg" 
-                  className="w-full gap-2" 
-                  onClick={handleQuickEstimate}
-                  disabled={calcLoading}
-                  data-testid="button-calc-analyze"
-                >
-                  {calcLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
-                    </>
-                  ) : (
-                    <>
-                      <Sun className="w-4 h-4" />
-                      {language === "fr" ? "Analyser mon potentiel" : "Analyze my potential"}
-                    </>
-                  )}
-                </Button>
-                
-                {/* Results */}
-                {calcResults && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4 pt-4 border-t"
-                  >
-                    {/* Roof data indicator */}
-                    {calcResults.hasRoofData && calcResults.roof && (
-                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle2 className="w-4 h-4 text-accent" />
-                        {language === "fr" 
-                          ? `Toiture analysée: ${calcResults.roof.areaM2} m² disponibles`
-                          : `Roof analyzed: ${calcResults.roof.areaM2} m² available`
-                        }
-                      </div>
-                    )}
-                    
-                    {/* Main results grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="p-4 rounded-xl bg-primary/10 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          {language === "fr" ? "Taille système" : "System size"}
-                        </p>
-                        <p className="text-2xl font-bold text-primary" data-testid="text-calc-system-size">
-                          {calcResults.system.sizeKW} kW
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-accent/10 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          {language === "fr" ? "Économies/an" : "Savings/year"}
-                        </p>
-                        <p className="text-2xl font-bold text-accent" data-testid="text-calc-savings">
-                          ${calcResults.financial.annualSavings.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-muted text-center">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          {language === "fr" ? "Retour" : "Payback"}
-                        </p>
-                        <p className="text-2xl font-bold" data-testid="text-calc-payback">
-                          {calcResults.financial.paybackYears} {language === "fr" ? "ans" : "yrs"}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-green-500/10 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          {language === "fr" ? "Incitatif HQ" : "HQ Incentive"}
-                        </p>
-                        <p className="text-2xl font-bold text-green-600" data-testid="text-calc-incentive">
-                          ${calcResults.financial.hqIncentive.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* CTA */}
-                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                      <a href="#contact" className="flex-1">
-                        <Button size="lg" className="w-full gap-2" data-testid="button-calc-cta">
-                          {language === "fr" ? "Obtenir mon analyse complète" : "Get my complete analysis"}
-                          <ArrowRight className="w-4 h-4" />
-                        </Button>
-                      </a>
-                    </div>
-                    
-                    <p className="text-xs text-center text-muted-foreground">
-                      {language === "fr" 
-                        ? "* Estimation basée sur les données satellite et les tarifs HQ actuels. L'analyse détaillée inclura vos données de consommation réelles."
-                        : "* Estimate based on satellite data and current HQ rates. Detailed analysis will include your actual consumption data."
-                      }
-                    </p>
-                  </motion.div>
-                )}
-              </div>
-            </Card>
-          </motion.div>
         </div>
       </section>
 

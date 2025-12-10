@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
+import AnalyseDetailleePage from "@/pages/analyse-detaillee";
 import DashboardPage from "@/pages/dashboard";
 import ClientsPage from "@/pages/clients";
 import SitesPage from "@/pages/sites";
@@ -96,6 +97,7 @@ function AppRoutes() {
     <Switch>
       {/* Public routes */}
       <Route path="/" component={LandingPage} />
+      <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/login" component={LoginPage} />
 
       {/* Protected routes */}
