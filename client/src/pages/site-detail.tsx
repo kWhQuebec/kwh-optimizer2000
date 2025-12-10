@@ -48,7 +48,8 @@ import {
   FileSignature,
   TreePine,
   Phone,
-  ArrowRight
+  ArrowRight,
+  XCircle
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -365,6 +366,46 @@ function AnalysisParametersEditor({
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isEstimating, setIsEstimating] = useState(false);
+  const [showResetButton, setShowResetButton] = useState(false);
+  const [pendingStartTime] = useState<number>(() => Date.now());
+
+  // Detect stale "pending" status - show reset button after 15 seconds
+  useEffect(() => {
+    if (site?.roofEstimateStatus === "pending" && !isEstimating) {
+      const timer = setTimeout(() => {
+        setShowResetButton(true);
+      }, 15000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowResetButton(false);
+    }
+  }, [site?.roofEstimateStatus, isEstimating]);
+
+  // Reset stale pending status
+  const handleResetStatus = async () => {
+    if (!site || !token) return;
+    try {
+      const response = await fetch(`/api/sites/${site.id}/reset-roof-status`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      if (response.ok) {
+        setShowResetButton(false);
+        onSiteRefresh?.();
+        toast({
+          title: language === "fr" ? "Statut réinitialisé" : "Status reset",
+          description: language === "fr" 
+            ? "Vous pouvez maintenant relancer l'estimation" 
+            : "You can now retry the estimation",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to reset status:", error);
+    }
+  };
 
   const merged: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...value };
 
@@ -970,6 +1011,18 @@ function AnalysisParametersEditor({
                         <span className="text-xs text-muted-foreground">
                           {language === "fr" ? "Estimation satellite en cours..." : "Satellite estimation in progress..."}
                         </span>
+                        {showResetButton && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleResetStatus}
+                            className="h-6 text-xs ml-auto text-destructive hover:text-destructive"
+                            data-testid="button-reset-roof-status"
+                          >
+                            <XCircle className="w-3 h-3 mr-1" />
+                            {language === "fr" ? "Réinitialiser" : "Reset"}
+                          </Button>
+                        )}
                       </>
                     )}
                     {site.roofEstimateStatus === "success" && site.roofAreaAutoSqM && (

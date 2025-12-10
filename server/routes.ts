@@ -932,6 +932,29 @@ export async function registerRoutes(
     res.json({ configured: googleSolar.isGoogleSolarConfigured() });
   });
 
+  // Reset stale roof estimation status
+  app.post("/api/sites/:id/reset-roof-status", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.id;
+      console.log(`[RoofEstimate] Resetting status for site ${siteId}`);
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      const updatedSite = await storage.updateSite(siteId, {
+        roofEstimateStatus: null,
+        roofEstimateError: null
+      });
+
+      res.json({ success: true, site: updatedSite });
+    } catch (error) {
+      console.error("Reset roof status error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/sites/:id/roof-estimate", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const siteId = req.params.id;
