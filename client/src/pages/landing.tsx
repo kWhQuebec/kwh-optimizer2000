@@ -10,7 +10,7 @@ import {
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
   Timer, Rocket, BatteryCharging, BadgePercent, Calculator, MapPin,
-  Sun, Battery, FileText, Hammer, Loader2
+  Sun, Battery, FileText, Hammer, Loader2, FileCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -383,6 +383,155 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== ANALYSIS OPTIONS SECTION ========== */}
+      <section id="analysis-options" className="py-16 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10"
+          >
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+              <BarChart3 className="w-3 h-3 mr-1" />
+              {language === "fr" ? "Deux options" : "Two options"}
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+              {language === "fr" ? "Choisissez votre niveau d'analyse" : "Choose your analysis level"}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {language === "fr" 
+                ? "Selon vos besoins, optez pour une estimation rapide ou une analyse détaillée basée sur vos données réelles"
+                : "Based on your needs, choose a quick estimate or a detailed analysis based on your real data"
+              }
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+            {/* Option 1: Quick Analysis */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card className="h-full p-6 lg:p-8 border-2 border-primary/30 hover:border-primary/50 transition-colors hover-elevate">
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 rounded-xl bg-primary/10">
+                      <Timer className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">
+                        {language === "fr" ? "Analyse Rapide" : "Quick Analysis"}
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        <span>5 {language === "fr" ? "minutes" : "minutes"}</span>
+                        <span className="text-primary font-medium">• 75% {language === "fr" ? "précision" : "accuracy"}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-muted-foreground mb-6 flex-grow">
+                    {language === "fr" 
+                      ? "Faites une estimation par vous-même en quelques minutes. Basée sur l'adresse de votre bâtiment et votre facture mensuelle moyenne."
+                      : "Do a self-service estimate in just minutes. Based on your building address and average monthly bill."
+                    }
+                  </p>
+                  
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>{language === "fr" ? "Résultats instantanés" : "Instant results"}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>{language === "fr" ? "Analyse de toiture via satellite" : "Satellite roof analysis"}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>{language === "fr" ? "Estimation des économies et incitatifs" : "Savings and incentives estimate"}</span>
+                    </li>
+                  </ul>
+                  
+                  <Button 
+                    size="lg" 
+                    className="w-full"
+                    onClick={() => document.getElementById("calculator")?.scrollIntoView({ behavior: "smooth" })}
+                    data-testid="button-option-quick"
+                  >
+                    {language === "fr" ? "Démarrer mon analyse rapide" : "Start my quick analysis"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Option 2: Detailed Analysis */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="h-full p-6 lg:p-8 border-2 border-accent/30 hover:border-accent/50 transition-colors hover-elevate bg-gradient-to-br from-accent/5 to-background">
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 rounded-xl bg-accent/20">
+                      <FileCheck className="w-6 h-6 text-accent-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">
+                        {language === "fr" ? "Analyse Détaillée" : "Detailed Analysis"}
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        <span>5 {language === "fr" ? "jours" : "days"}</span>
+                        <span className="text-accent-foreground font-medium">• 95% {language === "fr" ? "précision" : "accuracy"}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-muted-foreground mb-6 flex-grow">
+                    {language === "fr" 
+                      ? "Donnez-nous accès à vos données de consommation Hydro-Québec et on vous revient avec une analyse optimale pour votre situation."
+                      : "Give us access to your Hydro-Québec consumption data and we'll provide an optimal analysis for your situation."
+                    }
+                  </p>
+                  
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>{language === "fr" ? "Données réelles 8760 heures" : "Real 8760-hour data"}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>{language === "fr" ? "Optimisation PV + batterie" : "PV + battery optimization"}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>{language === "fr" ? "Comparaison 3 options de financement" : "3 financing options comparison"}</span>
+                    </li>
+                  </ul>
+                  
+                  <Button 
+                    size="lg" 
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+                    data-testid="button-option-detailed"
+                  >
+                    {language === "fr" ? "Demander mon analyse détaillée" : "Request my detailed analysis"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </Card>
             </motion.div>
           </div>
         </div>
