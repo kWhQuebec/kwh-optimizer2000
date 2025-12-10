@@ -98,6 +98,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { LoadProfileEditor, SingleBillEstimator, KPIDashboard } from "@/components/consumption-tools";
 import type { Site, Client, MeterFile, SimulationRun } from "@shared/schema";
 
 interface SiteWithDetails extends Site {
@@ -2619,6 +2620,24 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
 
   return (
     <div className="space-y-6">
+      {/* KPI Dashboard - Quick Overview */}
+      <KPIDashboard
+        pvSizeKW={simulation.pvSizeKW || 0}
+        productionMWh={((simulation.pvSizeKW || 0) * (assumptions.yieldKWhPerKWp || 1150)) / 1000}
+        coveragePercent={
+          simulation.selfSufficiencyPercent 
+            ? simulation.selfSufficiencyPercent 
+            : (simulation.selfConsumptionKWh && simulation.annualConsumptionKWh)
+              ? (simulation.selfConsumptionKWh / simulation.annualConsumptionKWh) * 100
+              : 0
+        }
+        paybackYears={simulation.simplePaybackYears || 0}
+        annualSavings={simulation.annualSavings || 0}
+        npv25={simulation.npv25 || 0}
+        irr25={simulation.irr25 || 0}
+        co2Tonnes={simulation.co2AvoidedTonnesPerYear || 0}
+      />
+
       {/* Satellite Hero Image */}
       {site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
         <div className="relative rounded-xl overflow-hidden" data-testid="satellite-hero">
@@ -4573,6 +4592,85 @@ export default function SiteDetailPage() {
               showOnlyRoofSection={!site.meterFiles?.length}
             />
           )}
+
+          {/* Single Bill Estimator - Staff only, when no files */}
+          {isStaff && (!site.meterFiles || site.meterFiles.length === 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  {language === "fr" ? "Pas de fichiers CSV?" : "No CSV files?"}
+                </CardTitle>
+                <CardDescription>
+                  {language === "fr" 
+                    ? "Estimez la consommation annuelle à partir d'une seule facture Hydro-Québec"
+                    : "Estimate annual consumption from a single Hydro-Québec bill"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SingleBillEstimator 
+                  onEstimate={(monthlyData) => {
+                    const totalKWh = monthlyData.reduce((sum, d) => sum + d.consumption, 0);
+                    toast({
+                      title: language === "fr" ? "Profil généré" : "Profile generated",
+                      description: language === "fr" 
+                        ? `Consommation estimée: ${(totalKWh / 1000).toFixed(0)} MWh/an`
+                        : `Estimated consumption: ${(totalKWh / 1000).toFixed(0)} MWh/year`,
+                    });
+                  }}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Load Profile Editor - Staff only, when files exist and simulation is available */}
+          {isStaff && site.meterFiles && site.meterFiles.length > 0 && latestSimulation && (() => {
+            // Try to extract monthly data from hourlyProfile if available
+            const hourlyProfile = latestSimulation.hourlyProfile as Array<{hour: number; month: number; consumption: number}> | null;
+            let monthlyData: Array<{month: number; consumption: number}>;
+            
+            if (hourlyProfile && Array.isArray(hourlyProfile) && hourlyProfile.length > 0) {
+              // Aggregate hourly data by month
+              const monthTotals: Record<number, number> = {};
+              for (const entry of hourlyProfile) {
+                const m = entry.month - 1; // 0-indexed
+                monthTotals[m] = (monthTotals[m] || 0) + (entry.consumption || 0);
+              }
+              monthlyData = Array.from({length: 12}, (_, m) => ({
+                month: m,
+                consumption: Math.round(monthTotals[m] || 0),
+              }));
+            } else {
+              // Fallback: derive from annual data with Quebec seasonal profile
+              const annualKWh = latestSimulation.annualConsumptionKWh || 0;
+              const seasonalFactors = [1.15, 1.1, 1.0, 0.9, 0.85, 0.8, 0.75, 0.8, 0.9, 1.0, 1.05, 1.15];
+              const factorSum = seasonalFactors.reduce((s, f) => s + f, 0);
+              monthlyData = seasonalFactors.map((factor, month) => ({
+                month,
+                consumption: Math.round((annualKWh * factor) / factorSum),
+              }));
+            }
+            
+            return (
+              <LoadProfileEditor
+                monthlyData={monthlyData}
+                onUpdate={(newData) => {
+                  const totalKWh = newData.reduce((sum, d) => sum + d.consumption, 0);
+                  // Store modified profile in customAssumptions for next analysis run
+                  setCustomAssumptions(prev => ({
+                    ...prev,
+                    modifiedMonthlyConsumption: newData,
+                  }));
+                  toast({
+                    title: language === "fr" ? "Profil modifié" : "Profile modified",
+                    description: language === "fr" 
+                      ? `Nouvelle consommation: ${(totalKWh / 1000).toFixed(0)} MWh/an. Relancer l'analyse pour appliquer.`
+                      : `New consumption: ${(totalKWh / 1000).toFixed(0)} MWh/year. Re-run analysis to apply.`,
+                  });
+                }}
+                disabled={runAnalysisMutation.isPending}
+              />
+            );
+          })()}
 
           {/* Files Table */}
           <Card>
