@@ -409,7 +409,7 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   omSolarPercent: 0.01, // 1% of solar CAPEX
   omBatteryPercent: 0.005, // 0.5% of battery CAPEX
   omEscalation: 0.025, // 2.5% annual O&M escalation
-  roofAreaSqFt: 10000, // Default roof area
+  roofAreaSqFt: 100000, // Default roof area (100,000 sq ft for large C&I buildings)
   roofUtilizationRatio: 0.80, // 80% usable
   batteryReplacementYear: 10, // Replace battery at year 10
   batteryReplacementCostFactor: 0.60, // 60% of original cost

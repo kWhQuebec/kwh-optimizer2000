@@ -935,19 +935,23 @@ export async function registerRoutes(
   app.post("/api/sites/:id/roof-estimate", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const siteId = req.params.id;
+      console.log(`[RoofEstimate] Starting estimation for site ${siteId}`);
       
       const site = await storage.getSite(siteId);
       if (!site) {
+        console.log(`[RoofEstimate] Site ${siteId} not found`);
         return res.status(404).json({ error: "Site not found" });
       }
 
       if (!googleSolar.isGoogleSolarConfigured()) {
+        console.log(`[RoofEstimate] Google Solar API not configured`);
         return res.status(503).json({ error: "Google Solar API not configured" });
       }
 
       let result: googleSolar.RoofEstimateResult;
 
       if (site.latitude && site.longitude) {
+        console.log(`[RoofEstimate] Using existing coordinates: lat=${site.latitude}, lng=${site.longitude}`);
         result = await googleSolar.estimateRoofFromLocation({
           latitude: site.latitude,
           longitude: site.longitude
@@ -962,11 +966,15 @@ export async function registerRoutes(
         ].filter(Boolean).join(", ");
 
         if (!fullAddress || fullAddress === "Canada") {
+          console.log(`[RoofEstimate] No address provided for site ${siteId}`);
           return res.status(400).json({ error: "Site address is required for roof estimation" });
         }
 
+        console.log(`[RoofEstimate] Geocoding address: ${fullAddress}`);
         result = await googleSolar.estimateRoofFromAddress(fullAddress);
       }
+      
+      console.log(`[RoofEstimate] Result: success=${result.success}, roofArea=${result.roofAreaSqM}m², error=${result.error || 'none'}`);
 
       if (!result.success) {
         return res.status(422).json({ 

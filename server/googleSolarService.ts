@@ -2,6 +2,34 @@ const GOOGLE_SOLAR_API_KEY = process.env.GOOGLE_SOLAR_API_KEY;
 const GOOGLE_SOLAR_API_BASE = "https://solar.googleapis.com/v1";
 const GOOGLE_GEOCODING_API_BASE = "https://maps.googleapis.com/maps/api/geocode/json";
 
+// Timeout for Google API calls (15 seconds)
+const API_TIMEOUT_MS = 15000;
+
+// Helper function to fetch with timeout
+async function fetchWithTimeout(
+  url: string, 
+  timeoutMs: number = API_TIMEOUT_MS,
+  init?: RequestInit
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, { 
+      ...init,
+      signal: controller.signal 
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`API request timed out after ${timeoutMs / 1000} seconds`);
+    }
+    throw error;
+  }
+}
+
 export interface GeoLocation {
   latitude: number;
   longitude: number;
@@ -116,24 +144,26 @@ export async function geocodeAddress(address: string): Promise<GeoLocation | nul
   }
 
   try {
+    console.log(`[Geocoding] Starting geocode for address: ${address}`);
     const encodedAddress = encodeURIComponent(address);
     const url = `${GOOGLE_GEOCODING_API_BASE}?address=${encodedAddress}&key=${GOOGLE_SOLAR_API_KEY}`;
     
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     const data = await response.json();
     
     if (data.status === "OK" && data.results && data.results.length > 0) {
       const location = data.results[0].geometry.location;
+      console.log(`[Geocoding] Success: lat=${location.lat}, lng=${location.lng}`);
       return {
         latitude: location.lat,
         longitude: location.lng
       };
     }
     
-    console.error("Geocoding failed:", data.status, data.error_message);
+    console.error("[Geocoding] Failed:", data.status, data.error_message);
     return null;
   } catch (error) {
-    console.error("Geocoding error:", error);
+    console.error("[Geocoding] Error:", error instanceof Error ? error.message : error);
     return null;
   }
 }
@@ -145,19 +175,22 @@ export async function getBuildingInsights(location: GeoLocation): Promise<Buildi
   }
 
   try {
+    console.log(`[BuildingInsights] Starting request for lat=${location.latitude}, lng=${location.longitude}`);
     const url = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=HIGH&key=${GOOGLE_SOLAR_API_KEY}`;
     
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Solar API error:", response.status, errorText);
+      console.error("[BuildingInsights] Solar API error:", response.status, errorText);
       
       if (response.status === 404) {
+        console.log("[BuildingInsights] Trying MEDIUM quality...");
         const mediumQualityUrl = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=MEDIUM&key=${GOOGLE_SOLAR_API_KEY}`;
-        const mediumResponse = await fetch(mediumQualityUrl);
+        const mediumResponse = await fetchWithTimeout(mediumQualityUrl);
         
         if (mediumResponse.ok) {
+          console.log("[BuildingInsights] MEDIUM quality success");
           return await mediumResponse.json();
         }
       }
@@ -165,9 +198,10 @@ export async function getBuildingInsights(location: GeoLocation): Promise<Buildi
       return null;
     }
     
+    console.log("[BuildingInsights] HIGH quality success");
     return await response.json();
   } catch (error) {
-    console.error("Building insights error:", error);
+    console.error("[BuildingInsights] Error:", error instanceof Error ? error.message : error);
     return null;
   }
 }
@@ -334,13 +368,15 @@ export async function getDataLayers(location: GeoLocation, radiusMeters: number 
     });
 
     const url = `${GOOGLE_SOLAR_API_BASE}/dataLayers:get?${params}`;
-    const response = await fetch(url);
+    console.log(`[DataLayers] Starting request for lat=${location.latitude}, lng=${location.longitude}`);
+    const response = await fetchWithTimeout(url);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Solar API dataLayers error:", response.status, errorText);
+      console.error("[DataLayers] Solar API error:", response.status, errorText);
       
       if (response.status === 404) {
+        console.log("[DataLayers] Trying MEDIUM quality...");
         const mediumParams = new URLSearchParams({
           "location.latitude": location.latitude.toFixed(6),
           "location.longitude": location.longitude.toFixed(6),
@@ -350,7 +386,7 @@ export async function getDataLayers(location: GeoLocation, radiusMeters: number 
           "key": GOOGLE_SOLAR_API_KEY
         });
         const mediumUrl = `${GOOGLE_SOLAR_API_BASE}/dataLayers:get?${mediumParams}`;
-        const mediumResponse = await fetch(mediumUrl);
+        const mediumResponse = await fetchWithTimeout(mediumUrl);
         
         if (mediumResponse.ok) {
           const data = await mediumResponse.json();
@@ -458,10 +494,11 @@ export async function analyzeRoofColor(location: GeoLocation): Promise<RoofColor
       ? dataLayers.rgbUrl 
       : `${dataLayers.rgbUrl}&key=${GOOGLE_SOLAR_API_KEY}`;
     
-    const response = await fetch(rgbUrlWithKey);
+    console.log("[RoofColor] Fetching RGB imagery...");
+    const response = await fetchWithTimeout(rgbUrlWithKey, 30000); // 30s for image download
     
     if (!response.ok) {
-      console.error("Failed to fetch RGB imagery:", response.status);
+      console.error("[RoofColor] Failed to fetch RGB imagery:", response.status);
       return {
         success: false,
         colorType: "unknown",
