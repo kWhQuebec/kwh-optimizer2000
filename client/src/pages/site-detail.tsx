@@ -1368,9 +1368,11 @@ function DownloadReportButton({
   const { t, language } = useI18n();
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
+  const [downloadPhase, setDownloadPhase] = useState<"idle" | "preparing" | "generating">("idle");
 
   const handleDownload = async () => {
     setDownloading(true);
+    setDownloadPhase("preparing");
     try {
       // Switch to Analysis tab first so PDF sections are rendered
       if (onSwitchToAnalysis) {
@@ -1398,6 +1400,7 @@ function DownloadReportButton({
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       
+      setDownloadPhase("generating");
       const { downloadClientPDF } = await import("@/lib/clientPdfGenerator");
       await downloadClientPDF(siteName, clientName, location, language);
       toast({ title: language === "fr" ? "Rapport téléchargé" : "Report downloaded" });
@@ -1406,13 +1409,46 @@ function DownloadReportButton({
       toast({ title: language === "fr" ? "Erreur lors du téléchargement" : "Download error", variant: "destructive" });
     } finally {
       setDownloading(false);
+      setDownloadPhase("idle");
     }
   };
 
+  const getButtonContent = () => {
+    if (!downloading) {
+      return (
+        <>
+          <Download className="w-4 h-4" />
+          {t("site.downloadReport")}
+        </>
+      );
+    }
+    
+    if (downloadPhase === "preparing") {
+      return (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          {language === "fr" ? "Préparation..." : "Preparing..."}
+        </>
+      );
+    }
+    
+    return (
+      <>
+        <Loader2 className="w-4 h-4 animate-spin" />
+        {language === "fr" ? "Génération PDF..." : "Generating PDF..."}
+      </>
+    );
+  };
+
   return (
-    <Button variant="outline" className="gap-2" onClick={handleDownload} disabled={downloading} data-testid="button-download-report">
-      <Download className="w-4 h-4" />
-      {downloading ? "..." : t("site.downloadReport")}
+    <Button 
+      variant="outline" 
+      className="gap-2 min-w-[160px]" 
+      onClick={handleDownload} 
+      disabled={downloading} 
+      data-testid="button-download-report"
+    >
+      {getButtonContent()}
     </Button>
   );
 }
