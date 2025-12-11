@@ -234,50 +234,104 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ========== HERO SECTION - COMPACT ========== */}
-      <section className="relative pt-24 pb-12 overflow-hidden">
+      {/* ========== HERO SECTION - SPLIT LAYOUT ========== */}
+      <section className="relative pt-24 pb-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
         
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15]">
-                {t("landing.hero.title")}
-              </h1>
-              <p className="text-xl sm:text-2xl text-primary font-semibold">
-                {t("landing.hero.subtitle")}
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left: Text content */}
+            <motion.div 
+              className="space-y-6 text-center lg:text-left"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="space-y-3">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15]">
+                  {t("landing.hero.title")}
+                </h1>
+                <p className="text-xl sm:text-2xl text-primary font-semibold">
+                  {t("landing.hero.subtitle")}
+                </p>
+              </div>
+              
+              <p className="text-lg text-muted-foreground max-w-xl">
+                {language === "fr" 
+                  ? "Choisissez le niveau d'analyse adapté à vos besoins"
+                  : "Choose the analysis level that fits your needs"
+                }
               </p>
-            </div>
-            
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
-                ? "Choisissez le niveau d'analyse adapté à vos besoins"
-                : "Choose the analysis level that fits your needs"
-              }
-            </p>
 
-            {/* Trust badges - compact */}
-            <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 pt-2">
-              <div className="flex items-center gap-2" data-testid="badge-trust-certified">
-                <Shield className="w-4 h-4 text-primary" />
-                <span className="text-sm text-muted-foreground">{t("landing.trust.certified")}</span>
+              {/* Trust badges */}
+              <div className="flex flex-wrap justify-center lg:justify-start items-center gap-x-6 gap-y-2 pt-2">
+                <div className="flex items-center gap-2" data-testid="badge-trust-certified">
+                  <Shield className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">{t("landing.trust.certified")}</span>
+                </div>
+                <div className="flex items-center gap-2" data-testid="badge-trust-experience">
+                  <Award className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">{t("landing.trust.experience")}</span>
+                </div>
+                <div className="flex items-center gap-2" data-testid="badge-trust-datadriven">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">{t("landing.trust.datadriven")}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2" data-testid="badge-trust-experience">
-                <Award className="w-4 h-4 text-primary" />
-                <span className="text-sm text-muted-foreground">{t("landing.trust.experience")}</span>
+              
+              {/* CTA Button */}
+              <div className="pt-2">
+                <a href="#paths">
+                  <Button size="lg" className="gap-2" data-testid="button-hero-cta">
+                    {language === "fr" ? "Obtenir mon analyse" : "Get my analysis"}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </a>
               </div>
-              <div className="flex items-center gap-2" data-testid="badge-trust-datadriven">
-                <BarChart3 className="w-4 h-4 text-primary" />
-                <span className="text-sm text-muted-foreground">{t("landing.trust.datadriven")}</span>
+            </motion.div>
+            
+            {/* Right: Visual */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="relative"
+            >
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border">
+                <img 
+                  src={heroRoofAnalysis} 
+                  alt={language === "fr" ? "Analyse de potentiel solaire" : "Solar potential analysis"}
+                  className="w-full h-auto"
+                  data-testid="img-hero-analysis"
+                />
+                {/* Overlay badge */}
+                <div className="absolute bottom-4 left-4 right-4">
+                  <div className="bg-background/90 backdrop-blur-sm rounded-lg p-3 border shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                        <TrendingUp className="w-5 h-5 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {language === "fr" ? "Potentiel identifié" : "Potential identified"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {language === "fr" ? "Économies et ROI calculés automatiquement" : "Savings and ROI calculated automatically"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </motion.div>
+              
+              {/* Floating stats */}
+              <div className="absolute -top-4 -right-4 bg-primary text-primary-foreground rounded-xl px-4 py-2 shadow-lg hidden lg:block">
+                <p className="text-2xl font-bold">~75%</p>
+                <p className="text-xs opacity-90">{language === "fr" ? "précision" : "accuracy"}</p>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -337,6 +391,38 @@ export default function LandingPage() {
                       </Button>
                     )}
                   </div>
+                  
+                  {/* Preview thumbnail when collapsed */}
+                  {!quickPathExpanded && (
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex gap-4 items-center">
+                        <img 
+                          src={roofMeasurement} 
+                          alt={language === "fr" ? "Aperçu analyse" : "Analysis preview"}
+                          className="w-24 h-16 object-cover rounded-lg border shrink-0"
+                        />
+                        <div className="text-sm">
+                          <p className="font-medium text-muted-foreground">
+                            {language === "fr" ? "Vous obtiendrez:" : "You'll get:"}
+                          </p>
+                          <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                            <li className="flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-green-500" />
+                              {language === "fr" ? "Capacité PV estimée" : "Estimated PV capacity"}
+                            </li>
+                            <li className="flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-green-500" />
+                              {language === "fr" ? "Économies annuelles" : "Annual savings"}
+                            </li>
+                            <li className="flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-green-500" />
+                              {language === "fr" ? "Retour sur investissement" : "Payback period"}
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Expanded content */}
@@ -644,6 +730,38 @@ export default function LandingPage() {
                         </Button>
                       )}
                     </div>
+                    
+                    {/* Preview thumbnail when collapsed */}
+                    {!detailedPathExpanded && (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex gap-4 items-center">
+                          <img 
+                            src={language === "fr" ? screenshotFinancialFr : screenshotFinancialEn} 
+                            alt={language === "fr" ? "Aperçu rapport" : "Report preview"}
+                            className="w-24 h-16 object-cover rounded-lg border shrink-0"
+                          />
+                          <div className="text-sm">
+                            <p className="font-medium text-muted-foreground">
+                              {language === "fr" ? "Vous obtiendrez:" : "You'll get:"}
+                            </p>
+                            <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                              <li className="flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                {language === "fr" ? "Simulation 8 760h complète" : "Complete 8,760h simulation"}
+                              </li>
+                              <li className="flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                {language === "fr" ? "Projections financières 25 ans" : "25-year financial projections"}
+                              </li>
+                              <li className="flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                {language === "fr" ? "Rapport PDF professionnel" : "Professional PDF report"}
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Expanded content */}
