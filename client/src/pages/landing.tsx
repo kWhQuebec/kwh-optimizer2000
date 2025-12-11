@@ -241,41 +241,41 @@ export default function LandingPage() {
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
         
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Left: Text content */}
+          <div className="grid lg:grid-cols-5 gap-6 lg:gap-10 items-center">
+            {/* Left: Text content - narrower */}
             <motion.div 
-              className="space-y-6 text-center lg:text-left"
+              className="lg:col-span-2 space-y-4 text-center lg:text-left"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="space-y-3">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15]">
+              <div className="space-y-2">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-[1.15]">
                   {t("landing.hero.title")}
                 </h1>
-                <p className="text-xl sm:text-2xl text-primary font-semibold">
+                <p className="text-lg sm:text-xl text-primary font-semibold">
                   {t("landing.hero.subtitle")}
                 </p>
               </div>
               
-              <p className="text-lg text-muted-foreground max-w-xl">
+              <p className="text-base text-muted-foreground">
                 {language === "fr" 
                   ? "Choisissez le niveau d'analyse adapté à vos besoins"
                   : "Choose the analysis level that fits your needs"
                 }
               </p>
 
-              {/* Trust badges */}
-              <div className="flex flex-wrap justify-center lg:justify-start items-center gap-x-6 gap-y-2 pt-2">
-                <div className="flex items-center gap-2" data-testid="badge-trust-certified">
+              {/* Trust badges - stacked */}
+              <div className="flex flex-col gap-2 pt-2">
+                <div className="flex items-center gap-2 justify-center lg:justify-start" data-testid="badge-trust-certified">
                   <Shield className="w-4 h-4 text-primary" />
                   <span className="text-sm text-muted-foreground">{t("landing.trust.certified")}</span>
                 </div>
-                <div className="flex items-center gap-2" data-testid="badge-trust-experience">
+                <div className="flex items-center gap-2 justify-center lg:justify-start" data-testid="badge-trust-experience">
                   <Award className="w-4 h-4 text-primary" />
                   <span className="text-sm text-muted-foreground">{t("landing.trust.experience")}</span>
                 </div>
-                <div className="flex items-center gap-2" data-testid="badge-trust-datadriven">
+                <div className="flex items-center gap-2 justify-center lg:justify-start" data-testid="badge-trust-datadriven">
                   <BarChart3 className="w-4 h-4 text-primary" />
                   <span className="text-sm text-muted-foreground">{t("landing.trust.datadriven")}</span>
                 </div>
@@ -292,36 +292,29 @@ export default function LandingPage() {
               </div>
             </motion.div>
             
-            {/* Right: Visual */}
+            {/* Right: Visual - wider */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative"
+              className="lg:col-span-3 space-y-3"
             >
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border">
+              <div className="rounded-2xl overflow-hidden shadow-2xl border">
                 <img 
                   src={heroOptimization} 
                   alt={language === "fr" ? "Analyse d'optimisation" : "Optimization analysis"}
                   className="w-full h-auto"
                   data-testid="img-hero-analysis"
                 />
-                {/* Overlay badge */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="bg-primary text-primary-foreground rounded-lg p-3 shadow-lg">
-                    <p className="text-sm font-semibold">
-                      {language === "fr" 
-                        ? "Gratuit: design du système le plus rentable pour votre immeuble" 
-                        : "Free: design of the most profitable system for your building"}
-                    </p>
-                  </div>
-                </div>
               </div>
               
-              {/* Floating stats */}
-              <div className="absolute -top-4 -right-4 bg-primary text-primary-foreground rounded-xl px-4 py-2 shadow-lg hidden lg:block">
-                <p className="text-2xl font-bold">~75%</p>
-                <p className="text-xs opacity-90">{language === "fr" ? "précision" : "accuracy"}</p>
+              {/* Blue box below image */}
+              <div className="bg-primary text-primary-foreground rounded-xl p-4 shadow-lg">
+                <p className="text-base font-semibold text-center">
+                  {language === "fr" 
+                    ? "Gratuit: design du système le plus rentable pour votre immeuble" 
+                    : "Free: design of the most profitable system for your building"}
+                </p>
               </div>
             </motion.div>
           </div>
