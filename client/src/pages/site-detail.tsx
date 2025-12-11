@@ -2693,7 +2693,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   );
 }
 
-function AnalysisResults({ simulation, site, isStaff = false }: { simulation: SimulationRun; site: SiteWithDetails; isStaff?: boolean }) {
+function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesignAgreement }: { simulation: SimulationRun; site: SiteWithDetails; isStaff?: boolean; onNavigateToDesignAgreement?: () => void }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [showIncentives, setShowIncentives] = useState(true);
@@ -4468,12 +4468,15 @@ function AnalysisResults({ simulation, site, isStaff = false }: { simulation: Si
           
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
             {isStaff ? (
-              <Link href={`/app/analyses/${simulation.id}/design`}>
-                <Button size="lg" className="gap-2 px-8" data-testid="button-cta-create-design">
-                  <PenTool className="w-5 h-5" />
-                  {language === "fr" ? "Créer le devis" : "Create Design Quote"}
-                </Button>
-              </Link>
+              <Button 
+                size="lg" 
+                className="gap-2 px-8" 
+                onClick={onNavigateToDesignAgreement}
+                data-testid="button-cta-create-design"
+              >
+                <FileSignature className="w-5 h-5" />
+                {language === "fr" ? "Créer l'entente de design" : "Create Design Agreement"}
+              </Button>
             ) : (
               <Button size="lg" className="gap-2 px-8" data-testid="button-cta-sign-agreement">
                 <FileSignature className="w-5 h-5" />
@@ -4849,6 +4852,11 @@ export default function SiteDetailPage() {
               {language === "fr" ? "Visite technique" : "Technical Visit"}
             </TabsTrigger>
           )}
+          {isStaff && (
+            <TabsTrigger value="design-agreement" data-testid="tab-design-agreement">
+              {language === "fr" ? "Entente de design" : "Design Agreement"}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="consumption" className="space-y-6">
@@ -5049,7 +5057,7 @@ export default function SiteDetailPage() {
               </CardContent>
             </Card>
           ) : latestSimulation ? (
-            <AnalysisResults simulation={latestSimulation} site={site} isStaff={isStaff} />
+            <AnalysisResults simulation={latestSimulation} site={site} isStaff={isStaff} onNavigateToDesignAgreement={() => setActiveTab("design-agreement")} />
           ) : (
             <Card>
               <CardContent className="py-16 text-center">
@@ -5107,6 +5115,12 @@ export default function SiteDetailPage() {
               siteLat={site.latitude}
               siteLng={site.longitude}
             />
+          </TabsContent>
+        )}
+
+        {/* Design Agreement Tab - Staff only */}
+        {isStaff && (
+          <TabsContent value="design-agreement" className="space-y-6">
             <DesignAgreementSection siteId={site.id} />
           </TabsContent>
         )}
