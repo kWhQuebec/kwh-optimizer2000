@@ -44,6 +44,7 @@ interface SiteVisitSectionProps {
   siteId: string;
   siteLat?: number | null;
   siteLng?: number | null;
+  designAgreementStatus?: string | null;
 }
 
 interface EstimatedCost {
@@ -1211,7 +1212,7 @@ function SiteVisitForm({
   );
 }
 
-export function SiteVisitSection({ siteId, siteLat, siteLng }: SiteVisitSectionProps) {
+export function SiteVisitSection({ siteId, siteLat, siteLng, designAgreementStatus }: SiteVisitSectionProps) {
   const { t, language } = useI18n();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVisit, setEditingVisit] = useState<SiteVisit | null>(null);
@@ -1219,6 +1220,9 @@ export function SiteVisitSection({ siteId, siteLat, siteLng }: SiteVisitSectionP
   const { data: visits, isLoading } = useQuery<SiteVisit[]>({
     queryKey: ["/api/sites", siteId, "visits"],
   });
+  
+  // Check if the design agreement is signed (accepted status)
+  const isAgreementSigned = designAgreementStatus === "accepted";
   
   const handleNewVisit = () => {
     setEditingVisit(null);
@@ -1254,8 +1258,14 @@ export function SiteVisitSection({ siteId, siteLat, siteLng }: SiteVisitSectionP
               : "Schedule and document on-site technical visits"}
           </CardDescription>
         </div>
-        <Button onClick={handleNewVisit} className="gap-1" data-testid="button-new-site-visit">
-          <Plus className="w-4 h-4" />
+        <Button 
+          onClick={handleNewVisit} 
+          className="gap-1" 
+          disabled={!isAgreementSigned}
+          data-testid="button-new-site-visit"
+        >
+          {!isAgreementSigned && <Lock className="w-4 h-4" />}
+          {isAgreementSigned && <Plus className="w-4 h-4" />}
           {t("siteVisit.newVisit")}
         </Button>
       </CardHeader>
@@ -1313,11 +1323,22 @@ export function SiteVisitSection({ siteId, siteLat, siteLng }: SiteVisitSectionP
               );
             })}
           </div>
+        ) : !isAgreementSigned ? (
+          <div className="text-center py-8">
+            <Lock className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground font-medium" data-testid="text-no-visits">
+              {t("siteVisit.noVisits")}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1" data-testid="text-sign-agreement-first">
+              {t("siteVisit.signAgreementFirst")}
+            </p>
+          </div>
         ) : (
           <div className="text-center py-8">
             <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground" data-testid="text-no-visits">{t("siteVisit.noVisits")}</p>
-            <Button variant="link" onClick={handleNewVisit} className="mt-2" data-testid="button-create-first-visit">
+            <Button variant="ghost" onClick={handleNewVisit} className="mt-2 gap-1" data-testid="button-create-first-visit">
+              <Plus className="w-4 h-4" />
               {t("siteVisit.createFirst")}
             </Button>
           </div>

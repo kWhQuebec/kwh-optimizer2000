@@ -540,8 +540,9 @@ const translations: Translations = {
   "siteVisit.status.completed": { fr: "Terminée", en: "Completed" },
   "siteVisit.status.cancelled": { fr: "Annulée", en: "Cancelled" },
   "siteVisit.notes": { fr: "Notes", en: "Notes" },
-  "siteVisit.noVisits": { fr: "Aucune visite planifiée", en: "No visits scheduled" },
+  "siteVisit.noVisits": { fr: "Aucune visite technique planifiée", en: "No technical visit scheduled" },
   "siteVisit.createFirst": { fr: "Planifier une première visite technique", en: "Schedule a first technical visit" },
+  "siteVisit.signAgreementFirst": { fr: "Obtenez d'abord une entente de design signée pour planifier une visite technique.", en: "Get a signed design agreement first to schedule a technical visit." },
   
   // Site Visit - Location
   "siteVisit.location": { fr: "Emplacement", en: "Location" },
@@ -608,6 +609,7 @@ const translations: Translations = {
   "designAgreement.title": { fr: "Entente de design (Étape 3)", en: "Design Agreement (Step 3)" },
   "designAgreement.subtitle": { fr: "Première étape payante vers votre projet solaire", en: "First paid step toward your solar project" },
   "designAgreement.generate": { fr: "Générer l'entente", en: "Generate Agreement" },
+  "designAgreement.generateDescription": { fr: "Créez une entente de design pour formaliser les coûts de visite technique et livrables.", en: "Create a design agreement to formalize technical visit costs and deliverables." },
   "designAgreement.status": { fr: "Statut", en: "Status" },
   "designAgreement.status.draft": { fr: "Brouillon", en: "Draft" },
   "designAgreement.status.sent": { fr: "Envoyée", en: "Sent" },

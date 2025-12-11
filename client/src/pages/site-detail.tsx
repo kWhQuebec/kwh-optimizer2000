@@ -4597,6 +4597,18 @@ export default function SiteDetailPage() {
     enabled: !!id,
   });
 
+  // Fetch design agreement status for the site
+  const { data: designAgreement } = useQuery<{ id: string; status: string } | null>({
+    queryKey: ["/api/sites", id, "design-agreement"],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${id}/design-agreement`, { credentials: "include" });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("Failed to fetch agreement");
+      return res.json();
+    },
+    enabled: !!id && isStaff,
+  });
+
   // Initialize assumptions from site data when loaded (only once per page load)
   useEffect(() => {
     if (site && !assumptionsInitializedRef.current) {
@@ -5114,6 +5126,7 @@ export default function SiteDetailPage() {
               siteId={site.id}
               siteLat={site.latitude}
               siteLng={site.longitude}
+              designAgreementStatus={designAgreement?.status}
             />
           </TabsContent>
         )}

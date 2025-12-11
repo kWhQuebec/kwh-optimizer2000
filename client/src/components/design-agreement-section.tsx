@@ -197,32 +197,25 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
           <CardContent className="space-y-6">
             {!agreement ? (
               <div className="text-center py-6 space-y-4">
-                {!latestVisit ? (
-                  <>
-                    <AlertCircle className="w-10 h-10 mx-auto text-muted-foreground" />
-                    <p className="text-muted-foreground">{t("designAgreement.noVisit")}</p>
-                    <p className="text-sm text-muted-foreground">{t("designAgreement.scheduleVisitFirst")}</p>
-                  </>
-                ) : (
-                  <>
-                    <DollarSign className="w-10 h-10 mx-auto text-primary" />
-                    <p className="text-muted-foreground">
-                      {t("designAgreement.subtitle")}
-                    </p>
-                    <Button
-                      onClick={() => generateMutation.mutate()}
-                      disabled={generateMutation.isPending}
-                      data-testid="button-generate-agreement"
-                    >
-                      {generateMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Plus className="w-4 h-4 mr-2" />
-                      )}
-                      {t("designAgreement.generate")}
-                    </Button>
-                  </>
-                )}
+                <DollarSign className="w-10 h-10 mx-auto text-primary" />
+                <p className="text-muted-foreground">
+                  {t("designAgreement.subtitle")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t("designAgreement.generateDescription")}
+                </p>
+                <Button
+                  onClick={() => generateMutation.mutate()}
+                  disabled={generateMutation.isPending}
+                  data-testid="button-generate-agreement"
+                >
+                  {generateMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  {t("designAgreement.generate")}
+                </Button>
               </div>
             ) : (
               <>
