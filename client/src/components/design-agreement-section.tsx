@@ -14,6 +14,10 @@ import {
   Download,
   Copy,
   ExternalLink,
+  XCircle,
+  Calendar,
+  Gift,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -222,15 +226,27 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
               </div>
             ) : (
               <>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-3">
+                {/* Introduction Section */}
+                <div className="bg-primary/5 rounded-lg p-4 border border-primary/10" data-testid="section-introduction">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-primary mb-1">{t("designAgreement.introduction")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("designAgreement.introText")}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Left Column: Costs */}
+                  <div className="space-y-4">
                     <h4 className="font-medium flex items-center gap-2">
-                      <DollarSign className="w-4 h-4" />
+                      <DollarSign className="w-4 h-4 text-primary" />
                       {t("designAgreement.costBreakdown")}
                     </h4>
                     
                     {siteVisitCosts && (
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-2 text-sm bg-muted/30 rounded-lg p-3">
                         <div className="text-muted-foreground font-medium">
                           {t("designAgreement.siteVisitCosts")}
                         </div>
@@ -261,8 +277,6 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                       </div>
                     )}
 
-                    <Separator />
-
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between" data-testid="row-subtotal">
                         <span>{t("designAgreement.subtotal")}</span>
@@ -279,42 +293,12 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                       <Separator />
                       <div className="flex justify-between font-semibold text-base" data-testid="row-total">
                         <span>{t("designAgreement.total")}</span>
-                        <span>{formatCurrency(agreement.totalCad)}</span>
+                        <span className="text-primary">{formatCurrency(agreement.totalCad)}</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      {t("designAgreement.deliverables")}
-                    </h4>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-start gap-2" data-testid="deliverable-1">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
-                        {t("designAgreement.deliverable1")}
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="deliverable-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
-                        {t("designAgreement.deliverable2")}
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="deliverable-3">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
-                        {t("designAgreement.deliverable3")}
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="deliverable-4">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
-                        {t("designAgreement.deliverable4")}
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="deliverable-5">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
-                        {t("designAgreement.deliverable5")}
-                      </li>
-                    </ul>
-
-                    <Separator />
-
-                    <div className="space-y-2 text-sm">
+                    {/* Payment Terms */}
+                    <div className="space-y-2 text-sm bg-muted/30 rounded-lg p-3">
                       <div className="font-medium">{t("designAgreement.paymentTerms")}</div>
                       <p className="text-muted-foreground" data-testid="text-payment-terms">
                         {agreement.paymentTerms || t("designAgreement.defaultPaymentTerms")}
@@ -330,6 +314,85 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                       </div>
                     )}
                   </div>
+
+                  {/* Right Column: Deliverables */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      {t("designAgreement.deliverablesDetailed")}
+                    </h4>
+                    <ul className="space-y-2 text-sm">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                        <li key={i} className="flex items-start gap-2" data-testid={`deliverable-detail-${i}`}>
+                          <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                          <span>{t(`designAgreement.deliverableDetail${i}`)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Exclusions and Timeline Row */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Exclusions */}
+                  <div className="space-y-3" data-testid="section-exclusions">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <XCircle className="w-4 h-4 text-destructive" />
+                      {t("designAgreement.exclusions")}
+                    </h4>
+                    <ul className="space-y-2 text-sm">
+                      {[1, 2, 3, 4].map((i) => (
+                        <li key={i} className="flex items-start gap-2" data-testid={`exclusion-${i}`}>
+                          <XCircle className="w-4 h-4 text-destructive/70 mt-0.5 shrink-0" />
+                          <span className="text-muted-foreground">{t(`designAgreement.exclusion${i}`)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Timeline */}
+                  <div className="space-y-3" data-testid="section-timeline">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      {t("designAgreement.timeline")}
+                    </h4>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2" data-testid="timeline-visit">
+                        <Clock className="w-4 h-4 text-primary/70 mt-0.5 shrink-0" />
+                        <span className="text-muted-foreground">{t("designAgreement.timelineVisit")}</span>
+                      </li>
+                      <li className="flex items-start gap-2" data-testid="timeline-delivery">
+                        <Clock className="w-4 h-4 text-primary/70 mt-0.5 shrink-0" />
+                        <span className="text-muted-foreground">{t("designAgreement.timelineDelivery")}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Credit Policy Highlight */}
+                <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800" data-testid="section-credit-policy">
+                  <div className="flex items-start gap-3">
+                    <Gift className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-green-700 dark:text-green-400 mb-1">{t("designAgreement.creditPolicy")}</h4>
+                      <p className="text-sm text-green-600 dark:text-green-500">{t("designAgreement.creditPolicyText")}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Important Notes */}
+                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-4 border border-amber-200 dark:border-amber-800" data-testid="section-important-notes">
+                  <h4 className="font-medium text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    {t("designAgreement.importantNotes")}
+                  </h4>
+                  <ul className="space-y-1 text-sm text-amber-600 dark:text-amber-500">
+                    <li data-testid="note-1">{t("designAgreement.note1")}</li>
+                    <li data-testid="note-2">{t("designAgreement.note2")}</li>
+                    <li data-testid="note-3">{t("designAgreement.note3")}</li>
+                  </ul>
                 </div>
 
                 <Separator />

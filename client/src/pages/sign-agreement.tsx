@@ -23,7 +23,11 @@ import {
   CreditCard,
   Loader2,
   Eraser,
-  PenLine
+  PenLine,
+  XCircle,
+  Calendar,
+  Gift,
+  Info
 } from "lucide-react";
 
 interface PublicAgreementData {
@@ -445,27 +449,77 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
+        {/* Introduction */}
+        <div className="bg-primary/5 rounded-lg p-4 border border-primary/10" data-testid="section-intro">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+            <div>
+              <h4 className="font-medium text-primary mb-1">{t("designAgreement.introduction")}</h4>
+              <p className="text-sm text-muted-foreground">{t("designAgreement.introText")}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Scope & Deliverables */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              {t("publicAgreement.projectScope")}
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              {t("designAgreement.deliverablesDetailed")}
             </CardTitle>
             <CardDescription>{t("publicAgreement.scopeDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <h4 className="font-medium">{t("designAgreement.deliverables")}</h4>
-              <ul className="space-y-2">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <li key={n} className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-500 shrink-0" />
-                    <span className="text-sm">{t(`designAgreement.deliverable${n}`)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ul className="space-y-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <li key={n} className="flex items-start gap-2" data-testid={`deliverable-${n}`}>
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-500 shrink-0" />
+                  <span className="text-sm">{t(`designAgreement.deliverableDetail${n}`)}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* What's NOT included */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-destructive" />
+              {t("designAgreement.exclusions")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {[1, 2, 3, 4].map((n) => (
+                <li key={n} className="flex items-start gap-2" data-testid={`exclusion-${n}`}>
+                  <XCircle className="w-4 h-4 mt-0.5 text-destructive/70 shrink-0" />
+                  <span className="text-sm text-muted-foreground">{t(`designAgreement.exclusion${n}`)}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              {t("designAgreement.timeline")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2" data-testid="timeline-visit">
+                <Clock className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
+                <span className="text-sm text-muted-foreground">{t("designAgreement.timelineVisit")}</span>
+              </li>
+              <li className="flex items-start gap-2" data-testid="timeline-delivery">
+                <Clock className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
+                <span className="text-sm text-muted-foreground">{t("designAgreement.timelineDelivery")}</span>
+              </li>
+            </ul>
           </CardContent>
         </Card>
 
@@ -569,22 +623,29 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        {/* Terms & Conditions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("publicAgreement.termsTitle")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              {[1, 2, 3, 4].map((n) => (
-                <li key={n} className="flex items-start gap-2">
-                  <span className="text-primary font-medium">{n}.</span>
-                  <span>{t(`publicAgreement.term${n}`)}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        {/* Credit Policy Highlight */}
+        <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800" data-testid="section-credit-policy">
+          <div className="flex items-start gap-3">
+            <Gift className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+            <div>
+              <h4 className="font-medium text-green-700 dark:text-green-400 mb-1">{t("designAgreement.creditPolicy")}</h4>
+              <p className="text-sm text-green-600 dark:text-green-500">{t("designAgreement.creditPolicyText")}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Important Notes */}
+        <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-4 border border-amber-200 dark:border-amber-800" data-testid="section-important-notes">
+          <h4 className="font-medium text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {t("designAgreement.importantNotes")}
+          </h4>
+          <ul className="space-y-1 text-sm text-amber-600 dark:text-amber-500">
+            <li data-testid="note-1">{t("designAgreement.note1")}</li>
+            <li data-testid="note-2">{t("designAgreement.note2")}</li>
+            <li data-testid="note-3">{t("designAgreement.note3")}</li>
+          </ul>
+        </div>
 
         {/* Signature Form */}
         <Card>
