@@ -316,6 +316,45 @@ export const siteVisits = pgTable("site_visits", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Design Agreements - Étape 3 paid commitment
+export const designAgreements = pgTable("design_agreements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id),
+  siteVisitId: varchar("site_visit_id").references(() => siteVisits.id), // Link to visit for cost source
+  
+  // Status tracking
+  status: text("status").notNull().default("draft"), // "draft" | "sent" | "accepted" | "declined" | "expired"
+  
+  // Quoted costs (snapshot at time of quote)
+  quotedCosts: jsonb("quoted_costs"), // { siteVisit: {...}, additionalFees: [], subtotal, taxes, total }
+  totalCad: real("total_cad"),
+  currency: text("currency").default("CAD"),
+  
+  // Payment terms
+  paymentTerms: text("payment_terms"), // "50% deposit, 50% on delivery" etc.
+  validUntil: timestamp("valid_until"), // Quote expiration date
+  
+  // Tracking
+  quotedBy: varchar("quoted_by").references(() => users.id),
+  quotedAt: timestamp("quoted_at"),
+  sentAt: timestamp("sent_at"),
+  acceptedAt: timestamp("accepted_at"),
+  declinedAt: timestamp("declined_at"),
+  declineReason: text("decline_reason"),
+  
+  // Client signature/acceptance
+  acceptedByName: text("accepted_by_name"),
+  acceptedByEmail: text("accepted_by_email"),
+  signatureData: text("signature_data"), // Base64 signature if captured
+  
+  // Notes
+  internalNotes: text("internal_notes"),
+  clientNotes: text("client_notes"), // Visible to client
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -388,6 +427,12 @@ export const insertSiteVisitSchema = createInsertSchema(siteVisits).omit({
   updatedAt: true,
 });
 
+export const insertDesignAgreementSchema = createInsertSchema(designAgreements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -421,6 +466,9 @@ export type ComponentCatalog = typeof componentCatalog.$inferSelect;
 
 export type InsertSiteVisit = z.infer<typeof insertSiteVisitSchema>;
 export type SiteVisit = typeof siteVisits.$inferSelect;
+
+export type InsertDesignAgreement = z.infer<typeof insertDesignAgreementSchema>;
+export type DesignAgreement = typeof designAgreements.$inferSelect;
 
 // Extended types for frontend
 export type SiteWithClient = Site & { client: Client };
