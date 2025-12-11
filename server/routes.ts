@@ -547,15 +547,12 @@ export async function registerRoutes(
       // Final system size: minimum of consumption-based and roof-based (min 10 kW for commercial)
       const systemSizeKW = Math.max(10, Math.min(consumptionBasedKW, roofBasedKW));
       
-      // Annual production - use Google's estimate if available, otherwise Quebec average
-      let annualProductionKWh: number;
-      if (roofData?.success && roofData.googleProductionEstimate?.yearlyEnergyAcKwh) {
-        // Scale Google's estimate to our system size
-        const googleKW = roofData.googleProductionEstimate.systemSizeKw || 1;
-        annualProductionKWh = Math.round((roofData.googleProductionEstimate.yearlyEnergyAcKwh / googleKW) * systemSizeKW);
-      } else {
-        annualProductionKWh = systemSizeKW * QC_PRODUCTION_FACTOR;
-      }
+      // Annual production - use Quebec average (Google often overestimates for QC)
+      // Quebec realistic range: 1000-1200 kWh/kW/year, use conservative 1100
+      const annualProductionKWh = systemSizeKW * QC_PRODUCTION_FACTOR;
+      
+      // Log for validation
+      console.log(`[Quick Estimate] System: ${systemSizeKW} kW, Production: ${annualProductionKWh} kWh/yr, Rate: ${energyRate} $/kWh`);
       
       // Avoided cost rate - use energy rate only (conservative, no demand savings assumed)
       const avoidedRate = energyRate;
