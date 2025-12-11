@@ -2192,6 +2192,73 @@ Pricing:
     }
   });
 
+  // Generate Design Agreement PDF
+  app.get("/api/design-agreements/:id/pdf", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+      const agreement = await storage.getDesignAgreement(req.params.id);
+      
+      if (!agreement) {
+        return res.status(404).json({ error: "Design agreement not found" });
+      }
+      
+      // Get site and client data for the PDF
+      const site = await storage.getSite(agreement.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      const client = await storage.getClient(site.clientId);
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      const doc = new PDFDocument({ size: "LETTER", margin: 50 });
+      
+      const siteName = site.name.replace(/\s+/g, "-").toLowerCase();
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="entente-design-${siteName}.pdf"`);
+      
+      doc.pipe(res);
+      
+      const { generateDesignAgreementPDF } = await import("./pdfGenerator");
+      
+      // Ensure quotedCosts has proper defaults for PDF generation
+      const quotedCosts = (agreement.quotedCosts as any) || {
+        siteVisit: { travel: 0, visit: 0, evaluation: 0, diagrams: 0, sldSupplement: 0, total: 0 },
+        subtotal: 0,
+        taxes: { gst: 0, qst: 0 },
+        total: 0,
+      };
+      
+      generateDesignAgreementPDF(doc, {
+        id: agreement.id,
+        site: {
+          name: site.name,
+          address: site.address || undefined,
+          city: site.city || undefined,
+          province: site.province || undefined,
+          postalCode: site.postalCode || undefined,
+          client: {
+            name: client.name,
+            email: client.email || undefined,
+            phone: client.phone || undefined,
+          },
+        },
+        quotedCosts,
+        totalCad: agreement.totalCad || 0,
+        paymentTerms: agreement.paymentTerms || undefined,
+        validUntil: agreement.validUntil,
+        createdAt: agreement.createdAt,
+      }, lang);
+      
+      doc.end();
+    } catch (error) {
+      console.error("Design agreement PDF generation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }
 

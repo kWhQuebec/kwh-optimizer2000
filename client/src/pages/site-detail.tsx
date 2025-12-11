@@ -101,6 +101,7 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { LoadProfileEditor, SingleBillEstimator, KPIDashboard } from "@/components/consumption-tools";
 import { SiteVisitSection } from "@/components/site-visit-section";
+import { DesignAgreementSection } from "@/components/design-agreement-section";
 import type { Site, Client, MeterFile, SimulationRun } from "@shared/schema";
 
 interface SiteWithDetails extends Site {
@@ -5106,6 +5107,7 @@ export default function SiteDetailPage() {
               siteLat={site.latitude}
               siteLng={site.longitude}
             />
+            <DesignAgreementSection siteId={site.id} />
           </TabsContent>
         )}
       </Tabs>
