@@ -1156,90 +1156,65 @@ export default function LandingPage() {
           </motion.div>
           
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Key Strengths Grid */}
+            {/* Key Strengths - Hero Numbers + Checklist */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <Card className="p-6 h-full">
-                <div className="grid grid-cols-2 gap-4">
-                  {/* 15+ years experience */}
-                  <div className="flex items-start gap-3" data-testid="strength-experience">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Award className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">15+ {language === "fr" ? "ans" : "years"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Énergie renouvelable & construction" : "Renewable energy & construction"}
-                      </p>
-                    </div>
+              <Card className="p-6 h-full bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
+                {/* Hero Numbers */}
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div className="text-center p-4 rounded-xl bg-primary/10" data-testid="strength-experience">
+                    <p className="text-4xl font-bold text-primary">15+</p>
+                    <p className="text-sm font-medium mt-1">
+                      {language === "fr" ? "ans d'expérience" : "years experience"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" ? "Énergie renouvelable" : "Renewable energy"}
+                    </p>
                   </div>
                   
-                  {/* 120 MW installed */}
-                  <div className="flex items-start gap-3" data-testid="strength-capacity">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Zap className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">120 MW</p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Installés au Québec" : "Installed in Quebec"}
-                      </p>
-                    </div>
+                  <div className="text-center p-4 rounded-xl bg-primary/10" data-testid="strength-capacity">
+                    <p className="text-4xl font-bold text-primary">120</p>
+                    <p className="text-sm font-medium mt-1">MW {language === "fr" ? "installés" : "installed"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" ? "Au Québec" : "In Quebec"}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Checklist Benefits */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3" data-testid="strength-rbq">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                    <span className="text-sm">
+                      <span className="font-medium">{language === "fr" ? "Licence RBQ" : "RBQ License"}</span>
+                      <span className="text-muted-foreground"> — {language === "fr" ? "Entrepreneur général" : "General contractor"}</span>
+                    </span>
                   </div>
                   
-                  {/* RBQ License */}
-                  <div className="flex items-start gap-3" data-testid="strength-rbq">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Shield className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{language === "fr" ? "Licence RBQ" : "RBQ License"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Entrepreneur général" : "General contractor"}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-3" data-testid="strength-financing">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                    <span className="text-sm">
+                      <span className="font-medium">{language === "fr" ? "Financement flexible" : "Flexible financing"}</span>
+                      <span className="text-muted-foreground"> — {language === "fr" ? "Options disponibles" : "Options available"}</span>
+                    </span>
                   </div>
                   
-                  {/* Financing available */}
-                  <div className="flex items-start gap-3" data-testid="strength-financing">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <DollarSign className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{language === "fr" ? "Financement" : "Financing"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Options flexibles disponibles" : "Flexible options available"}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-3" data-testid="strength-coverage">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                    <span className="text-sm">
+                      <span className="font-medium">{language === "fr" ? "Service partout au Québec" : "Service across Quebec"}</span>
+                    </span>
                   </div>
                   
-                  {/* Service across Quebec */}
-                  <div className="flex items-start gap-3" data-testid="strength-coverage">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <MapPin className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{language === "fr" ? "Tout le Québec" : "All of Quebec"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Service province-wide" : "Province-wide service"}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* 25 year warranty */}
-                  <div className="flex items-start gap-3" data-testid="strength-warranty">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <CalendarDays className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{language === "fr" ? "Garantie 25 ans" : "25-year warranty"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Performance garantie" : "Performance guaranteed"}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-3" data-testid="strength-warranty">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                    <span className="text-sm">
+                      <span className="font-medium">{language === "fr" ? "Garantie 25 ans" : "25-year warranty"}</span>
+                      <span className="text-muted-foreground"> — {language === "fr" ? "Performance garantie" : "Performance guaranteed"}</span>
+                    </span>
                   </div>
                 </div>
               </Card>
