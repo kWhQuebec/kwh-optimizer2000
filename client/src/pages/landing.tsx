@@ -1078,8 +1078,8 @@ export default function LandingPage() {
           
           {/* Process Timeline */}
           <div className="relative">
-            {/* Connection line */}
-            <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2 z-0" />
+            {/* Connection line - positioned to pass through the badges */}
+            <div className="hidden md:block absolute top-[88px] left-0 right-0 h-0.5 bg-border z-0" />
             
             <div className="grid md:grid-cols-5 gap-6 relative z-10">
               {/* Step 1: Quick Analysis */}
@@ -1092,10 +1092,10 @@ export default function LandingPage() {
                 data-testid="process-step-1"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 border-4 border-background flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 border-4 border-background flex items-center justify-center mb-6">
                     <Timer className="w-6 h-6 text-primary" />
                   </div>
-                  <Badge className="mb-2 bg-primary/10 text-primary border-primary/20">
+                  <Badge className="mb-3 bg-primary/10 text-primary border-primary/20">
                     5 min
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
@@ -1120,10 +1120,10 @@ export default function LandingPage() {
                 data-testid="process-step-2"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-accent/10 border-4 border-background flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 rounded-full bg-accent/10 border-4 border-background flex items-center justify-center mb-6">
                     <BarChart3 className="w-6 h-6 text-accent" />
                   </div>
-                  <Badge className="mb-2 bg-accent/10 text-accent border-accent/20">
+                  <Badge className="mb-3 bg-accent/10 text-accent border-accent/20">
                     5 {language === "fr" ? "jours" : "days"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
@@ -1148,10 +1148,10 @@ export default function LandingPage() {
                 data-testid="process-step-3"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
                     <FileText className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <Badge variant="outline" className="mb-2">
+                  <Badge variant="outline" className="mb-3">
                     2-4 {language === "fr" ? "sem." : "wks"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
@@ -1176,10 +1176,10 @@ export default function LandingPage() {
                 data-testid="process-step-4"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
                     <HardHat className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <Badge variant="outline" className="mb-2">
+                  <Badge variant="outline" className="mb-3">
                     4-12 {language === "fr" ? "sem." : "wks"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
@@ -1204,10 +1204,10 @@ export default function LandingPage() {
                 data-testid="process-step-5"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
                     <Wrench className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <Badge variant="outline" className="mb-2">
+                  <Badge variant="outline" className="mb-3">
                     25+ {language === "fr" ? "ans" : "yrs"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
