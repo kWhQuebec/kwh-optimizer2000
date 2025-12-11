@@ -522,7 +522,7 @@ export default function LandingPage() {
                                       <p className="text-xs text-muted-foreground mb-1">
                                         {language === "fr" ? "Système recommandé" : "Recommended system"}
                                       </p>
-                                      <p className="text-xl font-bold text-primary">
+                                      <p className="text-xl font-bold text-primary" data-testid="text-quick-system-kw">
                                         {calcResults.system.sizeKW.toFixed(0)} kW
                                       </p>
                                     </div>
@@ -531,7 +531,7 @@ export default function LandingPage() {
                                       <p className="text-xs text-muted-foreground mb-1">
                                         {language === "fr" ? "Production annuelle" : "Annual production"}
                                       </p>
-                                      <p className="text-xl font-bold">
+                                      <p className="text-xl font-bold" data-testid="text-quick-production-mwh">
                                         {(calcResults.system.annualProductionKWh / 1000).toFixed(0)} MWh
                                       </p>
                                     </div>
@@ -540,7 +540,7 @@ export default function LandingPage() {
                                       <p className="text-xs text-muted-foreground mb-1">
                                         {language === "fr" ? "Économies annuelles" : "Annual savings"}
                                       </p>
-                                      <p className="text-xl font-bold text-green-600">
+                                      <p className="text-xl font-bold text-green-600" data-testid="text-quick-savings">
                                         ${calcResults.financial.annualSavings.toLocaleString()}
                                       </p>
                                     </div>
@@ -549,7 +549,7 @@ export default function LandingPage() {
                                       <p className="text-xs text-muted-foreground mb-1">
                                         {language === "fr" ? "Retour sur investissement" : "Payback period"}
                                       </p>
-                                      <p className="text-xl font-bold">
+                                      <p className="text-xl font-bold" data-testid="text-quick-payback">
                                         {calcResults.financial.paybackYears.toFixed(1)} {language === "fr" ? "ans" : "years"}
                                       </p>
                                     </div>
@@ -560,7 +560,7 @@ export default function LandingPage() {
                                       <span className="text-sm font-medium">
                                         {language === "fr" ? "Incitatif Hydro-Québec" : "Hydro-Québec incentive"}
                                       </span>
-                                      <span className="text-lg font-bold text-primary">
+                                      <span className="text-lg font-bold text-primary" data-testid="text-quick-incentive">
                                         ${calcResults.financial.hqIncentive.toLocaleString()}
                                       </span>
                                     </div>
@@ -710,7 +710,7 @@ export default function LandingPage() {
                                     { step: 3, text: language === "fr" ? "Nous analysons vos données" : "We analyze your data", icon: BarChart3 },
                                     { step: 4, text: language === "fr" ? "Vous recevez votre rapport" : "You receive your report", icon: FileCheck },
                                   ].map((item) => (
-                                    <div key={item.step} className="flex items-center gap-3">
+                                    <div key={item.step} className="flex items-center gap-3" data-testid={`step-detailed-${item.step}`}>
                                       <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent">
                                         {item.step}
                                       </div>
