@@ -2,7 +2,7 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
-  simulationRuns, designs, bomItems, componentCatalog, siteVisits,
+  simulationRuns, designs, bomItems, componentCatalog, siteVisits, designAgreements,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -17,6 +17,7 @@ import type {
   ComponentCatalog, InsertComponentCatalog,
   SiteVisit, InsertSiteVisit,
   SiteVisitWithSite,
+  DesignAgreement, InsertDesignAgreement,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -416,6 +417,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSiteVisit(id: string): Promise<boolean> {
     const result = await db.delete(siteVisits).where(eq(siteVisits.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Design Agreements
+  async getDesignAgreements(): Promise<DesignAgreement[]> {
+    return db.select().from(designAgreements).orderBy(desc(designAgreements.createdAt));
+  }
+
+  async getDesignAgreement(id: string): Promise<DesignAgreement | undefined> {
+    const result = await db.select().from(designAgreements).where(eq(designAgreements.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getDesignAgreementBySite(siteId: string): Promise<DesignAgreement | undefined> {
+    const result = await db.select().from(designAgreements).where(eq(designAgreements.siteId, siteId)).limit(1);
+    return result[0];
+  }
+
+  async createDesignAgreement(agreement: InsertDesignAgreement): Promise<DesignAgreement> {
+    const result = await db.insert(designAgreements).values(agreement).returning();
+    return result[0];
+  }
+
+  async updateDesignAgreement(id: string, agreement: Partial<DesignAgreement>): Promise<DesignAgreement | undefined> {
+    const result = await db.update(designAgreements)
+      .set({ ...agreement, updatedAt: new Date() })
+      .where(eq(designAgreements.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDesignAgreement(id: string): Promise<boolean> {
+    const result = await db.delete(designAgreements).where(eq(designAgreements.id, id)).returning();
     return result.length > 0;
   }
 }

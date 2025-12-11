@@ -13,6 +13,7 @@ import {
   insertSiteSchema,
   insertComponentCatalogSchema,
   insertSiteVisitSchema,
+  insertDesignAgreementSchema,
   AnalysisAssumptions, 
   defaultAnalysisAssumptions, 
   CashflowEntry, 
@@ -2020,6 +2021,173 @@ Pricing:
       });
     } catch (error) {
       console.error("Error calculating site visit cost:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== DESIGN AGREEMENTS (Étape 3) ====================
+  
+  // Get all design agreements
+  app.get("/api/design-agreements", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const agreements = await storage.getDesignAgreements();
+      res.json(agreements);
+    } catch (error) {
+      console.error("Error fetching design agreements:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get design agreement by site
+  app.get("/api/sites/:siteId/design-agreement", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const agreement = await storage.getDesignAgreementBySite(req.params.siteId);
+      if (!agreement) {
+        return res.status(404).json({ error: "Design agreement not found for this site" });
+      }
+      res.json(agreement);
+    } catch (error) {
+      console.error("Error fetching design agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single design agreement
+  app.get("/api/design-agreements/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const agreement = await storage.getDesignAgreement(req.params.id);
+      if (!agreement) {
+        return res.status(404).json({ error: "Design agreement not found" });
+      }
+      res.json(agreement);
+    } catch (error) {
+      console.error("Error fetching design agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create design agreement
+  app.post("/api/design-agreements", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Preprocess date fields
+      const data = { ...req.body };
+      if (data.validUntil && typeof data.validUntil === 'string') {
+        data.validUntil = new Date(data.validUntil);
+      }
+      if (data.quotedAt && typeof data.quotedAt === 'string') {
+        data.quotedAt = new Date(data.quotedAt);
+      }
+      
+      // Set quotedBy from current user
+      data.quotedBy = req.userId;
+      data.quotedAt = new Date();
+      
+      const parsed = insertDesignAgreementSchema.safeParse(data);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      
+      const agreement = await storage.createDesignAgreement(parsed.data);
+      res.status(201).json(agreement);
+    } catch (error) {
+      console.error("Error creating design agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update design agreement
+  app.patch("/api/design-agreements/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Preprocess date fields
+      const data = { ...req.body };
+      if (data.validUntil && typeof data.validUntil === 'string') {
+        data.validUntil = new Date(data.validUntil);
+      }
+      if (data.sentAt && typeof data.sentAt === 'string') {
+        data.sentAt = new Date(data.sentAt);
+      }
+      if (data.acceptedAt && typeof data.acceptedAt === 'string') {
+        data.acceptedAt = new Date(data.acceptedAt);
+      }
+      if (data.declinedAt && typeof data.declinedAt === 'string') {
+        data.declinedAt = new Date(data.declinedAt);
+      }
+      
+      const agreement = await storage.updateDesignAgreement(req.params.id, data);
+      if (!agreement) {
+        return res.status(404).json({ error: "Design agreement not found" });
+      }
+      res.json(agreement);
+    } catch (error) {
+      console.error("Error updating design agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete design agreement
+  app.delete("/api/design-agreements/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteDesignAgreement(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Design agreement not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting design agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Generate design agreement from site visit
+  app.post("/api/sites/:siteId/generate-design-agreement", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { siteId } = req.params;
+      const { siteVisitId, additionalFees = [], paymentTerms } = req.body;
+      
+      // Get the site visit for cost data
+      const visit = siteVisitId ? await storage.getSiteVisit(siteVisitId) : null;
+      const siteVisitCost = visit?.estimatedCost || null;
+      
+      // Calculate totals
+      const additionalTotal = Array.isArray(additionalFees) 
+        ? additionalFees.reduce((sum: number, fee: { amount: number }) => sum + (fee.amount || 0), 0) 
+        : 0;
+      const siteVisitTotal = (siteVisitCost as any)?.total || 0;
+      const subtotal = siteVisitTotal + additionalTotal;
+      
+      // Calculate taxes (Quebec: 5% GST + 9.975% QST)
+      const gst = subtotal * 0.05;
+      const qst = subtotal * 0.09975;
+      const total = subtotal + gst + qst;
+      
+      // Set validity (30 days from now)
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 30);
+      
+      const quotedCosts = {
+        siteVisit: siteVisitCost,
+        additionalFees,
+        subtotal,
+        taxes: { gst, qst },
+        total,
+      };
+      
+      const agreement = await storage.createDesignAgreement({
+        siteId,
+        siteVisitId: siteVisitId || null,
+        status: "draft",
+        quotedCosts,
+        totalCad: total,
+        currency: "CAD",
+        paymentTerms: paymentTerms || "50% à la signature, 50% à la livraison des dessins",
+        validUntil,
+        quotedBy: req.userId,
+        quotedAt: new Date(),
+      });
+      
+      res.status(201).json(agreement);
+    } catch (error) {
+      console.error("Error generating design agreement:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

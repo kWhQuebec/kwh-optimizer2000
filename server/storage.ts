@@ -12,6 +12,7 @@ import type {
   ComponentCatalog, InsertComponentCatalog,
   SiteVisit, InsertSiteVisit,
   SiteVisitWithSite,
+  DesignAgreement, InsertDesignAgreement,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -95,6 +96,14 @@ export interface IStorage {
   createSiteVisit(visit: InsertSiteVisit): Promise<SiteVisit>;
   updateSiteVisit(id: string, visit: Partial<SiteVisit>): Promise<SiteVisit | undefined>;
   deleteSiteVisit(id: string): Promise<boolean>;
+
+  // Design Agreements (Étape 3)
+  getDesignAgreements(): Promise<DesignAgreement[]>;
+  getDesignAgreement(id: string): Promise<DesignAgreement | undefined>;
+  getDesignAgreementBySite(siteId: string): Promise<DesignAgreement | undefined>;
+  createDesignAgreement(agreement: InsertDesignAgreement): Promise<DesignAgreement>;
+  updateDesignAgreement(id: string, agreement: Partial<DesignAgreement>): Promise<DesignAgreement | undefined>;
+  deleteDesignAgreement(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -109,6 +118,7 @@ export class MemStorage implements IStorage {
   private bomItems: Map<string, BomItem> = new Map();
   private catalogItems: Map<string, ComponentCatalog> = new Map();
   private siteVisits: Map<string, SiteVisit> = new Map();
+  private designAgreements: Map<string, DesignAgreement> = new Map();
 
   constructor() {
     this.seedDefaultData();
@@ -597,6 +607,45 @@ export class MemStorage implements IStorage {
 
   async deleteSiteVisit(id: string): Promise<boolean> {
     return this.siteVisits.delete(id);
+  }
+
+  // Design Agreements
+  async getDesignAgreements(): Promise<DesignAgreement[]> {
+    return Array.from(this.designAgreements.values());
+  }
+
+  async getDesignAgreement(id: string): Promise<DesignAgreement | undefined> {
+    return this.designAgreements.get(id);
+  }
+
+  async getDesignAgreementBySite(siteId: string): Promise<DesignAgreement | undefined> {
+    return Array.from(this.designAgreements.values()).find(a => a.siteId === siteId);
+  }
+
+  async createDesignAgreement(agreement: InsertDesignAgreement): Promise<DesignAgreement> {
+    const id = randomUUID();
+    const newAgreement: DesignAgreement = {
+      id,
+      ...agreement,
+      status: agreement.status || "draft",
+      currency: agreement.currency || "CAD",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.designAgreements.set(id, newAgreement);
+    return newAgreement;
+  }
+
+  async updateDesignAgreement(id: string, agreement: Partial<DesignAgreement>): Promise<DesignAgreement | undefined> {
+    const existing = this.designAgreements.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...agreement, updatedAt: new Date() };
+    this.designAgreements.set(id, updated);
+    return updated;
+  }
+
+  async deleteDesignAgreement(id: string): Promise<boolean> {
+    return this.designAgreements.delete(id);
   }
 }
 
