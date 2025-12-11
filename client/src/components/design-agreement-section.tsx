@@ -24,6 +24,7 @@ import {
   Building2,
   Car,
   Stamp,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -280,6 +282,21 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
       toast({ title: t("designAgreement.sendError"), variant: "destructive" });
     },
   });
+  
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/design-agreements/${agreement?.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "design-agreement"] });
+      toast({ title: t("designAgreement.deleted") });
+    },
+    onError: () => {
+      toast({ title: t("designAgreement.deleteError"), variant: "destructive" });
+    },
+  });
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   if (agreementLoading) {
     return (
@@ -543,47 +560,89 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-3 justify-end">
-                  <Button
-                    variant="outline"
-                    asChild
-                    data-testid="button-download-agreement-pdf"
-                  >
-                    <a href={`/api/design-agreements/${agreement.id}/pdf?lang=${language}`} target="_blank" rel="noopener noreferrer">
-                      <Download className="w-4 h-4 mr-2" />
-                      {t("designAgreement.downloadPdf")}
-                    </a>
-                  </Button>
-                  {agreement.status === "draft" && (
+                <div className="flex flex-wrap gap-3 justify-between">
+                  {/* Delete button on the left */}
+                  <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                        data-testid="button-delete-agreement"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {t("designAgreement.delete")}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t("designAgreement.deleteConfirmTitle")}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t("designAgreement.deleteConfirmDescription")}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel data-testid="button-cancel-delete">
+                          {t("common.cancel")}
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteMutation.mutate()}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          data-testid="button-confirm-delete"
+                        >
+                          {deleteMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4 mr-2" />
+                          )}
+                          {t("designAgreement.delete")}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  
+                  {/* Other actions on the right */}
+                  <div className="flex flex-wrap gap-3">
                     <Button
-                      onClick={() => updateStatusMutation.mutate("sent")}
-                      disabled={updateStatusMutation.isPending}
-                      data-testid="button-send-agreement"
+                      variant="outline"
+                      asChild
+                      data-testid="button-download-agreement-pdf"
                     >
-                      {updateStatusMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4 mr-2" />
-                      )}
-                      {t("designAgreement.send")}
+                      <a href={`/api/design-agreements/${agreement.id}/pdf?lang=${language}`} target="_blank" rel="noopener noreferrer">
+                        <Download className="w-4 h-4 mr-2" />
+                        {t("designAgreement.downloadPdf")}
+                      </a>
                     </Button>
-                  )}
-                  {agreement.status === "sent" && (
-                    <Button
-                      onClick={() => updateStatusMutation.mutate("accepted")}
-                      disabled={updateStatusMutation.isPending}
-                      variant="default"
-                      className="bg-green-600 hover:bg-green-700"
-                      data-testid="button-accept-agreement"
-                    >
-                      {updateStatusMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                      )}
-                      {t("designAgreement.markAccepted")}
-                    </Button>
-                  )}
+                    {agreement.status === "draft" && (
+                      <Button
+                        onClick={() => updateStatusMutation.mutate("sent")}
+                        disabled={updateStatusMutation.isPending}
+                        data-testid="button-send-agreement"
+                      >
+                        {updateStatusMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4 mr-2" />
+                        )}
+                        {t("designAgreement.send")}
+                      </Button>
+                    )}
+                    {agreement.status === "sent" && (
+                      <Button
+                        onClick={() => updateStatusMutation.mutate("accepted")}
+                        disabled={updateStatusMutation.isPending}
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700"
+                        data-testid="button-accept-agreement"
+                      >
+                        {updateStatusMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                        )}
+                        {t("designAgreement.markAccepted")}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </>
             )}

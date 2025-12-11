@@ -699,6 +699,13 @@ const translations: Translations = {
   "designAgreement.note2": { fr: "Cette entente est valide pour 30 jours à compter de la date d'émission.", en: "This agreement is valid for 30 days from the issue date." },
   "designAgreement.note3": { fr: "Les travaux de conception appartiennent à kWh Québec jusqu'au paiement final.", en: "Design work belongs to kWh Québec until final payment." },
   
+  // Delete agreement
+  "designAgreement.delete": { fr: "Supprimer", en: "Delete" },
+  "designAgreement.deleted": { fr: "Entente supprimée", en: "Agreement deleted" },
+  "designAgreement.deleteError": { fr: "Erreur lors de la suppression", en: "Error deleting agreement" },
+  "designAgreement.deleteConfirmTitle": { fr: "Supprimer cette entente?", en: "Delete this agreement?" },
+  "designAgreement.deleteConfirmDescription": { fr: "Cette action est irréversible. L'entente de design sera supprimée définitivement et vous pourrez en créer une nouvelle.", en: "This action cannot be undone. The design agreement will be permanently deleted and you can create a new one." },
+  
   // Public signing page
   "publicAgreement.title": { fr: "Entente de design", en: "Design Agreement" },
   "publicAgreement.preparedFor": { fr: "Préparé pour", en: "Prepared for" },
