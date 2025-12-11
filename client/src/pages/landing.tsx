@@ -29,6 +29,7 @@ import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
 import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
 import heroRoofAnalysis from "@assets/generated_images/industrial_roof_solar_potential_overlay.png";
+import heroOptimization from "@assets/Screenshot_2025-12-11_at_2.44.53_PM_1765482299598.png";
 import heroCashflow from "@assets/Screenshot_2025-12-07_at_10.53.40_AM_1765122823607.png";
 import screenshotSystemEn from "@assets/Screenshot_2025-12-05_at_4.07.23_PM_1764968848494.png";
 import screenshotFinancialEn from "@assets/Screenshot_2025-12-05_at_4.07.42_PM_1764968865040.png";
@@ -300,27 +301,19 @@ export default function LandingPage() {
             >
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border">
                 <img 
-                  src={heroRoofAnalysis} 
-                  alt={language === "fr" ? "Analyse de potentiel solaire" : "Solar potential analysis"}
+                  src={heroOptimization} 
+                  alt={language === "fr" ? "Analyse d'optimisation" : "Optimization analysis"}
                   className="w-full h-auto"
                   data-testid="img-hero-analysis"
                 />
                 {/* Overlay badge */}
                 <div className="absolute bottom-4 left-4 right-4">
-                  <div className="bg-background/90 backdrop-blur-sm rounded-lg p-3 border shadow-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-                        <TrendingUp className="w-5 h-5 text-green-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {language === "fr" ? "Potentiel identifié" : "Potential identified"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {language === "fr" ? "Économies et ROI calculés automatiquement" : "Savings and ROI calculated automatically"}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="bg-primary text-primary-foreground rounded-lg p-3 shadow-lg">
+                    <p className="text-sm font-semibold">
+                      {language === "fr" 
+                        ? "Gratuit: design du système le plus rentable pour votre immeuble" 
+                        : "Free: design of the most profitable system for your building"}
+                    </p>
                   </div>
                 </div>
               </div>
