@@ -648,6 +648,38 @@ const translations: Translations = {
   "designAgreement.linkCopied": { fr: "Lien copié!", en: "Link copied!" },
   "designAgreement.viewClientPage": { fr: "Voir la page client", en: "View Client Page" },
   
+  // Design agreement - detailed terms
+  "designAgreement.introduction": { fr: "À propos de cette entente", en: "About This Agreement" },
+  "designAgreement.introText": { fr: "Cette entente couvre les frais de conception technique préalables à une soumission à prix fixe pour votre projet solaire. Les travaux inclus vous permettent d'obtenir tous les documents nécessaires pour prendre une décision éclairée.", en: "This agreement covers the technical design fees required before providing a fixed-price quote for your solar project. The included work provides you with all the documents needed to make an informed decision." },
+  
+  "designAgreement.deliverablesDetailed": { fr: "Ce qui est inclus", en: "What's Included" },
+  "designAgreement.deliverableDetail1": { fr: "Visite technique complète du site par un technicien certifié", en: "Complete on-site technical visit by a certified technician" },
+  "designAgreement.deliverableDetail2": { fr: "Relevé des dimensions de toiture et identification des obstacles", en: "Roof dimension survey and obstacle identification" },
+  "designAgreement.deliverableDetail3": { fr: "Évaluation de la structure et de la capacité portante", en: "Structure and load-bearing capacity assessment" },
+  "designAgreement.deliverableDetail4": { fr: "Documentation photographique complète du site", en: "Complete photographic documentation of the site" },
+  "designAgreement.deliverableDetail5": { fr: "Dessins d'implantation PV (layout) professionnels", en: "Professional PV layout drawings" },
+  "designAgreement.deliverableDetail6": { fr: "Schéma unifilaire électrique (SLD) si requis", en: "Electrical single-line diagram (SLD) if required" },
+  "designAgreement.deliverableDetail7": { fr: "Rapport technique avec recommandations personnalisées", en: "Technical report with personalized recommendations" },
+  "designAgreement.deliverableDetail8": { fr: "Soumission à prix fixe valide 30 jours", en: "Fixed-price quote valid for 30 days" },
+  
+  "designAgreement.exclusions": { fr: "Ce qui n'est PAS inclus", en: "What's NOT Included" },
+  "designAgreement.exclusion1": { fr: "Analyse structurale par ingénieur (si requise par la municipalité)", en: "Structural analysis by engineer (if required by municipality)" },
+  "designAgreement.exclusion2": { fr: "Démarches et frais de permis municipaux", en: "Municipal permit applications and fees" },
+  "designAgreement.exclusion3": { fr: "Travaux d'installation du système solaire", en: "Solar system installation work" },
+  "designAgreement.exclusion4": { fr: "Modifications au réseau électrique existant", en: "Modifications to existing electrical network" },
+  
+  "designAgreement.timeline": { fr: "Délais prévus", en: "Expected Timeline" },
+  "designAgreement.timelineVisit": { fr: "Visite technique: 2-3 semaines après signature", en: "Technical visit: 2-3 weeks after signing" },
+  "designAgreement.timelineDelivery": { fr: "Livraison des documents: 2-3 semaines après la visite", en: "Document delivery: 2-3 weeks after visit" },
+  
+  "designAgreement.creditPolicy": { fr: "Politique de crédit", en: "Credit Policy" },
+  "designAgreement.creditPolicyText": { fr: "Le dépôt sera crédité intégralement sur votre projet si vous procédez à l'installation avec kWh Québec dans les 90 jours suivant la livraison des documents.", en: "The deposit will be fully credited to your project if you proceed with installation through kWh Québec within 90 days of document delivery." },
+  
+  "designAgreement.importantNotes": { fr: "Notes importantes", en: "Important Notes" },
+  "designAgreement.note1": { fr: "Le dépôt de 50% est non remboursable une fois la visite technique effectuée.", en: "The 50% deposit is non-refundable once the technical visit is completed." },
+  "designAgreement.note2": { fr: "Cette entente est valide pour 30 jours à compter de la date d'émission.", en: "This agreement is valid for 30 days from the issue date." },
+  "designAgreement.note3": { fr: "Les travaux de conception appartiennent à kWh Québec jusqu'au paiement final.", en: "Design work belongs to kWh Québec until final payment." },
+  
   // Public signing page
   "publicAgreement.title": { fr: "Entente de design", en: "Design Agreement" },
   "publicAgreement.preparedFor": { fr: "Préparé pour", en: "Prepared for" },
