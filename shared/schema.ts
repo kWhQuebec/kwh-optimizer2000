@@ -232,6 +232,90 @@ export const componentCatalog = pgTable("component_catalog", {
   active: boolean("active").default(true),
 });
 
+// Site Visit (Visite Technique) - Based on Rematek form template
+export const siteVisits = pgTable("site_visits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id),
+  
+  // Visit metadata
+  visitDate: timestamp("visit_date"),
+  visitedBy: text("visited_by"), // Name of technician/engineer
+  status: text("status").notNull().default("scheduled"), // "scheduled" | "in_progress" | "completed" | "cancelled"
+  
+  // Client Info Section
+  gpsLatitude: real("gps_latitude"),
+  gpsLongitude: real("gps_longitude"),
+  siteContactName: text("site_contact_name"),
+  siteContactPhone: text("site_contact_phone"),
+  siteContactEmail: text("site_contact_email"),
+  meterNumbers: text("meter_numbers"), // Can be multiple, comma-separated
+  
+  // Roof Section
+  roofType: text("roof_type"), // "flat" | "inclined" | "other"
+  roofTypeOther: text("roof_type_other"), // If "other"
+  buildingHeight: real("building_height"), // meters
+  parapetHeight: real("parapet_height"), // meters
+  roofSlope: real("roof_slope"), // degrees or %
+  roofMaterial: text("roof_material"), // "concrete" | "steel_deck" | "wood" | "other"
+  roofMaterialOther: text("roof_material_other"),
+  roofAge: integer("roof_age"), // years
+  anchoringPossible: boolean("anchoring_possible"), // Can we anchor or ballast?
+  anchoringNotes: text("anchoring_notes"),
+  lightningRodPresent: boolean("lightning_rod_present"),
+  pvReservedAreas: text("pv_reserved_areas"), // Areas designated for PV
+  
+  // Accessibility Section
+  roofAccessible: boolean("roof_accessible"),
+  accessMethod: text("access_method"), // "ladder" | "trapdoor" | "stairs" | "other"
+  accessNotes: text("access_notes"),
+  
+  // Obstacles/Shading Section
+  hasObstacles: boolean("has_obstacles"),
+  hvacUnits: jsonb("hvac_units"), // Array of {height, width, length}
+  treesPresent: boolean("trees_present"),
+  treeNotes: text("tree_notes"),
+  otherObstacles: text("other_obstacles"),
+  adjacentRoofsSameLevel: boolean("adjacent_roofs_same_level"),
+  
+  // Technical Room for Inverters/Batteries
+  technicalRoomCovered: boolean("technical_room_covered"),
+  technicalRoomSpace: text("technical_room_space"), // Description of available space
+  technicalRoomDistance: real("technical_room_distance"), // Distance from PV in meters
+  
+  // Grid Injection Point
+  injectionPointPosition: text("injection_point_position"),
+  mainPanelPower: text("main_panel_power"), // Power rating
+  mainPanelVoltage: text("main_panel_voltage"), // Voltage
+  hqMeterNumber: text("hq_meter_number"),
+  
+  // SLD (Single Line Diagram) Status
+  sldMainAvailable: boolean("sld_main_available"),
+  sldMainNeedsUpdate: boolean("sld_main_needs_update"),
+  sldSecondaryAvailable: boolean("sld_secondary_available"),
+  sldSecondaryNeedsUpdate: boolean("sld_secondary_needs_update"),
+  
+  // Equipment Info
+  mainPanelManufacturer: text("main_panel_manufacturer"),
+  mainPanelModel: text("main_panel_model"),
+  mainBreakerManufacturer: text("main_breaker_manufacturer"),
+  mainBreakerModel: text("main_breaker_model"),
+  secondaryEquipmentNotes: text("secondary_equipment_notes"),
+  
+  // Photos and Documents (JSON array of file paths/URLs)
+  roofPhotos: jsonb("roof_photos"),
+  equipmentPhotos: jsonb("equipment_photos"),
+  roofSketch: text("roof_sketch"), // Path to sketch image/document
+  
+  // General notes
+  notes: text("notes"),
+  
+  // Cost calculation (based on Rematek quote)
+  estimatedCost: jsonb("estimated_cost"), // Breakdown of costs
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -298,6 +382,12 @@ export const insertComponentCatalogSchema = createInsertSchema(componentCatalog)
   id: true,
 });
 
+export const insertSiteVisitSchema = createInsertSchema(siteVisits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -329,10 +419,27 @@ export type BomItem = typeof bomItems.$inferSelect;
 export type InsertComponentCatalog = z.infer<typeof insertComponentCatalogSchema>;
 export type ComponentCatalog = typeof componentCatalog.$inferSelect;
 
+export type InsertSiteVisit = z.infer<typeof insertSiteVisitSchema>;
+export type SiteVisit = typeof siteVisits.$inferSelect;
+
 // Extended types for frontend
 export type SiteWithClient = Site & { client: Client };
 export type SimulationRunWithSite = SimulationRun & { site: SiteWithClient };
 export type DesignWithBom = Design & { bomItems: BomItem[] };
+export type SiteVisitWithSite = SiteVisit & { site: SiteWithClient };
+
+// Rematek cost structure (based on quote #12885)
+export interface RematekCostBreakdown {
+  dailyTravel: number;        // $150/day
+  dataCollection: number;     // $600/building
+  potentialEvaluation: number; // $1,000/building
+  schemas: number;            // $1,900/building
+  sldSupplement: number;      // $100/site if SLD missing
+  subtotal: number;
+  taxGST: number;             // 5% or HST varies by province
+  taxQST: number;             // 9.975% Quebec
+  total: number;
+}
 
 // Analysis input parameters (matching Streamlit script)
 export interface AnalysisAssumptions {

@@ -10,6 +10,8 @@ import type {
   Design, InsertDesign,
   BomItem, InsertBomItem,
   ComponentCatalog, InsertComponentCatalog,
+  SiteVisit, InsertSiteVisit,
+  SiteVisitWithSite,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -85,6 +87,14 @@ export interface IStorage {
     recentSites: Site[];
     recentAnalyses: SimulationRun[];
   }>;
+
+  // Site Visits
+  getSiteVisits(): Promise<SiteVisitWithSite[]>;
+  getSiteVisit(id: string): Promise<SiteVisitWithSite | undefined>;
+  getSiteVisitsBySite(siteId: string): Promise<SiteVisit[]>;
+  createSiteVisit(visit: InsertSiteVisit): Promise<SiteVisit>;
+  updateSiteVisit(id: string, visit: Partial<SiteVisit>): Promise<SiteVisit | undefined>;
+  deleteSiteVisit(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -98,6 +108,7 @@ export class MemStorage implements IStorage {
   private designs: Map<string, Design> = new Map();
   private bomItems: Map<string, BomItem> = new Map();
   private catalogItems: Map<string, ComponentCatalog> = new Map();
+  private siteVisits: Map<string, SiteVisit> = new Map();
 
   constructor() {
     this.seedDefaultData();
@@ -532,6 +543,60 @@ export class MemStorage implements IStorage {
       recentSites: sites.slice(0, 5),
       recentAnalyses: analyses.slice(0, 5),
     };
+  }
+
+  // Site Visits
+  async getSiteVisits(): Promise<SiteVisitWithSite[]> {
+    const visits = Array.from(this.siteVisits.values());
+    return visits.map(visit => {
+      const site = this.sites.get(visit.siteId);
+      const client = site ? this.clients.get(site.clientId) : undefined;
+      return {
+        ...visit,
+        site: { ...site!, client: client! },
+      };
+    }).filter(v => v.site && v.site.client).sort((a, b) => 
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    );
+  }
+
+  async getSiteVisit(id: string): Promise<SiteVisitWithSite | undefined> {
+    const visit = this.siteVisits.get(id);
+    if (!visit) return undefined;
+    const site = this.sites.get(visit.siteId);
+    if (!site) return undefined;
+    const client = this.clients.get(site.clientId);
+    if (!client) return undefined;
+    return { ...visit, site: { ...site, client } };
+  }
+
+  async getSiteVisitsBySite(siteId: string): Promise<SiteVisit[]> {
+    return Array.from(this.siteVisits.values()).filter(v => v.siteId === siteId);
+  }
+
+  async createSiteVisit(visit: InsertSiteVisit): Promise<SiteVisit> {
+    const id = randomUUID();
+    const newVisit: SiteVisit = {
+      id,
+      ...visit,
+      status: visit.status || "scheduled",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.siteVisits.set(id, newVisit);
+    return newVisit;
+  }
+
+  async updateSiteVisit(id: string, visit: Partial<SiteVisit>): Promise<SiteVisit | undefined> {
+    const existing = this.siteVisits.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...visit, updatedAt: new Date() };
+    this.siteVisits.set(id, updated);
+    return updated;
+  }
+
+  async deleteSiteVisit(id: string): Promise<boolean> {
+    return this.siteVisits.delete(id);
   }
 }
 
