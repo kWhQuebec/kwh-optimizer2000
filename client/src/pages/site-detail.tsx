@@ -2987,6 +2987,73 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
         </CardContent>
       </Card>
 
+      {/* Before/After HQ Bill Comparison - High Impact Visual */}
+      {(() => {
+        // Calculate estimated annual bill from consumption data
+        const estimatedAnnualBill = (simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06);
+        const annualSavings = simulation.annualSavings || 0;
+        const estimatedBillAfter = Math.max(0, estimatedAnnualBill - annualSavings);
+        const savingsPercent = estimatedAnnualBill > 0 ? Math.round((annualSavings / estimatedAnnualBill) * 100) : 0;
+        
+        return (
+          <Card id="pdf-section-billing" className="border-green-500/30 overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">
+                  {language === "fr" ? "Impact sur votre facture Hydro-Québec" : "Impact on your Hydro-Québec bill"}
+                </h3>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6 items-center">
+                {/* Before */}
+                <div className="text-center p-4 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-200 dark:border-red-800">
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {language === "fr" ? "Facture actuelle" : "Current bill"}
+                  </p>
+                  <p className="text-3xl font-bold font-mono text-red-600 dark:text-red-400" data-testid="text-annual-bill-before">
+                    ${(estimatedAnnualBill / 1000).toFixed(0)}k
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "/année (énergie)" : "/year (energy)"}</p>
+                </div>
+                
+                {/* Arrow + Savings */}
+                <div className="flex flex-col items-center justify-center">
+                  <div className="hidden md:flex items-center gap-2">
+                    <div className="h-0.5 w-8 bg-green-500"></div>
+                    <ArrowRight className="w-6 h-6 text-green-500" />
+                  </div>
+                  <div className="md:mt-2 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <p className="text-xs text-green-700 dark:text-green-300 font-medium text-center">
+                      {language === "fr" ? "Économie" : "Savings"} ({savingsPercent}%)
+                    </p>
+                    <p className="text-xl font-bold font-mono text-green-700 dark:text-green-300 text-center" data-testid="text-annual-savings-highlight">
+                      -${(annualSavings / 1000).toFixed(0)}k
+                    </p>
+                  </div>
+                </div>
+                
+                {/* After */}
+                <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-200 dark:border-green-800">
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {language === "fr" ? "Facture après solaire" : "Bill after solar"}
+                  </p>
+                  <p className="text-3xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-annual-bill-after">
+                    ${(estimatedBillAfter / 1000).toFixed(0)}k
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "/année (énergie)" : "/year (energy)"}</p>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground mt-4 text-center">
+                {language === "fr" 
+                  ? "* Estimation basée sur le tarif énergétique. La facture réelle inclut aussi les frais de puissance." 
+                  : "* Estimate based on energy tariff. Actual bill also includes demand charges."}
+              </p>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* Main Financial KPIs - 25 Year Focus */}
       <div id="pdf-section-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-primary/20 bg-primary/5">

@@ -605,7 +605,41 @@ export default function LandingPage() {
                                     </span>
                                   </div>
                                   
-                                  <div className="grid sm:grid-cols-2 gap-4">
+                                  {/* Before/After HQ Bill Comparison */}
+                                  <div className="p-3 bg-background rounded-lg border mb-4">
+                                    <p className="text-xs text-muted-foreground mb-2 font-medium">
+                                      {language === "fr" ? "Votre facture Hydro-Québec" : "Your Hydro-Québec bill"}
+                                    </p>
+                                    <div className="flex items-center justify-between gap-4">
+                                      <div className="text-center">
+                                        <p className="text-xs text-muted-foreground">
+                                          {language === "fr" ? "Avant" : "Before"}
+                                        </p>
+                                        <p className="text-lg font-bold text-destructive line-through" data-testid="text-bill-before">
+                                          ${calcResults.billing?.monthlyBillBefore?.toLocaleString() || calcResults.inputs.monthlyBill.toLocaleString()}/mo
+                                        </p>
+                                      </div>
+                                      <ArrowRight className="w-5 h-5 text-green-600 shrink-0" />
+                                      <div className="text-center">
+                                        <p className="text-xs text-muted-foreground">
+                                          {language === "fr" ? "Après" : "After"}
+                                        </p>
+                                        <p className="text-lg font-bold text-green-600" data-testid="text-bill-after">
+                                          ${calcResults.billing?.monthlyBillAfter?.toLocaleString() || 0}/mo
+                                        </p>
+                                      </div>
+                                      <div className="text-center bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded">
+                                        <p className="text-xs text-green-700 dark:text-green-300">
+                                          {language === "fr" ? "Économie" : "Savings"}
+                                        </p>
+                                        <p className="text-sm font-bold text-green-700 dark:text-green-300" data-testid="text-monthly-savings">
+                                          -${calcResults.billing?.monthlySavings?.toLocaleString() || Math.round(calcResults.financial.annualSavings / 12).toLocaleString()}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid sm:grid-cols-2 gap-3">
                                     <div className="bg-background rounded-lg p-3 border">
                                       <p className="text-xs text-muted-foreground mb-1">
                                         {language === "fr" ? "Système recommandé" : "Recommended system"}
@@ -613,6 +647,17 @@ export default function LandingPage() {
                                       <p className="text-xl font-bold text-primary" data-testid="text-quick-system-kw">
                                         {calcResults.system.sizeKW.toFixed(0)} kW
                                       </p>
+                                      {calcResults.system.roofMaxCapacityKW && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          {calcResults.system.roofMaxCapacityKW > calcResults.system.sizeKW
+                                            ? (language === "fr" 
+                                                ? `Capacité toit: ${calcResults.system.roofMaxCapacityKW} kW (expansion possible)` 
+                                                : `Roof capacity: ${calcResults.system.roofMaxCapacityKW} kW (expansion possible)`)
+                                            : (language === "fr" 
+                                                ? `Limité par le toit (${calcResults.system.roofMaxCapacityKW} kW max)` 
+                                                : `Roof limited (${calcResults.system.roofMaxCapacityKW} kW max)`)}
+                                        </p>
+                                      )}
                                     </div>
                                     
                                     <div className="bg-background rounded-lg p-3 border">
@@ -643,7 +688,7 @@ export default function LandingPage() {
                                     </div>
                                   </div>
                                   
-                                  <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                  <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
                                     <div className="flex items-center justify-between">
                                       <span className="text-sm font-medium">
                                         {language === "fr" ? "Incitatif Hydro-Québec" : "Hydro-Québec incentive"}

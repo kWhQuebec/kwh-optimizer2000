@@ -581,6 +581,12 @@ export async function registerRoutes(
       // CO2 reduction (QC grid is ~1.2 g/kWh, so minimal, but still positive)
       const co2ReductionTons = Math.round(annualProductionKWh * 0.0012 * 10) / 10;
       
+      // Calculate before/after HQ bill comparison - keep precision for consistency
+      const annualBillBefore = monthlyBill * 12;
+      const annualBillAfter = Math.max(0, annualBillBefore - annualSavings);
+      const monthlyBillAfter = Math.round(annualBillAfter / 12);
+      const monthlySavings = monthlyBill - monthlyBillAfter;
+      
       res.json({
         success: true,
         hasRoofData,
@@ -605,6 +611,8 @@ export async function registerRoutes(
         } : null,
         system: {
           sizeKW: systemSizeKW,
+          consumptionBasedKW, // What consumption suggests
+          roofMaxCapacityKW: hasRoofData ? roofBasedKW : null, // What roof can support
           annualProductionKWh: Math.round(annualProductionKWh),
           selfConsumptionRate: targetSelfConsumption,
         },
@@ -614,6 +622,14 @@ export async function registerRoutes(
           hqIncentive: Math.round(hqIncentive),
           netCAPEX: Math.round(netCAPEX),
           paybackYears,
+        },
+        billing: {
+          monthlyBillBefore: monthlyBill,
+          monthlyBillAfter,
+          monthlySavings,
+          annualBillBefore,
+          annualBillAfter: Math.round(annualBillAfter),
+          annualSavings,
         },
         environmental: {
           co2ReductionTons,
