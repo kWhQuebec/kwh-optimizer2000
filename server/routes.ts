@@ -12,6 +12,7 @@ import {
   insertClientSchema,
   insertSiteSchema,
   insertComponentCatalogSchema,
+  insertSiteVisitSchema,
   AnalysisAssumptions, 
   defaultAnalysisAssumptions, 
   CashflowEntry, 
@@ -1889,6 +1890,124 @@ Pricing:
       }
       res.status(204).send();
     } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== SITE VISITS ROUTES ====================
+
+  // Get all site visits
+  app.get("/api/site-visits", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visits = await storage.getSiteVisits();
+      res.json(visits);
+    } catch (error) {
+      console.error("Error fetching site visits:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get site visits for a specific site
+  app.get("/api/sites/:siteId/visits", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visits = await storage.getSiteVisitsBySite(req.params.siteId);
+      res.json(visits);
+    } catch (error) {
+      console.error("Error fetching site visits:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get a single site visit
+  app.get("/api/site-visits/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visit = await storage.getSiteVisit(req.params.id);
+      if (!visit) {
+        return res.status(404).json({ error: "Site visit not found" });
+      }
+      res.json(visit);
+    } catch (error) {
+      console.error("Error fetching site visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create a new site visit
+  app.post("/api/site-visits", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertSiteVisitSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      
+      const visit = await storage.createSiteVisit(parsed.data);
+      res.status(201).json(visit);
+    } catch (error) {
+      console.error("Error creating site visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update a site visit
+  app.patch("/api/site-visits/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visit = await storage.updateSiteVisit(req.params.id, req.body);
+      if (!visit) {
+        return res.status(404).json({ error: "Site visit not found" });
+      }
+      res.json(visit);
+    } catch (error) {
+      console.error("Error updating site visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete a site visit
+  app.delete("/api/site-visits/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteSiteVisit(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Site visit not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting site visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Calculate estimated cost for a site visit
+  app.post("/api/site-visits/calculate-cost", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { travelDays, buildingCount, includeSld } = req.body;
+      
+      // Rematek pricing structure
+      const TRAVEL_COST_PER_DAY = 150;
+      const VISIT_COST_PER_BUILDING = 600;
+      const EVALUATION_COST_PER_BUILDING = 1000;
+      const DIAGRAMS_COST_PER_BUILDING = 1900;
+      const SLD_SUPPLEMENT = 100;
+      
+      const buildings = buildingCount || 1;
+      const travel = travelDays || 0;
+      
+      const breakdown = {
+        travel: travel * TRAVEL_COST_PER_DAY,
+        visit: buildings * VISIT_COST_PER_BUILDING,
+        evaluation: buildings * EVALUATION_COST_PER_BUILDING,
+        diagrams: buildings * DIAGRAMS_COST_PER_BUILDING,
+        sldSupplement: includeSld ? buildings * SLD_SUPPLEMENT : 0,
+      };
+      
+      const total = Object.values(breakdown).reduce((sum, val) => sum + val, 0);
+      
+      res.json({
+        breakdown,
+        total,
+        currency: "CAD",
+      });
+    } catch (error) {
+      console.error("Error calculating site visit cost:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
