@@ -30,6 +30,7 @@ const CatalogPage = lazy(() => import("@/pages/catalog"));
 const MethodologyPage = lazy(() => import("@/pages/methodology"));
 const ClientPortalPage = lazy(() => import("@/pages/client-portal"));
 const UsersPage = lazy(() => import("@/pages/users"));
+const SignAgreementPage = lazy(() => import("@/pages/sign-agreement"));
 
 function PageLoader() {
   return (
@@ -99,6 +100,11 @@ function AppRoutes() {
       <Route path="/" component={LandingPage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/sign/:token">
+        <Suspense fallback={<PageLoader />}>
+          <SignAgreementPage />
+        </Suspense>
+      </Route>
 
       {/* Protected routes */}
       <Route path="/app">

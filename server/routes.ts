@@ -2259,6 +2259,103 @@ Pricing:
     }
   });
 
+  // ==================== PUBLIC AGREEMENT ROUTES (no auth required) ====================
+
+  // Get public agreement by token (for client signing page)
+  app.get("/api/public/agreements/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      // Find agreement by public token
+      const agreements = await storage.getDesignAgreements();
+      const agreement = agreements.find(a => a.publicToken === token);
+      
+      if (!agreement) {
+        return res.status(404).json({ error: "Agreement not found" });
+      }
+      
+      // Get site and client data
+      const site = await storage.getSite(agreement.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      const client = await storage.getClient(site.clientId);
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      // Return public-safe data (no internal notes, etc.)
+      res.json({
+        id: agreement.id,
+        status: agreement.status,
+        validUntil: agreement.validUntil,
+        quotedCosts: agreement.quotedCosts,
+        totalCad: agreement.totalCad,
+        paymentTerms: agreement.paymentTerms,
+        acceptedAt: agreement.acceptedAt,
+        acceptedByName: agreement.acceptedByName,
+        site: {
+          name: site.name,
+          address: site.address,
+          city: site.city,
+          province: site.province,
+        },
+        client: {
+          name: client.name,
+          email: client.email,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching public agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Sign agreement (public endpoint)
+  app.post("/api/public/agreements/:token/sign", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { name, email, signatureData } = req.body;
+      
+      if (!name || !email || !signatureData) {
+        return res.status(400).json({ error: "Name, email, and signature are required" });
+      }
+      
+      // Find agreement by public token
+      const agreements = await storage.getDesignAgreements();
+      const agreement = agreements.find(a => a.publicToken === token);
+      
+      if (!agreement) {
+        return res.status(404).json({ error: "Agreement not found" });
+      }
+      
+      // Check if already signed
+      if (agreement.status === "accepted") {
+        return res.status(400).json({ error: "Agreement already signed" });
+      }
+      
+      // Check if expired
+      if (agreement.validUntil && new Date(agreement.validUntil) < new Date()) {
+        return res.status(400).json({ error: "Agreement has expired" });
+      }
+      
+      // Update agreement with signature
+      const updated = await storage.updateDesignAgreement(agreement.id, {
+        status: "accepted",
+        acceptedAt: new Date(),
+        acceptedByName: name,
+        acceptedByEmail: email,
+        signatureData: signatureData,
+      });
+      
+      res.json({ success: true, agreement: updated });
+    } catch (error) {
+      console.error("Error signing agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }
 

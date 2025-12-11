@@ -322,6 +322,9 @@ export const designAgreements = pgTable("design_agreements", {
   siteId: varchar("site_id").notNull().references(() => sites.id),
   siteVisitId: varchar("site_visit_id").references(() => siteVisits.id), // Link to visit for cost source
   
+  // Public access token for client signing page
+  publicToken: varchar("public_token").default(sql`gen_random_uuid()`),
+  
   // Status tracking
   status: text("status").notNull().default("draft"), // "draft" | "sent" | "accepted" | "declined" | "expired"
   
@@ -346,6 +349,15 @@ export const designAgreements = pgTable("design_agreements", {
   acceptedByName: text("accepted_by_name"),
   acceptedByEmail: text("accepted_by_email"),
   signatureData: text("signature_data"), // Base64 signature if captured
+  
+  // Stripe payment tracking
+  stripeSessionId: text("stripe_session_id"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  depositAmount: real("deposit_amount"), // Amount paid as deposit
+  depositPaidAt: timestamp("deposit_paid_at"),
+  
+  // Zoho CRM sync
+  zohoDealId: text("zoho_deal_id"),
   
   // Notes
   internalNotes: text("internal_notes"),

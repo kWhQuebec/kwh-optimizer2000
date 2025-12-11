@@ -12,6 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -331,6 +333,42 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                 </div>
 
                 <Separator />
+
+                {/* Client signing link */}
+                {agreement.publicToken && (
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <ExternalLink className="w-4 h-4" />
+                      {t("designAgreement.sendToClient")}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-background p-2 rounded border truncate" data-testid="text-client-link">
+                        {`${window.location.origin}/sign/${agreement.publicToken}`}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/sign/${agreement.publicToken}`);
+                          toast({ title: t("designAgreement.linkCopied") });
+                        }}
+                        data-testid="button-copy-link"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        data-testid="button-view-client-page"
+                      >
+                        <a href={`/sign/${agreement.publicToken}`} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap gap-3 justify-end">
                   <Button
