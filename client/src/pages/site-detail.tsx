@@ -100,6 +100,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { LoadProfileEditor, SingleBillEstimator, KPIDashboard } from "@/components/consumption-tools";
+import { SiteVisitSection } from "@/components/site-visit-section";
 import type { Site, Client, MeterFile, SimulationRun } from "@shared/schema";
 
 interface SiteWithDetails extends Site {
@@ -4842,6 +4843,11 @@ export default function SiteDetailPage() {
           <TabsTrigger value="compare" data-testid="tab-compare">
             {language === "fr" ? "Comparer" : "Compare"}
           </TabsTrigger>
+          {isStaff && (
+            <TabsTrigger value="site-visit" data-testid="tab-site-visit">
+              {language === "fr" ? "Visite technique" : "Technical Visit"}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="consumption" className="space-y-6">
@@ -5091,6 +5097,17 @@ export default function SiteDetailPage() {
             }}
           />
         </TabsContent>
+
+        {/* Site Visit Tab - Staff only */}
+        {isStaff && (
+          <TabsContent value="site-visit" className="space-y-6">
+            <SiteVisitSection 
+              siteId={site.id}
+              siteLat={site.latitude}
+              siteLng={site.longitude}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Bifacial PV Detection Dialog */}

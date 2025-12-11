@@ -527,6 +527,82 @@ const translations: Translations = {
   "proposal.includeCharts": { fr: "Inclure les graphiques", en: "Include Charts" },
   "proposal.generatePdf": { fr: "Générer le PDF", en: "Generate PDF" },
   "proposal.preview": { fr: "Aperçu", en: "Preview" },
+
+  // Site Visits
+  "siteVisit.title": { fr: "Visite technique", en: "Technical Visit" },
+  "siteVisit.newVisit": { fr: "Nouvelle visite", en: "New Visit" },
+  "siteVisit.editVisit": { fr: "Modifier la visite", en: "Edit Visit" },
+  "siteVisit.scheduledFor": { fr: "Prévue le", en: "Scheduled for" },
+  "siteVisit.visitedBy": { fr: "Visiteur", en: "Visited by" },
+  "siteVisit.status": { fr: "Statut", en: "Status" },
+  "siteVisit.status.scheduled": { fr: "Planifiée", en: "Scheduled" },
+  "siteVisit.status.in_progress": { fr: "En cours", en: "In Progress" },
+  "siteVisit.status.completed": { fr: "Terminée", en: "Completed" },
+  "siteVisit.status.cancelled": { fr: "Annulée", en: "Cancelled" },
+  "siteVisit.notes": { fr: "Notes", en: "Notes" },
+  "siteVisit.noVisits": { fr: "Aucune visite planifiée", en: "No visits scheduled" },
+  "siteVisit.createFirst": { fr: "Planifier une première visite technique", en: "Schedule a first technical visit" },
+  
+  // Site Visit - Location
+  "siteVisit.location": { fr: "Emplacement", en: "Location" },
+  "siteVisit.gpsCoordinates": { fr: "Coordonnées GPS", en: "GPS Coordinates" },
+  "siteVisit.latitude": { fr: "Latitude", en: "Latitude" },
+  "siteVisit.longitude": { fr: "Longitude", en: "Longitude" },
+  
+  // Site Visit - Roof
+  "siteVisit.roofInfo": { fr: "Information toiture", en: "Roof Information" },
+  "siteVisit.roofType": { fr: "Type de toit", en: "Roof Type" },
+  "siteVisit.roofType.flat": { fr: "Plat", en: "Flat" },
+  "siteVisit.roofType.sloped": { fr: "Incliné", en: "Sloped" },
+  "siteVisit.roofType.metal": { fr: "Tôle", en: "Metal" },
+  "siteVisit.roofHeight": { fr: "Hauteur du toit (m)", en: "Roof Height (m)" },
+  "siteVisit.roofMaterial": { fr: "Matériau", en: "Material" },
+  "siteVisit.roofAge": { fr: "Âge du toit (années)", en: "Roof Age (years)" },
+  "siteVisit.anchoringMethod": { fr: "Méthode d'ancrage", en: "Anchoring Method" },
+  "siteVisit.roofCondition": { fr: "État du toit", en: "Roof Condition" },
+  
+  // Site Visit - Electrical
+  "siteVisit.electrical": { fr: "Infrastructure électrique", en: "Electrical Infrastructure" },
+  "siteVisit.mainPanelInfo": { fr: "Panneau principal", en: "Main Panel" },
+  "siteVisit.mainPanelAmperage": { fr: "Ampérage (A)", en: "Amperage (A)" },
+  "siteVisit.mainPanelVoltage": { fr: "Voltage (V)", en: "Voltage (V)" },
+  "siteVisit.meterNumber": { fr: "Numéro de compteur", en: "Meter Number" },
+  "siteVisit.transformerInfo": { fr: "Transformateur", en: "Transformer" },
+  "siteVisit.hasSld": { fr: "Schéma unifilaire disponible", en: "Single Line Diagram Available" },
+  "siteVisit.sldNeeded": { fr: "Schéma unifilaire requis", en: "Single Line Diagram Needed" },
+  
+  // Site Visit - Obstacles
+  "siteVisit.obstacles": { fr: "Obstacles et ombrage", en: "Obstacles & Shading" },
+  "siteVisit.obstacleDescription": { fr: "Description des obstacles", en: "Obstacle Description" },
+  "siteVisit.shadingAnalysis": { fr: "Analyse d'ombrage", en: "Shading Analysis" },
+  
+  // Site Visit - Technical Room
+  "siteVisit.technicalRoom": { fr: "Salle technique", en: "Technical Room" },
+  "siteVisit.techRoomLocation": { fr: "Emplacement", en: "Location" },
+  "siteVisit.techRoomAccess": { fr: "Accès", en: "Access" },
+  "siteVisit.techRoomSpace": { fr: "Espace disponible", en: "Available Space" },
+  
+  // Site Visit - Cost Estimate
+  "siteVisit.costEstimate": { fr: "Estimation des coûts", en: "Cost Estimate" },
+  "siteVisit.buildingCount": { fr: "Nombre de bâtiments", en: "Building Count" },
+  "siteVisit.travelDays": { fr: "Jours de déplacement", en: "Travel Days" },
+  "siteVisit.travelCost": { fr: "Frais de déplacement", en: "Travel Cost" },
+  "siteVisit.visitCost": { fr: "Visite sur site", en: "Site Visit" },
+  "siteVisit.evaluationCost": { fr: "Évaluation technique", en: "Technical Evaluation" },
+  "siteVisit.diagramsCost": { fr: "Dessins techniques", en: "Technical Drawings" },
+  "siteVisit.sldSupplement": { fr: "Supplément sans schéma", en: "No SLD Supplement" },
+  "siteVisit.totalCost": { fr: "Total estimé", en: "Estimated Total" },
+  
+  // Site Visit - Actions
+  "siteVisit.save": { fr: "Enregistrer", en: "Save" },
+  "siteVisit.cancel": { fr: "Annuler", en: "Cancel" },
+  "siteVisit.delete": { fr: "Supprimer", en: "Delete" },
+  "siteVisit.created": { fr: "Visite créée", en: "Visit created" },
+  "siteVisit.updated": { fr: "Visite mise à jour", en: "Visit updated" },
+  "siteVisit.deleted": { fr: "Visite supprimée", en: "Visit deleted" },
+  "siteVisit.createError": { fr: "Erreur lors de la création", en: "Error creating visit" },
+  "siteVisit.updateError": { fr: "Erreur lors de la mise à jour", en: "Error updating visit" },
+  "siteVisit.deleteError": { fr: "Erreur lors de la suppression", en: "Error deleting visit" },
 };
 
 interface I18nContextType {

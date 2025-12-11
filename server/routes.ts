@@ -1935,7 +1935,13 @@ Pricing:
   // Create a new site visit
   app.post("/api/site-visits", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
-      const parsed = insertSiteVisitSchema.safeParse(req.body);
+      // Preprocess date fields from string to Date object
+      const data = { ...req.body };
+      if (data.visitDate && typeof data.visitDate === 'string') {
+        data.visitDate = new Date(data.visitDate);
+      }
+      
+      const parsed = insertSiteVisitSchema.safeParse(data);
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.errors });
       }
@@ -1951,7 +1957,13 @@ Pricing:
   // Update a site visit
   app.patch("/api/site-visits/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
-      const visit = await storage.updateSiteVisit(req.params.id, req.body);
+      // Preprocess date fields from string to Date object
+      const data = { ...req.body };
+      if (data.visitDate && typeof data.visitDate === 'string') {
+        data.visitDate = new Date(data.visitDate);
+      }
+      
+      const visit = await storage.updateSiteVisit(req.params.id, data);
       if (!visit) {
         return res.status(404).json({ error: "Site visit not found" });
       }
