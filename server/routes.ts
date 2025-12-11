@@ -2356,6 +2356,164 @@ Pricing:
     }
   });
 
+  // Create Stripe checkout session for deposit payment (public endpoint)
+  app.post("/api/public/agreements/:token/create-checkout", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { name, email, signatureData, language = "fr" } = req.body;
+      
+      if (!name || !email || !signatureData) {
+        return res.status(400).json({ error: "Name, email, and signature are required" });
+      }
+      
+      // Find agreement by public token
+      const agreements = await storage.getDesignAgreements();
+      const agreement = agreements.find(a => a.publicToken === token);
+      
+      if (!agreement) {
+        return res.status(404).json({ error: "Agreement not found" });
+      }
+      
+      // Check if already signed
+      if (agreement.status === "accepted") {
+        return res.status(400).json({ error: "Agreement already signed" });
+      }
+      
+      // Check if expired
+      if (agreement.validUntil && new Date(agreement.validUntil) < new Date()) {
+        return res.status(400).json({ error: "Agreement has expired" });
+      }
+
+      // Get site and client info for checkout
+      const site = await storage.getSite(agreement.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      const client = await storage.getClient(site.clientId);
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+
+      // Calculate deposit amount (50% of total)
+      const totalAmount = agreement.totalCad || 0;
+      const depositAmount = Math.round(totalAmount * 0.5 * 100); // Convert to cents
+      
+      if (depositAmount <= 0) {
+        return res.status(400).json({ error: "Invalid deposit amount" });
+      }
+
+      // Create Stripe checkout session
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'cad',
+            unit_amount: depositAmount,
+            product_data: {
+              name: language === "fr" 
+                ? `Dépôt - Entente de design: ${site.name}`
+                : `Deposit - Design Agreement: ${site.name}`,
+              description: language === "fr"
+                ? `Dépôt 50% pour les services de conception technique - ${client.name}`
+                : `50% deposit for technical design services - ${client.name}`,
+            },
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${baseUrl}/sign/${token}?payment=success`,
+        cancel_url: `${baseUrl}/sign/${token}?payment=cancelled`,
+        customer_email: email,
+        metadata: {
+          agreementId: agreement.id,
+          agreementToken: token,
+          signerName: name,
+          signerEmail: email,
+          siteId: agreement.siteId,
+          clientId: site.clientId,
+        },
+        locale: language === "fr" ? "fr-CA" : "en",
+      });
+
+      // Save signature data and mark as pending payment
+      await storage.updateDesignAgreement(agreement.id, {
+        acceptedByName: name,
+        acceptedByEmail: email,
+        signatureData: signatureData,
+        stripeSessionId: session.id,
+      });
+
+      res.json({ 
+        success: true, 
+        checkoutUrl: session.url,
+        sessionId: session.id,
+      });
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Handle successful payment (callback from Stripe webhook or success URL)
+  app.post("/api/public/agreements/:token/confirm-payment", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { sessionId } = req.body;
+      
+      // Find agreement by public token
+      const agreements = await storage.getDesignAgreements();
+      const agreement = agreements.find(a => a.publicToken === token);
+      
+      if (!agreement) {
+        return res.status(404).json({ error: "Agreement not found" });
+      }
+
+      // Verify payment with Stripe
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      
+      if (session.payment_status !== 'paid') {
+        return res.status(400).json({ error: "Payment not completed" });
+      }
+
+      // Update agreement with payment confirmation
+      const depositAmount = (session.amount_total || 0) / 100; // Convert from cents
+      
+      const updated = await storage.updateDesignAgreement(agreement.id, {
+        status: "accepted",
+        acceptedAt: new Date(),
+        depositAmount: depositAmount,
+        depositPaidAt: new Date(),
+        stripePaymentIntentId: session.payment_intent as string,
+      });
+
+      res.json({ success: true, agreement: updated });
+    } catch (error) {
+      console.error("Error confirming payment:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get Stripe publishable key (public endpoint)
+  app.get("/api/public/stripe-key", async (req, res) => {
+    try {
+      const { getStripePublishableKey } = await import("./stripeClient");
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
+    } catch (error) {
+      console.error("Error getting Stripe key:", error);
+      res.status(500).json({ error: "Stripe not configured" });
+    }
+  });
+
   return httpServer;
 }
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -214,6 +215,48 @@ function SignAgreementContent() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Check for payment success/cancel in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get("payment");
+    const sessionId = urlParams.get("session_id");
+    
+    if (paymentStatus === "success" && sessionId && token) {
+      // Confirm payment was successful
+      setIsProcessingPayment(true);
+      fetch(`/api/public/agreements/${token}/confirm-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            toast({
+              title: t("publicAgreement.signingSuccess"),
+              description: t("publicAgreement.nextSteps"),
+            });
+            queryClient.invalidateQueries({ queryKey: ["/api/public/agreements", token] });
+          }
+        })
+        .catch(() => {
+          toast({ title: t("publicAgreement.error"), variant: "destructive" });
+        })
+        .finally(() => {
+          setIsProcessingPayment(false);
+          // Clean URL
+          window.history.replaceState({}, "", `/sign/${token}`);
+        });
+    } else if (paymentStatus === "cancelled") {
+      toast({
+        title: language === "fr" ? "Paiement annulé" : "Payment cancelled",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", `/sign/${token}`);
+    }
+  }, [token, toast, t, language]);
 
   const { data: agreement, isLoading, error } = useQuery<PublicAgreementData>({
     queryKey: ["/api/public/agreements", token],
@@ -247,23 +290,52 @@ function SignAgreementContent() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const paymentMutation = useMutation({
+    mutationFn: async (data: { name: string; email: string; signatureData: string; language: string }) => {
+      const res = await apiRequest("POST", `/api/public/agreements/${token}/create-checkout`, data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.checkoutUrl) {
+        toast({
+          title: t("publicAgreement.redirectingToPayment"),
+        });
+        window.location.href = data.checkoutUrl;
+      }
+    },
+    onError: () => {
+      toast({
+        title: t("publicAgreement.error"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const validateForm = (): boolean => {
     if (!name.trim()) {
       toast({ title: t("publicAgreement.nameRequired"), variant: "destructive" });
-      return;
+      return false;
     }
     if (!email.trim()) {
       toast({ title: t("publicAgreement.emailRequired"), variant: "destructive" });
-      return;
+      return false;
     }
     if (!signatureData) {
       toast({ title: t("publicAgreement.signatureRequired"), variant: "destructive" });
-      return;
+      return false;
     }
+    return true;
+  };
 
-    signMutation.mutate({ name, email, signatureData });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    signMutation.mutate({ name, email, signatureData: signatureData! });
+  };
+
+  const handlePayAndSign = () => {
+    if (!validateForm()) return;
+    paymentMutation.mutate({ name, email, signatureData: signatureData!, language });
   };
 
   if (isLoading) {
@@ -549,10 +621,26 @@ function SignAgreementContent() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
-                  type="submit"
+                  type="button"
                   size="lg"
                   className="flex-1 gap-2"
-                  disabled={signMutation.isPending}
+                  onClick={handlePayAndSign}
+                  disabled={paymentMutation.isPending || signMutation.isPending || isProcessingPayment}
+                  data-testid="button-sign-and-pay"
+                >
+                  {paymentMutation.isPending || isProcessingPayment ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="w-4 h-4" />
+                  )}
+                  {t("publicAgreement.signAndPay")}
+                </Button>
+                <Button
+                  type="submit"
+                  size="lg"
+                  variant="outline"
+                  className="gap-2"
+                  disabled={signMutation.isPending || paymentMutation.isPending}
                   data-testid="button-sign-agreement"
                 >
                   {signMutation.isPending ? (
