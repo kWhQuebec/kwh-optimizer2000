@@ -952,6 +952,191 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ========== FULL PROCESS SECTION ========== */}
+      <section id="process" className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+              {language === "fr" ? "Votre parcours vers l'autonomie énergétique" : "Your journey to energy independence"}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {language === "fr" 
+                ? "De l'analyse initiale à l'opération de votre système, nous vous accompagnons à chaque étape"
+                : "From initial analysis to system operation, we support you every step of the way"
+              }
+            </p>
+          </motion.div>
+          
+          {/* Process Timeline */}
+          <div className="relative">
+            {/* Connection line */}
+            <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2 z-0" />
+            
+            <div className="grid md:grid-cols-5 gap-6 relative z-10">
+              {/* Step 1: Quick Analysis */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0 }}
+                className="text-center"
+                data-testid="process-step-1"
+              >
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 border-4 border-background flex items-center justify-center mb-3">
+                    <Timer className="w-6 h-6 text-primary" />
+                  </div>
+                  <Badge className="mb-2 bg-primary/10 text-primary border-primary/20">
+                    5 min
+                  </Badge>
+                  <h3 className="font-semibold text-sm mb-1">
+                    {language === "fr" ? "Analyse Rapide" : "Quick Analysis"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {language === "fr" 
+                      ? "Estimation satellite instantanée"
+                      : "Instant satellite estimate"
+                    }
+                  </p>
+                </div>
+              </motion.div>
+              
+              {/* Step 2: Detailed Analysis */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-center"
+                data-testid="process-step-2"
+              >
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 rounded-full bg-accent/10 border-4 border-background flex items-center justify-center mb-3">
+                    <BarChart3 className="w-6 h-6 text-accent" />
+                  </div>
+                  <Badge className="mb-2 bg-accent/10 text-accent border-accent/20">
+                    5 {language === "fr" ? "jours" : "days"}
+                  </Badge>
+                  <h3 className="font-semibold text-sm mb-1">
+                    {language === "fr" ? "Analyse Détaillée" : "Detailed Analysis"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {language === "fr" 
+                      ? "Simulation 8 760h, rapport complet"
+                      : "8,760h simulation, full report"
+                    }
+                  </p>
+                </div>
+              </motion.div>
+              
+              {/* Step 3: Design */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-center"
+                data-testid="process-step-3"
+              >
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-3">
+                    <FileText className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <Badge variant="outline" className="mb-2">
+                    2-4 {language === "fr" ? "sem." : "wks"}
+                  </Badge>
+                  <h3 className="font-semibold text-sm mb-1">
+                    {language === "fr" ? "Conception" : "Design"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {language === "fr" 
+                      ? "Plans d'ingénierie, permis"
+                      : "Engineering plans, permits"
+                    }
+                  </p>
+                </div>
+              </motion.div>
+              
+              {/* Step 4: Construction */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="text-center"
+                data-testid="process-step-4"
+              >
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-3">
+                    <HardHat className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <Badge variant="outline" className="mb-2">
+                    4-12 {language === "fr" ? "sem." : "wks"}
+                  </Badge>
+                  <h3 className="font-semibold text-sm mb-1">
+                    {language === "fr" ? "Construction" : "Construction"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {language === "fr" 
+                      ? "Installation clé en main"
+                      : "Turnkey installation"
+                    }
+                  </p>
+                </div>
+              </motion.div>
+              
+              {/* Step 5: O&M */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                className="text-center"
+                data-testid="process-step-5"
+              >
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-3">
+                    <Wrench className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <Badge variant="outline" className="mb-2">
+                    25+ {language === "fr" ? "ans" : "yrs"}
+                  </Badge>
+                  <h3 className="font-semibold text-sm mb-1">
+                    {language === "fr" ? "Opération & Maintenance" : "Operations & Maintenance"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {language === "fr" 
+                      ? "Monitoring, support continu"
+                      : "Monitoring, ongoing support"
+                    }
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+          
+          {/* CTA to start */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mt-10"
+          >
+            <a href="#paths">
+              <Button size="lg" className="gap-2" data-testid="button-start-journey">
+                {language === "fr" ? "Commencer mon analyse" : "Start my analysis"}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ========== CREDIBILITY SECTION ========== */}
       <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
