@@ -210,19 +210,41 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
 
   const latestVisit = siteVisits?.find(v => v.status !== "cancelled");
   
-  // Get optimal system configuration from simulations
-  const optimalSimulation = simulations?.find(s => s.type === "SCENARIO" && s.npv20 !== null);
+  // Get optimal/selected system configuration from simulations
+  // Priority: 1) Scenario with highest NPV, 2) Any scenario with NPV, 3) Baseline
+  const getOptimalSimulation = () => {
+    if (!simulations || simulations.length === 0) return null;
+    
+    // Find scenarios with positive NPV, sorted by NPV descending
+    const scenariosWithNpv = simulations
+      .filter(s => s.type === "SCENARIO" && s.npv20 !== null && s.npv20 > 0)
+      .sort((a, b) => (b.npv20 || 0) - (a.npv20 || 0));
+    
+    if (scenariosWithNpv.length > 0) {
+      return scenariosWithNpv[0]; // Best scenario by NPV
+    }
+    
+    // Fallback to any scenario
+    const anyScenario = simulations.find(s => s.type === "SCENARIO");
+    if (anyScenario) return anyScenario;
+    
+    // Fallback to baseline
+    return simulations.find(s => s.type === "BASELINE") || null;
+  };
   
-  // Pre-populate pricing config from simulation data
-  useEffect(() => {
-    if (optimalSimulation && !agreement) {
+  const optimalSimulation = getOptimalSimulation();
+  
+  const handleOpenPricingDialog = () => {
+    // Pre-populate from optimal simulation when opening dialog
+    if (optimalSimulation) {
       setPricingConfig(prev => ({
         ...prev,
         pvSizeKW: optimalSimulation.pvSizeKW || 0,
         battEnergyKWh: optimalSimulation.battEnergyKWh || 0,
       }));
     }
-  }, [optimalSimulation, agreement]);
+    setPricingDialogOpen(true);
+  };
 
   const generateMutation = useMutation({
     mutationFn: async (config: PricingConfig) => {
@@ -244,10 +266,6 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
       toast({ title: t("designAgreement.createError"), variant: "destructive" });
     },
   });
-  
-  const handleOpenPricingDialog = () => {
-    setPricingDialogOpen(true);
-  };
   
   const handleGenerateAgreement = () => {
     generateMutation.mutate(pricingConfig);
