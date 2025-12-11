@@ -691,8 +691,8 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                     id="pvSizeKW"
                     type="number"
                     min={0}
-                    value={pricingConfig.pvSizeKW}
-                    onChange={(e) => setPricingConfig(prev => ({ ...prev, pvSizeKW: parseFloat(e.target.value) || 0 }))}
+                    value={pricingConfig.pvSizeKW || ""}
+                    onChange={(e) => setPricingConfig(prev => ({ ...prev, pvSizeKW: e.target.value === "" ? 0 : parseFloat(e.target.value) }))}
                     data-testid="input-pv-size"
                   />
                 </div>
@@ -706,8 +706,8 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                     id="battEnergyKWh"
                     type="number"
                     min={0}
-                    value={pricingConfig.battEnergyKWh}
-                    onChange={(e) => setPricingConfig(prev => ({ ...prev, battEnergyKWh: parseFloat(e.target.value) || 0 }))}
+                    value={pricingConfig.battEnergyKWh || ""}
+                    onChange={(e) => setPricingConfig(prev => ({ ...prev, battEnergyKWh: e.target.value === "" ? 0 : parseFloat(e.target.value) }))}
                     data-testid="input-battery-size"
                   />
                 </div>
