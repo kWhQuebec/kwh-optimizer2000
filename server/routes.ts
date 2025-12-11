@@ -599,6 +599,9 @@ export async function registerRoutes(
           maxCapacityKW: roofBasedKW,
           latitude: roofData?.latitude,
           longitude: roofData?.longitude,
+          satelliteImageUrl: roofData?.latitude && roofData?.longitude 
+            ? googleSolar.getSatelliteImageUrl({ latitude: roofData.latitude, longitude: roofData.longitude }, { width: 400, height: 300, zoom: 19 })
+            : null,
         } : null,
         system: {
           sizeKW: systemSizeKW,

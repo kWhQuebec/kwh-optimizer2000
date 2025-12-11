@@ -337,6 +337,60 @@ export function isGoogleSolarConfigured(): boolean {
   return !!GOOGLE_SOLAR_API_KEY;
 }
 
+/**
+ * Generate a Google Maps Static API URL for satellite imagery of a location
+ * This provides a simple satellite image that can be directly displayed in the browser
+ */
+export function getSatelliteImageUrl(location: GeoLocation, options?: {
+  width?: number;
+  height?: number;
+  zoom?: number;
+}): string | null {
+  if (!GOOGLE_SOLAR_API_KEY) {
+    return null;
+  }
+  
+  const width = options?.width || 400;
+  const height = options?.height || 300;
+  const zoom = options?.zoom || 19; // Zoom 19 is good for rooftops
+  
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}&zoom=${zoom}&size=${width}x${height}&maptype=satellite&key=${GOOGLE_SOLAR_API_KEY}`;
+}
+
+/**
+ * Generate satellite image URL from an address
+ */
+export async function getSatelliteImageFromAddress(address: string, options?: {
+  width?: number;
+  height?: number;
+  zoom?: number;
+}): Promise<{ success: boolean; imageUrl?: string; latitude?: number; longitude?: number; error?: string }> {
+  const location = await geocodeAddress(address);
+  
+  if (!location) {
+    return {
+      success: false,
+      error: "Could not geocode address"
+    };
+  }
+  
+  const imageUrl = getSatelliteImageUrl(location, options);
+  
+  if (!imageUrl) {
+    return {
+      success: false,
+      error: "API key not configured"
+    };
+  }
+  
+  return {
+    success: true,
+    imageUrl,
+    latitude: location.latitude,
+    longitude: location.longitude
+  };
+}
+
 export interface DataLayersResult {
   success: boolean;
   rgbUrl?: string;
