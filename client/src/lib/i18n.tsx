@@ -677,6 +677,23 @@ const translations: Translations = {
   "designAgreement.creditPolicy": { fr: "Politique de crédit", en: "Credit Policy" },
   "designAgreement.creditPolicyText": { fr: "Le dépôt sera crédité intégralement sur votre projet si vous procédez à l'installation avec kWh Québec dans les 90 jours suivant la livraison des documents.", en: "The deposit will be fully credited to your project if you proceed with installation through kWh Québec within 90 days of document delivery." },
   
+  // Pricing Configuration Dialog
+  "designAgreement.pricingConfig": { fr: "Configuration des coûts", en: "Pricing Configuration" },
+  "designAgreement.pricingConfigDescription": { fr: "Configurez les coûts de l'entente de design basés sur le système et les services requis.", en: "Configure design agreement costs based on the system and required services." },
+  "designAgreement.systemConfig": { fr: "Configuration du système", en: "System Configuration" },
+  "designAgreement.numBuildings": { fr: "Nombre de bâtiments", en: "Number of Buildings" },
+  "designAgreement.travelDays": { fr: "Jours de déplacement", en: "Travel Days" },
+  "designAgreement.pvSizeKW": { fr: "Taille PV (kW)", en: "PV Size (kW)" },
+  "designAgreement.battEnergyKWh": { fr: "Batterie (kWh)", en: "Battery (kWh)" },
+  "designAgreement.engineeringStamps": { fr: "Certifications d'ingénieur", en: "Engineering Stamps" },
+  "designAgreement.structuralStamp": { fr: "Certification structure (toiture)", en: "Structural stamp (roof)" },
+  "designAgreement.electricalStamp": { fr: "Certification électrique (SLD)", en: "Electrical stamp (SLD)" },
+  "designAgreement.costSummary": { fr: "Résumé des coûts", en: "Cost Summary" },
+  "designAgreement.baseFee": { fr: "Frais de base", en: "Base Fee" },
+  "designAgreement.pvFee": { fr: "Frais PV", en: "PV Fee" },
+  "designAgreement.batteryFee": { fr: "Frais batterie", en: "Battery Fee" },
+  "designAgreement.travelFee": { fr: "Frais de déplacement", en: "Travel Fee" },
+  
   "designAgreement.importantNotes": { fr: "Notes importantes", en: "Important Notes" },
   "designAgreement.note1": { fr: "Le dépôt de 50% est non remboursable une fois la visite technique effectuée.", en: "The 50% deposit is non-refundable once the technical visit is completed." },
   "designAgreement.note2": { fr: "Cette entente est valide pour 30 jours à compter de la date d'émission.", en: "This agreement is valid for 30 days from the issue date." },

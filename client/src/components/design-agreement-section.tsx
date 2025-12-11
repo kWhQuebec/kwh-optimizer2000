@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   FileText,
@@ -18,19 +18,54 @@ import {
   Calendar,
   Gift,
   Info,
+  Settings,
+  Zap,
+  Battery,
+  Building2,
+  Car,
+  Stamp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { DesignAgreement, SiteVisit } from "@shared/schema";
+import type { DesignAgreement, SiteVisit, SimulationRun } from "@shared/schema";
 
 interface DesignAgreementSectionProps {
   siteId: string;
+}
+
+// Pricing defaults
+const PRICING_DEFAULTS = {
+  baseFeePerBuilding: 1500,
+  pricePerKW: 15,
+  pricePerKWh: 10,
+  travelCostPerDay: 150,
+  structuralStampFee: 1500,
+  electricalStampFee: 1000,
+};
+
+interface PricingConfig {
+  numBuildings: number;
+  pvSizeKW: number;
+  battEnergyKWh: number;
+  travelDays: number;
+  includeStructuralStamp: boolean;
+  includeElectricalStamp: boolean;
+  baseFeePerBuilding: number;
+  pricePerKW: number;
+  pricePerKWh: number;
+  travelCostPerDay: number;
+  structuralStampFee: number;
+  electricalStampFee: number;
 }
 
 interface QuotedCosts {
@@ -103,10 +138,47 @@ function formatDate(date: Date | string | null | undefined): string {
   });
 }
 
+function calculatePricingTotal(config: PricingConfig) {
+  const baseFee = config.numBuildings * config.baseFeePerBuilding;
+  const pvFee = config.pvSizeKW * config.pricePerKW;
+  const batteryFee = config.battEnergyKWh * config.pricePerKWh;
+  const travelFee = config.travelDays * config.travelCostPerDay;
+  const structuralFee = config.includeStructuralStamp ? config.structuralStampFee : 0;
+  const electricalFee = config.includeElectricalStamp ? config.electricalStampFee : 0;
+  
+  const subtotal = baseFee + pvFee + batteryFee + travelFee + structuralFee + electricalFee;
+  const gst = subtotal * 0.05;
+  const qst = subtotal * 0.09975;
+  const total = subtotal + gst + qst;
+  
+  return {
+    baseFee,
+    pvFee,
+    batteryFee,
+    travelFee,
+    structuralFee,
+    electricalFee,
+    subtotal,
+    gst,
+    qst,
+    total,
+  };
+}
+
 export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) {
   const { t, language } = useI18n();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
+  const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
+  const [pricingConfig, setPricingConfig] = useState<PricingConfig>({
+    numBuildings: 1,
+    pvSizeKW: 0,
+    battEnergyKWh: 0,
+    travelDays: 0,
+    includeStructuralStamp: false,
+    includeElectricalStamp: false,
+    ...PRICING_DEFAULTS,
+  });
 
   const { data: agreement, isLoading: agreementLoading } = useQuery<DesignAgreement>({
     queryKey: ["/api/sites", siteId, "design-agreement"],
@@ -127,22 +199,67 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
     queryKey: ["/api/sites", siteId, "site-visits"],
   });
 
+  // Fetch simulation runs to get optimal system size
+  const { data: simulations } = useQuery<SimulationRun[]>({
+    queryKey: ["/api/sites", siteId, "simulations"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/sites/${siteId}/simulations`, { 
+        credentials: "include",
+        headers,
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   const latestVisit = siteVisits?.find(v => v.status !== "cancelled");
+  
+  // Get optimal system configuration from simulations
+  const optimalSimulation = simulations?.find(s => s.type === "SCENARIO" && s.npv20 !== null);
+  
+  // Pre-populate pricing config from simulation data
+  useEffect(() => {
+    if (optimalSimulation && !agreement) {
+      setPricingConfig(prev => ({
+        ...prev,
+        pvSizeKW: optimalSimulation.pvSizeKW || 0,
+        battEnergyKWh: optimalSimulation.battEnergyKWh || 0,
+      }));
+    }
+  }, [optimalSimulation, agreement]);
 
   const generateMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (config: PricingConfig) => {
+      const pricing = calculatePricingTotal(config);
       return apiRequest("POST", `/api/sites/${siteId}/generate-design-agreement`, {
         siteVisitId: latestVisit?.id,
+        pricingConfig: {
+          ...config,
+          ...pricing,
+        },
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "design-agreement"] });
+      setPricingDialogOpen(false);
       toast({ title: t("designAgreement.created") });
     },
     onError: () => {
       toast({ title: t("designAgreement.createError"), variant: "destructive" });
     },
   });
+  
+  const handleOpenPricingDialog = () => {
+    setPricingDialogOpen(true);
+  };
+  
+  const handleGenerateAgreement = () => {
+    generateMutation.mutate(pricingConfig);
+  };
+  
+  const calculatedPricing = calculatePricingTotal(pricingConfig);
 
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
@@ -210,15 +327,10 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                   {t("designAgreement.generateDescription")}
                 </p>
                 <Button
-                  onClick={() => generateMutation.mutate()}
-                  disabled={generateMutation.isPending}
+                  onClick={handleOpenPricingDialog}
                   data-testid="button-generate-agreement"
                 >
-                  {generateMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4 mr-2" />
-                  )}
+                  <Plus className="w-4 h-4 mr-2" />
                   {t("designAgreement.generate")}
                 </Button>
               </div>
@@ -478,6 +590,230 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
           </CardContent>
         </CollapsibleContent>
       </Card>
+      
+      {/* Pricing Configuration Dialog */}
+      <Dialog open={pricingDialogOpen} onOpenChange={setPricingDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              {t("designAgreement.pricingConfig")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("designAgreement.pricingConfigDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* System Configuration */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                {t("designAgreement.systemConfig")}
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="numBuildings" className="flex items-center gap-1">
+                    <Building2 className="w-3 h-3" />
+                    {t("designAgreement.numBuildings")}
+                  </Label>
+                  <Input
+                    id="numBuildings"
+                    type="number"
+                    min={1}
+                    value={pricingConfig.numBuildings}
+                    onChange={(e) => setPricingConfig(prev => ({ ...prev, numBuildings: parseInt(e.target.value) || 1 }))}
+                    data-testid="input-num-buildings"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="travelDays" className="flex items-center gap-1">
+                    <Car className="w-3 h-3" />
+                    {t("designAgreement.travelDays")}
+                  </Label>
+                  <Input
+                    id="travelDays"
+                    type="number"
+                    min={0}
+                    value={pricingConfig.travelDays}
+                    onChange={(e) => setPricingConfig(prev => ({ ...prev, travelDays: parseInt(e.target.value) || 0 }))}
+                    data-testid="input-travel-days"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="pvSizeKW" className="flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    {t("designAgreement.pvSizeKW")}
+                  </Label>
+                  <Input
+                    id="pvSizeKW"
+                    type="number"
+                    min={0}
+                    value={pricingConfig.pvSizeKW}
+                    onChange={(e) => setPricingConfig(prev => ({ ...prev, pvSizeKW: parseFloat(e.target.value) || 0 }))}
+                    data-testid="input-pv-size"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="battEnergyKWh" className="flex items-center gap-1">
+                    <Battery className="w-3 h-3" />
+                    {t("designAgreement.battEnergyKWh")}
+                  </Label>
+                  <Input
+                    id="battEnergyKWh"
+                    type="number"
+                    min={0}
+                    value={pricingConfig.battEnergyKWh}
+                    onChange={(e) => setPricingConfig(prev => ({ ...prev, battEnergyKWh: parseFloat(e.target.value) || 0 }))}
+                    data-testid="input-battery-size"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            {/* Engineering Stamps */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Stamp className="w-4 h-4 text-primary" />
+                {t("designAgreement.engineeringStamps")}
+              </h4>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="structuralStamp"
+                      checked={pricingConfig.includeStructuralStamp}
+                      onCheckedChange={(checked) => setPricingConfig(prev => ({ ...prev, includeStructuralStamp: checked === true }))}
+                      data-testid="checkbox-structural-stamp"
+                    />
+                    <Label htmlFor="structuralStamp" className="cursor-pointer">
+                      {t("designAgreement.structuralStamp")}
+                    </Label>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    +{formatCurrency(pricingConfig.structuralStampFee)}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="electricalStamp"
+                      checked={pricingConfig.includeElectricalStamp}
+                      onCheckedChange={(checked) => setPricingConfig(prev => ({ ...prev, includeElectricalStamp: checked === true }))}
+                      data-testid="checkbox-electrical-stamp"
+                    />
+                    <Label htmlFor="electricalStamp" className="cursor-pointer">
+                      {t("designAgreement.electricalStamp")}
+                    </Label>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    +{formatCurrency(pricingConfig.electricalStampFee)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            {/* Cost Summary */}
+            <div className="space-y-3 bg-muted/30 rounded-lg p-4">
+              <h4 className="font-medium text-sm">{t("designAgreement.costSummary")}</h4>
+              
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>{t("designAgreement.baseFee")} ({pricingConfig.numBuildings} × {formatCurrency(pricingConfig.baseFeePerBuilding)})</span>
+                  <span>{formatCurrency(calculatedPricing.baseFee)}</span>
+                </div>
+                
+                {pricingConfig.pvSizeKW > 0 && (
+                  <div className="flex justify-between">
+                    <span>{t("designAgreement.pvFee")} ({pricingConfig.pvSizeKW} kW × {formatCurrency(pricingConfig.pricePerKW)})</span>
+                    <span>{formatCurrency(calculatedPricing.pvFee)}</span>
+                  </div>
+                )}
+                
+                {pricingConfig.battEnergyKWh > 0 && (
+                  <div className="flex justify-between">
+                    <span>{t("designAgreement.batteryFee")} ({pricingConfig.battEnergyKWh} kWh × {formatCurrency(pricingConfig.pricePerKWh)})</span>
+                    <span>{formatCurrency(calculatedPricing.batteryFee)}</span>
+                  </div>
+                )}
+                
+                {pricingConfig.travelDays > 0 && (
+                  <div className="flex justify-between">
+                    <span>{t("designAgreement.travelFee")} ({pricingConfig.travelDays} × {formatCurrency(pricingConfig.travelCostPerDay)})</span>
+                    <span>{formatCurrency(calculatedPricing.travelFee)}</span>
+                  </div>
+                )}
+                
+                {pricingConfig.includeStructuralStamp && (
+                  <div className="flex justify-between">
+                    <span>{t("designAgreement.structuralStamp")}</span>
+                    <span>{formatCurrency(calculatedPricing.structuralFee)}</span>
+                  </div>
+                )}
+                
+                {pricingConfig.includeElectricalStamp && (
+                  <div className="flex justify-between">
+                    <span>{t("designAgreement.electricalStamp")}</span>
+                    <span>{formatCurrency(calculatedPricing.electricalFee)}</span>
+                  </div>
+                )}
+                
+                <Separator className="my-2" />
+                
+                <div className="flex justify-between">
+                  <span>{t("designAgreement.subtotal")}</span>
+                  <span>{formatCurrency(calculatedPricing.subtotal)}</span>
+                </div>
+                
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{t("designAgreement.gst")} (5%)</span>
+                  <span>{formatCurrency(calculatedPricing.gst)}</span>
+                </div>
+                
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{t("designAgreement.qst")} (9.975%)</span>
+                  <span>{formatCurrency(calculatedPricing.qst)}</span>
+                </div>
+                
+                <Separator className="my-2" />
+                
+                <div className="flex justify-between font-semibold text-base">
+                  <span>{t("designAgreement.total")}</span>
+                  <span className="text-primary">{formatCurrency(calculatedPricing.total)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPricingDialogOpen(false)} data-testid="button-cancel-pricing">
+              {t("common.cancel")}
+            </Button>
+            <Button 
+              onClick={handleGenerateAgreement} 
+              disabled={generateMutation.isPending}
+              data-testid="button-confirm-generate"
+            >
+              {generateMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4 mr-2" />
+              )}
+              {t("designAgreement.generate")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Collapsible>
   );
 }

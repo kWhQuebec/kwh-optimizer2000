@@ -2142,35 +2142,70 @@ Pricing:
   app.post("/api/sites/:siteId/generate-design-agreement", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
       const { siteId } = req.params;
-      const { siteVisitId, additionalFees = [], paymentTerms } = req.body;
+      const { siteVisitId, additionalFees = [], paymentTerms, pricingConfig } = req.body;
       
-      // Get the site visit for cost data
+      // Get the site visit for cost data (legacy support)
       const visit = siteVisitId ? await storage.getSiteVisit(siteVisitId) : null;
       const siteVisitCost = visit?.estimatedCost || null;
       
-      // Calculate totals
-      const additionalTotal = Array.isArray(additionalFees) 
-        ? additionalFees.reduce((sum: number, fee: { amount: number }) => sum + (fee.amount || 0), 0) 
-        : 0;
-      const siteVisitTotal = (siteVisitCost as any)?.total || 0;
-      const subtotal = siteVisitTotal + additionalTotal;
+      let subtotal: number;
+      let gst: number;
+      let qst: number;
+      let total: number;
+      let quotedCosts: any;
       
-      // Calculate taxes (Quebec: 5% GST + 9.975% QST)
-      const gst = subtotal * 0.05;
-      const qst = subtotal * 0.09975;
-      const total = subtotal + gst + qst;
+      if (pricingConfig) {
+        // New pricing configuration system
+        subtotal = pricingConfig.subtotal || 0;
+        gst = pricingConfig.gst || subtotal * 0.05;
+        qst = pricingConfig.qst || subtotal * 0.09975;
+        total = pricingConfig.total || (subtotal + gst + qst);
+        
+        quotedCosts = {
+          designFees: {
+            numBuildings: pricingConfig.numBuildings || 1,
+            baseFee: pricingConfig.baseFee || 0,
+            pvSizeKW: pricingConfig.pvSizeKW || 0,
+            pvFee: pricingConfig.pvFee || 0,
+            battEnergyKWh: pricingConfig.battEnergyKWh || 0,
+            batteryFee: pricingConfig.batteryFee || 0,
+            travelDays: pricingConfig.travelDays || 0,
+            travelFee: pricingConfig.travelFee || 0,
+          },
+          engineeringStamps: {
+            structural: pricingConfig.includeStructuralStamp ? pricingConfig.structuralFee : 0,
+            electrical: pricingConfig.includeElectricalStamp ? pricingConfig.electricalFee : 0,
+          },
+          siteVisit: siteVisitCost,
+          additionalFees,
+          subtotal,
+          taxes: { gst, qst },
+          total,
+        };
+      } else {
+        // Legacy: Calculate from site visit cost
+        const additionalTotal = Array.isArray(additionalFees) 
+          ? additionalFees.reduce((sum: number, fee: { amount: number }) => sum + (fee.amount || 0), 0) 
+          : 0;
+        const siteVisitTotal = (siteVisitCost as any)?.total || 0;
+        subtotal = siteVisitTotal + additionalTotal;
+        
+        gst = subtotal * 0.05;
+        qst = subtotal * 0.09975;
+        total = subtotal + gst + qst;
+        
+        quotedCosts = {
+          siteVisit: siteVisitCost,
+          additionalFees,
+          subtotal,
+          taxes: { gst, qst },
+          total,
+        };
+      }
       
       // Set validity (30 days from now)
       const validUntil = new Date();
       validUntil.setDate(validUntil.getDate() + 30);
-      
-      const quotedCosts = {
-        siteVisit: siteVisitCost,
-        additionalFees,
-        subtotal,
-        taxes: { gst, qst },
-        total,
-      };
       
       const agreement = await storage.createDesignAgreement({
         siteId,
