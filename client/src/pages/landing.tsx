@@ -1156,22 +1156,90 @@ export default function LandingPage() {
           </motion.div>
           
           <div className="grid md:grid-cols-2 gap-6">
-            {/* HQ Partner Card */}
+            {/* Key Strengths Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
               <Card className="p-6 h-full">
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Zap className="w-7 h-7 text-primary" />
+                <div className="grid grid-cols-2 gap-4">
+                  {/* 15+ years experience */}
+                  <div className="flex items-start gap-3" data-testid="strength-experience">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Award className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">15+ {language === "fr" ? "ans" : "years"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "fr" ? "Énergie renouvelable & construction" : "Renewable energy & construction"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-lg">{t("landing.trust.partner.hq")}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t("landing.trust.partner.hqDesc")}
-                    </p>
+                  
+                  {/* 120 MW installed */}
+                  <div className="flex items-start gap-3" data-testid="strength-capacity">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Zap className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">120 MW</p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "fr" ? "Installés au Québec" : "Installed in Quebec"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* RBQ License */}
+                  <div className="flex items-start gap-3" data-testid="strength-rbq">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Shield className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{language === "fr" ? "Licence RBQ" : "RBQ License"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "fr" ? "Entrepreneur général" : "General contractor"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Financing available */}
+                  <div className="flex items-start gap-3" data-testid="strength-financing">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <DollarSign className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{language === "fr" ? "Financement" : "Financing"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "fr" ? "Options flexibles disponibles" : "Flexible options available"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Service across Quebec */}
+                  <div className="flex items-start gap-3" data-testid="strength-coverage">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <MapPin className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{language === "fr" ? "Tout le Québec" : "All of Quebec"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "fr" ? "Service province-wide" : "Province-wide service"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* 25 year warranty */}
+                  <div className="flex items-start gap-3" data-testid="strength-warranty">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <CalendarDays className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{language === "fr" ? "Garantie 25 ans" : "25-year warranty"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "fr" ? "Performance garantie" : "Performance guaranteed"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </Card>
