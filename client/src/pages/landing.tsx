@@ -1079,7 +1079,7 @@ export default function LandingPage() {
           {/* Process Timeline */}
           <div className="relative">
             {/* Connection line - positioned to pass through the badges */}
-            <div className="hidden md:block absolute top-[88px] left-0 right-0 h-0.5 bg-border z-0" />
+            <div className="hidden md:block absolute top-[92px] left-0 right-0 h-0.5 bg-border z-0" />
             
             <div className="grid md:grid-cols-5 gap-6 relative z-10">
               {/* Step 1: Quick Analysis */}
