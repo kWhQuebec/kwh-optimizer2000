@@ -75,7 +75,7 @@ export default function LandingPage() {
     hasRoofData: boolean;
     system: { sizeKW: number; annualProductionKWh: number };
     financial: { annualSavings: number; paybackYears: number; hqIncentive: number; netCAPEX: number };
-    roof?: { areaM2: number; maxCapacityKW: number };
+    roof?: { areaM2: number; maxCapacityKW: number; satelliteImageUrl?: string | null };
   } | null>(null);
   const [calcError, setCalcError] = useState<string>("");
   
@@ -452,15 +452,31 @@ export default function LandingPage() {
                               </li>
                             </ul>
                             
-                            {/* Roof preview image */}
+                            {/* Roof preview image - shows real satellite when available */}
                             <div className="pt-2">
-                              <img 
-                                src={roofMeasurement} 
-                                alt={language === "fr" ? "Exemple d'analyse de toit" : "Roof analysis example"}
-                                className="w-full h-32 object-cover rounded-lg border"
-                              />
+                              <div className="relative">
+                                <img 
+                                  src={calcResults?.roof?.satelliteImageUrl || roofMeasurement} 
+                                  alt={calcResults?.roof?.satelliteImageUrl 
+                                    ? (language === "fr" ? "Votre toiture" : "Your roof")
+                                    : (language === "fr" ? "Exemple d'analyse de toit" : "Roof analysis example")
+                                  }
+                                  className="w-full h-40 object-cover rounded-lg border"
+                                />
+                                {calcResults?.roof?.satelliteImageUrl && (
+                                  <div className="absolute bottom-2 left-2 right-2 bg-primary text-primary-foreground text-xs font-semibold py-1.5 px-3 rounded-md text-center">
+                                    {language === "fr" 
+                                      ? `POTENTIEL = ${calcResults.system.sizeKW.toFixed(0)} kW`
+                                      : `POTENTIAL = ${calcResults.system.sizeKW.toFixed(0)} kW`
+                                    }
+                                  </div>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground mt-1 text-center">
-                                {language === "fr" ? "Exemple d'analyse satellite" : "Example satellite analysis"}
+                                {calcResults?.roof?.satelliteImageUrl 
+                                  ? (language === "fr" ? "Image satellite de votre immeuble" : "Satellite image of your building")
+                                  : (language === "fr" ? "Exemple d'analyse satellite" : "Example satellite analysis")
+                                }
                               </p>
                             </div>
                           </div>
