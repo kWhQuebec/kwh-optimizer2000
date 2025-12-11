@@ -47,25 +47,21 @@ interface DesignAgreementSectionProps {
 
 // Pricing defaults
 const PRICING_DEFAULTS = {
-  baseFeePerBuilding: 1500,
+  baseFee: 1500,
   pricePerKW: 15,
   pricePerKWh: 10,
-  travelCostPerDay: 150,
   structuralStampFee: 1500,
   electricalStampFee: 1000,
 };
 
 interface PricingConfig {
-  numBuildings: number;
   pvSizeKW: number;
   battEnergyKWh: number;
-  travelDays: number;
   includeStructuralStamp: boolean;
   includeElectricalStamp: boolean;
-  baseFeePerBuilding: number;
+  baseFee: number;
   pricePerKW: number;
   pricePerKWh: number;
-  travelCostPerDay: number;
   structuralStampFee: number;
   electricalStampFee: number;
 }
@@ -141,14 +137,13 @@ function formatDate(date: Date | string | null | undefined): string {
 }
 
 function calculatePricingTotal(config: PricingConfig) {
-  const baseFee = config.numBuildings * config.baseFeePerBuilding;
+  const baseFee = config.baseFee;
   const pvFee = config.pvSizeKW * config.pricePerKW;
   const batteryFee = config.battEnergyKWh * config.pricePerKWh;
-  const travelFee = config.travelDays * config.travelCostPerDay;
   const structuralFee = config.includeStructuralStamp ? config.structuralStampFee : 0;
   const electricalFee = config.includeElectricalStamp ? config.electricalStampFee : 0;
   
-  const subtotal = baseFee + pvFee + batteryFee + travelFee + structuralFee + electricalFee;
+  const subtotal = baseFee + pvFee + batteryFee + structuralFee + electricalFee;
   const gst = subtotal * 0.05;
   const qst = subtotal * 0.09975;
   const total = subtotal + gst + qst;
@@ -157,7 +152,6 @@ function calculatePricingTotal(config: PricingConfig) {
     baseFee,
     pvFee,
     batteryFee,
-    travelFee,
     structuralFee,
     electricalFee,
     subtotal,
@@ -173,10 +167,8 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
   const [isOpen, setIsOpen] = useState(true);
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>({
-    numBuildings: 1,
     pvSizeKW: 0,
     battEnergyKWh: 0,
-    travelDays: 0,
     includeStructuralStamp: false,
     includeElectricalStamp: false,
     ...PRICING_DEFAULTS,
@@ -673,36 +665,6 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="numBuildings" className="flex items-center gap-1">
-                    <Building2 className="w-3 h-3" />
-                    {t("designAgreement.numBuildings")}
-                  </Label>
-                  <Input
-                    id="numBuildings"
-                    type="number"
-                    min={1}
-                    value={pricingConfig.numBuildings}
-                    onChange={(e) => setPricingConfig(prev => ({ ...prev, numBuildings: parseInt(e.target.value) || 1 }))}
-                    data-testid="input-num-buildings"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="travelDays" className="flex items-center gap-1">
-                    <Car className="w-3 h-3" />
-                    {t("designAgreement.travelDays")}
-                  </Label>
-                  <Input
-                    id="travelDays"
-                    type="number"
-                    min={0}
-                    value={pricingConfig.travelDays}
-                    onChange={(e) => setPricingConfig(prev => ({ ...prev, travelDays: parseInt(e.target.value) || 0 }))}
-                    data-testid="input-travel-days"
-                  />
-                </div>
-                
-                <div className="space-y-2">
                   <Label htmlFor="pvSizeKW" className="flex items-center gap-1">
                     <Zap className="w-3 h-3" />
                     {t("designAgreement.pvSizeKW")}
@@ -788,7 +750,7 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
               
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>{t("designAgreement.baseFee")} ({pricingConfig.numBuildings} × {formatCurrency(pricingConfig.baseFeePerBuilding)})</span>
+                  <span>{t("designAgreement.baseFee")}</span>
                   <span>{formatCurrency(calculatedPricing.baseFee)}</span>
                 </div>
                 
@@ -803,13 +765,6 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                   <div className="flex justify-between">
                     <span>{t("designAgreement.batteryFee")} ({pricingConfig.battEnergyKWh} kWh × {formatCurrency(pricingConfig.pricePerKWh)})</span>
                     <span>{formatCurrency(calculatedPricing.batteryFee)}</span>
-                  </div>
-                )}
-                
-                {pricingConfig.travelDays > 0 && (
-                  <div className="flex justify-between">
-                    <span>{t("designAgreement.travelFee")} ({pricingConfig.travelDays} × {formatCurrency(pricingConfig.travelCostPerDay)})</span>
-                    <span>{formatCurrency(calculatedPricing.travelFee)}</span>
                   </div>
                 )}
                 
