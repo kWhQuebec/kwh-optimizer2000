@@ -507,7 +507,14 @@ export async function registerRoutes(
         education: 0.95,
       };
       
-      const tariff = tariffCode || "M";
+      // Auto-detect tariff based on monthly bill if not explicitly set to M or L
+      // $500+/month usually indicates medium/large power (Tarif M)
+      // Small businesses <$300/month may be on Tarif G
+      let tariff = tariffCode;
+      if (!tariff || tariff === "G") {
+        // Override G tariff for high bills - they should be on M
+        tariff = monthlyBill >= 300 ? "M" : "G";
+      }
       const energyRate = HQ_ENERGY_RATES[tariff] || 0.06;
       const energyPortion = ENERGY_PORTION_FACTORS[tariff] || 0.60;
       const buildingFactor = BUILDING_FACTORS[buildingType] || 1.0;

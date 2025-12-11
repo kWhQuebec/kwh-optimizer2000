@@ -352,7 +352,7 @@ export function getSatelliteImageUrl(location: GeoLocation, options?: {
   
   const width = options?.width || 400;
   const height = options?.height || 300;
-  const zoom = options?.zoom || 19; // Zoom 19 for closer roof detail view
+  const zoom = options?.zoom || 18; // Zoom 18 for good roof detail
   
   return `https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}&zoom=${zoom}&size=${width}x${height}&maptype=satellite&key=${GOOGLE_SOLAR_API_KEY}`;
 }
