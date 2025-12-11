@@ -57,7 +57,7 @@ async function initStripe() {
   }
 }
 
-await initStripe();
+// initStripe is called inside the async IIFE at the bottom of this file
 
 app.post(
   '/api/stripe/webhook/:uuid',
@@ -136,6 +136,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await initStripe();
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
