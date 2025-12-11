@@ -4,13 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   FileBarChart, Building2, Factory, School, HelpCircle, 
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
   Timer, Rocket, BatteryCharging, BadgePercent, Calculator, MapPin,
-  Sun, Battery, FileText, Hammer, Loader2, FileCheck
+  Sun, Battery, FileText, Hammer, Loader2, FileCheck, ChevronDown, ChevronUp,
+  ClipboardCheck, Phone, Mail, Building, CalendarDays
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,38 +54,16 @@ const leadFormSchema = z.object({
 
 type LeadFormValues = z.infer<typeof leadFormSchema>;
 
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5 }
-};
-
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const analysisSlidesEn = [
-  { id: "consumption", image: screenshotConsumptionEn, label: "Consumption Profile" },
-  { id: "system", image: screenshotSystemEn, label: "Recommended System" },
-  { id: "financial", image: screenshotFinancialEn, label: "Financial Breakdown" },
-  { id: "optimization", image: screenshotOptimizationEn, label: "Optimization Analysis" },
-];
-
-const analysisSlidesFr = [
-  { id: "consumption", image: screenshotConsumptionFr, label: "Profil de consommation" },
-  { id: "optimization", image: screenshotOptimizationFr, label: "Analyse d'optimisation" },
-  { id: "financial", image: screenshotFinancialFr, label: "Options de financement" },
-];
-
 export default function LandingPage() {
   const { t, language } = useI18n();
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
-  const [quickAnalysisExpanded, setQuickAnalysisExpanded] = useState(false);
+  
+  // Pathway states
+  const [quickPathExpanded, setQuickPathExpanded] = useState(false);
+  const [detailedPathExpanded, setDetailedPathExpanded] = useState(false);
+  
+  // Quick calculator states
   const [calcBill, setCalcBill] = useState<string>("");
   const [calcAddress, setCalcAddress] = useState<string>("");
   const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
@@ -100,7 +79,19 @@ export default function LandingPage() {
   const [calcError, setCalcError] = useState<string>("");
   
   const currentLogo = language === "fr" ? logoFr : logoEn;
-  const analysisSlides = language === "fr" ? analysisSlidesFr : analysisSlidesEn;
+  
+  const analysisSlides = language === "fr" 
+    ? [
+        { id: "consumption", image: screenshotConsumptionFr, label: "Profil de consommation" },
+        { id: "optimization", image: screenshotOptimizationFr, label: "Analyse d'optimisation" },
+        { id: "financial", image: screenshotFinancialFr, label: "Options de financement" },
+      ]
+    : [
+        { id: "consumption", image: screenshotConsumptionEn, label: "Consumption Profile" },
+        { id: "system", image: screenshotSystemEn, label: "Recommended System" },
+        { id: "financial", image: screenshotFinancialEn, label: "Financial Breakdown" },
+        { id: "optimization", image: screenshotOptimizationEn, label: "Optimization Analysis" },
+      ];
   
   // Building type labels
   const buildingTypeLabels = language === "fr" 
@@ -219,11 +210,11 @@ export default function LandingPage() {
             </Link>
             
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#why-now" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-why-now">
-                {t("landing.whyNow.title")}
+              <a href="#paths" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-analyze">
+                {language === "fr" ? "Analyser" : "Analyze"}
               </a>
-              <a href="#process" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-process">
-                {t("landing.process.title")}
+              <a href="#credibility" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-trust">
+                {language === "fr" ? "Confiance" : "Trust"}
               </a>
               <a href="#contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-contact">
                 {t("footer.contact")}
@@ -243,1523 +234,890 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ========== HERO SECTION ========== */}
-      <section className="relative pt-24 pb-20 overflow-hidden">
-        {/* Background gradient */}
+      {/* ========== HERO SECTION - COMPACT ========== */}
+      <section className="relative pt-24 pb-12 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-3xl opacity-30" />
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <motion.div 
-              className="space-y-8"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="space-y-4">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15]">
-                  {t("landing.hero.title")}
-                </h1>
-                <div className="space-y-1">
-                  <p className="text-xl sm:text-2xl text-primary font-semibold">
-                    {t("landing.hero.subtitle")}
-                  </p>
-                  <p className="text-xl sm:text-2xl text-primary font-semibold">
-                    {t("landing.hero.subtitle2")}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <a href="#contact">
-                  <Button size="lg" className="gap-2 text-base px-8" data-testid="button-hero-cta">
-                    {t("landing.hero.cta")}
-                    <ArrowRight className="w-5 h-5" />
-                  </Button>
-                </a>
-              </div>
-
-              {/* Trust badges */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-4">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">{t("landing.trust.certified")}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">{t("landing.trust.experience")}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">{t("landing.trust.datadriven")}</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Hero Image Grid - What your analysis includes */}
-            <motion.div 
-              className="relative"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <div className="relative">
-                {/* Decorative ring */}
-                <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-3xl" />
-                
-                <div className="relative space-y-3 p-4">
-                  <p className="text-sm font-medium text-muted-foreground text-center uppercase tracking-wider">
-                    {language === "fr" ? "Ce que vous découvrirez" : "What you'll discover"}
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <motion.div 
-                      className="bg-card border rounded-xl overflow-hidden hover-elevate"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <img 
-                        src={heroRoofAnalysis} 
-                        alt={language === "fr" ? "Analyse du toit" : "Roof analysis"} 
-                        className="w-full h-24 object-cover"
-                      />
-                      <div className="p-2 text-center">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {language === "fr" ? "Analyse du toit" : "Roof Analysis"}
-                        </span>
-                      </div>
-                    </motion.div>
-                    
-                    <motion.div 
-                      className="bg-card border rounded-xl overflow-hidden hover-elevate"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <img 
-                        src={language === "fr" ? screenshotConsumptionFr : screenshotConsumptionEn} 
-                        alt={language === "fr" ? "Profil de consommation" : "Consumption profile"} 
-                        className="w-full h-24 object-cover object-top"
-                      />
-                      <div className="p-2 text-center">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {language === "fr" ? "Profil de consommation" : "Consumption Profile"}
-                        </span>
-                      </div>
-                    </motion.div>
-                    
-                    <motion.div 
-                      className="bg-card border rounded-xl overflow-hidden hover-elevate"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <img 
-                        src={language === "fr" ? screenshotOptimizationFr : screenshotOptimizationEn} 
-                        alt={language === "fr" ? "Scénarios optimaux" : "Optimal scenarios"} 
-                        className="w-full h-24 object-cover object-top"
-                      />
-                      <div className="p-2 text-center">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {language === "fr" ? "Scénarios optimaux" : "Optimal Scenarios"}
-                        </span>
-                      </div>
-                    </motion.div>
-                    
-                    <motion.div 
-                      className="bg-card border rounded-xl overflow-hidden hover-elevate"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <img 
-                        src={heroCashflow} 
-                        alt={language === "fr" ? "Comparaison financement" : "Financing comparison"} 
-                        className="w-full h-24 object-cover object-center"
-                      />
-                      <div className="p-2 text-center">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          {language === "fr" ? "Comparaison financement" : "Financing Comparison"}
-                        </span>
-                      </div>
-                    </motion.div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== ANALYSIS OPTIONS SECTION ========== */}
-      <section id="analysis-options" className="py-16 px-4 sm:px-6 lg:px-8 bg-background">
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-10"
-          >
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
-              <BarChart3 className="w-3 h-3 mr-1" />
-              {language === "fr" ? "Deux options" : "Two options"}
-            </Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-              {language === "fr" ? "Choisissez votre niveau d'analyse" : "Choose your analysis level"}
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
-                ? "Selon vos besoins, optez pour une estimation rapide ou une analyse détaillée basée sur vos données réelles"
-                : "Based on your needs, choose a quick estimate or a detailed analysis based on your real data"
-              }
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-            {/* Option 1: Quick Analysis - Expandable */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className={quickAnalysisExpanded ? "md:col-span-2" : ""}
-            >
-              <Card className={`h-full p-6 lg:p-8 border-2 transition-colors ${quickAnalysisExpanded ? 'border-primary' : 'border-primary/30 hover:border-primary/50 hover-elevate'}`}>
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-3 rounded-xl bg-primary/10">
-                      <Timer className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">
-                        {language === "fr" ? "Analyse Rapide" : "Quick Analysis"}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        <span>5 {language === "fr" ? "minutes" : "minutes"}</span>
-                        <span className="text-primary font-medium">• 75% {language === "fr" ? "précision" : "accuracy"}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {!quickAnalysisExpanded && (
-                    <>
-                      <p className="text-muted-foreground mb-6 flex-grow">
-                        {language === "fr" 
-                          ? "Faites une estimation par vous-même en quelques minutes. Basée sur l'adresse de votre bâtiment et votre facture mensuelle moyenne."
-                          : "Do a self-service estimate in just minutes. Based on your building address and average monthly bill."
-                        }
-                      </p>
-                      
-                      <ul className="space-y-2 mb-6 text-sm">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                          <span>{language === "fr" ? "Résultats instantanés" : "Instant results"}</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                          <span>{language === "fr" ? "Analyse de toiture via satellite" : "Satellite roof analysis"}</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                          <span>{language === "fr" ? "Estimation des économies et incitatifs" : "Savings and incentives estimate"}</span>
-                        </li>
-                      </ul>
-                      
-                      <Button 
-                        size="lg" 
-                        className="w-full"
-                        onClick={() => setQuickAnalysisExpanded(true)}
-                        data-testid="button-option-quick"
-                      >
-                        {language === "fr" ? "Démarrer mon analyse rapide" : "Start my quick analysis"}
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </>
-                  )}
-                  
-                  {/* Expanded Calculator Form */}
-                  {quickAnalysisExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-6"
-                    >
-                      {/* Input fields */}
-                      <div className="grid md:grid-cols-2 gap-4">
-                        {/* Address */}
-                        <div className="space-y-2 md:col-span-2">
-                          <label className="text-sm font-medium flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-primary" />
-                            {language === "fr" ? "Adresse du bâtiment" : "Building address"}
-                          </label>
-                          <Input
-                            type="text"
-                            value={calcAddress}
-                            onChange={(e) => setCalcAddress(e.target.value)}
-                            className="h-12"
-                            placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
-                            data-testid="input-calc-address"
-                          />
-                        </div>
-                        
-                        {/* Monthly bill */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-primary" />
-                            {language === "fr" ? "Facture mensuelle moyenne" : "Average monthly bill"}
-                          </label>
-                          <div className="relative">
-                            <Input
-                              type="text"
-                              inputMode="numeric"
-                              value={calcBill}
-                              onChange={(e) => setCalcBill(e.target.value.replace(/[^0-9]/g, ""))}
-                              className="h-12 pl-8"
-                              placeholder="5000"
-                              data-testid="input-calc-bill"
-                            />
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                          </div>
-                        </div>
-                        
-                        {/* Building type */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-primary" />
-                            {language === "fr" ? "Type de bâtiment" : "Building type"}
-                          </label>
-                          <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
-                            <SelectTrigger className="h-12" data-testid="select-calc-building-type">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(buildingTypeLabels).map(([key, label]) => (
-                                <SelectItem key={key} value={key}>{label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      {/* Error message */}
-                      {calcError && (
-                        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-                          {calcError}
-                        </div>
-                      )}
-                      
-                      {/* Analyze button */}
-                      <Button 
-                        size="lg" 
-                        className="w-full gap-2" 
-                        onClick={handleQuickEstimate}
-                        disabled={calcLoading}
-                        data-testid="button-calc-analyze"
-                      >
-                        {calcLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
-                          </>
-                        ) : (
-                          <>
-                            <Sun className="w-4 h-4" />
-                            {language === "fr" ? "Analyser mon potentiel" : "Analyze my potential"}
-                          </>
-                        )}
-                      </Button>
-                      
-                      {/* Results */}
-                      {calcResults && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="space-y-4 pt-4 border-t"
-                        >
-                          {/* Roof data indicator */}
-                          {calcResults.hasRoofData && calcResults.roof && (
-                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
-                              {language === "fr" 
-                                ? `Toiture analysée: ${calcResults.roof.areaM2} m² disponibles`
-                                : `Roof analyzed: ${calcResults.roof.areaM2} m² available`
-                              }
-                            </div>
-                          )}
-                          
-                          {/* Main results grid */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div className="p-3 rounded-xl bg-primary/10 text-center">
-                              <p className="text-xs text-muted-foreground mb-1">
-                                {language === "fr" ? "Taille système" : "System size"}
-                              </p>
-                              <p className="text-xl font-bold text-primary" data-testid="text-calc-system-size">
-                                {calcResults.system.sizeKW} kW
-                              </p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-green-500/10 text-center">
-                              <p className="text-xs text-muted-foreground mb-1">
-                                {language === "fr" ? "Économies/an" : "Savings/year"}
-                              </p>
-                              <p className="text-xl font-bold text-green-600" data-testid="text-calc-savings">
-                                ${calcResults.financial.annualSavings.toLocaleString()}
-                              </p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-muted text-center">
-                              <p className="text-xs text-muted-foreground mb-1">
-                                {language === "fr" ? "Retour" : "Payback"}
-                              </p>
-                              <p className="text-xl font-bold" data-testid="text-calc-payback">
-                                {calcResults.financial.paybackYears} {language === "fr" ? "ans" : "yrs"}
-                              </p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-amber-500/10 text-center">
-                              <p className="text-xs text-muted-foreground mb-1">
-                                {language === "fr" ? "Incitatif HQ" : "HQ Incentive"}
-                              </p>
-                              <p className="text-xl font-bold text-amber-600" data-testid="text-calc-incentive">
-                                ${calcResults.financial.hqIncentive.toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* CTA to detailed analysis */}
-                          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                            <a href="#contact" className="flex-1">
-                              <Button size="lg" className="w-full gap-2" data-testid="button-calc-cta">
-                                {language === "fr" ? "Obtenir mon analyse complète" : "Get my complete analysis"}
-                                <ArrowRight className="w-4 h-4" />
-                              </Button>
-                            </a>
-                          </div>
-                          
-                          <p className="text-xs text-center text-muted-foreground">
-                            {language === "fr" 
-                              ? "* Estimation basée sur les données satellite et les tarifs HQ actuels."
-                              : "* Estimate based on satellite data and current HQ rates."
-                            }
-                          </p>
-                        </motion.div>
-                      )}
-                      
-                      {/* Collapse button */}
-                      <button 
-                        onClick={() => setQuickAnalysisExpanded(false)}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto block"
-                        data-testid="button-collapse-quick"
-                      >
-                        {language === "fr" ? "← Retour aux options" : "← Back to options"}
-                      </button>
-                    </motion.div>
-                  )}
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Option 2: Detailed Analysis */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card className="h-full p-6 lg:p-8 border-2 border-accent/30 hover:border-accent/50 transition-colors hover-elevate bg-gradient-to-br from-accent/5 to-background">
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-3 rounded-xl bg-accent/20">
-                      <FileCheck className="w-6 h-6 text-accent-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">
-                        {language === "fr" ? "Analyse Détaillée" : "Detailed Analysis"}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        <span>5 {language === "fr" ? "jours" : "days"}</span>
-                        <span className="text-accent-foreground font-medium">• 95% {language === "fr" ? "précision" : "accuracy"}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-muted-foreground mb-6 flex-grow">
-                    {language === "fr" 
-                      ? "Donnez-nous accès à vos données de consommation Hydro-Québec et on vous revient avec une analyse optimale pour votre situation."
-                      : "Give us access to your Hydro-Québec consumption data and we'll provide an optimal analysis for your situation."
-                    }
-                  </p>
-                  
-                  <ul className="space-y-2 mb-6 text-sm">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span>{language === "fr" ? "Données réelles 8760 heures" : "Real 8760-hour data"}</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span>{language === "fr" ? "Optimisation PV + batterie" : "PV + battery optimization"}</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span>{language === "fr" ? "Comparaison 3 options de financement" : "3 financing options comparison"}</span>
-                    </li>
-                  </ul>
-                  
-                  <Link href="/analyse-detaillee">
-                    <Button 
-                      size="lg" 
-                      variant="outline"
-                      className="w-full"
-                      data-testid="button-option-detailed"
-                    >
-                      {language === "fr" ? "Demander mon analyse détaillée" : "Request my detailed analysis"}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== PVCASE-STYLE WORKFLOW SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-              {language === "fr" ? "Notre processus d'analyse" : "Our Analysis Process"}
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
-                ? "Une méthodologie éprouvée en 5 étapes pour optimiser votre projet solaire"
-                : "A proven 5-step methodology to optimize your solar project"
-              }
-            </p>
-          </motion.div>
-
-          {/* PVcase-style step cards */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {[
-              { 
-                step: 1, 
-                icon: MapPin, 
-                title: language === "fr" ? "Analyse du toit" : "Roof Analysis",
-                description: language === "fr" ? "Évaluation satellite et estimation de surface" : "Satellite evaluation and area estimation",
-                color: "bg-blue-500"
-              },
-              { 
-                step: 2, 
-                icon: BarChart3, 
-                title: language === "fr" ? "Profil énergétique" : "Energy Profile",
-                description: language === "fr" ? "Analyse de vos données de consommation" : "Analysis of your consumption data",
-                color: "bg-primary"
-              },
-              { 
-                step: 3, 
-                icon: Sun, 
-                title: language === "fr" ? "Dimensionnement" : "System Sizing",
-                description: language === "fr" ? "Optimisation PV + batterie" : "PV + battery optimization",
-                color: "bg-amber-500"
-              },
-              { 
-                step: 4, 
-                icon: DollarSign, 
-                title: language === "fr" ? "Analyse financière" : "Financial Analysis",
-                description: language === "fr" ? "VAN, TRI et options de financement" : "NPV, IRR and financing options",
-                color: "bg-green-500"
-              },
-              { 
-                step: 5, 
-                icon: FileText, 
-                title: language === "fr" ? "Rapport détaillé" : "Detailed Report",
-                description: language === "fr" ? "Document prêt pour la prise de décision" : "Document ready for decision-making",
-                color: "bg-accent"
-              },
-            ].map((item, index) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="p-4 h-full hover-elevate text-center relative overflow-visible">
-                  {/* Step number badge */}
-                  <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full ${item.color} flex items-center justify-center shadow-lg`}>
-                    <span className="text-sm font-bold text-white">{item.step}</span>
-                  </div>
-                  
-                  {/* Connection line (hidden on mobile and last item) */}
-                  {index < 4 && (
-                    <div className="hidden md:block absolute top-4 -right-2 w-4 h-0.5 bg-gradient-to-r from-muted-foreground/30 to-transparent z-10" />
-                  )}
-                  
-                  <div className="pt-4 space-y-3">
-                    <div className={`w-12 h-12 mx-auto rounded-xl ${item.color}/10 flex items-center justify-center`}>
-                      <item.icon className={`w-6 h-6`} style={{ color: item.color.replace('bg-', '').includes('-') ? undefined : 'currentColor' }} />
-                    </div>
-                    <h3 className="font-semibold text-sm">{item.title}</h3>
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5 }}
-            className="mt-8 text-center"
-          >
-            <a href="#contact">
-              <Button size="lg" className="gap-2">
-                {language === "fr" ? "Démarrer mon analyse gratuite" : "Start my free analysis"}
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </a>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ========== WHY NOW SECTION ========== */}
-      <section id="why-now" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div 
-            className="text-center mb-16"
+            className="space-y-6"
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">{t("landing.whyNow.title")}</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t("landing.whyNow.subtitle")}
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { 
-                icon: Zap, 
-                title: t("landing.whyNow.hq.title"), 
-                description: t("landing.whyNow.hq.description"),
-                color: "text-primary",
-                bg: "bg-primary/10",
-                url: "https://www.hydroquebec.com/autoproduction/"
-              },
-              { 
-                icon: BadgePercent, 
-                title: t("landing.whyNow.federal.title"), 
-                description: t("landing.whyNow.federal.description"),
-                color: "text-accent",
-                bg: "bg-accent/10",
-                url: "https://natural-resources.canada.ca/climate-change/clean-energy-investment-tax-credits/clean-technology-investment-tax-credit/51492"
-              },
-              { 
-                icon: TrendingUp, 
-                title: t("landing.whyNow.fiscal.title"), 
-                description: t("landing.whyNow.fiscal.description"),
-                color: "text-primary",
-                bg: "bg-primary/10",
-                url: "https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/sole-proprietorships-partnerships/report-business-income-expenses/claiming-capital-cost-allowance/classes-depreciable-property.html"
-              },
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <a href={item.url} target="_blank" rel="noopener noreferrer" className="block h-full">
-                  <Card className="h-full hover-elevate border-2 border-transparent hover:border-primary/20 transition-colors cursor-pointer">
-                    <CardContent className="p-6 space-y-4">
-                      <div className={`w-14 h-14 rounded-2xl ${item.bg} flex items-center justify-center`}>
-                        <item.icon className={`w-7 h-7 ${item.color}`} />
-                      </div>
-                      <h3 className="text-xl font-semibold">{item.title}</h3>
-                      <p className="text-muted-foreground">{item.description}</p>
-                    </CardContent>
-                  </Card>
-                </a>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Urgency banner */}
-          <motion.div 
-            className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border border-primary/20"
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-          >
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Timer className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold text-lg">{t("landing.whyNow.deadline")}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {language === "fr" 
-                      ? "Profitez de ces programmes maintenant avant qu'il ne soit trop tard"
-                      : "Take advantage of these programs now before it's too late"
-                    }
-                  </p>
-                </div>
-              </div>
-              <a href="#contact">
-                <Button size="lg" className="gap-2">
-                  {t("landing.hero.cta")}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </a>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ========== PROCESS SECTION - PROGRESS PATH ========== */}
-      <section id="process" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">{t("landing.process.title")}</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t("landing.process.subtitle")}
-            </p>
-          </motion.div>
-
-          {/* Step 1 - Hero Focus (80%) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12"
-          >
-            <Card className="relative overflow-hidden border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-background">
-              <CardContent className="p-6 lg:p-8">
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                  {/* You are here marker */}
-                  <div className="flex items-center gap-4">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-                        <span className="text-2xl font-bold text-white">1</span>
-                      </div>
-                      <div className="absolute -inset-2 rounded-full bg-primary/20" />
-                      <div className="absolute -inset-2 rounded-full border-2 border-primary/20" />
-                    </div>
-                    <div className="hidden sm:block">
-                      <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
-                        <Target className="w-3 h-3 mr-1" />
-                        {t("landing.process.youAreHere")}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 space-y-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h3 className="text-xl lg:text-2xl font-bold">{t("landing.step1.title")}</h3>
-                      <Badge variant="secondary" className="text-xs">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {t("landing.step1.time")}
-                      </Badge>
-                    </div>
-                    <p className="text-muted-foreground">
-                      {t("landing.step1.highlight")}
-                    </p>
-                  </div>
-
-                  {/* CTA */}
-                  <a href="#contact" className="flex-shrink-0">
-                    <Button size="lg" className="gap-2" data-testid="button-step1-cta">
-                      {t("landing.hero.cta")}
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Steps 2-5 - Compact Progress Path (20%) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="text-center mb-6">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                {t("landing.process.nextSteps")}
+            <div className="space-y-3">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15]">
+                {t("landing.hero.title")}
+              </h1>
+              <p className="text-xl sm:text-2xl text-primary font-semibold">
+                {t("landing.hero.subtitle")}
               </p>
             </div>
+            
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {language === "fr" 
+                ? "Choisissez le niveau d'analyse adapté à vos besoins"
+                : "Choose the analysis level that fits your needs"
+              }
+            </p>
 
-            {/* Progress Path - Horizontal Timeline */}
-            <div className="relative">
-              {/* Connecting line - Desktop */}
-              <div className="hidden md:block absolute top-6 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-accent via-primary to-accent opacity-30" />
-
-              {/* Step Milestones */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 relative">
-                {[
-                  { step: 2, icon: FileSignature, title: t("landing.step2.title"), time: t("landing.step2.time"), color: "bg-accent" },
-                  { step: 3, icon: BarChart3, title: t("landing.step3.title"), time: t("landing.step3.time"), color: "bg-primary" },
-                  { step: 4, icon: Wrench, title: t("landing.step4.title"), time: t("landing.step4.time"), color: "bg-primary/70" },
-                  { step: 5, icon: HardHat, title: t("landing.step5.title"), time: t("landing.step5.time"), color: "bg-accent" },
-                ].map((item, index) => (
-                  <motion.div
-                    key={item.step}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex flex-col items-center text-center"
-                  >
-                    {/* Numbered circle */}
-                    <div className={`w-12 h-12 rounded-full ${item.color} flex items-center justify-center shadow-md mb-2 relative z-10`}>
-                      <span className="text-lg font-bold text-white">{item.step}</span>
-                    </div>
-                    
-                    <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.time}</p>
-                  </motion.div>
-                ))}
+            {/* Trust badges - compact */}
+            <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 pt-2">
+              <div className="flex items-center gap-2" data-testid="badge-trust-certified">
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-sm text-muted-foreground">{t("landing.trust.certified")}</span>
               </div>
-            </div>
-
-            {/* Final destination */}
-            <div className="flex justify-center mt-6">
-              <Badge variant="outline" className="gap-1.5 py-1.5 px-3">
-                <CheckCircle2 className="w-4 h-4 text-accent" />
-                <span className="text-sm">
-                  {language === "fr" ? "Système solaire en opération" : "Solar system in operation"}
-                </span>
-              </Badge>
+              <div className="flex items-center gap-2" data-testid="badge-trust-experience">
+                <Award className="w-4 h-4 text-primary" />
+                <span className="text-sm text-muted-foreground">{t("landing.trust.experience")}</span>
+              </div>
+              <div className="flex items-center gap-2" data-testid="badge-trust-datadriven">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                <span className="text-sm text-muted-foreground">{t("landing.trust.datadriven")}</span>
+              </div>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* ========== ANALYSIS PREVIEW SECTION - SPLIT INTO 2 PARTS ========== */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
+      {/* ========== TWO PATHWAYS SECTION ========== */}
+      <section id="paths" className="py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-6">
+            
+            {/* ===== PATH 1: QUICK ANALYSIS (5 min) ===== */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className={quickPathExpanded ? "lg:col-span-2" : ""}
+            >
+              <Card className={`overflow-hidden border-2 transition-all ${quickPathExpanded ? 'border-primary' : 'border-primary/30'}`}>
+                {/* Header - Always visible */}
+                <div 
+                  className={`p-6 cursor-pointer ${!quickPathExpanded ? 'hover-elevate' : ''}`}
+                  onClick={() => {
+                    if (!quickPathExpanded) {
+                      setQuickPathExpanded(true);
+                      setDetailedPathExpanded(false);
+                    }
+                  }}
+                  data-testid="section-quick-header"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-primary/10 shrink-0">
+                        <Timer className="w-7 h-7 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-xl font-bold">
+                            {language === "fr" ? "Analyse Rapide" : "Quick Analysis"}
+                          </h3>
+                          <Badge className="bg-primary/10 text-primary border-primary/20">
+                            5 min
+                          </Badge>
+                          <Badge variant="outline" className="text-muted-foreground">
+                            ~75% {language === "fr" ? "précision" : "accuracy"}
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground mt-1">
+                          {language === "fr" 
+                            ? "Estimez votre potentiel solaire en quelques clics"
+                            : "Estimate your solar potential in a few clicks"
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    {!quickPathExpanded && (
+                      <Button size="sm" className="shrink-0 gap-1" data-testid="button-path-quick">
+                        {language === "fr" ? "Commencer" : "Start"}
+                        <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expanded content */}
+                <AnimatePresence>
+                  {quickPathExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="border-t">
+                        <div className="grid lg:grid-cols-5 gap-0">
+                          {/* Left: What's included */}
+                          <div className="lg:col-span-2 p-6 bg-muted/30 space-y-4">
+                            <h4 className="font-semibold flex items-center gap-2">
+                              <CheckCircle2 className="w-5 h-5 text-primary" />
+                              {language === "fr" ? "Ce que vous obtenez" : "What you get"}
+                            </h4>
+                            
+                            <ul className="space-y-3 text-sm">
+                              <li className="flex items-start gap-2">
+                                <Sun className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Analyse satellite de votre toiture" : "Satellite analysis of your roof"}</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <BarChart3 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Capacité PV estimée (kW)" : "Estimated PV capacity (kW)"}</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <DollarSign className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Économies annuelles estimées" : "Estimated annual savings"}</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <BadgePercent className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Incitatifs Hydro-Québec applicables" : "Applicable Hydro-Québec incentives"}</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <TrendingUp className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Période de retour sur investissement" : "Payback period estimate"}</span>
+                              </li>
+                            </ul>
+                            
+                            {/* Roof preview image */}
+                            <div className="pt-2">
+                              <img 
+                                src={roofMeasurement} 
+                                alt={language === "fr" ? "Exemple d'analyse de toit" : "Roof analysis example"}
+                                className="w-full h-32 object-cover rounded-lg border"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1 text-center">
+                                {language === "fr" ? "Exemple d'analyse satellite" : "Example satellite analysis"}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Right: Calculator form */}
+                          <div className="lg:col-span-3 p-6 space-y-5">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold">
+                                {language === "fr" ? "Entrez vos informations" : "Enter your information"}
+                              </h4>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setQuickPathExpanded(false)}
+                                data-testid="button-collapse-quick"
+                              >
+                                <ChevronUp className="w-4 h-4 mr-1" />
+                                {language === "fr" ? "Réduire" : "Collapse"}
+                              </Button>
+                            </div>
+                            
+                            {!calcResults ? (
+                              <div className="space-y-4">
+                                {/* Address */}
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-primary" />
+                                    {language === "fr" ? "Adresse du bâtiment" : "Building address"}
+                                  </label>
+                                  <Input
+                                    type="text"
+                                    value={calcAddress}
+                                    onChange={(e) => setCalcAddress(e.target.value)}
+                                    className="h-11"
+                                    placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
+                                    data-testid="input-calc-address"
+                                  />
+                                </div>
+                                
+                                {/* Monthly bill + Building type */}
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                      <DollarSign className="w-4 h-4 text-primary" />
+                                      {language === "fr" ? "Facture mensuelle" : "Monthly bill"}
+                                    </label>
+                                    <Input
+                                      type="number"
+                                      value={calcBill}
+                                      onChange={(e) => setCalcBill(e.target.value)}
+                                      className="h-11"
+                                      placeholder="$"
+                                      min={500}
+                                      data-testid="input-calc-bill"
+                                    />
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                      <Building2 className="w-4 h-4 text-primary" />
+                                      {language === "fr" ? "Type de bâtiment" : "Building type"}
+                                    </label>
+                                    <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
+                                      <SelectTrigger className="h-11" data-testid="select-calc-building">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Object.entries(buildingTypeLabels).map(([value, label]) => (
+                                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                
+                                {/* Tariff */}
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium flex items-center gap-2">
+                                    <Zap className="w-4 h-4 text-primary" />
+                                    {language === "fr" ? "Tarif Hydro-Québec" : "Hydro-Québec tariff"}
+                                  </label>
+                                  <Select value={calcTariff} onValueChange={setCalcTariff}>
+                                    <SelectTrigger className="h-11" data-testid="select-calc-tariff">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {Object.entries(tariffLabels).map(([value, label]) => (
+                                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                {calcError && (
+                                  <p className="text-sm text-destructive">{calcError}</p>
+                                )}
+                                
+                                <Button 
+                                  size="lg" 
+                                  className="w-full gap-2"
+                                  onClick={handleQuickEstimate}
+                                  disabled={calcLoading}
+                                  data-testid="button-calc-analyze"
+                                >
+                                  {calcLoading ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                      {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Calculator className="w-4 h-4" />
+                                      {language === "fr" ? "Analyser mon potentiel" : "Analyze my potential"}
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            ) : (
+                              /* Results display */
+                              <div className="space-y-4">
+                                <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                    <span className="font-semibold text-green-800 dark:text-green-200">
+                                      {language === "fr" ? "Analyse complétée!" : "Analysis complete!"}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="grid sm:grid-cols-2 gap-4">
+                                    <div className="bg-background rounded-lg p-3 border">
+                                      <p className="text-xs text-muted-foreground mb-1">
+                                        {language === "fr" ? "Système recommandé" : "Recommended system"}
+                                      </p>
+                                      <p className="text-xl font-bold text-primary">
+                                        {calcResults.system.sizeKW.toFixed(0)} kW
+                                      </p>
+                                    </div>
+                                    
+                                    <div className="bg-background rounded-lg p-3 border">
+                                      <p className="text-xs text-muted-foreground mb-1">
+                                        {language === "fr" ? "Production annuelle" : "Annual production"}
+                                      </p>
+                                      <p className="text-xl font-bold">
+                                        {(calcResults.system.annualProductionKWh / 1000).toFixed(0)} MWh
+                                      </p>
+                                    </div>
+                                    
+                                    <div className="bg-background rounded-lg p-3 border">
+                                      <p className="text-xs text-muted-foreground mb-1">
+                                        {language === "fr" ? "Économies annuelles" : "Annual savings"}
+                                      </p>
+                                      <p className="text-xl font-bold text-green-600">
+                                        ${calcResults.financial.annualSavings.toLocaleString()}
+                                      </p>
+                                    </div>
+                                    
+                                    <div className="bg-background rounded-lg p-3 border">
+                                      <p className="text-xs text-muted-foreground mb-1">
+                                        {language === "fr" ? "Retour sur investissement" : "Payback period"}
+                                      </p>
+                                      <p className="text-xl font-bold">
+                                        {calcResults.financial.paybackYears.toFixed(1)} {language === "fr" ? "ans" : "years"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium">
+                                        {language === "fr" ? "Incitatif Hydro-Québec" : "Hydro-Québec incentive"}
+                                      </span>
+                                      <span className="text-lg font-bold text-primary">
+                                        ${calcResults.financial.hqIncentive.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => setCalcResults(null)}
+                                    className="flex-1"
+                                  >
+                                    {language === "fr" ? "Refaire une analyse" : "Run another analysis"}
+                                  </Button>
+                                  <a href="#contact" className="flex-1">
+                                    <Button className="w-full gap-2">
+                                      {language === "fr" ? "Obtenir une analyse détaillée" : "Get detailed analysis"}
+                                      <ArrowRight className="w-4 h-4" />
+                                    </Button>
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Card>
+            </motion.div>
+
+            {/* ===== PATH 2: DETAILED ANALYSIS (5 days) ===== */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className={`${detailedPathExpanded ? "lg:col-span-2" : ""} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
+            >
+                <Card className={`overflow-hidden border-2 transition-all ${detailedPathExpanded ? 'border-accent' : 'border-accent/30'}`}>
+                  {/* Header - Always visible */}
+                  <div 
+                    className={`p-6 cursor-pointer ${!detailedPathExpanded ? 'hover-elevate' : ''}`}
+                    onClick={() => {
+                      if (!detailedPathExpanded) {
+                        setDetailedPathExpanded(true);
+                        setQuickPathExpanded(false);
+                      }
+                    }}
+                    data-testid="section-detailed-header"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-xl bg-accent/10 shrink-0">
+                          <FileBarChart className="w-7 h-7 text-accent" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-xl font-bold">
+                              {language === "fr" ? "Analyse Détaillée" : "Detailed Analysis"}
+                            </h3>
+                            <Badge className="bg-accent/10 text-accent border-accent/20">
+                              5 {language === "fr" ? "jours" : "days"}
+                            </Badge>
+                            <Badge variant="outline" className="text-muted-foreground">
+                              ~95% {language === "fr" ? "précision" : "accuracy"}
+                            </Badge>
+                          </div>
+                          <p className="text-muted-foreground mt-1">
+                            {language === "fr" 
+                              ? "Analyse complète basée sur vos données réelles"
+                              : "Complete analysis based on your real data"
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      {!detailedPathExpanded && (
+                        <Button size="sm" variant="outline" className="shrink-0 gap-1 border-accent text-accent" data-testid="button-path-detailed">
+                          {language === "fr" ? "En savoir plus" : "Learn more"}
+                          <ArrowRight className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded content */}
+                  <AnimatePresence>
+                    {detailedPathExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <div className="border-t">
+                          <div className="grid lg:grid-cols-2 gap-0">
+                            {/* Left: What's included + Process */}
+                            <div className="p-6 bg-muted/30 space-y-6">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold flex items-center gap-2">
+                                  <ClipboardCheck className="w-5 h-5 text-accent" />
+                                  {language === "fr" ? "Ce qui est inclus" : "What's included"}
+                                </h4>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setDetailedPathExpanded(false)}
+                                  data-testid="button-collapse-detailed"
+                                >
+                                  <ChevronUp className="w-4 h-4 mr-1" />
+                                  {language === "fr" ? "Réduire" : "Collapse"}
+                                </Button>
+                              </div>
+                              
+                              <ul className="space-y-3 text-sm">
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                  <span>{language === "fr" ? "Simulation 8 760h basée sur votre consommation réelle" : "8,760h simulation based on your real consumption"}</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                  <span>{language === "fr" ? "Dimensionnement optimal solaire + stockage" : "Optimal solar + storage sizing"}</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                  <span>{language === "fr" ? "Projections financières sur 25 ans (VAN, TRI, LCOE)" : "25-year financial projections (NPV, IRR, LCOE)"}</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                  <span>{language === "fr" ? "Comparaison des options de financement" : "Financing options comparison"}</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                  <span>{language === "fr" ? "Rapport PDF professionnel" : "Professional PDF report"}</span>
+                                </li>
+                              </ul>
+                              
+                              {/* Process timeline */}
+                              <div className="pt-4 border-t">
+                                <p className="text-sm font-medium mb-3">
+                                  {language === "fr" ? "Comment ça fonctionne" : "How it works"}
+                                </p>
+                                <div className="space-y-3">
+                                  {[
+                                    { step: 1, text: language === "fr" ? "Vous remplissez le formulaire" : "You fill out the form", icon: FileText },
+                                    { step: 2, text: language === "fr" ? "Vous signez la procuration HQ" : "You sign the HQ proxy", icon: FileSignature },
+                                    { step: 3, text: language === "fr" ? "Nous analysons vos données" : "We analyze your data", icon: BarChart3 },
+                                    { step: 4, text: language === "fr" ? "Vous recevez votre rapport" : "You receive your report", icon: FileCheck },
+                                  ].map((item) => (
+                                    <div key={item.step} className="flex items-center gap-3">
+                                      <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent">
+                                        {item.step}
+                                      </div>
+                                      <item.icon className="w-4 h-4 text-muted-foreground" />
+                                      <span className="text-sm">{item.text}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              {/* Preview carousel */}
+                              <div className="pt-4">
+                                <div className="relative aspect-video rounded-lg overflow-hidden border bg-card">
+                                  {analysisSlides.map((slide, index) => (
+                                    <div
+                                      key={slide.id}
+                                      className={`absolute inset-0 transition-opacity duration-500 ${
+                                        index === activeSlide ? "opacity-100" : "opacity-0"
+                                      }`}
+                                    >
+                                      <img 
+                                        src={slide.image} 
+                                        alt={slide.label}
+                                        className="w-full h-full object-contain bg-white"
+                                      />
+                                    </div>
+                                  ))}
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                    <p className="text-white text-xs font-medium">
+                                      {analysisSlides[activeSlide]?.label}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex justify-center gap-1.5 mt-2">
+                                  {analysisSlides.map((slide, index) => (
+                                    <button
+                                      key={slide.id}
+                                      onClick={() => setActiveSlide(index)}
+                                      className={`w-2 h-2 rounded-full transition-colors ${
+                                        index === activeSlide ? "bg-accent" : "bg-muted-foreground/30"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Right: Contact form */}
+                            <div className="p-6 space-y-5">
+                              <h4 className="font-semibold">
+                                {language === "fr" ? "Demander mon analyse" : "Request my analysis"}
+                              </h4>
+                              
+                              {!submitted ? (
+                                <Form {...form}>
+                                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                    <div className="grid sm:grid-cols-2 gap-4">
+                                      <FormField
+                                        control={form.control}
+                                        name="companyName"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>{t("form.companyName")}</FormLabel>
+                                            <FormControl>
+                                              <Input {...field} data-testid="input-company" />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name="contactName"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>{t("form.contactName")}</FormLabel>
+                                            <FormControl>
+                                              <Input {...field} data-testid="input-contact" />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </div>
+                                    
+                                    <div className="grid sm:grid-cols-2 gap-4">
+                                      <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>{t("form.email")}</FormLabel>
+                                            <FormControl>
+                                              <Input type="email" {...field} data-testid="input-email" />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name="phone"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>{t("form.phone")}</FormLabel>
+                                            <FormControl>
+                                              <Input type="tel" {...field} data-testid="input-phone" />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </div>
+                                    
+                                    <FormField
+                                      control={form.control}
+                                      name="streetAddress"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>{language === "fr" ? "Adresse du bâtiment" : "Building address"}</FormLabel>
+                                          <FormControl>
+                                            <Input {...field} data-testid="input-address" />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    
+                                    <div className="grid sm:grid-cols-2 gap-4">
+                                      <FormField
+                                        control={form.control}
+                                        name="city"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>{t("form.city")}</FormLabel>
+                                            <FormControl>
+                                              <Input {...field} data-testid="input-city" />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name="estimatedMonthlyBill"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>{t("form.monthlyBill")}</FormLabel>
+                                            <FormControl>
+                                              <Input 
+                                                type="number" 
+                                                placeholder="$"
+                                                {...field}
+                                                data-testid="input-bill" 
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </div>
+                                    
+                                    <Button 
+                                      type="submit" 
+                                      size="lg" 
+                                      className="w-full gap-2 bg-accent text-accent-foreground"
+                                      disabled={mutation.isPending}
+                                      data-testid="button-submit-detailed"
+                                    >
+                                      {mutation.isPending ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          {language === "fr" ? "Envoi en cours..." : "Sending..."}
+                                        </>
+                                      ) : (
+                                        <>
+                                          {language === "fr" ? "Demander mon analyse détaillée" : "Request my detailed analysis"}
+                                          <ArrowRight className="w-4 h-4" />
+                                        </>
+                                      )}
+                                    </Button>
+                                    
+                                    <p className="text-xs text-muted-foreground text-center">
+                                      {language === "fr" 
+                                        ? "Nous vous contacterons dans les 24h pour les prochaines étapes"
+                                        : "We'll contact you within 24h for the next steps"
+                                      }
+                                    </p>
+                                  </form>
+                                </Form>
+                              ) : (
+                                <div className="text-center py-8 space-y-4">
+                                  <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto">
+                                    <CheckCircle2 className="w-8 h-8 text-green-600" />
+                                  </div>
+                                  <h4 className="text-xl font-bold">
+                                    {language === "fr" ? "Demande reçue!" : "Request received!"}
+                                  </h4>
+                                  <p className="text-muted-foreground">
+                                    {language === "fr" 
+                                      ? "Notre équipe vous contactera dans les 24 heures."
+                                      : "Our team will contact you within 24 hours."
+                                    }
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Card>
+            </motion.div>
+          </div>
+          
+          {/* Collapsed state hint */}
+          {(quickPathExpanded || detailedPathExpanded) && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-4 text-center"
+            >
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setQuickPathExpanded(false);
+                  setDetailedPathExpanded(false);
+                }}
+                className="text-muted-foreground"
+                data-testid="button-view-both-options"
+              >
+                <ChevronUp className="w-4 h-4 mr-1" />
+                {language === "fr" ? "Voir les deux options" : "View both options"}
+              </Button>
+            </motion.div>
+          )}
+        </div>
+      </section>
+
+      {/* ========== CREDIBILITY SECTION ========== */}
+      <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
           <motion.div 
-            className="text-center mb-12"
+            className="text-center mb-10"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              {language === "fr" ? "Aperçu de votre analyse" : "Preview of Your Analysis"}
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t("landing.trust.title")}</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
               {language === "fr" 
-                ? "Un processus en deux temps pour une analyse complète"
-                : "A two-step process for a complete analysis"
+                ? "Une équipe d'experts dédiée à votre projet solaire"
+                : "A team of experts dedicated to your solar project"
               }
             </p>
           </motion.div>
-
-          {/* Step 1 - Instant Results */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-16"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-lg font-bold text-white">1</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">
-                  {language === "fr" ? "Ce que vous obtenez immédiatement" : "What you get immediately"}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr" ? "En quelques secondes après votre demande" : "Within seconds of your request"}
-                </p>
-              </div>
-            </div>
-            
-            <Card className="overflow-hidden">
-              <CardContent className="p-0">
-                <div className="grid md:grid-cols-2 gap-0">
-                  <div className="relative aspect-[4/3] md:aspect-auto">
-                    <img 
-                      src={roofMeasurement} 
-                      alt={language === "fr" ? "Analyse du toit avec mesures" : "Roof analysis with measurements"}
-                      className="w-full h-full object-cover"
-                      data-testid="img-roof-measurement"
-                    />
-                  </div>
-                  <div className="p-6 lg:p-8 flex flex-col justify-center space-y-4">
-                    <h4 className="text-lg font-semibold">
-                      {language === "fr" ? "Estimation instantanée du potentiel" : "Instant potential estimate"}
-                    </h4>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">
-                          {language === "fr" ? "Surface utilisable de votre toiture" : "Usable roof surface area"}
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">
-                          {language === "fr" ? "Capacité PV estimée en kW" : "Estimated PV capacity in kW"}
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">
-                          {language === "fr" ? "Production annuelle approximative" : "Approximate annual production"}
-                        </span>
-                      </li>
-                    </ul>
-                    <a href="#contact">
-                      <Button className="gap-2 mt-2">
-                        {t("landing.hero.cta")}
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Step 2/3 - Full Analysis after HQ data */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
-                <span className="text-lg font-bold text-accent-foreground">2</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">
-                  {language === "fr" ? "Ce que vous obtenez après accès aux données HQ" : "What you get after HQ data access"}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr" ? "Après signature de la procuration Hydro-Québec (48h)" : "After signing the Hydro-Québec proxy (48h)"}
-                </p>
-              </div>
-            </div>
-            
-            <Card className="overflow-hidden">
-              <CardContent className="p-0">
-                <div className="grid md:grid-cols-2 gap-0">
-                  <div className="p-6 lg:p-8 flex flex-col justify-center space-y-4 order-2 md:order-1">
-                    <h4 className="text-lg font-semibold">
-                      {language === "fr" ? "Analyse détaillée personnalisée" : "Personalized detailed analysis"}
-                    </h4>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">
-                          {language === "fr" ? "Simulation 8 760h basée sur votre consommation réelle" : "8,760h simulation based on your real consumption"}
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">
-                          {language === "fr" ? "Dimensionnement optimal solaire + stockage" : "Optimal solar + storage sizing"}
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">
-                          {language === "fr" ? "Projections financières sur 25 ans (VAN, TRI, LCOE)" : "25-year financial projections (NPV, IRR, LCOE)"}
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">
-                          {language === "fr" ? "Comparaison des options de financement" : "Financing options comparison"}
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="relative aspect-[4/3] md:aspect-auto order-1 md:order-2 bg-card">
-                    <div className="relative h-full overflow-hidden">
-                      {analysisSlides.map((slide, index) => (
-                        <div
-                          key={slide.id}
-                          className={`absolute inset-0 transition-opacity duration-500 ${
-                            index === activeSlide ? "opacity-100" : "opacity-0"
-                          }`}
-                        >
-                          <img 
-                            src={slide.image} 
-                            alt={slide.label}
-                            className="w-full h-full object-contain bg-white"
-                            data-testid={`img-analysis-${slide.id}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    {/* Slide label */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                      <p className="text-white text-sm font-medium">
-                        {analysisSlides[activeSlide]?.label}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Carousel dots */}
-            <div className="flex justify-center gap-2 mt-4">
-              {analysisSlides.map((slide, index) => (
-                <button
-                  key={slide.id}
-                  onClick={() => setActiveSlide(index)}
-                  className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                    index === activeSlide ? "bg-primary" : "bg-muted-foreground/30"
-                  }`}
-                  data-testid={`button-slide-${slide.id}`}
-                />
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ========== BENEFITS SECTION ========== */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">{t("landing.benefits.title")}</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t("landing.benefits.subtitle")}
-            </p>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { 
-                title: t("landing.benefits.analysis"), 
-                description: t("landing.benefits.analysisDesc"),
-                icon: BarChart3,
-                color: "text-primary",
-                bg: "bg-primary/10"
-              },
-              { 
-                title: t("landing.benefits.financial"), 
-                description: t("landing.benefits.financialDesc"),
-                icon: TrendingUp,
-                color: "text-accent",
-                bg: "bg-accent/10"
-              },
-              { 
-                title: t("landing.benefits.design"), 
-                description: t("landing.benefits.designDesc"),
-                icon: FileBarChart,
-                color: "text-primary",
-                bg: "bg-primary/10"
-              },
-              { 
-                title: t("landing.benefits.installation"), 
-                description: t("landing.benefits.installationDesc"),
-                icon: Rocket,
-                color: "text-accent",
-                bg: "bg-accent/10"
-              },
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="p-6 hover-elevate h-full">
-                  <div className={`w-12 h-12 rounded-xl ${item.bg} flex items-center justify-center mb-4`}>
-                    <item.icon className={`w-6 h-6 ${item.color}`} />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ========== TRUST SECTION ========== */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">{t("landing.trust.title")}</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t("landing.trust.partners")}
-            </p>
-          </motion.div>
-
-          <div className="max-w-2xl mx-auto">
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* HQ Partner Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <Card className="p-8 hover-elevate">
-                <div className="flex items-start gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Zap className="w-8 h-8 text-primary" />
+              <Card className="p-6 h-full">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Zap className="w-7 h-7 text-primary" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-xl">{t("landing.trust.partner.hq")}</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="font-semibold text-lg">{t("landing.trust.partner.hq")}</h3>
+                    <p className="text-sm text-muted-foreground">
                       {t("landing.trust.partner.hqDesc")}
                     </p>
                   </div>
                 </div>
               </Card>
             </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== ABOUT US / TEAM SECTION ========== */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <div className="relative rounded-2xl overflow-hidden">
-              <img 
-                src={installationPhoto} 
-                alt={language === "fr" ? "Équipe d'installation de panneaux solaires" : "Solar panel installation team"}
-                className="w-full h-64 md:h-80 object-cover"
-                data-testid="img-installation-team"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
-              <div className="absolute inset-0 flex items-center">
-                <div className="p-6 md:p-10 max-w-xl">
-                  <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                    {language === "fr" ? "Notre équipe" : "Our Team"}
-                  </h2>
-                  <p className="text-white/90 mb-4">
-                    {language === "fr" 
-                      ? "Des experts en énergie solaire au Québec. De la conception à la mise en service, notre équipe s'occupe de tout."
-                      : "Solar energy experts in Québec. From design to commissioning, our team handles everything."
-                    }
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                      <Shield className="w-3 h-3 mr-1" />
-                      {t("landing.trust.certified")}
-                    </Badge>
-                    <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                      <Award className="w-3 h-3 mr-1" />
-                      {t("landing.trust.experience")}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ========== AUTHORIZATION / POWER OF ATTORNEY SECTION ========== */}
-      <section id="authorization" className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <Card className="overflow-hidden border-2 border-accent/30 bg-gradient-to-br from-accent/5 via-background to-background">
-              <CardContent className="p-6 lg:p-8">
-                <div className="flex flex-col lg:flex-row gap-8 items-start">
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <Badge className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/10">
-                        <FileSignature className="w-3 h-3 mr-1" />
-                        {t("landing.auth.badge")}
-                      </Badge>
-                    </div>
-                    
-                    <h2 className="text-2xl lg:text-3xl font-bold">
-                      {t("landing.auth.title")}
-                    </h2>
-                    
-                    <p className="text-muted-foreground">
-                      {t("landing.auth.subtitle")}
-                    </p>
-                    
-                    <ul className="space-y-2 pt-2">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm text-muted-foreground">{t("landing.auth.benefit1")}</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm text-muted-foreground">{t("landing.auth.benefit2")}</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                        <span className="text-sm text-muted-foreground">{t("landing.auth.benefit3")}</span>
-                      </li>
-                    </ul>
-                  </div>
-                  
-                  <div className="w-full lg:w-auto flex flex-col items-center lg:items-end gap-4 pt-4 lg:pt-0">
-                    <div className="w-20 h-20 rounded-2xl bg-accent/10 flex items-center justify-center">
-                      <FileSignature className="w-10 h-10 text-accent" />
-                    </div>
-                    
-                    <Button 
-                      size="lg" 
-                      className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
-                      onClick={() => {
-                        window.open("mailto:info@kwhquebec.com?subject=Demande de procuration HQ&body=Bonjour,%0A%0AJe souhaite signer une procuration pour vous autoriser à accéder à mon profil de consommation Hydro-Québec.%0A%0ANom de l'entreprise:%0ANuméro de client HQ:%0ACourriel:%0ATéléphone:%0A%0AMerci", "_blank");
-                      }}
-                      data-testid="button-authorization-cta"
-                    >
-                      {t("landing.auth.cta")}
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                    
-                    <p className="text-xs text-muted-foreground text-center max-w-xs">
-                      {t("landing.auth.note")}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ========== CONTACT FORM SECTION ========== */}
-      <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-5 gap-12">
-            <motion.div 
-              className="lg:col-span-2 space-y-6"
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+            
+            {/* Team Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
             >
-              <h2 className="text-3xl sm:text-4xl font-bold">{t("landing.form.title")}</h2>
-              <p className="text-lg text-muted-foreground">
-                {t("landing.form.subtitle")}
-              </p>
-              
-              <div className="space-y-4 pt-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-medium">{t("landing.form.benefit1.title")}</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.form.benefit1.description")}</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-medium">{t("landing.form.benefit2.title")}</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.form.benefit2.description")}</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-medium">{t("landing.form.benefit3.title")}</div>
-                    <div className="text-sm text-muted-foreground">{t("landing.form.benefit3.description")}</div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="lg:col-span-3"
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <Card className="shadow-xl">
-                <CardContent className="p-6 sm:p-8">
-                  {submitted ? (
-                    <motion.div 
-                      className="text-center py-12 space-y-4"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                    >
-                      <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mx-auto">
-                        <CheckCircle2 className="w-10 h-10 text-accent" />
+              <Card className="p-0 h-full overflow-hidden">
+                <div className="relative h-full">
+                  <img 
+                    src={installationPhoto} 
+                    alt={language === "fr" ? "Équipe d'installation" : "Installation team"}
+                    className="w-full h-full min-h-[200px] object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+                  <div className="absolute inset-0 flex items-center p-6">
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold text-white">
+                        {language === "fr" ? "Notre équipe" : "Our Team"}
+                      </h3>
+                      <p className="text-sm text-white/90">
+                        {language === "fr" 
+                          ? "De la conception à la mise en service, notre équipe s'occupe de tout."
+                          : "From design to commissioning, our team handles everything."
+                        }
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className="bg-white/20 text-white border-white/30">
+                          <Shield className="w-3 h-3 mr-1" />
+                          {t("landing.trust.certified")}
+                        </Badge>
+                        <Badge className="bg-white/20 text-white border-white/30">
+                          <Award className="w-3 h-3 mr-1" />
+                          {t("landing.trust.experience")}
+                        </Badge>
                       </div>
-                      <h3 className="text-2xl font-semibold">{t("form.success.title")}</h3>
-                      <p className="text-muted-foreground max-w-md mx-auto">{t("form.success.message")}</p>
-                    </motion.div>
-                  ) : (
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="companyName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("form.company")} *</FormLabel>
-                                <FormControl>
-                                  <Input {...field} data-testid="input-company" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="contactName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("form.contact")} *</FormLabel>
-                                <FormControl>
-                                  <Input {...field} data-testid="input-contact" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("form.email")} *</FormLabel>
-                                <FormControl>
-                                  <Input type="email" {...field} data-testid="input-email" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="phone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("form.phone")}</FormLabel>
-                                <FormControl>
-                                  <Input type="tel" {...field} data-testid="input-phone" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <FormField
-                          control={form.control}
-                          name="streetAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("form.streetAddress")} *</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder={language === "fr" ? "123 rue Exemple" : "123 Example Street"} 
-                                  {...field} 
-                                  data-testid="input-street-address"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid sm:grid-cols-3 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="city"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("form.city")} *</FormLabel>
-                                <FormControl>
-                                  <Input {...field} data-testid="input-city" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="province"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("form.province")}</FormLabel>
-                                <FormControl>
-                                  <Input {...field} data-testid="input-province" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="postalCode"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("form.postalCode")}</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="G1A 1A1" 
-                                    {...field} 
-                                    data-testid="input-postal-code"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <FormField
-                          control={form.control}
-                          name="estimatedMonthlyBill"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("form.monthlyBill")}</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  placeholder="5000" 
-                                  {...field} 
-                                  data-testid="input-monthly-bill"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="buildingType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("form.buildingType")}</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-building-type">
-                                    <SelectValue placeholder={t("landing.form.select")} />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {buildingTypes.map((type) => (
-                                    <SelectItem key={type.value} value={type.value}>
-                                      {type.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="notes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("form.notes")}</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  rows={3} 
-                                  className="resize-none" 
-                                  {...field} 
-                                  data-testid="textarea-notes"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <Button 
-                          type="submit" 
-                          size="lg" 
-                          className="w-full gap-2"
-                          disabled={mutation.isPending}
-                          data-testid="button-submit-lead"
-                        >
-                          {mutation.isPending ? t("form.submitting") : t("form.submit")}
-                          {!mutation.isPending && <ArrowRight className="w-4 h-4" />}
-                        </Button>
-
-                        <p className="text-xs text-muted-foreground text-center">
-                          {t("landing.form.privacy")}
-                        </p>
-                      </form>
-                    </Form>
-                  )}
-                </CardContent>
+                    </div>
+                  </div>
+                </div>
               </Card>
             </motion.div>
           </div>
         </div>
       </section>
 
+      {/* ========== FINAL CTA / CONTACT SECTION ========== */}
+      <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Card className="p-8 text-center space-y-6 border-2">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <Phone className="w-8 h-8 text-primary" />
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-2xl sm:text-3xl font-bold">
+                  {language === "fr" ? "Prêt à passer au solaire?" : "Ready to go solar?"}
+                </h2>
+                <p className="text-muted-foreground max-w-lg mx-auto">
+                  {language === "fr" 
+                    ? "Contactez-nous pour discuter de votre projet ou demandez une analyse directement ci-dessus."
+                    : "Contact us to discuss your project or request an analysis directly above."
+                  }
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="mailto:info@kwhquebec.com">
+                  <Button variant="outline" size="lg" className="gap-2" data-testid="button-email-contact">
+                    <Mail className="w-4 h-4" />
+                    info@kwhquebec.com
+                  </Button>
+                </a>
+                <a href="tel:+15145551234">
+                  <Button variant="outline" size="lg" className="gap-2" data-testid="button-phone-contact">
+                    <Phone className="w-4 h-4" />
+                    (514) 555-1234
+                  </Button>
+                </a>
+              </div>
+              
+              <div className="pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? "Ou utilisez les options d'analyse ci-dessus pour commencer immédiatement"
+                    : "Or use the analysis options above to get started immediately"
+                  }
+                </p>
+                <a href="#paths">
+                  <Button variant="ghost" className="gap-1 text-primary" data-testid="button-back-to-paths">
+                    <ChevronUp className="w-4 h-4" />
+                    {language === "fr" ? "Retour aux options d'analyse" : "Back to analysis options"}
+                  </Button>
+                </a>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ========== FOOTER ========== */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t bg-card">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <img 
                 src={currentLogo} 
                 alt="kWh Québec" 
-                className="h-12 w-auto"
-                data-testid="logo-footer"
+                className="h-8 w-auto"
               />
-              <div className="hidden sm:block text-sm text-muted-foreground">
-                {t("landing.footer.tagline")}
-              </div>
+              <span className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
+              </span>
             </div>
             
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">{t("footer.privacy")}</a>
-              <a href="#contact" className="hover:text-foreground transition-colors">{t("footer.contact")}</a>
-            </div>
-
-            <div className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} kWh Québec. {t("footer.rights")}.
+              <Link href="/login" className="hover:text-foreground transition-colors">
+                {t("nav.login")}
+              </Link>
+              <a href="mailto:info@kwhquebec.com" className="hover:text-foreground transition-colors">
+                {t("footer.contact")}
+              </a>
             </div>
           </div>
         </div>
