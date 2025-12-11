@@ -525,8 +525,8 @@ export async function registerRoutes(
         console.error("[Quick Estimate] Google Solar API error:", err);
       }
       
-      // Quebec average: ~1200 kWh/kW/year production
-      const QC_PRODUCTION_FACTOR = 1200;
+      // Quebec realistic average: ~1100 kWh/kW/year production (conservative)
+      const QC_PRODUCTION_FACTOR = 1100;
       
       // Calculate system size based on consumption (target 70% self-consumption)
       const targetSelfConsumption = 0.70;
@@ -600,7 +600,7 @@ export async function registerRoutes(
           latitude: roofData?.latitude,
           longitude: roofData?.longitude,
           satelliteImageUrl: roofData?.latitude && roofData?.longitude 
-            ? googleSolar.getSatelliteImageUrl({ latitude: roofData.latitude, longitude: roofData.longitude }, { width: 400, height: 300, zoom: 19 })
+            ? googleSolar.getSatelliteImageUrl({ latitude: roofData.latitude, longitude: roofData.longitude }, { width: 400, height: 300 })
             : null,
         } : null,
         system: {
