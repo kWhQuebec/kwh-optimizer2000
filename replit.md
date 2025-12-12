@@ -118,6 +118,26 @@ All pages are fully bilingual (FR-CA/EN-CA) with consistent navigation.
   - How it works: HowTo schema
   - Resources: FAQPage schema
 
+### Portfolio Management (Dec 2024 Feature)
+
+Multi-building project management for clients with multiple sites:
+
+- **Database Schema**: `portfolios` table (id, clientId, name, status, aggregated KPIs) and `portfolioSites` junction table
+- **Volume Pricing**: Automatic discounts based on building count:
+  - 5-9 buildings: 5% discount
+  - 10-19 buildings: 10% discount
+  - 20+ buildings: 15% discount
+- **Aggregated KPIs**: Total PV size, total battery capacity, net CAPEX, NPV, weighted IRR, annual savings, CO2 avoided
+- **Executive Summary PDF**: One-page portfolio summary with site comparison table and volume pricing breakdown
+- **Travel Optimization**: Estimates travel days based on 3 buildings per day
+- **Routes**: `/app/portfolios` (list), `/app/portfolios/:id` (detail with KPI cards, site table, pricing)
+
+Site Assessment Pricing (per building):
+- Travel: $150/day
+- Site visit: $600
+- Technical evaluation: $1,000
+- Single-line diagrams: $1,900
+
 ### Email Templates
 
 Bilingual email templates (`server/emailTemplates.ts`) for:

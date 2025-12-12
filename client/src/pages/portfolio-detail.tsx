@@ -452,7 +452,34 @@ export default function PortfolioDetailPage() {
                 : "Summary table of analyses by site"}
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" className="gap-2" data-testid="button-download-pdf">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2" 
+            data-testid="button-download-pdf"
+            onClick={async () => {
+              try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`/api/portfolios/${id}/pdf?lang=${language}`, {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                });
+                if (!response.ok) throw new Error("Failed to download PDF");
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `portfolio-${portfolio.name.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+              } catch (error) {
+                console.error("PDF download error:", error);
+              }
+            }}
+          >
             <Download className="w-4 h-4" />
             PDF
           </Button>

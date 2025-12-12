@@ -2921,6 +2921,77 @@ Pricing:
     }
   });
 
+  // Generate Portfolio PDF Summary
+  app.get("/api/portfolios/:id/pdf", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+      const portfolio = await storage.getPortfolio(req.params.id);
+      
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      // Check access for client users
+      if (req.userRole === "client" && req.userClientId !== portfolio.clientId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const client = await storage.getClient(portfolio.clientId);
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      const portfolioSites = await storage.getPortfolioSites(req.params.id);
+      
+      const doc = new PDFDocument({ size: "LETTER", margin: 40 });
+      
+      const portfolioName = portfolio.name.replace(/\s+/g, "-").toLowerCase();
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="portfolio-${portfolioName}.pdf"`);
+      
+      doc.pipe(res);
+      
+      const { generatePortfolioSummaryPDF } = await import("./pdfGenerator");
+      
+      const quotedCosts = (portfolio.quotedCosts as any) || {};
+      
+      generatePortfolioSummaryPDF(doc, {
+        id: portfolio.id,
+        name: portfolio.name,
+        clientName: client.name,
+        description: portfolio.description || undefined,
+        numBuildings: portfolio.numBuildings || portfolioSites.length,
+        estimatedTravelDays: portfolio.estimatedTravelDays,
+        volumeDiscountPercent: portfolio.volumeDiscountPercent,
+        quotedCosts,
+        totalPvSizeKW: portfolio.totalPvSizeKW,
+        totalBatteryKWh: portfolio.totalBatteryKWh,
+        totalCapexNet: portfolio.totalCapexNet,
+        totalNpv25: portfolio.totalNpv25,
+        weightedIrr25: portfolio.weightedIrr25,
+        totalAnnualSavings: portfolio.totalAnnualSavings,
+        totalCo2Avoided: portfolio.totalCo2Avoided,
+        sites: portfolioSites.map(ps => ({
+          siteName: ps.site?.name || "Unknown",
+          city: ps.site?.city || undefined,
+          pvSizeKW: ps.latestSimulation?.pvSizeKW || null,
+          batteryKWh: ps.latestSimulation?.battEnergyKWh || null,
+          capexNet: ps.latestSimulation?.capexNet || null,
+          npv25: ps.latestSimulation?.npv25 || null,
+          irr25: ps.latestSimulation?.irr25 || null,
+          annualSavings: ps.latestSimulation?.annualSavings || null,
+          co2Avoided: ps.latestSimulation?.co2AvoidedTonnesPerYear || null,
+        })),
+        createdAt: portfolio.createdAt || undefined,
+      }, lang as "fr" | "en");
+      
+      doc.end();
+    } catch (error) {
+      console.error("Portfolio PDF generation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Calculate and update portfolio summary KPIs
   app.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
