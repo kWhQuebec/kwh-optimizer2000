@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,11 +6,12 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useDropzone } from "react-dropzone";
+import useEmblaCarousel from "embla-carousel-react";
 import { 
   ArrowLeft, ArrowRight, CheckCircle2, Clock, FileCheck, 
   Shield, Award, BarChart3, Building2, Mail, Phone, User,
   MapPin, DollarSign, FileText, Zap, Battery, Sun, Calendar,
-  Upload, X, File, AlertCircle, FileSignature
+  Upload, X, File, AlertCircle, FileSignature, ChevronLeft, ChevronRight, Image
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +27,14 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+
+import carouselImg1Fr from "@assets/Screenshot_2025-12-11_at_9.14.32_PM_1765505832705.png";
+import carouselImg2Fr from "@assets/Screenshot_2025-12-11_at_9.14.51_PM_1765505832704.png";
+import carouselImg3Fr from "@assets/Screenshot_2025-12-11_at_9.15.03_PM_1765505832704.png";
+import carouselImg4Fr from "@assets/Screenshot_2025-12-11_at_9.15.24_PM_1765505832703.png";
+import carouselImg5Fr from "@assets/Screenshot_2025-12-11_at_9.15.38_PM_1765505832702.png";
+import carouselImg6Fr from "@assets/Screenshot_2025-12-11_at_9.15.53_PM_1765505832701.png";
+import carouselImg7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_1765505832689.png";
 
 const detailedFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
@@ -52,13 +61,84 @@ interface UploadedFile {
   preview: string;
 }
 
+const carouselSlides = [
+  {
+    image: carouselImg1Fr,
+    titleFr: "Impact sur votre facture",
+    titleEn: "Impact on your bill",
+    descriptionFr: "Visualisez les économies annuelles sur votre facture Hydro-Québec",
+    descriptionEn: "Visualize annual savings on your Hydro-Québec bill",
+  },
+  {
+    image: carouselImg2Fr,
+    titleFr: "Configuration optimale",
+    titleEn: "Optimal configuration",
+    descriptionFr: "Système dimensionné pour maximiser votre retour sur investissement",
+    descriptionEn: "System sized to maximize your return on investment",
+  },
+  {
+    image: carouselImg3Fr,
+    titleFr: "Évolution sur 25 ans",
+    titleEn: "25-year evolution",
+    descriptionFr: "Suivez vos économies cumulatives année après année",
+    descriptionEn: "Track your cumulative savings year after year",
+  },
+  {
+    image: carouselImg4Fr,
+    titleFr: "Options de financement",
+    titleEn: "Financing options",
+    descriptionFr: "Comparez comptant, prêt et crédit-bail sur 25 ans",
+    descriptionEn: "Compare cash, loan and capital lease over 25 years",
+  },
+  {
+    image: carouselImg5Fr,
+    titleFr: "Profil énergétique",
+    titleEn: "Energy profile",
+    descriptionFr: "Analyse horaire avant/après avec production solaire",
+    descriptionEn: "Hourly before/after analysis with solar production",
+  },
+  {
+    image: carouselImg6Fr,
+    titleFr: "Analyse d'optimisation",
+    titleEn: "Optimization analysis",
+    descriptionFr: "Frontière d'efficacité pour trouver la configuration optimale",
+    descriptionEn: "Efficiency frontier to find the optimal configuration",
+  },
+  {
+    image: carouselImg7Fr,
+    titleFr: "Sensibilité système",
+    titleEn: "System sensitivity",
+    descriptionFr: "Optimisation taille solaire et stockage selon VAN",
+    descriptionEn: "Solar and storage size optimization by NPV",
+  },
+];
+
 export default function AnalyseDetailleePage() {
   const { t, language } = useI18n();
   const [submitted, setSubmitted] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [selectedSlide, setSelectedSlide] = useState(0);
   const currentLogo = language === "fr" ? logoFr : logoEn;
+
+  const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
+  const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
+  
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedSlide(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.on('select', onSelect);
+    onSelect();
+    return () => {
+      emblaApi.off('select', onSelect);
+    };
+  }, [emblaApi, onSelect]);
 
   const form = useForm<DetailedFormValues>({
     resolver: zodResolver(detailedFormSchema),
@@ -377,6 +457,71 @@ The data obtained will be used exclusively for solar potential analysis and phot
                     </li>
                   ))}
                 </ul>
+              </Card>
+
+              <Card className="p-4 overflow-hidden">
+                <div className="flex items-center gap-2 mb-4">
+                  <Image className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold">
+                    {language === "fr" ? "Aperçu de l'analyse" : "Analysis preview"}
+                  </h3>
+                </div>
+                <div className="relative">
+                  <div className="overflow-hidden rounded-lg" ref={emblaRef}>
+                    <div className="flex">
+                      {carouselSlides.map((slide, index) => (
+                        <div key={index} className="flex-[0_0_100%] min-w-0">
+                          <div className="relative">
+                            <img 
+                              src={slide.image} 
+                              alt={language === "fr" ? slide.titleFr : slide.titleEn}
+                              className="w-full h-auto rounded-lg border"
+                              data-testid={`carousel-image-${index}`}
+                            />
+                          </div>
+                          <div className="mt-3 text-center">
+                            <h4 className="font-medium text-sm">
+                              {language === "fr" ? slide.titleFr : slide.titleEn}
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {language === "fr" ? slide.descriptionFr : slide.descriptionEn}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="absolute left-2 top-1/3 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                    onClick={scrollPrev}
+                    data-testid="carousel-prev"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="absolute right-2 top-1/3 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                    onClick={scrollNext}
+                    data-testid="carousel-next"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex justify-center gap-1.5 mt-4">
+                  {carouselSlides.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        selectedSlide === index ? 'bg-primary' : 'bg-muted-foreground/30'
+                      }`}
+                      onClick={() => emblaApi?.scrollTo(index)}
+                      data-testid={`carousel-dot-${index}`}
+                    />
+                  ))}
+                </div>
               </Card>
 
               <div className="flex flex-wrap items-center gap-4 pt-4">
