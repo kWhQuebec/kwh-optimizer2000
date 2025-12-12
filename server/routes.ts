@@ -1253,6 +1253,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
+      console.error("Error deleting site:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

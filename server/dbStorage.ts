@@ -176,29 +176,35 @@ export class DatabaseStorage implements IStorage {
   async deleteSite(id: string): Promise<boolean> {
     // Cascade delete: delete all related data first
     
-    // 1. Get all simulation runs for this site
+    // 1. Delete design agreements for this site
+    await db.delete(designAgreements).where(eq(designAgreements.siteId, id));
+    
+    // 2. Delete site visits for this site
+    await db.delete(siteVisits).where(eq(siteVisits.siteId, id));
+    
+    // 3. Get all simulation runs for this site
     const simRuns = await db.select().from(simulationRuns).where(eq(simulationRuns.siteId, id));
     
-    // 2. Delete designs linked to those simulation runs
+    // 4. Delete designs linked to those simulation runs
     for (const run of simRuns) {
       await db.delete(designs).where(eq(designs.simulationRunId, run.id));
     }
     
-    // 3. Delete all simulation runs for this site
+    // 5. Delete all simulation runs for this site
     await db.delete(simulationRuns).where(eq(simulationRuns.siteId, id));
     
-    // 4. Get all meter files for this site
+    // 6. Get all meter files for this site
     const files = await db.select().from(meterFiles).where(eq(meterFiles.siteId, id));
     
-    // 5. Delete meter readings linked to those files
+    // 7. Delete meter readings linked to those files
     for (const file of files) {
       await db.delete(meterReadings).where(eq(meterReadings.meterFileId, file.id));
     }
     
-    // 6. Delete all meter files for this site
+    // 8. Delete all meter files for this site
     await db.delete(meterFiles).where(eq(meterFiles.siteId, id));
     
-    // 7. Finally delete the site
+    // 9. Finally delete the site
     const result = await db.delete(sites).where(eq(sites.id, id)).returning();
     return result.length > 0;
   }
