@@ -94,6 +94,40 @@ The public landing page (`/`) serves as the primary lead generation tool with co
 
 The platform uses a hybrid website strategy with the main site on Replit and campaign pages on Zoho LandingPage. Default CAPEX values for solar and battery components are configured.
 
+### Public Pages (Dec 2024)
+
+New public marketing pages have been added:
+- `/services` - EPC services page (analyse, ingénierie, construction, maintenance)
+- `/comment-ca-marche` - Step-by-step process explanation
+- `/ressources` - FAQ and resources hub with search functionality
+
+All pages are fully bilingual (FR-CA/EN-CA) with consistent navigation.
+
+### SEO Infrastructure
+
+- **SEOHead Component** (`client/src/components/seo-head.tsx`): Reusable component that injects:
+  - Title and meta description
+  - Open Graph tags with default logo image
+  - Twitter Card tags
+  - Language-aware og:locale (fr_CA/en_CA)
+  - Schema.org JSON-LD structured data per page type
+  
+- **Structured Data**: Each page type has appropriate schema:
+  - Landing: LocalBusiness schema
+  - Services: Service schema
+  - How it works: HowTo schema
+  - Resources: FAQPage schema
+
+### Email Templates
+
+Bilingual email templates (`server/emailTemplates.ts`) for:
+- Quick analysis confirmation
+- Detailed analysis request confirmation
+- Nurturing sequence (incentives reminder, case study)
+- Analysis report ready notification
+
+Templates use placeholder substitution ({{contactName}}, {{pvSizeKW}}, etc.) and include HTML/text variants.
+
 ## External Dependencies
 
 ### Third-Party Services
