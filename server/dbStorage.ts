@@ -1,4 +1,4 @@
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, count, sum, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
@@ -392,21 +392,25 @@ export class DatabaseStorage implements IStorage {
     recentSites: Site[];
     recentAnalyses: SimulationRun[];
   }> {
-    const allSites = await db.select().from(sites).orderBy(desc(sites.createdAt)).limit(5);
-    const allAnalyses = await db.select().from(simulationRuns).orderBy(desc(simulationRuns.createdAt)).limit(5);
-    const siteCount = await db.select().from(sites);
-    const analysisCount = await db.select().from(simulationRuns);
+    // Use SQL aggregations instead of loading entire tables
+    const [siteCountResult] = await db.select({ count: count() }).from(sites);
+    const [analysisAggResult] = await db.select({
+      count: count(),
+      totalSavings: sum(simulationRuns.annualSavings),
+      co2Avoided: sum(simulationRuns.co2AvoidedTonnesPerYear),
+    }).from(simulationRuns);
     
-    const totalSavings = analysisCount.reduce((sum, a) => sum + (a.annualSavings || 0), 0);
-    const co2Avoided = analysisCount.reduce((sum, a) => sum + (a.co2AvoidedTonnesPerYear || 0), 0);
+    // Only load recent records (limited to 5)
+    const recentSites = await db.select().from(sites).orderBy(desc(sites.createdAt)).limit(5);
+    const recentAnalyses = await db.select().from(simulationRuns).orderBy(desc(simulationRuns.createdAt)).limit(5);
     
     return {
-      totalSites: siteCount.length,
-      activeAnalyses: analysisCount.length,
-      totalSavings,
-      co2Avoided,
-      recentSites: allSites,
-      recentAnalyses: allAnalyses,
+      totalSites: Number(siteCountResult?.count) || 0,
+      activeAnalyses: Number(analysisAggResult?.count) || 0,
+      totalSavings: Number(analysisAggResult?.totalSavings) || 0,
+      co2Avoided: Number(analysisAggResult?.co2Avoided) || 0,
+      recentSites,
+      recentAnalyses,
     };
   }
 
@@ -494,25 +498,23 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  // Portfolios
+  // Portfolios - optimized: only load portfolio + client, use pre-computed numBuildings
   async getPortfolios(): Promise<PortfolioWithSites[]> {
     const allPortfolios = await db.select().from(portfolios).orderBy(desc(portfolios.createdAt));
-    const allClients = await db.select().from(clients);
-    const allPortfolioSites = await db.select().from(portfolioSites);
-    const allSites = await db.select().from(sites);
+    
+    // Only load clients that are referenced by portfolios
+    const clientIds = [...new Set(allPortfolios.map(p => p.clientId))];
+    const relevantClients = clientIds.length > 0 
+      ? await db.select().from(clients).where(inArray(clients.id, clientIds))
+      : [];
+    const clientMap = new Map(relevantClients.map(c => [c.id, c]));
 
-    return allPortfolios.map(portfolio => {
-      const client = allClients.find(c => c.id === portfolio.clientId)!;
-      const psEntries = allPortfolioSites.filter(ps => ps.portfolioId === portfolio.id);
-      const portfolioSiteList = psEntries
-        .map(ps => allSites.find(s => s.id === ps.siteId))
-        .filter((s): s is Site => s !== undefined);
-      return {
-        ...portfolio,
-        client,
-        sites: portfolioSiteList,
-      };
-    });
+    // Return portfolios with client info but empty sites array (frontend uses numBuildings from portfolio record)
+    return allPortfolios.map(portfolio => ({
+      ...portfolio,
+      client: clientMap.get(portfolio.clientId)!,
+      sites: [], // Not needed for list view - numBuildings is pre-computed in portfolio record
+    }));
   }
 
   async getPortfolio(id: string): Promise<PortfolioWithSites | undefined> {
