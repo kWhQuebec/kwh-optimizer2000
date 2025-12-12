@@ -34,6 +34,8 @@ const MethodologyPage = lazy(() => import("@/pages/methodology"));
 const ClientPortalPage = lazy(() => import("@/pages/client-portal"));
 const UsersPage = lazy(() => import("@/pages/users"));
 const SignAgreementPage = lazy(() => import("@/pages/sign-agreement"));
+const PortfoliosPage = lazy(() => import("@/pages/portfolios"));
+const PortfolioDetailPage = lazy(() => import("@/pages/portfolio-detail"));
 
 function PageLoader() {
   return (
@@ -222,6 +224,27 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <UsersPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Portfolios */}
+      <Route path="/app/portfolios">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <PortfoliosPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/portfolios/:id">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <PortfolioDetailPage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

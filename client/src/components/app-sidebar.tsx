@@ -9,7 +9,8 @@ import {
   FileText,
   LogOut,
   FolderOpen,
-  UserCog
+  UserCog,
+  FolderKanban
 } from "lucide-react";
 import {
   Sidebar,
@@ -50,6 +51,11 @@ export function AppSidebar() {
       title: t("nav.sites"),
       url: "/app/sites",
       icon: Building2,
+    },
+    {
+      title: language === "fr" ? "Portfolios" : "Portfolios",
+      url: "/app/portfolios",
+      icon: FolderKanban,
     },
   ];
 
