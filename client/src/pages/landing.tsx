@@ -266,7 +266,7 @@ export default function LandingPage() {
               <div className="space-y-1">
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-[1.15]">
                   <span className="font-bold">
-                    {language === "fr" ? "Panneau solaire + stockage" : "Solar panels + storage"}
+                    {language === "fr" ? "Panneaux solaires + stockage" : "Solar panels + storage"}
                   </span>
                   <br />
                   <span className="font-normal">
@@ -329,22 +329,24 @@ export default function LandingPage() {
             </motion.div>
           </div>
           
-          {/* CTA Button - Centered below both columns */}
-          <motion.div 
-            className="flex justify-center pt-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <a href="#paths">
-              <Button size="lg" className="gap-2 text-base px-8" data-testid="button-hero-cta">
-                {language === "fr" ? "Choix de 2 types d'analyses GRATUITES" : "Choose from 2 FREE analysis types"}
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </a>
-          </motion.div>
-        </div>
+          </div>
       </section>
+      
+      {/* CTA Button - Centered between Hero and Pathways */}
+      <div className="flex justify-center py-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <a href="#paths">
+            <Button size="lg" className="gap-2 text-base px-8" data-testid="button-hero-cta">
+              {language === "fr" ? "Choix de 2 types d'analyses GRATUITES" : "Choose from 2 FREE analysis types"}
+              <ChevronDown className="w-5 h-5" />
+            </Button>
+          </a>
+        </motion.div>
+      </div>
 
       {/* ========== TWO PATHWAYS SECTION ========== */}
       <section id="paths" className="py-12 px-4 sm:px-6 lg:px-8">
