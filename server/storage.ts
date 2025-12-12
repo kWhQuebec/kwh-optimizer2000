@@ -13,6 +13,10 @@ import type {
   SiteVisit, InsertSiteVisit,
   SiteVisitWithSite,
   DesignAgreement, InsertDesignAgreement,
+  Portfolio, InsertPortfolio,
+  PortfolioSite, InsertPortfolioSite,
+  PortfolioWithSites,
+  PortfolioSiteWithDetails,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -104,6 +108,20 @@ export interface IStorage {
   createDesignAgreement(agreement: InsertDesignAgreement): Promise<DesignAgreement>;
   updateDesignAgreement(id: string, agreement: Partial<DesignAgreement>): Promise<DesignAgreement | undefined>;
   deleteDesignAgreement(id: string): Promise<boolean>;
+
+  // Portfolios (Multi-site projects)
+  getPortfolios(): Promise<PortfolioWithSites[]>;
+  getPortfolio(id: string): Promise<PortfolioWithSites | undefined>;
+  getPortfoliosByClient(clientId: string): Promise<PortfolioWithSites[]>;
+  createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio>;
+  updatePortfolio(id: string, portfolio: Partial<Portfolio>): Promise<Portfolio | undefined>;
+  deletePortfolio(id: string): Promise<boolean>;
+
+  // Portfolio Sites (Junction)
+  getPortfolioSites(portfolioId: string): Promise<PortfolioSiteWithDetails[]>;
+  addSiteToPortfolio(portfolioSite: InsertPortfolioSite): Promise<PortfolioSite>;
+  removeSiteFromPortfolio(portfolioId: string, siteId: string): Promise<boolean>;
+  updatePortfolioSite(id: string, data: Partial<PortfolioSite>): Promise<PortfolioSite | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -119,6 +137,8 @@ export class MemStorage implements IStorage {
   private catalogItems: Map<string, ComponentCatalog> = new Map();
   private siteVisits: Map<string, SiteVisit> = new Map();
   private designAgreements: Map<string, DesignAgreement> = new Map();
+  private portfolios: Map<string, Portfolio> = new Map();
+  private portfolioSites: Map<string, PortfolioSite> = new Map();
 
   constructor() {
     this.seedDefaultData();
@@ -646,6 +666,136 @@ export class MemStorage implements IStorage {
 
   async deleteDesignAgreement(id: string): Promise<boolean> {
     return this.designAgreements.delete(id);
+  }
+
+  // Portfolios
+  async getPortfolios(): Promise<PortfolioWithSites[]> {
+    return Array.from(this.portfolios.values()).map(portfolio => {
+      const client = this.clients.get(portfolio.clientId);
+      const portfolioSiteEntries = Array.from(this.portfolioSites.values())
+        .filter(ps => ps.portfolioId === portfolio.id);
+      const sites = portfolioSiteEntries
+        .map(ps => this.sites.get(ps.siteId))
+        .filter((s): s is Site => s !== undefined);
+      return {
+        ...portfolio,
+        client: client!,
+        sites,
+      };
+    });
+  }
+
+  async getPortfolio(id: string): Promise<PortfolioWithSites | undefined> {
+    const portfolio = this.portfolios.get(id);
+    if (!portfolio) return undefined;
+    const client = this.clients.get(portfolio.clientId);
+    const portfolioSiteEntries = Array.from(this.portfolioSites.values())
+      .filter(ps => ps.portfolioId === portfolio.id);
+    const sites = portfolioSiteEntries
+      .map(ps => this.sites.get(ps.siteId))
+      .filter((s): s is Site => s !== undefined);
+    return {
+      ...portfolio,
+      client: client!,
+      sites,
+    };
+  }
+
+  async getPortfoliosByClient(clientId: string): Promise<PortfolioWithSites[]> {
+    const portfolios = Array.from(this.portfolios.values())
+      .filter(p => p.clientId === clientId);
+    const client = this.clients.get(clientId);
+    return portfolios.map(portfolio => {
+      const portfolioSiteEntries = Array.from(this.portfolioSites.values())
+        .filter(ps => ps.portfolioId === portfolio.id);
+      const sites = portfolioSiteEntries
+        .map(ps => this.sites.get(ps.siteId))
+        .filter((s): s is Site => s !== undefined);
+      return {
+        ...portfolio,
+        client: client!,
+        sites,
+      };
+    });
+  }
+
+  async createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio> {
+    const id = randomUUID();
+    const newPortfolio: Portfolio = {
+      id,
+      ...portfolio,
+      status: portfolio.status || "draft",
+      numBuildings: portfolio.numBuildings ?? 0,
+      estimatedTravelDays: portfolio.estimatedTravelDays ?? 0,
+      volumeDiscountPercent: portfolio.volumeDiscountPercent ?? 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.portfolios.set(id, newPortfolio);
+    return newPortfolio;
+  }
+
+  async updatePortfolio(id: string, portfolio: Partial<Portfolio>): Promise<Portfolio | undefined> {
+    const existing = this.portfolios.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...portfolio, updatedAt: new Date() };
+    this.portfolios.set(id, updated);
+    return updated;
+  }
+
+  async deletePortfolio(id: string): Promise<boolean> {
+    // Also delete associated portfolio sites
+    Array.from(this.portfolioSites.values())
+      .filter(ps => ps.portfolioId === id)
+      .forEach(ps => this.portfolioSites.delete(ps.id));
+    return this.portfolios.delete(id);
+  }
+
+  // Portfolio Sites
+  async getPortfolioSites(portfolioId: string): Promise<PortfolioSiteWithDetails[]> {
+    const entries = Array.from(this.portfolioSites.values())
+      .filter(ps => ps.portfolioId === portfolioId)
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+    
+    return entries.map(ps => {
+      const site = this.sites.get(ps.siteId)!;
+      const simulations = Array.from(this.simulationRuns.values())
+        .filter(s => s.siteId === ps.siteId)
+        .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+      const latestSimulation = simulations.find(s => s.type === "SCENARIO") || simulations[0];
+      return {
+        ...ps,
+        site,
+        latestSimulation,
+      };
+    });
+  }
+
+  async addSiteToPortfolio(portfolioSite: InsertPortfolioSite): Promise<PortfolioSite> {
+    const id = randomUUID();
+    const newEntry: PortfolioSite = {
+      id,
+      ...portfolioSite,
+      displayOrder: portfolioSite.displayOrder ?? 0,
+      createdAt: new Date(),
+    };
+    this.portfolioSites.set(id, newEntry);
+    return newEntry;
+  }
+
+  async removeSiteFromPortfolio(portfolioId: string, siteId: string): Promise<boolean> {
+    const entry = Array.from(this.portfolioSites.values())
+      .find(ps => ps.portfolioId === portfolioId && ps.siteId === siteId);
+    if (!entry) return false;
+    return this.portfolioSites.delete(entry.id);
+  }
+
+  async updatePortfolioSite(id: string, data: Partial<PortfolioSite>): Promise<PortfolioSite | undefined> {
+    const existing = this.portfolioSites.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...data };
+    this.portfolioSites.set(id, updated);
+    return updated;
   }
 }
 

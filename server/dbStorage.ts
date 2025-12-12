@@ -1,8 +1,9 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
   simulationRuns, designs, bomItems, componentCatalog, siteVisits, designAgreements,
+  portfolios, portfolioSites,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -18,6 +19,10 @@ import type {
   SiteVisit, InsertSiteVisit,
   SiteVisitWithSite,
   DesignAgreement, InsertDesignAgreement,
+  Portfolio, InsertPortfolio,
+  PortfolioSite, InsertPortfolioSite,
+  PortfolioWithSites,
+  PortfolioSiteWithDetails,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -487,5 +492,128 @@ export class DatabaseStorage implements IStorage {
   async deleteDesignAgreement(id: string): Promise<boolean> {
     const result = await db.delete(designAgreements).where(eq(designAgreements.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Portfolios
+  async getPortfolios(): Promise<PortfolioWithSites[]> {
+    const allPortfolios = await db.select().from(portfolios).orderBy(desc(portfolios.createdAt));
+    const allClients = await db.select().from(clients);
+    const allPortfolioSites = await db.select().from(portfolioSites);
+    const allSites = await db.select().from(sites);
+
+    return allPortfolios.map(portfolio => {
+      const client = allClients.find(c => c.id === portfolio.clientId)!;
+      const psEntries = allPortfolioSites.filter(ps => ps.portfolioId === portfolio.id);
+      const portfolioSiteList = psEntries
+        .map(ps => allSites.find(s => s.id === ps.siteId))
+        .filter((s): s is Site => s !== undefined);
+      return {
+        ...portfolio,
+        client,
+        sites: portfolioSiteList,
+      };
+    });
+  }
+
+  async getPortfolio(id: string): Promise<PortfolioWithSites | undefined> {
+    const [portfolio] = await db.select().from(portfolios).where(eq(portfolios.id, id)).limit(1);
+    if (!portfolio) return undefined;
+
+    const [client] = await db.select().from(clients).where(eq(clients.id, portfolio.clientId)).limit(1);
+    const psEntries = await db.select().from(portfolioSites).where(eq(portfolioSites.portfolioId, id));
+    const siteIds = psEntries.map(ps => ps.siteId);
+    const allSites = await db.select().from(sites);
+    const portfolioSiteList = allSites.filter(s => siteIds.includes(s.id));
+
+    return {
+      ...portfolio,
+      client: client!,
+      sites: portfolioSiteList,
+    };
+  }
+
+  async getPortfoliosByClient(clientId: string): Promise<PortfolioWithSites[]> {
+    const clientPortfolios = await db.select().from(portfolios)
+      .where(eq(portfolios.clientId, clientId))
+      .orderBy(desc(portfolios.createdAt));
+    
+    const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
+    const allPortfolioSites = await db.select().from(portfolioSites);
+    const allSites = await db.select().from(sites);
+
+    return clientPortfolios.map(portfolio => {
+      const psEntries = allPortfolioSites.filter(ps => ps.portfolioId === portfolio.id);
+      const portfolioSiteList = psEntries
+        .map(ps => allSites.find(s => s.id === ps.siteId))
+        .filter((s): s is Site => s !== undefined);
+      return {
+        ...portfolio,
+        client: client!,
+        sites: portfolioSiteList,
+      };
+    });
+  }
+
+  async createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio> {
+    const [result] = await db.insert(portfolios).values(portfolio).returning();
+    return result;
+  }
+
+  async updatePortfolio(id: string, portfolio: Partial<Portfolio>): Promise<Portfolio | undefined> {
+    const [result] = await db.update(portfolios)
+      .set({ ...portfolio, updatedAt: new Date() })
+      .where(eq(portfolios.id, id))
+      .returning();
+    return result;
+  }
+
+  async deletePortfolio(id: string): Promise<boolean> {
+    // Delete associated portfolio sites first
+    await db.delete(portfolioSites).where(eq(portfolioSites.portfolioId, id));
+    const result = await db.delete(portfolios).where(eq(portfolios.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Portfolio Sites
+  async getPortfolioSites(portfolioId: string): Promise<PortfolioSiteWithDetails[]> {
+    const entries = await db.select().from(portfolioSites)
+      .where(eq(portfolioSites.portfolioId, portfolioId))
+      .orderBy(portfolioSites.displayOrder);
+    
+    const allSites = await db.select().from(sites);
+    const allSimulations = await db.select().from(simulationRuns);
+
+    return entries.map(ps => {
+      const site = allSites.find(s => s.id === ps.siteId)!;
+      const siteSimulations = allSimulations
+        .filter(s => s.siteId === ps.siteId)
+        .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+      const latestSimulation = siteSimulations.find(s => s.type === "SCENARIO") || siteSimulations[0];
+      return {
+        ...ps,
+        site,
+        latestSimulation,
+      };
+    });
+  }
+
+  async addSiteToPortfolio(portfolioSite: InsertPortfolioSite): Promise<PortfolioSite> {
+    const [result] = await db.insert(portfolioSites).values(portfolioSite).returning();
+    return result;
+  }
+
+  async removeSiteFromPortfolio(portfolioId: string, siteId: string): Promise<boolean> {
+    const result = await db.delete(portfolioSites)
+      .where(and(eq(portfolioSites.portfolioId, portfolioId), eq(portfolioSites.siteId, siteId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async updatePortfolioSite(id: string, data: Partial<PortfolioSite>): Promise<PortfolioSite | undefined> {
+    const [result] = await db.update(portfolioSites)
+      .set(data)
+      .where(eq(portfolioSites.id, id))
+      .returning();
+    return result;
   }
 }

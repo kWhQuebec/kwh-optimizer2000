@@ -14,6 +14,8 @@ import {
   insertComponentCatalogSchema,
   insertSiteVisitSchema,
   insertDesignAgreementSchema,
+  insertPortfolioSchema,
+  insertPortfolioSiteSchema,
   AnalysisAssumptions, 
   defaultAnalysisAssumptions, 
   CashflowEntry, 
@@ -2721,6 +2723,305 @@ Pricing:
     } catch (error) {
       console.error("Error getting Stripe key:", error);
       res.status(500).json({ error: "Stripe not configured" });
+    }
+  });
+
+  // ==================== PORTFOLIO ROUTES ====================
+
+  // Get all portfolios
+  app.get("/api/portfolios", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const portfolios = await storage.getPortfolios();
+      res.json(portfolios);
+    } catch (error) {
+      console.error("Error fetching portfolios:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get portfolios for a specific client
+  app.get("/api/clients/:clientId/portfolios", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { clientId } = req.params;
+      
+      // Check access for client users
+      if (req.userRole === "client" && req.userClientId !== clientId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const portfolios = await storage.getPortfoliosByClient(clientId);
+      res.json(portfolios);
+    } catch (error) {
+      console.error("Error fetching client portfolios:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single portfolio with sites
+  app.get("/api/portfolios/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const portfolio = await storage.getPortfolio(req.params.id);
+      
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      // Check access for client users
+      if (req.userRole === "client" && req.userClientId !== portfolio.clientId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      res.json(portfolio);
+    } catch (error) {
+      console.error("Error fetching portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get portfolio sites with details (including simulations)
+  app.get("/api/portfolios/:id/sites", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const portfolio = await storage.getPortfolio(req.params.id);
+      
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      // Check access for client users
+      if (req.userRole === "client" && req.userClientId !== portfolio.clientId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const sites = await storage.getPortfolioSites(req.params.id);
+      res.json(sites);
+    } catch (error) {
+      console.error("Error fetching portfolio sites:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create new portfolio
+  app.post("/api/portfolios", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertPortfolioSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      
+      const portfolio = await storage.createPortfolio({
+        ...parsed.data,
+        createdBy: req.userId,
+      });
+      
+      res.status(201).json(portfolio);
+    } catch (error) {
+      console.error("Error creating portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update portfolio
+  app.patch("/api/portfolios/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const portfolio = await storage.updatePortfolio(req.params.id, req.body);
+      
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      res.json(portfolio);
+    } catch (error) {
+      console.error("Error updating portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete portfolio
+  app.delete("/api/portfolios/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deletePortfolio(req.params.id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Add site to portfolio
+  app.post("/api/portfolios/:id/sites", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { siteId, notes, displayOrder } = req.body;
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "siteId is required" });
+      }
+      
+      // Verify portfolio exists
+      const portfolio = await storage.getPortfolio(req.params.id);
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      // Verify site exists and belongs to same client
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      if (site.clientId !== portfolio.clientId) {
+        return res.status(400).json({ error: "Site must belong to the same client as the portfolio" });
+      }
+      
+      const portfolioSite = await storage.addSiteToPortfolio({
+        portfolioId: req.params.id,
+        siteId,
+        notes: notes || null,
+        displayOrder: displayOrder || 0,
+      });
+      
+      // Update portfolio site count
+      const currentSites = await storage.getPortfolioSites(req.params.id);
+      await storage.updatePortfolio(req.params.id, {
+        numBuildings: currentSites.length,
+      });
+      
+      res.status(201).json(portfolioSite);
+    } catch (error) {
+      console.error("Error adding site to portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Remove site from portfolio
+  app.delete("/api/portfolios/:portfolioId/sites/:siteId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { portfolioId, siteId } = req.params;
+      
+      const removed = await storage.removeSiteFromPortfolio(portfolioId, siteId);
+      
+      if (!removed) {
+        return res.status(404).json({ error: "Site not found in portfolio" });
+      }
+      
+      // Update portfolio site count
+      const currentSites = await storage.getPortfolioSites(portfolioId);
+      await storage.updatePortfolio(portfolioId, {
+        numBuildings: currentSites.length,
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing site from portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Calculate and update portfolio summary KPIs
+  app.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const portfolio = await storage.getPortfolio(req.params.id);
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      const portfolioSites = await storage.getPortfolioSites(req.params.id);
+      
+      // Aggregate KPIs from all sites' latest simulations
+      let totalPvSizeKW = 0;
+      let totalBatteryKWh = 0;
+      let totalCapexNet = 0;
+      let totalNpv25 = 0;
+      let totalAnnualSavings = 0;
+      let totalCo2Avoided = 0;
+      let totalCapexGross = 0; // For weighted IRR calculation
+      let weightedIrrSum = 0;
+      
+      for (const ps of portfolioSites) {
+        if (ps.latestSimulation) {
+          const sim = ps.latestSimulation;
+          totalPvSizeKW += sim.pvSizeKW || 0;
+          totalBatteryKWh += sim.battEnergyKWh || 0;
+          totalCapexNet += sim.capexNet || 0;
+          totalNpv25 += sim.npv25 || 0;
+          totalAnnualSavings += sim.annualSavings || 0;
+          totalCo2Avoided += sim.co2AvoidedTonnesPerYear || 0;
+          
+          // For weighted IRR: weight by capex
+          const capex = sim.capexGross || 0;
+          totalCapexGross += capex;
+          weightedIrrSum += (sim.irr25 || 0) * capex;
+        }
+      }
+      
+      const weightedIrr25 = totalCapexGross > 0 ? weightedIrrSum / totalCapexGross : null;
+      
+      // Calculate volume discount based on number of buildings (Rematek pricing)
+      let volumeDiscountPercent = 0;
+      const numBuildings = portfolioSites.length;
+      if (numBuildings >= 20) {
+        volumeDiscountPercent = 0.15; // 15% discount for 20+ buildings
+      } else if (numBuildings >= 10) {
+        volumeDiscountPercent = 0.10; // 10% discount for 10-19 buildings
+      } else if (numBuildings >= 5) {
+        volumeDiscountPercent = 0.05; // 5% discount for 5-9 buildings
+      }
+      
+      // Calculate portfolio quoted costs with volume pricing
+      const TRAVEL_COST_PER_DAY = 150;
+      const VISIT_COST_PER_BUILDING = 600;
+      const EVALUATION_COST_PER_BUILDING = 1000;
+      const DIAGRAMS_COST_PER_BUILDING = 1900;
+      
+      // Estimate travel days (3-4 buildings per day)
+      const estimatedTravelDays = Math.ceil(numBuildings / 3);
+      
+      const travel = estimatedTravelDays * TRAVEL_COST_PER_DAY;
+      const visit = numBuildings * VISIT_COST_PER_BUILDING;
+      const evaluation = numBuildings * EVALUATION_COST_PER_BUILDING;
+      const diagrams = numBuildings * DIAGRAMS_COST_PER_BUILDING;
+      
+      const subtotalBeforeDiscount = travel + visit + evaluation + diagrams;
+      const discount = subtotalBeforeDiscount * volumeDiscountPercent;
+      const subtotal = subtotalBeforeDiscount - discount;
+      const gst = subtotal * 0.05;
+      const qst = subtotal * 0.09975;
+      const total = subtotal + gst + qst;
+      
+      const quotedCosts = {
+        travel,
+        visit,
+        evaluation,
+        diagrams,
+        discount,
+        subtotal,
+        taxes: { gst, qst },
+        total,
+      };
+      
+      const updated = await storage.updatePortfolio(req.params.id, {
+        numBuildings,
+        estimatedTravelDays,
+        volumeDiscountPercent,
+        quotedCosts,
+        totalCad: total,
+        totalPvSizeKW,
+        totalBatteryKWh,
+        totalCapexNet,
+        totalNpv25,
+        weightedIrr25,
+        totalAnnualSavings,
+        totalCo2Avoided,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error recalculating portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

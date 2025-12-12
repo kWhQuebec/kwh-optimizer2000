@@ -316,6 +316,55 @@ export const siteVisits = pgTable("site_visits", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Portfolios - Group multiple sites into a project for consolidated analysis
+export const portfolios = pgTable("portfolios", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").notNull().references(() => clients.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("draft"), // "draft" | "active" | "quoted" | "accepted" | "completed"
+  
+  // Volume pricing for multi-building projects (Rematek pricing)
+  numBuildings: integer("num_buildings").default(0),
+  estimatedTravelDays: integer("estimated_travel_days").default(0),
+  
+  // Cost breakdown (calculated from number of sites)
+  quotedCosts: jsonb("quoted_costs"), // { travel, visit, evaluation, diagrams, sldSupplement, subtotal, taxes, total }
+  totalCad: real("total_cad"),
+  
+  // Volume discount tiers
+  volumeDiscountPercent: real("volume_discount_percent").default(0), // Applied discount based on # buildings
+  
+  // Summary KPIs (aggregated from all sites)
+  totalPvSizeKW: real("total_pv_size_kw"),
+  totalBatteryKWh: real("total_battery_kwh"),
+  totalCapexNet: real("total_capex_net"),
+  totalNpv25: real("total_npv_25"),
+  weightedIrr25: real("weighted_irr_25"),
+  totalAnnualSavings: real("total_annual_savings"),
+  totalCo2Avoided: real("total_co2_avoided"),
+  
+  // Tracking
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Portfolio Sites - Junction table linking sites to portfolios
+export const portfolioSites = pgTable("portfolio_sites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  portfolioId: varchar("portfolio_id").notNull().references(() => portfolios.id, { onDelete: "cascade" }),
+  siteId: varchar("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  
+  // Site-specific notes within the portfolio context
+  notes: text("notes"),
+  
+  // Order for display purposes
+  displayOrder: integer("display_order").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Design Agreements - Étape 3 paid commitment
 export const designAgreements = pgTable("design_agreements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -445,6 +494,17 @@ export const insertDesignAgreementSchema = createInsertSchema(designAgreements).
   updatedAt: true,
 });
 
+export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPortfolioSiteSchema = createInsertSchema(portfolioSites).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -482,11 +542,19 @@ export type SiteVisit = typeof siteVisits.$inferSelect;
 export type InsertDesignAgreement = z.infer<typeof insertDesignAgreementSchema>;
 export type DesignAgreement = typeof designAgreements.$inferSelect;
 
+export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
+export type Portfolio = typeof portfolios.$inferSelect;
+
+export type InsertPortfolioSite = z.infer<typeof insertPortfolioSiteSchema>;
+export type PortfolioSite = typeof portfolioSites.$inferSelect;
+
 // Extended types for frontend
 export type SiteWithClient = Site & { client: Client };
 export type SimulationRunWithSite = SimulationRun & { site: SiteWithClient };
 export type DesignWithBom = Design & { bomItems: BomItem[] };
 export type SiteVisitWithSite = SiteVisit & { site: SiteWithClient };
+export type PortfolioWithSites = Portfolio & { sites: Site[]; client: Client };
+export type PortfolioSiteWithDetails = PortfolioSite & { site: Site; latestSimulation?: SimulationRun };
 
 // Rematek cost structure (based on quote #12885)
 export interface RematekCostBreakdown {
