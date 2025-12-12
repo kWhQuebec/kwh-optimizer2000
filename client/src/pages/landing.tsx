@@ -380,7 +380,7 @@ export default function LandingPage() {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-xl font-bold">
-                            {language === "fr" ? "Analyse Rapide" : "Quick Analysis"}
+                            {language === "fr" ? "Analyse RAPIDE" : "Quick Analysis"}
                           </h3>
                           <Badge className="bg-primary/10 text-primary border-primary/20">
                             5 min
@@ -780,7 +780,7 @@ export default function LandingPage() {
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-xl font-bold">
-                              {language === "fr" ? "Analyse Détaillée" : "Detailed Analysis"}
+                              {language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis"}
                             </h3>
                             <Badge className="bg-accent/10 text-accent border-accent/20">
                               5 {language === "fr" ? "jours" : "days"}
@@ -1187,7 +1187,7 @@ export default function LandingPage() {
                     5 min
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
-                    {language === "fr" ? "Analyse Rapide" : "Quick Analysis"}
+                    {language === "fr" ? "Analyse RAPIDE" : "Quick Analysis"}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {language === "fr" 
@@ -1215,7 +1215,7 @@ export default function LandingPage() {
                     5 {language === "fr" ? "jours" : "days"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
-                    {language === "fr" ? "Analyse Détaillée" : "Detailed Analysis"}
+                    {language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis"}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {language === "fr" 
