@@ -38,6 +38,13 @@ import screenshotConsumptionEn from "@assets/Screenshot_2025-12-05_at_1.50.45_PM
 import screenshotConsumptionFr from "@assets/Screenshot_2025-12-04_at_6.51.04_PM_1764892267879.png";
 import screenshotOptimizationFr from "@assets/Screenshot_2025-12-03_at_4.09.24_PM_1764796169826.png";
 import screenshotFinancialFr from "@assets/Screenshot_2025-12-05_at_2.24.54_PM_1764963093938.png";
+import carouselSlide1Fr from "@assets/Screenshot_2025-12-11_at_9.14.32_PM_1765505832705.png";
+import carouselSlide2Fr from "@assets/Screenshot_2025-12-11_at_9.14.51_PM_1765505832704.png";
+import carouselSlide3Fr from "@assets/Screenshot_2025-12-11_at_9.15.03_PM_1765505832704.png";
+import carouselSlide4Fr from "@assets/Screenshot_2025-12-11_at_9.15.24_PM_1765505832703.png";
+import carouselSlide5Fr from "@assets/Screenshot_2025-12-11_at_9.15.38_PM_1765505832702.png";
+import carouselSlide6Fr from "@assets/Screenshot_2025-12-11_at_9.15.53_PM_1765505832701.png";
+import carouselSlide7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_1765505832689.png";
 
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
@@ -83,15 +90,22 @@ export default function LandingPage() {
   
   const analysisSlides = language === "fr" 
     ? [
-        { id: "consumption", image: screenshotConsumptionFr, label: "Profil de consommation" },
-        { id: "optimization", image: screenshotOptimizationFr, label: "Analyse d'optimisation" },
-        { id: "financial", image: screenshotFinancialFr, label: "Options de financement" },
+        { id: "impact", image: carouselSlide1Fr, label: "Impact sur votre facture" },
+        { id: "config", image: carouselSlide2Fr, label: "Configuration optimale" },
+        { id: "evolution", image: carouselSlide3Fr, label: "Évolution sur 25 ans" },
+        { id: "financing", image: carouselSlide4Fr, label: "Options de financement" },
+        { id: "profile", image: carouselSlide5Fr, label: "Profil énergétique" },
+        { id: "optimization", image: carouselSlide6Fr, label: "Analyse d'optimisation" },
+        { id: "sensitivity", image: carouselSlide7Fr, label: "Sensibilité système" },
       ]
     : [
-        { id: "consumption", image: screenshotConsumptionEn, label: "Consumption Profile" },
-        { id: "system", image: screenshotSystemEn, label: "Recommended System" },
-        { id: "financial", image: screenshotFinancialEn, label: "Financial Breakdown" },
-        { id: "optimization", image: screenshotOptimizationEn, label: "Optimization Analysis" },
+        { id: "impact", image: carouselSlide1Fr, label: "Impact on your bill" },
+        { id: "config", image: carouselSlide2Fr, label: "Optimal configuration" },
+        { id: "evolution", image: carouselSlide3Fr, label: "25-year evolution" },
+        { id: "financing", image: carouselSlide4Fr, label: "Financing options" },
+        { id: "profile", image: carouselSlide5Fr, label: "Energy profile" },
+        { id: "optimization", image: carouselSlide6Fr, label: "Optimization analysis" },
+        { id: "sensitivity", image: carouselSlide7Fr, label: "System sensitivity" },
       ];
   
   // Building type labels
