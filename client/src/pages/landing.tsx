@@ -24,6 +24,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
+import { SEOHead, seoContent, getLocalBusinessSchema } from "@/components/seo-head";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
@@ -209,8 +210,16 @@ export default function LandingPage() {
     { value: "other", label: t("form.buildingType.other"), icon: HelpCircle },
   ];
 
+  const seo = language === "fr" ? seoContent.home.fr : seoContent.home.en;
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead 
+        title={seo.title} 
+        description={seo.description} 
+        keywords={seo.keywords}
+        structuredData={getLocalBusinessSchema(language)}
+      />
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -228,12 +237,15 @@ export default function LandingPage() {
               <a href="#paths" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-analyze">
                 {language === "fr" ? "Analyser" : "Analyze"}
               </a>
-              <a href="#credibility" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-trust">
-                {language === "fr" ? "Confiance" : "Trust"}
-              </a>
-              <a href="#contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-contact">
-                {t("footer.contact")}
-              </a>
+              <Link href="/services" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-services">
+                Services
+              </Link>
+              <Link href="/comment-ca-marche" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-how-it-works">
+                {language === "fr" ? "Comment ça marche" : "How it works"}
+              </Link>
+              <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-resources">
+                {language === "fr" ? "Ressources" : "Resources"}
+              </Link>
             </nav>
 
             <div className="flex items-center gap-2">
@@ -1531,9 +1543,15 @@ export default function LandingPage() {
               </span>
             </div>
             
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link href="/login" className="hover:text-foreground transition-colors">
-                {t("nav.login")}
+            <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
+              <Link href="/services" className="hover:text-foreground transition-colors">
+                Services
+              </Link>
+              <Link href="/comment-ca-marche" className="hover:text-foreground transition-colors">
+                {language === "fr" ? "Comment ça marche" : "How it works"}
+              </Link>
+              <Link href="/ressources" className="hover:text-foreground transition-colors">
+                {language === "fr" ? "Ressources" : "Resources"}
               </Link>
               <a href="mailto:info@kwhquebec.com" className="hover:text-foreground transition-colors">
                 {t("footer.contact")}

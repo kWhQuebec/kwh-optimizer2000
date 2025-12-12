@@ -20,6 +20,9 @@ import AnalyseDetailleePage from "@/pages/analyse-detaillee";
 import DashboardPage from "@/pages/dashboard";
 import ClientsPage from "@/pages/clients";
 import SitesPage from "@/pages/sites";
+import ServicesPage from "@/pages/services";
+import CommentCaMarchePage from "@/pages/comment-ca-marche";
+import RessourcesPage from "@/pages/ressources";
 import NotFound from "@/pages/not-found";
 
 const SiteDetailPage = lazy(() => import("@/pages/site-detail"));
@@ -98,6 +101,9 @@ function AppRoutes() {
     <Switch>
       {/* Public routes */}
       <Route path="/" component={LandingPage} />
+      <Route path="/services" component={ServicesPage} />
+      <Route path="/comment-ca-marche" component={CommentCaMarchePage} />
+      <Route path="/ressources" component={RessourcesPage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/sign/:token">
