@@ -185,12 +185,17 @@ export class DatabaseStorage implements IStorage {
     // 3. Get all simulation runs for this site
     const simRuns = await db.select().from(simulationRuns).where(eq(simulationRuns.siteId, id));
     
-    // 4. Delete designs linked to those simulation runs
+    // 4. Get all designs linked to those simulation runs and delete their BOM items first
     for (const run of simRuns) {
+      const designsForRun = await db.select().from(designs).where(eq(designs.simulationRunId, run.id));
+      for (const design of designsForRun) {
+        await db.delete(bomItems).where(eq(bomItems.designId, design.id));
+      }
+      // 5. Now delete the designs
       await db.delete(designs).where(eq(designs.simulationRunId, run.id));
     }
     
-    // 5. Delete all simulation runs for this site
+    // 6. Delete all simulation runs for this site
     await db.delete(simulationRuns).where(eq(simulationRuns.siteId, id));
     
     // 6. Get all meter files for this site
