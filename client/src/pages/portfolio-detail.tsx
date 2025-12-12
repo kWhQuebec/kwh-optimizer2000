@@ -74,7 +74,7 @@ function AddSiteDialog({
       return apiRequest("POST", `/api/portfolios/${portfolioId}/sites`, { siteIds });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId, "full"] });
       setOpen(false);
       setSelectedSiteIds([]);
       onSuccess();
@@ -238,28 +238,47 @@ function KpiCard({
   );
 }
 
+// Type for the optimized API response
+interface PortfolioFullResponse {
+  portfolio: Portfolio;
+  sites: PortfolioSiteWithDetails[];
+  kpis: {
+    totalPvSizeKW: number;
+    totalBatteryCapacityKWh: number;
+    totalNetCapex: number;
+    totalNpv: number;
+    weightedIrr: number;
+    totalAnnualSavings: number;
+    totalCo2Avoided: number;
+    numBuildings: number;
+    sitesWithSimulations: number;
+    volumeDiscount: number;
+    discountedCapex: number;
+  };
+}
+
 export default function PortfolioDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { language } = useI18n();
   const { toast } = useToast();
   const [pricingOpen, setPricingOpen] = useState(true);
 
-  const { data: portfolio, isLoading: portfolioLoading } = useQuery<Portfolio>({
-    queryKey: ["/api/portfolios", id],
+  // Single optimized query that fetches portfolio, sites, and pre-calculated KPIs
+  const { data, isLoading } = useQuery<PortfolioFullResponse>({
+    queryKey: ["/api/portfolios", id, "full"],
     enabled: !!id,
   });
 
-  const { data: portfolioSites = [], isLoading: sitesLoading } = useQuery<PortfolioSiteWithDetails[]>({
-    queryKey: ["/api/portfolios", id, "sites"],
-    enabled: !!id,
-  });
+  const portfolio = data?.portfolio;
+  const portfolioSites = data?.sites || [];
+  const kpis = data?.kpis;
 
   const removeSiteMutation = useMutation({
     mutationFn: async (siteId: string) => {
       return apiRequest("DELETE", `/api/portfolios/${id}/sites/${siteId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", id, "full"] });
       toast({ 
         title: language === "fr" ? "Site retiré" : "Site removed" 
       });
@@ -277,7 +296,7 @@ export default function PortfolioDetailPage() {
       return apiRequest("POST", `/api/portfolios/${id}/recalculate`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", id, "full"] });
       toast({ 
         title: language === "fr" ? "Portfolio recalculé" : "Portfolio recalculated" 
       });
@@ -290,7 +309,7 @@ export default function PortfolioDetailPage() {
     },
   });
 
-  if (portfolioLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
@@ -322,8 +341,17 @@ export default function PortfolioDetailPage() {
 
   const existingSiteIds = portfolioSites.map(ps => ps.siteId);
   const quotedCosts = portfolio.quotedCosts as any || {};
-  const numBuildings = portfolio.numBuildings || 0;
-  const volumeDiscount = portfolio.volumeDiscountPercent || 0;
+  
+  // Use pre-calculated KPIs from server (fresh) with fallback to stored values
+  const numBuildings = kpis?.numBuildings || portfolio.numBuildings || 0;
+  const volumeDiscount = kpis?.volumeDiscount || portfolio.volumeDiscountPercent || 0;
+  const totalPvSizeKW = kpis?.totalPvSizeKW || portfolio.totalPvSizeKW || 0;
+  const totalBatteryKWh = kpis?.totalBatteryCapacityKWh || portfolio.totalBatteryKWh || 0;
+  const totalNpv = kpis?.totalNpv || portfolio.totalNpv25 || 0;
+  const weightedIrr = kpis?.weightedIrr || portfolio.weightedIrr25 || 0;
+  const totalCapex = kpis?.totalNetCapex || portfolio.totalCapexNet || 0;
+  const totalAnnualSavings = kpis?.totalAnnualSavings || portfolio.totalAnnualSavings || 0;
+  const totalCo2Avoided = kpis?.totalCo2Avoided || portfolio.totalCo2Avoided || 0;
 
   return (
     <div className="space-y-6">
@@ -374,25 +402,25 @@ export default function PortfolioDetailPage() {
         <KpiCard 
           icon={Zap} 
           label={language === "fr" ? "Puissance PV totale" : "Total PV Size"}
-          value={`${formatNumber(portfolio.totalPvSizeKW)} kW`}
+          value={`${formatNumber(totalPvSizeKW)} kW`}
           color="text-yellow-600 dark:text-yellow-400"
         />
         <KpiCard 
           icon={Battery} 
           label={language === "fr" ? "Stockage total" : "Total Storage"}
-          value={`${formatNumber(portfolio.totalBatteryKWh)} kWh`}
+          value={`${formatNumber(totalBatteryKWh)} kWh`}
           color="text-blue-600 dark:text-blue-400"
         />
         <KpiCard 
           icon={DollarSign} 
           label="NPV (25 ans)"
-          value={formatCurrency(portfolio.totalNpv25)}
+          value={formatCurrency(totalNpv)}
           color="text-green-600 dark:text-green-400"
         />
         <KpiCard 
           icon={TrendingUp} 
           label={language === "fr" ? "TRI pondéré" : "Weighted IRR"}
-          value={formatPercent(portfolio.weightedIrr25)}
+          value={formatPercent(weightedIrr)}
         />
       </div>
 
@@ -400,18 +428,18 @@ export default function PortfolioDetailPage() {
         <KpiCard 
           icon={DollarSign} 
           label={language === "fr" ? "CAPEX net total" : "Total Net CAPEX"}
-          value={formatCurrency(portfolio.totalCapexNet)}
+          value={formatCurrency(totalCapex)}
         />
         <KpiCard 
           icon={DollarSign} 
           label={language === "fr" ? "Économies/an" : "Annual Savings"}
-          value={formatCurrency(portfolio.totalAnnualSavings)}
+          value={formatCurrency(totalAnnualSavings)}
           color="text-green-600 dark:text-green-400"
         />
         <KpiCard 
           icon={Leaf} 
           label={language === "fr" ? "CO₂ évité/an" : "CO₂ Avoided/yr"}
-          value={`${formatNumber(portfolio.totalCo2Avoided, 1)} t`}
+          value={`${formatNumber(totalCo2Avoided, 1)} t`}
           color="text-green-600 dark:text-green-400"
         />
         <KpiCard 
@@ -538,7 +566,7 @@ export default function PortfolioDetailPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          {sitesLoading ? (
+          {isLoading ? (
             <Skeleton className="h-48" />
           ) : portfolioSites.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">

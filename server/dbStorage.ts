@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
@@ -574,20 +574,29 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  // Portfolio Sites
+  // Portfolio Sites - optimized with SQL IN clause
   async getPortfolioSites(portfolioId: string): Promise<PortfolioSiteWithDetails[]> {
     const entries = await db.select().from(portfolioSites)
       .where(eq(portfolioSites.portfolioId, portfolioId))
       .orderBy(portfolioSites.displayOrder);
     
-    const allSites = await db.select().from(sites);
-    const allSimulations = await db.select().from(simulationRuns);
+    if (entries.length === 0) return [];
+    
+    const siteIds = entries.map(ps => ps.siteId);
+    
+    // Single optimized query for sites using IN clause
+    const portfolioSitesList = await db.select().from(sites)
+      .where(inArray(sites.id, siteIds));
+    
+    // Single optimized query for simulations using IN clause
+    const relevantSimulations = await db.select().from(simulationRuns)
+      .where(inArray(simulationRuns.siteId, siteIds))
+      .orderBy(desc(simulationRuns.createdAt));
 
     return entries.map(ps => {
-      const site = allSites.find(s => s.id === ps.siteId)!;
-      const siteSimulations = allSimulations
-        .filter(s => s.siteId === ps.siteId)
-        .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+      const site = portfolioSitesList.find(s => s.id === ps.siteId)!;
+      const siteSimulations = relevantSimulations
+        .filter(s => s.siteId === ps.siteId);
       const latestSimulation = siteSimulations.find(s => s.type === "SCENARIO") || siteSimulations[0];
       return {
         ...ps,

@@ -2809,6 +2809,93 @@ Pricing:
     }
   });
 
+  // OPTIMIZED: Get portfolio with sites and pre-calculated KPIs in single request
+  app.get("/api/portfolios/:id/full", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const portfolio = await storage.getPortfolio(req.params.id);
+      
+      if (!portfolio) {
+        return res.status(404).json({ error: "Portfolio not found" });
+      }
+      
+      // Check access for client users
+      if (req.userRole === "client" && req.userClientId !== portfolio.clientId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Fetch sites in same request
+      const portfolioSites = await storage.getPortfolioSites(req.params.id);
+      
+      // Pre-calculate aggregated KPIs server-side
+      let totalPvSizeKW = 0;
+      let totalBatteryCapacityKWh = 0;
+      let totalNetCapex = 0;
+      let totalAnnualSavings = 0;
+      let totalCo2Avoided = 0;
+      let weightedIrrSum = 0;
+      let totalNpv = 0;
+      let sitesWithSimulations = 0;
+
+      for (const ps of portfolioSites) {
+        const sim = ps.latestSimulation;
+        if (sim?.results) {
+          const results = sim.results as any;
+          const pvSize = results.pvSizeKW || results.optimalPvSizeKW || 0;
+          const batterySize = results.batteryCapacityKWh || results.optimalBatteryKWh || 0;
+          const netCapex = results.netCapex || 0;
+          const npv = results.npv || 0;
+          const irr = results.irr || 0;
+          const annualSavings = results.annualSavings || results.firstYearSavings || 0;
+          const co2 = results.co2AvoidedTonnes || results.annualCo2Avoided || 0;
+
+          totalPvSizeKW += pvSize;
+          totalBatteryCapacityKWh += batterySize;
+          totalNetCapex += netCapex;
+          totalNpv += npv;
+          totalAnnualSavings += annualSavings;
+          totalCo2Avoided += co2;
+          
+          if (netCapex > 0) {
+            weightedIrrSum += irr * netCapex;
+            sitesWithSimulations++;
+          }
+        }
+      }
+
+      const weightedIrr = totalNetCapex > 0 ? weightedIrrSum / totalNetCapex : 0;
+
+      // Volume pricing calculation
+      const numBuildings = portfolioSites.length;
+      let volumeDiscount = 0;
+      if (numBuildings >= 20) volumeDiscount = 0.15;
+      else if (numBuildings >= 10) volumeDiscount = 0.10;
+      else if (numBuildings >= 5) volumeDiscount = 0.05;
+
+      const aggregatedKpis = {
+        totalPvSizeKW,
+        totalBatteryCapacityKWh,
+        totalNetCapex,
+        totalNpv,
+        weightedIrr,
+        totalAnnualSavings,
+        totalCo2Avoided,
+        numBuildings,
+        sitesWithSimulations,
+        volumeDiscount,
+        discountedCapex: totalNetCapex * (1 - volumeDiscount),
+      };
+
+      res.json({
+        portfolio,
+        sites: portfolioSites,
+        kpis: aggregatedKpis,
+      });
+    } catch (error) {
+      console.error("Error fetching full portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Create new portfolio
   app.post("/api/portfolios", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
