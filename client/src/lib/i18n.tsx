@@ -168,7 +168,9 @@ const translations: Translations = {
 
   // Lead Form
   "form.company": { fr: "Nom de l'entreprise", en: "Company name" },
+  "form.companyName": { fr: "Entreprise", en: "Company" },
   "form.contact": { fr: "Nom du contact", en: "Contact name" },
+  "form.contactName": { fr: "Nom du contact", en: "Contact name" },
   "form.email": { fr: "Courriel", en: "Email" },
   "form.phone": { fr: "Téléphone", en: "Phone" },
   "form.streetAddress": { fr: "Adresse du bâtiment", en: "Building address" },
