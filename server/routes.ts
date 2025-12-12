@@ -2861,13 +2861,16 @@ Pricing:
     }
   });
 
-  // Add site to portfolio
+  // Add site(s) to portfolio - supports single siteId or array of siteIds
   app.post("/api/portfolios/:id/sites", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
-      const { siteId, notes, displayOrder } = req.body;
+      const { siteId, siteIds, notes, displayOrder } = req.body;
       
-      if (!siteId) {
-        return res.status(400).json({ error: "siteId is required" });
+      // Support both single siteId and array of siteIds
+      const sitesToAdd: string[] = siteIds ? siteIds : (siteId ? [siteId] : []);
+      
+      if (sitesToAdd.length === 0) {
+        return res.status(400).json({ error: "siteId or siteIds is required" });
       }
       
       // Verify portfolio exists
@@ -2876,22 +2879,40 @@ Pricing:
         return res.status(404).json({ error: "Portfolio not found" });
       }
       
-      // Verify site exists and belongs to same client
-      const site = await storage.getSite(siteId);
-      if (!site) {
-        return res.status(404).json({ error: "Site not found" });
-      }
+      // Get existing sites in portfolio to prevent duplicates
+      const existingPortfolioSites = await storage.getPortfolioSites(req.params.id);
+      const existingSiteIds = existingPortfolioSites.map(ps => ps.siteId);
       
-      if (site.clientId !== portfolio.clientId) {
-        return res.status(400).json({ error: "Site must belong to the same client as the portfolio" });
-      }
+      const addedSites = [];
+      const skippedDuplicates = [];
       
-      const portfolioSite = await storage.addSiteToPortfolio({
-        portfolioId: req.params.id,
-        siteId,
-        notes: notes || null,
-        displayOrder: displayOrder || 0,
-      });
+      for (const id of sitesToAdd) {
+        // Check for duplicates
+        if (existingSiteIds.includes(id)) {
+          skippedDuplicates.push(id);
+          continue;
+        }
+        
+        // Verify site exists and belongs to same client
+        const site = await storage.getSite(id);
+        if (!site) {
+          continue; // Skip non-existent sites
+        }
+        
+        if (site.clientId !== portfolio.clientId) {
+          continue; // Skip sites from different clients
+        }
+        
+        const portfolioSite = await storage.addSiteToPortfolio({
+          portfolioId: req.params.id,
+          siteId: id,
+          notes: notes || null,
+          displayOrder: displayOrder || addedSites.length,
+        });
+        
+        addedSites.push(portfolioSite);
+        existingSiteIds.push(id); // Prevent duplicates within same request
+      }
       
       // Update portfolio site count
       const currentSites = await storage.getPortfolioSites(req.params.id);
@@ -2899,7 +2920,11 @@ Pricing:
         numBuildings: currentSites.length,
       });
       
-      res.status(201).json(portfolioSite);
+      res.status(201).json({ 
+        added: addedSites, 
+        skippedDuplicates,
+        totalInPortfolio: currentSites.length 
+      });
     } catch (error) {
       console.error("Error adding site to portfolio:", error);
       res.status(500).json({ error: "Internal server error" });

@@ -13,9 +13,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription 
 } from "@/components/ui/dialog";
 import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from "@/components/ui/select";
-import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { 
@@ -63,7 +60,7 @@ function AddSiteDialog({
   const { language } = useI18n();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [selectedSiteId, setSelectedSiteId] = useState("");
+  const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
 
   const { data: clientSites = [] } = useQuery<Site[]>({
     queryKey: ["/api/clients", clientId, "sites"],
@@ -72,44 +69,65 @@ function AddSiteDialog({
 
   const availableSites = clientSites.filter(s => !existingSiteIds.includes(s.id));
 
-  const addSiteMutation = useMutation({
-    mutationFn: async (siteId: string) => {
-      return apiRequest("POST", `/api/portfolios/${portfolioId}/sites`, { siteId });
+  const addSitesMutation = useMutation({
+    mutationFn: async (siteIds: string[]) => {
+      return apiRequest("POST", `/api/portfolios/${portfolioId}/sites`, { siteIds });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/portfolios", portfolioId] });
       setOpen(false);
-      setSelectedSiteId("");
+      setSelectedSiteIds([]);
       onSuccess();
       toast({ 
-        title: language === "fr" ? "Site ajouté" : "Site added" 
+        title: language === "fr" 
+          ? `${selectedSiteIds.length} site(s) ajouté(s)` 
+          : `${selectedSiteIds.length} site(s) added` 
       });
     },
     onError: () => {
       toast({ 
-        title: language === "fr" ? "Erreur lors de l'ajout" : "Error adding site", 
+        title: language === "fr" ? "Erreur lors de l'ajout" : "Error adding sites", 
         variant: "destructive" 
       });
     },
   });
 
+  const toggleSite = (siteId: string) => {
+    setSelectedSiteIds(prev => 
+      prev.includes(siteId) 
+        ? prev.filter(id => id !== siteId)
+        : [...prev, siteId]
+    );
+  };
+
+  const selectAll = () => {
+    setSelectedSiteIds(availableSites.map(s => s.id));
+  };
+
+  const deselectAll = () => {
+    setSelectedSiteIds([]);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) setSelectedSiteIds([]);
+    }}>
       <DialogTrigger asChild>
         <Button className="gap-2" data-testid="button-add-site-to-portfolio">
           <Plus className="w-4 h-4" />
-          {language === "fr" ? "Ajouter un site" : "Add Site"}
+          {language === "fr" ? "Ajouter des sites" : "Add Sites"}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {language === "fr" ? "Ajouter un site au portfolio" : "Add Site to Portfolio"}
+            {language === "fr" ? "Ajouter des sites au portfolio" : "Add Sites to Portfolio"}
           </DialogTitle>
           <DialogDescription>
             {language === "fr" 
-              ? "Sélectionnez un site analysé pour l'inclure dans ce portfolio." 
-              : "Select an analyzed site to include in this portfolio."}
+              ? "Cochez les sites à inclure dans ce portfolio." 
+              : "Check the sites to include in this portfolio."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -121,29 +139,64 @@ function AddSiteDialog({
             </p>
           ) : (
             <>
-              <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-                <SelectTrigger data-testid="select-site-for-portfolio">
-                  <SelectValue placeholder={language === "fr" ? "Sélectionnez un site" : "Select a site"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableSites.map((site) => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.name} {site.city ? `- ${site.city}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedSiteIds.length} / {availableSites.length} {language === "fr" ? "sélectionnés" : "selected"}
+                </span>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={selectAll}
+                    data-testid="button-select-all-sites"
+                  >
+                    {language === "fr" ? "Tout sélectionner" : "Select all"}
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={deselectAll}
+                    data-testid="button-deselect-all-sites"
+                  >
+                    {language === "fr" ? "Désélectionner" : "Deselect all"}
+                  </Button>
+                </div>
+              </div>
+              <div className="max-h-64 overflow-y-auto border rounded-md">
+                {availableSites.map((site) => (
+                  <label 
+                    key={site.id}
+                    className="flex items-center gap-3 p-3 hover-elevate cursor-pointer border-b last:border-b-0"
+                    data-testid={`checkbox-site-${site.id}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSiteIds.includes(site.id)}
+                      onChange={() => toggleSite(site.id)}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{site.name}</p>
+                      {site.city && (
+                        <p className="text-sm text-muted-foreground truncate">{site.city}</p>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={() => setOpen(false)}>
                   {language === "fr" ? "Annuler" : "Cancel"}
                 </Button>
                 <Button 
-                  onClick={() => selectedSiteId && addSiteMutation.mutate(selectedSiteId)}
-                  disabled={!selectedSiteId || addSiteMutation.isPending}
-                  data-testid="button-confirm-add-site"
+                  onClick={() => addSitesMutation.mutate(selectedSiteIds)}
+                  disabled={selectedSiteIds.length === 0 || addSitesMutation.isPending}
+                  data-testid="button-confirm-add-sites"
                 >
-                  {addSiteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                  {language === "fr" ? "Ajouter" : "Add"}
+                  {addSitesMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  {language === "fr" 
+                    ? `Ajouter (${selectedSiteIds.length})` 
+                    : `Add (${selectedSiteIds.length})`}
                 </Button>
               </div>
             </>
