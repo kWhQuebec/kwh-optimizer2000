@@ -149,6 +149,7 @@ export default function RessourcesPage() {
         description={seo.description} 
         keywords={seo.keywords}
         structuredData={getFAQSchema(language)}
+        locale={language}
       />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">

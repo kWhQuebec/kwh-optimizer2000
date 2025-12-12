@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import logoImage from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 
 interface StructuredData {
   "@context": string;
@@ -15,17 +16,19 @@ interface SEOHeadProps {
   canonical?: string;
   noIndex?: boolean;
   structuredData?: StructuredData;
+  locale?: "fr" | "en";
 }
 
 export function SEOHead({
   title,
   description,
   keywords,
-  ogImage,
+  ogImage = logoImage,
   ogType = "website",
   canonical,
   noIndex = false,
   structuredData,
+  locale = "fr",
 }: SEOHeadProps) {
   useEffect(() => {
     document.title = title;
@@ -47,12 +50,10 @@ export function SEOHead({
     setMeta("og:title", title, true);
     setMeta("og:description", description, true);
     setMeta("og:type", ogType, true);
-    if (ogImage) {
-      setMeta("og:image", ogImage, true);
-      setMeta("twitter:image", ogImage);
-    }
+    setMeta("og:image", ogImage, true);
+    setMeta("twitter:image", ogImage);
     setMeta("og:site_name", "kWh Québec", true);
-    setMeta("og:locale", "fr_CA", true);
+    setMeta("og:locale", locale === "fr" ? "fr_CA" : "en_CA", true);
     
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", title);
