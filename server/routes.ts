@@ -1127,6 +1127,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/clients/:id/sites", authMiddleware, requireStaff, async (req, res) => {
+    try {
+      const sites = await storage.getSitesByClient(req.params.id);
+      res.json(sites);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/clients", authMiddleware, requireStaff, async (req, res) => {
     try {
       const parsed = insertClientSchema.safeParse(req.body);
