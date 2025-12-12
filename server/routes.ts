@@ -39,6 +39,23 @@ const upload = multer({
   limits: {
     files: 200, // Support up to 200 files (24+ months of hourly + 15-min data)
     fileSize: 50 * 1024 * 1024 // 50MB per file
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow PDFs, images, and CSVs
+    const allowedMimes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'text/csv',
+      'application/vnd.ms-excel',
+    ];
+    if (allowedMimes.includes(file.mimetype) || file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
   }
 });
 
@@ -636,6 +653,145 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("Quick estimate error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Detailed analysis request with procuration and file uploads
+  app.post("/api/detailed-analysis-request", upload.any(), async (req, res) => {
+    try {
+      const {
+        companyName,
+        contactName,
+        email,
+        phone,
+        streetAddress,
+        city,
+        province,
+        postalCode,
+        estimatedMonthlyBill,
+        buildingType,
+        hqAccountNumber,
+        notes,
+        procurationAccepted,
+        procurationDate,
+        language,
+      } = req.body;
+
+      // Validate required fields
+      if (!companyName || !contactName || !email || !streetAddress || !city) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (procurationAccepted !== 'true') {
+        return res.status(400).json({ error: "Procuration must be accepted" });
+      }
+
+      // Get uploaded files
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "At least one HQ bill file is required" });
+      }
+
+      // Build notes with procuration info
+      const procurationInfo = language === 'fr'
+        ? `[PROCURATION SIGNÉE] Acceptée le ${new Date(procurationDate).toLocaleString('fr-CA')} par ${contactName}`
+        : `[AUTHORIZATION SIGNED] Accepted on ${new Date(procurationDate).toLocaleString('en-CA')} by ${contactName}`;
+      
+      const fileInfo = files.map((f, i) => `Fichier ${i + 1}: ${f.originalname}`).join('\n');
+      
+      const combinedNotes = [
+        '[Analyse Détaillée avec Procuration]',
+        procurationInfo,
+        '',
+        `Numéro de compte HQ: ${hqAccountNumber || 'Non fourni'}`,
+        '',
+        'Factures téléversées:',
+        fileInfo,
+        '',
+        notes || ''
+      ].join('\n').trim();
+
+      // Create lead in database
+      const leadData = {
+        companyName,
+        contactName,
+        email,
+        phone: phone || null,
+        streetAddress,
+        city,
+        province: province || 'Québec',
+        postalCode: postalCode || null,
+        estimatedMonthlyBill: estimatedMonthlyBill ? parseFloat(estimatedMonthlyBill) : null,
+        buildingType: buildingType || null,
+        notes: combinedNotes,
+        source: 'detailed-analysis-form',
+        status: 'qualified', // Mark as qualified since they signed procuration
+      };
+
+      const parsed = insertLeadSchema.safeParse(leadData);
+      if (!parsed.success) {
+        console.error("[Detailed Analysis] Validation error:", parsed.error.errors);
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+
+      let lead = await storage.createLead(parsed.data);
+
+      // Store file references (move files to permanent location)
+      const uploadDir = path.join('uploads', 'bills', lead.id);
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      for (const file of files) {
+        const destPath = path.join(uploadDir, file.originalname);
+        fs.renameSync(file.path, destPath);
+      }
+
+      // Sync to Zoho CRM
+      try {
+        const nameParts = (contactName || "").split(" ");
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "-";
+        
+        const zohoResult = await zoho.createLead({
+          firstName,
+          lastName,
+          email,
+          phone: phone || undefined,
+          company: companyName || undefined,
+          description: combinedNotes,
+          source: "Website - Detailed Analysis",
+          streetAddress: streetAddress || undefined,
+          city: city || undefined,
+          province: province || "Québec",
+          postalCode: postalCode || undefined,
+        });
+        
+        if (zohoResult.success && zohoResult.data) {
+          lead = await storage.updateLead(lead.id, { zohoLeadId: zohoResult.data }) || lead;
+          console.log(`[Detailed Analysis] Lead synced to Zoho: ${lead.id} -> ${zohoResult.data}`);
+        }
+      } catch (zohoError) {
+        console.error("[Detailed Analysis] Zoho sync failed:", zohoError);
+      }
+
+      // Trigger roof estimation in background
+      if (streetAddress && city) {
+        triggerRoofEstimation(lead.id, leadData).catch((err) => {
+          console.error(`[Detailed Analysis ${lead.id}] Roof estimation failed:`, err);
+        });
+      }
+
+      console.log(`[Detailed Analysis] Lead created: ${lead.id}, Files: ${files.length}`);
+      
+      res.status(201).json({ 
+        success: true, 
+        leadId: lead.id,
+        filesUploaded: files.length,
+      });
+    } catch (error) {
+      console.error("[Detailed Analysis] Error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
