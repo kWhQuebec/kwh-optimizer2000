@@ -1465,7 +1465,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <Card className="p-8 text-center space-y-6 border-2">
+            <Card className="p-8 text-center space-y-6 border-0 shadow-none">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                 <Phone className="w-8 h-8 text-primary" />
               </div>
