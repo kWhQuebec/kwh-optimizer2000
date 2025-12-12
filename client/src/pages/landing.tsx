@@ -263,21 +263,26 @@ export default function LandingPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="space-y-2">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-[1.15]">
-                  {t("landing.hero.title")}
+              <div className="space-y-1">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-[1.15]">
+                  <span className="font-bold">
+                    {language === "fr" ? "Panneau solaire + stockage" : "Solar panels + storage"}
+                  </span>
+                  <br />
+                  <span className="font-normal">
+                    {language === "fr" ? "Commercial & Industriel" : "Commercial & Industrial"}
+                  </span>
+                  <br />
+                  <span className="font-normal">
+                    {language === "fr" ? "Partout au Québec" : "Across Quebec"}
+                  </span>
                 </h1>
-                <p className="text-lg sm:text-xl text-primary font-semibold">
-                  {t("landing.hero.subtitle")}
+                <p className="text-lg sm:text-xl text-primary font-bold pt-2">
+                  {language === "fr" 
+                    ? "Incitatifs financiers jusqu'à 60% du projet." 
+                    : "Financial incentives up to 60% of the project."}
                 </p>
               </div>
-              
-              <p className="text-base text-muted-foreground">
-                {language === "fr" 
-                  ? "Choisissez le niveau d'analyse adapté à vos besoins"
-                  : "Choose the analysis level that fits your needs"
-                }
-              </p>
 
               {/* Trust badges - stacked */}
               <div className="flex flex-col gap-2 pt-2">
@@ -295,16 +300,7 @@ export default function LandingPage() {
                 </div>
               </div>
               
-              {/* CTA Button */}
-              <div className="pt-2">
-                <a href="#paths">
-                  <Button size="lg" className="gap-2" data-testid="button-hero-cta">
-                    {language === "fr" ? "Obtenir mon analyse" : "Get my analysis"}
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </a>
-              </div>
-            </motion.div>
+              </motion.div>
             
             {/* Right: Visual - wider */}
             <motion.div
@@ -326,12 +322,27 @@ export default function LandingPage() {
               <div className="bg-primary text-primary-foreground rounded-xl p-4 shadow-lg">
                 <p className="text-base font-semibold text-center">
                   {language === "fr" 
-                    ? "Gratuit: design du système le plus rentable pour votre immeuble" 
-                    : "Free: design of the most profitable system for your building"}
+                    ? <>GRATUIT: design du système <span className="underline">le plus rentable</span> pour votre immeuble</> 
+                    : <>FREE: design of <span className="underline">the most profitable</span> system for your building</>}
                 </p>
               </div>
             </motion.div>
           </div>
+          
+          {/* CTA Button - Centered below both columns */}
+          <motion.div 
+            className="flex justify-center pt-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <a href="#paths">
+              <Button size="lg" className="gap-2 text-base px-8" data-testid="button-hero-cta">
+                {language === "fr" ? "Choix de 2 types d'analyses GRATUITES" : "Choose from 2 FREE analysis types"}
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </a>
+          </motion.div>
         </div>
       </section>
 
