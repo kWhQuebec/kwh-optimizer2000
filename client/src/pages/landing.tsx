@@ -378,12 +378,12 @@ export default function LandingPage() {
                         <Timer className="w-7 h-7 text-primary" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-xl font-bold">
-                            {language === "fr" ? "Analyse RAPIDE" : "Quick Analysis"}
-                          </h3>
+                        <h3 className="text-xl font-bold">
+                          {language === "fr" ? "Analyse RAPIDE" : "Quick Analysis"}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
                           <Badge className="bg-primary/10 text-primary border-primary/20">
-                            5 min
+                            2 min
                           </Badge>
                           <Badge variant="outline" className="text-muted-foreground">
                             ~75% {language === "fr" ? "précision" : "accuracy"}
@@ -778,10 +778,10 @@ export default function LandingPage() {
                           <FileBarChart className="w-7 h-7 text-accent" />
                         </div>
                         <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-xl font-bold">
-                              {language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis"}
-                            </h3>
+                          <h3 className="text-xl font-bold">
+                            {language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis"}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1">
                             <Badge className="bg-accent/10 text-accent border-accent/20">
                               5 {language === "fr" ? "jours" : "days"}
                             </Badge>
