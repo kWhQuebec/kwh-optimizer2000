@@ -1,4 +1,6 @@
-import PDFDocument from "pdfkit";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import fs from "fs";
+import path from "path";
 
 interface ProcurationData {
   companyName: string;
@@ -24,6 +26,28 @@ const MANDATAIRE = {
   fax: "514-891-8199",
 };
 
+// Field names from the HQ PDF template mapped to their purpose
+// Based on Y position (higher Y = lower on page since PDF origin is bottom-left)
+const HQ_FIELDS = {
+  // Top section - Mandant (Client) info
+  mandantNom: "7029000000028423",           // y=633, x=99, w=497 - Nom du mandant
+  mandantAdresse: "7029000000028424",        // y=604, x=99, w=497 - Adresse
+  mandantVille: "7029000000028425",          // y=604, x=334, w=261 - Ville
+  
+  // Date validity section
+  dateDebut: "7029000000028419",             // y=566, x=99 - Date début
+  moisDebut: "7029000000028418",             // y=563, x=290 - Mois début
+  anneeDebut: "7029000000028417",            // y=564, x=369 - Année début
+  dateFinOuIndeterminee: "7029000000028416", // y=563, x=466 - Date fin ou indéterminée
+  
+  // Bottom section - Mandataire (kWh Québec) info
+  mandataireEntreprise: "7029000000028426",  // y=189, x=99, w=497 - Entreprise mandataire
+  mandataireNom: "7029000000028430",         // y=190, x=386, w=210 - Nom représentant
+  mandataireFonction: "7029000000028427",    // y=163, x=387, w=209 - Fonction
+  mandataireTel: "7029000000028429",         // y=247, x=157, w=439 - Téléphone
+  mandataireFax: "7029000000028428",         // y=247, x=337, w=259 - Fax
+};
+
 function addBusinessDays(date: Date, days: number): Date {
   const result = new Date(date);
   let addedDays = 0;
@@ -45,113 +69,156 @@ function formatDateFr(date: Date): string {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-export function generateProcurationPDF(
-  doc: PDFKit.PDFDocument,
-  data: ProcurationData
-): void {
-  const pageWidth = 612;
-  const margin = 50;
-  const contentWidth = pageWidth - 2 * margin;
-  
-  doc.font("Helvetica");
+function formatDay(date: Date): string {
+  return date.getDate().toString().padStart(2, '0');
+}
 
-  doc.fontSize(14).font("Helvetica-Bold");
-  doc.text("PROCURATION", margin, 50, { align: "center", width: contentWidth });
-  doc.font("Helvetica");
-  
-  doc.moveDown(1.5);
-  doc.fontSize(10);
+function formatMonth(date: Date): string {
+  const months = ["janvier", "février", "mars", "avril", "mai", "juin",
+    "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+  return months[date.getMonth()];
+}
 
-  doc.text("Je soussigné(e),", margin);
-  doc.moveDown(0.5);
+function formatYear(date: Date): string {
+  return date.getFullYear().toString();
+}
+
+export async function generateProcurationPDF(data: ProcurationData): Promise<Buffer> {
+  // Load the HQ template
+  const templatePath = path.join(process.cwd(), "server/templates/procuration_hq_template.pdf");
+  const existingPdfBytes = fs.readFileSync(templatePath);
+  const pdfDoc = await PDFDocument.load(existingPdfBytes);
   
-  doc.font("Helvetica-Bold");
-  doc.text(`Nom : ${data.contactName}`, margin);
-  doc.text(`Titre/Fonction : ${data.signerTitle}`, margin);
-  doc.text(`Entreprise : ${data.companyName}`, margin);
-  doc.text(`No de compte Hydro-Québec : ${data.hqAccountNumber}`, margin);
-  doc.font("Helvetica");
+  const form = pdfDoc.getForm();
   
-  const fullAddress = [data.streetAddress, data.city, data.province, data.postalCode]
-    .filter(Boolean)
-    .join(", ");
-  doc.text(`Adresse : ${fullAddress}`, margin);
+  // Fill in the mandant (client) information
+  const fullAddress = [data.streetAddress, data.postalCode].filter(Boolean).join(", ");
+  const cityProvince = [data.city, data.province].filter(Boolean).join(", ");
   
-  doc.moveDown(1);
-  doc.text("autorise par la présente,", margin);
-  doc.moveDown(0.5);
+  // Mandant section
+  try {
+    form.getTextField(HQ_FIELDS.mandantNom).setText(
+      `${data.contactName} - ${data.companyName} - No compte: ${data.hqAccountNumber}`
+    );
+  } catch (e) { console.log("Field mandantNom not found or error:", e); }
   
-  doc.font("Helvetica-Bold");
-  doc.text(`Entreprise : ${MANDATAIRE.companyName}`, margin);
-  doc.text(`Représentant : ${MANDATAIRE.contactName}`, margin);
-  doc.text(`Titre : ${MANDATAIRE.title}`, margin);
-  doc.text(`Téléphone : ${MANDATAIRE.phone}`, margin);
-  doc.text(`Télécopieur : ${MANDATAIRE.fax}`, margin);
-  doc.font("Helvetica");
+  try {
+    form.getTextField(HQ_FIELDS.mandantAdresse).setText(fullAddress);
+  } catch (e) { console.log("Field mandantAdresse not found or error:", e); }
   
-  doc.moveDown(1);
-  doc.text(
-    "à effectuer en mon nom les démarches suivantes auprès d'Hydro-Québec :",
-    margin,
-    undefined,
-    { width: contentWidth }
-  );
+  try {
+    form.getTextField(HQ_FIELDS.mandantVille).setText(cityProvince);
+  } catch (e) { console.log("Field mandantVille not found or error:", e); }
   
-  doc.moveDown(0.5);
-  const permissions = [
-    "• Obtenir l'historique de consommation d'électricité détaillé (données 15 minutes)",
-    "• Demander les données techniques du compteur",
-    "• Consulter les informations du compte client",
-    "• Communiquer avec Hydro-Québec concernant ce dossier",
-  ];
-  permissions.forEach((p) => {
-    doc.text(p, margin + 10, undefined, { width: contentWidth - 20 });
-  });
+  // Date section
+  try {
+    form.getTextField(HQ_FIELDS.dateDebut).setText(formatDay(data.procurationDate));
+  } catch (e) { console.log("Field dateDebut not found or error:", e); }
   
-  doc.moveDown(1);
-  doc.text("Cette procuration est valide :", margin);
-  doc.moveDown(0.3);
-  doc.text(`Du : ${formatDateFr(data.procurationDate)}`, margin + 10);
-  doc.text(`Au : ${formatDateFr(data.procurationEndDate)}`, margin + 10);
+  try {
+    form.getTextField(HQ_FIELDS.moisDebut).setText(formatMonth(data.procurationDate));
+  } catch (e) { console.log("Field moisDebut not found or error:", e); }
   
-  doc.moveDown(1.5);
+  try {
+    form.getTextField(HQ_FIELDS.anneeDebut).setText(formatYear(data.procurationDate));
+  } catch (e) { console.log("Field anneeDebut not found or error:", e); }
   
-  doc.text("Signature du mandant :", margin);
-  doc.moveDown(0.3);
+  try {
+    // End date as formatted date
+    form.getTextField(HQ_FIELDS.dateFinOuIndeterminee).setText(
+      `${formatDay(data.procurationEndDate)}/${(data.procurationEndDate.getMonth() + 1).toString().padStart(2, '0')}/${formatYear(data.procurationEndDate)}`
+    );
+  } catch (e) { console.log("Field dateFinOuIndeterminee not found or error:", e); }
   
+  // Mandataire (kWh Québec) section
+  try {
+    form.getTextField(HQ_FIELDS.mandataireEntreprise).setText(MANDATAIRE.companyName);
+  } catch (e) { console.log("Field mandataireEntreprise not found or error:", e); }
+  
+  try {
+    form.getTextField(HQ_FIELDS.mandataireNom).setText(MANDATAIRE.contactName);
+  } catch (e) { console.log("Field mandataireNom not found or error:", e); }
+  
+  try {
+    form.getTextField(HQ_FIELDS.mandataireFonction).setText(MANDATAIRE.title);
+  } catch (e) { console.log("Field mandataireFonction not found or error:", e); }
+  
+  try {
+    form.getTextField(HQ_FIELDS.mandataireTel).setText(MANDATAIRE.phone);
+  } catch (e) { console.log("Field mandataireTel not found or error:", e); }
+  
+  try {
+    form.getTextField(HQ_FIELDS.mandataireFax).setText(MANDATAIRE.fax);
+  } catch (e) { console.log("Field mandataireFax not found or error:", e); }
+  
+  // Add signature image if provided
   if (data.signatureImage) {
     try {
+      const page = pdfDoc.getPage(0);
+      const { height } = page.getSize();
+      
+      // Parse base64 signature
       const base64Data = data.signatureImage.replace(/^data:image\/\w+;base64,/, "");
-      const imageBuffer = Buffer.from(base64Data, "base64");
-      doc.image(imageBuffer, margin, doc.y, { width: 200, height: 60 });
-      doc.y += 65;
+      const signatureBuffer = Buffer.from(base64Data, "base64");
+      
+      // Embed the PNG image
+      const signatureImage = await pdfDoc.embedPng(signatureBuffer);
+      
+      // Position signature in the signature area of the form
+      // Typically near the bottom left of the form
+      const signatureWidth = 150;
+      const signatureHeight = 50;
+      const signatureX = 100;
+      const signatureY = 100; // Near bottom of page
+      
+      page.drawImage(signatureImage, {
+        x: signatureX,
+        y: signatureY,
+        width: signatureWidth,
+        height: signatureHeight,
+      });
     } catch (e) {
-      doc.text("[Signature électronique]", margin);
+      console.log("Error adding signature image:", e);
     }
   }
   
-  doc.moveDown(0.5);
-  doc.fontSize(8).fillColor("#666666");
-  doc.text(`Signé électroniquement le ${formatDateFr(data.procurationDate)}`, margin);
+  // Add electronic signature metadata at the bottom of the page
+  const page = pdfDoc.getPage(0);
+  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  
+  const metadataY = 30;
+  const metadataFontSize = 7;
+  
+  page.drawText(
+    `Signé électroniquement le ${formatDateFr(data.procurationDate)} via la plateforme kWh Québec`,
+    {
+      x: 50,
+      y: metadataY + 20,
+      size: metadataFontSize,
+      font: helveticaFont,
+      color: rgb(0.4, 0.4, 0.4),
+    }
+  );
   
   if (data.ipAddress) {
-    doc.text(`Adresse IP : ${data.ipAddress}`, margin);
-  }
-  if (data.userAgent) {
-    const shortUA = data.userAgent.substring(0, 80);
-    doc.text(`Navigateur : ${shortUA}...`, margin);
+    page.drawText(
+      `IP: ${data.ipAddress}`,
+      {
+        x: 50,
+        y: metadataY + 10,
+        size: metadataFontSize,
+        font: helveticaFont,
+        color: rgb(0.4, 0.4, 0.4),
+      }
+    );
   }
   
-  doc.moveDown(2);
-  doc.fontSize(7).fillColor("#999999");
-  doc.text(
-    "Ce document a été généré électroniquement par la plateforme kWh Québec. " +
-    "La signature électronique ci-dessus a été capturée en conformité avec la " +
-    "Loi concernant le cadre juridique des technologies de l'information (RLRQ, c. C-1.1).",
-    margin,
-    undefined,
-    { width: contentWidth, align: "justify" }
-  );
+  // Flatten the form to prevent further editing
+  form.flatten();
+  
+  // Save and return the PDF
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes);
 }
 
 export function createProcurationData(
@@ -191,4 +258,12 @@ export function createProcurationData(
     ipAddress,
     userAgent,
   };
+}
+
+// Legacy function for backward compatibility - no longer uses PDFKit doc
+export function generateProcurationPDFLegacy(
+  doc: any,
+  data: ProcurationData
+): void {
+  console.warn("Legacy generateProcurationPDF called - use async version instead");
 }

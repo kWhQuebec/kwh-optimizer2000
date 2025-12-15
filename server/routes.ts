@@ -825,7 +825,7 @@ export async function registerRoutes(
         console.error("[Detailed Analysis] Zoho sync failed:", zohoError);
       }
 
-      // Generate and send procuration PDF
+      // Generate and send procuration PDF using official HQ template
       // TODO: BEFORE LAUNCH - Change email recipient from info@kwh.quebec to Hydro-Québec's official email
       try {
         const procurationData = createProcurationData(
@@ -845,21 +845,8 @@ export async function registerRoutes(
           userAgent
         );
 
-        // Create PDF buffer
-        const pdfDoc = new PDFDocument({ size: 'LETTER', margin: 50 });
-        const pdfChunks: Buffer[] = [];
-        
-        pdfDoc.on('data', (chunk: Buffer) => pdfChunks.push(chunk));
-        
-        await new Promise<void>((resolve, reject) => {
-          pdfDoc.on('end', resolve);
-          pdfDoc.on('error', reject);
-          
-          generateProcurationPDF(pdfDoc, procurationData);
-          pdfDoc.end();
-        });
-        
-        const pdfBuffer = Buffer.concat(pdfChunks);
+        // Generate PDF using official HQ template with pdf-lib
+        const pdfBuffer = await generateProcurationPDF(procurationData);
         
         // Save PDF to disk
         const procurationDir = path.join('uploads', 'procurations');
