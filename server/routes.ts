@@ -750,6 +750,52 @@ export async function registerRoutes(
         fs.renameSync(file.path, destPath);
       }
 
+      // Create procuration signature record with captured signature
+      const signatureImage = req.body.signatureImage;
+      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      
+      try {
+        await storage.createProcurationSignature({
+          signerName: contactName,
+          signerEmail: email,
+          companyName: companyName,
+          hqAccountNumber: hqAccountNumber || null,
+          leadId: lead.id,
+          status: 'signed',
+          language: language === 'en' ? 'en' : 'fr',
+          ipAddress: clientIp,
+          userAgent: userAgent,
+        });
+        console.log(`[Detailed Analysis] Procuration signature recorded for lead: ${lead.id}`);
+        
+        // Validate and save signature image if provided
+        if (signatureImage && typeof signatureImage === 'string') {
+          // Validate it's a valid data URL with PNG format
+          const validDataUrlPattern = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/;
+          const isValidFormat = signatureImage.startsWith('data:image/png;base64,');
+          
+          // Check size limit (500KB max for signature)
+          const base64Data = signatureImage.replace(/^data:image\/\w+;base64,/, '');
+          const sizeInBytes = Buffer.from(base64Data, 'base64').length;
+          const maxSizeBytes = 500 * 1024; // 500KB
+          
+          if (isValidFormat && sizeInBytes <= maxSizeBytes) {
+            const signatureDir = path.join('uploads', 'signatures');
+            if (!fs.existsSync(signatureDir)) {
+              fs.mkdirSync(signatureDir, { recursive: true });
+            }
+            const signaturePath = path.join(signatureDir, `${lead.id}_signature.png`);
+            fs.writeFileSync(signaturePath, Buffer.from(base64Data, 'base64'));
+            console.log(`[Detailed Analysis] Signature image saved: ${signaturePath} (${Math.round(sizeInBytes / 1024)}KB)`);
+          } else {
+            console.warn(`[Detailed Analysis] Invalid signature format or size: format=${isValidFormat}, size=${Math.round(sizeInBytes / 1024)}KB`);
+          }
+        }
+      } catch (sigError) {
+        console.error("[Detailed Analysis] Failed to create signature record:", sigError);
+      }
+
       // Sync to Zoho CRM
       try {
         const nameParts = (contactName || "").split(" ");

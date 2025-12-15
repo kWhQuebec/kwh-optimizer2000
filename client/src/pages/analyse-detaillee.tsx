@@ -903,23 +903,26 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 </p>
                               </div>
                               
-                              <SignaturePad
-                                ref={signaturePadRef}
-                                width={500}
-                                height={150}
-                                onSignatureChange={(hasSig) => {
-                                  setHasSignature(hasSig);
-                                  form.setValue('procurationAccepted', hasSig);
-                                }}
-                                clearButtonText={language === "fr" ? "Effacer" : "Clear"}
-                                signedText={language === "fr" ? "Signature capturée" : "Signature captured"}
-                              />
-                              
                               <FormField
                                 control={form.control}
                                 name="procurationAccepted"
-                                render={() => (
+                                render={({ field }) => (
                                   <FormItem>
+                                    <FormControl>
+                                      <div>
+                                        <SignaturePad
+                                          ref={signaturePadRef}
+                                          width={500}
+                                          height={150}
+                                          onSignatureChange={(hasSig) => {
+                                            setHasSignature(hasSig);
+                                            field.onChange(hasSig);
+                                          }}
+                                          clearButtonText={language === "fr" ? "Effacer" : "Clear"}
+                                          signedText={language === "fr" ? "Signature capturée" : "Signature captured"}
+                                        />
+                                      </div>
+                                    </FormControl>
                                     <FormMessage />
                                   </FormItem>
                                 )}
