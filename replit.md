@@ -148,6 +148,21 @@ Bilingual email templates (`server/emailTemplates.ts`) for:
 
 Templates use placeholder substitution ({{contactName}}, {{pvSizeKW}}, etc.) and include HTML/text variants.
 
+### Hydro-Québec Procuration System (Dec 2024 Feature)
+
+Electronic signature and PDF generation for Hydro-Québec data access authorization:
+
+- **3-Step Wizard** (`/analyse-detaillee`): Company info → Signature → File upload
+- **Signer Fields**: Name, Title/Position, Company, HQ Account Number, Address
+- **HTML5 Canvas Signature**: In-browser signature capture with validation
+- **PDF Generation**: `server/procurationPdfGenerator.ts` creates official HQ procuration document
+- **Validity Period**: Automatic calculation of +15 business days from signature date
+- **Mandataire Info**: Pre-filled with kWh Québec (Marc-André La Barre, Chef des opérations)
+- **Legal Metadata**: IP address, user agent, timestamp captured for compliance
+- **Email Delivery**: PDF sent as attachment via Gmail API
+
+**TODO BEFORE LAUNCH**: Change email recipient from `info@kwh.quebec` (testing) to Hydro-Québec's official procuration email address.
+
 ## External Dependencies
 
 ### Third-Party Services
