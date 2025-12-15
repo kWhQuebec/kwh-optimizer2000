@@ -17,6 +17,7 @@ import type {
   PortfolioSite, InsertPortfolioSite,
   PortfolioWithSites,
   PortfolioSiteWithDetails,
+  BlogArticle, InsertBlogArticle,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -122,6 +123,15 @@ export interface IStorage {
   addSiteToPortfolio(portfolioSite: InsertPortfolioSite): Promise<PortfolioSite>;
   removeSiteFromPortfolio(portfolioId: string, siteId: string): Promise<boolean>;
   updatePortfolioSite(id: string, data: Partial<PortfolioSite>): Promise<PortfolioSite | undefined>;
+
+  // Blog Articles
+  getBlogArticles(status?: string): Promise<BlogArticle[]>;
+  getBlogArticle(id: string): Promise<BlogArticle | undefined>;
+  getBlogArticleBySlug(slug: string): Promise<BlogArticle | undefined>;
+  createBlogArticle(article: InsertBlogArticle): Promise<BlogArticle>;
+  updateBlogArticle(id: string, article: Partial<BlogArticle>): Promise<BlogArticle | undefined>;
+  deleteBlogArticle(id: string): Promise<boolean>;
+  incrementArticleViews(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -139,6 +149,7 @@ export class MemStorage implements IStorage {
   private designAgreements: Map<string, DesignAgreement> = new Map();
   private portfolios: Map<string, Portfolio> = new Map();
   private portfolioSites: Map<string, PortfolioSite> = new Map();
+  private blogArticles: Map<string, BlogArticle> = new Map();
 
   constructor() {
     this.seedDefaultData();
@@ -796,6 +807,60 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...data };
     this.portfolioSites.set(id, updated);
     return updated;
+  }
+
+  // Blog Articles
+  async getBlogArticles(status?: string): Promise<BlogArticle[]> {
+    let articles = Array.from(this.blogArticles.values());
+    if (status) {
+      articles = articles.filter(a => a.status === status);
+    }
+    return articles.sort((a, b) => 
+      (b.publishedAt?.getTime() || b.createdAt?.getTime() || 0) - 
+      (a.publishedAt?.getTime() || a.createdAt?.getTime() || 0)
+    );
+  }
+
+  async getBlogArticle(id: string): Promise<BlogArticle | undefined> {
+    return this.blogArticles.get(id);
+  }
+
+  async getBlogArticleBySlug(slug: string): Promise<BlogArticle | undefined> {
+    return Array.from(this.blogArticles.values()).find(a => a.slug === slug);
+  }
+
+  async createBlogArticle(article: InsertBlogArticle): Promise<BlogArticle> {
+    const id = randomUUID();
+    const newArticle: BlogArticle = {
+      id,
+      ...article,
+      status: article.status || "draft",
+      viewCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.blogArticles.set(id, newArticle);
+    return newArticle;
+  }
+
+  async updateBlogArticle(id: string, article: Partial<BlogArticle>): Promise<BlogArticle | undefined> {
+    const existing = this.blogArticles.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...article, updatedAt: new Date() };
+    this.blogArticles.set(id, updated);
+    return updated;
+  }
+
+  async deleteBlogArticle(id: string): Promise<boolean> {
+    return this.blogArticles.delete(id);
+  }
+
+  async incrementArticleViews(id: string): Promise<void> {
+    const existing = this.blogArticles.get(id);
+    if (existing) {
+      existing.viewCount = (existing.viewCount || 0) + 1;
+      this.blogArticles.set(id, existing);
+    }
   }
 }
 

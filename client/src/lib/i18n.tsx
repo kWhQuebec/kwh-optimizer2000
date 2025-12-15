@@ -777,6 +777,23 @@ const translations: Translations = {
   "publicAgreement.error": { fr: "Une erreur est survenue", en: "An error occurred" },
   "publicAgreement.signingSuccess": { fr: "Entente signée avec succès!", en: "Agreement signed successfully!" },
   "publicAgreement.redirectingToPayment": { fr: "Redirection vers le paiement...", en: "Redirecting to payment..." },
+
+  // Blog / Articles
+  "blog.title": { fr: "Ressources et guides", en: "Resources & Guides" },
+  "blog.subtitle": { fr: "Tout ce que vous devez savoir sur le solaire commercial au Québec", en: "Everything you need to know about commercial solar in Québec" },
+  "blog.readMore": { fr: "Lire l'article", en: "Read article" },
+  "blog.backToList": { fr: "Retour aux articles", en: "Back to articles" },
+  "blog.publishedOn": { fr: "Publié le", en: "Published on" },
+  "blog.category.guide": { fr: "Guide", en: "Guide" },
+  "blog.category.news": { fr: "Actualité", en: "News" },
+  "blog.category.case-study": { fr: "Étude de cas", en: "Case Study" },
+  "blog.category.program": { fr: "Programme", en: "Program" },
+  "blog.noArticles": { fr: "Aucun article pour le moment", en: "No articles yet" },
+  "blog.relatedArticles": { fr: "Articles connexes", en: "Related Articles" },
+  "blog.shareArticle": { fr: "Partager cet article", en: "Share this article" },
+  "blog.ctaTitle": { fr: "Prêt à passer à l'action?", en: "Ready to take action?" },
+  "blog.ctaDescription": { fr: "Obtenez une estimation gratuite du potentiel solaire de votre bâtiment.", en: "Get a free solar potential estimate for your building." },
+  "blog.ctaButton": { fr: "Demander mon analyse", en: "Request my analysis" },
 };
 
 interface I18nContextType {

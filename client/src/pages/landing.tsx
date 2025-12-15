@@ -1369,22 +1369,32 @@ export default function LandingPage() {
             >
               <Card className="p-6 h-full bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
                 {/* Hero Numbers */}
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  <div className="text-center p-4 rounded-xl bg-primary/10" data-testid="strength-experience">
-                    <p className="text-4xl font-bold text-primary">15+</p>
-                    <p className="text-sm font-medium mt-1">
-                      {language === "fr" ? "ans d'expérience" : "years experience"}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-3 rounded-xl bg-primary/10" data-testid="strength-experience">
+                    <p className="text-3xl sm:text-4xl font-bold text-primary">15+</p>
+                    <p className="text-xs sm:text-sm font-medium mt-1">
+                      {language === "fr" ? "ans" : "years"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr" ? "Énergie renouvelable" : "Renewable energy"}
+                    <p className="text-xs text-muted-foreground hidden sm:block">
+                      {language === "fr" ? "d'expérience" : "experience"}
                     </p>
                   </div>
                   
-                  <div className="text-center p-4 rounded-xl bg-primary/10" data-testid="strength-capacity">
-                    <p className="text-4xl font-bold text-primary">120</p>
-                    <p className="text-sm font-medium mt-1">MW {language === "fr" ? "installés" : "installed"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr" ? "Au Québec" : "In Quebec"}
+                  <div className="text-center p-3 rounded-xl bg-primary/10" data-testid="strength-capacity">
+                    <p className="text-3xl sm:text-4xl font-bold text-primary">120</p>
+                    <p className="text-xs sm:text-sm font-medium mt-1">MW</p>
+                    <p className="text-xs text-muted-foreground hidden sm:block">
+                      {language === "fr" ? "installés" : "installed"}
+                    </p>
+                  </div>
+                  
+                  <div className="text-center p-3 rounded-xl bg-primary/10" data-testid="strength-projects">
+                    <p className="text-3xl sm:text-4xl font-bold text-primary">25+</p>
+                    <p className="text-xs sm:text-sm font-medium mt-1">
+                      {language === "fr" ? "projets" : "projects"}
+                    </p>
+                    <p className="text-xs text-muted-foreground hidden sm:block">
+                      {language === "fr" ? "C&I" : "C&I"}
                     </p>
                   </div>
                 </div>

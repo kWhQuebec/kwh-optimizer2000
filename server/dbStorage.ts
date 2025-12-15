@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
   simulationRuns, designs, bomItems, componentCatalog, siteVisits, designAgreements,
-  portfolios, portfolioSites,
+  portfolios, portfolioSites, blogArticles,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -23,6 +23,7 @@ import type {
   PortfolioSite, InsertPortfolioSite,
   PortfolioWithSites,
   PortfolioSiteWithDetails,
+  BlogArticle, InsertBlogArticle,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -626,5 +627,49 @@ export class DatabaseStorage implements IStorage {
       .where(eq(portfolioSites.id, id))
       .returning();
     return result;
+  }
+
+  // Blog Articles
+  async getBlogArticles(status?: string): Promise<BlogArticle[]> {
+    if (status) {
+      return db.select().from(blogArticles)
+        .where(eq(blogArticles.status, status))
+        .orderBy(desc(blogArticles.publishedAt));
+    }
+    return db.select().from(blogArticles).orderBy(desc(blogArticles.publishedAt));
+  }
+
+  async getBlogArticle(id: string): Promise<BlogArticle | undefined> {
+    const result = await db.select().from(blogArticles).where(eq(blogArticles.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getBlogArticleBySlug(slug: string): Promise<BlogArticle | undefined> {
+    const result = await db.select().from(blogArticles).where(eq(blogArticles.slug, slug)).limit(1);
+    return result[0];
+  }
+
+  async createBlogArticle(article: InsertBlogArticle): Promise<BlogArticle> {
+    const [result] = await db.insert(blogArticles).values(article).returning();
+    return result;
+  }
+
+  async updateBlogArticle(id: string, article: Partial<BlogArticle>): Promise<BlogArticle | undefined> {
+    const [result] = await db.update(blogArticles)
+      .set({ ...article, updatedAt: new Date() })
+      .where(eq(blogArticles.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteBlogArticle(id: string): Promise<boolean> {
+    const result = await db.delete(blogArticles).where(eq(blogArticles.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async incrementArticleViews(id: string): Promise<void> {
+    await db.update(blogArticles)
+      .set({ viewCount: sql`COALESCE(${blogArticles.viewCount}, 0) + 1` })
+      .where(eq(blogArticles.id, id));
   }
 }

@@ -23,6 +23,8 @@ import SitesPage from "@/pages/sites";
 import ServicesPage from "@/pages/services";
 import CommentCaMarchePage from "@/pages/comment-ca-marche";
 import RessourcesPage from "@/pages/ressources";
+import BlogPage from "@/pages/blog";
+import BlogArticlePage from "@/pages/blog-article";
 import NotFound from "@/pages/not-found";
 
 const SiteDetailPage = lazy(() => import("@/pages/site-detail"));
@@ -106,6 +108,8 @@ function AppRoutes() {
       <Route path="/services" component={ServicesPage} />
       <Route path="/comment-ca-marche" component={CommentCaMarchePage} />
       <Route path="/ressources" component={RessourcesPage} />
+      <Route path="/blog" component={BlogPage} />
+      <Route path="/blog/:slug" component={BlogArticlePage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/sign/:token">

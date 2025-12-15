@@ -3532,6 +3532,94 @@ Pricing:
     }
   });
 
+  // ==================== BLOG ARTICLES (PUBLIC) ====================
+  
+  // Get published articles (public)
+  app.get("/api/blog", async (req: Request, res: Response) => {
+    try {
+      const articles = await storage.getBlogArticles("published");
+      res.json(articles);
+    } catch (error) {
+      console.error("Error fetching blog articles:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single article by slug (public)
+  app.get("/api/blog/:slug", async (req: Request, res: Response) => {
+    try {
+      const article = await storage.getBlogArticleBySlug(req.params.slug);
+      if (!article) {
+        return res.status(404).json({ error: "Article not found" });
+      }
+      
+      // Only return if published
+      if (article.status !== "published") {
+        return res.status(404).json({ error: "Article not found" });
+      }
+      
+      // Increment view count
+      await storage.incrementArticleViews(article.id);
+      
+      res.json(article);
+    } catch (error) {
+      console.error("Error fetching blog article:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== BLOG ARTICLES (ADMIN) ====================
+  
+  // Get all articles (admin)
+  app.get("/api/admin/blog", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const articles = await storage.getBlogArticles();
+      res.json(articles);
+    } catch (error) {
+      console.error("Error fetching blog articles:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create article (admin)
+  app.post("/api/admin/blog", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const article = await storage.createBlogArticle(req.body);
+      res.status(201).json(article);
+    } catch (error) {
+      console.error("Error creating blog article:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update article (admin)
+  app.patch("/api/admin/blog/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const article = await storage.updateBlogArticle(req.params.id, req.body);
+      if (!article) {
+        return res.status(404).json({ error: "Article not found" });
+      }
+      res.json(article);
+    } catch (error) {
+      console.error("Error updating blog article:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete article (admin)
+  app.delete("/api/admin/blog/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteBlogArticle(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Article not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting blog article:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }
 

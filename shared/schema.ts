@@ -388,6 +388,44 @@ export const portfolioSites = pgTable("portfolio_sites", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Blog Articles - SEO content marketing
+export const blogArticles = pgTable("blog_articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  
+  // Bilingual content
+  titleFr: text("title_fr").notNull(),
+  titleEn: text("title_en").notNull(),
+  excerptFr: text("excerpt_fr"),
+  excerptEn: text("excerpt_en"),
+  contentFr: text("content_fr").notNull(),
+  contentEn: text("content_en").notNull(),
+  
+  // SEO
+  metaDescriptionFr: text("meta_description_fr"),
+  metaDescriptionEn: text("meta_description_en"),
+  keywords: text("keywords").array(),
+  
+  // Media
+  featuredImage: text("featured_image"),
+  
+  // Categorization
+  category: text("category"), // "guide" | "news" | "case-study" | "program"
+  
+  // Publishing
+  status: text("status").notNull().default("draft"), // "draft" | "published" | "archived"
+  publishedAt: timestamp("published_at"),
+  
+  // Author
+  authorName: text("author_name"),
+  
+  // Analytics
+  viewCount: integer("view_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Design Agreements - Étape 3 paid commitment
 export const designAgreements = pgTable("design_agreements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -528,6 +566,13 @@ export const insertPortfolioSiteSchema = createInsertSchema(portfolioSites).omit
   createdAt: true,
 });
 
+export const insertBlogArticleSchema = createInsertSchema(blogArticles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  viewCount: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -570,6 +615,9 @@ export type Portfolio = typeof portfolios.$inferSelect;
 
 export type InsertPortfolioSite = z.infer<typeof insertPortfolioSiteSchema>;
 export type PortfolioSite = typeof portfolioSites.$inferSelect;
+
+export type InsertBlogArticle = z.infer<typeof insertBlogArticleSchema>;
+export type BlogArticle = typeof blogArticles.$inferSelect;
 
 // Extended types for frontend
 export type SiteWithClient = Site & { client: Client };
