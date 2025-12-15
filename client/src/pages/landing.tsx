@@ -963,165 +963,53 @@ export default function LandingPage() {
                               </div>
                             </div>
                             
-                            {/* Right: Contact form */}
-                            <div className="p-6 space-y-5">
+                            {/* Right: CTA to dedicated page */}
+                            <div className="p-6 space-y-5 flex flex-col justify-center">
                               <h4 className="font-semibold">
                                 {language === "fr" ? "Demander mon analyse" : "Request my analysis"}
                               </h4>
                               
-                              {!submitted ? (
-                                <Form {...form}>
-                                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                                    <div className="grid sm:grid-cols-2 gap-4">
-                                      <FormField
-                                        control={form.control}
-                                        name="companyName"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>{t("form.companyName")}</FormLabel>
-                                            <FormControl>
-                                              <Input {...field} data-testid="input-company" />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <FormField
-                                        control={form.control}
-                                        name="contactName"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>{t("form.contactName")}</FormLabel>
-                                            <FormControl>
-                                              <Input {...field} data-testid="input-contact" />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                    </div>
-                                    
-                                    <div className="grid sm:grid-cols-2 gap-4">
-                                      <FormField
-                                        control={form.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>{t("form.email")}</FormLabel>
-                                            <FormControl>
-                                              <Input type="email" {...field} data-testid="input-email" />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <FormField
-                                        control={form.control}
-                                        name="phone"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>{t("form.phone")}</FormLabel>
-                                            <FormControl>
-                                              <Input type="tel" {...field} data-testid="input-phone" />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                    </div>
-                                    
-                                    <FormField
-                                      control={form.control}
-                                      name="streetAddress"
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>{language === "fr" ? "Adresse du bâtiment" : "Building address"}</FormLabel>
-                                          <FormControl>
-                                            <Input {...field} data-testid="input-address" />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    
-                                    <div className="grid sm:grid-cols-2 gap-4">
-                                      <FormField
-                                        control={form.control}
-                                        name="city"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>{t("form.city")}</FormLabel>
-                                            <FormControl>
-                                              <Input {...field} data-testid="input-city" />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <FormField
-                                        control={form.control}
-                                        name="estimatedMonthlyBill"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>{t("form.monthlyBill")}</FormLabel>
-                                            <FormControl>
-                                              <Input 
-                                                type="number" 
-                                                placeholder="$"
-                                                {...field}
-                                                data-testid="input-bill" 
-                                              />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                    </div>
-                                    
-                                    <Button 
-                                      type="submit" 
-                                      size="lg" 
-                                      className="w-full gap-2 bg-accent text-accent-foreground"
-                                      disabled={mutation.isPending}
-                                      data-testid="button-submit-detailed"
-                                    >
-                                      {mutation.isPending ? (
-                                        <>
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                          {language === "fr" ? "Envoi en cours..." : "Sending..."}
-                                        </>
-                                      ) : (
-                                        <>
-                                          {language === "fr" ? "Demander mon analyse détaillée" : "Request my detailed analysis"}
-                                          <ArrowRight className="w-4 h-4" />
-                                        </>
-                                      )}
-                                    </Button>
-                                    
-                                    <p className="text-xs text-muted-foreground text-center">
-                                      {language === "fr" 
-                                        ? "Nous vous contacterons dans les 24h pour les prochaines étapes"
-                                        : "We'll contact you within 24h for the next steps"
-                                      }
-                                    </p>
-                                  </form>
-                                </Form>
-                              ) : (
-                                <div className="text-center py-8 space-y-4">
-                                  <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto">
-                                    <CheckCircle2 className="w-8 h-8 text-green-600" />
+                              <div className="space-y-4">
+                                <p className="text-sm text-muted-foreground">
+                                  {language === "fr" 
+                                    ? "L'analyse détaillée nécessite la signature d'une procuration pour accéder à vos données Hydro-Québec. Notre formulaire sécurisé vous guide à travers les étapes."
+                                    : "The detailed analysis requires signing an authorization to access your Hydro-Québec data. Our secure form guides you through the steps."
+                                  }
+                                </p>
+                                
+                                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                    <span>{language === "fr" ? "Formulaire en 3 étapes simples" : "Simple 3-step form"}</span>
                                   </div>
-                                  <h4 className="text-xl font-bold">
-                                    {language === "fr" ? "Demande reçue!" : "Request received!"}
-                                  </h4>
-                                  <p className="text-muted-foreground">
-                                    {language === "fr" 
-                                      ? "Notre équipe vous contactera dans les 24 heures."
-                                      : "Our team will contact you within 24 hours."
-                                    }
-                                  </p>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                    <span>{language === "fr" ? "Signature électronique sécurisée" : "Secure electronic signature"}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                    <span>{language === "fr" ? "Téléversement de factures HQ" : "HQ bill upload"}</span>
+                                  </div>
                                 </div>
-                              )}
+                                
+                                <Link href="/analyse-detaillee">
+                                  <Button 
+                                    size="lg" 
+                                    className="w-full gap-2 bg-accent text-accent-foreground"
+                                    data-testid="button-go-to-detailed-form"
+                                  >
+                                    {language === "fr" ? "Commencer ma demande" : "Start my request"}
+                                    <ArrowRight className="w-4 h-4" />
+                                  </Button>
+                                </Link>
+                                
+                                <p className="text-xs text-muted-foreground text-center">
+                                  {language === "fr" 
+                                    ? "Environ 5 minutes pour compléter"
+                                    : "About 5 minutes to complete"
+                                  }
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
