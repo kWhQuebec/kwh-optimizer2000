@@ -1649,6 +1649,38 @@ export function SiteVisitSection({ siteId, siteLat, siteLng, designAgreementStat
                             }).format(cost.total)}
                           </Badge>
                         )}
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const token = localStorage.getItem("auth_token");
+                            const url = `/api/site-visits/${visit.id}/pdf?lang=${language}`;
+                            let blobUrl: string | null = null;
+                            try {
+                              const res = await fetch(url, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              if (!res.ok) {
+                                throw new Error(`HTTP ${res.status}`);
+                              }
+                              const blob = await res.blob();
+                              blobUrl = URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = blobUrl;
+                              a.download = `site-visit-report-${visit.id.slice(0, 8)}.pdf`;
+                              a.click();
+                            } catch (err) {
+                              console.error("PDF download failed:", err);
+                            } finally {
+                              if (blobUrl) URL.revokeObjectURL(blobUrl);
+                            }
+                          }}
+                          data-testid={`button-download-pdf-${visit.id}`}
+                          title={t("siteVisit.downloadPdf")}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
                         <Button size="icon" variant="ghost" data-testid={`button-edit-visit-${visit.id}`}>
                           <Edit3 className="w-4 h-4" />
                         </Button>
