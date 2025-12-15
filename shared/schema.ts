@@ -294,17 +294,40 @@ export const siteVisits = pgTable("site_visits", {
   sldSecondaryAvailable: boolean("sld_secondary_available"),
   sldSecondaryNeedsUpdate: boolean("sld_secondary_needs_update"),
   
-  // Equipment Info
+  // Meters Section
+  numberOfMeters: integer("number_of_meters"),
+  
+  // Roof Surface Area
+  roofSurfaceAreaSqM: real("roof_surface_area_sqm"), // Measured roof surface in m²
+  
+  // Main Electrical Equipment Info
   mainPanelManufacturer: text("main_panel_manufacturer"),
   mainPanelModel: text("main_panel_model"),
   mainBreakerManufacturer: text("main_breaker_manufacturer"),
   mainBreakerModel: text("main_breaker_model"),
+  circuitBreakerManufacturer: text("circuit_breaker_manufacturer"),
+  circuitBreakerModel: text("circuit_breaker_model"),
+  disconnectSwitchManufacturer: text("disconnect_switch_manufacturer"),
+  disconnectSwitchModel: text("disconnect_switch_model"),
+  
+  // Secondary Electrical Equipment
+  secondaryPanelManufacturer: text("secondary_panel_manufacturer"),
+  secondaryPanelModel: text("secondary_panel_model"),
+  secondaryBreakerManufacturer: text("secondary_breaker_manufacturer"),
+  secondaryBreakerModel: text("secondary_breaker_model"),
+  secondaryDisconnectManufacturer: text("secondary_disconnect_manufacturer"),
+  secondaryDisconnectModel: text("secondary_disconnect_model"),
   secondaryEquipmentNotes: text("secondary_equipment_notes"),
   
   // Photos and Documents (JSON array of file paths/URLs)
   roofPhotos: jsonb("roof_photos"),
   equipmentPhotos: jsonb("equipment_photos"),
   roofSketch: text("roof_sketch"), // Path to sketch image/document
+  photosTaken: boolean("photos_taken"), // Confirmation that photos were taken
+  documentsCollected: jsonb("documents_collected"), // { electricalDrawings: boolean, meterDetails: boolean, other: string }
+  
+  // Inspector Signature/Confirmation
+  inspectorSignature: text("inspector_signature"), // Base64 signature or text confirmation
   
   // General notes
   notes: text("notes"),
