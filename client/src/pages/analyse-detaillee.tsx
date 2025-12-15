@@ -121,6 +121,7 @@ export default function AnalyseDetailleePage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedSlide, setSelectedSlide] = useState(0);
+  const [signatureStatus, setSignatureStatus] = useState<{sent: boolean; configured: boolean}>({ sent: false, configured: false });
   const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
@@ -236,14 +237,48 @@ export default function AnalyseDetailleePage() {
         throw new Error('Failed to submit');
       }
 
-      return response.json();
+      const result = await response.json();
+
+      // Send procuration for electronic signature via Zoho Sign
+      let signatureResult = { sent: false, configured: false };
+      if (data.procurationAccepted) {
+        try {
+          const procurationResponse = await fetch('/api/procuration/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              signerName: data.contactName,
+              signerEmail: data.email,
+              companyName: data.companyName,
+              hqAccountNumber: data.hqAccountNumber,
+              language: language,
+              leadId: result.lead?.id,
+            }),
+          });
+
+          if (procurationResponse.ok) {
+            const procResult = await procurationResponse.json();
+            signatureResult = { 
+              sent: procResult.success, 
+              configured: procResult.zohoConfigured 
+            };
+          }
+        } catch (error) {
+          console.error('Failed to send procuration for signature:', error);
+        }
+      }
+
+      return { ...result, signatureResult };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Clean up object URLs
       uploadedFiles.forEach(f => {
         if (f.preview) URL.revokeObjectURL(f.preview);
       });
       setUploadedFiles([]);
+      if (data.signatureResult) {
+        setSignatureStatus(data.signatureResult);
+      }
       setSubmitted(true);
     },
   });
@@ -554,12 +589,43 @@ The data obtained will be used exclusively for solar potential analysis and phot
                     <h3 className="text-2xl font-bold mb-3">
                       {language === "fr" ? "Demande complétée!" : "Request completed!"}
                     </h3>
-                    <p className="text-muted-foreground mb-6">
+                    <p className="text-muted-foreground mb-4">
                       {language === "fr"
-                        ? "Nous avons reçu votre procuration et vos factures. Notre équipe commencera l'analyse dans les prochaines 24 heures."
-                        : "We received your authorization and bills. Our team will begin the analysis within the next 24 hours."
+                        ? "Nous avons reçu vos factures et informations. Notre équipe commencera l'analyse dans les prochaines 24 heures."
+                        : "We received your bills and information. Our team will begin the analysis within the next 24 hours."
                       }
                     </p>
+                    {signatureStatus.sent && signatureStatus.configured ? (
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
+                        <div className="flex items-center gap-2 text-primary mb-2">
+                          <FileSignature className="w-5 h-5" />
+                          <span className="font-semibold">
+                            {language === "fr" ? "Procuration électronique envoyée" : "Electronic Authorization Sent"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {language === "fr"
+                            ? "Un courriel vous a été envoyé avec la procuration à signer électroniquement. Veuillez vérifier votre boîte de réception et signer le document pour autoriser kWh Québec à accéder à vos données Hydro-Québec."
+                            : "An email has been sent to you with the authorization document to sign electronically. Please check your inbox and sign the document to authorize kWh Québec to access your Hydro-Québec data."
+                          }
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-muted/50 border border-muted rounded-lg p-4 mb-6">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                          <FileSignature className="w-5 h-5" />
+                          <span className="font-semibold">
+                            {language === "fr" ? "Procuration enregistrée" : "Authorization Recorded"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {language === "fr"
+                            ? "Votre consentement à la procuration a été enregistré. Notre équipe vous contactera pour finaliser l'autorisation d'accès à vos données Hydro-Québec."
+                            : "Your consent to the authorization has been recorded. Our team will contact you to finalize access to your Hydro-Québec data."
+                          }
+                        </p>
+                      </div>
+                    )}
                     <Link href="/">
                       <Button data-testid="button-back-after-submit">
                         {language === "fr" ? "Retour à l'accueil" : "Back to home"}

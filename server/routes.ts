@@ -3620,6 +3620,230 @@ Pricing:
     }
   });
 
+  // ==================== PROCURATION SIGNATURES (Zoho Sign) ====================
+  
+  // Check if Zoho Sign is configured
+  app.get("/api/procuration/status", async (req: Request, res: Response) => {
+    try {
+      const { isZohoSignConfigured } = await import("./zohoSignService");
+      res.json({ 
+        configured: isZohoSignConfigured(),
+        message: isZohoSignConfigured() 
+          ? "Zoho Sign is configured and ready" 
+          : "Zoho Sign credentials not configured"
+      });
+    } catch (error) {
+      console.error("Error checking Zoho Sign status:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Send procuration for signature (called after detailed analysis form submission)
+  app.post("/api/procuration/send", async (req: Request, res: Response) => {
+    try {
+      const { signerName, signerEmail, companyName, hqAccountNumber, language, leadId } = req.body;
+      
+      if (!signerName || !signerEmail || !companyName) {
+        return res.status(400).json({ error: "Missing required fields: signerName, signerEmail, companyName" });
+      }
+
+      const { isZohoSignConfigured, sendProcurationForSignature } = await import("./zohoSignService");
+      
+      if (!isZohoSignConfigured()) {
+        // Fallback: create signature record without sending (for when Zoho Sign is not configured)
+        const signature = await storage.createProcurationSignature({
+          signerName,
+          signerEmail,
+          companyName,
+          hqAccountNumber,
+          language: language || "fr",
+          leadId,
+          status: "draft",
+        });
+        
+        return res.status(200).json({ 
+          success: true,
+          signatureId: signature.id,
+          message: "Signature record created (Zoho Sign not configured)",
+          zohoConfigured: false,
+        });
+      }
+
+      // Create signature record first
+      const signature = await storage.createProcurationSignature({
+        signerName,
+        signerEmail,
+        companyName,
+        hqAccountNumber,
+        language: language || "fr",
+        leadId,
+        status: "draft",
+      });
+
+      // Send to Zoho Sign
+      const result = await sendProcurationForSignature({
+        signerName,
+        signerEmail,
+        companyName,
+        hqAccountNumber,
+        language: language || "fr",
+      });
+
+      // Update signature record with Zoho data
+      await storage.updateProcurationSignature(signature.id, {
+        zohoRequestId: result.requestId,
+        zohoDocumentId: result.documentId,
+        zohoStatus: result.status,
+        status: "sent",
+        sentAt: new Date(),
+      });
+
+      res.status(200).json({ 
+        success: true,
+        signatureId: signature.id,
+        zohoRequestId: result.requestId,
+        message: "Procuration sent for signature",
+        zohoConfigured: true,
+      });
+    } catch (error: any) {
+      console.error("Error sending procuration for signature:", error);
+      res.status(500).json({ error: error.message || "Failed to send procuration for signature" });
+    }
+  });
+
+  // Get signature status
+  app.get("/api/procuration/:id/status", async (req: Request, res: Response) => {
+    try {
+      const signature = await storage.getProcurationSignature(req.params.id);
+      if (!signature) {
+        return res.status(404).json({ error: "Signature not found" });
+      }
+
+      // If we have a Zoho request ID, check the status
+      if (signature.zohoRequestId) {
+        try {
+          const { getSignatureStatus } = await import("./zohoSignService");
+          const zohoStatus = await getSignatureStatus(signature.zohoRequestId);
+          
+          // Update local record if status changed
+          if (zohoStatus.status !== signature.zohoStatus) {
+            await storage.updateProcurationSignature(signature.id, {
+              zohoStatus: zohoStatus.status,
+              signedAt: zohoStatus.signedAt,
+              viewedAt: zohoStatus.viewedAt,
+              status: zohoStatus.status === "completed" ? "signed" : signature.status,
+            });
+          }
+          
+          res.json({
+            id: signature.id,
+            status: zohoStatus.status === "completed" ? "signed" : signature.status,
+            zohoStatus: zohoStatus.status,
+            signedAt: zohoStatus.signedAt,
+            viewedAt: zohoStatus.viewedAt,
+          });
+        } catch (error) {
+          // Return cached status if Zoho API fails
+          res.json({
+            id: signature.id,
+            status: signature.status,
+            zohoStatus: signature.zohoStatus,
+            signedAt: signature.signedAt,
+            viewedAt: signature.viewedAt,
+          });
+        }
+      } else {
+        res.json({
+          id: signature.id,
+          status: signature.status,
+          zohoStatus: signature.zohoStatus,
+        });
+      }
+    } catch (error) {
+      console.error("Error getting signature status:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Webhook for Zoho Sign callbacks
+  app.post("/api/procuration/webhook", async (req: Request, res: Response) => {
+    try {
+      const { requests } = req.body;
+      
+      if (!requests || !requests.request_id) {
+        return res.status(400).json({ error: "Invalid webhook payload" });
+      }
+
+      const requestId = requests.request_id;
+      const status = requests.request_status;
+
+      // Find signature by Zoho request ID
+      const signatures = await storage.getProcurationSignatures();
+      const signature = signatures.find(s => s.zohoRequestId === requestId);
+
+      if (signature) {
+        const updates: any = {
+          zohoStatus: status,
+        };
+
+        if (status === "completed") {
+          updates.status = "signed";
+          updates.signedAt = new Date();
+        } else if (status === "viewed") {
+          updates.viewedAt = new Date();
+        } else if (status === "declined" || status === "expired") {
+          updates.status = "failed";
+        }
+
+        await storage.updateProcurationSignature(signature.id, updates);
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error processing webhook:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Download signed document
+  app.get("/api/procuration/:id/download", async (req: Request, res: Response) => {
+    try {
+      const signature = await storage.getProcurationSignature(req.params.id);
+      if (!signature) {
+        return res.status(404).json({ error: "Signature not found" });
+      }
+
+      if (!signature.zohoRequestId) {
+        return res.status(400).json({ error: "No Zoho Sign request associated" });
+      }
+
+      if (signature.status !== "signed") {
+        return res.status(400).json({ error: "Document not yet signed" });
+      }
+
+      const { downloadSignedDocument } = await import("./zohoSignService");
+      const pdfBuffer = await downloadSignedDocument(signature.zohoRequestId);
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=procuration_hq_${signature.id}.pdf`);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Error downloading signed document:", error);
+      res.status(500).json({ error: error.message || "Failed to download document" });
+    }
+  });
+
+  // Get all signatures (admin only)
+  app.get("/api/admin/procurations", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const signatures = await storage.getProcurationSignatures();
+      res.json(signatures);
+    } catch (error) {
+      console.error("Error fetching procuration signatures:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }
 

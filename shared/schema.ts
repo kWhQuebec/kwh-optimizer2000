@@ -426,6 +426,44 @@ export const blogArticles = pgTable("blog_articles", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Procuration Signatures - HQ Authorization via Zoho Sign
+export const procurationSignatures = pgTable("procuration_signatures", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: varchar("lead_id").references(() => leads.id), // Link to lead if from detailed analysis form
+  
+  // Signer info
+  signerName: text("signer_name").notNull(),
+  signerEmail: text("signer_email").notNull(),
+  companyName: text("company_name"),
+  hqAccountNumber: text("hq_account_number"),
+  
+  // Zoho Sign tracking
+  zohoRequestId: text("zoho_request_id"), // Zoho Sign request ID
+  zohoDocumentId: text("zoho_document_id"),
+  zohoStatus: text("zoho_status").default("pending"), // "pending" | "sent" | "viewed" | "signed" | "declined" | "expired"
+  
+  // Status tracking
+  status: text("status").notNull().default("draft"), // "draft" | "sent" | "signed" | "failed"
+  
+  // Timestamps
+  sentAt: timestamp("sent_at"),
+  viewedAt: timestamp("viewed_at"),
+  signedAt: timestamp("signed_at"),
+  
+  // Signed document
+  signedDocumentUrl: text("signed_document_url"), // URL to download signed PDF
+  
+  // Language
+  language: text("language").default("fr"), // "fr" | "en"
+  
+  // Metadata
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Design Agreements - Étape 3 paid commitment
 export const designAgreements = pgTable("design_agreements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -573,6 +611,19 @@ export const insertBlogArticleSchema = createInsertSchema(blogArticles).omit({
   viewCount: true,
 });
 
+export const insertProcurationSignatureSchema = createInsertSchema(procurationSignatures).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  zohoRequestId: true,
+  zohoDocumentId: true,
+  zohoStatus: true,
+  sentAt: true,
+  viewedAt: true,
+  signedAt: true,
+  signedDocumentUrl: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -618,6 +669,9 @@ export type PortfolioSite = typeof portfolioSites.$inferSelect;
 
 export type InsertBlogArticle = z.infer<typeof insertBlogArticleSchema>;
 export type BlogArticle = typeof blogArticles.$inferSelect;
+
+export type InsertProcurationSignature = z.infer<typeof insertProcurationSignatureSchema>;
+export type ProcurationSignature = typeof procurationSignatures.$inferSelect;
 
 // Extended types for frontend
 export type SiteWithClient = Site & { client: Client };

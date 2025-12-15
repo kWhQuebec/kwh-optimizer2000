@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
   simulationRuns, designs, bomItems, componentCatalog, siteVisits, designAgreements,
-  portfolios, portfolioSites, blogArticles,
+  portfolios, portfolioSites, blogArticles, procurationSignatures,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -24,6 +24,7 @@ import type {
   PortfolioWithSites,
   PortfolioSiteWithDetails,
   BlogArticle, InsertBlogArticle,
+  ProcurationSignature, InsertProcurationSignature,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -671,5 +672,35 @@ export class DatabaseStorage implements IStorage {
     await db.update(blogArticles)
       .set({ viewCount: sql`COALESCE(${blogArticles.viewCount}, 0) + 1` })
       .where(eq(blogArticles.id, id));
+  }
+
+  // Procuration Signatures
+  async getProcurationSignatures(): Promise<ProcurationSignature[]> {
+    return db.select().from(procurationSignatures).orderBy(desc(procurationSignatures.createdAt));
+  }
+
+  async getProcurationSignature(id: string): Promise<ProcurationSignature | undefined> {
+    const result = await db.select().from(procurationSignatures).where(eq(procurationSignatures.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getProcurationSignatureByLead(leadId: string): Promise<ProcurationSignature | undefined> {
+    const result = await db.select().from(procurationSignatures)
+      .where(eq(procurationSignatures.leadId, leadId))
+      .limit(1);
+    return result[0];
+  }
+
+  async createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature> {
+    const [result] = await db.insert(procurationSignatures).values(signature).returning();
+    return result;
+  }
+
+  async updateProcurationSignature(id: string, signature: Partial<ProcurationSignature>): Promise<ProcurationSignature | undefined> {
+    const [result] = await db.update(procurationSignatures)
+      .set({ ...signature, updatedAt: new Date() })
+      .where(eq(procurationSignatures.id, id))
+      .returning();
+    return result;
   }
 }

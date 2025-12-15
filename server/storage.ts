@@ -18,6 +18,7 @@ import type {
   PortfolioWithSites,
   PortfolioSiteWithDetails,
   BlogArticle, InsertBlogArticle,
+  ProcurationSignature, InsertProcurationSignature,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -132,6 +133,13 @@ export interface IStorage {
   updateBlogArticle(id: string, article: Partial<BlogArticle>): Promise<BlogArticle | undefined>;
   deleteBlogArticle(id: string): Promise<boolean>;
   incrementArticleViews(id: string): Promise<void>;
+
+  // Procuration Signatures
+  getProcurationSignatures(): Promise<ProcurationSignature[]>;
+  getProcurationSignature(id: string): Promise<ProcurationSignature | undefined>;
+  getProcurationSignatureByLead(leadId: string): Promise<ProcurationSignature | undefined>;
+  createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature>;
+  updateProcurationSignature(id: string, signature: Partial<ProcurationSignature>): Promise<ProcurationSignature | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -150,6 +158,7 @@ export class MemStorage implements IStorage {
   private portfolios: Map<string, Portfolio> = new Map();
   private portfolioSites: Map<string, PortfolioSite> = new Map();
   private blogArticles: Map<string, BlogArticle> = new Map();
+  private procurationSignatures: Map<string, ProcurationSignature> = new Map();
 
   constructor() {
     this.seedDefaultData();
@@ -861,6 +870,53 @@ export class MemStorage implements IStorage {
       existing.viewCount = (existing.viewCount || 0) + 1;
       this.blogArticles.set(id, existing);
     }
+  }
+
+  // Procuration Signatures
+  async getProcurationSignatures(): Promise<ProcurationSignature[]> {
+    return Array.from(this.procurationSignatures.values());
+  }
+
+  async getProcurationSignature(id: string): Promise<ProcurationSignature | undefined> {
+    return this.procurationSignatures.get(id);
+  }
+
+  async getProcurationSignatureByLead(leadId: string): Promise<ProcurationSignature | undefined> {
+    return Array.from(this.procurationSignatures.values()).find(s => s.leadId === leadId);
+  }
+
+  async createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature> {
+    const id = randomUUID();
+    const newSignature: ProcurationSignature = {
+      id,
+      ...signature,
+      companyName: signature.companyName ?? null,
+      hqAccountNumber: signature.hqAccountNumber ?? null,
+      leadId: signature.leadId ?? null,
+      status: signature.status || "draft",
+      zohoStatus: "pending",
+      zohoRequestId: null,
+      zohoDocumentId: null,
+      sentAt: null,
+      viewedAt: null,
+      signedAt: null,
+      signedDocumentUrl: null,
+      language: signature.language ?? "fr",
+      ipAddress: signature.ipAddress ?? null,
+      userAgent: signature.userAgent ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.procurationSignatures.set(id, newSignature);
+    return newSignature;
+  }
+
+  async updateProcurationSignature(id: string, signature: Partial<ProcurationSignature>): Promise<ProcurationSignature | undefined> {
+    const existing = this.procurationSignatures.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...signature, updatedAt: new Date() };
+    this.procurationSignatures.set(id, updated);
+    return updated;
   }
 }
 
