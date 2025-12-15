@@ -31,6 +31,7 @@ import { z } from "zod";
 import * as zoho from "./zohoClient";
 import * as googleSolar from "./googleSolarService";
 import { sendEmail, generatePortalInvitationEmail } from "./gmail";
+import { generateProcurationPDF, createProcurationData } from "./procurationPdfGenerator";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -822,6 +823,89 @@ export async function registerRoutes(
         }
       } catch (zohoError) {
         console.error("[Detailed Analysis] Zoho sync failed:", zohoError);
+      }
+
+      // Generate and send procuration PDF
+      // TODO: BEFORE LAUNCH - Change email recipient from info@kwh.quebec to Hydro-Québec's official email
+      try {
+        const procurationData = createProcurationData(
+          {
+            companyName,
+            contactName,
+            signerTitle: req.body.signerTitle || '',
+            hqAccountNumber: hqAccountNumber || '',
+            streetAddress,
+            city,
+            province: province || 'Québec',
+            postalCode: postalCode || '',
+            signatureImage,
+            procurationDate,
+          },
+          clientIp,
+          userAgent
+        );
+
+        // Create PDF buffer
+        const pdfDoc = new PDFDocument({ size: 'LETTER', margin: 50 });
+        const pdfChunks: Buffer[] = [];
+        
+        pdfDoc.on('data', (chunk: Buffer) => pdfChunks.push(chunk));
+        
+        await new Promise<void>((resolve, reject) => {
+          pdfDoc.on('end', resolve);
+          pdfDoc.on('error', reject);
+          
+          generateProcurationPDF(pdfDoc, procurationData);
+          pdfDoc.end();
+        });
+        
+        const pdfBuffer = Buffer.concat(pdfChunks);
+        
+        // Save PDF to disk
+        const procurationDir = path.join('uploads', 'procurations');
+        if (!fs.existsSync(procurationDir)) {
+          fs.mkdirSync(procurationDir, { recursive: true });
+        }
+        const pdfFilename = `procuration_${lead.id}_${Date.now()}.pdf`;
+        const pdfPath = path.join(procurationDir, pdfFilename);
+        fs.writeFileSync(pdfPath, pdfBuffer);
+        console.log(`[Detailed Analysis] Procuration PDF saved: ${pdfPath}`);
+        
+        // Send email with PDF attachment
+        // TODO: BEFORE LAUNCH - Change to Hydro-Québec's official procuration email address
+        const testRecipient = 'info@kwh.quebec'; // TESTING ONLY - Replace before production!
+        
+        const emailResult = await sendEmail({
+          to: testRecipient,
+          subject: `Procuration HQ - ${companyName} (${hqAccountNumber || 'N/A'})`,
+          htmlBody: `
+            <p>Bonjour,</p>
+            <p>Veuillez trouver ci-joint la procuration signée électroniquement par le client suivant :</p>
+            <ul>
+              <li><strong>Entreprise :</strong> ${companyName}</li>
+              <li><strong>Contact :</strong> ${contactName}</li>
+              <li><strong>Titre :</strong> ${req.body.signerTitle || 'Non spécifié'}</li>
+              <li><strong>No de compte HQ :</strong> ${hqAccountNumber || 'Non fourni'}</li>
+              <li><strong>Courriel :</strong> ${email}</li>
+            </ul>
+            <p>Cette procuration autorise kWh Québec à obtenir les données de consommation détaillées du client.</p>
+            <p>Cordialement,<br>kWh Québec</p>
+          `,
+          textBody: `Procuration signée pour ${companyName} (${contactName}) - Compte HQ: ${hqAccountNumber || 'N/A'}`,
+          attachments: [{
+            filename: `procuration_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+            content: pdfBuffer.toString('base64'),
+            type: 'application/pdf',
+          }],
+        });
+        
+        if (emailResult.success) {
+          console.log(`[Detailed Analysis] Procuration email sent to ${testRecipient}`);
+        } else {
+          console.error(`[Detailed Analysis] Failed to send procuration email:`, emailResult.error);
+        }
+      } catch (pdfError) {
+        console.error('[Detailed Analysis] Error generating/sending procuration PDF:', pdfError);
       }
 
       // Trigger roof estimation in background

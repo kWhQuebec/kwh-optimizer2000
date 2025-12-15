@@ -106,11 +106,18 @@ async function getGmailClient() {
   return google.gmail({ version: 'v1', auth: oauth2Client });
 }
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // Base64 encoded content
+  type: string; // MIME type
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
   htmlBody: string;
   textBody?: string;
+  attachments?: EmailAttachment[];
 }
 
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
@@ -124,26 +131,76 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
     
     // Build the email message in RFC 2822 format
     const boundary = '----=_Part_' + Date.now();
-    const emailLines = [
-      `To: ${options.to}`,
-      `Subject: =?UTF-8?B?${Buffer.from(options.subject).toString('base64')}?=`,
-      'MIME-Version: 1.0',
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
-      '',
-      `--${boundary}`,
-      'Content-Type: text/plain; charset=UTF-8',
-      'Content-Transfer-Encoding: base64',
-      '',
-      Buffer.from(options.textBody || options.htmlBody.replace(/<[^>]*>/g, '')).toString('base64'),
-      '',
-      `--${boundary}`,
-      'Content-Type: text/html; charset=UTF-8',
-      'Content-Transfer-Encoding: base64',
-      '',
-      Buffer.from(options.htmlBody).toString('base64'),
-      '',
-      `--${boundary}--`
-    ];
+    const hasAttachments = options.attachments && options.attachments.length > 0;
+    
+    let emailLines: string[];
+    
+    if (hasAttachments) {
+      // Use multipart/mixed for messages with attachments
+      const mixedBoundary = '----=_Mixed_' + Date.now();
+      const altBoundary = '----=_Alt_' + Date.now();
+      
+      emailLines = [
+        `To: ${options.to}`,
+        `Subject: =?UTF-8?B?${Buffer.from(options.subject).toString('base64')}?=`,
+        'MIME-Version: 1.0',
+        `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
+        '',
+        `--${mixedBoundary}`,
+        `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+        '',
+        `--${altBoundary}`,
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        Buffer.from(options.textBody || options.htmlBody.replace(/<[^>]*>/g, '')).toString('base64'),
+        '',
+        `--${altBoundary}`,
+        'Content-Type: text/html; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        Buffer.from(options.htmlBody).toString('base64'),
+        '',
+        `--${altBoundary}--`,
+      ];
+      
+      // Add attachments
+      for (const attachment of options.attachments!) {
+        emailLines.push(
+          '',
+          `--${mixedBoundary}`,
+          `Content-Type: ${attachment.type}; name="${attachment.filename}"`,
+          'Content-Transfer-Encoding: base64',
+          `Content-Disposition: attachment; filename="${attachment.filename}"`,
+          '',
+          attachment.content
+        );
+      }
+      
+      emailLines.push('', `--${mixedBoundary}--`);
+    } else {
+      // Standard multipart/alternative for text+html
+      emailLines = [
+        `To: ${options.to}`,
+        `Subject: =?UTF-8?B?${Buffer.from(options.subject).toString('base64')}?=`,
+        'MIME-Version: 1.0',
+        `Content-Type: multipart/alternative; boundary="${boundary}"`,
+        '',
+        `--${boundary}`,
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        Buffer.from(options.textBody || options.htmlBody.replace(/<[^>]*>/g, '')).toString('base64'),
+        '',
+        `--${boundary}`,
+        'Content-Type: text/html; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        Buffer.from(options.htmlBody).toString('base64'),
+        '',
+        `--${boundary}--`
+      ];
+    }
     
     const rawMessage = emailLines.join('\r\n');
     const encodedMessage = Buffer.from(rawMessage)
