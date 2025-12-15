@@ -28,6 +28,7 @@ const translations: Translations = {
   "nav.catalog": { fr: "Catalogue", en: "Catalog" },
   "nav.methodology": { fr: "Méthodologie", en: "Methodology" },
   "nav.userManagement": { fr: "Gestion des utilisateurs", en: "User Management" },
+  "nav.procurations": { fr: "Procurations", en: "Authorizations" },
   "nav.userSites": { fr: "Sites utilisateur", en: "User Sites" },
   "nav.mySites": { fr: "Mes sites", en: "My Sites" },
 
@@ -319,6 +320,7 @@ const translations: Translations = {
   "common.years": { fr: "ans", en: "years" },
   "common.tonnesYear": { fr: "tonnes/an", en: "tonnes/year" },
   "common.actions": { fr: "Actions", en: "Actions" },
+  "common.download": { fr: "Télécharger", en: "Download" },
   "common.creating": { fr: "Création...", en: "Creating..." },
   "common.deleting": { fr: "Suppression...", en: "Deleting..." },
   "common.optional": { fr: "Optionnel", en: "Optional" },
@@ -458,6 +460,19 @@ const translations: Translations = {
   "users.userDeletedDesc": { fr: "Le compte a été supprimé.", en: "The account has been deleted." },
   "users.adminOnly": { fr: "Réservé aux administrateurs", en: "Admin only" },
   "users.accessDenied": { fr: "Accès refusé", en: "Access denied" },
+
+  // Procurations Management
+  "procurations.title": { fr: "Procurations HQ", en: "HQ Authorizations" },
+  "procurations.description": { fr: "Gérez les procurations Hydro-Québec signées par les prospects", en: "Manage Hydro-Québec authorizations signed by prospects" },
+  "procurations.recentTitle": { fr: "Procurations récentes", en: "Recent Authorizations" },
+  "procurations.recentDescription": { fr: "Documents signés électroniquement via le formulaire d'analyse détaillée", en: "Documents signed electronically via the detailed analysis form" },
+  "procurations.company": { fr: "Entreprise", en: "Company" },
+  "procurations.contact": { fr: "Contact", en: "Contact" },
+  "procurations.date": { fr: "Date de signature", en: "Signature Date" },
+  "procurations.size": { fr: "Taille", en: "Size" },
+  "procurations.unknown": { fr: "Inconnu", en: "Unknown" },
+  "procurations.empty": { fr: "Aucune procuration disponible", en: "No authorizations available" },
+  "procurations.infoTitle": { fr: "Processus de procuration", en: "Authorization Process" },
 
   // Scenario Comparison
   "compare.title": { fr: "Comparer", en: "Compare" },

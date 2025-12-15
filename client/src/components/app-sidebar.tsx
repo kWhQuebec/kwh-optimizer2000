@@ -10,7 +10,8 @@ import {
   LogOut,
   FolderOpen,
   UserCog,
-  FolderKanban
+  FolderKanban,
+  FileSignature
 } from "lucide-react";
 import {
   Sidebar,
@@ -82,6 +83,11 @@ export function AppSidebar() {
       title: t("nav.userManagement") || "User Management",
       url: "/app/users",
       icon: UserCog,
+    },
+    {
+      title: t("nav.procurations") || "Procurations",
+      url: "/app/procurations",
+      icon: FileSignature,
     },
     {
       title: t("nav.methodology"),

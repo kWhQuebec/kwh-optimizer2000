@@ -35,6 +35,7 @@ const CatalogPage = lazy(() => import("@/pages/catalog"));
 const MethodologyPage = lazy(() => import("@/pages/methodology"));
 const ClientPortalPage = lazy(() => import("@/pages/client-portal"));
 const UsersPage = lazy(() => import("@/pages/users"));
+const ProcurationsPage = lazy(() => import("@/pages/procurations"));
 const SignAgreementPage = lazy(() => import("@/pages/sign-agreement"));
 const PortfoliosPage = lazy(() => import("@/pages/portfolios"));
 const PortfolioDetailPage = lazy(() => import("@/pages/portfolio-detail"));
@@ -228,6 +229,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <UsersPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Admin Procurations */}
+      <Route path="/app/procurations">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <ProcurationsPage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>
