@@ -27,25 +27,25 @@ const MANDATAIRE = {
 };
 
 // Field names from the HQ PDF template mapped to their purpose
-// Based on Y position (higher Y = lower on page since PDF origin is bottom-left)
+// Sorted by yFromTop (top of page first) for clarity
 const HQ_FIELDS = {
-  // Top section - Mandant (Client) info
-  mandantNom: "7029000000028423",           // y=633, x=99, w=497 - Nom du mandant
-  mandantAdresse: "7029000000028424",        // y=604, x=99, w=497 - Adresse
-  mandantVille: "7029000000028425",          // y=604, x=334, w=261 - Ville
+  // TOP SECTION - Mandant (Client) info - yFromTop ~186-260
+  mandantNom: "7029000000028423",           // yFromTop=186, x=99, w=497 - Nom du mandant (ligne 1)
+  mandantAdresse: "7029000000028424",        // yFromTop=220, x=99, w=497 - Adresse (ligne 2, gauche)
+  mandantVille: "7029000000028425",          // yFromTop=220, x=334, w=261 - Ville/Province (ligne 2, droite)
   
-  // Date validity section
-  dateDebut: "7029000000028419",             // y=566, x=99 - Date début
-  moisDebut: "7029000000028418",             // y=563, x=290 - Mois début
-  anneeDebut: "7029000000028417",            // y=564, x=369 - Année début
-  dateFinOuIndeterminee: "7029000000028416", // y=563, x=466 - Date fin ou indéterminée
+  // Date validity section - yFromTop ~255-260
+  dateDebut: "7029000000028419",             // yFromTop=255, x=99, w=98 - Jour début
+  moisDebut: "7029000000028418",             // yFromTop=256, x=290, w=73 - Mois début
+  anneeDebut: "7029000000028417",            // yFromTop=260, x=369, w=98 - Année début
+  dateFinOuIndeterminee: "7029000000028416", // yFromTop=259, x=466, w=98 - Date fin
   
-  // Bottom section - Mandataire (kWh Québec) info
-  mandataireEntreprise: "7029000000028426",  // y=189, x=99, w=497 - Entreprise mandataire
-  mandataireNom: "7029000000028430",         // y=190, x=386, w=210 - Nom représentant
-  mandataireFonction: "7029000000028427",    // y=163, x=387, w=209 - Fonction
-  mandataireTel: "7029000000028429",         // y=247, x=157, w=439 - Téléphone
-  mandataireFax: "7029000000028428",         // y=247, x=337, w=259 - Fax
+  // BOTTOM SECTION - Mandataire (kWh Québec) info - yFromTop ~574-655
+  mandataireTel: "7029000000028429",         // yFromTop=574, x=157, w=439 - Téléphone (gauche, plus large)
+  mandataireFax: "7029000000028428",         // yFromTop=575, x=337, w=259 - Fax (droite)
+  mandataireEntreprise: "7029000000028426",  // yFromTop=630, x=99, w=497 - Entreprise mandataire (gauche)
+  mandataireNom: "7029000000028430",         // yFromTop=629, x=386, w=210 - Nom représentant (droite)
+  mandataireFonction: "7029000000028427",    // yFromTop=655, x=387, w=209 - Fonction/titre (dernière ligne)
 };
 
 function addBusinessDays(date: Date, days: number): Date {
