@@ -40,6 +40,7 @@ import carouselImg7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_17655058
 const detailedFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
   contactName: z.string().min(1, "Ce champ est requis"),
+  signerTitle: z.string().min(1, "Ce champ est requis"),
   email: z.string().email("Courriel invalide"),
   phone: z.string().optional(),
   streetAddress: z.string().min(1, "Ce champ est requis"),
@@ -48,7 +49,7 @@ const detailedFormSchema = z.object({
   postalCode: z.string().optional(),
   estimatedMonthlyBill: z.coerce.number().optional(),
   buildingType: z.string().optional(),
-  hqAccountNumber: z.string().optional(),
+  hqAccountNumber: z.string().min(1, "Ce champ est requis"),
   notes: z.string().optional(),
   procurationAccepted: z.boolean().refine(val => val === true, {
     message: "Vous devez accepter la procuration pour continuer"
@@ -149,6 +150,7 @@ export default function AnalyseDetailleePage() {
     defaultValues: {
       companyName: "",
       contactName: "",
+      signerTitle: "",
       email: "",
       phone: "",
       streetAddress: "",
@@ -354,8 +356,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
 
   const canProceedToStep2 = () => {
     const values = form.getValues();
-    return values.companyName && values.contactName && values.email && 
-           values.streetAddress && values.city;
+    return values.companyName && values.contactName && values.signerTitle && 
+           values.hqAccountNumber && values.email && values.streetAddress && values.city;
   };
 
   const canProceedToStep3 = () => {
@@ -667,11 +669,52 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   <FormItem>
                                     <FormLabel className="flex items-center gap-1">
                                       <User className="w-3 h-3" />
-                                      {language === "fr" ? "Nom du contact" : "Contact name"} *
+                                      {language === "fr" ? "Nom du signataire" : "Signer name"} *
                                     </FormLabel>
                                     <FormControl>
-                                      <Input {...field} data-testid="input-contact-name" />
+                                      <Input {...field} data-testid="input-contact-name" placeholder={language === "fr" ? "Ex: Jean Tremblay" : "Ex: John Smith"} />
                                     </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            
+                            <div className="grid sm:grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="signerTitle"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1">
+                                      <Award className="w-3 h-3" />
+                                      {language === "fr" ? "Titre / Fonction" : "Title / Position"} *
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input {...field} data-testid="input-signer-title" placeholder={language === "fr" ? "Ex: Président, DG, VP Finances..." : "Ex: President, CEO, VP Finance..."} />
+                                    </FormControl>
+                                    <FormDescription className="text-xs">
+                                      {language === "fr" ? "Votre titre pour la procuration HQ" : "Your title for the HQ authorization"}
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="hqAccountNumber"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1">
+                                      <Zap className="w-3 h-3" />
+                                      {language === "fr" ? "No de compte HQ" : "HQ Account No"} *
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input {...field} data-testid="input-hq-account" placeholder={language === "fr" ? "Ex: 100142202" : "Ex: 100142202"} />
+                                    </FormControl>
+                                    <FormDescription className="text-xs">
+                                      {language === "fr" ? "Trouvé sur votre facture Hydro-Québec" : "Found on your Hydro-Québec bill"}
+                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
@@ -817,27 +860,6 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               />
                             </div>
 
-                            <FormField
-                              control={form.control}
-                              name="hqAccountNumber"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-1">
-                                    <Zap className="w-3 h-3" />
-                                    {language === "fr" ? "Numéro de compte HQ (optionnel)" : "HQ account number (optional)"}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      placeholder={language === "fr" ? "Visible sur votre facture HQ" : "Visible on your HQ bill"}
-                                      data-testid="input-hq-account" 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
                             <div className="pt-4">
                               <Button 
                                 type="button" 
@@ -846,7 +868,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   if (canProceedToStep2()) {
                                     setCurrentStep(2);
                                   } else {
-                                    form.trigger(['companyName', 'contactName', 'email', 'streetAddress', 'city']);
+                                    form.trigger(['companyName', 'contactName', 'signerTitle', 'hqAccountNumber', 'email', 'streetAddress', 'city']);
                                   }
                                 }}
                                 data-testid="button-next-step-1"
