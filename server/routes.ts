@@ -4139,6 +4139,63 @@ Pricing:
     }
   });
 
+  // List procuration PDFs from local storage (admin only)
+  app.get("/api/admin/procuration-pdfs", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const procurationDir = path.join(process.cwd(), "uploads", "procurations");
+      
+      if (!fs.existsSync(procurationDir)) {
+        return res.json([]);
+      }
+      
+      const files = fs.readdirSync(procurationDir)
+        .filter(f => f.endsWith('.pdf'))
+        .map(filename => {
+          const filePath = path.join(procurationDir, filename);
+          const stats = fs.statSync(filePath);
+          // Extract lead ID from filename: procuration_<leadId>_<timestamp>.pdf
+          const match = filename.match(/^procuration_([a-f0-9-]+)_(\d+)\.pdf$/);
+          return {
+            filename,
+            leadId: match ? match[1] : null,
+            createdAt: stats.mtime.toISOString(),
+            size: stats.size,
+          };
+        })
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      res.json(files);
+    } catch (error) {
+      console.error("Error listing procuration PDFs:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Download procuration PDF by filename (admin only)
+  app.get("/api/admin/procuration-pdfs/:filename", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const { filename } = req.params;
+      
+      // Sanitize filename to prevent path traversal
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ error: "Invalid filename" });
+      }
+      
+      const filePath = path.join(process.cwd(), "uploads", "procurations", filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error("Error downloading procuration PDF:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }
 

@@ -560,7 +560,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-12"
+                    className="text-center py-8"
                   >
                     <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
                       <CheckCircle2 className="w-8 h-8 text-green-500" />
@@ -568,12 +568,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
                     <h3 className="text-2xl font-bold mb-3">
                       {language === "fr" ? "Demande complétée!" : "Request completed!"}
                     </h3>
-                    <p className="text-muted-foreground mb-4">
-                      {language === "fr"
-                        ? "Nous avons reçu vos factures et informations. Notre équipe commencera l'analyse dans les prochaines 24 heures."
-                        : "We received your bills and information. Our team will begin the analysis within the next 24 hours."
-                      }
-                    </p>
+                    
+                    {/* Procuration signed confirmation */}
                     <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
                       <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-2">
                         <FileSignature className="w-5 h-5" />
@@ -583,13 +579,98 @@ The data obtained will be used exclusively for solar potential analysis and phot
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {language === "fr"
-                          ? "Votre procuration a été signée électroniquement et enregistrée. Nous sommes maintenant autorisés à récupérer vos données de consommation Hydro-Québec pour l'analyse."
-                          : "Your authorization has been electronically signed and recorded. We are now authorized to retrieve your Hydro-Québec consumption data for analysis."
+                          ? "Votre procuration a été signée électroniquement et enregistrée. Nous sommes maintenant autorisés à récupérer vos données de consommation Hydro-Québec."
+                          : "Your authorization has been electronically signed and recorded. We are now authorized to retrieve your Hydro-Québec consumption data."
                         }
                       </p>
                     </div>
+
+                    {/* Timeline explanation */}
+                    <div className="bg-muted/50 border border-border rounded-lg p-4 mb-6 text-left">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-primary" />
+                        {language === "fr" ? "Prochaines étapes" : "Next Steps"}
+                      </h4>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-xs font-bold text-primary">1</span>
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {language === "fr" ? "Accès Hydro-Québec (3 jours ouvrables)" : "Hydro-Québec Access (3 business days)"}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {language === "fr"
+                                ? "Nous soumettons votre procuration à Hydro-Québec pour obtenir l'accès à vos données de consommation détaillées."
+                                : "We submit your authorization to Hydro-Québec to gain access to your detailed consumption data."
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-xs font-bold text-primary">2</span>
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {language === "fr" ? "Analyse complète (48h)" : "Complete Analysis (48h)"}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {language === "fr"
+                                ? "Une fois les données reçues, notre équipe procède à l'analyse détaillée et prépare votre rapport personnalisé."
+                                : "Once we receive the data, our team performs the detailed analysis and prepares your personalized report."
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-xs font-bold text-primary">3</span>
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {language === "fr" ? "Rapport envoyé par courriel" : "Report Sent by Email"}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {language === "fr"
+                                ? "Vous recevrez votre analyse détaillée avec recommandations de dimensionnement et projections financières."
+                                : "You will receive your detailed analysis with sizing recommendations and financial projections."
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Calendly CTA for qualified prospects (>$5000/month) */}
+                    {form.getValues("estimatedMonthlyBill") && form.getValues("estimatedMonthlyBill")! >= 5000 && (
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
+                        <div className="flex items-center gap-2 text-primary mb-2">
+                          <Calendar className="w-5 h-5" />
+                          <span className="font-semibold">
+                            {language === "fr" ? "Présentation personnalisée" : "Personalized Presentation"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {language === "fr"
+                            ? "Compte tenu de la taille de votre projet, nous vous invitons à planifier un appel de 30 minutes avec notre équipe pour vous présenter l'analyse en détail."
+                            : "Given the size of your project, we invite you to schedule a 30-minute call with our team to present the analysis in detail."
+                          }
+                        </p>
+                        <Button 
+                          onClick={() => window.open("https://calendly.com/kwh-quebec/presentation-analyse", "_blank")}
+                          className="w-full"
+                          data-testid="button-schedule-presentation"
+                        >
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {language === "fr" ? "Planifier une présentation" : "Schedule a Presentation"}
+                        </Button>
+                      </div>
+                    )}
+
                     <Link href="/">
-                      <Button data-testid="button-back-after-submit">
+                      <Button variant="outline" data-testid="button-back-after-submit">
                         {language === "fr" ? "Retour à l'accueil" : "Back to home"}
                       </Button>
                     </Link>
