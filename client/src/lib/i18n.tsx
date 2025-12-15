@@ -778,6 +778,24 @@ const translations: Translations = {
   "publicAgreement.signingSuccess": { fr: "Entente signée avec succès!", en: "Agreement signed successfully!" },
   "publicAgreement.redirectingToPayment": { fr: "Redirection vers le paiement...", en: "Redirecting to payment..." },
 
+  // Email Dialog for Design Agreement
+  "designAgreement.emailDialog.title": { fr: "Envoyer l'entente par courriel", en: "Send Agreement by Email" },
+  "designAgreement.emailDialog.description": { fr: "Personnalisez le message avant d'envoyer l'entente de design au client.", en: "Customize the message before sending the design agreement to the client." },
+  "designAgreement.emailDialog.recipientEmail": { fr: "Courriel du destinataire", en: "Recipient Email" },
+  "designAgreement.emailDialog.recipientName": { fr: "Nom du destinataire", en: "Recipient Name" },
+  "designAgreement.emailDialog.subject": { fr: "Sujet", en: "Subject" },
+  "designAgreement.emailDialog.message": { fr: "Message", en: "Message" },
+  "designAgreement.emailDialog.send": { fr: "Envoyer", en: "Send" },
+  "designAgreement.emailDialog.sending": { fr: "Envoi en cours...", en: "Sending..." },
+  "designAgreement.emailDialog.success": { fr: "Courriel envoyé avec succès!", en: "Email sent successfully!" },
+  "designAgreement.emailDialog.error": { fr: "Erreur lors de l'envoi du courriel", en: "Error sending email" },
+  "designAgreement.emailDialog.defaultSubject": { fr: "Entente de design - {{siteName}}", en: "Design Agreement - {{siteName}}" },
+  "designAgreement.emailDialog.defaultBody": { fr: "Bonjour {{clientName}},\n\nVeuillez trouver ci-joint votre entente de design pour le site {{siteName}}.\n\nCette entente détaille les coûts et livrables pour la conception technique de votre projet solaire.\n\nCordialement,\nL'équipe kWh Québec", en: "Hello {{clientName}},\n\nPlease find attached your design agreement for the site {{siteName}}.\n\nThis agreement details the costs and deliverables for the technical design of your solar project.\n\nBest regards,\nThe kWh Québec team" },
+  "designAgreement.emailHistory": { fr: "Historique d'envois", en: "Email History" },
+  "designAgreement.emailSentOn": { fr: "Envoyé le {{date}} à {{email}}", en: "Sent on {{date}} to {{email}}" },
+  "designAgreement.noEmailsSent": { fr: "Aucun courriel envoyé", en: "No emails sent" },
+  "designAgreement.resend": { fr: "Renvoyer", en: "Resend" },
+
   // Blog / Articles
   "blog.title": { fr: "Ressources et guides", en: "Resources & Guides" },
   "blog.subtitle": { fr: "Tout ce que vous devez savoir sur le solaire commercial au Québec", en: "Everything you need to know about commercial solar in Québec" },

@@ -25,6 +25,8 @@ import {
   Car,
   Stamp,
   Trash2,
+  Mail,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -36,10 +38,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { DesignAgreement, SiteVisit, SimulationRun } from "@shared/schema";
+import type { DesignAgreement, SiteVisit, SimulationRun, EmailLog, Site, Client } from "@shared/schema";
 
 interface DesignAgreementSectionProps {
   siteId: string;
@@ -173,6 +176,15 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
     includeElectricalStamp: false,
     ...PRICING_DEFAULTS,
   });
+  
+  // Email dialog state
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailForm, setEmailForm] = useState({
+    recipientEmail: "",
+    recipientName: "",
+    subject: "",
+    body: "",
+  });
 
   const { data: agreement, isLoading: agreementLoading } = useQuery<DesignAgreement>({
     queryKey: ["/api/sites", siteId, "design-agreement"],
@@ -206,6 +218,34 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
       if (!res.ok) return [];
       return res.json();
     },
+  });
+
+  // Fetch site data for email defaults
+  const { data: siteData } = useQuery<Site>({
+    queryKey: ["/api/sites", siteId],
+  });
+
+  // Fetch client data for email defaults
+  const { data: clientData } = useQuery<Client>({
+    queryKey: ["/api/clients", siteData?.clientId],
+    enabled: !!siteData?.clientId,
+  });
+
+  // Fetch email logs for this agreement
+  const { data: emailLogs } = useQuery<EmailLog[]>({
+    queryKey: ["/api/design-agreements", agreement?.id, "email-logs"],
+    queryFn: async () => {
+      if (!agreement?.id) return [];
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/design-agreements/${agreement.id}/email-logs`, { 
+        credentials: "include",
+        headers,
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!agreement?.id,
   });
 
   const latestVisit = siteVisits?.find(v => v.status !== "cancelled");
@@ -305,6 +345,55 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
       toast({ title: t("designAgreement.deleteError"), variant: "destructive" });
     },
   });
+
+  // Send email mutation
+  const sendEmailMutation = useMutation({
+    mutationFn: async (data: { recipientEmail: string; recipientName: string; subject: string; body: string }) => {
+      return apiRequest("POST", `/api/design-agreements/${agreement?.id}/send-email`, {
+        ...data,
+        language,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "design-agreement"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/design-agreements", agreement?.id, "email-logs"] });
+      setEmailDialogOpen(false);
+      toast({ title: t("designAgreement.emailDialog.success") });
+    },
+    onError: () => {
+      toast({ title: t("designAgreement.emailDialog.error"), variant: "destructive" });
+    },
+  });
+
+  // Open email dialog with default values
+  const handleOpenEmailDialog = () => {
+    const siteName = siteData?.name || "";
+    const clientName = clientData?.name || "";
+    const clientEmail = clientData?.email || "";
+    
+    // Get default subject and body with placeholders replaced
+    const defaultSubject = t("designAgreement.emailDialog.defaultSubject")
+      .replace("{{siteName}}", siteName);
+    const defaultBody = t("designAgreement.emailDialog.defaultBody")
+      .replace("{{clientName}}", clientName)
+      .replace("{{siteName}}", siteName);
+    
+    setEmailForm({
+      recipientEmail: clientEmail,
+      recipientName: clientName,
+      subject: defaultSubject,
+      body: defaultBody,
+    });
+    setEmailDialogOpen(true);
+  };
+
+  const handleSendEmail = () => {
+    if (!emailForm.recipientEmail || !emailForm.subject) {
+      toast({ title: t("common.fillRequiredFields"), variant: "destructive" });
+      return;
+    }
+    sendEmailMutation.mutate(emailForm);
+  };
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -622,18 +711,18 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                         {t("designAgreement.downloadPdf")}
                       </a>
                     </Button>
-                    {agreement.status === "draft" && (
+                    {(agreement.status === "draft" || agreement.status === "sent") && (
                       <Button
-                        onClick={() => updateStatusMutation.mutate("sent")}
-                        disabled={updateStatusMutation.isPending}
+                        onClick={handleOpenEmailDialog}
+                        disabled={sendEmailMutation.isPending}
                         data-testid="button-send-agreement"
                       >
-                        {updateStatusMutation.isPending ? (
+                        {sendEmailMutation.isPending ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         ) : (
-                          <Send className="w-4 h-4 mr-2" />
+                          <Mail className="w-4 h-4 mr-2" />
                         )}
-                        {t("designAgreement.send")}
+                        {agreement.status === "sent" ? t("designAgreement.resend") : t("designAgreement.send")}
                       </Button>
                     )}
                     {agreement.status === "sent" && (
@@ -842,6 +931,115 @@ export function DesignAgreementSection({ siteId }: DesignAgreementSectionProps) 
                 <Plus className="w-4 h-4 mr-2" />
               )}
               {t("designAgreement.generate")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              {t("designAgreement.emailDialog.title")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("designAgreement.emailDialog.description")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="recipientEmail">{t("designAgreement.emailDialog.recipientEmail")} *</Label>
+                <Input
+                  id="recipientEmail"
+                  type="email"
+                  value={emailForm.recipientEmail}
+                  onChange={(e) => setEmailForm(prev => ({ ...prev, recipientEmail: e.target.value }))}
+                  placeholder="client@example.com"
+                  data-testid="input-email-recipient"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="recipientName">{t("designAgreement.emailDialog.recipientName")}</Label>
+                <Input
+                  id="recipientName"
+                  value={emailForm.recipientName}
+                  onChange={(e) => setEmailForm(prev => ({ ...prev, recipientName: e.target.value }))}
+                  placeholder="John Doe"
+                  data-testid="input-email-name"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="emailSubject">{t("designAgreement.emailDialog.subject")} *</Label>
+              <Input
+                id="emailSubject"
+                value={emailForm.subject}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
+                data-testid="input-email-subject"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="emailBody">{t("designAgreement.emailDialog.message")}</Label>
+              <Textarea
+                id="emailBody"
+                value={emailForm.body}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, body: e.target.value }))}
+                rows={8}
+                className="resize-none"
+                data-testid="input-email-body"
+              />
+            </div>
+
+            {/* Email History */}
+            {emailLogs && emailLogs.length > 0 && (
+              <div className="space-y-2 pt-4 border-t">
+                <Label className="flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  {t("designAgreement.emailHistory")}
+                </Label>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  {emailLogs.slice(0, 3).map((log) => (
+                    <div key={log.id} className="flex items-center gap-2" data-testid={`email-log-${log.id}`}>
+                      <CheckCircle2 className="w-3 h-3 text-green-500" />
+                      <span>
+                        {t("designAgreement.emailSentOn")
+                          .replace("{{date}}", formatDate(log.createdAt))
+                          .replace("{{email}}", log.recipientEmail)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} data-testid="button-cancel-email">
+              {t("common.cancel")}
+            </Button>
+            <Button 
+              onClick={handleSendEmail} 
+              disabled={sendEmailMutation.isPending || !emailForm.recipientEmail || !emailForm.subject}
+              data-testid="button-confirm-send-email"
+            >
+              {sendEmailMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t("designAgreement.emailDialog.sending")}
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  {t("designAgreement.emailDialog.send")}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
