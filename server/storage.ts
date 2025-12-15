@@ -19,6 +19,7 @@ import type {
   PortfolioSiteWithDetails,
   BlogArticle, InsertBlogArticle,
   ProcurationSignature, InsertProcurationSignature,
+  EmailLog, InsertEmailLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -140,6 +141,12 @@ export interface IStorage {
   getProcurationSignatureByLead(leadId: string): Promise<ProcurationSignature | undefined>;
   createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature>;
   updateProcurationSignature(id: string, signature: Partial<ProcurationSignature>): Promise<ProcurationSignature | undefined>;
+
+  // Email Logs (for tracking sent emails and follow-ups)
+  getEmailLogs(filters?: { siteId?: string; designAgreementId?: string; emailType?: string }): Promise<EmailLog[]>;
+  getEmailLog(id: string): Promise<EmailLog | undefined>;
+  createEmailLog(log: InsertEmailLog): Promise<EmailLog>;
+  updateEmailLog(id: string, log: Partial<EmailLog>): Promise<EmailLog | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -159,6 +166,7 @@ export class MemStorage implements IStorage {
   private portfolioSites: Map<string, PortfolioSite> = new Map();
   private blogArticles: Map<string, BlogArticle> = new Map();
   private procurationSignatures: Map<string, ProcurationSignature> = new Map();
+  private emailLogs: Map<string, EmailLog> = new Map();
 
   constructor() {
     this.seedDefaultData();
@@ -916,6 +924,52 @@ export class MemStorage implements IStorage {
     if (!existing) return undefined;
     const updated = { ...existing, ...signature, updatedAt: new Date() };
     this.procurationSignatures.set(id, updated);
+    return updated;
+  }
+
+  // Email Logs
+  async getEmailLogs(filters?: { siteId?: string; designAgreementId?: string; emailType?: string }): Promise<EmailLog[]> {
+    let logs = Array.from(this.emailLogs.values());
+    if (filters?.siteId) {
+      logs = logs.filter(l => l.siteId === filters.siteId);
+    }
+    if (filters?.designAgreementId) {
+      logs = logs.filter(l => l.designAgreementId === filters.designAgreementId);
+    }
+    if (filters?.emailType) {
+      logs = logs.filter(l => l.emailType === filters.emailType);
+    }
+    return logs.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async getEmailLog(id: string): Promise<EmailLog | undefined> {
+    return this.emailLogs.get(id);
+  }
+
+  async createEmailLog(log: InsertEmailLog): Promise<EmailLog> {
+    const id = randomUUID();
+    const newLog: EmailLog = {
+      id,
+      ...log,
+      siteId: log.siteId ?? null,
+      designAgreementId: log.designAgreementId ?? null,
+      leadId: log.leadId ?? null,
+      recipientName: log.recipientName ?? null,
+      sentByUserId: log.sentByUserId ?? null,
+      customMessage: log.customMessage ?? null,
+      status: "sent",
+      errorMessage: null,
+      createdAt: new Date(),
+    };
+    this.emailLogs.set(id, newLog);
+    return newLog;
+  }
+
+  async updateEmailLog(id: string, log: Partial<EmailLog>): Promise<EmailLog | undefined> {
+    const existing = this.emailLogs.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...log };
+    this.emailLogs.set(id, updated);
     return updated;
   }
 }

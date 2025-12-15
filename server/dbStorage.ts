@@ -3,7 +3,7 @@ import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
   simulationRuns, designs, bomItems, componentCatalog, siteVisits, designAgreements,
-  portfolios, portfolioSites, blogArticles, procurationSignatures,
+  portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -25,6 +25,7 @@ import type {
   PortfolioSiteWithDetails,
   BlogArticle, InsertBlogArticle,
   ProcurationSignature, InsertProcurationSignature,
+  EmailLog, InsertEmailLog,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -700,6 +701,43 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db.update(procurationSignatures)
       .set({ ...signature, updatedAt: new Date() })
       .where(eq(procurationSignatures.id, id))
+      .returning();
+    return result;
+  }
+
+  // Email Logs
+  async getEmailLogs(filters?: { siteId?: string; designAgreementId?: string; emailType?: string }): Promise<EmailLog[]> {
+    const conditions = [];
+    if (filters?.siteId) {
+      conditions.push(eq(emailLogs.siteId, filters.siteId));
+    }
+    if (filters?.designAgreementId) {
+      conditions.push(eq(emailLogs.designAgreementId, filters.designAgreementId));
+    }
+    if (filters?.emailType) {
+      conditions.push(eq(emailLogs.emailType, filters.emailType));
+    }
+    
+    if (conditions.length > 0) {
+      return db.select().from(emailLogs).where(and(...conditions)).orderBy(desc(emailLogs.createdAt));
+    }
+    return db.select().from(emailLogs).orderBy(desc(emailLogs.createdAt));
+  }
+
+  async getEmailLog(id: string): Promise<EmailLog | undefined> {
+    const result = await db.select().from(emailLogs).where(eq(emailLogs.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createEmailLog(log: InsertEmailLog): Promise<EmailLog> {
+    const [result] = await db.insert(emailLogs).values(log).returning();
+    return result;
+  }
+
+  async updateEmailLog(id: string, log: Partial<EmailLog>): Promise<EmailLog | undefined> {
+    const [result] = await db.update(emailLogs)
+      .set(log)
+      .where(eq(emailLogs.id, id))
       .returning();
     return result;
   }

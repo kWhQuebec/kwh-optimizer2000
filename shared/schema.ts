@@ -515,6 +515,32 @@ export const designAgreements = pgTable("design_agreements", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Email logs for tracking sent emails and enabling follow-up
+export const emailLogs = pgTable("email_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").references(() => sites.id),
+  designAgreementId: varchar("design_agreement_id").references(() => designAgreements.id),
+  leadId: varchar("lead_id").references(() => leads.id),
+  
+  // Email details
+  recipientEmail: text("recipient_email").notNull(),
+  recipientName: text("recipient_name"),
+  subject: text("subject").notNull(),
+  emailType: text("email_type").notNull(), // "design_agreement" | "analysis_report" | "procuration" | "portal_access" | "other"
+  
+  // Sender info
+  sentByUserId: varchar("sent_by_user_id").references(() => users.id),
+  
+  // Status tracking
+  status: text("status").notNull().default("sent"), // "sent" | "delivered" | "opened" | "failed"
+  errorMessage: text("error_message"),
+  
+  // Custom message tracking
+  customMessage: text("custom_message"), // Custom body if user modified default
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -624,6 +650,13 @@ export const insertProcurationSignatureSchema = createInsertSchema(procurationSi
   signedDocumentUrl: true,
 });
 
+export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({
+  id: true,
+  createdAt: true,
+  status: true,
+  errorMessage: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -672,6 +705,9 @@ export type BlogArticle = typeof blogArticles.$inferSelect;
 
 export type InsertProcurationSignature = z.infer<typeof insertProcurationSignatureSchema>;
 export type ProcurationSignature = typeof procurationSignatures.$inferSelect;
+
+export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
+export type EmailLog = typeof emailLogs.$inferSelect;
 
 // Extended types for frontend
 export type SiteWithClient = Site & { client: Client };
