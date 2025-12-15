@@ -23,6 +23,8 @@ import {
   User,
   Lock,
   Settings,
+  FileText,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -281,6 +283,7 @@ function SiteVisitForm({
   const [obstaclesOpen, setObstaclesOpen] = useState(false);
   const [techRoomOpen, setTechRoomOpen] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
+  const [documentationOpen, setDocumentationOpen] = useState(false);
   
   const existingCost = visit?.estimatedCost as EstimatedCost | null | undefined;
   
@@ -333,7 +336,26 @@ function SiteVisitForm({
       mainPanelModel: visit?.mainPanelModel || "",
       mainBreakerManufacturer: visit?.mainBreakerManufacturer || "",
       mainBreakerModel: visit?.mainBreakerModel || "",
+      circuitBreakerManufacturer: visit?.circuitBreakerManufacturer || "",
+      circuitBreakerModel: visit?.circuitBreakerModel || "",
+      disconnectSwitchManufacturer: visit?.disconnectSwitchManufacturer || "",
+      disconnectSwitchModel: visit?.disconnectSwitchModel || "",
+      secondaryPanelManufacturer: visit?.secondaryPanelManufacturer || "",
+      secondaryPanelModel: visit?.secondaryPanelModel || "",
+      secondaryBreakerManufacturer: visit?.secondaryBreakerManufacturer || "",
+      secondaryBreakerModel: visit?.secondaryBreakerModel || "",
+      secondaryDisconnectManufacturer: visit?.secondaryDisconnectManufacturer || "",
+      secondaryDisconnectModel: visit?.secondaryDisconnectModel || "",
       secondaryEquipmentNotes: visit?.secondaryEquipmentNotes || "",
+      numberOfMeters: visit?.numberOfMeters ?? null,
+      roofSurfaceAreaSqM: visit?.roofSurfaceAreaSqM ?? null,
+      photosTaken: visit?.photosTaken ?? false,
+      documentsCollected: {
+        electricalDrawings: (visit?.documentsCollected as any)?.electricalDrawings ?? false,
+        meterDetails: (visit?.documentsCollected as any)?.meterDetails ?? false,
+        other: (visit?.documentsCollected as any)?.other || "",
+      },
+      inspectorSignature: visit?.inspectorSignature || "",
       numBuildings: existingCost?.numBuildings ?? 1,
       travelDays: existingCost?.travelDays ?? 0,
     },
@@ -692,6 +714,27 @@ function SiteVisitForm({
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="roofSurfaceAreaSqM"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.roofSurfaceArea")}</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.1"
+                        {...field} 
+                        value={field.value ?? ""}
+                        onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                        data-testid="input-roof-surface-area" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             
             <div className="space-y-3">
@@ -812,6 +855,7 @@ function SiteVisitForm({
                       <SelectItem value="ladder">{language === "fr" ? "Échelle" : "Ladder"}</SelectItem>
                       <SelectItem value="trapdoor">{language === "fr" ? "Trappe" : "Trapdoor"}</SelectItem>
                       <SelectItem value="stairs">{language === "fr" ? "Escalier" : "Stairs"}</SelectItem>
+                      <SelectItem value="lift">{t("siteVisit.accessMethod.lift")}</SelectItem>
                       <SelectItem value="other">{language === "fr" ? "Autre" : "Other"}</SelectItem>
                     </SelectContent>
                   </Select>
@@ -922,6 +966,27 @@ function SiteVisitForm({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
+                name="numberOfMeters"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.numberOfMeters")}</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        min={1}
+                        {...field} 
+                        value={field.value ?? ""}
+                        onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                        data-testid="input-number-of-meters" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="meterNumbers"
                 render={({ field }) => (
                   <FormItem>
@@ -962,6 +1027,158 @@ function SiteVisitForm({
                 </FormItem>
               )}
             />
+            
+            <Separator className="my-4" />
+            <h4 className="text-sm font-medium">{t("siteVisit.circuitBreaker")}</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="circuitBreakerManufacturer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-circuit-breaker-manufacturer" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="circuitBreakerModel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.model")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-circuit-breaker-model" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <h4 className="text-sm font-medium">{t("siteVisit.disconnectSwitch")}</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="disconnectSwitchManufacturer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-disconnect-switch-manufacturer" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="disconnectSwitchModel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.model")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-disconnect-switch-model" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <Separator className="my-4" />
+            <h4 className="text-sm font-medium">{t("siteVisit.secondaryPanel")}</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="secondaryPanelManufacturer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-secondary-panel-manufacturer" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="secondaryPanelModel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.model")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-secondary-panel-model" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <h4 className="text-sm font-medium">{t("siteVisit.secondaryBreaker")}</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="secondaryBreakerManufacturer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-secondary-breaker-manufacturer" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="secondaryBreakerModel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.model")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-secondary-breaker-model" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <h4 className="text-sm font-medium">{t("siteVisit.secondaryDisconnect")}</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="secondaryDisconnectManufacturer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-secondary-disconnect-manufacturer" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="secondaryDisconnectModel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.model")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-secondary-disconnect-model" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <div className="space-y-3">
               <FormField
@@ -1176,6 +1393,109 @@ function SiteVisitForm({
                       value={field.value ?? ""}
                       onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                       data-testid="input-tech-room-distance" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+        
+        <Collapsible open={documentationOpen} onOpenChange={setDocumentationOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between" type="button" data-testid="button-expand-documentation">
+              <span className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                {t("siteVisit.documentation")}
+              </span>
+              {documentationOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-4">
+            <FormField
+              control={form.control}
+              name="photosTaken"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <FormLabel>{t("siteVisit.photosTaken")}</FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      data-testid="switch-photos-taken"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            <h4 className="text-sm font-medium">{t("siteVisit.documentsCollected")}</h4>
+            <div className="space-y-3">
+              <FormField
+                control={form.control}
+                name="documentsCollected.electricalDrawings"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <FormLabel>{t("siteVisit.electricalDrawings")}</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="switch-electrical-drawings"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="documentsCollected.meterDetails"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                    <FormLabel>{t("siteVisit.meterDetails")}</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="switch-meter-details"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="documentsCollected.other"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("siteVisit.otherDocuments")}</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder={language === "fr" ? "Autres documents collectés..." : "Other documents collected..."}
+                        data-testid="input-other-documents" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="inspectorSignature"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("siteVisit.inspectorSignature")}</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder={language === "fr" ? "Nom de l'inspecteur" : "Inspector name"}
+                      data-testid="input-inspector-signature" 
                     />
                   </FormControl>
                   <FormMessage />
