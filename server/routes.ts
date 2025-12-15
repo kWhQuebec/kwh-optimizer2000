@@ -2925,6 +2925,171 @@ Pricing:
     }
   });
 
+  // Send Design Agreement by Email
+  app.post("/api/design-agreements/:id/send-email", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { recipientEmail, recipientName, subject, body, language = "fr" } = req.body;
+      
+      if (!recipientEmail || !subject) {
+        return res.status(400).json({ error: "Recipient email and subject are required" });
+      }
+      
+      const agreement = await storage.getDesignAgreement(id);
+      if (!agreement) {
+        return res.status(404).json({ error: "Design agreement not found" });
+      }
+      
+      // Get site and client data for the PDF
+      const site = await storage.getSite(agreement.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      const client = await storage.getClient(site.clientId);
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      // Generate PDF in memory
+      const PDFDocumentForEmail = (await import("pdfkit")).default;
+      const doc = new PDFDocumentForEmail({ size: "LETTER", margin: 50 });
+      const pdfChunks: Buffer[] = [];
+      
+      doc.on('data', (chunk: Buffer) => pdfChunks.push(chunk));
+      
+      const pdfPromise = new Promise<Buffer>((resolve, reject) => {
+        doc.on('end', () => resolve(Buffer.concat(pdfChunks)));
+        doc.on('error', reject);
+      });
+      
+      const { generateDesignAgreementPDF } = await import("./pdfGenerator");
+      
+      const quotedCosts = (agreement.quotedCosts as any) || {
+        siteVisit: { travel: 0, visit: 0, evaluation: 0, diagrams: 0, sldSupplement: 0, total: 0 },
+        subtotal: 0,
+        taxes: { gst: 0, qst: 0 },
+        total: 0,
+      };
+      
+      generateDesignAgreementPDF(doc, {
+        id: agreement.id,
+        site: {
+          name: site.name,
+          address: site.address || undefined,
+          city: site.city || undefined,
+          province: site.province || undefined,
+          postalCode: site.postalCode || undefined,
+          client: {
+            name: client.name,
+            email: client.email || undefined,
+            phone: client.phone || undefined,
+          },
+        },
+        quotedCosts,
+        totalCad: agreement.totalCad || 0,
+        paymentTerms: agreement.paymentTerms || undefined,
+        validUntil: agreement.validUntil,
+        createdAt: agreement.createdAt,
+      }, language);
+      
+      doc.end();
+      
+      const pdfBuffer = await pdfPromise;
+      
+      // Build signing link
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const signingLink = agreement.publicToken ? `${baseUrl}/sign/${agreement.publicToken}` : null;
+      
+      // Build email body with signing link if available
+      let htmlBody = body;
+      if (signingLink) {
+        const linkText = language === "fr" 
+          ? `<p><strong>Pour signer l'entente en ligne :</strong> <a href="${signingLink}">${signingLink}</a></p>`
+          : `<p><strong>To sign the agreement online:</strong> <a href="${signingLink}">${signingLink}</a></p>`;
+        htmlBody = `${body}${linkText}`;
+      }
+      
+      // Send email with PDF attachment
+      const emailResult = await sendEmail({
+        to: recipientEmail,
+        subject: subject,
+        htmlBody: htmlBody,
+        textBody: body.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+        attachments: [{
+          filename: `entente-design-${site.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+          content: pdfBuffer.toString('base64'),
+          type: 'application/pdf',
+        }],
+      });
+      
+      if (!emailResult.success) {
+        // Log failed email attempt
+        await storage.createEmailLog({
+          siteId: agreement.siteId,
+          designAgreementId: agreement.id,
+          recipientEmail,
+          recipientName: recipientName || null,
+          subject,
+          emailType: "design_agreement",
+          sentByUserId: req.userId,
+          customMessage: body,
+        });
+        await storage.updateEmailLog(
+          (await storage.getEmailLogs({ designAgreementId: agreement.id }))[0]?.id || '',
+          { status: "failed", errorMessage: emailResult.error }
+        );
+        
+        return res.status(500).json({ error: "Failed to send email", details: emailResult.error });
+      }
+      
+      // Log successful email
+      const emailLog = await storage.createEmailLog({
+        siteId: agreement.siteId,
+        designAgreementId: agreement.id,
+        recipientEmail,
+        recipientName: recipientName || null,
+        subject,
+        emailType: "design_agreement",
+        sentByUserId: req.userId,
+        customMessage: body,
+      });
+      
+      // Update agreement status to "sent" if it was draft
+      if (agreement.status === "draft") {
+        await storage.updateDesignAgreement(id, { 
+          status: "sent", 
+          sentAt: new Date() 
+        });
+      }
+      
+      console.log(`[Design Agreement] Email sent to ${recipientEmail} for agreement ${id}`);
+      
+      res.json({ 
+        success: true, 
+        emailLogId: emailLog.id,
+        message: language === "fr" 
+          ? "Courriel envoyé avec succès" 
+          : "Email sent successfully"
+      });
+    } catch (error) {
+      console.error("Error sending design agreement email:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get email logs for a design agreement
+  app.get("/api/design-agreements/:id/email-logs", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const logs = await storage.getEmailLogs({ designAgreementId: id });
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching email logs:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== PUBLIC AGREEMENT ROUTES (no auth required) ====================
 
   // Get public agreement by token (for client signing page)
