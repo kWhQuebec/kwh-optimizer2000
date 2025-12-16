@@ -181,12 +181,13 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
   const page = pdfDoc.getPage(0);
   
   // First, cover the example signature "Eric Laberge" from the template with a white rectangle
-  // The example signature is in the signature box area
+  // The signature box is left of "Nom en lettres moulées" field (x=386.7, y=163.4)
+  // Signature area: x=45 to x=380, y=130 to y=165
   page.drawRectangle({
     x: 45,
-    y: 118,
-    width: 200,
-    height: 45,
+    y: 128,
+    width: 340,
+    height: 40,
     color: rgb(1, 1, 1), // White
   });
   
@@ -199,12 +200,12 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
       // Embed the PNG image
       const signatureImage = await pdfDoc.embedPng(signatureBuffer);
       
-      // Position signature in the signature area
-      // Based on field positions: signature should be around y=170-220, x=50-150
-      const signatureWidth = 150;
-      const signatureHeight = 40;
+      // Position signature in the signature area (left of "Nom en lettres moulées")
+      // Signature box: x=45-380, y=128-168
+      const signatureWidth = 180;
+      const signatureHeight = 35;
       const signatureX = 55;
-      const signatureY = 125; // In the signature box
+      const signatureY = 132; // In the signature box
       
       page.drawImage(signatureImage, {
         x: signatureX,
