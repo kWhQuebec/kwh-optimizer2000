@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -71,6 +71,10 @@ export default function LandingPage() {
   // Pathway states
   const [quickPathExpanded, setQuickPathExpanded] = useState(false);
   const [detailedPathExpanded, setDetailedPathExpanded] = useState(false);
+  
+  // Refs for scroll-to-section functionality
+  const quickPathRef = useRef<HTMLDivElement>(null);
+  const detailedPathRef = useRef<HTMLDivElement>(null);
   
   // Quick calculator states
   const [calcBill, setCalcBill] = useState<string>("");
@@ -373,7 +377,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={quickPathExpanded ? "lg:col-span-2" : ""}
             >
-              <Card className={`overflow-hidden border-2 transition-all ${quickPathExpanded ? 'border-primary' : 'border-primary/30'}`}>
+              <Card ref={quickPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 ${quickPathExpanded ? 'border-primary' : 'border-primary/30'}`}>
                 {/* Header - Always visible */}
                 <div 
                   className={`p-6 cursor-pointer ${!quickPathExpanded ? 'hover-elevate' : ''}`}
@@ -381,6 +385,10 @@ export default function LandingPage() {
                     if (!quickPathExpanded) {
                       setQuickPathExpanded(true);
                       setDetailedPathExpanded(false);
+                      // Scroll to the section after expansion animation
+                      setTimeout(() => {
+                        quickPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 350);
                     }
                   }}
                   data-testid="section-quick-header"
@@ -773,7 +781,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={`${detailedPathExpanded ? "lg:col-span-2" : ""} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
             >
-                <Card className={`overflow-hidden border-2 transition-all ${detailedPathExpanded ? 'border-accent' : 'border-accent/30'}`}>
+                <Card ref={detailedPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 ${detailedPathExpanded ? 'border-accent' : 'border-accent/30'}`}>
                   {/* Header - Always visible */}
                   <div 
                     className={`p-6 cursor-pointer ${!detailedPathExpanded ? 'hover-elevate' : ''}`}
@@ -781,6 +789,10 @@ export default function LandingPage() {
                       if (!detailedPathExpanded) {
                         setDetailedPathExpanded(true);
                         setQuickPathExpanded(false);
+                        // Scroll to the section after expansion animation
+                        setTimeout(() => {
+                          detailedPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 350);
                       }
                     }}
                     data-testid="section-detailed-header"

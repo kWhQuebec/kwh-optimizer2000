@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation, Redirect } from "wouter";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -99,6 +99,64 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     </SidebarProvider>
   );
+}
+
+// Scroll to top on route changes for public pages only
+// Also handles hash-based anchor navigation for SPAs
+function ScrollToTop() {
+  const [location] = useLocation();
+  
+  // Handle scroll on route changes
+  useEffect(() => {
+    // Only process public routes (not /app/* dashboard routes)
+    const isPublicRoute = !location.startsWith('/app');
+    if (!isPublicRoute) return;
+    
+    // Capture hash synchronously
+    const currentHash = window.location.hash;
+    
+    if (currentHash) {
+      // Hash navigation: wait for the target element to exist, then scroll
+      const elementId = currentHash.slice(1); // Remove the '#'
+      let attempts = 0;
+      const maxAttempts = 20; // Max ~1 second of polling
+      
+      const tryScroll = () => {
+        const targetElement = document.getElementById(elementId);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          requestAnimationFrame(tryScroll);
+        }
+        // If element not found after max attempts, don't scroll to top - stay where we are
+      };
+      
+      requestAnimationFrame(tryScroll);
+    } else {
+      // No hash: scroll to top immediately
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [location]);
+  
+  // Listen for hash changes (same-page anchor clicks)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        const elementId = hash.slice(1);
+        const targetElement = document.getElementById(elementId);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+  
+  return null;
 }
 
 function AppRoutes() {
@@ -278,6 +336,7 @@ function App() {
       <I18nProvider>
         <AuthProvider>
           <TooltipProvider>
+            <ScrollToTop />
             <Toaster />
             <AppRoutes />
           </TooltipProvider>
