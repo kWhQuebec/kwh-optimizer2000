@@ -151,14 +151,15 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
 
     // Success - update site with roof data
     // Include both raw details AND calculated googleProductionEstimate for analysis
-    const enrichedDetails = {
+    // Use JSON.parse/stringify to ensure clean JSON serialization for database storage
+    const enrichedDetails = JSON.parse(JSON.stringify({
       ...result.details,
       maxSunshineHoursPerYear: result.maxSunshineHoursPerYear,
       roofSegments: result.roofSegments,
       googleProductionEstimate: result.googleProductionEstimate,
       panelCapacityWatts: result.panelCapacityWatts,
       maxArrayAreaSqM: result.maxArrayAreaSqM,
-    };
+    }));
     
     await storage.updateSite(siteId, {
       latitude: result.latitude,
@@ -166,7 +167,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
       roofAreaAutoSqM: result.roofAreaSqM,
       roofAreaAutoSource: "google_solar",
       roofAreaAutoTimestamp: new Date(),
-      roofAreaAutoDetails: enrichedDetails as any,
+      roofAreaAutoDetails: enrichedDetails,
       roofEstimateStatus: "success",
       roofEstimateError: null,
       roofEstimatePendingAt: null
@@ -1482,14 +1483,15 @@ export async function registerRoutes(
       }
 
       // Include both raw details AND calculated googleProductionEstimate for analysis
-      const enrichedDetails = {
+      // Use JSON.parse/stringify to ensure clean JSON serialization for database storage
+      const enrichedDetails = JSON.parse(JSON.stringify({
         ...result.details,
         maxSunshineHoursPerYear: result.maxSunshineHoursPerYear,
         roofSegments: result.roofSegments,
         googleProductionEstimate: result.googleProductionEstimate,
         panelCapacityWatts: result.panelCapacityWatts,
         maxArrayAreaSqM: result.maxArrayAreaSqM,
-      };
+      }));
       
       const updatedSite = await storage.updateSite(siteId, {
         latitude: result.latitude,
@@ -1497,7 +1499,7 @@ export async function registerRoutes(
         roofAreaAutoSqM: result.roofAreaSqM,
         roofAreaAutoSource: "google_solar",
         roofAreaAutoTimestamp: new Date(),
-        roofAreaAutoDetails: enrichedDetails as any,
+        roofAreaAutoDetails: enrichedDetails,
         roofEstimateStatus: "success",
         roofEstimateError: null,
         roofEstimatePendingAt: null
