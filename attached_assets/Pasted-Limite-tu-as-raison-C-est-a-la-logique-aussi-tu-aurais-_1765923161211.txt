@@ -1,0 +1,95 @@
+Limite tu as raison
+C’est ça la logique aussi… tu aurais des paiements 24 mois si tu produis plus que tu utilises en fait. Donc si tu as un petit load… et que tu payes cher ton électricité… ça serait une bonne option.
+
+From: Marc-André La Barre <malabarre@kwh.quebec>
+Date: Tuesday, December 16, 2025 at 13:46
+To: Etienne Lecompte SCT <etienne@scalecleantech.com>
+Subject: Re: Pour information - autoproduction solaire
+
+Donc... à part la limite de 1MW qui devrait nous donner un genre de warning, comment ferait-on pour ajouter la partie paiement de HQ au Client (à quel tarif? Celui du client?)
+
+Donc, y’aurait-il un avantage à oversize certain projet dont le toit est capable de le prendre pour faire du $ avec et le rentrer dans les calculs de ROI/IRR ?
+
+Marc-André La Barre
+Chef des opérations | COO
+
+kWh Québec
+Cell: 514-891-8199
+Bur.: 514-427-8871 x101
+
+kWh Quebec Logo-01 - Rectangulaire LR.png
+
+From: Etienne Lecompte SCT <etienne@scalecleantech.com>
+Date: Tuesday, December 16, 2025 at 12:51 PM
+To: Marc-André La Barre <malabarre@kwh.quebec>
+Subject: Re: Pour information - autoproduction solaire
+
+Grosseur max 1MW
+
+Si tu produis plus que tu consommes HQ va te donner du cash!!! Ce qui est fantastique!
+
+Etienne Lecompte
+Founding partner
+Scale Cleantech
++1 416-833-5640
+
+From: Marc-André La Barre <malabarre@kwh.quebec>
+Sent: Tuesday, December 16, 2025 12:45:18 PM
+To: Etienne Lecompte SCT <etienne@scalecleantech.com>
+Subject: Re: Pour information - autoproduction solaire
+ 
+J'ai tu qqch a mettre a jour dans nos calculs?
+
+Envoyé à partir de Outlook pour iOS
+De : Etienne Lecompte SCT <etienne@scalecleantech.com>
+Envoyé : Tuesday, December 16, 2025 12:34:43 PM
+À : Marc-André La Barre <malabarre@kwh.quebec>; James Pagonis <james@scalecleantech.com>; Mike Yan <mike@scalecleantech.com>; Oleg Popovsky <oleg@scalecleantech.com>
+Objet : FW: Pour information - autoproduction solaire
+ 
+FYI details from HQ program coming out
+
+From: SoluSolaire <info@solusolaire.ca>
+Date: Tuesday, December 16, 2025 at 12:03
+To: Etienne Lecompte SCT <etienne@scalecleantech.com>
+Subject: Fwd: Pour information - autoproduction solaire
+
+Salut Etienne 
+
+Voici une info qui vient de tomber 
+
+À bientôt 
+
+Sébastien Muniz 
+solusolaire.ca
+
+
+Début du message transféré :
+
+De: Patrick Goulet <info@esq.quebec>
+Date: 16 décembre 2025 à 11:54:11 HNE
+Objet: Pour information - autoproduction solaire
+
+﻿
+Bonjour à tous,
+
+J'ai reçu ce matin un courriel d'Hydro-Québec concernant les objectifs et l'état d'avancement du programme de mesurage et des subventions:
+
+La nouvelle option de mesurage net a été approuvée par la Régie de l’énergie dans sa décision du 21 novembre
+Elle représente une bonification de l’option actuelle qui sert à accueillir l’autoproduction
+La capacité maximale d’autoproduction est rehaussée de 50 KW à 1MW. La puissance installée maximale admissible est donc multipliée par 20
+Les clients commerciaux sont maintenant admissibles, en plus des clients résidentiels qui l’étaient déjà
+Chaque kWh de la banque de surplus sera dorénavant compensé lors de la mise à 0 de la banque après 24 mois
+Les modifications sont entrées en vigueur immédiatement
+Une installation de 1 MW nécessite une certaine superficie, par exemple le toit d’un centre commercial ou d’un aréna
+1 MW est l’équivalent de 150 résidences environ.
+ 
+
+D’ici 2035, Hydro-Québec a l’ambition de développer 3 000 MW d’énergie solaire au Québec avec une approche évolutive
+Nos incitatifs pour l’installation de panneaux solaires résidentiels seront connus en 2026
+Notre objectif est de faire passer la période de retour sur investissement actuel d’environ 20 ans à 10-12 ans
+Notre objectif d’ici 2035 est de 125 000 clientes et clients dotés de panneaux solaires.
+Malheureusement, la situation est inchangée concernant la tarification dynamique : il n'est toujours pas possible d'y adhérer tout en bénéficiant du mesurage net.
+
+Nous travaillons activement sur ce dossier à la Régie de l'énergie afin de convaincre Hydro-Québec d'inclure la tarification dynamique avec le mesurage net.
+
+À suivre!
