@@ -1758,12 +1758,17 @@ export async function registerRoutes(
           };
         };
         
+        // Check if user explicitly wants to override Google data with manual yield
+        // useManualYield: true means ignore Google data and use the provided solarYieldKWhPerKWp
+        const useManualYield = customAssumptions?.useManualYield === true;
+        
         // PRIORITY 1: Use Google Solar's actual production estimate if available
         // This is the most accurate method - based on real roof configuration analysis
+        // Google data ALWAYS takes priority unless useManualYield is explicitly set to true
         if (googleData.googleProductionEstimate && 
             googleData.googleProductionEstimate.yearlyEnergyAcKwh > 0 && 
             googleData.googleProductionEstimate.systemSizeKw > 0 &&
-            !customAssumptions?.solarYieldKWhPerKWp) {
+            !useManualYield) {
           // Calculate specific yield from Google's actual production / system size
           // This gives us kWh/kWp/year based on real roof analysis
           const googleSpecificYield = googleData.googleProductionEstimate.yearlyEnergyAcKwh / 
@@ -1772,11 +1777,13 @@ export async function registerRoutes(
           console.log(`Using Google Solar production estimate: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year (from ${googleData.googleProductionEstimate.yearlyEnergyAcKwh} kWh AC / ${googleData.googleProductionEstimate.systemSizeKw} kW)`);
         }
         // PRIORITY 2: Fall back to sunshine hours if no production estimate
-        else if (googleData.maxSunshineHoursPerYear && !customAssumptions?.solarYieldKWhPerKWp) {
+        else if (googleData.maxSunshineHoursPerYear && !useManualYield) {
           // Convert sunshine hours to kWh/kWp (roughly 1:1 ratio for well-oriented panels)
           // Google's maxSunshineHoursPerYear is the max possible, apply ~0.85 derating for realistic yield
           mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleData.maxSunshineHoursPerYear * 0.85);
           console.log(`Using Google Solar sunshine hours: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year (from ${googleData.maxSunshineHoursPerYear} hrs * 0.85)`);
+        } else if (useManualYield) {
+          console.log(`Using manual yield override: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
         }
         
         // Calculate orientation factor from roof segments if not manually overridden
