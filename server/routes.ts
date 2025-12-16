@@ -665,7 +665,8 @@ export async function registerRoutes(
     try {
       const {
         companyName,
-        contactName,
+        firstName,
+        lastName,
         email,
         phone,
         streetAddress,
@@ -674,15 +675,20 @@ export async function registerRoutes(
         postalCode,
         estimatedMonthlyBill,
         buildingType,
-        hqAccountNumber,
+        hqClientNumber,
         notes,
         procurationAccepted,
         procurationDate,
         language,
       } = req.body;
 
+      // Combine first name and last name for contactName (used in leads)
+      const contactName = `${firstName || ''} ${lastName || ''}`.trim();
+      // Format for procuration: "Nom, Prénom" as required by HQ
+      const formattedSignerName = `${lastName || ''}, ${firstName || ''}`.trim().replace(/^,\s*/, '').replace(/,\s*$/, '');
+
       // Validate required fields
-      if (!companyName || !contactName || !email || !streetAddress || !city) {
+      if (!companyName || !firstName || !lastName || !email || !streetAddress || !city) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
@@ -707,7 +713,7 @@ export async function registerRoutes(
         '[Analyse Détaillée avec Procuration]',
         procurationInfo,
         '',
-        `Numéro de compte HQ: ${hqAccountNumber || 'Non fourni'}`,
+        `No de client HQ: ${hqClientNumber || 'Non fourni'}`,
         '',
         'Factures téléversées:',
         fileInfo,
@@ -761,7 +767,7 @@ export async function registerRoutes(
           signerName: contactName,
           signerEmail: email,
           companyName: companyName,
-          hqAccountNumber: hqAccountNumber || null,
+          hqAccountNumber: hqClientNumber || null,
           leadId: lead.id,
           status: 'signed',
           language: language === 'en' ? 'en' : 'fr',
@@ -799,13 +805,9 @@ export async function registerRoutes(
 
       // Sync to Zoho CRM
       try {
-        const nameParts = (contactName || "").split(" ");
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "-";
-        
         const zohoResult = await zoho.createLead({
-          firstName,
-          lastName,
+          firstName: firstName || "",
+          lastName: lastName || "-",
           email,
           phone: phone || undefined,
           company: companyName || undefined,
@@ -831,9 +833,9 @@ export async function registerRoutes(
         const procurationData = createProcurationData(
           {
             companyName,
-            contactName,
+            contactName: formattedSignerName,
             signerTitle: req.body.signerTitle || '',
-            hqAccountNumber: hqAccountNumber || '',
+            hqAccountNumber: hqClientNumber || '',
             streetAddress,
             city,
             province: province || 'Québec',
@@ -865,21 +867,21 @@ export async function registerRoutes(
         
         const emailResult = await sendEmail({
           to: testRecipient,
-          subject: `Procuration HQ - ${companyName} (${hqAccountNumber || 'N/A'})`,
+          subject: `Procuration HQ - ${companyName} (${hqClientNumber || 'N/A'})`,
           htmlBody: `
             <p>Bonjour,</p>
             <p>Veuillez trouver ci-joint la procuration signée électroniquement par le client suivant :</p>
             <ul>
               <li><strong>Entreprise :</strong> ${companyName}</li>
-              <li><strong>Contact :</strong> ${contactName}</li>
+              <li><strong>Contact :</strong> ${formattedSignerName}</li>
               <li><strong>Titre :</strong> ${req.body.signerTitle || 'Non spécifié'}</li>
-              <li><strong>No de compte HQ :</strong> ${hqAccountNumber || 'Non fourni'}</li>
+              <li><strong>No de client HQ :</strong> ${hqClientNumber || 'Non fourni'}</li>
               <li><strong>Courriel :</strong> ${email}</li>
             </ul>
             <p>Cette procuration autorise kWh Québec à obtenir les données de consommation détaillées du client.</p>
             <p>Cordialement,<br>kWh Québec</p>
           `,
-          textBody: `Procuration signée pour ${companyName} (${contactName}) - Compte HQ: ${hqAccountNumber || 'N/A'}`,
+          textBody: `Procuration signée pour ${companyName} (${formattedSignerName}) - No client HQ: ${hqClientNumber || 'N/A'}`,
           attachments: [{
             filename: `procuration_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
             content: pdfBuffer.toString('base64'),

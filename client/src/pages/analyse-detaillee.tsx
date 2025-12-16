@@ -39,7 +39,8 @@ import carouselImg7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_17655058
 
 const detailedFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
-  contactName: z.string().min(1, "Ce champ est requis"),
+  firstName: z.string().min(1, "Ce champ est requis"),
+  lastName: z.string().min(1, "Ce champ est requis"),
   signerTitle: z.string().min(1, "Ce champ est requis"),
   email: z.string().email("Courriel invalide"),
   phone: z.string().optional(),
@@ -49,7 +50,7 @@ const detailedFormSchema = z.object({
   postalCode: z.string().optional(),
   estimatedMonthlyBill: z.coerce.number().optional(),
   buildingType: z.string().optional(),
-  hqAccountNumber: z.string().min(1, "Ce champ est requis"),
+  hqClientNumber: z.string().min(1, "Ce champ est requis"),
   signatureCity: z.string().min(1, "Ce champ est requis"),
   notes: z.string().optional(),
   procurationAccepted: z.boolean().refine(val => val === true, {
@@ -150,7 +151,8 @@ export default function AnalyseDetailleePage() {
     resolver: zodResolver(detailedFormSchema),
     defaultValues: {
       companyName: "",
-      contactName: "",
+      firstName: "",
+      lastName: "",
       signerTitle: "",
       email: "",
       phone: "",
@@ -160,7 +162,7 @@ export default function AnalyseDetailleePage() {
       postalCode: "",
       estimatedMonthlyBill: undefined,
       buildingType: "",
-      hqAccountNumber: "",
+      hqClientNumber: "",
       signatureCity: "",
       notes: "",
       procurationAccepted: false,
@@ -358,8 +360,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
 
   const canProceedToStep2 = () => {
     const values = form.getValues();
-    return values.companyName && values.contactName && values.signerTitle && 
-           values.hqAccountNumber && values.email && values.streetAddress && values.city;
+    return values.companyName && values.firstName && values.lastName && values.signerTitle && 
+           values.hqClientNumber && values.email && values.streetAddress && values.city;
   };
 
   const canProceedToStep3 = () => {
@@ -748,15 +750,34 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               
                               <FormField
                                 control={form.control}
-                                name="contactName"
+                                name="firstName"
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel className="flex items-center gap-1">
                                       <User className="w-3 h-3" />
-                                      {language === "fr" ? "Nom du signataire" : "Signer name"} *
+                                      {language === "fr" ? "Prénom du signataire" : "Signer first name"} *
                                     </FormLabel>
                                     <FormControl>
-                                      <Input {...field} data-testid="input-contact-name" placeholder={language === "fr" ? "Ex: Jean Tremblay" : "Ex: John Smith"} />
+                                      <Input {...field} data-testid="input-first-name" placeholder={language === "fr" ? "Ex: Jean" : "Ex: John"} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            
+                            <div className="grid sm:grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="lastName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      {language === "fr" ? "Nom de famille" : "Last name"} *
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input {...field} data-testid="input-last-name" placeholder={language === "fr" ? "Ex: Tremblay" : "Ex: Smith"} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -786,15 +807,15 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               />
                               <FormField
                                 control={form.control}
-                                name="hqAccountNumber"
+                                name="hqClientNumber"
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel className="flex items-center gap-1">
                                       <Zap className="w-3 h-3" />
-                                      {language === "fr" ? "No de compte HQ" : "HQ Account No"} *
+                                      {language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *
                                     </FormLabel>
                                     <FormControl>
-                                      <Input {...field} data-testid="input-hq-account" placeholder={language === "fr" ? "Ex: 100142202" : "Ex: 100142202"} />
+                                      <Input {...field} data-testid="input-hq-client" placeholder={language === "fr" ? "Ex: 100142202" : "Ex: 100142202"} />
                                     </FormControl>
                                     <FormDescription className="text-xs">
                                       {language === "fr" ? "Trouvé sur votre facture Hydro-Québec" : "Found on your Hydro-Québec bill"}
@@ -952,7 +973,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   if (canProceedToStep2()) {
                                     setCurrentStep(2);
                                   } else {
-                                    form.trigger(['companyName', 'contactName', 'signerTitle', 'hqAccountNumber', 'email', 'streetAddress', 'city']);
+                                    form.trigger(['companyName', 'firstName', 'lastName', 'signerTitle', 'hqClientNumber', 'email', 'streetAddress', 'city']);
                                   }
                                 }}
                                 data-testid="button-next-step-1"
@@ -1030,8 +1051,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 </h4>
                                 <p className="text-xs text-muted-foreground">
                                   {language === "fr"
-                                    ? `Signature de ${form.getValues().contactName || 'le représentant'} pour ${form.getValues().companyName || 'l\'entreprise'}`
-                                    : `Signature of ${form.getValues().contactName || 'representative'} for ${form.getValues().companyName || 'company'}`
+                                    ? `Signature de ${form.getValues().firstName || ''} ${form.getValues().lastName || 'le représentant'} pour ${form.getValues().companyName || 'l\'entreprise'}`
+                                    : `Signature of ${form.getValues().firstName || ''} ${form.getValues().lastName || 'representative'} for ${form.getValues().companyName || 'company'}`
                                   }
                                 </p>
                               </div>
