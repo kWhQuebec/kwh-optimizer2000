@@ -309,7 +309,7 @@ Je soussigné(e), autorise par la présente kWh Québec inc. à agir en mon nom 
 • Les informations sur mon contrat et tarif actuel
 • Les données de puissance appelée
 
-Cette procuration est valide pour une durée de 12 mois à compter de la date de signature et peut être révoquée en tout temps par écrit.
+Cette procuration est valide pour une durée de 15 jours ouvrables à compter de la date de signature et peut être révoquée en tout temps par écrit.
 
 Les données obtenues seront utilisées exclusivement pour l'analyse du potentiel solaire et le dimensionnement d'un système photovoltaïque pour mon bâtiment.
   `.trim();
@@ -322,7 +322,7 @@ I, the undersigned, hereby authorize kWh Québec inc. to act on my behalf with H
 • Information about my current contract and rate
 • Demand power data
 
-This authorization is valid for 12 months from the date of signature and may be revoked at any time in writing.
+This authorization is valid for 15 business days from the date of signature and may be revoked at any time in writing.
 
 The data obtained will be used exclusively for solar potential analysis and photovoltaic system sizing for my building.
   `.trim();
