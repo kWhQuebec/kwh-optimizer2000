@@ -781,6 +781,9 @@ export interface AnalysisAssumptions {
   bifacialityFactor?: number;     // Rear-side efficiency ratio (0.7-0.9) - default 0.85
   roofAlbedo?: number;            // Ground/roof reflectivity (0-1) - default 0.7 for white membrane
   bifacialCostPremium?: number;   // Additional cost per W for bifacial - default 0.10 (10 cents)
+  
+  // Manual yield override flag
+  useManualYield?: boolean;       // If true, use solarYieldKWhPerKWp instead of Google data
 }
 
 // Default analysis assumptions
