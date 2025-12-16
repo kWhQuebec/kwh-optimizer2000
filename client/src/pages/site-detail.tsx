@@ -4657,6 +4657,7 @@ export default function SiteDetailPage() {
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
   const assumptionsInitializedRef = useRef(false);
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
+  const pendingNewSimulationIdRef = useRef<string | null>(null); // Track newly created simulation ID across data refresh
   const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
 
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
@@ -4731,13 +4732,21 @@ export default function SiteDetailPage() {
         ...customAssumptionsOverrides 
       };
       // Wrap assumptions in the expected format for the API
-      return apiRequest("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions: mergedAssumptions });
+      // apiRequest returns parsed JSON directly
+      const result = await apiRequest<{ id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions: mergedAssumptions });
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Store the new simulation ID in ref so it survives through data refresh
+      if (data?.id) {
+        pendingNewSimulationIdRef.current = data.id;
+      } else {
+        // Mark that we want the latest simulation
+        pendingNewSimulationIdRef.current = "__latest__";
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
       toast({ title: language === "fr" ? "Analyse terminée avec succès" : "Analysis completed successfully" });
       setActiveTab("analysis");
-      setSelectedSimulationId(null); // Reset selection so it picks the best new scenario
     },
     onError: () => {
       toast({ title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis", variant: "destructive" });
@@ -4779,17 +4788,55 @@ export default function SiteDetailPage() {
       )
     : null;
 
+  // Find the most recent simulation by created_at from ALL simulations (not just validated ones)
+  const allSimulations = site?.simulationRuns || [];
+  const mostRecentSimulationFromAll = allSimulations.length > 0
+    ? allSimulations.reduce((latest, current) => {
+        const latestDate = latest.createdAt ? new Date(latest.createdAt).getTime() : 0;
+        const currentDate = current.createdAt ? new Date(current.createdAt).getTime() : 0;
+        return currentDate > latestDate ? current : latest;
+      })
+    : null;
+
   // Initialize selected simulation with the best scenario when site loads
+  // Also handle pending new simulation selection after data refresh
   useEffect(() => {
+    // First, check if we have a pending simulation to select (from newly created analysis)
+    if (pendingNewSimulationIdRef.current && site?.simulationRuns && site.simulationRuns.length > 0) {
+      const pendingId = pendingNewSimulationIdRef.current;
+      
+      if (pendingId === "__latest__") {
+        // Select the most recent simulation from ALL simulations
+        // If we have simulations, just pick the most recent one (by index 0 since they're often sorted by date desc)
+        // or find the one with the latest createdAt
+        const mostRecent = mostRecentSimulationFromAll || site.simulationRuns[0];
+        if (mostRecent) {
+          setSelectedSimulationId(mostRecent.id);
+          pendingNewSimulationIdRef.current = null;
+          return;
+        }
+      } else {
+        // Check if the simulation with this ID exists in the refreshed data (search ALL simulations)
+        const foundSimulation = site.simulationRuns.find(s => s.id === pendingId);
+        if (foundSimulation) {
+          setSelectedSimulationId(pendingId);
+          pendingNewSimulationIdRef.current = null;
+          return;
+        }
+        // Simulation not found yet - keep waiting (don't exit, continue to initial selection as fallback)
+      }
+    }
+    
+    // Initial selection: best scenario by NPV when site first loads
     if (site && bestScenarioByNPV && !selectedSimulationId) {
       setSelectedSimulationId(bestScenarioByNPV.id);
     }
-  }, [site, bestScenarioByNPV, selectedSimulationId]);
+  }, [site, bestScenarioByNPV, selectedSimulationId, mostRecentSimulationFromAll]);
 
   // The simulation to display - either selected one or fallback to latest/best
-  const latestSimulation = selectedSimulationId 
+  const latestSimulation = selectedSimulationId && selectedSimulationId !== "__latest__"
     ? site?.simulationRuns?.find(s => s.id === selectedSimulationId)
-    : (bestScenarioByNPV || site?.simulationRuns?.find(s => s.type === "SCENARIO") || site?.simulationRuns?.[0]);
+    : (mostRecentSimulationFromAll || bestScenarioByNPV || site?.simulationRuns?.find(s => s.type === "SCENARIO") || site?.simulationRuns?.[0]);
 
   if (isLoading) {
     return (
