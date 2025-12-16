@@ -178,10 +178,20 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
   
   // === SIGNATURE IMAGE ===
   // Position signature à gauche de "signeeA" (y=189, x avant 99)
+  const page = pdfDoc.getPage(0);
+  
+  // First, cover the example signature "Eric Laberge" from the template with a white rectangle
+  // The example signature is in the signature box area
+  page.drawRectangle({
+    x: 45,
+    y: 118,
+    width: 200,
+    height: 45,
+    color: rgb(1, 1, 1), // White
+  });
+  
   if (data.signatureImage) {
     try {
-      const page = pdfDoc.getPage(0);
-      
       // Parse base64 signature
       const base64Data = data.signatureImage.replace(/^data:image\/\w+;base64,/, "");
       const signatureBuffer = Buffer.from(base64Data, "base64");
@@ -191,10 +201,10 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
       
       // Position signature in the signature area
       // Based on field positions: signature should be around y=170-220, x=50-150
-      const signatureWidth = 120;
+      const signatureWidth = 150;
       const signatureHeight = 40;
-      const signatureX = 70;
-      const signatureY = 130; // Just below the "Signature du responsable" line
+      const signatureX = 55;
+      const signatureY = 125; // In the signature box
       
       page.drawImage(signatureImage, {
         x: signatureX,
@@ -208,7 +218,6 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
   }
   
   // Add electronic signature metadata at the bottom of the page
-  const page = pdfDoc.getPage(0);
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
   
   const metadataY = 30;
