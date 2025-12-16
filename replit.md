@@ -2,7 +2,7 @@
 
 ## Overview
 
-kWh Québec is a B2B solar + storage analysis and design platform tailored for commercial, industrial, and institutional buildings in Québec. It aims to streamline solar assessment and proposal workflows for the kWh Québec team, offering lead generation, comprehensive energy analysis from consumption data, and detailed PV + Battery system design with Bill of Materials, pricing, and CRM synchronization. The platform's vision is to enhance efficiency in solar deployment for the C&I sector in Québec, leveraging detailed analytics and design capabilities to accelerate project development and market penetration.
+kWh Québec is a B2B solar + storage analysis and design platform for commercial, industrial, and institutional buildings in Québec. Its primary purpose is to streamline solar assessment and proposal workflows, offering lead generation, comprehensive energy analysis from consumption data, and detailed PV + Battery system design. The platform includes Bill of Materials generation, pricing, and CRM synchronization, aiming to enhance efficiency in solar deployment and accelerate project development in the C&I sector.
 
 ## User Preferences
 
@@ -10,7 +10,7 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-The application uses a full-stack monorepo structure with a unified TypeScript codebase, separating client-side React from server-side Express.
+The application uses a full-stack monorepo with a unified TypeScript codebase, separating client-side React from server-side Express.
 
 ### Technical Stack
 
@@ -26,201 +26,38 @@ The frontend uses React with functional components, organized into pages, shared
 
 ### Backend Architecture
 
-The backend provides a RESTful API with JWT-based authentication. It includes a sophisticated data processing and analysis engine for solar simulation, battery peak-shaving, financial calculations (NPV, IRR, LCOE), and sensitivity analysis, utilizing official Hydro-Québec tariffs and configurable parameters. Data access is abstracted through an `IStorage` interface, and Multer handles CSV file uploads.
+The backend provides a RESTful API with JWT-based authentication. It includes a data processing and analysis engine for solar simulation, battery peak-shaving, financial calculations (NPV, IRR, LCOE), and sensitivity analysis, utilizing official Hydro-Québec tariffs and configurable parameters. Data access is abstracted through an `IStorage` interface, and Multer handles CSV file uploads. The system incorporates logic for meter reading deduplication and a priority-based solar production methodology (Google Solar API, Sunshine Hours, or default constant, with bifacial multipliers).
 
 ### Database Schema
 
-A PostgreSQL database, managed by Drizzle ORM, includes `users`, `leads`, `clients`, `sites`, `meterFiles`, `meterReadings`, `simulationRuns`, `designs`, `bomItems`, and `componentCatalog`. It uses UUID primary keys, timestamp tracking, and foreign key relationships.
+A PostgreSQL database, managed by Drizzle ORM, includes `users`, `leads`, `clients`, `sites`, `meterFiles`, `meterReadings`, `simulationRuns`, `designs`, `bomItems`, `componentCatalog`, `portfolios`, and `portfolioSites`. It uses UUID primary keys, timestamp tracking, and foreign key relationships.
 
-### Data Processing & Analysis
+### Key Features and Implementations
 
-The server-side processes Hydro-Québec consumption data, performs 8760-hour solar production simulations, battery peak-shaving, calculates Québec and Federal incentives, tax shields, and generates 25-year cashflows. A sensitivity analysis engine optimizes system sizing by sweeping different configurations. The HQ Tariff Module incorporates official Hydro-Québec tariffs. PV modeling parameters are inspired by industry tools like Helioscope, including Inverter Load Ratio, Temperature Coefficient, Wire Losses, and Degradation Rate.
-
-### Solar Production Methodology (Dec 2024 Update)
-
-The platform uses a priority-based approach for calculating solar yield (kWh/kWp/year):
-
-**Priority 1 - Google Solar Production Estimate (Most Accurate)**:
-- Uses `yearlyEnergyDcKwh` and `systemSizeKw` from Google Solar API's `solarPanelConfigs`
-- Applies 0.85 DC-to-AC conversion factor
-- Calculates specific yield: `yearlyEnergyAcKwh / systemSizeKw`
-- Data stored in `roofAreaAutoDetails.googleProductionEstimate`
-
-**Priority 2 - Sunshine Hours Fallback**:
-- Uses `maxSunshineHoursPerYear` from Google Solar API
-- Applies ~0.85 derating for realistic yield estimate
-
-**Priority 3 - Default Constant**:
-- Falls back to 1,150 kWh/kWp/year (Quebec average) if no Google data available
-
-**Bifacial Multiplier**:
-- When bifacial analysis is enabled, applies albedo gain: `yield × (1 + 0.85 × roofAlbedo × 0.3)`
-- Albedo values: 0.70 (white membrane), 0.20 (gravel), 0.10 (dark)
-- Results in 8-18% production boost for white roofs
-
-**Key Files**:
-- `server/googleSolarService.ts`: Extracts and calculates `googleProductionEstimate`
-- `server/routes.ts`: Merges site assumptions (bifacial settings) with analysis parameters
-- Storage: `sites.roofAreaAutoDetails` contains enriched Google Solar data
-
-### UI Visualization
-
-The UI uses Recharts for interactive charts displaying consumption profiles, production simulations, and financial projections. shadcn/ui table components are used for BOMs and detailed metrics. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display with key KPIs, and an Optimization Analysis Section.
-
-### Analysis Page Flow
-
-The Site Detail analysis results follow a logical progression:
-1. **Summary KPIs** - Key financial metrics (NPV, IRR, payback)
-2. **System Configuration** - PV and battery sizing details
-3. **Financial Breakdown** - Costs, incentives, and cashflows
-4. **Financing Options** - Cash, loan, and capital lease comparison
-5. **Mid-page CTA** - "View Next Steps" button linking to final section
-6. **Environmental Impact** - CO2 reduction and sustainability metrics
-7. **Technical Details** - Collapsible parameters and assumptions
-8. **Next Steps CTA** - Final call-to-action with design agreement process
-
-### Tariff Auto-Detection
-
-The platform automatically detects the appropriate Hydro-Québec tariff code based on peak demand from simulation data:
-- **Tariff G**: For sites with peak demand < 65 kW (small power)
-- **Tariff M**: For sites with peak demand ≥ 65 kW (medium power)
-
-This auto-detection runs when initializing analysis assumptions, with saved assumptions taking priority over auto-detected values.
-
-### HQ Incentive Policy (Dec 2024 Update)
-
-- **Solar**: $1,000/kW installed, capped at 40% of gross CAPEX
-- **Battery**: NO standalone $300/kW incentive (discontinued)
-- **Paired Storage**: Battery can only receive HQ credit when paired with solar AND there's leftover room in the 40% cap after solar incentive is applied
-
-### HQ Net Metering / Autoproduction Program (Dec 2024 Update)
-
-New rules for commercial solar autoproduction in Quebec:
-- **Capacity Limit**: 1 MW (up from 50 kW) - UI shows warning badge when system exceeds limit
-- **Commercial Eligibility**: C&I clients now eligible for net metering
-- **Surplus Compensation**: After 24-month credit banking period, Hydro-Québec compensates surplus exports at client's applicable tariff rate
-- **Cashflow Model**: Surplus revenue (`totalExportedKWh × tariffEnergy`) starts year 3 in financial projections
-- **Database Fields**: `totalProductionKWh`, `totalExportedKWh`, `annualSurplusRevenue` tracked in `simulationRuns`
-- **UI Display**: Blue info box shows surplus production and expected annual compensation when exports > 0
-
-### System Design Module
-
-The System Design page enables staff users to create detailed equipment specifications and bills of materials, with auto-populated form fields from optimal simulation configurations, component selection, and margin configuration.
-
-### Multi-Scenario Analysis Features
-
-The platform includes a Scenario Comparison Dashboard and a "Create Variant Dialog" for generating new "what-if" scenarios. A Financing Calculator provides interactive comparisons of Cash, Loan, and Capital Lease (Crédit-bail) options, featuring realistic cash flow timing for incentives. The capital lease model treats the client as owner for tax purposes, allowing them to receive all incentives (HQ rebates, Federal ITC 30%, CCA tax shield) - typically resulting in positive or break-even cashflows.
-
-### Role-Based Access Control (RBAC)
-
-Three user roles are supported: Admin (full access, user management), Analyst (staff access to analysis and design), and Client (read-only access to their own sites via the client portal). Security features include JWT-based authentication, server-side authorization checks, and client-specific data access.
-
-### Client Portal
-
-The client portal provides customers with secure, read-only access to their solar analysis reports, including a client dashboard and read-only site detail views, replacing manual PDF report distribution.
-
-### PDF Report Generation
-
-The platform generates professional PDF analysis reports featuring a cover page, executive summary with key KPIs, system configuration details, financial breakdown, 25-year cashflow projections, financing options comparison, and scenario comparison.
-
-### Public Landing Page
-
-The public landing page (`/`) serves as the primary lead generation tool with conservative, evergreen messaging, focusing on EPC positioning. It includes sections for hero, incentives, process, benefits, trust, and a contact form. Design features include Framer Motion animations, responsive layouts, and bilingual content.
-
-### Marketing Stack
-
-The platform uses a hybrid website strategy with the main site on Replit and campaign pages on Zoho LandingPage. Default CAPEX values for solar and battery components are configured.
-
-### Public Pages (Dec 2024)
-
-New public marketing pages have been added:
-- `/services` - EPC services page (analyse, ingénierie, construction, maintenance)
-- `/comment-ca-marche` - Step-by-step process explanation
-- `/ressources` - FAQ and resources hub with search functionality
-
-All pages are fully bilingual (FR-CA/EN-CA) with consistent navigation.
-
-### SEO Infrastructure
-
-- **SEOHead Component** (`client/src/components/seo-head.tsx`): Reusable component that injects:
-  - Title and meta description
-  - Open Graph tags with default logo image
-  - Twitter Card tags
-  - Language-aware og:locale (fr_CA/en_CA)
-  - Schema.org JSON-LD structured data per page type
-  
-- **Structured Data**: Each page type has appropriate schema:
-  - Landing: LocalBusiness schema
-  - Services: Service schema
-  - How it works: HowTo schema
-  - Resources: FAQPage schema
-
-### Portfolio Management (Dec 2024 Feature)
-
-Multi-building project management for clients with multiple sites:
-
-- **Database Schema**: `portfolios` table (id, clientId, name, status, aggregated KPIs) and `portfolioSites` junction table
-- **Volume Pricing**: Automatic discounts based on building count:
-  - 5-9 buildings: 5% discount
-  - 10-19 buildings: 10% discount
-  - 20+ buildings: 15% discount
-- **Aggregated KPIs**: Total PV size, total battery capacity, net CAPEX, NPV, weighted IRR, annual savings, CO2 avoided
-- **Executive Summary PDF**: One-page portfolio summary with site comparison table and volume pricing breakdown
-- **Travel Optimization**: Estimates travel days based on 3 buildings per day
-- **Routes**: `/app/portfolios` (list), `/app/portfolios/:id` (detail with KPI cards, site table, pricing)
-
-Site Assessment Pricing (per building):
-- Travel: $150/day
-- Site visit: $600
-- Technical evaluation: $1,000
-- Single-line diagrams: $1,900
-
-### Email Templates
-
-Bilingual email templates (`server/emailTemplates.ts`) for:
-- Quick analysis confirmation
-- Detailed analysis request confirmation
-- Nurturing sequence (incentives reminder, case study)
-- Analysis report ready notification
-
-Templates use placeholder substitution ({{contactName}}, {{pvSizeKW}}, etc.) and include HTML/text variants.
-
-### Hydro-Québec Procuration System (Dec 2024 Feature)
-
-Electronic signature and PDF generation for Hydro-Québec data access authorization:
-
-- **3-Step Wizard** (`/analyse-detaillee`): Company info → Signature → File upload
-- **Signer Fields**: Name, Title/Position, Company, HQ Account Number, Address
-- **HTML5 Canvas Signature**: In-browser signature capture with validation
-- **PDF Generation**: `server/procurationPdfGenerator.ts` creates official HQ procuration document
-- **Validity Period**: Automatic calculation of +15 business days from signature date
-- **Mandataire Info**: Pre-filled with kWh Québec (Marc-André La Barre, Chef des opérations)
-- **Legal Metadata**: IP address, user agent, timestamp captured for compliance
-- **Email Delivery**: PDF sent as attachment via Gmail API
-
-**TODO BEFORE LAUNCH**: Change email recipient from `info@kwh.quebec` (testing) to Hydro-Québec's official procuration email address.
+-   **Data Processing & Analysis**: Processes Hydro-Québec consumption data, performs 8760-hour solar production simulations, battery peak-shaving, calculates Québec and Federal incentives and tax shields, and generates 25-year cashflows. Includes a sensitivity analysis engine and HQ Tariff Module.
+-   **UI Visualization**: Uses Recharts for interactive charts and shadcn/ui table components. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display, and an Optimization Analysis Section.
+-   **Analysis Page Flow**: Structured progression from Summary KPIs to Technical Details, including system configuration, financial breakdown, financing options, and environmental impact.
+-   **Tariff Auto-Detection**: Automatically detects appropriate Hydro-Québec tariff codes (Tariff G or M) based on simulated peak demand.
+-   **HQ Incentive Policy**: Implements current Hydro-Québec incentives for solar ($1,000/kW, capped at 40% CAPEX) and paired storage (only within solar cap).
+-   **HQ Net Metering / Autoproduction Program**: Incorporates new rules for commercial net metering, including a 1 MW capacity limit, surplus compensation after 24 months, and financial projections for surplus revenue.
+-   **System Design Module**: Enables staff to create detailed equipment specifications and bills of materials with auto-populated forms and component selection.
+-   **Multi-Scenario Analysis**: Features a Scenario Comparison Dashboard, "Create Variant Dialog," and a Financing Calculator for Cash, Loan, and Capital Lease options, incorporating realistic incentive timing.
+-   **Role-Based Access Control (RBAC)**: Supports Admin, Analyst, and Client roles with JWT-based authentication and server-side authorization.
+-   **Client Portal**: Provides secure, read-only access for clients to their solar analysis reports.
+-   **PDF Report Generation**: Generates professional PDF analysis reports with detailed financial and technical breakdowns.
+-   **Public Landing Page & Marketing Pages**: Serves as the primary lead generation tool with sections on services, process, resources, and contact forms. All public pages are fully bilingual (FR-CA/EN-CA).
+-   **SEO Infrastructure**: Utilizes an `SEOHead` component for dynamic meta tags, Open Graph, Twitter Cards, and Schema.org JSON-LD structured data for various page types.
+-   **Portfolio Management**: Allows multi-building project management, including volume pricing based on building count, aggregated KPIs, executive summary PDFs, and travel optimization estimates.
+-   **Email Templates**: Bilingual email templates for various notifications and nurturing sequences with placeholder substitution.
+-   **Hydro-Québec Procuration System**: A 3-step wizard for electronic signature and PDF generation of Hydro-Québec data access authorization forms, including in-browser signature capture and legal metadata capture.
 
 ## External Dependencies
 
 ### Third-Party Services
 
--   **Google Solar API**: Used for roof area estimation, solar production potential, and imagery via Building Insights and Data Layers APIs, and for yield calibration in simulations.
+-   **Google Solar API**: Used for roof area estimation, solar production potential, and imagery via Building Insights and Data Layers APIs, and for yield calibration in simulations. The platform addresses its limitations for large commercial/industrial buildings.
 -   **Zoho CRM**: OAuth2 authenticated integration for lead synchronization and deal creation/updates.
 -   **Neon Database**: Serverless PostgreSQL solution.
-
-### Bifacial PV Analysis (Dec 2024 Feature)
-
-The platform automatically detects white membrane roofs from Google Solar API RGB imagery and prompts users to enable bifacial PV analysis:
-
-- **Detection**: Analyzes average RGB brightness of roof imagery (threshold > 200 = white membrane)
-- **Bifacial Boost**: Applies yield gain formula: `yield × (1 + bifacialityFactor × roofAlbedo × 0.3)`
-- **Default Parameters**: bifacialityFactor=0.85, roofAlbedo=0.70 (white), 0.20 (gravel), 0.10 (dark)
-- **Cost Premium**: 5% higher cost per watt for bifacial panels vs monofacial
-- **UI Trigger**: Bilingual dialog appears when white roof detected, stored in `bifacialAnalysisPrompted` and `bifacialAnalysisAccepted` fields
-
-### Google Solar API Limitations & Best Practices
-
-The Google Solar API, primarily designed for residential rooftops, has limitations for large commercial/industrial buildings (e.g., system size caps, flat roof accuracy). The platform addresses this with a yield-based comparison for validation, manual roof area entry for large buildings, and applying a utilization factor.
 
 ### Key npm Packages
 

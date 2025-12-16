@@ -1729,11 +1729,19 @@ export async function registerRoutes(
       }
       
       // Get meter readings for the site
-      const readings = await storage.getMeterReadingsBySite(siteId);
+      const rawReadings = await storage.getMeterReadingsBySite(siteId);
       
-      if (readings.length === 0) {
+      if (rawReadings.length === 0) {
         return res.status(400).json({ error: "No meter data available" });
       }
+      
+      // CRITICAL: Sort and deduplicate readings by hour
+      // Multiple meter files can have overlapping periods (HOUR + FIFTEEN_MIN for same dates)
+      // This prevents massive overcounting of consumption (e.g., 303M kWh instead of ~500k kWh)
+      const dedupResult = deduplicateMeterReadingsByHour(rawReadings);
+      const readings = dedupResult.readings;
+      const preCalculatedDataSpanDays = dedupResult.dataSpanDays;
+      console.log(`Meter readings: ${rawReadings.length} raw -> ${readings.length} deduplicated, dataSpan: ${preCalculatedDataSpanDays.toFixed(1)} days`)
       
       // Get site data to check for Google Solar data
       const site = await storage.getSite(siteId);
@@ -1822,11 +1830,14 @@ export async function registerRoutes(
       }
 
       // Run the analysis with merged assumptions (Google Solar + custom)
-      // If forced sizing is provided, pass it to the analysis function
+      // Pass forced sizing and pre-calculated dataSpanDays from deduplication
       const analysisResult = runPotentialAnalysis(readings, mergedAssumptions, {
-        forcePvSize,
-        forceBatterySize,
-        forceBatteryPower,
+        forcedSizing: {
+          forcePvSize,
+          forceBatterySize,
+          forceBatteryPower,
+        },
+        preCalculatedDataSpanDays,
       });
       
       // Create label: use custom label or generate from date
@@ -4249,6 +4260,129 @@ Pricing:
 
 // ==================== HELPER FUNCTIONS ====================
 
+/**
+ * Deduplicate meter readings by hour
+ * 
+ * Problem: Sites can have multiple meter files with overlapping periods (e.g., HOUR + FIFTEEN_MIN
+ * for the same dates). Without deduplication, the analysis engine sums ALL readings, causing
+ * massive overcounting (e.g., 303 million kWh instead of ~500k kWh).
+ * 
+ * Solution: 
+ * 1. Bucket readings by hour (YYYY-MM-DD-HH key)
+ * 2. For each hour, prefer HOUR granularity readings (most accurate for energy)
+ * 3. If no HOUR reading exists, aggregate ALL readings in that bucket (sum kWh, max kW)
+ * 4. Readings without granularity are treated as candidates for aggregation
+ * 5. Sort final readings by timestamp
+ * 
+ * Returns: { readings, dataSpanDays } where dataSpanDays is computed from ORIGINAL timestamps
+ */
+function deduplicateMeterReadingsByHour(
+  rawReadings: Array<{ 
+    kWh: number | null; 
+    kW: number | null; 
+    timestamp: Date;
+    granularity?: string;
+  }>
+): { 
+  readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>;
+  dataSpanDays: number;
+} {
+  if (rawReadings.length === 0) {
+    return { readings: [], dataSpanDays: 365 };
+  }
+  
+  // CRITICAL: Calculate dataSpanDays from ORIGINAL readings (before any filtering)
+  // This ensures correct annualization factor
+  let minTs = new Date(rawReadings[0].timestamp).getTime();
+  let maxTs = minTs;
+  for (const r of rawReadings) {
+    const ts = new Date(r.timestamp).getTime();
+    if (ts < minTs) minTs = ts;
+    if (ts > maxTs) maxTs = ts;
+  }
+  const dataSpanDays = Math.max(1, (maxTs - minTs) / (1000 * 60 * 60 * 24));
+  
+  // Group readings by hour bucket
+  const hourBuckets = new Map<string, Array<typeof rawReadings[0]>>();
+  
+  for (const reading of rawReadings) {
+    const ts = new Date(reading.timestamp);
+    // Create hour bucket key: YYYY-MM-DD-HH
+    const bucketKey = `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, '0')}-${String(ts.getDate()).padStart(2, '0')}-${String(ts.getHours()).padStart(2, '0')}`;
+    
+    const bucket = hourBuckets.get(bucketKey) || [];
+    bucket.push(reading);
+    hourBuckets.set(bucketKey, bucket);
+  }
+  
+  // For each hour bucket, select or aggregate the best reading
+  const deduplicatedReadings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }> = [];
+  
+  for (const [bucketKey, readings] of hourBuckets) {
+    // Separate by granularity - treat missing granularity as "OTHER"
+    const hourlyReadings = readings.filter(r => r.granularity === 'HOUR');
+    const nonHourlyReadings = readings.filter(r => r.granularity !== 'HOUR');
+    
+    // Parse bucket key for hour-aligned timestamp
+    const parts = bucketKey.split('-');
+    const hourTimestamp = new Date(
+      parseInt(parts[0]), 
+      parseInt(parts[1]) - 1, 
+      parseInt(parts[2]), 
+      parseInt(parts[3]), 
+      0, 0, 0
+    );
+    
+    if (hourlyReadings.length > 0) {
+      // Use HOUR reading - take the one with valid kWh if possible
+      const bestHourly = hourlyReadings.find(r => r.kWh !== null) || hourlyReadings[0];
+      
+      // Also check all other readings for max kW (15-min data is more accurate for peaks)
+      let maxKW = bestHourly.kW || 0;
+      for (const r of nonHourlyReadings) {
+        if (r.kW !== null && r.kW > maxKW) {
+          maxKW = r.kW;
+        }
+      }
+      
+      deduplicatedReadings.push({
+        timestamp: hourTimestamp,
+        kWh: bestHourly.kWh,
+        kW: maxKW > 0 ? maxKW : bestHourly.kW,
+      });
+    } else {
+      // No HOUR readings - aggregate ALL readings in this bucket
+      // Sum all kWh values and take max kW
+      let totalKWh = 0;
+      let maxKW = 0;
+      let hasKWh = false;
+      
+      for (const r of readings) {
+        if (r.kWh !== null) {
+          totalKWh += r.kWh;
+          hasKWh = true;
+        }
+        if (r.kW !== null && r.kW > maxKW) {
+          maxKW = r.kW;
+        }
+      }
+      
+      deduplicatedReadings.push({
+        timestamp: hourTimestamp,
+        kWh: hasKWh ? totalKWh : null,
+        kW: maxKW > 0 ? maxKW : null,
+      });
+    }
+  }
+  
+  // Sort by timestamp for consistent analysis
+  deduplicatedReadings.sort((a, b) => 
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+  
+  return { readings: deduplicatedReadings, dataSpanDays };
+}
+
 async function parseHydroQuebecCSV(
   filePath: string, 
   meterFileId: string, 
@@ -4455,10 +4589,15 @@ interface ForcedSizing {
   forceBatteryPower?: number;
 }
 
+interface AnalysisOptions {
+  forcedSizing?: ForcedSizing;
+  preCalculatedDataSpanDays?: number; // Use pre-calculated value from deduplication
+}
+
 function runPotentialAnalysis(
   readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>,
   customAssumptions?: Partial<AnalysisAssumptions>,
-  forcedSizing?: ForcedSizing
+  options?: AnalysisOptions
 ): AnalysisResult {
   // Merge custom assumptions with defaults
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
@@ -4466,6 +4605,9 @@ function runPotentialAnalysis(
   // ========== STEP 1: Build 8760-hour simulation data ==========
   // Aggregate readings into hourly consumption and peak power (with interpolation for missing months)
   const { hourlyData, interpolatedMonths } = buildHourlyData(readings);
+  
+  // Extract options
+  const forcedSizing = options?.forcedSizing;
   
   // Calculate annual metrics from readings
   let totalKWh = 0;
@@ -4477,12 +4619,17 @@ function runPotentialAnalysis(
     if (kw > peakKW) peakKW = kw;
   }
   
-  // Estimate annual values (if we have partial data)
-  const dataSpanDays = readings.length > 0 
-    ? (new Date(readings[readings.length - 1].timestamp).getTime() - new Date(readings[0].timestamp).getTime()) / (1000 * 60 * 60 * 24)
-    : 365;
+  // CRITICAL: Use pre-calculated dataSpanDays from deduplication (computed from ORIGINAL readings)
+  // This prevents incorrect annualization when readings are deduplicated/filtered
+  const dataSpanDays = options?.preCalculatedDataSpanDays ?? (
+    readings.length > 0 
+      ? Math.max(1, (new Date(readings[readings.length - 1].timestamp).getTime() - new Date(readings[0].timestamp).getTime()) / (1000 * 60 * 60 * 24))
+      : 365
+  );
   const annualizationFactor = 365 / Math.max(dataSpanDays, 1);
   const annualConsumptionKWh = totalKWh * annualizationFactor;
+  
+  console.log(`Analysis: totalKWh=${totalKWh.toFixed(0)}, dataSpanDays=${dataSpanDays.toFixed(1)}, annualizationFactor=${annualizationFactor.toFixed(3)}, annualConsumptionKWh=${annualConsumptionKWh.toFixed(0)}`);
   
   // ========== STEP 2: System sizing with roof constraint ==========
   const usableRoofSqFt = h.roofAreaSqFt * h.roofUtilizationRatio;
