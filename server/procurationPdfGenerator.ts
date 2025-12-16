@@ -3,49 +3,75 @@ import fs from "fs";
 import path from "path";
 
 interface ProcurationData {
-  companyName: string;
-  contactName: string;
-  signerTitle: string;
-  hqAccountNumber: string;
-  streetAddress: string;
-  city: string;
-  province: string;
-  postalCode?: string;
-  signatureImage?: string;
+  // Client (mandant) info
+  hqAccountNumber: string;       // No de client HQ (juste le numéro)
+  contactName: string;           // Nom, Prénom du client
+  signerTitle: string;           // Fonction du client
+  signatureCity: string;         // Ville où le document est signé
+  signatureImage?: string;       // Signature dessinée
   procurationDate: Date;
   procurationEndDate: Date;
   ipAddress?: string;
   userAgent?: string;
+  // Legacy fields kept for backward compatibility
+  companyName?: string;
+  streetAddress?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
 }
 
+// Mandataire (kWh Québec) - hardcoded info
 const MANDATAIRE = {
-  companyName: "kWh Québec",
-  contactName: "Marc-André La Barre",
+  // Format: "Nom, Prénom" comme demandé
+  contactName: "La Barre, Marc-André",
   title: "Chef des opérations",
   phone: "514-427-8871",
-  fax: "514-891-8199",
+  cellulaire: "514-891-8199",
 };
 
-// Field names from the HQ PDF template mapped to their purpose
-// Sorted by yFromTop (top of page first) for clarity
+// Field names from the HQ PDF template mapped to their CORRECT purpose
+// Based on actual field positions extracted from template
+// Positions sorted by Y coordinate (top of page = higher Y value)
 const HQ_FIELDS = {
-  // TOP SECTION - Mandant (Client) info - yFromTop ~186-260
-  mandantNom: "7029000000028423",           // yFromTop=186, x=99, w=497 - Nom du mandant (ligne 1)
-  mandantAdresse: "7029000000028424",        // yFromTop=220, x=99, w=497 - Adresse (ligne 2, gauche)
-  mandantVille: "7029000000028425",          // yFromTop=220, x=334, w=261 - Ville/Province (ligne 2, droite)
+  // === SECTION HAUTE - Client/Mandant Info (y > 500) ===
+  // Champ 1: y=633, x=99, w=497 - No de client HQ
+  clientNoCompte: "7029000000028423",
   
-  // Date validity section - yFromTop ~255-260
-  dateDebut: "7029000000028419",             // yFromTop=255, x=99, w=98 - Jour début
-  moisDebut: "7029000000028418",             // yFromTop=256, x=290, w=73 - Mois début
-  anneeDebut: "7029000000028417",            // yFromTop=260, x=369, w=98 - Année début
-  dateFinOuIndeterminee: "7029000000028416", // yFromTop=259, x=466, w=98 - Date fin
+  // Champ 2: y=604, x=99, w=497 - Nom, Prénom du client (gauche)
+  clientNomPrenom: "7029000000028424",
   
-  // BOTTOM SECTION - Mandataire (kWh Québec) info - yFromTop ~574-655
-  mandataireTel: "7029000000028429",         // yFromTop=574, x=157, w=439 - Téléphone (gauche, plus large)
-  mandataireFax: "7029000000028428",         // yFromTop=575, x=337, w=259 - Fax (droite)
-  mandataireEntreprise: "7029000000028426",  // yFromTop=630, x=99, w=497 - Entreprise mandataire (gauche)
-  mandataireNom: "7029000000028430",         // yFromTop=629, x=386, w=210 - Nom représentant (droite)
-  mandataireFonction: "7029000000028427",    // yFromTop=655, x=387, w=209 - Fonction/titre (dernière ligne)
+  // Champ 3: y=604, x=334, w=261 - Fonction du client (droite)
+  clientFonction: "7029000000028425",
+  
+  // Champs 4-7: Personne autorisée (mandataire kWh Québec)
+  // Champ 4: y=566, x=99, w=98 - Nom de la personne autorisée
+  mandataireNom: "7029000000028419",
+  
+  // Champ 5: y=563, x=290, w=73 - Fonction de la personne autorisée
+  mandataireFonction: "7029000000028418",
+  
+  // Champ 6: y=564, x=369, w=98 - Téléphone
+  mandataireTel: "7029000000028417",
+  
+  // Champ 7: y=563, x=466, w=98 - Cellulaire
+  mandataireCellulaire: "7029000000028416",
+  
+  // === SECTION BASSE - Durée et Signature (y < 300) ===
+  // Champ 8: y=247, x=157, w=439 - Date de signature (début durée)
+  dureeDebut: "7029000000028429",
+  
+  // Champ 9: y=247, x=337, w=259 - Date fin (durée)
+  dureeFin: "7029000000028428",
+  
+  // Champ 10: y=189, x=99, w=497 - Signée à (ville)
+  signeeA: "7029000000028426",
+  
+  // Champ 11: y=190, x=386, w=210 - "le" (date de signature)
+  signatureLe: "7029000000028430",
+  
+  // Champ 12: y=163, x=387, w=209 - Nom en lettres moulées du signataire
+  signataireNom: "7029000000028427",
 };
 
 function addBusinessDays(date: Date, days: number): Date {
@@ -69,18 +95,11 @@ function formatDateFr(date: Date): string {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-function formatDay(date: Date): string {
-  return date.getDate().toString().padStart(2, '0');
-}
-
-function formatMonth(date: Date): string {
-  const months = ["janvier", "février", "mars", "avril", "mai", "juin",
-    "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-  return months[date.getMonth()];
-}
-
-function formatYear(date: Date): string {
-  return date.getFullYear().toString();
+function formatDateShort(date: Date): string {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 export async function generateProcurationPDF(data: ProcurationData): Promise<Buffer> {
@@ -91,71 +110,77 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
   
   const form = pdfDoc.getForm();
   
-  // Fill in the mandant (client) information
-  const fullAddress = [data.streetAddress, data.postalCode].filter(Boolean).join(", ");
-  const cityProvince = [data.city, data.province].filter(Boolean).join(", ");
+  // === SECTION HAUTE - Client/Mandant ===
   
-  // Mandant section
+  // 1. No de client HQ (juste le numéro)
   try {
-    form.getTextField(HQ_FIELDS.mandantNom).setText(
-      `${data.contactName} - ${data.companyName} - No compte: ${data.hqAccountNumber}`
-    );
-  } catch (e) { console.log("Field mandantNom not found or error:", e); }
+    form.getTextField(HQ_FIELDS.clientNoCompte).setText(data.hqAccountNumber);
+  } catch (e) { console.log("Field clientNoCompte error:", e); }
   
+  // 2. Nom, Prénom du client
   try {
-    form.getTextField(HQ_FIELDS.mandantAdresse).setText(fullAddress);
-  } catch (e) { console.log("Field mandantAdresse not found or error:", e); }
+    form.getTextField(HQ_FIELDS.clientNomPrenom).setText(data.contactName);
+  } catch (e) { console.log("Field clientNomPrenom error:", e); }
   
+  // 3. Fonction du client
   try {
-    form.getTextField(HQ_FIELDS.mandantVille).setText(cityProvince);
-  } catch (e) { console.log("Field mandantVille not found or error:", e); }
+    form.getTextField(HQ_FIELDS.clientFonction).setText(data.signerTitle);
+  } catch (e) { console.log("Field clientFonction error:", e); }
   
-  // Date section
-  try {
-    form.getTextField(HQ_FIELDS.dateDebut).setText(formatDay(data.procurationDate));
-  } catch (e) { console.log("Field dateDebut not found or error:", e); }
+  // === PERSONNE AUTORISÉE (Mandataire - kWh Québec) ===
   
-  try {
-    form.getTextField(HQ_FIELDS.moisDebut).setText(formatMonth(data.procurationDate));
-  } catch (e) { console.log("Field moisDebut not found or error:", e); }
-  
-  try {
-    form.getTextField(HQ_FIELDS.anneeDebut).setText(formatYear(data.procurationDate));
-  } catch (e) { console.log("Field anneeDebut not found or error:", e); }
-  
-  try {
-    // End date as formatted date
-    form.getTextField(HQ_FIELDS.dateFinOuIndeterminee).setText(
-      `${formatDay(data.procurationEndDate)}/${(data.procurationEndDate.getMonth() + 1).toString().padStart(2, '0')}/${formatYear(data.procurationEndDate)}`
-    );
-  } catch (e) { console.log("Field dateFinOuIndeterminee not found or error:", e); }
-  
-  // Mandataire (kWh Québec) section
-  try {
-    form.getTextField(HQ_FIELDS.mandataireEntreprise).setText(MANDATAIRE.companyName);
-  } catch (e) { console.log("Field mandataireEntreprise not found or error:", e); }
-  
+  // 4. Nom de la personne autorisée
   try {
     form.getTextField(HQ_FIELDS.mandataireNom).setText(MANDATAIRE.contactName);
-  } catch (e) { console.log("Field mandataireNom not found or error:", e); }
+  } catch (e) { console.log("Field mandataireNom error:", e); }
   
+  // 5. Fonction de la personne autorisée
   try {
     form.getTextField(HQ_FIELDS.mandataireFonction).setText(MANDATAIRE.title);
-  } catch (e) { console.log("Field mandataireFonction not found or error:", e); }
+  } catch (e) { console.log("Field mandataireFonction error:", e); }
   
+  // 6. Téléphone
   try {
     form.getTextField(HQ_FIELDS.mandataireTel).setText(MANDATAIRE.phone);
-  } catch (e) { console.log("Field mandataireTel not found or error:", e); }
+  } catch (e) { console.log("Field mandataireTel error:", e); }
   
+  // 7. Cellulaire
   try {
-    form.getTextField(HQ_FIELDS.mandataireFax).setText(MANDATAIRE.fax);
-  } catch (e) { console.log("Field mandataireFax not found or error:", e); }
+    form.getTextField(HQ_FIELDS.mandataireCellulaire).setText(MANDATAIRE.cellulaire);
+  } catch (e) { console.log("Field mandataireCellulaire error:", e); }
   
-  // Add signature image if provided
+  // === SECTION BASSE - Durée et Signature ===
+  
+  // 8. Date de signature (début durée)
+  try {
+    form.getTextField(HQ_FIELDS.dureeDebut).setText(formatDateShort(data.procurationDate));
+  } catch (e) { console.log("Field dureeDebut error:", e); }
+  
+  // 9. Date fin (durée + 15 jours ouvrables)
+  try {
+    form.getTextField(HQ_FIELDS.dureeFin).setText(formatDateShort(data.procurationEndDate));
+  } catch (e) { console.log("Field dureeFin error:", e); }
+  
+  // 10. Signée à (ville)
+  try {
+    form.getTextField(HQ_FIELDS.signeeA).setText(data.signatureCity);
+  } catch (e) { console.log("Field signeeA error:", e); }
+  
+  // 11. "le" (date de signature)
+  try {
+    form.getTextField(HQ_FIELDS.signatureLe).setText(formatDateShort(data.procurationDate));
+  } catch (e) { console.log("Field signatureLe error:", e); }
+  
+  // 12. Nom en lettres moulées du signataire (responsable de l'abonnement)
+  try {
+    form.getTextField(HQ_FIELDS.signataireNom).setText(data.contactName);
+  } catch (e) { console.log("Field signataireNom error:", e); }
+  
+  // === SIGNATURE IMAGE ===
+  // Position signature à gauche de "signeeA" (y=189, x avant 99)
   if (data.signatureImage) {
     try {
       const page = pdfDoc.getPage(0);
-      const { height } = page.getSize();
       
       // Parse base64 signature
       const base64Data = data.signatureImage.replace(/^data:image\/\w+;base64,/, "");
@@ -164,12 +189,12 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
       // Embed the PNG image
       const signatureImage = await pdfDoc.embedPng(signatureBuffer);
       
-      // Position signature in the signature area of the form
-      // Typically near the bottom left of the form
-      const signatureWidth = 150;
-      const signatureHeight = 50;
-      const signatureX = 100;
-      const signatureY = 100; // Near bottom of page
+      // Position signature in the signature area
+      // Based on field positions: signature should be around y=170-220, x=50-150
+      const signatureWidth = 120;
+      const signatureHeight = 40;
+      const signatureX = 70;
+      const signatureY = 130; // Just below the "Signature du responsable" line
       
       page.drawImage(signatureImage, {
         x: signatureX,
@@ -223,14 +248,15 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
 
 export function createProcurationData(
   formData: {
-    companyName: string;
+    companyName?: string;
     contactName: string;
     signerTitle: string;
     hqAccountNumber: string;
-    streetAddress: string;
-    city: string;
+    streetAddress?: string;
+    city?: string;
     province?: string;
     postalCode?: string;
+    signatureCity: string;
     signatureImage?: string;
     procurationDate?: string;
   },
@@ -244,19 +270,21 @@ export function createProcurationData(
   const endDate = addBusinessDays(signatureDate, 15);
   
   return {
-    companyName: formData.companyName,
+    hqAccountNumber: formData.hqAccountNumber,
     contactName: formData.contactName,
     signerTitle: formData.signerTitle,
-    hqAccountNumber: formData.hqAccountNumber,
-    streetAddress: formData.streetAddress,
-    city: formData.city,
-    province: formData.province || "Québec",
-    postalCode: formData.postalCode,
+    signatureCity: formData.signatureCity,
     signatureImage: formData.signatureImage,
     procurationDate: signatureDate,
     procurationEndDate: endDate,
     ipAddress,
     userAgent,
+    // Legacy fields
+    companyName: formData.companyName,
+    streetAddress: formData.streetAddress,
+    city: formData.city,
+    province: formData.province,
+    postalCode: formData.postalCode,
   };
 }
 

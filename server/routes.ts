@@ -838,6 +838,7 @@ export async function registerRoutes(
             city,
             province: province || 'Québec',
             postalCode: postalCode || '',
+            signatureCity: req.body.signatureCity || city || '',
             signatureImage,
             procurationDate,
           },

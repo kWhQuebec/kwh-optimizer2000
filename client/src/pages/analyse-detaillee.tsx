@@ -50,6 +50,7 @@ const detailedFormSchema = z.object({
   estimatedMonthlyBill: z.coerce.number().optional(),
   buildingType: z.string().optional(),
   hqAccountNumber: z.string().min(1, "Ce champ est requis"),
+  signatureCity: z.string().min(1, "Ce champ est requis"),
   notes: z.string().optional(),
   procurationAccepted: z.boolean().refine(val => val === true, {
     message: "Vous devez accepter la procuration pour continuer"
@@ -160,6 +161,7 @@ export default function AnalyseDetailleePage() {
       estimatedMonthlyBill: undefined,
       buildingType: "",
       hqAccountNumber: "",
+      signatureCity: "",
       notes: "",
       procurationAccepted: false,
     },
@@ -361,7 +363,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
   };
 
   const canProceedToStep3 = () => {
-    return form.getValues().procurationAccepted === true;
+    const values = form.getValues();
+    return values.procurationAccepted === true && values.signatureCity && values.signatureCity.length > 0;
   };
 
   return (
@@ -990,6 +993,33 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               </div>
                             </div>
 
+                            <FormField
+                              control={form.control}
+                              name="signatureCity"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {language === "fr" ? "Signée à (ville)" : "Signed at (city)"} *
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      {...field} 
+                                      placeholder={language === "fr" ? "Ex: Montréal" : "Ex: Montreal"}
+                                      data-testid="input-signature-city" 
+                                    />
+                                  </FormControl>
+                                  <FormDescription className="text-xs">
+                                    {language === "fr" 
+                                      ? "Ville où vous signez ce document" 
+                                      : "City where you are signing this document"
+                                    }
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
                             <div className="rounded-md border p-4 bg-primary/5 space-y-4">
                               <div className="space-y-1">
                                 <h4 className="font-medium text-sm">
@@ -1050,7 +1080,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   if (canProceedToStep3()) {
                                     setCurrentStep(3);
                                   } else {
-                                    form.trigger('procurationAccepted');
+                                    form.trigger(['procurationAccepted', 'signatureCity']);
                                   }
                                 }}
                                 data-testid="button-next-step-2"
