@@ -181,13 +181,13 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
   const page = pdfDoc.getPage(0);
   
   // First, cover the example signature "Eric Laberge" from the template with a white rectangle
-  // The signature box is left of "Nom en lettres moulées" field (x=386.7, y=163.4)
-  // Signature area: x=45 to x=380, y=130 to y=165
+  // The signature zone is between y=165 and y=210 (above "Nom en lettres moulées" at y=163)
+  // "Signé à" field is at y=189, signature area is below it
   page.drawRectangle({
     x: 45,
-    y: 128,
+    y: 165,
     width: 340,
-    height: 40,
+    height: 45,
     color: rgb(1, 1, 1), // White
   });
   
@@ -200,12 +200,13 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
       // Embed the PNG image
       const signatureImage = await pdfDoc.embedPng(signatureBuffer);
       
-      // Position signature in the signature area (left of "Nom en lettres moulées")
-      // Signature box: x=45-380, y=128-168
-      const signatureWidth = 180;
-      const signatureHeight = 35;
-      const signatureX = 55;
-      const signatureY = 132; // In the signature box
+      // Position signature in the correct area (y=165-210)
+      // Using scaled dimensions to maintain aspect ratio
+      const dims = signatureImage.scale(0.3);
+      const signatureWidth = Math.min(dims.width, 200);
+      const signatureHeight = Math.min(dims.height, 38);
+      const signatureX = 90;
+      const signatureY = 172; // In the signature box (between y=165-210)
       
       page.drawImage(signatureImage, {
         x: signatureX,
