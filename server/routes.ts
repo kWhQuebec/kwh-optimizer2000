@@ -150,13 +150,23 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
     }
 
     // Success - update site with roof data
+    // Include both raw details AND calculated googleProductionEstimate for analysis
+    const enrichedDetails = {
+      ...result.details,
+      maxSunshineHoursPerYear: result.maxSunshineHoursPerYear,
+      roofSegments: result.roofSegments,
+      googleProductionEstimate: result.googleProductionEstimate,
+      panelCapacityWatts: result.panelCapacityWatts,
+      maxArrayAreaSqM: result.maxArrayAreaSqM,
+    };
+    
     await storage.updateSite(siteId, {
       latitude: result.latitude,
       longitude: result.longitude,
       roofAreaAutoSqM: result.roofAreaSqM,
       roofAreaAutoSource: "google_solar",
       roofAreaAutoTimestamp: new Date(),
-      roofAreaAutoDetails: result.details as any,
+      roofAreaAutoDetails: enrichedDetails as any,
       roofEstimateStatus: "success",
       roofEstimateError: null,
       roofEstimatePendingAt: null
@@ -1471,13 +1481,23 @@ export async function registerRoutes(
         });
       }
 
+      // Include both raw details AND calculated googleProductionEstimate for analysis
+      const enrichedDetails = {
+        ...result.details,
+        maxSunshineHoursPerYear: result.maxSunshineHoursPerYear,
+        roofSegments: result.roofSegments,
+        googleProductionEstimate: result.googleProductionEstimate,
+        panelCapacityWatts: result.panelCapacityWatts,
+        maxArrayAreaSqM: result.maxArrayAreaSqM,
+      };
+      
       const updatedSite = await storage.updateSite(siteId, {
         latitude: result.latitude,
         longitude: result.longitude,
         roofAreaAutoSqM: result.roofAreaSqM,
         roofAreaAutoSource: "google_solar",
         roofAreaAutoTimestamp: new Date(),
-        roofAreaAutoDetails: result.details as any,
+        roofAreaAutoDetails: enrichedDetails as any,
         roofEstimateStatus: "success",
         roofEstimateError: null,
         roofEstimatePendingAt: null
@@ -1716,21 +1736,45 @@ export async function registerRoutes(
       // Get site data to check for Google Solar data
       const site = await storage.getSite(siteId);
       
-      // Merge Google Solar data into assumptions if available
-      let mergedAssumptions = { ...customAssumptions };
+      // Start with site's saved assumptions (includes bifacial settings if user accepted)
+      const siteAssumptions = (site?.analysisAssumptions || {}) as Partial<AnalysisAssumptions>;
+      
+      // Merge: site assumptions (bifacial, etc.) + custom assumptions (from request body)
+      // Custom assumptions take precedence over site assumptions
+      let mergedAssumptions = { ...siteAssumptions, ...customAssumptions };
       
       if (site?.roofAreaAutoDetails) {
         const googleData = site.roofAreaAutoDetails as {
           maxSunshineHoursPerYear?: number;
           bestOrientation?: { azimuth?: number; pitch?: number };
           roofSegments?: Array<{ azimuth?: number; pitch?: number }>;
+          googleProductionEstimate?: {
+            panelsCount: number;
+            yearlyEnergyDcKwh: number;
+            yearlyEnergyAcKwh: number;
+            systemSizeKw: number;
+          };
         };
         
-        // Use Google Solar's maxSunshineHoursPerYear if not manually overridden
-        if (googleData.maxSunshineHoursPerYear && !customAssumptions?.solarYieldKWhPerKWp) {
+        // PRIORITY 1: Use Google Solar's actual production estimate if available
+        // This is the most accurate method - based on real roof configuration analysis
+        if (googleData.googleProductionEstimate && 
+            googleData.googleProductionEstimate.yearlyEnergyAcKwh > 0 && 
+            googleData.googleProductionEstimate.systemSizeKw > 0 &&
+            !customAssumptions?.solarYieldKWhPerKWp) {
+          // Calculate specific yield from Google's actual production / system size
+          // This gives us kWh/kWp/year based on real roof analysis
+          const googleSpecificYield = googleData.googleProductionEstimate.yearlyEnergyAcKwh / 
+                                       googleData.googleProductionEstimate.systemSizeKw;
+          mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleSpecificYield);
+          console.log(`Using Google Solar production estimate: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year (from ${googleData.googleProductionEstimate.yearlyEnergyAcKwh} kWh AC / ${googleData.googleProductionEstimate.systemSizeKw} kW)`);
+        }
+        // PRIORITY 2: Fall back to sunshine hours if no production estimate
+        else if (googleData.maxSunshineHoursPerYear && !customAssumptions?.solarYieldKWhPerKWp) {
           // Convert sunshine hours to kWh/kWp (roughly 1:1 ratio for well-oriented panels)
           // Google's maxSunshineHoursPerYear is the max possible, apply ~0.85 derating for realistic yield
           mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleData.maxSunshineHoursPerYear * 0.85);
+          console.log(`Using Google Solar sunshine hours: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year (from ${googleData.maxSunshineHoursPerYear} hrs * 0.85)`);
         }
         
         // Calculate orientation factor from roof segments if not manually overridden
@@ -1761,6 +1805,11 @@ export async function registerRoutes(
           const avgQuality = count > 0 ? totalQuality / count : 1.0;
           mergedAssumptions.orientationFactor = Math.max(0.6, Math.min(1.0, avgQuality));
         }
+      }
+      
+      // Log bifacial status for debugging
+      if (mergedAssumptions.bifacialEnabled) {
+        console.log(`Bifacial analysis enabled for site ${siteId}: factor=${mergedAssumptions.bifacialityFactor || 0.85}, albedo=${mergedAssumptions.roofAlbedo || 0.70}`);
       }
 
       // Run the analysis with merged assumptions (Google Solar + custom)
