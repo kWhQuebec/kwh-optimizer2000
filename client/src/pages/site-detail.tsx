@@ -2903,6 +2903,12 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Panneaux solaires" : "Solar Panels"}</p>
                 <p className="text-2xl font-bold font-mono text-primary">{(simulation.pvSizeKW || 0).toFixed(0)} <span className="text-sm font-normal">kWc</span></p>
+                {(simulation.pvSizeKW || 0) > 1000 && (
+                  <Badge variant="destructive" className="mt-1 text-xs flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    {language === "fr" ? "Dépasse 1 MW (limite HQ)" : "Exceeds 1 MW (HQ limit)"}
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -2947,6 +2953,29 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
             </div>
             <Progress value={simulation.selfSufficiencyPercent || 0} className="h-3" />
           </div>
+          
+          {/* Surplus Revenue Info (HQ Net Metering Dec 2024) */}
+          {(simulation.totalExportedKWh || 0) > 0 && (
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                    {language === "fr" ? "Revenus de surplus (mesurage net HQ)" : "Surplus Revenue (HQ Net Metering)"}
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    {language === "fr" 
+                      ? `Votre système produira environ ${Math.round(simulation.totalExportedKWh || 0).toLocaleString()} kWh/an de surplus exporté au réseau. Après 24 mois, Hydro-Québec vous compensera environ $${Math.round(simulation.annualSurplusRevenue || 0).toLocaleString()}/an.`
+                      : `Your system will produce approximately ${Math.round(simulation.totalExportedKWh || 0).toLocaleString()} kWh/year of surplus exported to the grid. After 24 months, Hydro-Québec will compensate you approximately $${Math.round(simulation.annualSurplusRevenue || 0).toLocaleString()}/year.`
+                    }
+                  </p>
+                  <Badge variant="outline" className="mt-2 text-xs text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
+                    {language === "fr" ? "Nouveau programme déc. 2024" : "New program Dec. 2024"}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -93,6 +93,16 @@ This auto-detection runs when initializing analysis assumptions, with saved assu
 - **Battery**: NO standalone $300/kW incentive (discontinued)
 - **Paired Storage**: Battery can only receive HQ credit when paired with solar AND there's leftover room in the 40% cap after solar incentive is applied
 
+### HQ Net Metering / Autoproduction Program (Dec 2024 Update)
+
+New rules for commercial solar autoproduction in Quebec:
+- **Capacity Limit**: 1 MW (up from 50 kW) - UI shows warning badge when system exceeds limit
+- **Commercial Eligibility**: C&I clients now eligible for net metering
+- **Surplus Compensation**: After 24-month credit banking period, Hydro-Québec compensates surplus exports at client's applicable tariff rate
+- **Cashflow Model**: Surplus revenue (`totalExportedKWh × tariffEnergy`) starts year 3 in financial projections
+- **Database Fields**: `totalProductionKWh`, `totalExportedKWh`, `annualSurplusRevenue` tracked in `simulationRuns`
+- **UI Display**: Blue info box shows surplus production and expected annual compensation when exports > 0
+
 ### System Design Module
 
 The System Design page enables staff users to create detailed equipment specifications and bills of materials, with auto-populated form fields from optimal simulation configurations, component selection, and margin configuration.

@@ -4534,6 +4534,8 @@ function runPotentialAnalysis(
   
   // Extract metrics from simulation
   const selfConsumptionKWh = simResult.totalSelfConsumption;
+  const totalProductionKWh = simResult.totalProductionKWh;
+  const totalExportedKWh = simResult.totalExportedKWh;
   const peakDemandKW = peakKW;
   const peakAfterKW = simResult.peakAfter;
   const annualDemandReductionKW = peakKW - peakAfterKW;
@@ -4546,6 +4548,10 @@ function runPotentialAnalysis(
   const annualSavings = energySavings + demandSavings;
   const annualCostAfter = annualCostBefore - annualSavings;
   const savingsYear1 = annualSavings; // First year savings (before inflation)
+  
+  // HQ Net Metering surplus revenue (new Dec 2024 program)
+  // After 24 months, HQ pays for surplus kWh at client's tariff rate
+  const annualSurplusRevenue = totalExportedKWh * h.tariffEnergy;
   
   // ========== STEP 5: Calculate CAPEX ==========
   // Apply bifacial cost premium if enabled (typically 5-10 cents/W more)
@@ -4621,7 +4627,15 @@ function runPotentialAnalysis(
     // Year 1 = 100%, Year 2 = 99.5%, Year 25 = ~88.6% for 0.5% degradation
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     // Revenue = base savings * degradation * tariff inflation
-    const revenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
+    const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
+    
+    // HQ surplus revenue starts after 24 months (year 3+)
+    // After first 24-month cycle, HQ pays for accumulated surplus in the bank
+    const surplusRevenue = y >= 3 
+      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
+      : 0;
+    
+    const revenue = savingsRevenue + surplusRevenue;
     const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);
     const ebitda = revenue - opex;
     
@@ -4844,11 +4858,24 @@ function runPotentialAnalysis(
     
     const optCashflowValues = [-optEquityInitial];
     const optDegradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
+    
+    // Calculate surplus revenue for HQ Net Metering (Dec 2024 program)
+    const optAnnualSurplusRevenue = optSimResult.totalExportedKWh * h.tariffEnergy;
+    
     for (let y = 1; y <= h.analysisYears; y++) {
       // Apply panel degradation (production decreases each year)
       const degradationFactor = Math.pow(1 - optDegradationRate, y - 1);
-      // Revenue = base savings * degradation * tariff inflation
-      const revenue = optAnnualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
+      
+      // Revenue from self-consumption savings
+      const savingsRevenue = optAnnualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
+      
+      // HQ surplus revenue starts after 24 months (year 3+)
+      // Surplus kWh compensated at client's tariff rate
+      const surplusRevenue = y >= 3 
+        ? optAnnualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
+        : 0;
+      
+      const revenue = savingsRevenue + surplusRevenue;
       const opex = optOpexBase * Math.pow(1 + h.omEscalation, y - 1);
       const ebitda = revenue - opex;
       
@@ -5035,6 +5062,9 @@ function runPotentialAnalysis(
         annualDemandReductionKW: peakKW - finalSimResult.peakAfter,
         selfConsumptionKWh: finalSimResult.totalSelfConsumption,
         selfSufficiencyPercent: annualConsumptionKWh > 0 ? (finalSimResult.totalSelfConsumption / annualConsumptionKWh) * 100 : 0,
+        totalProductionKWh: finalSimResult.totalProductionKWh,
+        totalExportedKWh: finalSimResult.totalExportedKWh,
+        annualSurplusRevenue: finalSimResult.totalExportedKWh * h.tariffEnergy,
         annualCostBefore,
         annualCostAfter: annualCostBefore - finalAnnualSavings,
         annualSavings: finalAnnualSavings,
@@ -5081,6 +5111,9 @@ function runPotentialAnalysis(
       annualDemandReductionKW: optAnnualDemandReductionKW,
       selfConsumptionKWh: optSelfConsumptionKWh,
       selfSufficiencyPercent: optSelfSufficiencyPercent,
+      totalProductionKWh: optSimResult.totalProductionKWh,
+      totalExportedKWh: optSimResult.totalExportedKWh,
+      annualSurplusRevenue: optSimResult.totalExportedKWh * h.tariffEnergy,
       annualCostBefore,
       annualCostAfter: optAnnualCostAfter,
       annualSavings: optAnnualSavings,
@@ -5126,6 +5159,9 @@ function runPotentialAnalysis(
     annualDemandReductionKW,
     selfConsumptionKWh,
     selfSufficiencyPercent,
+    totalProductionKWh,
+    totalExportedKWh,
+    annualSurplusRevenue,
     annualCostBefore,
     annualCostAfter,
     annualSavings,
@@ -5335,6 +5371,8 @@ function runHourlySimulation(
   systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.02 }
 ): {
   totalSelfConsumption: number;
+  totalProductionKWh: number; // Total annual solar production
+  totalExportedKWh: number;   // Surplus exported to grid (production - selfConsumption - battery charge)
   peakAfter: number;
   hourlyProfile: HourlyProfileEntry[];
   peakWeekData: PeakWeekEntry[];
@@ -5343,6 +5381,8 @@ function runHourlySimulation(
   const hourlyProfile: HourlyProfileEntry[] = [];
   let soc = battEnergyKWh * 0.5; // Start at 50% SOC
   let totalSelfConsumption = 0;
+  let totalProductionKWh = 0;
+  let totalExportedKWh = 0;
   let peakAfter = 0;
   let maxPeakIndex = 0;
   let maxPeakValue = 0;
@@ -5355,6 +5395,8 @@ function runHourlySimulation(
   if (hourlyData.length === 0) {
     return {
       totalSelfConsumption: 0,
+      totalProductionKWh: 0,
+      totalExportedKWh: 0,
       peakAfter: 0,
       hourlyProfile: [],
       peakWeekData: [],
@@ -5482,10 +5524,17 @@ function runHourlySimulation(
     }
     peakAfter = Math.max(peakAfter, peakFinal);
     
-    // Self-consumption
+    // Self-consumption and surplus calculation
     const discharge = battAction < 0 ? -battAction : 0;
+    const charge = battAction > 0 ? battAction : 0;
     const selfCons = Math.min(consumption, production + discharge);
     totalSelfConsumption += selfCons;
+    totalProductionKWh += production;
+    
+    // Surplus = production that isn't self-consumed or stored in battery
+    // (production - selfConsumption - batteryCharge)
+    const exported = Math.max(0, production - selfCons - charge);
+    totalExportedKWh += exported;
     
     hourlyProfile.push({
       hour,
@@ -5519,6 +5568,8 @@ function runHourlySimulation(
   
   return {
     totalSelfConsumption,
+    totalProductionKWh,
+    totalExportedKWh,
     peakAfter,
     hourlyProfile,
     peakWeekData,
@@ -5717,11 +5768,16 @@ function runScenarioWithSizing(
   const selfConsumptionKWh = simResult.totalSelfConsumption;
   const peakAfterKW = simResult.peakAfter;
   const annualDemandReductionKW = peakKW - peakAfterKW;
+  const annualExportedKWh = simResult.totalExportedKWh; // Surplus exported to grid
   
   const annualCostBefore = annualConsumptionKWh * h.tariffEnergy + peakKW * h.tariffPower * 12;
   const energySavings = selfConsumptionKWh * h.tariffEnergy;
   const demandSavings = annualDemandReductionKW * h.tariffPower * 12;
   const annualSavings = energySavings + demandSavings;
+  
+  // HQ Net Metering surplus revenue (new Dec 2024 program)
+  // After 24 months, HQ pays for surplus kWh at client's tariff rate
+  const annualSurplusRevenue = annualExportedKWh * h.tariffEnergy;
   
   // CAPEX - apply bifacial cost premium if enabled
   const effectiveSolarCostPerW = h.bifacialEnabled 
@@ -5784,7 +5840,16 @@ function runScenarioWithSizing(
     // Apply panel degradation (production decreases each year)
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     // Revenue = base savings * degradation * tariff inflation
-    const revenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
+    const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
+    
+    // HQ surplus revenue starts after 24 months (year 3+)
+    // After first 24-month cycle, HQ pays for accumulated surplus in the bank
+    // We model this as annual revenue starting year 3
+    const surplusRevenue = y >= 3 
+      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
+      : 0;
+    
+    const revenue = savingsRevenue + surplusRevenue;
     const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);
     const ebitda = revenue - opex;
     

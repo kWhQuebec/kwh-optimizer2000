@@ -134,6 +134,11 @@ export const simulationRuns = pgTable("simulation_runs", {
   selfConsumptionKWh: real("self_consumption_kwh"),
   selfSufficiencyPercent: real("self_sufficiency_percent"),
   
+  // Production and surplus (HQ Net Metering - Dec 2024)
+  totalProductionKWh: real("total_production_kwh"),        // Total annual solar production
+  totalExportedKWh: real("total_exported_kwh"),            // Surplus exported to grid
+  annualSurplusRevenue: real("annual_surplus_revenue"),    // Revenue from surplus (starts year 3)
+  
   // Cost metrics
   annualCostBefore: real("annual_cost_before"),
   annualCostAfter: real("annual_cost_after"),
