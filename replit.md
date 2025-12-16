@@ -36,6 +36,33 @@ A PostgreSQL database, managed by Drizzle ORM, includes `users`, `leads`, `clien
 
 The server-side processes Hydro-Québec consumption data, performs 8760-hour solar production simulations, battery peak-shaving, calculates Québec and Federal incentives, tax shields, and generates 25-year cashflows. A sensitivity analysis engine optimizes system sizing by sweeping different configurations. The HQ Tariff Module incorporates official Hydro-Québec tariffs. PV modeling parameters are inspired by industry tools like Helioscope, including Inverter Load Ratio, Temperature Coefficient, Wire Losses, and Degradation Rate.
 
+### Solar Production Methodology (Dec 2024 Update)
+
+The platform uses a priority-based approach for calculating solar yield (kWh/kWp/year):
+
+**Priority 1 - Google Solar Production Estimate (Most Accurate)**:
+- Uses `yearlyEnergyDcKwh` and `systemSizeKw` from Google Solar API's `solarPanelConfigs`
+- Applies 0.85 DC-to-AC conversion factor
+- Calculates specific yield: `yearlyEnergyAcKwh / systemSizeKw`
+- Data stored in `roofAreaAutoDetails.googleProductionEstimate`
+
+**Priority 2 - Sunshine Hours Fallback**:
+- Uses `maxSunshineHoursPerYear` from Google Solar API
+- Applies ~0.85 derating for realistic yield estimate
+
+**Priority 3 - Default Constant**:
+- Falls back to 1,150 kWh/kWp/year (Quebec average) if no Google data available
+
+**Bifacial Multiplier**:
+- When bifacial analysis is enabled, applies albedo gain: `yield × (1 + 0.85 × roofAlbedo × 0.3)`
+- Albedo values: 0.70 (white membrane), 0.20 (gravel), 0.10 (dark)
+- Results in 8-18% production boost for white roofs
+
+**Key Files**:
+- `server/googleSolarService.ts`: Extracts and calculates `googleProductionEstimate`
+- `server/routes.ts`: Merges site assumptions (bifacial settings) with analysis parameters
+- Storage: `sites.roofAreaAutoDetails` contains enriched Google Solar data
+
 ### UI Visualization
 
 The UI uses Recharts for interactive charts displaying consumption profiles, production simulations, and financial projections. shadcn/ui table components are used for BOMs and detailed metrics. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display with key KPIs, and an Optimization Analysis Section.
