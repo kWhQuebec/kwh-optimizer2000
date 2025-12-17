@@ -10,6 +10,7 @@ import {
   Building2,
   Swords,
   FileText,
+  FileArchive,
   AlertTriangle,
   Globe,
   DollarSign,
@@ -18,6 +19,7 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronRight,
+  Tag,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,7 +72,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import type { Competitor, BattleCardWithCompetitor, MarketNote } from "@shared/schema";
+import type { Competitor, BattleCardWithCompetitor, MarketNote, MarketDocument } from "@shared/schema";
 
 const competitorSchema = z.object({
   name: z.string().min(1, "Name required"),
@@ -105,9 +107,21 @@ const marketNoteSchema = z.object({
   importance: z.string().default("medium"),
 });
 
+const documentFormSchema = z.object({
+  title: z.string().min(1, "Title required"),
+  entityType: z.string().min(1, "Entity type required"),
+  competitorId: z.string().optional(),
+  documentType: z.string().min(1, "Document type required"),
+  fileName: z.string().min(1, "File path required"),
+  fileUrl: z.string().optional(),
+  description: z.string().optional(),
+  tags: z.string().optional(),
+});
+
 type CompetitorForm = z.infer<typeof competitorSchema>;
 type BattleCardForm = z.infer<typeof battleCardSchema>;
 type MarketNoteForm = z.infer<typeof marketNoteSchema>;
+type DocumentForm = z.infer<typeof documentFormSchema>;
 
 export default function MarketIntelligencePage() {
   const { t, language } = useI18n();
@@ -129,6 +143,10 @@ export default function MarketIntelligencePage() {
   const [editingMarketNote, setEditingMarketNote] = useState<MarketNote | null>(null);
   const [deleteMarketNoteId, setDeleteMarketNoteId] = useState<string | null>(null);
 
+  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<MarketDocument | null>(null);
+  const [deleteDocumentId, setDeleteDocumentId] = useState<string | null>(null);
+
   const { data: competitorsList = [], isLoading: competitorsLoading } = useQuery<Competitor[]>({
     queryKey: ["/api/admin/competitors"],
     enabled: isAdmin,
@@ -141,6 +159,11 @@ export default function MarketIntelligencePage() {
 
   const { data: marketNotes = [], isLoading: marketNotesLoading } = useQuery<MarketNote[]>({
     queryKey: ["/api/admin/market-notes"],
+    enabled: isAdmin,
+  });
+
+  const { data: marketDocuments = [], isLoading: documentsLoading } = useQuery<MarketDocument[]>({
+    queryKey: ["/api/admin/market-documents"],
     enabled: isAdmin,
   });
 
@@ -178,6 +201,20 @@ export default function MarketIntelligencePage() {
       jurisdiction: "QC",
       sourceUrl: "",
       importance: "medium",
+    },
+  });
+
+  const documentForm = useForm<DocumentForm>({
+    resolver: zodResolver(documentFormSchema),
+    defaultValues: {
+      title: "",
+      entityType: "competitor",
+      competitorId: "",
+      documentType: "proposal",
+      fileName: "",
+      fileUrl: "",
+      description: "",
+      tags: "",
     },
   });
 
@@ -275,6 +312,37 @@ export default function MarketIntelligencePage() {
     },
   });
 
+  const createDocumentMutation = useMutation({
+    mutationFn: (data: DocumentForm) => apiRequest("POST", "/api/admin/market-documents", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/market-documents"] });
+      setIsDocumentDialogOpen(false);
+      documentForm.reset();
+      toast({ title: language === "fr" ? "Document ajouté" : "Document added" });
+    },
+  });
+
+  const updateDocumentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<DocumentForm> }) => 
+      apiRequest("PATCH", `/api/admin/market-documents/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/market-documents"] });
+      setIsDocumentDialogOpen(false);
+      setEditingDocument(null);
+      documentForm.reset();
+      toast({ title: language === "fr" ? "Document modifié" : "Document updated" });
+    },
+  });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/market-documents/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/market-documents"] });
+      setDeleteDocumentId(null);
+      toast({ title: language === "fr" ? "Document supprimé" : "Document deleted" });
+    },
+  });
+
   if (authLoading) {
     return (
       <div className="space-y-6">
@@ -335,6 +403,21 @@ export default function MarketIntelligencePage() {
     setIsMarketNoteDialogOpen(true);
   };
 
+  const openEditDocument = (doc: MarketDocument) => {
+    setEditingDocument(doc);
+    documentForm.reset({
+      title: doc.title,
+      entityType: doc.entityType,
+      competitorId: doc.entityId || "",
+      documentType: doc.documentType,
+      fileName: doc.fileName,
+      fileUrl: doc.fileUrl || "",
+      description: doc.description || "",
+      tags: doc.tags ? doc.tags.join(", ") : "",
+    });
+    setIsDocumentDialogOpen(true);
+  };
+
   const toggleCompetitorExpanded = (id: string) => {
     const newSet = new Set(expandedCompetitors);
     if (newSet.has(id)) {
@@ -386,6 +469,46 @@ export default function MarketIntelligencePage() {
     return <Badge className={colors[importance] || colors.medium}>{importance}</Badge>;
   };
 
+  const getEntityTypeBadge = (entityType: string) => {
+    const colors: Record<string, string> = {
+      competitor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+      supplier: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      partner: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+      hydro_quebec: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
+      government: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      internal: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+    };
+    const labels: Record<string, string> = {
+      competitor: language === "fr" ? "Concurrent" : "Competitor",
+      supplier: language === "fr" ? "Fournisseur" : "Supplier",
+      partner: language === "fr" ? "Partenaire" : "Partner",
+      hydro_quebec: "Hydro-Québec",
+      government: language === "fr" ? "Gouvernement" : "Government",
+      internal: language === "fr" ? "Interne" : "Internal",
+    };
+    return <Badge className={colors[entityType] || colors.internal}>{labels[entityType] || entityType}</Badge>;
+  };
+
+  const getDocumentTypeBadge = (docType: string) => {
+    const colors: Record<string, string> = {
+      proposal: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
+      pricing: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
+      analysis: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      specification: "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200",
+      presentation: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
+      other: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+    };
+    const labels: Record<string, string> = {
+      proposal: language === "fr" ? "Proposition" : "Proposal",
+      pricing: language === "fr" ? "Tarification" : "Pricing",
+      analysis: language === "fr" ? "Analyse" : "Analysis",
+      specification: language === "fr" ? "Spécification" : "Specification",
+      presentation: language === "fr" ? "Présentation" : "Presentation",
+      other: language === "fr" ? "Autre" : "Other",
+    };
+    return <Badge className={colors[docType] || colors.other}>{labels[docType] || docType}</Badge>;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -402,7 +525,7 @@ export default function MarketIntelligencePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="competitors" data-testid="tab-competitors">
             <Building2 className="w-4 h-4 mr-2" />
             {language === "fr" ? "Concurrents" : "Competitors"}
@@ -414,6 +537,10 @@ export default function MarketIntelligencePage() {
           <TabsTrigger value="notes" data-testid="tab-notes">
             <FileText className="w-4 h-4 mr-2" />
             {language === "fr" ? "Notes de marché" : "Market Notes"}
+          </TabsTrigger>
+          <TabsTrigger value="documents" data-testid="tab-documents">
+            <FileArchive className="w-4 h-4 mr-2" />
+            {language === "fr" ? "Documents" : "Documents"}
           </TabsTrigger>
         </TabsList>
 
@@ -731,6 +858,100 @@ export default function MarketIntelligencePage() {
                         {language === "fr" ? "Source" : "Source"}
                       </a>
                     )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="documents" className="space-y-4">
+          <div className="flex justify-end">
+            <Button 
+              onClick={() => {
+                setEditingDocument(null);
+                documentForm.reset();
+                setIsDocumentDialogOpen(true);
+              }}
+              data-testid="button-add-document"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {language === "fr" ? "Ajouter un document" : "Add Document"}
+            </Button>
+          </div>
+
+          {documentsLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-32" />)}
+            </div>
+          ) : marketDocuments.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                {language === "fr" 
+                  ? "Aucun document. Ajoutez des propositions concurrentes, analyses ou spécifications."
+                  : "No documents. Add competitor proposals, analyses, or specifications."}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {marketDocuments.map(doc => (
+                <Card key={doc.id} data-testid={`card-document-${doc.id}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          {getEntityTypeBadge(doc.entityType)}
+                          {getDocumentTypeBadge(doc.documentType)}
+                        </div>
+                        <CardTitle className="text-base">{doc.title}</CardTitle>
+                        {doc.entityName && (
+                          <p className="text-sm text-muted-foreground">{doc.entityName}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {doc.fileUrl && (
+                          <Button 
+                            size="icon" 
+                            variant="ghost"
+                            asChild
+                          >
+                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          </Button>
+                        )}
+                        <Button 
+                          size="icon" 
+                          variant="ghost"
+                          onClick={() => openEditDocument(doc)}
+                          data-testid={`button-edit-document-${doc.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant="ghost"
+                          onClick={() => setDeleteDocumentId(doc.id)}
+                          data-testid={`button-delete-document-${doc.id}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {doc.description && (
+                      <p className="text-sm whitespace-pre-wrap mb-2">{doc.description}</p>
+                    )}
+                    {doc.tags && doc.tags.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Tag className="w-3 h-3 text-muted-foreground" />
+                        {doc.tags.map((tag, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">{tag}</Badge>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">{doc.fileName}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -1259,6 +1480,211 @@ export default function MarketIntelligencePage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingDocument 
+                ? (language === "fr" ? "Modifier le document" : "Edit Document")
+                : (language === "fr" ? "Ajouter un document" : "Add Document")}
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...documentForm}>
+            <form onSubmit={documentForm.handleSubmit((data) => {
+              const { competitorId, tags, ...rest } = data;
+              const payload = {
+                ...rest,
+                entityId: competitorId && competitorId.length > 0 ? competitorId : null,
+                tags: tags ? tags.split(",").map(t => t.trim()).filter(t => t) : [],
+              };
+              if (editingDocument) {
+                updateDocumentMutation.mutate({ id: editingDocument.id, data: payload });
+              } else {
+                createDocumentMutation.mutate(payload as any);
+              }
+            })} className="space-y-4">
+              <FormField
+                control={documentForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Titre" : "Title"} *</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-document-title" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={documentForm.control}
+                  name="entityType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Type d'entité" : "Entity Type"} *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-document-entity-type">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="competitor">{language === "fr" ? "Concurrent" : "Competitor"}</SelectItem>
+                          <SelectItem value="supplier">{language === "fr" ? "Fournisseur" : "Supplier"}</SelectItem>
+                          <SelectItem value="partner">{language === "fr" ? "Partenaire" : "Partner"}</SelectItem>
+                          <SelectItem value="hydro_quebec">Hydro-Québec</SelectItem>
+                          <SelectItem value="government">{language === "fr" ? "Gouvernement" : "Government"}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={documentForm.control}
+                  name="competitorId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Concurrent associé" : "Associated Competitor"}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-document-competitor">
+                            <SelectValue placeholder={language === "fr" ? "Aucun" : "None"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">{language === "fr" ? "Aucun" : "None"}</SelectItem>
+                          {competitorsList.map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={documentForm.control}
+                name="documentType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Type de document" : "Document Type"} *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-document-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="proposal">{language === "fr" ? "Proposition" : "Proposal"}</SelectItem>
+                        <SelectItem value="pricing">{language === "fr" ? "Tarification" : "Pricing"}</SelectItem>
+                        <SelectItem value="analysis">{language === "fr" ? "Analyse" : "Analysis"}</SelectItem>
+                        <SelectItem value="specification">{language === "fr" ? "Spécification" : "Specification"}</SelectItem>
+                        <SelectItem value="presentation">{language === "fr" ? "Présentation" : "Presentation"}</SelectItem>
+                        <SelectItem value="other">{language === "fr" ? "Autre" : "Other"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={documentForm.control}
+                  name="fileName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Nom du fichier" : "File Name"} *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="document.pdf" data-testid="input-document-filename" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={documentForm.control}
+                  name="fileUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "URL du fichier" : "File URL"}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="https://" data-testid="input-document-url" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={documentForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        rows={3}
+                        placeholder={language === "fr" 
+                          ? "Description du document..."
+                          : "Document description..."}
+                        data-testid="input-document-description"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={documentForm.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Tags" : "Tags"}</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder={language === "fr" 
+                          ? "ex: ppa, commercial, 2024"
+                          : "e.g., ppa, commercial, 2024"}
+                        data-testid="input-document-tags"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {language === "fr" ? "Séparés par des virgules" : "Comma-separated"}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDocumentDialogOpen(false)}>
+                  {language === "fr" ? "Annuler" : "Cancel"}
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createDocumentMutation.isPending || updateDocumentMutation.isPending}
+                  data-testid="button-save-document"
+                >
+                  {editingDocument 
+                    ? (language === "fr" ? "Sauvegarder" : "Save")
+                    : (language === "fr" ? "Ajouter" : "Add")}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deleteCompetitorId} onOpenChange={() => setDeleteCompetitorId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1311,6 +1737,24 @@ export default function MarketIntelligencePage() {
               onClick={() => deleteMarketNoteId && deleteMarketNoteMutation.mutate(deleteMarketNoteId)}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-delete-note"
+            >
+              {language === "fr" ? "Supprimer" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteDocumentId} onOpenChange={() => setDeleteDocumentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{language === "fr" ? "Supprimer ce document?" : "Delete this document?"}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{language === "fr" ? "Annuler" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteDocumentId && deleteDocumentMutation.mutate(deleteDocumentId)}
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-delete-document"
             >
               {language === "fr" ? "Supprimer" : "Delete"}
             </AlertDialogAction>
