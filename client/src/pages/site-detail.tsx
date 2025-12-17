@@ -1550,21 +1550,151 @@ function ScenarioComparison({
       payback: sim.simplePaybackYears && sim.simplePaybackYears > 0 ? sim.simplePaybackYears : 0,
       capexNet: sim.capexNet || 0,
       co2: sim.co2AvoidedTonnesPerYear || 0,
+      selfSufficiency: sim.selfSufficiencyPercent || 0,
     })),
     [validScenarios]
   );
   
-  // Memoize best value calculations
-  const { bestNPV, bestIRR, bestPayback } = useMemo(() => {
-    const validNPVs = comparisonData.filter(d => d.npv25 > 0).map(d => d.npv25);
-    const validPaybacks = comparisonData.filter(d => d.payback > 0).map(d => d.payback);
-    const validIRRs = comparisonData.filter(d => d.irr25 > 0).map(d => d.irr25);
+  // Round values consistently to avoid floating-point comparison issues
+  const round = (val: number, decimals = 2) => Math.round(val * Math.pow(10, decimals)) / Math.pow(10, decimals);
+  
+  // Memoize best value calculations with consistent rounding
+  const { bestNPV, bestIRR, bestPayback, bestSelfSufficiency } = useMemo(() => {
+    const validNPVs = comparisonData.filter(d => d.npv25 > 0).map(d => round(d.npv25));
+    const validPaybacks = comparisonData.filter(d => d.payback > 0).map(d => round(d.payback));
+    const validIRRs = comparisonData.filter(d => d.irr25 > 0).map(d => round(d.irr25, 4));
+    const validSelfSufficiency = comparisonData.filter(d => d.selfSufficiency > 0).map(d => round(d.selfSufficiency, 4));
     return {
       bestNPV: validNPVs.length > 0 ? Math.max(...validNPVs) : null,
       bestIRR: validIRRs.length > 0 ? Math.max(...validIRRs) : null,
       bestPayback: validPaybacks.length > 0 ? Math.min(...validPaybacks) : null,
+      bestSelfSufficiency: validSelfSufficiency.length > 0 ? Math.max(...validSelfSufficiency) : null,
     };
   }, [comparisonData]);
+  
+  // Badge definitions
+  const badgeConfigs = {
+    npv: { 
+      labelFr: 'Meilleure VAN', 
+      labelEn: 'Best NPV',
+      bgClass: 'bg-green-500 border-green-500',
+      borderClass: 'border-green-500 bg-green-50/50 dark:bg-green-950/20'
+    },
+    irr: { 
+      labelFr: 'Meilleur TRI', 
+      labelEn: 'Best IRR',
+      bgClass: 'bg-blue-500 border-blue-500',
+      borderClass: 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+    },
+    selfSufficiency: { 
+      labelFr: 'Meilleure autonomie', 
+      labelEn: 'Best Self-Sufficiency',
+      bgClass: 'bg-purple-500 border-purple-500',
+      borderClass: 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20'
+    },
+    payback: { 
+      labelFr: 'Retour le plus rapide', 
+      labelEn: 'Fastest Payback',
+      bgClass: 'bg-orange-500 border-orange-500',
+      borderClass: 'border-orange-500 bg-orange-50/50 dark:bg-orange-950/20'
+    },
+  };
+  
+  // Compute unique badge assignments across ALL scenarios (not just displayed ones)
+  // Each scenario gets at most one badge, and each badge type is assigned to at most one scenario
+  // But we only show badges on scenarios that happen to be displayed in the top 3
+  const badgeAssignments = useMemo(() => {
+    const assignments: Record<string, keyof typeof badgeConfigs> = {};
+    const usedBadges = new Set<string>();
+    
+    // Use ALL scenarios for champion determination, not just displayed subset
+    const allScenarios = comparisonData;
+    
+    // Round values to avoid floating-point comparison issues
+    const round = (val: number, decimals = 2) => Math.round(val * Math.pow(10, decimals)) / Math.pow(10, decimals);
+    
+    // Find champion for each metric across ALL scenarios
+    // For ties, use secondary metrics or index as tiebreaker
+    const findChampion = (
+      metric: 'npv' | 'irr' | 'selfSufficiency' | 'payback',
+      getValue: (s: typeof allScenarios[0]) => number,
+      isHigherBetter: boolean
+    ) => {
+      const valid = allScenarios.filter(s => getValue(s) > 0);
+      if (valid.length === 0) return null;
+      
+      const bestValue = isHigherBetter 
+        ? Math.max(...valid.map(s => round(getValue(s))))
+        : Math.min(...valid.map(s => round(getValue(s))));
+      
+      // Get all scenarios with the best value
+      const champions = valid.filter(s => round(getValue(s)) === bestValue);
+      
+      if (champions.length === 1) {
+        return champions[0].id;
+      }
+      
+      // Tiebreaker: among tied scenarios, use secondary metric (NPV as tiebreaker)
+      // If still tied, use first one by original index
+      if (metric !== 'npv') {
+        const byNpv = [...champions].sort((a, b) => b.npv25 - a.npv25);
+        return byNpv[0].id;
+      }
+      
+      // For NPV ties, use IRR as tiebreaker
+      const byIrr = [...champions].sort((a, b) => b.irr25 - a.irr25);
+      return byIrr[0].id;
+    };
+    
+    // Assign badges in priority order: NPV > IRR > Self-Sufficiency > Payback
+    const metrics: Array<{key: keyof typeof badgeConfigs, getValue: (s: typeof allScenarios[0]) => number, higherBetter: boolean}> = [
+      { key: 'npv', getValue: s => s.npv25, higherBetter: true },
+      { key: 'irr', getValue: s => s.irr25, higherBetter: true },
+      { key: 'selfSufficiency', getValue: s => s.selfSufficiency, higherBetter: true },
+      { key: 'payback', getValue: s => s.payback, higherBetter: false },
+    ];
+    
+    for (const { key, getValue, higherBetter } of metrics) {
+      if (usedBadges.has(key)) continue;
+      
+      const championId = findChampion(key, getValue, higherBetter);
+      if (championId && !assignments[championId]) {
+        assignments[championId] = key;
+        usedBadges.add(key);
+      }
+    }
+    
+    return assignments;
+  }, [comparisonData]);
+  
+  // Reorder scenarios to prioritize badge winners for display
+  // This ensures that champions are always visible in the top 3 cards
+  const displayedScenarios = useMemo(() => {
+    // Badge priority order (same as assignment order)
+    const badgePriority: Array<keyof typeof badgeConfigs> = ['npv', 'irr', 'selfSufficiency', 'payback'];
+    
+    // Separate scenarios with badges from those without
+    const withBadges: typeof comparisonData = [];
+    const withoutBadges: typeof comparisonData = [];
+    
+    comparisonData.forEach(scenario => {
+      if (badgeAssignments[scenario.id]) {
+        withBadges.push(scenario);
+      } else {
+        withoutBadges.push(scenario);
+      }
+    });
+    
+    // Sort badge winners by badge priority
+    withBadges.sort((a, b) => {
+      const aPriority = badgePriority.indexOf(badgeAssignments[a.id]);
+      const bPriority = badgePriority.indexOf(badgeAssignments[b.id]);
+      return aPriority - bPriority;
+    });
+    
+    // Combine: champions first (in priority order), then others (in original order)
+    return [...withBadges, ...withoutBadges];
+  }, [comparisonData, badgeAssignments]);
 
   return (
     <div className="space-y-6" data-testid="section-scenario-comparison">
@@ -1579,24 +1709,30 @@ function ScenarioComparison({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Visual Side-by-Side Comparison Cards */}
+          {/* Visual Side-by-Side Comparison Cards - reordered to show champions first */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {comparisonData.slice(0, 3).map((scenario, index) => {
-              const isBestNPV = bestNPV !== null && scenario.npv25 === bestNPV;
-              const isBestPayback = bestPayback !== null && scenario.payback > 0 && scenario.payback === bestPayback;
-              const isBestIRR = bestIRR !== null && scenario.irr25 === bestIRR;
+            {displayedScenarios.slice(0, 3).map((scenario, index) => {
+              // Use consistent rounding for best-value comparisons
+              const isBestNPV = bestNPV !== null && round(scenario.npv25) === bestNPV;
+              const isBestPayback = bestPayback !== null && scenario.payback > 0 && round(scenario.payback) === bestPayback;
+              const isBestIRR = bestIRR !== null && round(scenario.irr25, 4) === bestIRR;
+              const isBestSelfSufficiency = bestSelfSufficiency !== null && round(scenario.selfSufficiency, 4) === bestSelfSufficiency;
+              
+              // Get unique champion badge for this scenario from pre-computed assignments
+              const badgeType = badgeAssignments[scenario.id];
+              const badgeConfig = badgeType ? badgeConfigs[badgeType] : null;
               
               return (
                 <div 
                   key={scenario.id}
                   className={`relative rounded-xl border-2 p-4 transition-all ${
-                    isBestNPV ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20' : 'border-muted hover:border-primary/50'
+                    badgeConfig ? badgeConfig.borderClass : 'border-muted hover:border-primary/50'
                   }`}
                   data-testid={`card-scenario-${index}`}
                 >
-                  {isBestNPV && (
-                    <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-green-500 text-white border-green-500">
-                      {language === "fr" ? "Meilleur VAN" : "Best NPV"}
+                  {badgeConfig && (
+                    <Badge className={`absolute -top-2.5 left-1/2 -translate-x-1/2 text-white ${badgeConfig.bgClass}`}>
+                      {language === "fr" ? badgeConfig.labelFr : badgeConfig.labelEn}
                     </Badge>
                   )}
                   
