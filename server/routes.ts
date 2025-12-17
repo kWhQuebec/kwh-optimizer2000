@@ -1309,19 +1309,50 @@ export async function registerRoutes(
   
   app.get("/api/sites", authMiddleware, async (req: AuthRequest, res) => {
     try {
+      let sites: Awaited<ReturnType<typeof storage.getSites>>;
+      let clientsById: Map<string, { name: string }> = new Map();
+      
       // Client users only see their own sites
       if (req.userRole === "client" && req.userClientId) {
-        const sites = await storage.getSitesByClient(req.userClientId);
-        // Enrich with client data for consistency
+        sites = await storage.getSitesByClient(req.userClientId);
         const client = await storage.getClient(req.userClientId);
-        const enrichedSites = sites.map(site => ({ ...site, client: client || { name: "Unknown" } }));
-        return res.json(enrichedSites);
+        if (client) {
+          clientsById.set(client.id, { name: client.name });
+        }
+      } else {
+        // Admin/analyst see all sites
+        sites = await storage.getSites();
+        // Get all clients for enrichment
+        const clients = await storage.getClients();
+        clients.forEach(c => clientsById.set(c.id, { name: c.name }));
       }
       
-      // Admin/analyst see all sites
-      const sites = await storage.getSites();
-      res.json(sites);
+      // Enrich sites with simulation runs and design agreements for portal
+      const allRuns = await storage.getSimulationRuns();
+      const allAgreements = await storage.getDesignAgreements();
+      
+      const runsBySiteId = new Map<string, typeof allRuns>();
+      allRuns.forEach(run => {
+        const existing = runsBySiteId.get(run.siteId) || [];
+        existing.push(run);
+        runsBySiteId.set(run.siteId, existing);
+      });
+      
+      const agreementBySiteId = new Map<string, typeof allAgreements[0]>();
+      allAgreements.forEach(a => {
+        agreementBySiteId.set(a.siteId, a);
+      });
+      
+      const enrichedSites = sites.map(site => ({
+        ...site,
+        client: site.clientId ? clientsById.get(site.clientId) || null : null,
+        simulationRuns: runsBySiteId.get(site.id) || [],
+        designAgreement: agreementBySiteId.get(site.id) || null
+      }));
+      
+      res.json(enrichedSites);
     } catch (error) {
+      console.error("Error fetching sites:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

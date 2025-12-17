@@ -803,6 +803,27 @@ const translations: Translations = {
   "publicAgreement.error": { fr: "Une erreur est survenue", en: "An error occurred" },
   "publicAgreement.signingSuccess": { fr: "Entente signée avec succès!", en: "Agreement signed successfully!" },
   "publicAgreement.redirectingToPayment": { fr: "Redirection vers le paiement...", en: "Redirecting to payment..." },
+  
+  // Step tracker
+  "publicAgreement.step1": { fr: "Révision", en: "Review Details" },
+  "publicAgreement.step2": { fr: "Signature & Paiement", en: "Sign & Pay" },
+  "publicAgreement.step3": { fr: "Confirmation", en: "Confirmation" },
+  
+  // Success animation / What's next
+  "publicAgreement.agreementSigned": { fr: "Entente signée!", en: "Agreement Signed!" },
+  "publicAgreement.whatsNext": { fr: "Prochaines étapes", en: "What's Next" },
+  "publicAgreement.nextStep1": { fr: "Vous recevrez une confirmation par courriel", en: "You will receive an email confirmation" },
+  "publicAgreement.nextStep1Time": { fr: "Immédiat", en: "Immediate" },
+  "publicAgreement.nextStep2": { fr: "Notre équipe planifiera la visite technique", en: "Our team will schedule the technical visit" },
+  "publicAgreement.nextStep2Time": { fr: "24-48h", en: "24-48h" },
+  "publicAgreement.nextStep3": { fr: "Visite sur site et collecte de données", en: "Site visit and data collection" },
+  "publicAgreement.nextStep3Time": { fr: "1-2 semaines", en: "1-2 weeks" },
+  "publicAgreement.nextStep4": { fr: "Livraison du design complet", en: "Delivery of complete design" },
+  "publicAgreement.nextStep4Time": { fr: "2-3 semaines", en: "2-3 weeks" },
+  "publicAgreement.downloadAgreement": { fr: "Télécharger l'entente signée", en: "Download Signed Agreement" },
+  "publicAgreement.contactUs": { fr: "Des questions? Contactez-nous", en: "Questions? Contact us" },
+  "publicAgreement.contactEmail": { fr: "info@kwhquebec.com", en: "info@kwhquebec.com" },
+  "publicAgreement.contactPhone": { fr: "514-555-0123", en: "514-555-0123" },
 
   // Email Dialog for Design Agreement
   "designAgreement.emailDialog.title": { fr: "Envoyer l'entente par courriel", en: "Send Agreement by Email" },

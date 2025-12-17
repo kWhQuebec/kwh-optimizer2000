@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "wouter";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,7 +26,11 @@ import {
   XCircle,
   Calendar,
   Gift,
-  Info
+  Info,
+  Download,
+  Mail,
+  Phone,
+  ArrowRight
 } from "lucide-react";
 
 interface PublicAgreementData {
@@ -79,6 +82,307 @@ function formatDate(date: Date | string | null | undefined, language: string): s
     month: "long",
     day: "numeric",
   });
+}
+
+type StepStatus = "completed" | "current" | "pending";
+
+function StepTracker({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+  const { t } = useI18n();
+  
+  const steps = [
+    { number: 1, label: t("publicAgreement.step1") },
+    { number: 2, label: t("publicAgreement.step2") },
+    { number: 3, label: t("publicAgreement.step3") },
+  ];
+
+  const getStepStatus = (stepNumber: number): StepStatus => {
+    if (stepNumber < currentStep) return "completed";
+    if (stepNumber === currentStep) return "current";
+    return "pending";
+  };
+
+  return (
+    <div className="w-full py-6" data-testid="step-tracker">
+      <div className="flex items-center justify-center gap-2 sm:gap-4">
+        {steps.map((step, index) => {
+          const status = getStepStatus(step.number);
+          return (
+            <div key={step.number} className="flex items-center gap-2 sm:gap-4">
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className={`
+                    w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
+                    transition-all duration-300
+                    ${status === "completed" 
+                      ? "bg-primary text-primary-foreground" 
+                      : status === "current" 
+                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20" 
+                        : "bg-muted text-muted-foreground"
+                    }
+                  `}
+                  data-testid={`step-circle-${step.number}`}
+                >
+                  {status === "completed" ? (
+                    <CheckCircle2 className="w-5 h-5" />
+                  ) : (
+                    step.number
+                  )}
+                </div>
+                <span 
+                  className={`text-xs sm:text-sm font-medium text-center max-w-[80px] sm:max-w-none
+                    ${status === "current" ? "text-primary" : status === "completed" ? "text-primary" : "text-muted-foreground"}
+                  `}
+                  data-testid={`step-label-${step.number}`}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {index < steps.length - 1 && (
+                <div 
+                  className={`
+                    w-8 sm:w-16 h-0.5 mb-6
+                    ${getStepStatus(step.number + 1) !== "pending" ? "bg-primary" : "bg-muted"}
+                  `}
+                  data-testid={`step-connector-${step.number}`}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ConfettiAnimation() {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" data-testid="confetti-animation">
+      <style>{`
+        @keyframes confetti-fall {
+          0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes confetti-shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-10px); }
+          75% { transform: translateX(10px); }
+        }
+        .confetti {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          animation: confetti-fall 3s ease-out forwards;
+        }
+        .confetti:nth-child(odd) {
+          animation: confetti-fall 3s ease-out forwards, confetti-shake 0.5s ease-in-out infinite;
+        }
+      `}</style>
+      {Array.from({ length: 30 }).map((_, i) => (
+        <div
+          key={i}
+          className="confetti"
+          style={{
+            left: `${Math.random() * 100}%`,
+            backgroundColor: ["#003DA6", "#FFB005", "#22c55e", "#3b82f6", "#f97316"][Math.floor(Math.random() * 5)],
+            animationDelay: `${Math.random() * 0.5}s`,
+            borderRadius: Math.random() > 0.5 ? "50%" : "0",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function AnimatedCheckmark() {
+  return (
+    <div className="relative" data-testid="animated-checkmark">
+      <style>{`
+        @keyframes checkmark-circle {
+          0% { transform: scale(0); opacity: 0; }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes checkmark-draw {
+          0% { stroke-dashoffset: 100; }
+          100% { stroke-dashoffset: 0; }
+        }
+        @keyframes pulse-ring {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+        .checkmark-container {
+          animation: checkmark-circle 0.6s ease-out forwards;
+        }
+        .checkmark-svg {
+          stroke-dasharray: 100;
+          stroke-dashoffset: 100;
+          animation: checkmark-draw 0.6s ease-out 0.3s forwards;
+        }
+        .pulse-ring {
+          animation: pulse-ring 1.5s ease-out infinite;
+        }
+      `}</style>
+      <div className="relative w-24 h-24 mx-auto">
+        <div className="pulse-ring absolute inset-0 rounded-full bg-green-500/20" />
+        <div className="pulse-ring absolute inset-0 rounded-full bg-green-500/20" style={{ animationDelay: "0.5s" }} />
+        <div className="checkmark-container w-24 h-24 rounded-full bg-green-500 flex items-center justify-center">
+          <svg className="checkmark-svg w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SuccessConfirmation({ 
+  agreement, 
+  language,
+  token
+}: { 
+  agreement: PublicAgreementData;
+  language: string;
+  token: string;
+}) {
+  const { t } = useI18n();
+  const [showConfetti, setShowConfetti] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowConfetti(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const nextSteps = [
+    { 
+      step: t("publicAgreement.nextStep1"), 
+      time: t("publicAgreement.nextStep1Time"),
+      icon: Mail 
+    },
+    { 
+      step: t("publicAgreement.nextStep2"), 
+      time: t("publicAgreement.nextStep2Time"),
+      icon: Calendar 
+    },
+    { 
+      step: t("publicAgreement.nextStep3"), 
+      time: t("publicAgreement.nextStep3Time"),
+      icon: MapPin 
+    },
+    { 
+      step: t("publicAgreement.nextStep4"), 
+      time: t("publicAgreement.nextStep4Time"),
+      icon: FileText 
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background py-8 relative">
+      {showConfetti && <ConfettiAnimation />}
+      
+      <div className="container max-w-2xl mx-auto px-4 space-y-6">
+        <StepTracker currentStep={3} />
+        
+        <Card className="relative overflow-visible" data-testid="success-card">
+          <CardContent className="pt-8 pb-8">
+            <div className="text-center space-y-6">
+              <AnimatedCheckmark />
+              
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold text-primary" data-testid="text-success-title">
+                  {t("publicAgreement.agreementSigned")}
+                </h2>
+                <p className="text-xl text-muted-foreground" data-testid="text-thank-you">
+                  {t("publicAgreement.thankYou")}
+                </p>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-2 sm:gap-4">
+                  <span data-testid="text-signed-by">{t("publicAgreement.signedBy")}: <strong className="text-foreground">{agreement.acceptedByName}</strong></span>
+                  <span className="hidden sm:inline">•</span>
+                  <span data-testid="text-signed-on">{t("publicAgreement.signedOn")}: <strong className="text-foreground">{formatDate(agreement.acceptedAt, language)}</strong></span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="whats-next-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ArrowRight className="w-5 h-5 text-primary" />
+              {t("publicAgreement.whatsNext")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {nextSteps.map((item, index) => (
+                <div 
+                  key={index} 
+                  className="flex items-start gap-4 p-3 rounded-lg bg-muted/30"
+                  data-testid={`next-step-${index + 1}`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <item.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground">{item.step}</p>
+                    <Badge variant="secondary" className="mt-1 text-xs">
+                      {item.time}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="contact-card">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                variant="outline"
+                className="flex-1 gap-2"
+                onClick={() => window.open(`/api/public/agreements/${token}/pdf`, "_blank")}
+                data-testid="button-download-agreement"
+              >
+                <Download className="w-4 h-4" />
+                {t("publicAgreement.downloadAgreement")}
+              </Button>
+            </div>
+            
+            <Separator className="my-6" />
+            
+            <div className="text-center space-y-3">
+              <p className="text-sm text-muted-foreground">{t("publicAgreement.contactUs")}</p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm">
+                <a 
+                  href={`mailto:${t("publicAgreement.contactEmail")}`} 
+                  className="flex items-center gap-2 text-primary hover:underline"
+                  data-testid="link-contact-email"
+                >
+                  <Mail className="w-4 h-4" />
+                  {t("publicAgreement.contactEmail")}
+                </a>
+                <a 
+                  href={`tel:${t("publicAgreement.contactPhone")}`} 
+                  className="flex items-center gap-2 text-primary hover:underline"
+                  data-testid="link-contact-phone"
+                >
+                  <Phone className="w-4 h-4" />
+                  {t("publicAgreement.contactPhone")}
+                </a>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="text-center text-sm text-muted-foreground py-4">
+          <p>kWh Québec inc. | info@kwhquebec.com</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SignaturePad({ 
@@ -221,14 +525,12 @@ function SignAgreementContent() {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Check for payment success/cancel in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get("payment");
     const sessionId = urlParams.get("session_id");
     
     if (paymentStatus === "success" && sessionId && token) {
-      // Confirm payment was successful
       setIsProcessingPayment(true);
       fetch(`/api/public/agreements/${token}/confirm-payment`, {
         method: "POST",
@@ -250,7 +552,6 @@ function SignAgreementContent() {
         })
         .finally(() => {
           setIsProcessingPayment(false);
-          // Clean URL
           window.history.replaceState({}, "", `/sign/${token}`);
         });
     } else if (paymentStatus === "cancelled") {
@@ -296,7 +597,7 @@ function SignAgreementContent() {
 
   const paymentMutation = useMutation({
     mutationFn: async (data: { name: string; email: string; signatureData: string; language: string }) => {
-      const res = await apiRequest("POST", `/api/public/agreements/${token}/create-checkout`, data);
+      const res = await apiRequest("POST", `/api/public/agreements/${token}/create-checkout`, data) as Response;
       return res.json();
     },
     onSuccess: (data) => {
@@ -374,23 +675,11 @@ function SignAgreementContent() {
 
   if (isAlreadySigned) {
     return (
-      <div className="min-h-screen bg-background py-8">
-        <div className="container max-w-2xl mx-auto px-4">
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <CheckCircle2 className="w-16 h-16 mx-auto text-green-500 mb-4" />
-              <h2 className="text-2xl font-bold mb-2">{t("publicAgreement.thankYou")}</h2>
-              <p className="text-muted-foreground mb-4">{t("publicAgreement.alreadySigned")}</p>
-              <div className="text-sm text-muted-foreground">
-                <p>{t("publicAgreement.signedBy")}: {agreement.acceptedByName}</p>
-                <p>{t("publicAgreement.signedOn")}: {formatDate(agreement.acceptedAt, language)}</p>
-              </div>
-              <Separator className="my-6" />
-              <p className="text-muted-foreground">{t("publicAgreement.nextSteps")}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <SuccessConfirmation 
+        agreement={agreement} 
+        language={language}
+        token={token || ""}
+      />
     );
   }
 
@@ -410,16 +699,18 @@ function SignAgreementContent() {
     );
   }
 
+  const currentStep = signatureData ? 2 : 1;
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container max-w-3xl mx-auto px-4 space-y-6">
-        {/* Header */}
+        <StepTracker currentStep={currentStep as 1 | 2 | 3} />
+
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-primary">{t("publicAgreement.title")}</h1>
           <p className="text-muted-foreground">{t("designAgreement.subtitle")}</p>
         </div>
 
-        {/* Client & Site Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -449,7 +740,6 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        {/* Introduction */}
         <div className="bg-primary/5 rounded-lg p-4 border border-primary/10" data-testid="section-intro">
           <div className="flex items-start gap-3">
             <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
@@ -460,7 +750,6 @@ function SignAgreementContent() {
           </div>
         </div>
 
-        {/* Scope & Deliverables */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -481,7 +770,6 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        {/* What's NOT included */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -501,7 +789,6 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        {/* Timeline */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -523,7 +810,6 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        {/* Cost Breakdown */}
         <Card>
           <CardHeader>
             <CardTitle>{t("designAgreement.costBreakdown")}</CardTitle>
@@ -594,7 +880,6 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        {/* Payment Terms */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -623,7 +908,6 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        {/* Credit Policy Highlight */}
         <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800" data-testid="section-credit-policy">
           <div className="flex items-start gap-3">
             <Gift className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
@@ -634,7 +918,6 @@ function SignAgreementContent() {
           </div>
         </div>
 
-        {/* Important Notes */}
         <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-4 border border-amber-200 dark:border-amber-800" data-testid="section-important-notes">
           <h4 className="font-medium text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
@@ -647,7 +930,6 @@ function SignAgreementContent() {
           </ul>
         </div>
 
-        {/* Signature Form */}
         <Card>
           <CardHeader>
             <CardTitle>{t("publicAgreement.signatureSection")}</CardTitle>
@@ -716,7 +998,6 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <div className="text-center text-sm text-muted-foreground py-4">
           <p>kWh Québec inc. | info@kwhquebec.com</p>
         </div>
@@ -729,7 +1010,6 @@ export default function SignAgreementPage() {
   return (
     <I18nProvider>
       <div className="min-h-screen bg-background">
-        {/* Header with language/theme toggles */}
         <header className="border-b">
           <div className="container max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="font-bold text-xl text-primary">kWh Québec</div>
