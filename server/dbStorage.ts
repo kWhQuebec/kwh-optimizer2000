@@ -4,7 +4,7 @@ import {
   users, leads, clients, sites, meterFiles, meterReadings,
   simulationRuns, designs, bomItems, componentCatalog, siteVisits, designAgreements,
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
-  competitors, battleCards, marketNotes,
+  competitors, battleCards, marketNotes, marketDocuments,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -31,6 +31,7 @@ import type {
   BattleCard, InsertBattleCard,
   BattleCardWithCompetitor,
   MarketNote, InsertMarketNote,
+  MarketDocument, InsertMarketDocument,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -866,6 +867,42 @@ export class DatabaseStorage implements IStorage {
     const result = await db.update(marketNotes)
       .set({ status: "archived", updatedAt: new Date() })
       .where(eq(marketNotes.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Market Intelligence - Documents
+  async getMarketDocuments(entityType?: string): Promise<MarketDocument[]> {
+    if (entityType) {
+      return db.select().from(marketDocuments)
+        .where(eq(marketDocuments.entityType, entityType))
+        .orderBy(desc(marketDocuments.createdAt));
+    }
+    return db.select().from(marketDocuments)
+      .orderBy(desc(marketDocuments.createdAt));
+  }
+
+  async getMarketDocument(id: string): Promise<MarketDocument | undefined> {
+    const result = await db.select().from(marketDocuments).where(eq(marketDocuments.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createMarketDocument(doc: InsertMarketDocument): Promise<MarketDocument> {
+    const [result] = await db.insert(marketDocuments).values(doc).returning();
+    return result;
+  }
+
+  async updateMarketDocument(id: string, doc: Partial<MarketDocument>): Promise<MarketDocument | undefined> {
+    const [result] = await db.update(marketDocuments)
+      .set({ ...doc, updatedAt: new Date() })
+      .where(eq(marketDocuments.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteMarketDocument(id: string): Promise<boolean> {
+    const result = await db.delete(marketDocuments)
+      .where(eq(marketDocuments.id, id))
       .returning();
     return result.length > 0;
   }

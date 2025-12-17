@@ -24,6 +24,7 @@ import type {
   BattleCard, InsertBattleCard,
   BattleCardWithCompetitor,
   MarketNote, InsertMarketNote,
+  MarketDocument, InsertMarketDocument,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -172,6 +173,13 @@ export interface IStorage {
   createMarketNote(note: InsertMarketNote): Promise<MarketNote>;
   updateMarketNote(id: string, note: Partial<MarketNote>): Promise<MarketNote | undefined>;
   deleteMarketNote(id: string): Promise<boolean>;
+
+  // Market Intelligence - Documents
+  getMarketDocuments(entityType?: string): Promise<MarketDocument[]>;
+  getMarketDocument(id: string): Promise<MarketDocument | undefined>;
+  createMarketDocument(doc: InsertMarketDocument): Promise<MarketDocument>;
+  updateMarketDocument(id: string, doc: Partial<MarketDocument>): Promise<MarketDocument | undefined>;
+  deleteMarketDocument(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1145,6 +1153,47 @@ export class MemStorage implements IStorage {
 
   async deleteMarketNote(id: string): Promise<boolean> {
     return this.marketNotesMap.delete(id);
+  }
+
+  // Market Intelligence - Documents
+  private marketDocumentsMap: Map<string, MarketDocument> = new Map();
+
+  async getMarketDocuments(entityType?: string): Promise<MarketDocument[]> {
+    let docs = Array.from(this.marketDocumentsMap.values());
+    if (entityType) {
+      docs = docs.filter(d => d.entityType === entityType);
+    }
+    return docs.sort((a, b) => 
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    );
+  }
+
+  async getMarketDocument(id: string): Promise<MarketDocument | undefined> {
+    return this.marketDocumentsMap.get(id);
+  }
+
+  async createMarketDocument(doc: InsertMarketDocument): Promise<MarketDocument> {
+    const id = randomUUID();
+    const newDoc: MarketDocument = {
+      ...doc,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.marketDocumentsMap.set(id, newDoc);
+    return newDoc;
+  }
+
+  async updateMarketDocument(id: string, doc: Partial<MarketDocument>): Promise<MarketDocument | undefined> {
+    const existing = this.marketDocumentsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...doc, updatedAt: new Date() };
+    this.marketDocumentsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteMarketDocument(id: string): Promise<boolean> {
+    return this.marketDocumentsMap.delete(id);
   }
 }
 

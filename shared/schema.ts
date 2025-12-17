@@ -597,6 +597,38 @@ export const marketNotes = pgTable("market_notes", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Market intelligence document repository - centralized document storage
+export const marketDocuments = pgTable("market_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Document info
+  title: text("title").notNull(),
+  description: text("description"),
+  
+  // File details
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileType: text("file_type"), // "pdf" | "doc" | "xlsx" | "png" | "jpg" | etc.
+  fileSize: integer("file_size"), // bytes
+  
+  // Entity categorization
+  entityType: text("entity_type").notNull(), // "competitor" | "supplier" | "partner" | "hydro_quebec" | "government" | "internal"
+  entityId: varchar("entity_id"), // Optional link to competitor ID or other entity
+  entityName: text("entity_name"), // Fallback name when not linked to existing entity
+  
+  // Document categorization
+  documentType: text("document_type").notNull(), // "proposal" | "technical_spec" | "analysis" | "contract" | "regulation" | "marketing" | "other"
+  
+  // Tags for search
+  tags: text("tags").array(),
+  
+  // Metadata
+  uploadedByUserId: varchar("uploaded_by_user_id").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Email logs for tracking sent emails and enabling follow-up
 export const emailLogs = pgTable("email_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -758,6 +790,12 @@ export const insertMarketNoteSchema = createInsertSchema(marketNotes).omit({
   updatedAt: true,
 });
 
+export const insertMarketDocumentSchema = createInsertSchema(marketDocuments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -819,6 +857,9 @@ export type BattleCard = typeof battleCards.$inferSelect;
 
 export type InsertMarketNote = z.infer<typeof insertMarketNoteSchema>;
 export type MarketNote = typeof marketNotes.$inferSelect;
+
+export type InsertMarketDocument = z.infer<typeof insertMarketDocumentSchema>;
+export type MarketDocument = typeof marketDocuments.$inferSelect;
 
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };
