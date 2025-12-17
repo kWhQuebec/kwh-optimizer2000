@@ -222,10 +222,10 @@ export default function RessourcesPage() {
 
   const guides = [
     {
-      title: language === "fr" ? "Guide des incitatifs 2024-2025" : "2024-2025 Incentives Guide",
+      title: language === "fr" ? "Guide actuel des incitatifs solaires" : "Current Solar Incentives Guide",
       description: language === "fr"
-        ? "Tout ce que vous devez savoir sur les crédits HQ, le crédit fédéral et les avantages fiscaux."
-        : "Everything you need to know about HQ credits, federal credits, and tax benefits.",
+        ? "Tout ce que vous devez savoir sur le programme HQ, le crédit fédéral et les avantages fiscaux."
+        : "Everything you need to know about the HQ program, federal credit, and tax benefits.",
       category: "incentives",
       readTime: "8 min",
       slug: "incitatifs-solaires-quebec-2025"

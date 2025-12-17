@@ -253,7 +253,7 @@ function PortfolioForm({
             <FormItem>
               <FormLabel>{language === "fr" ? "Nom du projet" : "Project Name"} *</FormLabel>
               <FormControl>
-                <Input {...field} placeholder={language === "fr" ? "ex: Évaluation 2025 - Région Montréal" : "e.g., 2025 Assessment - Montreal Region"} data-testid="input-portfolio-name" />
+                <Input {...field} placeholder={language === "fr" ? "ex: Évaluation 2026 - Région Montréal" : "e.g., 2026 Assessment - Montreal Region"} data-testid="input-portfolio-name" />
               </FormControl>
               <FormMessage />
             </FormItem>
