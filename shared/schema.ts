@@ -520,6 +520,83 @@ export const designAgreements = pgTable("design_agreements", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Market Intelligence Module - Competitive analysis and sales positioning
+export const competitors = pgTable("competitors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: text("type").notNull().default("installer"), // "installer" | "epc" | "ppa_provider" | "utility"
+  website: text("website"),
+  headquartersCity: text("headquarters_city"),
+  province: text("province"),
+  
+  // Business model
+  businessModel: text("business_model"), // "ppa" | "lease" | "cash_sales" | "epc" | "mixed"
+  targetMarket: text("target_market"), // "residential" | "commercial" | "industrial" | "all"
+  
+  // Pricing intelligence (if known)
+  ppaYear1Rate: real("ppa_year1_rate"), // As % of HQ rate
+  ppaYear2Rate: real("ppa_year2_rate"), // As % of HQ rate for years 2+
+  ppaTerm: integer("ppa_term"), // Years
+  cashPricePerWatt: real("cash_price_per_watt"), // $/W installed
+  
+  // Strengths and weaknesses
+  strengths: text("strengths").array(),
+  weaknesses: text("weaknesses").array(),
+  
+  // Legal/regulatory notes
+  legalNotes: text("legal_notes"), // e.g., "Operates in regulatory gray area"
+  
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Battle cards - sales arguments against specific competitors
+export const battleCards = pgTable("battle_cards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  competitorId: varchar("competitor_id").notNull().references(() => competitors.id),
+  
+  // Sales positioning
+  objectionScenario: text("objection_scenario").notNull(), // e.g., "Client says TRC offers $0 upfront"
+  responseStrategy: text("response_strategy").notNull(), // Our sales response
+  keyDifferentiators: text("key_differentiators").array(),
+  financialComparison: text("financial_comparison"), // e.g., "Our model saves $50k over 25 years"
+  
+  // Language support
+  language: text("language").notNull().default("fr"), // "fr" | "en"
+  
+  priority: integer("priority").default(1), // 1 = highest priority
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Market intelligence notes - regulations, market trends, legal updates
+export const marketNotes = pgTable("market_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(), // "regulation" | "incentive" | "legal" | "market_trend" | "competitor_news"
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  
+  // Jurisdiction
+  jurisdiction: text("jurisdiction").default("QC"), // "QC" | "CA" | "Federal"
+  
+  // Source and date
+  sourceUrl: text("source_url"),
+  sourceDate: timestamp("source_date"),
+  
+  // Importance and status
+  importance: text("importance").default("medium"), // "low" | "medium" | "high" | "critical"
+  status: text("status").default("active"), // "active" | "pending" | "expired" | "archived"
+  expiresAt: timestamp("expires_at"), // For time-sensitive regulations
+  
+  // Tags for search
+  tags: text("tags").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Email logs for tracking sent emails and enabling follow-up
 export const emailLogs = pgTable("email_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -662,6 +739,25 @@ export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({
   errorMessage: true,
 });
 
+// Market Intelligence insert schemas
+export const insertCompetitorSchema = createInsertSchema(competitors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBattleCardSchema = createInsertSchema(battleCards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMarketNoteSchema = createInsertSchema(marketNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -713,6 +809,19 @@ export type ProcurationSignature = typeof procurationSignatures.$inferSelect;
 
 export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
 export type EmailLog = typeof emailLogs.$inferSelect;
+
+// Market Intelligence types
+export type InsertCompetitor = z.infer<typeof insertCompetitorSchema>;
+export type Competitor = typeof competitors.$inferSelect;
+
+export type InsertBattleCard = z.infer<typeof insertBattleCardSchema>;
+export type BattleCard = typeof battleCards.$inferSelect;
+
+export type InsertMarketNote = z.infer<typeof insertMarketNoteSchema>;
+export type MarketNote = typeof marketNotes.$inferSelect;
+
+// Extended Market Intelligence types
+export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };
 
 // Extended types for frontend
 export type SiteWithClient = Site & { client: Client };

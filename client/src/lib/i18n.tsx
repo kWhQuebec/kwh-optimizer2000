@@ -527,6 +527,17 @@ const translations: Translations = {
   "financing.cumulativeCashflow": { fr: "Comparaison flux trésorerie cumulés", en: "Cumulative Cashflow Comparison" },
   "financing.cumulativeCashflowAxis": { fr: "Cashflow Cumulé ($)", en: "Cumulative Cashflow ($)" },
   "financing.years": { fr: "Années", en: "Years" },
+  "financing.ppa": { fr: "PPA Tiers", en: "Third-Party PPA" },
+  "financing.ppaTerm": { fr: "Durée PPA (ans)", en: "PPA Term (years)" },
+  "financing.ppaYear1Rate": { fr: "An 1: % tarif HQ", en: "Year 1: % of HQ rate" },
+  "financing.ppaYear2Rate": { fr: "An 2+: % tarif HQ", en: "Year 2+: % of HQ rate" },
+  "financing.ppaLegalWarning": { 
+    fr: "⚠️ AVERTISSEMENT LÉGAL: Au Québec, les PPA tiers (achat d'électricité d'un producteur autre qu'Hydro-Québec) opèrent dans une zone grise réglementaire. Cette option est présentée à titre comparatif uniquement. Consultez un avocat spécialisé en énergie avant de considérer ce modèle.", 
+    en: "⚠️ LEGAL WARNING: In Quebec, third-party PPAs (purchasing electricity from a producer other than Hydro-Québec) operate in a regulatory gray area. This option is presented for comparison purposes only. Consult an energy lawyer before considering this model." 
+  },
+  "financing.ppaNoIncentives": { fr: "Incitatifs conservés par le fournisseur PPA", en: "Incentives retained by PPA provider" },
+  "financing.ppaTransfer": { fr: "Transfert propriété après terme", en: "Ownership transfer after term" },
+  "financing.ppaCompetitorModel": { fr: "Modèle concurrent (ex: TRC Solar)", en: "Competitor model (e.g., TRC Solar)" },
 
   // Proposal Builder
   "proposal.title": { fr: "Générateur de proposition", en: "Proposal Builder" },

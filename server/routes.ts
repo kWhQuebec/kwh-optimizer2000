@@ -3974,6 +3974,190 @@ Pricing:
     }
   });
 
+  // ==================== MARKET INTELLIGENCE (ADMIN) ====================
+
+  // --- Competitors ---
+  app.get("/api/admin/competitors", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const competitorsList = await storage.getCompetitors();
+      res.json(competitorsList);
+    } catch (error) {
+      console.error("Error fetching competitors:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/competitors/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const competitor = await storage.getCompetitor(req.params.id);
+      if (!competitor) {
+        return res.status(404).json({ error: "Competitor not found" });
+      }
+      res.json(competitor);
+    } catch (error) {
+      console.error("Error fetching competitor:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/competitors", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const competitor = await storage.createCompetitor(req.body);
+      res.status(201).json(competitor);
+    } catch (error) {
+      console.error("Error creating competitor:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/competitors/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const competitor = await storage.updateCompetitor(req.params.id, req.body);
+      if (!competitor) {
+        return res.status(404).json({ error: "Competitor not found" });
+      }
+      res.json(competitor);
+    } catch (error) {
+      console.error("Error updating competitor:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/competitors/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteCompetitor(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Competitor not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting competitor:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // --- Battle Cards ---
+  app.get("/api/admin/battle-cards", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const competitorId = req.query.competitorId as string | undefined;
+      const cards = await storage.getBattleCards(competitorId);
+      res.json(cards);
+    } catch (error) {
+      console.error("Error fetching battle cards:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/battle-cards/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const card = await storage.getBattleCard(req.params.id);
+      if (!card) {
+        return res.status(404).json({ error: "Battle card not found" });
+      }
+      res.json(card);
+    } catch (error) {
+      console.error("Error fetching battle card:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/battle-cards", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const card = await storage.createBattleCard(req.body);
+      res.status(201).json(card);
+    } catch (error) {
+      console.error("Error creating battle card:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/battle-cards/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const card = await storage.updateBattleCard(req.params.id, req.body);
+      if (!card) {
+        return res.status(404).json({ error: "Battle card not found" });
+      }
+      res.json(card);
+    } catch (error) {
+      console.error("Error updating battle card:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/battle-cards/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteBattleCard(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Battle card not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting battle card:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // --- Market Notes ---
+  app.get("/api/admin/market-notes", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const notes = await storage.getMarketNotes(category);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error fetching market notes:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/market-notes/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const note = await storage.getMarketNote(req.params.id);
+      if (!note) {
+        return res.status(404).json({ error: "Market note not found" });
+      }
+      res.json(note);
+    } catch (error) {
+      console.error("Error fetching market note:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/market-notes", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const note = await storage.createMarketNote(req.body);
+      res.status(201).json(note);
+    } catch (error) {
+      console.error("Error creating market note:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/market-notes/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const note = await storage.updateMarketNote(req.params.id, req.body);
+      if (!note) {
+        return res.status(404).json({ error: "Market note not found" });
+      }
+      res.json(note);
+    } catch (error) {
+      console.error("Error updating market note:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/market-notes/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteMarketNote(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Market note not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting market note:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== PROCURATION SIGNATURES (Zoho Sign) ====================
   
   // Check if Zoho Sign is configured

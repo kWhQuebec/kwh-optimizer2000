@@ -39,6 +39,7 @@ const ProcurationsPage = lazy(() => import("@/pages/procurations"));
 const SignAgreementPage = lazy(() => import("@/pages/sign-agreement"));
 const PortfoliosPage = lazy(() => import("@/pages/portfolios"));
 const PortfolioDetailPage = lazy(() => import("@/pages/portfolio-detail"));
+const MarketIntelligencePage = lazy(() => import("@/pages/market-intelligence"));
 
 function PageLoader() {
   return (
@@ -298,6 +299,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <ProcurationsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Admin Market Intelligence */}
+      <Route path="/app/market-intelligence">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <MarketIntelligencePage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

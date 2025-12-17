@@ -2161,16 +2161,22 @@ const FINANCING_COLORS = {
   cash: { bg: "bg-emerald-500", text: "text-emerald-500", border: "border-emerald-500", stroke: "#22C55E", hsl: "hsl(142, 76%, 36%)" },
   loan: { bg: "bg-blue-500", text: "text-blue-500", border: "border-blue-500", stroke: "#3B82F6", hsl: "hsl(221, 83%, 53%)" },
   lease: { bg: "bg-amber-500", text: "text-amber-500", border: "border-amber-500", stroke: "#F59E0B", hsl: "hsl(38, 92%, 50%)" },
+  ppa: { bg: "bg-rose-500", text: "text-rose-500", border: "border-rose-500", stroke: "#F43F5E", hsl: "hsl(347, 77%, 50%)" },
 };
 
 function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const { t, language } = useI18n();
-  const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease">("cash");
+  const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease" | "ppa">("cash");
   const [loanTerm, setLoanTerm] = useState(10);
   const [interestRate, setInterestRate] = useState(7);
   const [downPayment, setDownPayment] = useState(30);
   const [leaseImplicitRate, setLeaseImplicitRate] = useState(8.5);
   const [leaseTerm, setLeaseTerm] = useState(15); // Default 15-year lease term
+  
+  // PPA (Third-Party Power Purchase Agreement) - TRC Solar model defaults
+  const [ppaTerm, setPpaTerm] = useState(16); // 16 years typical
+  const [ppaYear1Rate, setPpaYear1Rate] = useState(100); // Year 1: 100% of HQ rate
+  const [ppaYear2Rate, setPpaYear2Rate] = useState(60); // Year 2+: 60% of HQ rate
   
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
   const assumptions = simulation.assumptions as AnalysisAssumptions | null;
@@ -2246,6 +2252,31 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   // Net savings = Total savings over 25 years - effective cost (lease payments - incentives)
   const leaseNetSavings = annualSavings * analysisHorizon - effectiveLeaseCost;
   
+  // PPA (Third-Party Power Purchase Agreement) calculation:
+  // Based on TRC Solar model - client pays for electricity, not the system
+  // Year 1: 100% of HQ rate (no savings in year 1)
+  // Year 2+: 60% of HQ rate (40% savings vs HQ)
+  // After term: System transfers to client for $1 (free electricity thereafter)
+  // IMPORTANT: All incentives (HQ rebates, federal ITC, tax shield) are RETAINED by PPA provider
+  const hqTariffRate = assumptions?.tariffCode === "M" ? 0.06061 : 0.11933; // $/kWh based on tariff
+  const ppaYear1Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear1Rate / 100);
+  const ppaYear2Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear2Rate / 100);
+  const ppaTotalPayments = ppaYear1Annual + (ppaYear2Annual * (ppaTerm - 1));
+  // PPA provider keeps ALL incentives - this is where they profit
+  const ppaProviderKeepsIncentives = totalIncentives;
+  // Post-PPA savings: After term ends, client owns system for $1 and gets free electricity
+  const postPpaYears = Math.max(0, analysisHorizon - ppaTerm);
+  const postPpaSavings = annualSavings * postPpaYears;
+  // PPA savings during term = what they would have paid HQ - what they pay PPA provider
+  const hqCostDuringPpa = totalAnnualProductionKWh * hqTariffRate * ppaTerm;
+  const ppaSavingsDuringTerm = hqCostDuringPpa - ppaTotalPayments;
+  // Total PPA "cost" = payments to PPA provider (no ownership benefit during term)
+  const ppaEffectiveCost = ppaTotalPayments;
+  // Net savings over 25 years = savings during PPA + free electricity after PPA
+  const ppaNetSavings = ppaSavingsDuringTerm + postPpaSavings;
+  // Average monthly "payment" for display purposes
+  const ppaMonthlyPayment = ppaTotalPayments / (ppaTerm * 12);
+  
   const options = [
     {
       type: "cash" as const,
@@ -2276,12 +2307,23 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
       monthlyPayment: leaseMonthlyPayment,
       netSavings: leaseNetSavings, // 25 years of savings minus effective cost
     },
+    {
+      type: "ppa" as const,
+      icon: Zap,
+      label: t("financing.ppa"),
+      upfrontCost: 0, // No upfront cost for PPA
+      totalCost: ppaEffectiveCost, // Total payments to PPA provider
+      totalPayments: ppaTotalPayments,
+      monthlyPayment: ppaMonthlyPayment,
+      netSavings: ppaNetSavings, // Savings during term + free electricity after
+      isPpa: true, // Flag to show special PPA info
+    },
   ];
 
   // Calculate cumulative cashflow for each financing option over analysis horizon
   const calculateCumulativeCashflows = () => {
     const years = analysisHorizon;
-    const data: { year: number; cash: number; loan: number; lease: number }[] = [];
+    const data: { year: number; cash: number; loan: number; lease: number; ppa: number }[] = [];
     
     // Cash option: upfront cost, then savings, with incentive returns
     let cashCumulative = -upfrontCashNeeded;
@@ -2296,6 +2338,9 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
     const annualLeasePayment = leaseMonthlyPayment * 12;
     let leaseCumulative = (hqSolar * 0.5) + (hqBattery * 0.5); // 50% of both HQ rebates at Year 0
     
+    // PPA: No upfront cost, pay for electricity during term, free after term
+    let ppaCumulative = 0;
+    
     for (let year = 0; year <= years; year++) {
       if (year === 0) {
         // Year 0: initial investments
@@ -2304,12 +2349,26 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
           cash: cashCumulative / 1000,
           loan: loanCumulative / 1000,
           lease: leaseCumulative / 1000,
+          ppa: ppaCumulative / 1000,
         });
       } else {
         // Add savings each year for ownership options (cash, loan, lease)
         cashCumulative += annualSavings;
         loanCumulative += annualSavings;
         leaseCumulative += annualSavings;
+        
+        // PPA: During term, client saves vs HQ rate but pays PPA provider
+        // After term, client gets free electricity (full savings)
+        if (year <= ppaTerm) {
+          // During PPA term: savings = HQ rate - PPA rate
+          const ppaRateThisYear = year === 1 ? (ppaYear1Rate / 100) : (ppaYear2Rate / 100);
+          const hqCostThisYear = totalAnnualProductionKWh * hqTariffRate;
+          const ppaCostThisYear = totalAnnualProductionKWh * hqTariffRate * ppaRateThisYear;
+          ppaCumulative += (hqCostThisYear - ppaCostThisYear);
+        } else {
+          // After PPA term: client owns system for $1, gets full savings
+          ppaCumulative += annualSavings;
+        }
         
         // Subtract payments for loan (if still in term)
         if (year <= loanTerm) {
@@ -2324,6 +2383,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
         // Add incentive returns for cash, loan, and capital lease
         // Capital lease client is treated as owner for tax purposes
         // Lease gets additional 50% HQ solar that cash/loan don't get (they got it upfront)
+        // PPA: NO incentives return to client (provider keeps them all)
         if (year === 1) {
           cashCumulative += year1Returns;
           loanCumulative += year1Returns;
@@ -2341,6 +2401,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
           cash: cashCumulative / 1000,
           loan: loanCumulative / 1000,
           lease: leaseCumulative / 1000,
+          ppa: ppaCumulative / 1000,
         });
       }
     }
@@ -2360,7 +2421,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
         <CardDescription>{t("financing.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {options.map((option) => {
             const colors = FINANCING_COLORS[option.type];
             const isSelected = financingType === option.type;
@@ -2487,6 +2548,94 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
                 <span>{language === "fr" ? "Incitatifs retournés au client:" : "Incentives returned to client:"}</span>
                 <span className="font-mono text-primary">+{formatCurrency(leaseTotalIncentives)}</span>
               </p>
+            </div>
+          </div>
+        )}
+        
+        {/* PPA Controls and Legal Warning */}
+        {financingType === "ppa" && (
+          <div className="space-y-4">
+            {/* Legal Warning - Prominent */}
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border-2 border-rose-300 dark:border-rose-700 rounded-lg">
+              <p className="text-sm text-rose-800 dark:text-rose-200 leading-relaxed">
+                {t("financing.ppaLegalWarning")}
+              </p>
+            </div>
+            
+            {/* PPA Parameters */}
+            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                <Zap className="w-4 h-4" />
+                <span>{t("financing.ppaCompetitorModel")}</span>
+              </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>{t("financing.ppaTerm")}</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[ppaTerm]}
+                      onValueChange={([v]) => setPpaTerm(v)}
+                      min={10}
+                      max={25}
+                      step={1}
+                      data-testid="slider-ppa-term"
+                    />
+                    <span className="text-sm font-mono w-16">{ppaTerm} {language === "fr" ? "ans" : "yrs"}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("financing.ppaYear1Rate")}</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[ppaYear1Rate]}
+                      onValueChange={([v]) => setPpaYear1Rate(v)}
+                      min={80}
+                      max={110}
+                      step={5}
+                      data-testid="slider-ppa-year1-rate"
+                    />
+                    <span className="text-sm font-mono w-12">{ppaYear1Rate}%</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("financing.ppaYear2Rate")}</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[ppaYear2Rate]}
+                      onValueChange={([v]) => setPpaYear2Rate(v)}
+                      min={40}
+                      max={80}
+                      step={5}
+                      data-testid="slider-ppa-year2-rate"
+                    />
+                    <span className="text-sm font-mono w-12">{ppaYear2Rate}%</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* PPA Cost Breakdown */}
+              <div className="text-sm space-y-1 text-muted-foreground pt-2 border-t">
+                <p className="flex justify-between gap-2">
+                  <span>{language === "fr" ? "Paiement An 1:" : "Year 1 payment:"}</span>
+                  <span className="font-mono">{formatCurrency(ppaYear1Annual)}</span>
+                </p>
+                <p className="flex justify-between gap-2">
+                  <span>{language === "fr" ? `Paiement An 2-${ppaTerm}:` : `Year 2-${ppaTerm} payment:`}</span>
+                  <span className="font-mono">{formatCurrency(ppaYear2Annual)}{language === "fr" ? "/an" : "/yr"}</span>
+                </p>
+                <p className="flex justify-between gap-2 pt-2 border-t font-medium">
+                  <span>{language === "fr" ? `Total ${ppaTerm} ans:` : `Total ${ppaTerm} years:`}</span>
+                  <span className="font-mono font-semibold">{formatCurrency(ppaTotalPayments)}</span>
+                </p>
+                <p className="flex justify-between gap-2 pt-2 border-t text-xs text-rose-600 dark:text-rose-400">
+                  <span>{t("financing.ppaNoIncentives")}:</span>
+                  <span className="font-mono">-{formatCurrency(ppaProviderKeepsIncentives)}</span>
+                </p>
+                <p className="flex justify-between gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                  <span>{t("financing.ppaTransfer")} ({language === "fr" ? "pour 1$" : "for $1"}):</span>
+                  <span className="font-mono">+{formatCurrency(postPpaSavings)} ({postPpaYears} {language === "fr" ? "ans" : "yrs"})</span>
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -2646,7 +2795,8 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
                       `$${(value * 1000).toLocaleString()}`,
                       name === "cash" ? (language === "fr" ? "Comptant" : "Cash") :
                       name === "loan" ? (language === "fr" ? "Prêt" : "Loan") :
-                      (language === "fr" ? "Crédit-bail" : "Capital Lease")
+                      name === "lease" ? (language === "fr" ? "Crédit-bail" : "Capital Lease") :
+                      (language === "fr" ? "PPA Tiers" : "Third-Party PPA")
                     ]}
                     labelFormatter={(year) => `${language === "fr" ? "Année" : "Year"} ${year}`}
                   />
@@ -2654,7 +2804,8 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
                     formatter={(value) => 
                       value === "cash" ? (language === "fr" ? "Comptant" : "Cash") :
                       value === "loan" ? (language === "fr" ? "Prêt" : "Loan") :
-                      (language === "fr" ? "Crédit-bail" : "Capital Lease")
+                      value === "lease" ? (language === "fr" ? "Crédit-bail" : "Capital Lease") :
+                      (language === "fr" ? "PPA Tiers ⚠️" : "Third-Party PPA ⚠️")
                     }
                   />
                   <Line 
@@ -2676,6 +2827,14 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
                     dataKey="lease" 
                     stroke={FINANCING_COLORS.lease.stroke}
                     strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="ppa" 
+                    stroke={FINANCING_COLORS.ppa.stroke}
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
                     dot={false}
                   />
                 </LineChart>

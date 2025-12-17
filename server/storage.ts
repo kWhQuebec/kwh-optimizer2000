@@ -20,6 +20,10 @@ import type {
   BlogArticle, InsertBlogArticle,
   ProcurationSignature, InsertProcurationSignature,
   EmailLog, InsertEmailLog,
+  Competitor, InsertCompetitor,
+  BattleCard, InsertBattleCard,
+  BattleCardWithCompetitor,
+  MarketNote, InsertMarketNote,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -147,6 +151,27 @@ export interface IStorage {
   getEmailLog(id: string): Promise<EmailLog | undefined>;
   createEmailLog(log: InsertEmailLog): Promise<EmailLog>;
   updateEmailLog(id: string, log: Partial<EmailLog>): Promise<EmailLog | undefined>;
+
+  // Market Intelligence - Competitors
+  getCompetitors(): Promise<Competitor[]>;
+  getCompetitor(id: string): Promise<Competitor | undefined>;
+  createCompetitor(competitor: InsertCompetitor): Promise<Competitor>;
+  updateCompetitor(id: string, competitor: Partial<Competitor>): Promise<Competitor | undefined>;
+  deleteCompetitor(id: string): Promise<boolean>;
+
+  // Market Intelligence - Battle Cards
+  getBattleCards(competitorId?: string): Promise<BattleCardWithCompetitor[]>;
+  getBattleCard(id: string): Promise<BattleCardWithCompetitor | undefined>;
+  createBattleCard(battleCard: InsertBattleCard): Promise<BattleCard>;
+  updateBattleCard(id: string, battleCard: Partial<BattleCard>): Promise<BattleCard | undefined>;
+  deleteBattleCard(id: string): Promise<boolean>;
+
+  // Market Intelligence - Market Notes
+  getMarketNotes(category?: string): Promise<MarketNote[]>;
+  getMarketNote(id: string): Promise<MarketNote | undefined>;
+  createMarketNote(note: InsertMarketNote): Promise<MarketNote>;
+  updateMarketNote(id: string, note: Partial<MarketNote>): Promise<MarketNote | undefined>;
+  deleteMarketNote(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -167,6 +192,9 @@ export class MemStorage implements IStorage {
   private blogArticles: Map<string, BlogArticle> = new Map();
   private procurationSignatures: Map<string, ProcurationSignature> = new Map();
   private emailLogs: Map<string, EmailLog> = new Map();
+  private competitorsMap: Map<string, Competitor> = new Map();
+  private battleCardsMap: Map<string, BattleCard> = new Map();
+  private marketNotesMap: Map<string, MarketNote> = new Map();
 
   constructor() {
     this.seedDefaultData();
@@ -971,6 +999,152 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...log };
     this.emailLogs.set(id, updated);
     return updated;
+  }
+
+  // Market Intelligence - Competitors
+  async getCompetitors(): Promise<Competitor[]> {
+    return Array.from(this.competitorsMap.values())
+      .filter(c => c.isActive)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async getCompetitor(id: string): Promise<Competitor | undefined> {
+    return this.competitorsMap.get(id);
+  }
+
+  async createCompetitor(competitor: InsertCompetitor): Promise<Competitor> {
+    const id = randomUUID();
+    const newCompetitor: Competitor = {
+      id,
+      name: competitor.name,
+      type: competitor.type ?? "installer",
+      website: competitor.website ?? null,
+      headquartersCity: competitor.headquartersCity ?? null,
+      province: competitor.province ?? null,
+      businessModel: competitor.businessModel ?? null,
+      targetMarket: competitor.targetMarket ?? null,
+      ppaYear1Rate: competitor.ppaYear1Rate ?? null,
+      ppaYear2Rate: competitor.ppaYear2Rate ?? null,
+      ppaTerm: competitor.ppaTerm ?? null,
+      cashPricePerWatt: competitor.cashPricePerWatt ?? null,
+      strengths: competitor.strengths ?? null,
+      weaknesses: competitor.weaknesses ?? null,
+      legalNotes: competitor.legalNotes ?? null,
+      isActive: competitor.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.competitorsMap.set(id, newCompetitor);
+    return newCompetitor;
+  }
+
+  async updateCompetitor(id: string, competitor: Partial<Competitor>): Promise<Competitor | undefined> {
+    const existing = this.competitorsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...competitor, updatedAt: new Date() };
+    this.competitorsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteCompetitor(id: string): Promise<boolean> {
+    return this.competitorsMap.delete(id);
+  }
+
+  // Market Intelligence - Battle Cards
+  async getBattleCards(competitorId?: string): Promise<BattleCardWithCompetitor[]> {
+    let cards = Array.from(this.battleCardsMap.values()).filter(c => c.isActive);
+    if (competitorId) {
+      cards = cards.filter(c => c.competitorId === competitorId);
+    }
+    return cards.map(card => {
+      const competitor = this.competitorsMap.get(card.competitorId);
+      return { ...card, competitor: competitor! };
+    }).filter(c => c.competitor).sort((a, b) => (a.priority || 1) - (b.priority || 1));
+  }
+
+  async getBattleCard(id: string): Promise<BattleCardWithCompetitor | undefined> {
+    const card = this.battleCardsMap.get(id);
+    if (!card) return undefined;
+    const competitor = this.competitorsMap.get(card.competitorId);
+    if (!competitor) return undefined;
+    return { ...card, competitor };
+  }
+
+  async createBattleCard(battleCard: InsertBattleCard): Promise<BattleCard> {
+    const id = randomUUID();
+    const newCard: BattleCard = {
+      id,
+      competitorId: battleCard.competitorId,
+      objectionScenario: battleCard.objectionScenario,
+      responseStrategy: battleCard.responseStrategy,
+      keyDifferentiators: battleCard.keyDifferentiators ?? null,
+      financialComparison: battleCard.financialComparison ?? null,
+      language: battleCard.language ?? "fr",
+      priority: battleCard.priority ?? 1,
+      isActive: battleCard.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.battleCardsMap.set(id, newCard);
+    return newCard;
+  }
+
+  async updateBattleCard(id: string, battleCard: Partial<BattleCard>): Promise<BattleCard | undefined> {
+    const existing = this.battleCardsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...battleCard, updatedAt: new Date() };
+    this.battleCardsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteBattleCard(id: string): Promise<boolean> {
+    return this.battleCardsMap.delete(id);
+  }
+
+  // Market Intelligence - Market Notes
+  async getMarketNotes(category?: string): Promise<MarketNote[]> {
+    let notes = Array.from(this.marketNotesMap.values()).filter(n => n.status === "active");
+    if (category) {
+      notes = notes.filter(n => n.category === category);
+    }
+    return notes.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async getMarketNote(id: string): Promise<MarketNote | undefined> {
+    return this.marketNotesMap.get(id);
+  }
+
+  async createMarketNote(note: InsertMarketNote): Promise<MarketNote> {
+    const id = randomUUID();
+    const newNote: MarketNote = {
+      id,
+      category: note.category,
+      title: note.title,
+      content: note.content,
+      jurisdiction: note.jurisdiction ?? "QC",
+      sourceUrl: note.sourceUrl ?? null,
+      sourceDate: note.sourceDate ?? null,
+      importance: note.importance ?? "medium",
+      status: note.status ?? "active",
+      expiresAt: note.expiresAt ?? null,
+      tags: note.tags ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.marketNotesMap.set(id, newNote);
+    return newNote;
+  }
+
+  async updateMarketNote(id: string, note: Partial<MarketNote>): Promise<MarketNote | undefined> {
+    const existing = this.marketNotesMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...note, updatedAt: new Date() };
+    this.marketNotesMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteMarketNote(id: string): Promise<boolean> {
+    return this.marketNotesMap.delete(id);
   }
 }
 

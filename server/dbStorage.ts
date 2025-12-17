@@ -4,6 +4,7 @@ import {
   users, leads, clients, sites, meterFiles, meterReadings,
   simulationRuns, designs, bomItems, componentCatalog, siteVisits, designAgreements,
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
+  competitors, battleCards, marketNotes,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -26,6 +27,10 @@ import type {
   BlogArticle, InsertBlogArticle,
   ProcurationSignature, InsertProcurationSignature,
   EmailLog, InsertEmailLog,
+  Competitor, InsertCompetitor,
+  BattleCard, InsertBattleCard,
+  BattleCardWithCompetitor,
+  MarketNote, InsertMarketNote,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -740,5 +745,128 @@ export class DatabaseStorage implements IStorage {
       .where(eq(emailLogs.id, id))
       .returning();
     return result;
+  }
+
+  // Market Intelligence - Competitors
+  async getCompetitors(): Promise<Competitor[]> {
+    return db.select().from(competitors)
+      .where(eq(competitors.isActive, true))
+      .orderBy(competitors.name);
+  }
+
+  async getCompetitor(id: string): Promise<Competitor | undefined> {
+    const result = await db.select().from(competitors).where(eq(competitors.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createCompetitor(competitor: InsertCompetitor): Promise<Competitor> {
+    const [result] = await db.insert(competitors).values(competitor).returning();
+    return result;
+  }
+
+  async updateCompetitor(id: string, competitor: Partial<Competitor>): Promise<Competitor | undefined> {
+    const [result] = await db.update(competitors)
+      .set({ ...competitor, updatedAt: new Date() })
+      .where(eq(competitors.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCompetitor(id: string): Promise<boolean> {
+    const result = await db.update(competitors)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(competitors.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Market Intelligence - Battle Cards
+  async getBattleCards(competitorId?: string): Promise<BattleCardWithCompetitor[]> {
+    const allCards = await db.select().from(battleCards)
+      .where(eq(battleCards.isActive, true))
+      .orderBy(battleCards.priority);
+    
+    const filteredCards = competitorId 
+      ? allCards.filter(c => c.competitorId === competitorId)
+      : allCards;
+    
+    const result: BattleCardWithCompetitor[] = [];
+    for (const card of filteredCards) {
+      const comp = await this.getCompetitor(card.competitorId);
+      if (comp) {
+        result.push({ ...card, competitor: comp });
+      }
+    }
+    return result;
+  }
+
+  async getBattleCard(id: string): Promise<BattleCardWithCompetitor | undefined> {
+    const result = await db.select().from(battleCards).where(eq(battleCards.id, id)).limit(1);
+    const card = result[0];
+    if (!card) return undefined;
+    
+    const comp = await this.getCompetitor(card.competitorId);
+    if (!comp) return undefined;
+    
+    return { ...card, competitor: comp };
+  }
+
+  async createBattleCard(battleCard: InsertBattleCard): Promise<BattleCard> {
+    const [result] = await db.insert(battleCards).values(battleCard).returning();
+    return result;
+  }
+
+  async updateBattleCard(id: string, battleCard: Partial<BattleCard>): Promise<BattleCard | undefined> {
+    const [result] = await db.update(battleCards)
+      .set({ ...battleCard, updatedAt: new Date() })
+      .where(eq(battleCards.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteBattleCard(id: string): Promise<boolean> {
+    const result = await db.update(battleCards)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(battleCards.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Market Intelligence - Market Notes
+  async getMarketNotes(category?: string): Promise<MarketNote[]> {
+    if (category) {
+      return db.select().from(marketNotes)
+        .where(and(eq(marketNotes.status, "active"), eq(marketNotes.category, category)))
+        .orderBy(desc(marketNotes.createdAt));
+    }
+    return db.select().from(marketNotes)
+      .where(eq(marketNotes.status, "active"))
+      .orderBy(desc(marketNotes.createdAt));
+  }
+
+  async getMarketNote(id: string): Promise<MarketNote | undefined> {
+    const result = await db.select().from(marketNotes).where(eq(marketNotes.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createMarketNote(note: InsertMarketNote): Promise<MarketNote> {
+    const [result] = await db.insert(marketNotes).values(note).returning();
+    return result;
+  }
+
+  async updateMarketNote(id: string, note: Partial<MarketNote>): Promise<MarketNote | undefined> {
+    const [result] = await db.update(marketNotes)
+      .set({ ...note, updatedAt: new Date() })
+      .where(eq(marketNotes.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteMarketNote(id: string): Promise<boolean> {
+    const result = await db.update(marketNotes)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(eq(marketNotes.id, id))
+      .returning();
+    return result.length > 0;
   }
 }

@@ -11,7 +11,8 @@ import {
   FolderOpen,
   UserCog,
   FolderKanban,
-  FileSignature
+  FileSignature,
+  Target
 } from "lucide-react";
 import {
   Sidebar,
@@ -88,6 +89,11 @@ export function AppSidebar() {
       title: t("nav.procurations") || "Procurations",
       url: "/app/procurations",
       icon: FileSignature,
+    },
+    {
+      title: language === "fr" ? "Intelligence marché" : "Market Intelligence",
+      url: "/app/market-intelligence",
+      icon: Target,
     },
     {
       title: t("nav.methodology"),
