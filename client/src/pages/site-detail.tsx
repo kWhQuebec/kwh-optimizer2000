@@ -5201,11 +5201,11 @@ export default function SiteDetailPage() {
       }
     }
     
-    // Initial selection: best scenario by NPV when site first loads
-    if (site && bestScenarioByNPV && !selectedSimulationId) {
-      setSelectedSimulationId(bestScenarioByNPV.id);
+    // Initial selection: most recent simulation when site first loads (user expects to see their latest work)
+    if (site && mostRecentSimulationFromAll && !selectedSimulationId) {
+      setSelectedSimulationId(mostRecentSimulationFromAll.id);
     }
-  }, [site, bestScenarioByNPV, selectedSimulationId, mostRecentSimulationFromAll]);
+  }, [site, mostRecentSimulationFromAll, selectedSimulationId]);
 
   // The simulation to display - either selected one or fallback to latest/best
   const latestSimulation = selectedSimulationId && selectedSimulationId !== "__latest__"
