@@ -1139,7 +1139,7 @@ function AnalysisParametersEditor({
                   
                   {/* Roof Segments from Google Solar API */}
                   {site.roofEstimateStatus === "success" && site.roofAreaAutoDetails && (
-                    ((): React.ReactNode => {
+                    ((): JSX.Element | null => {
                       const details = site.roofAreaAutoDetails as any;
                       const segments = details?.solarPotential?.roofSegmentStats;
                       const maxSunshine = details?.solarPotential?.maxSunshineHoursPerYear;
@@ -3102,12 +3102,12 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
           </div>
         </div>
         
-        {/* Cumulative Cashflow Comparison Chart - All Acquisition Models */}
+        {/* Unified Cashflow Chart - All Acquisition Models */}
         {cumulativeCashflowData.length > 0 && (
           <div id="pdf-section-financing-chart" className="pt-4 border-t bg-white dark:bg-card rounded-lg p-4">
             <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
-              {language === "fr" ? "Comparaison des modèles d'acquisition (25 ans)" : "Acquisition Models Comparison (25 years)"}
+              {language === "fr" ? "Flux de trésorerie selon le mode d'acquisition (25 ans)" : "Cash Flow by Acquisition Mode (25 years)"}
             </h4>
             <div className="h-64 bg-white dark:bg-gray-900 rounded">
               <ResponsiveContainer width="100%" height="100%">
@@ -3226,18 +3226,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
 
   const assumptions = (simulation.assumptions as AnalysisAssumptions | null) || defaultAnalysisAssumptions;
   const interpolatedMonths = (simulation.interpolatedMonths as number[] | null) || [];
-  const cashflows = (simulation.cashflows as CashflowEntry[] | null) || [];
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
-  
-  // Memoize expensive cashflow chart data transformation
-  const cashflowChartData = useMemo(() => 
-    cashflows.map(cf => ({
-      year: cf.year,
-      cashflow: cf.netCashflow / 1000,
-      cumulative: cf.cumulative / 1000,
-    })),
-    [cashflows]
-  );
 
   const usableRoofSqFt = assumptions.roofAreaSqFt * assumptions.roofUtilizationRatio;
   const maxPVFromRoof = usableRoofSqFt / 100;
@@ -3615,84 +3604,8 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
         </Card>
       </div>
 
-      {/* ========== SECTION 3: WEALTH BUILDING STORY ========== */}
-      {/* 25-Year Cashflow Chart - Visual Story of Money Growing */}
-      {cashflowChartData.length > 0 && (
-        <>
-          <SectionDivider 
-            title={language === "fr" ? "Votre croissance financière" : "Your Financial Growth"} 
-            icon={TrendingUp}
-          />
-          
-          <Card id="pdf-section-cashflow-chart">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                {language === "fr" ? "Évolution de vos économies sur 25 ans" : "Your Savings Over 25 Years"}
-              </CardTitle>
-              <CardDescription>
-                {language === "fr" 
-                  ? "Visualisez comment votre investissement génère des profits année après année" 
-                  : "See how your investment generates profits year after year"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={cashflowChartData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="year" className="text-xs" label={{ value: language === "fr" ? "Année" : "Year", position: "bottom" }} />
-                    <YAxis 
-                      yAxisId="left" 
-                      className="text-xs" 
-                      label={{ value: "k$", angle: -90, position: "insideLeft" }}
-                    />
-                    <YAxis 
-                      yAxisId="right" 
-                      orientation="right" 
-                      className="text-xs"
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }}
-                      formatter={(value: number) => `$${value.toFixed(1)}k`}
-                    />
-                    <Legend />
-                    <ReferenceLine yAxisId="left" y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                    <Bar 
-                      yAxisId="left" 
-                      dataKey="cashflow" 
-                      name={language === "fr" ? "Flux annuel" : "Annual Cashflow"}
-                      radius={[4, 4, 0, 0]}
-                    >
-                      {cashflowChartData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.cashflow >= 0 ? "hsl(var(--chart-1))" : "hsl(var(--destructive))"} 
-                        />
-                      ))}
-                    </Bar>
-                    <Line 
-                      yAxisId="right" 
-                      type="monotone" 
-                      dataKey="cumulative" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      name={language === "fr" ? "Cumulatif" : "Cumulative"}
-                      dot={false}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* ========== SECTION 4: FINANCING OPTIONS ========== */}
+      {/* ========== SECTION 3: FINANCING OPTIONS ========== */}
+      {/* Note: The unified cashflow chart is now integrated in FinancingCalculator */}
       <SectionDivider 
         title={language === "fr" ? "Options de financement" : "Financing Options"} 
         icon={CreditCard}

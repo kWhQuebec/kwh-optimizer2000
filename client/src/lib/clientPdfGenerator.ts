@@ -324,10 +324,10 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
       description: t("Performance sur 25 ans", "25-Year Performance")
     },
     { 
-      id: "pdf-section-cashflow-chart", 
-      title: t("Projection financière", "Financial Projection"),
+      id: "pdf-section-financing", 
+      title: t("Options de financement", "Financing Options"),
       sectionNum: 4,
-      description: t("Évolution de vos économies sur 25 ans", "Your Savings Growth Over 25 Years")
+      description: t("Flux de trésorerie selon le mode d'acquisition", "Cash Flow by Acquisition Mode")
     },
     { 
       id: "pdf-section-environment", 
@@ -336,27 +336,21 @@ export async function generateClientSidePDF(options: PDFGeneratorOptions): Promi
       description: t("Votre contribution à un avenir durable", "Your contribution to a sustainable future")
     },
     { 
-      id: "pdf-section-financing", 
-      title: t("Options de financement", "Financing Options"),
-      sectionNum: 6,
-      description: t("Comparez vos options", "Compare Your Options")
-    },
-    { 
       id: "pdf-section-service-offer", 
       title: t("Prochaines étapes", "Next Steps"),
-      sectionNum: 7,
+      sectionNum: 6,
       description: t("Comment procéder", "How to Proceed")
     },
     { 
       id: "pdf-section-about", 
       title: t("À propos de kWh Québec", "About kWh Québec"),
-      sectionNum: 8,
+      sectionNum: 7,
       description: t("Votre partenaire de confiance", "Your trusted partner")
     },
     { 
       id: "pdf-section-disclaimers", 
       title: t("Avis importants", "Important Notices"),
-      sectionNum: 9,
+      sectionNum: 8,
       description: t("Conditions et validité", "Terms and validity")
     },
   ];
