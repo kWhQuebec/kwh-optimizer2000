@@ -4005,6 +4005,846 @@ Pricing:
     }
   });
 
+  // Seed blog articles (admin) - Creates 4 comprehensive bilingual articles
+  app.post("/api/admin/seed-blog", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const seedArticles = [
+        // Article 1: Quebec Solar Incentives 2025
+        {
+          slug: "incitatifs-solaires-quebec-2025",
+          titleFr: "Guide complet des incitatifs solaires au Québec en 2025",
+          titleEn: "Complete Guide to Solar Incentives in Quebec 2025",
+          excerptFr: "Découvrez tous les programmes d'aide financière pour votre projet solaire commercial au Québec : subventions Hydro-Québec, crédits d'impôt fédéraux et plus encore.",
+          excerptEn: "Discover all financial assistance programs for your commercial solar project in Quebec: Hydro-Québec subsidies, federal tax credits and more.",
+          metaDescriptionFr: "Guide 2025 des incitatifs solaires au Québec : programme Autoproduction HQ, amortissement accéléré CCA 43.2, crédits d'impôt et mesurage net.",
+          metaDescriptionEn: "2025 guide to Quebec solar incentives: HQ Autoproduction program, CCA Class 43.2 accelerated depreciation, tax credits and net metering.",
+          keywords: ["incitatifs solaires québec", "subvention hydro-québec", "autoproduction", "CCA 43.2", "mesurage net", "crédit d'impôt solaire", "solar incentives quebec"],
+          category: "program",
+          status: "published",
+          publishedAt: new Date(),
+          authorName: "kWh Québec",
+          contentFr: `<h2>Les incitatifs solaires au Québec : maximisez votre retour sur investissement</h2>
+
+<p>L'année 2025 représente une opportunité exceptionnelle pour les propriétaires d'immeubles commerciaux et industriels au Québec. Avec la combinaison des programmes provinciaux et fédéraux, jusqu'à <strong>60% du coût</strong> de votre installation solaire peut être couvert par des incitatifs financiers.</p>
+
+<h3>1. Programme Autoproduction d'Hydro-Québec</h3>
+
+<p>Le programme phare d'Hydro-Québec offre une aide directe aux entreprises qui investissent dans l'énergie solaire :</p>
+
+<ul>
+<li><strong>1 000 $ par kW</strong> installé pour les systèmes photovoltaïques</li>
+<li>Plafond de <strong>40% du coût total</strong> du projet</li>
+<li>Applicable aux projets jusqu'à <strong>1 MW</strong> de puissance</li>
+<li>Versement rapide après la mise en service</li>
+</ul>
+
+<p>Par exemple, pour une installation de 200 kW coûtant 400 000 $, vous pourriez recevoir jusqu'à 160 000 $ en subvention directe.</p>
+
+<h3>2. Amortissement accéléré fédéral (CCA Classe 43.2)</h3>
+
+<p>Le gouvernement fédéral permet un amortissement accéléré exceptionnel pour les équipements d'énergie renouvelable :</p>
+
+<ul>
+<li>Taux d'amortissement de <strong>50% dégressif</strong></li>
+<li>Règle de la demi-année suspendue la première année (amortissement complet)</li>
+<li>Réduction significative de l'impôt sur le revenu des sociétés</li>
+<li>Applicable immédiatement à la mise en service</li>
+</ul>
+
+<p>Cette mesure permet de récupérer rapidement une partie importante de votre investissement via des économies d'impôt substantielles.</p>
+
+<h3>3. Crédits d'impôt provinciaux</h3>
+
+<p>Certaines entreprises peuvent bénéficier de crédits d'impôt additionnels :</p>
+
+<ul>
+<li>Crédit pour investissement en équipement de production d'énergie verte</li>
+<li>Programmes sectoriels pour les manufacturiers</li>
+<li>Incitatifs pour les zones économiques ciblées</li>
+</ul>
+
+<h3>4. Mesurage net : rentabilisez vos surplus</h3>
+
+<p>Le programme de mesurage net d'Hydro-Québec vous permet de valoriser l'énergie que vous ne consommez pas :</p>
+
+<ul>
+<li>Les surplus sont crédités à votre compte pour une période de <strong>24 mois</strong></li>
+<li>Applicable aux installations jusqu'à <strong>1 MW</strong></li>
+<li>Possibilité de vendre les surplus accumulés après 24 mois</li>
+<li>Tarif de rachat basé sur le coût évité d'Hydro-Québec</li>
+</ul>
+
+<h3>Étude de cas : calcul des incitatifs combinés</h3>
+
+<p>Prenons l'exemple d'un entrepôt avec une installation de 300 kW :</p>
+
+<ul>
+<li>Coût brut du projet : <strong>600 000 $</strong></li>
+<li>Subvention HQ (40%) : <strong>-240 000 $</strong></li>
+<li>Bouclier fiscal CCA 43.2 (année 1) : <strong>-90 000 $</strong></li>
+<li><strong>Coût net effectif : 270 000 $</strong></li>
+</ul>
+
+<p>Avec des économies annuelles de 45 000 $ sur la facture d'électricité, le retour sur investissement s'établit à environ <strong>6 ans</strong>.</p>
+
+<h3>Comment maximiser vos incitatifs</h3>
+
+<ul>
+<li>Faites appel à un intégrateur certifié comme kWh Québec pour naviguer les programmes</li>
+<li>Planifiez votre projet avant les dates limites des programmes</li>
+<li>Obtenez une analyse détaillée de consommation pour dimensionner optimalement</li>
+<li>Coordonnez avec votre comptable pour la stratégie fiscale CCA</li>
+</ul>
+
+<h3>Prochaines étapes</h3>
+
+<p>Les programmes d'incitatifs évoluent régulièrement. Pour obtenir une analyse personnalisée de votre potentiel d'économies et des incitatifs applicables à votre situation, <strong>contactez nos experts dès aujourd'hui</strong>.</p>`,
+          contentEn: `<h2>Solar Incentives in Quebec: Maximize Your Return on Investment</h2>
+
+<p>2025 represents an exceptional opportunity for commercial and industrial building owners in Quebec. With the combination of provincial and federal programs, up to <strong>60% of the cost</strong> of your solar installation can be covered by financial incentives.</p>
+
+<h3>1. Hydro-Québec Autoproduction Program</h3>
+
+<p>Hydro-Québec's flagship program offers direct assistance to businesses investing in solar energy:</p>
+
+<ul>
+<li><strong>$1,000 per kW</strong> installed for photovoltaic systems</li>
+<li>Cap of <strong>40% of total project cost</strong></li>
+<li>Applicable to projects up to <strong>1 MW</strong> capacity</li>
+<li>Rapid payment after commissioning</li>
+</ul>
+
+<p>For example, for a 200 kW installation costing $400,000, you could receive up to $160,000 in direct subsidy.</p>
+
+<h3>2. Federal Accelerated Depreciation (CCA Class 43.2)</h3>
+
+<p>The federal government allows exceptional accelerated depreciation for renewable energy equipment:</p>
+
+<ul>
+<li><strong>50% declining balance</strong> depreciation rate</li>
+<li>Half-year rule suspended in the first year (full depreciation)</li>
+<li>Significant reduction in corporate income tax</li>
+<li>Applicable immediately upon commissioning</li>
+</ul>
+
+<p>This measure allows you to quickly recover a significant portion of your investment through substantial tax savings.</p>
+
+<h3>3. Provincial Tax Credits</h3>
+
+<p>Certain businesses may benefit from additional tax credits:</p>
+
+<ul>
+<li>Credit for investment in green energy production equipment</li>
+<li>Sector-specific programs for manufacturers</li>
+<li>Incentives for targeted economic zones</li>
+</ul>
+
+<h3>4. Net Metering: Monetize Your Surplus</h3>
+
+<p>Hydro-Québec's net metering program allows you to monetize energy you don't consume:</p>
+
+<ul>
+<li>Surplus is credited to your account for a period of <strong>24 months</strong></li>
+<li>Applicable to installations up to <strong>1 MW</strong></li>
+<li>Possibility to sell accumulated surplus after 24 months</li>
+<li>Buyback rate based on Hydro-Québec's avoided cost</li>
+</ul>
+
+<h3>Case Study: Combined Incentives Calculation</h3>
+
+<p>Let's take the example of a warehouse with a 300 kW installation:</p>
+
+<ul>
+<li>Gross project cost: <strong>$600,000</strong></li>
+<li>HQ Subsidy (40%): <strong>-$240,000</strong></li>
+<li>CCA 43.2 Tax Shield (year 1): <strong>-$90,000</strong></li>
+<li><strong>Effective Net Cost: $270,000</strong></li>
+</ul>
+
+<p>With annual savings of $45,000 on the electricity bill, the return on investment is approximately <strong>6 years</strong>.</p>
+
+<h3>How to Maximize Your Incentives</h3>
+
+<ul>
+<li>Work with a certified integrator like kWh Québec to navigate the programs</li>
+<li>Plan your project before program deadlines</li>
+<li>Obtain a detailed consumption analysis for optimal sizing</li>
+<li>Coordinate with your accountant for CCA tax strategy</li>
+</ul>
+
+<h3>Next Steps</h3>
+
+<p>Incentive programs evolve regularly. To get a personalized analysis of your savings potential and applicable incentives, <strong>contact our experts today</strong>.</p>`
+        },
+        // Article 2: Commercial vs Residential Solar
+        {
+          slug: "solaire-commercial-vs-residentiel",
+          titleFr: "Solaire commercial vs résidentiel : 7 différences clés à connaître",
+          titleEn: "Commercial vs Residential Solar: 7 Key Differences You Need to Know",
+          excerptFr: "Pourquoi un projet solaire commercial n'a rien à voir avec une installation résidentielle? Découvrez les différences cruciales en termes de rentabilité, réglementation et complexité.",
+          excerptEn: "Why is a commercial solar project completely different from a residential installation? Discover the crucial differences in terms of ROI, regulations and complexity.",
+          metaDescriptionFr: "Comparez le solaire commercial et résidentiel : tarifs G vs M, ROI, licence RBQ, complexité technique. Guide pour propriétaires d'entreprises au Québec.",
+          metaDescriptionEn: "Compare commercial and residential solar: G vs M tariffs, ROI, RBQ license, technical complexity. Guide for Quebec business owners.",
+          keywords: ["solaire commercial", "solaire résidentiel", "tarif G", "tarif M", "licence RBQ", "rentabilité solaire", "commercial solar quebec"],
+          category: "guide",
+          status: "published",
+          publishedAt: new Date(),
+          authorName: "kWh Québec",
+          contentFr: `<h2>Solaire commercial vs résidentiel : un monde de différences</h2>
+
+<p>Si vous êtes propriétaire d'un immeuble commercial ou industriel et que vous envisagez le solaire, vous avez probablement entendu parler des installations résidentielles. Mais attention : les deux univers sont fondamentalement différents. Voici les 7 distinctions essentielles.</p>
+
+<h3>1. L'échelle du projet</h3>
+
+<p>La première différence saute aux yeux : la taille.</p>
+
+<ul>
+<li><strong>Résidentiel</strong> : 5 à 15 kW typiquement (15 à 40 panneaux)</li>
+<li><strong>Commercial</strong> : 50 à 1 000 kW (150 à 3 000 panneaux)</li>
+<li><strong>Industriel</strong> : 500 kW à plusieurs MW</li>
+</ul>
+
+<p>Cette différence d'échelle affecte tout : la logistique, le financement, les permis requis et les compétences nécessaires.</p>
+
+<h3>2. La structure tarifaire d'Hydro-Québec</h3>
+
+<p>C'est ici que le commercial devient vraiment intéressant :</p>
+
+<ul>
+<li><strong>Tarif D (résidentiel)</strong> : environ 7,5 ¢/kWh - le plus bas au monde</li>
+<li><strong>Tarif G (petite puissance)</strong> : 8 à 12 ¢/kWh selon la consommation</li>
+<li><strong>Tarif M (moyenne puissance)</strong> : comprend une charge de puissance ($/kW) ET une charge d'énergie ($/kWh)</li>
+</ul>
+
+<p>Le tarif M, avec sa composante de puissance, offre des opportunités d'économies significatives grâce à l'écrêtage des pointes de demande.</p>
+
+<h3>3. La rentabilité et le retour sur investissement</h3>
+
+<p>Paradoxalement, malgré des coûts d'électricité plus bas au Québec, le commercial offre souvent un meilleur ROI :</p>
+
+<ul>
+<li><strong>Résidentiel</strong> : retour sur investissement de 15 à 25 ans</li>
+<li><strong>Commercial</strong> : retour sur investissement de 6 à 12 ans</li>
+</ul>
+
+<p>Pourquoi? Les économies d'échelle, les incitatifs commerciaux plus généreux et l'impact sur les frais de puissance.</p>
+
+<h3>4. Les exigences réglementaires</h3>
+
+<p>Le commercial exige une rigueur accrue :</p>
+
+<ul>
+<li><strong>Licence RBQ</strong> : obligatoire pour l'entrepreneur (sous-catégorie 16)</li>
+<li><strong>Ingénieur</strong> : plans signés par un ingénieur membre de l'OIQ</li>
+<li><strong>Permis de construire</strong> : souvent requis pour les installations importantes</li>
+<li><strong>Inspection ESA</strong> : certification électrique obligatoire</li>
+</ul>
+
+<h3>5. La complexité technique</h3>
+
+<p>Une installation commerciale implique des défis uniques :</p>
+
+<ul>
+<li>Étude structurale du toit (charge des panneaux et du ballast)</li>
+<li>Analyse du réseau électrique existant</li>
+<li>Coordination avec les équipements CVAC</li>
+<li>Gestion des zones d'ombrage multiples</li>
+<li>Intégration possible de batteries pour l'écrêtage</li>
+</ul>
+
+<h3>6. Le financement et la fiscalité</h3>
+
+<p>Les entreprises bénéficient d'avantages fiscaux exclusifs :</p>
+
+<ul>
+<li><strong>CCA Classe 43.2</strong> : amortissement accéléré à 50%</li>
+<li><strong>Déductibilité</strong> : les coûts peuvent être déduits des revenus</li>
+<li><strong>Options de financement</strong> : PPA, location, prêt commercial</li>
+<li><strong>Crédit-bail</strong> : options hors bilan disponibles</li>
+</ul>
+
+<h3>7. L'impact sur la valeur immobilière</h3>
+
+<p>Pour les propriétaires d'immeubles commerciaux, le solaire affecte directement la valeur :</p>
+
+<ul>
+<li>Réduction des charges d'exploitation = meilleur NOI (revenu net d'exploitation)</li>
+<li>Certification LEED ou BOMA BEST facilitée</li>
+<li>Attrait accru pour les locataires soucieux de l'environnement</li>
+<li>Protection contre la volatilité des tarifs énergétiques</li>
+</ul>
+
+<h3>Pourquoi choisir un spécialiste du commercial</h3>
+
+<p>Un installateur résidentiel n'a pas l'expertise requise pour le commercial. Vous avez besoin d'un partenaire qui comprend :</p>
+
+<ul>
+<li>Les structures tarifaires complexes d'Hydro-Québec</li>
+<li>L'ingénierie structurale et électrique</li>
+<li>Les programmes d'incitatifs commerciaux</li>
+<li>La modélisation financière d'entreprise</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+
+<p>Avant de comparer des soumissions, assurez-vous de travailler avec un intégrateur spécialisé en C&I (commercial et industriel). Chez kWh Québec, nous analysons votre profil de consommation pour concevoir une solution optimale pour votre réalité d'affaires.</p>`,
+          contentEn: `<h2>Commercial vs Residential Solar: A World of Differences</h2>
+
+<p>If you own a commercial or industrial building and are considering solar, you've probably heard about residential installations. But be careful: the two worlds are fundamentally different. Here are the 7 essential distinctions.</p>
+
+<h3>1. Project Scale</h3>
+
+<p>The first difference is obvious: size.</p>
+
+<ul>
+<li><strong>Residential</strong>: 5 to 15 kW typically (15 to 40 panels)</li>
+<li><strong>Commercial</strong>: 50 to 1,000 kW (150 to 3,000 panels)</li>
+<li><strong>Industrial</strong>: 500 kW to several MW</li>
+</ul>
+
+<p>This difference in scale affects everything: logistics, financing, required permits and necessary expertise.</p>
+
+<h3>2. Hydro-Québec Tariff Structure</h3>
+
+<p>This is where commercial becomes really interesting:</p>
+
+<ul>
+<li><strong>Rate D (residential)</strong>: about 7.5 ¢/kWh - the lowest in the world</li>
+<li><strong>Rate G (small power)</strong>: 8 to 12 ¢/kWh depending on consumption</li>
+<li><strong>Rate M (medium power)</strong>: includes a power charge ($/kW) AND an energy charge ($/kWh)</li>
+</ul>
+
+<p>Rate M, with its power component, offers significant savings opportunities through demand peak shaving.</p>
+
+<h3>3. Profitability and Return on Investment</h3>
+
+<p>Paradoxically, despite lower electricity costs in Quebec, commercial often offers better ROI:</p>
+
+<ul>
+<li><strong>Residential</strong>: 15 to 25 year payback</li>
+<li><strong>Commercial</strong>: 6 to 12 year payback</li>
+</ul>
+
+<p>Why? Economies of scale, more generous commercial incentives and impact on power charges.</p>
+
+<h3>4. Regulatory Requirements</h3>
+
+<p>Commercial requires increased rigor:</p>
+
+<ul>
+<li><strong>RBQ License</strong>: mandatory for the contractor (subcategory 16)</li>
+<li><strong>Engineer</strong>: plans signed by a licensed OIQ engineer</li>
+<li><strong>Building Permit</strong>: often required for significant installations</li>
+<li><strong>ESA Inspection</strong>: electrical certification mandatory</li>
+</ul>
+
+<h3>5. Technical Complexity</h3>
+
+<p>A commercial installation involves unique challenges:</p>
+
+<ul>
+<li>Structural roof study (panel and ballast load)</li>
+<li>Existing electrical network analysis</li>
+<li>Coordination with HVAC equipment</li>
+<li>Management of multiple shading zones</li>
+<li>Possible battery integration for peak shaving</li>
+</ul>
+
+<h3>6. Financing and Taxation</h3>
+
+<p>Businesses benefit from exclusive tax advantages:</p>
+
+<ul>
+<li><strong>CCA Class 43.2</strong>: accelerated depreciation at 50%</li>
+<li><strong>Deductibility</strong>: costs can be deducted from income</li>
+<li><strong>Financing Options</strong>: PPA, lease, commercial loan</li>
+<li><strong>Capital Lease</strong>: off-balance sheet options available</li>
+</ul>
+
+<h3>7. Impact on Property Value</h3>
+
+<p>For commercial building owners, solar directly affects value:</p>
+
+<ul>
+<li>Reduced operating expenses = better NOI (Net Operating Income)</li>
+<li>LEED or BOMA BEST certification facilitated</li>
+<li>Increased appeal for environmentally conscious tenants</li>
+<li>Protection against energy rate volatility</li>
+</ul>
+
+<h3>Why Choose a Commercial Specialist</h3>
+
+<p>A residential installer doesn't have the expertise required for commercial. You need a partner who understands:</p>
+
+<ul>
+<li>Hydro-Québec's complex tariff structures</li>
+<li>Structural and electrical engineering</li>
+<li>Commercial incentive programs</li>
+<li>Business financial modeling</li>
+</ul>
+
+<h3>Next Step</h3>
+
+<p>Before comparing quotes, make sure you work with a C&I (commercial and industrial) specialized integrator. At kWh Québec, we analyze your consumption profile to design an optimal solution for your business reality.</p>`
+        },
+        // Article 3: Understanding Your Hydro-Québec Bill
+        {
+          slug: "comprendre-facture-hydro-quebec",
+          titleFr: "Comment lire votre facture Hydro-Québec commerciale : guide complet",
+          titleEn: "How to Read Your Commercial Hydro-Québec Bill: Complete Guide",
+          excerptFr: "Frais de puissance, tarif G vs M, facteur de puissance... Apprenez à décoder chaque ligne de votre facture d'électricité commerciale et identifiez les économies potentielles.",
+          excerptEn: "Power charges, G vs M rates, power factor... Learn to decode every line of your commercial electricity bill and identify potential savings.",
+          metaDescriptionFr: "Guide pour comprendre votre facture Hydro-Québec commerciale : tarifs G et M, frais de puissance, facteur de puissance, périodes de pointe.",
+          metaDescriptionEn: "Guide to understanding your commercial Hydro-Québec bill: G and M rates, power charges, power factor, peak periods.",
+          keywords: ["facture hydro-québec", "tarif G", "tarif M", "frais de puissance", "facteur de puissance", "electricity bill quebec", "commercial rates"],
+          category: "guide",
+          status: "published",
+          publishedAt: new Date(),
+          authorName: "kWh Québec",
+          contentFr: `<h2>Décoder votre facture Hydro-Québec : le guide du gestionnaire</h2>
+
+<p>Votre facture d'électricité commerciale peut sembler complexe avec ses multiples lignes et abréviations. Pourtant, comprendre chaque composante est essentiel pour identifier les opportunités d'économies – notamment celles que le solaire peut apporter.</p>
+
+<h3>Les deux types de tarifs commerciaux</h3>
+
+<p>Hydro-Québec offre principalement deux tarifs pour les entreprises :</p>
+
+<h4>Tarif G (Général)</h4>
+<ul>
+<li>Pour les clients avec une puissance appelée de <strong>moins de 65 kW</strong></li>
+<li>Structure simple : frais fixe + prix par kWh</li>
+<li>Environ 8 à 12 ¢/kWh selon le volume</li>
+<li>Pas de frais de puissance séparé</li>
+</ul>
+
+<h4>Tarif M (Moyenne puissance)</h4>
+<ul>
+<li>Pour les clients avec une puissance appelée de <strong>65 kW et plus</strong></li>
+<li>Structure en deux parties : énergie ($/kWh) + puissance ($/kW)</li>
+<li>Prix de l'énergie plus bas (environ 4-5 ¢/kWh)</li>
+<li>Frais de puissance significatifs (15 à 17 $/kW par mois)</li>
+</ul>
+
+<h3>Comprendre les frais de puissance (Tarif M)</h3>
+
+<p>C'est la partie la plus importante pour les clients au tarif M. Les frais de puissance sont basés sur :</p>
+
+<ul>
+<li><strong>La puissance appelée</strong> : le pic de consommation en kW durant la période</li>
+<li><strong>La puissance minimale facturée</strong> : 65% du maximum atteint dans les 12 derniers mois</li>
+<li>Facturé mensuellement, peu importe la consommation réelle</li>
+</ul>
+
+<p><strong>Exemple :</strong> Si votre pic de puissance est de 200 kW en janvier, vous paierez au minimum 130 kW (65% de 200) même en août quand votre pic réel est de 100 kW.</p>
+
+<h3>Les périodes tarifaires</h3>
+
+<p>Hydro-Québec applique des tarifs différents selon les périodes :</p>
+
+<ul>
+<li><strong>Période de pointe</strong> : hiver (décembre à mars), jours de semaine, 6h à 9h et 16h à 20h</li>
+<li><strong>Période hors pointe</strong> : reste du temps</li>
+</ul>
+
+<p>Les frais de puissance sont plus élevés durant les périodes de pointe hivernales.</p>
+
+<h3>Le facteur de puissance</h3>
+
+<p>Si votre facteur de puissance est inférieur à 90%, vous payez une pénalité :</p>
+
+<ul>
+<li>Le facteur de puissance mesure l'efficacité de votre utilisation électrique</li>
+<li>Un facteur bas signifie des pertes dans votre réseau (moteurs, transformateurs)</li>
+<li>La correction se fait par l'installation de condensateurs</li>
+</ul>
+
+<h3>Comment le solaire réduit chaque composante</h3>
+
+<h4>Réduction des frais d'énergie</h4>
+<p>Chaque kWh produit par vos panneaux est un kWh non acheté à Hydro-Québec. Les surplus sont crédités via le mesurage net.</p>
+
+<h4>Réduction des frais de puissance</h4>
+<p>Le solaire produit surtout en journée, pendant les heures d'activité commerciale. Avec une batterie, vous pouvez aussi écrêter les pointes de puissance pour réduire significativement ces frais.</p>
+
+<h4>Stratégie d'écrêtage</h4>
+<ul>
+<li>Identifier les pics de puissance récurrents</li>
+<li>Dimensionner une batterie pour absorber ces pics</li>
+<li>Économies potentielles : 15 à 25% sur les frais de puissance</li>
+</ul>
+
+<h3>Lecture pratique de votre facture</h3>
+
+<p>Voici ce qu'il faut repérer sur votre facture :</p>
+
+<ul>
+<li><strong>Consommation (kWh)</strong> : total d'énergie consommée</li>
+<li><strong>Puissance appelée (kW)</strong> : pic de demande du mois</li>
+<li><strong>Puissance facturée (kW)</strong> : puissance utilisée pour le calcul (peut différer)</li>
+<li><strong>Facteur de puissance (%)</strong> : efficacité de votre installation</li>
+<li><strong>Période</strong> : dates couvertes par la facture</li>
+</ul>
+
+<h3>Analyse gratuite de votre facture</h3>
+
+<p>Chez kWh Québec, nous analysons vos 12 derniers mois de facturation pour :</p>
+
+<ul>
+<li>Identifier votre profil de consommation</li>
+<li>Calculer le dimensionnement optimal d'un système solaire</li>
+<li>Évaluer le potentiel d'économies avec ou sans batterie</li>
+<li>Projeter le retour sur investissement précis</li>
+</ul>
+
+<p>Envoyez-nous vos factures et vos données de consommation horaire pour une analyse complète et personnalisée.</p>`,
+          contentEn: `<h2>Decoding Your Hydro-Québec Bill: The Manager's Guide</h2>
+
+<p>Your commercial electricity bill may seem complex with its multiple lines and abbreviations. However, understanding each component is essential to identify savings opportunities – particularly those that solar can provide.</p>
+
+<h3>The Two Types of Commercial Rates</h3>
+
+<p>Hydro-Québec mainly offers two rates for businesses:</p>
+
+<h4>Rate G (General)</h4>
+<ul>
+<li>For customers with a power demand of <strong>less than 65 kW</strong></li>
+<li>Simple structure: fixed charge + price per kWh</li>
+<li>About 8 to 12 ¢/kWh depending on volume</li>
+<li>No separate power charge</li>
+</ul>
+
+<h4>Rate M (Medium Power)</h4>
+<ul>
+<li>For customers with a power demand of <strong>65 kW and above</strong></li>
+<li>Two-part structure: energy ($/kWh) + power ($/kW)</li>
+<li>Lower energy price (about 4-5 ¢/kWh)</li>
+<li>Significant power charges (15 to 17 $/kW per month)</li>
+</ul>
+
+<h3>Understanding Power Charges (Rate M)</h3>
+
+<p>This is the most important part for Rate M customers. Power charges are based on:</p>
+
+<ul>
+<li><strong>Power demand</strong>: the peak consumption in kW during the period</li>
+<li><strong>Minimum billed power</strong>: 65% of the maximum reached in the last 12 months</li>
+<li>Billed monthly, regardless of actual consumption</li>
+</ul>
+
+<p><strong>Example:</strong> If your peak power is 200 kW in January, you will pay at least 130 kW (65% of 200) even in August when your actual peak is 100 kW.</p>
+
+<h3>Rate Periods</h3>
+
+<p>Hydro-Québec applies different rates depending on the periods:</p>
+
+<ul>
+<li><strong>Peak period</strong>: winter (December to March), weekdays, 6am to 9am and 4pm to 8pm</li>
+<li><strong>Off-peak period</strong>: rest of the time</li>
+</ul>
+
+<p>Power charges are higher during winter peak periods.</p>
+
+<h3>Power Factor</h3>
+
+<p>If your power factor is below 90%, you pay a penalty:</p>
+
+<ul>
+<li>Power factor measures the efficiency of your electrical use</li>
+<li>A low factor means losses in your network (motors, transformers)</li>
+<li>Correction is done by installing capacitors</li>
+</ul>
+
+<h3>How Solar Reduces Each Component</h3>
+
+<h4>Energy Charge Reduction</h4>
+<p>Each kWh produced by your panels is one kWh not purchased from Hydro-Québec. Surplus is credited through net metering.</p>
+
+<h4>Power Charge Reduction</h4>
+<p>Solar produces mainly during the day, during business hours. With a battery, you can also shave power peaks to significantly reduce these charges.</p>
+
+<h4>Peak Shaving Strategy</h4>
+<ul>
+<li>Identify recurring power peaks</li>
+<li>Size a battery to absorb these peaks</li>
+<li>Potential savings: 15 to 25% on power charges</li>
+</ul>
+
+<h3>Practical Bill Reading</h3>
+
+<p>Here's what to look for on your bill:</p>
+
+<ul>
+<li><strong>Consumption (kWh)</strong>: total energy consumed</li>
+<li><strong>Power Demand (kW)</strong>: peak demand for the month</li>
+<li><strong>Billed Power (kW)</strong>: power used for calculation (may differ)</li>
+<li><strong>Power Factor (%)</strong>: efficiency of your installation</li>
+<li><strong>Period</strong>: dates covered by the bill</li>
+</ul>
+
+<h3>Free Bill Analysis</h3>
+
+<p>At kWh Québec, we analyze your last 12 months of billing to:</p>
+
+<ul>
+<li>Identify your consumption profile</li>
+<li>Calculate optimal solar system sizing</li>
+<li>Evaluate savings potential with or without battery</li>
+<li>Project precise return on investment</li>
+</ul>
+
+<p>Send us your bills and hourly consumption data for a complete and personalized analysis.</p>`
+        },
+        // Article 4: Case Study - Industrial Solar Project
+        {
+          slug: "etude-de-cas-projet-solaire-industriel",
+          titleFr: "Étude de cas : Installation solaire de 500 kW dans un entrepôt industriel",
+          titleEn: "Case Study: 500 kW Solar Installation in an Industrial Warehouse",
+          excerptFr: "Analyse complète d'un projet solaire industriel au Québec : conception, financement, incitatifs, défis surmontés et résultats financiers après un an d'exploitation.",
+          excerptEn: "Complete analysis of an industrial solar project in Quebec: design, financing, incentives, challenges overcome and financial results after one year of operation.",
+          metaDescriptionFr: "Étude de cas d'un projet solaire 500 kW au Québec : NPV, TRI, retour sur investissement, incitatifs HQ et CCA 43.2. Résultats réels.",
+          metaDescriptionEn: "Case study of a 500 kW solar project in Quebec: NPV, IRR, payback, HQ incentives and CCA 43.2. Real results.",
+          keywords: ["étude de cas solaire", "projet industriel", "500 kW", "NPV", "IRR", "retour investissement", "solar case study quebec"],
+          category: "case-study",
+          status: "published",
+          publishedAt: new Date(),
+          authorName: "kWh Québec",
+          contentFr: `<h2>Étude de cas : Entrepôt Logistique Plus, Montérégie</h2>
+
+<p>Cette étude de cas présente un projet solaire de 500 kW installé sur un entrepôt de distribution de 8 000 m² en Montérégie. Les données financières et techniques sont basées sur une analyse réaliste des conditions québécoises.</p>
+
+<h3>Profil du client</h3>
+
+<ul>
+<li><strong>Secteur</strong> : Distribution et logistique</li>
+<li><strong>Surface de toiture</strong> : 8 000 m² (toit plat membrane TPO blanche)</li>
+<li><strong>Consommation annuelle</strong> : 850 000 kWh</li>
+<li><strong>Tarif Hydro-Québec</strong> : Tarif M (puissance appelée moyenne de 180 kW)</li>
+<li><strong>Facture annuelle avant projet</strong> : 72 000 $</li>
+</ul>
+
+<h3>Conception du système</h3>
+
+<p>Après analyse du profil de consommation horaire et de la structure du bâtiment :</p>
+
+<ul>
+<li><strong>Puissance installée</strong> : 500 kWc (kW crête)</li>
+<li><strong>Nombre de panneaux</strong> : 1 000 modules bifaciaux de 500 Wc</li>
+<li><strong>Orientation</strong> : Est-Ouest (15° d'inclinaison)</li>
+<li><strong>Onduleurs</strong> : 3 onduleurs string de 175 kW</li>
+<li><strong>Production annuelle estimée</strong> : 575 000 kWh</li>
+<li><strong>Taux d'autoconsommation</strong> : 85%</li>
+</ul>
+
+<h3>Analyse financière</h3>
+
+<h4>Investissement initial</h4>
+<ul>
+<li>Coût brut du système : <strong>1 000 000 $</strong></li>
+<li>Subvention Hydro-Québec (40%) : <strong>-400 000 $</strong></li>
+<li>Coût net avant impôts : <strong>600 000 $</strong></li>
+</ul>
+
+<h4>Économies annuelles</h4>
+<ul>
+<li>Économies sur l'énergie : <strong>35 000 $/an</strong></li>
+<li>Économies sur la puissance : <strong>8 500 $/an</strong></li>
+<li>Revenus des surplus (année 3+) : <strong>5 000 $/an</strong></li>
+<li><strong>Total année 1 : 43 500 $</strong></li>
+</ul>
+
+<h4>Incitatifs fiscaux</h4>
+<ul>
+<li>Bouclier fiscal CCA 43.2 (année 1) : <strong>150 000 $</strong></li>
+<li>Bouclier fiscal cumulatif (années 1-5) : <strong>225 000 $</strong></li>
+</ul>
+
+<h4>Métriques de rentabilité</h4>
+<ul>
+<li><strong>VAN (25 ans, taux 6%)</strong> : 485 000 $</li>
+<li><strong>TRI (25 ans)</strong> : 14,2%</li>
+<li><strong>Retour simple</strong> : 7,8 ans</li>
+<li><strong>Retour ajusté (après incitatifs)</strong> : 5,2 ans</li>
+<li><strong>LCOE</strong> : 4,8 ¢/kWh</li>
+</ul>
+
+<h3>Défis surmontés</h3>
+
+<h4>1. Capacité structurale du toit</h4>
+<p>L'étude initiale révélait une capacité limitée à 15 kg/m². Solution : utilisation d'un système de montage léger à ballast réduit et orientation Est-Ouest pour réduire les charges de vent.</p>
+
+<h4>2. Puissance du transformateur</h4>
+<p>Le transformateur existant de 500 kVA ne pouvait supporter l'injection complète. Solution : coordination avec Hydro-Québec pour le remplacement par un modèle de 750 kVA, coût partagé via le programme d'autoproduction.</p>
+
+<h4>3. Coordination des travaux</h4>
+<p>L'entrepôt opère 24h/24. Solution : installation en phases sur 8 semaines, travaux électriques durant les fins de semaine, aucune interruption des opérations.</p>
+
+<h3>Résultats après un an d'exploitation</h3>
+
+<ul>
+<li>Production réelle : <strong>598 000 kWh</strong> (104% de l'estimation)</li>
+<li>Économies réelles : <strong>46 200 $</strong> (106% du prévisionnel)</li>
+<li>Disponibilité du système : <strong>99,4%</strong></li>
+<li>Aucune maintenance majeure requise</li>
+</ul>
+
+<h3>Impact environnemental</h3>
+
+<ul>
+<li><strong>CO2 évité</strong> : 3,5 tonnes/an (équivalent Québec, réseau déjà propre)</li>
+<li>Certification BOMA BEST obtenue grâce au projet</li>
+<li>Image de marque améliorée auprès des clients corporatifs</li>
+</ul>
+
+<h3>Témoignage du propriétaire</h3>
+
+<blockquote>
+<p>« Le projet a dépassé nos attentes. En plus des économies substantielles, nos locataires apprécient notre engagement environnemental. Le processus avec kWh Québec a été transparent du début à la fin. »</p>
+</blockquote>
+
+<h3>Leçons apprises</h3>
+
+<ul>
+<li>L'analyse détaillée du profil de consommation est cruciale pour le dimensionnement</li>
+<li>La coordination précoce avec Hydro-Québec évite les délais</li>
+<li>Les toits blancs (TPO) permettent l'utilisation de panneaux bifaciaux pour 5-10% de production additionnelle</li>
+<li>Un suivi mensuel permet d'optimiser la performance</li>
+</ul>
+
+<h3>Votre projet</h3>
+
+<p>Chaque bâtiment est unique. Contactez kWh Québec pour une analyse personnalisée de votre potentiel solaire et un calcul précis de votre retour sur investissement.</p>`,
+          contentEn: `<h2>Case Study: Logistique Plus Warehouse, Montérégie</h2>
+
+<p>This case study presents a 500 kW solar project installed on an 8,000 m² distribution warehouse in Montérégie. The financial and technical data are based on a realistic analysis of Quebec conditions.</p>
+
+<h3>Client Profile</h3>
+
+<ul>
+<li><strong>Sector</strong>: Distribution and logistics</li>
+<li><strong>Roof Surface</strong>: 8,000 m² (white TPO membrane flat roof)</li>
+<li><strong>Annual Consumption</strong>: 850,000 kWh</li>
+<li><strong>Hydro-Québec Rate</strong>: Rate M (average power demand of 180 kW)</li>
+<li><strong>Annual Bill Before Project</strong>: $72,000</li>
+</ul>
+
+<h3>System Design</h3>
+
+<p>After analysis of the hourly consumption profile and building structure:</p>
+
+<ul>
+<li><strong>Installed Capacity</strong>: 500 kWp (peak kW)</li>
+<li><strong>Number of Panels</strong>: 1,000 bifacial modules of 500 Wp</li>
+<li><strong>Orientation</strong>: East-West (15° tilt)</li>
+<li><strong>Inverters</strong>: 3 string inverters of 175 kW</li>
+<li><strong>Estimated Annual Production</strong>: 575,000 kWh</li>
+<li><strong>Self-Consumption Rate</strong>: 85%</li>
+</ul>
+
+<h3>Financial Analysis</h3>
+
+<h4>Initial Investment</h4>
+<ul>
+<li>Gross system cost: <strong>$1,000,000</strong></li>
+<li>Hydro-Québec Subsidy (40%): <strong>-$400,000</strong></li>
+<li>Net cost before taxes: <strong>$600,000</strong></li>
+</ul>
+
+<h4>Annual Savings</h4>
+<ul>
+<li>Energy savings: <strong>$35,000/year</strong></li>
+<li>Power charge savings: <strong>$8,500/year</strong></li>
+<li>Surplus revenue (year 3+): <strong>$5,000/year</strong></li>
+<li><strong>Total Year 1: $43,500</strong></li>
+</ul>
+
+<h4>Tax Incentives</h4>
+<ul>
+<li>CCA 43.2 Tax Shield (year 1): <strong>$150,000</strong></li>
+<li>Cumulative Tax Shield (years 1-5): <strong>$225,000</strong></li>
+</ul>
+
+<h4>Profitability Metrics</h4>
+<ul>
+<li><strong>NPV (25 years, 6% rate)</strong>: $485,000</li>
+<li><strong>IRR (25 years)</strong>: 14.2%</li>
+<li><strong>Simple Payback</strong>: 7.8 years</li>
+<li><strong>Adjusted Payback (after incentives)</strong>: 5.2 years</li>
+<li><strong>LCOE</strong>: 4.8 ¢/kWh</li>
+</ul>
+
+<h3>Challenges Overcome</h3>
+
+<h4>1. Roof Structural Capacity</h4>
+<p>Initial study revealed limited capacity of 15 kg/m². Solution: use of lightweight mounting system with reduced ballast and East-West orientation to reduce wind loads.</p>
+
+<h4>2. Transformer Capacity</h4>
+<p>The existing 500 kVA transformer could not support full injection. Solution: coordination with Hydro-Québec for replacement with a 750 kVA model, cost shared through the self-production program.</p>
+
+<h4>3. Work Coordination</h4>
+<p>The warehouse operates 24/7. Solution: phased installation over 8 weeks, electrical work during weekends, no operational interruption.</p>
+
+<h3>Results After One Year of Operation</h3>
+
+<ul>
+<li>Actual Production: <strong>598,000 kWh</strong> (104% of estimate)</li>
+<li>Actual Savings: <strong>$46,200</strong> (106% of forecast)</li>
+<li>System Availability: <strong>99.4%</strong></li>
+<li>No major maintenance required</li>
+</ul>
+
+<h3>Environmental Impact</h3>
+
+<ul>
+<li><strong>CO2 Avoided</strong>: 3.5 tonnes/year (Quebec equivalent, already clean grid)</li>
+<li>BOMA BEST certification obtained thanks to the project</li>
+<li>Improved brand image with corporate clients</li>
+</ul>
+
+<h3>Owner Testimonial</h3>
+
+<blockquote>
+<p>"The project exceeded our expectations. In addition to the substantial savings, our tenants appreciate our environmental commitment. The process with kWh Québec was transparent from start to finish."</p>
+</blockquote>
+
+<h3>Lessons Learned</h3>
+
+<ul>
+<li>Detailed consumption profile analysis is crucial for sizing</li>
+<li>Early coordination with Hydro-Québec avoids delays</li>
+<li>White roofs (TPO) allow use of bifacial panels for 5-10% additional production</li>
+<li>Monthly monitoring allows performance optimization</li>
+</ul>
+
+<h3>Your Project</h3>
+
+<p>Every building is unique. Contact kWh Québec for a personalized analysis of your solar potential and accurate calculation of your return on investment.</p>`
+        }
+      ];
+
+      const created = [];
+      const skipped = [];
+
+      for (const articleData of seedArticles) {
+        const existing = await storage.getBlogArticleBySlug(articleData.slug);
+        if (existing) {
+          skipped.push(articleData.slug);
+        } else {
+          const article = await storage.createBlogArticle(articleData);
+          created.push(article.slug);
+        }
+      }
+
+      res.status(201).json({
+        message: `Seeded ${created.length} articles, skipped ${skipped.length} existing`,
+        created,
+        skipped
+      });
+    } catch (error) {
+      console.error("Error seeding blog articles:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== MARKET INTELLIGENCE (ADMIN) ====================
 
   // --- Competitors ---
