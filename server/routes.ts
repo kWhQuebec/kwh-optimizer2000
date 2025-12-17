@@ -5029,6 +5029,67 @@ Pricing:
     }
   });
 
+  // --- Market Documents ---
+  app.get("/api/admin/market-documents", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const entityType = req.query.entityType as string | undefined;
+      const documents = await storage.getMarketDocuments(entityType);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching market documents:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/market-documents/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const document = await storage.getMarketDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Market document not found" });
+      }
+      res.json(document);
+    } catch (error) {
+      console.error("Error fetching market document:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/market-documents", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const document = await storage.createMarketDocument(req.body);
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Error creating market document:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/market-documents/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const document = await storage.updateMarketDocument(req.params.id, req.body);
+      if (!document) {
+        return res.status(404).json({ error: "Market document not found" });
+      }
+      res.json(document);
+    } catch (error) {
+      console.error("Error updating market document:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/market-documents/:id", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteMarketDocument(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Market document not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting market document:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== PROCURATION SIGNATURES (Zoho Sign) ====================
   
   // Check if Zoho Sign is configured
