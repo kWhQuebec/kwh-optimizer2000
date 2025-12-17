@@ -1470,6 +1470,14 @@ function ScenarioComparison({
   onSelectSimulation?: (simulationId: string) => void;
 }) {
   const { t, language } = useI18n();
+  const { toast } = useToast();
+  const [optimizationDialogOpen, setOptimizationDialogOpen] = useState(false);
+  const [optimizationPreset, setOptimizationPreset] = useState<{
+    pvSize: number;
+    batterySize: number;
+    batteryPower: number;
+    label: string;
+  } | null>(null);
   
   const validScenarios = useMemo(() => 
     simulations.filter(s => 
@@ -1695,6 +1703,81 @@ function ScenarioComparison({
     // Combine: champions first (in priority order), then others (in original order)
     return [...withBadges, ...withoutBadges];
   }, [comparisonData, badgeAssignments]);
+  
+  // Reference simulation for optimization presets (use best NPV scenario or first valid)
+  const referenceSimulation = useMemo(() => {
+    if (validScenarios.length === 0) return null;
+    const bestNpvSim = validScenarios.reduce((best, sim) => 
+      (sim.npv25 || 0) > (best.npv25 || 0) ? sim : best
+    );
+    return bestNpvSim;
+  }, [validScenarios]);
+  
+  // Calculate optimization presets based on reference simulation
+  const optimizationPresets = useMemo(() => {
+    if (!referenceSimulation) return null;
+    
+    const refPV = referenceSimulation.pvSizeKW || 100;
+    const refBattery = referenceSimulation.battEnergyKWh || 0;
+    const refBatteryPower = referenceSimulation.battPowerKW || 0;
+    
+    return {
+      irr: {
+        pvSize: Math.round(refPV * 0.6),
+        batterySize: 0,
+        batteryPower: 0,
+        label: language === "fr" ? "Optimisé TRI" : "IRR Optimized",
+        description: language === "fr" 
+          ? "Système plus petit = CAPEX réduit = meilleur rendement relatif"
+          : "Smaller system = lower CAPEX = better relative return"
+      },
+      selfSufficiency: {
+        pvSize: Math.round(refPV * 1.3),
+        batterySize: Math.max(Math.round(refPV * 0.5), 50),
+        batteryPower: Math.max(Math.round(refPV * 0.25), 25),
+        label: language === "fr" ? "Autonomie maximale" : "Max Self-Sufficiency",
+        description: language === "fr"
+          ? "Système agrandi + stockage = moins de dépendance au réseau"
+          : "Larger system + storage = less grid dependence"
+      },
+      payback: {
+        pvSize: Math.round(refPV * 0.5),
+        batterySize: 0,
+        batteryPower: 0,
+        label: language === "fr" ? "Retour rapide" : "Fast Payback",
+        description: language === "fr"
+          ? "Investissement minimal = récupération plus rapide"
+          : "Minimal investment = faster break-even"
+      }
+    };
+  }, [referenceSimulation, language]);
+  
+  // Handler for opening optimization dialog with preset
+  const handleOptimizationClick = (presetType: 'irr' | 'selfSufficiency' | 'payback') => {
+    if (!optimizationPresets || !referenceSimulation) {
+      toast({ 
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr" ? "Aucun scénario de référence disponible" : "No reference scenario available",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    const preset = optimizationPresets[presetType];
+    setOptimizationPreset({
+      pvSize: preset.pvSize,
+      batterySize: preset.batterySize,
+      batteryPower: preset.batteryPower,
+      label: preset.label
+    });
+    setOptimizationDialogOpen(true);
+  };
+  
+  // Handler for successful variant creation
+  const handleOptimizationSuccess = () => {
+    setOptimizationDialogOpen(false);
+    setOptimizationPreset(null);
+  };
 
   return (
     <div className="space-y-6" data-testid="section-scenario-comparison">
@@ -1924,6 +2007,120 @@ function ScenarioComparison({
           </div>
         </CardContent>
       </Card>
+      
+      {/* Optimization Suggestions Section */}
+      {referenceSimulation && optimizationPresets && (
+        <Card data-testid="card-optimization-suggestions">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Zap className="w-5 h-5 text-amber-500" />
+              {language === "fr" ? "Générer des variantes optimisées" : "Generate Optimized Variants"}
+            </CardTitle>
+            <CardDescription>
+              {language === "fr" 
+                ? "Explorez différentes stratégies d'optimisation basées sur vos priorités"
+                : "Explore different optimization strategies based on your priorities"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* IRR Optimization */}
+              <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                  <h4 className="font-semibold text-blue-700 dark:text-blue-400">
+                    {language === "fr" ? "Meilleur TRI" : "Best IRR"}
+                  </h4>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {optimizationPresets.irr.description}
+                </p>
+                <div className="text-xs text-muted-foreground mb-3 space-y-1">
+                  <p>PV: {formatNumber(optimizationPresets.irr.pvSize)} kW</p>
+                  <p>{language === "fr" ? "Batterie" : "Battery"}: {optimizationPresets.irr.batterySize > 0 ? `${formatNumber(optimizationPresets.irr.batterySize)} kWh` : (language === "fr" ? "Aucune" : "None")}</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full border-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900"
+                  onClick={() => handleOptimizationClick('irr')}
+                  data-testid="button-optimize-irr"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {language === "fr" ? "Générer" : "Generate"}
+                </Button>
+              </div>
+              
+              {/* Self-Sufficiency Optimization */}
+              <div className="p-4 rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 dark:border-purple-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Battery className="w-5 h-5 text-purple-600" />
+                  <h4 className="font-semibold text-purple-700 dark:text-purple-400">
+                    {language === "fr" ? "Autonomie maximale" : "Max Self-Sufficiency"}
+                  </h4>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {optimizationPresets.selfSufficiency.description}
+                </p>
+                <div className="text-xs text-muted-foreground mb-3 space-y-1">
+                  <p>PV: {formatNumber(optimizationPresets.selfSufficiency.pvSize)} kW</p>
+                  <p>{language === "fr" ? "Batterie" : "Battery"}: {formatNumber(optimizationPresets.selfSufficiency.batterySize)} kWh</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full border-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900"
+                  onClick={() => handleOptimizationClick('selfSufficiency')}
+                  data-testid="button-optimize-self-sufficiency"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {language === "fr" ? "Générer" : "Generate"}
+                </Button>
+              </div>
+              
+              {/* Payback Optimization */}
+              <div className="p-4 rounded-lg border border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-5 h-5 text-orange-600" />
+                  <h4 className="font-semibold text-orange-700 dark:text-orange-400">
+                    {language === "fr" ? "Retour rapide" : "Fast Payback"}
+                  </h4>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {optimizationPresets.payback.description}
+                </p>
+                <div className="text-xs text-muted-foreground mb-3 space-y-1">
+                  <p>PV: {formatNumber(optimizationPresets.payback.pvSize)} kW</p>
+                  <p>{language === "fr" ? "Batterie" : "Battery"}: {optimizationPresets.payback.batterySize > 0 ? `${formatNumber(optimizationPresets.payback.batterySize)} kWh` : (language === "fr" ? "Aucune" : "None")}</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full border-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900"
+                  onClick={() => handleOptimizationClick('payback')}
+                  data-testid="button-optimize-payback"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {language === "fr" ? "Générer" : "Generate"}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* CreateVariantDialog for optimization presets */}
+      {referenceSimulation && (
+        <CreateVariantDialog
+          simulation={referenceSimulation}
+          siteId={site.id}
+          onSuccess={handleOptimizationSuccess}
+          externalOpen={optimizationDialogOpen}
+          onExternalOpenChange={setOptimizationDialogOpen}
+          preset={optimizationPreset}
+          showTrigger={false}
+        />
+      )}
       
       <div className="grid md:grid-cols-2 gap-6">
         <Card data-testid="card-chart-npv">
