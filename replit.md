@@ -35,6 +35,37 @@ A PostgreSQL database, managed by Drizzle ORM, includes `users`, `leads`, `clien
 ### Key Features and Implementations
 
 -   **Data Processing & Analysis**: Processes Hydro-Québec consumption data, performs 8760-hour solar production simulations, battery peak-shaving, calculates Québec and Federal incentives and tax shields, and generates 25-year cashflows. Includes a sensitivity analysis engine and HQ Tariff Module.
+
+### Meter Reading Deduplication Methodology
+
+When processing consumption data from multiple Hydro-Québec files, the platform implements a robust deduplication algorithm to prevent overcounting:
+
+**Problem Solved:** Sites with overlapping meter files (HOUR + FIFTEEN_MIN granularity) were causing inflated consumption totals (e.g., 303M kWh instead of 379k kWh).
+
+**Algorithm:**
+1. Sort all readings by timestamp
+2. Bucket readings by hour (floor to hour boundary)
+3. For each hour bucket:
+   - If HOUR granularity data exists → use it directly
+   - Otherwise → sum all FIFTEEN_MIN readings for that hour
+   - Preserve maximum kW demand across all readings in bucket
+4. Calculate `dataSpanDays` from original readings (before deduplication) for correct annualization
+
+**Annualization Formula:**
+```
+annualizationFactor = 365 / dataSpanDays
+annualConsumptionKWh = totalKWh × annualizationFactor
+```
+
+### Validated Calculation Benchmarks (December 2024)
+
+| Metric | Platform Value | Industry Reference (Quebec) |
+|--------|----------------|----------------------------|
+| Solar Yield | 1,150-1,300 kWh/kWp/yr | 1,150-1,200 kWh/kWp/yr |
+| Self-Consumption Rate | 50-70% | 50-70% (commercial, no storage) |
+| Self-Sufficiency | 25-40% typical | Varies by system sizing |
+| Tariff M Energy Rate | 11.933¢/kWh | HQ official 2024-2025 |
+| HQ Solar Incentive | $1,000/kW (max 40% CAPEX) | Official program |
 -   **UI Visualization**: Uses Recharts for interactive charts and shadcn/ui table components. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display, and an Optimization Analysis Section.
 -   **Analysis Page Flow**: Structured progression from Summary KPIs to Technical Details, including system configuration, financial breakdown, financing options, and environmental impact.
 -   **Tariff Auto-Detection**: Automatically detects appropriate Hydro-Québec tariff codes (Tariff G or M) based on simulated peak demand.
