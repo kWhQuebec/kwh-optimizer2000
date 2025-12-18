@@ -71,6 +71,30 @@ annualConsumptionKWh = totalKWh × annualizationFactor
 -   **Tariff Auto-Detection**: Automatically detects appropriate Hydro-Québec tariff codes (Tariff G or M) based on simulated peak demand.
 -   **HQ Incentive Policy**: Implements current Hydro-Québec incentives for solar ($1,000/kW, capped at 40% CAPEX) and paired storage (only within solar cap).
 -   **HQ Net Metering / Autoproduction Program**: Incorporates new rules for commercial net metering, including a 1 MW capacity limit, surplus compensation after 24 months, and financial projections for surplus revenue.
+
+### HQ Net Metering Surplus Compensation Methodology
+
+**Program Overview (Dec 2024+):**
+- Clients bank surplus kWh credits for 24 months
+- After 24-month bank reset, unused surplus is compensated at HQ's **cost of supply rate** (NOT client's energy tariff)
+
+**Compensation Rate:**
+- **4.54¢/kWh** (coût moyen d'approvisionnement HQ 2025)
+- Source: Hydro-Québec Tariff Proposal R-4270-2024 filed with Régie de l'énergie
+
+**Why This Matters:**
+- Previous incorrect assumption: compensation at client's tariff (~6-12¢/kWh)
+- Correct methodology: compensation at HQ cost of supply (~4.54¢/kWh)
+- This significantly impacts surplus revenue projections in financial models
+
+**Implementation:**
+- Parameter: `hqSurplusCompensationRate` in AnalysisAssumptions (default: 0.0454 $/kWh)
+- Surplus revenue starts year 3+ (after first 24-month cycle)
+- Subject to annual inflation escalation like other revenues
+
+**Reference Documents:**
+- Régie de l'énergie dossier R-4270-2024
+- HQ Autoproduction program: https://www.hydroquebec.com/autoproduction/
 -   **System Design Module**: Enables staff to create detailed equipment specifications and bills of materials with auto-populated forms and component selection.
 -   **Multi-Scenario Analysis**: Features a Scenario Comparison Dashboard, "Create Variant Dialog," and a Financing Calculator for Cash, Loan, and Capital Lease options, incorporating realistic incentive timing.
 -   **Role-Based Access Control (RBAC)**: Supports Admin, Analyst, and Client roles with JWT-based authentication and server-side authorization.

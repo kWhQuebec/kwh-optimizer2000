@@ -5813,8 +5813,10 @@ function runPotentialAnalysis(
   const savingsYear1 = annualSavings; // First year savings (before inflation)
   
   // HQ Net Metering surplus revenue (new Dec 2024 program)
-  // After 24 months, HQ pays for surplus kWh at client's tariff rate
-  const annualSurplusRevenue = totalExportedKWh * h.tariffEnergy;
+  // After 24 months, HQ compensates surplus kWh at cost of supply rate (NOT client tariff)
+  // Source: HQ Tariff Proposal R-4270-2024 - 4.54¢/kWh (coût moyen d'approvisionnement)
+  const hqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454; // Default 4.54¢/kWh
+  const annualSurplusRevenue = totalExportedKWh * hqSurplusRate;
   
   // ========== STEP 5: Calculate CAPEX ==========
   // Apply bifacial cost premium if enabled (typically 5-10 cents/W more)
@@ -6123,7 +6125,10 @@ function runPotentialAnalysis(
     const optDegradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
     
     // Calculate surplus revenue for HQ Net Metering (Dec 2024 program)
-    const optAnnualSurplusRevenue = optSimResult.totalExportedKWh * h.tariffEnergy;
+    // Compensated at HQ cost of supply rate (NOT client tariff)
+    // Source: HQ Tariff Proposal R-4270-2024 - 4.54¢/kWh
+    const optHqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454;
+    const optAnnualSurplusRevenue = optSimResult.totalExportedKWh * optHqSurplusRate;
     
     for (let y = 1; y <= h.analysisYears; y++) {
       // Apply panel degradation (production decreases each year)
@@ -6133,7 +6138,7 @@ function runPotentialAnalysis(
       const savingsRevenue = optAnnualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
       
       // HQ surplus revenue starts after 24 months (year 3+)
-      // Surplus kWh compensated at client's tariff rate
+      // Surplus kWh compensated at HQ cost of supply rate (4.54¢/kWh per R-4270-2024)
       const surplusRevenue = y >= 3 
         ? optAnnualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
         : 0;
@@ -6327,7 +6332,7 @@ function runPotentialAnalysis(
         selfSufficiencyPercent: annualConsumptionKWh > 0 ? (finalSimResult.totalSelfConsumption / annualConsumptionKWh) * 100 : 0,
         totalProductionKWh: finalSimResult.totalProductionKWh,
         totalExportedKWh: finalSimResult.totalExportedKWh,
-        annualSurplusRevenue: finalSimResult.totalExportedKWh * h.tariffEnergy,
+        annualSurplusRevenue: finalSimResult.totalExportedKWh * (h.hqSurplusCompensationRate ?? 0.0454),
         annualCostBefore,
         annualCostAfter: annualCostBefore - finalAnnualSavings,
         annualSavings: finalAnnualSavings,
@@ -6376,7 +6381,7 @@ function runPotentialAnalysis(
       selfSufficiencyPercent: optSelfSufficiencyPercent,
       totalProductionKWh: optSimResult.totalProductionKWh,
       totalExportedKWh: optSimResult.totalExportedKWh,
-      annualSurplusRevenue: optSimResult.totalExportedKWh * h.tariffEnergy,
+      annualSurplusRevenue: optSimResult.totalExportedKWh * (h.hqSurplusCompensationRate ?? 0.0454),
       annualCostBefore,
       annualCostAfter: optAnnualCostAfter,
       annualSavings: optAnnualSavings,
@@ -7039,8 +7044,10 @@ function runScenarioWithSizing(
   const annualSavings = energySavings + demandSavings;
   
   // HQ Net Metering surplus revenue (new Dec 2024 program)
-  // After 24 months, HQ pays for surplus kWh at client's tariff rate
-  const annualSurplusRevenue = annualExportedKWh * h.tariffEnergy;
+  // After 24 months, HQ compensates surplus kWh at cost of supply rate (NOT client tariff)
+  // Source: HQ Tariff Proposal R-4270-2024 - 4.54¢/kWh (coût moyen d'approvisionnement)
+  const scenarioHqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454;
+  const annualSurplusRevenue = annualExportedKWh * scenarioHqSurplusRate;
   
   // CAPEX - apply bifacial cost premium if enabled
   const effectiveSolarCostPerW = h.bifacialEnabled 

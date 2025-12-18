@@ -939,6 +939,11 @@ export interface AnalysisAssumptions {
   
   // Manual yield override flag
   useManualYield?: boolean;       // If true, use solarYieldKWhPerKWp instead of Google data
+  
+  // HQ Net Metering surplus compensation rate (new Dec 2024)
+  // Source: HQ Tariff Proposal R-4270-2024 - Compensation at average cost of supply
+  // NOT client's energy tariff rate - HQ compensates at cost of supply after 24-month bank reset
+  hqSurplusCompensationRate?: number;  // $/kWh - default 0.0454 (4.54¢/kWh)
 }
 
 // Default analysis assumptions
@@ -976,6 +981,11 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   bifacialityFactor: 0.85, // 85% rear-side efficiency
   roofAlbedo: 0.70, // White membrane ~70% reflectivity
   bifacialCostPremium: 0.10, // $0.10/W additional cost
+  
+  // HQ Net Metering surplus compensation (Dec 2024+)
+  // Source: HQ Tariff Proposal R-4270-2024 - Average cost of supply rate
+  // After 24-month bank reset, surplus kWh compensated at this rate (NOT client tariff)
+  hqSurplusCompensationRate: 0.0454, // 4.54¢/kWh (HQ cost of supply 2025)
 };
 
 // Cashflow entry for detailed analysis
