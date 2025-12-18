@@ -30,6 +30,8 @@ import type {
   OmContract, InsertOmContract,
   OmVisit, InsertOmVisit,
   OmPerformanceSnapshot, InsertOmPerformanceSnapshot,
+  Opportunity, InsertOpportunity,
+  Activity, InsertActivity,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -226,6 +228,30 @@ export interface IStorage {
   createOmPerformanceSnapshot(snapshot: InsertOmPerformanceSnapshot): Promise<OmPerformanceSnapshot>;
   updateOmPerformanceSnapshot(id: string, snapshot: Partial<OmPerformanceSnapshot>): Promise<OmPerformanceSnapshot | undefined>;
   deleteOmPerformanceSnapshot(id: string): Promise<boolean>;
+
+  // Opportunities (Sales Pipeline)
+  getOpportunities(): Promise<Opportunity[]>;
+  getOpportunity(id: string): Promise<Opportunity | undefined>;
+  getOpportunitiesByStage(stage: string): Promise<Opportunity[]>;
+  getOpportunitiesByLeadId(leadId: string): Promise<Opportunity[]>;
+  getOpportunitiesByClientId(clientId: string): Promise<Opportunity[]>;
+  getOpportunitiesBySiteId(siteId: string): Promise<Opportunity[]>;
+  getOpportunitiesByOwnerId(ownerId: string): Promise<Opportunity[]>;
+  createOpportunity(opportunity: InsertOpportunity): Promise<Opportunity>;
+  updateOpportunity(id: string, opportunity: Partial<Opportunity>): Promise<Opportunity | undefined>;
+  deleteOpportunity(id: string): Promise<boolean>;
+  updateOpportunityStage(id: string, stage: string, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined>;
+
+  // Activities (Calls, Emails, Meetings Log)
+  getActivities(): Promise<Activity[]>;
+  getActivity(id: string): Promise<Activity | undefined>;
+  getActivitiesByLeadId(leadId: string): Promise<Activity[]>;
+  getActivitiesByClientId(clientId: string): Promise<Activity[]>;
+  getActivitiesBySiteId(siteId: string): Promise<Activity[]>;
+  getActivitiesByOpportunityId(opportunityId: string): Promise<Activity[]>;
+  createActivity(activity: InsertActivity): Promise<Activity>;
+  updateActivity(id: string, activity: Partial<Activity>): Promise<Activity | undefined>;
+  deleteActivity(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1448,6 +1474,178 @@ export class MemStorage implements IStorage {
 
   async deleteOmPerformanceSnapshot(id: string): Promise<boolean> {
     return this.omPerformanceSnapshotsMap.delete(id);
+  }
+
+  // Opportunities (Sales Pipeline)
+  private opportunitiesMap: Map<string, Opportunity> = new Map();
+
+  async getOpportunities(): Promise<Opportunity[]> {
+    return Array.from(this.opportunitiesMap.values())
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOpportunity(id: string): Promise<Opportunity | undefined> {
+    return this.opportunitiesMap.get(id);
+  }
+
+  async getOpportunitiesByStage(stage: string): Promise<Opportunity[]> {
+    return Array.from(this.opportunitiesMap.values())
+      .filter(o => o.stage === stage)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOpportunitiesByLeadId(leadId: string): Promise<Opportunity[]> {
+    return Array.from(this.opportunitiesMap.values())
+      .filter(o => o.leadId === leadId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOpportunitiesByClientId(clientId: string): Promise<Opportunity[]> {
+    return Array.from(this.opportunitiesMap.values())
+      .filter(o => o.clientId === clientId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOpportunitiesBySiteId(siteId: string): Promise<Opportunity[]> {
+    return Array.from(this.opportunitiesMap.values())
+      .filter(o => o.siteId === siteId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOpportunitiesByOwnerId(ownerId: string): Promise<Opportunity[]> {
+    return Array.from(this.opportunitiesMap.values())
+      .filter(o => o.ownerId === ownerId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async createOpportunity(opportunity: InsertOpportunity): Promise<Opportunity> {
+    const id = randomUUID();
+    const newOpportunity: Opportunity = {
+      ...opportunity,
+      id,
+      leadId: opportunity.leadId ?? null,
+      clientId: opportunity.clientId ?? null,
+      siteId: opportunity.siteId ?? null,
+      description: opportunity.description ?? null,
+      stage: opportunity.stage ?? "prospect",
+      probability: opportunity.probability ?? 10,
+      estimatedValue: opportunity.estimatedValue ?? null,
+      pvSizeKW: opportunity.pvSizeKW ?? null,
+      expectedCloseDate: opportunity.expectedCloseDate ?? null,
+      actualCloseDate: opportunity.actualCloseDate ?? null,
+      lostReason: opportunity.lostReason ?? null,
+      lostNotes: opportunity.lostNotes ?? null,
+      ownerId: opportunity.ownerId ?? null,
+      source: opportunity.source ?? null,
+      sourceDetails: opportunity.sourceDetails ?? null,
+      priority: opportunity.priority ?? "medium",
+      tags: opportunity.tags ?? null,
+      nextActionDate: opportunity.nextActionDate ?? null,
+      nextActionDescription: opportunity.nextActionDescription ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.opportunitiesMap.set(id, newOpportunity);
+    return newOpportunity;
+  }
+
+  async updateOpportunity(id: string, opportunity: Partial<Opportunity>): Promise<Opportunity | undefined> {
+    const existing = this.opportunitiesMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...opportunity, updatedAt: new Date() };
+    this.opportunitiesMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteOpportunity(id: string): Promise<boolean> {
+    return this.opportunitiesMap.delete(id);
+  }
+
+  async updateOpportunityStage(id: string, stage: string, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined> {
+    const existing = this.opportunitiesMap.get(id);
+    if (!existing) return undefined;
+    const updated: Opportunity = {
+      ...existing,
+      stage,
+      lostReason: lostReason ?? existing.lostReason,
+      lostNotes: lostNotes ?? existing.lostNotes,
+      actualCloseDate: (stage === "won" || stage === "lost") ? new Date() : existing.actualCloseDate,
+      updatedAt: new Date(),
+    };
+    this.opportunitiesMap.set(id, updated);
+    return updated;
+  }
+
+  // Activities (Calls, Emails, Meetings Log)
+  private activitiesMap: Map<string, Activity> = new Map();
+
+  async getActivities(): Promise<Activity[]> {
+    return Array.from(this.activitiesMap.values())
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getActivity(id: string): Promise<Activity | undefined> {
+    return this.activitiesMap.get(id);
+  }
+
+  async getActivitiesByLeadId(leadId: string): Promise<Activity[]> {
+    return Array.from(this.activitiesMap.values())
+      .filter(a => a.leadId === leadId)
+      .sort((a, b) => new Date(b.activityDate!).getTime() - new Date(a.activityDate!).getTime());
+  }
+
+  async getActivitiesByClientId(clientId: string): Promise<Activity[]> {
+    return Array.from(this.activitiesMap.values())
+      .filter(a => a.clientId === clientId)
+      .sort((a, b) => new Date(b.activityDate!).getTime() - new Date(a.activityDate!).getTime());
+  }
+
+  async getActivitiesBySiteId(siteId: string): Promise<Activity[]> {
+    return Array.from(this.activitiesMap.values())
+      .filter(a => a.siteId === siteId)
+      .sort((a, b) => new Date(b.activityDate!).getTime() - new Date(a.activityDate!).getTime());
+  }
+
+  async getActivitiesByOpportunityId(opportunityId: string): Promise<Activity[]> {
+    return Array.from(this.activitiesMap.values())
+      .filter(a => a.opportunityId === opportunityId)
+      .sort((a, b) => new Date(b.activityDate!).getTime() - new Date(a.activityDate!).getTime());
+  }
+
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const id = randomUUID();
+    const newActivity: Activity = {
+      ...activity,
+      id,
+      leadId: activity.leadId ?? null,
+      clientId: activity.clientId ?? null,
+      siteId: activity.siteId ?? null,
+      opportunityId: activity.opportunityId ?? null,
+      direction: activity.direction ?? null,
+      subject: activity.subject ?? null,
+      description: activity.description ?? null,
+      activityDate: activity.activityDate ?? new Date(),
+      duration: activity.duration ?? null,
+      outcome: activity.outcome ?? null,
+      followUpDate: activity.followUpDate ?? null,
+      followUpNotes: activity.followUpNotes ?? null,
+      createdBy: activity.createdBy ?? null,
+      createdAt: new Date(),
+    };
+    this.activitiesMap.set(id, newActivity);
+    return newActivity;
+  }
+
+  async updateActivity(id: string, activity: Partial<Activity>): Promise<Activity | undefined> {
+    const existing = this.activitiesMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...activity };
+    this.activitiesMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteActivity(id: string): Promise<boolean> {
+    return this.activitiesMap.delete(id);
   }
 }
 

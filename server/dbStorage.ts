@@ -6,6 +6,7 @@ import {
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
   competitors, battleCards, marketNotes, marketDocuments,
   constructionAgreements, constructionMilestones, omContracts, omVisits, omPerformanceSnapshots,
+  opportunities, activities,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -38,6 +39,8 @@ import type {
   OmContract, InsertOmContract,
   OmVisit, InsertOmVisit,
   OmPerformanceSnapshot, InsertOmPerformanceSnapshot,
+  Opportunity, InsertOpportunity,
+  Activity, InsertActivity,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -1093,6 +1096,132 @@ export class DatabaseStorage implements IStorage {
 
   async deleteOmPerformanceSnapshot(id: string): Promise<boolean> {
     const result = await db.delete(omPerformanceSnapshots).where(eq(omPerformanceSnapshots.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Opportunities (Sales Pipeline)
+  async getOpportunities(): Promise<Opportunity[]> {
+    return db.select().from(opportunities).orderBy(desc(opportunities.createdAt));
+  }
+
+  async getOpportunity(id: string): Promise<Opportunity | undefined> {
+    const result = await db.select().from(opportunities).where(eq(opportunities.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getOpportunitiesByStage(stage: string): Promise<Opportunity[]> {
+    return db.select().from(opportunities)
+      .where(eq(opportunities.stage, stage))
+      .orderBy(desc(opportunities.createdAt));
+  }
+
+  async getOpportunitiesByLeadId(leadId: string): Promise<Opportunity[]> {
+    return db.select().from(opportunities)
+      .where(eq(opportunities.leadId, leadId))
+      .orderBy(desc(opportunities.createdAt));
+  }
+
+  async getOpportunitiesByClientId(clientId: string): Promise<Opportunity[]> {
+    return db.select().from(opportunities)
+      .where(eq(opportunities.clientId, clientId))
+      .orderBy(desc(opportunities.createdAt));
+  }
+
+  async getOpportunitiesBySiteId(siteId: string): Promise<Opportunity[]> {
+    return db.select().from(opportunities)
+      .where(eq(opportunities.siteId, siteId))
+      .orderBy(desc(opportunities.createdAt));
+  }
+
+  async getOpportunitiesByOwnerId(ownerId: string): Promise<Opportunity[]> {
+    return db.select().from(opportunities)
+      .where(eq(opportunities.ownerId, ownerId))
+      .orderBy(desc(opportunities.createdAt));
+  }
+
+  async createOpportunity(opportunity: InsertOpportunity): Promise<Opportunity> {
+    const [result] = await db.insert(opportunities).values(opportunity).returning();
+    return result;
+  }
+
+  async updateOpportunity(id: string, opportunity: Partial<Opportunity>): Promise<Opportunity | undefined> {
+    const [result] = await db.update(opportunities)
+      .set({ ...opportunity, updatedAt: new Date() })
+      .where(eq(opportunities.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteOpportunity(id: string): Promise<boolean> {
+    const result = await db.delete(opportunities).where(eq(opportunities.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async updateOpportunityStage(id: string, stage: string, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined> {
+    const updateData: Partial<Opportunity> = {
+      stage,
+      updatedAt: new Date(),
+    };
+    if (lostReason !== undefined) updateData.lostReason = lostReason;
+    if (lostNotes !== undefined) updateData.lostNotes = lostNotes;
+    if (stage === "won" || stage === "lost") updateData.actualCloseDate = new Date();
+    
+    const [result] = await db.update(opportunities)
+      .set(updateData)
+      .where(eq(opportunities.id, id))
+      .returning();
+    return result;
+  }
+
+  // Activities (Calls, Emails, Meetings Log)
+  async getActivities(): Promise<Activity[]> {
+    return db.select().from(activities).orderBy(desc(activities.createdAt));
+  }
+
+  async getActivity(id: string): Promise<Activity | undefined> {
+    const result = await db.select().from(activities).where(eq(activities.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getActivitiesByLeadId(leadId: string): Promise<Activity[]> {
+    return db.select().from(activities)
+      .where(eq(activities.leadId, leadId))
+      .orderBy(desc(activities.activityDate));
+  }
+
+  async getActivitiesByClientId(clientId: string): Promise<Activity[]> {
+    return db.select().from(activities)
+      .where(eq(activities.clientId, clientId))
+      .orderBy(desc(activities.activityDate));
+  }
+
+  async getActivitiesBySiteId(siteId: string): Promise<Activity[]> {
+    return db.select().from(activities)
+      .where(eq(activities.siteId, siteId))
+      .orderBy(desc(activities.activityDate));
+  }
+
+  async getActivitiesByOpportunityId(opportunityId: string): Promise<Activity[]> {
+    return db.select().from(activities)
+      .where(eq(activities.opportunityId, opportunityId))
+      .orderBy(desc(activities.activityDate));
+  }
+
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const [result] = await db.insert(activities).values(activity).returning();
+    return result;
+  }
+
+  async updateActivity(id: string, activity: Partial<Activity>): Promise<Activity | undefined> {
+    const [result] = await db.update(activities)
+      .set(activity)
+      .where(eq(activities.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteActivity(id: string): Promise<boolean> {
+    const result = await db.delete(activities).where(eq(activities.id, id)).returning();
     return result.length > 0;
   }
 }

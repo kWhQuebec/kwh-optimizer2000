@@ -865,6 +865,95 @@ export const omPerformanceSnapshots = pgTable("om_performance_snapshots", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ==================== SALES CRM TABLES ====================
+
+// Opportunities - Sales pipeline tracking
+export const opportunities = pgTable("opportunities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Links
+  leadId: varchar("lead_id").references(() => leads.id),
+  clientId: varchar("client_id").references(() => clients.id),
+  siteId: varchar("site_id").references(() => sites.id),
+  
+  // Basic info
+  name: text("name").notNull(), // "123 Rue Commerce - 500kW Solar"
+  description: text("description"),
+  
+  // Pipeline stage
+  stage: text("stage").notNull().default("prospect"), // "prospect" | "qualified" | "proposal" | "negotiation" | "won" | "lost"
+  probability: integer("probability").default(10), // % likelihood to close
+  
+  // Value
+  estimatedValue: real("estimated_value"), // $ potential deal value
+  pvSizeKW: real("pv_size_kw"), // Estimated system size
+  
+  // Expected close
+  expectedCloseDate: timestamp("expected_close_date"),
+  actualCloseDate: timestamp("actual_close_date"),
+  
+  // Lost reason (if stage = "lost")
+  lostReason: text("lost_reason"), // "price" | "competition" | "timing" | "no_budget" | "other"
+  lostNotes: text("lost_notes"),
+  
+  // Assignment
+  ownerId: varchar("owner_id").references(() => users.id),
+  
+  // Source tracking
+  source: text("source"), // "web_form" | "referral" | "cold_call" | "event" | "other"
+  sourceDetails: text("source_details"),
+  
+  // Priority
+  priority: text("priority").default("medium"), // "low" | "medium" | "high" | "urgent"
+  
+  // Tags for filtering
+  tags: text("tags").array(),
+  
+  // Next action
+  nextActionDate: timestamp("next_action_date"),
+  nextActionDescription: text("next_action_description"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Activities - Log of calls, emails, meetings on leads/clients/opportunities
+export const activities = pgTable("activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Links (at least one should be set)
+  leadId: varchar("lead_id").references(() => leads.id),
+  clientId: varchar("client_id").references(() => clients.id),
+  siteId: varchar("site_id").references(() => sites.id),
+  opportunityId: varchar("opportunity_id").references(() => opportunities.id),
+  
+  // Activity type
+  activityType: text("activity_type").notNull(), // "call" | "email" | "meeting" | "note" | "site_visit" | "proposal_sent" | "follow_up"
+  
+  // Direction (for calls/emails)
+  direction: text("direction"), // "inbound" | "outbound"
+  
+  // Content
+  subject: text("subject"),
+  description: text("description"),
+  
+  // Timing
+  activityDate: timestamp("activity_date").defaultNow(),
+  duration: integer("duration"), // Minutes (for calls/meetings)
+  
+  // Outcome
+  outcome: text("outcome"), // "connected" | "voicemail" | "no_answer" | "scheduled_meeting" | "sent" | "received" | "completed"
+  
+  // Follow-up
+  followUpDate: timestamp("follow_up_date"),
+  followUpNotes: text("follow_up_notes"),
+  
+  // User who logged the activity
+  createdBy: varchar("created_by").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Email logs for tracking sent emails and enabling follow-up
 export const emailLogs = pgTable("email_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1066,6 +1155,18 @@ export const insertOmPerformanceSnapshotSchema = createInsertSchema(omPerformanc
   createdAt: true,
 });
 
+// Sales CRM schemas
+export const insertOpportunitySchema = createInsertSchema(opportunities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertActivitySchema = createInsertSchema(activities).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -1146,6 +1247,13 @@ export type OmVisit = typeof omVisits.$inferSelect;
 
 export type InsertOmPerformanceSnapshot = z.infer<typeof insertOmPerformanceSnapshotSchema>;
 export type OmPerformanceSnapshot = typeof omPerformanceSnapshots.$inferSelect;
+
+// Sales CRM types
+export type InsertOpportunity = z.infer<typeof insertOpportunitySchema>;
+export type Opportunity = typeof opportunities.$inferSelect;
+
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type Activity = typeof activities.$inferSelect;
 
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };
