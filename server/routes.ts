@@ -1133,6 +1133,17 @@ export async function registerRoutes(
     }
   });
 
+  // Pipeline stats for sales dashboard
+  app.get("/api/dashboard/pipeline-stats", authMiddleware, requireStaff, async (req, res) => {
+    try {
+      const stats = await storage.getPipelineStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching pipeline stats:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== CLIENT ROUTES ====================
   
   // Staff-only client management

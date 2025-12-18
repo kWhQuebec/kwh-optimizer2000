@@ -108,6 +108,50 @@ export interface IStorage {
     recentAnalyses: SimulationRun[];
   }>;
 
+  // Pipeline Stats for Sales Dashboard
+  getPipelineStats(): Promise<{
+    // Overall metrics
+    totalPipelineValue: number;
+    weightedPipelineValue: number;
+    wonValue: number;
+    lostValue: number;
+    activeOpportunityCount: number;
+    // Stage breakdown
+    stageBreakdown: Array<{
+      stage: string;
+      count: number;
+      totalValue: number;
+      weightedValue: number;
+    }>;
+    // Top opportunities by value
+    topOpportunities: Array<{
+      id: string;
+      name: string;
+      clientName: string | null;
+      stage: string;
+      probability: number;
+      estimatedValue: number | null;
+      updatedAt: Date | null;
+    }>;
+    // At-risk opportunities (inactive > 30 days)
+    atRiskOpportunities: Array<{
+      id: string;
+      name: string;
+      clientName: string | null;
+      stage: string;
+      estimatedValue: number | null;
+      daysSinceUpdate: number;
+    }>;
+    // Recent wins
+    recentWins: Array<{
+      id: string;
+      name: string;
+      clientName: string | null;
+      estimatedValue: number | null;
+      updatedAt: Date | null;
+    }>;
+  }>;
+
   // Site Visits
   getSiteVisits(): Promise<SiteVisitWithSite[]>;
   getSiteVisit(id: string): Promise<SiteVisitWithSite | undefined>;
@@ -706,6 +750,31 @@ export class MemStorage implements IStorage {
       co2Avoided,
       recentSites: sites.slice(0, 5),
       recentAnalyses: analyses.slice(0, 5),
+    };
+  }
+
+  async getPipelineStats(): Promise<{
+    totalPipelineValue: number;
+    weightedPipelineValue: number;
+    wonValue: number;
+    lostValue: number;
+    activeOpportunityCount: number;
+    stageBreakdown: Array<{ stage: string; count: number; totalValue: number; weightedValue: number }>;
+    topOpportunities: Array<{ id: string; name: string; clientName: string | null; stage: string; probability: number; estimatedValue: number | null; updatedAt: Date | null }>;
+    atRiskOpportunities: Array<{ id: string; name: string; clientName: string | null; stage: string; estimatedValue: number | null; daysSinceUpdate: number }>;
+    recentWins: Array<{ id: string; name: string; clientName: string | null; estimatedValue: number | null; updatedAt: Date | null }>;
+  }> {
+    // Simple implementation for MemStorage - returns empty data
+    return {
+      totalPipelineValue: 0,
+      weightedPipelineValue: 0,
+      wonValue: 0,
+      lostValue: 0,
+      activeOpportunityCount: 0,
+      stageBreakdown: [],
+      topOpportunities: [],
+      atRiskOpportunities: [],
+      recentWins: [],
     };
   }
 

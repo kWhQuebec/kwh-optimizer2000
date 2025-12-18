@@ -432,6 +432,178 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getPipelineStats(): Promise<{
+    totalPipelineValue: number;
+    weightedPipelineValue: number;
+    wonValue: number;
+    lostValue: number;
+    activeOpportunityCount: number;
+    stageBreakdown: Array<{
+      stage: string;
+      count: number;
+      totalValue: number;
+      weightedValue: number;
+    }>;
+    topOpportunities: Array<{
+      id: string;
+      name: string;
+      clientName: string | null;
+      stage: string;
+      probability: number;
+      estimatedValue: number | null;
+      updatedAt: Date | null;
+    }>;
+    atRiskOpportunities: Array<{
+      id: string;
+      name: string;
+      clientName: string | null;
+      stage: string;
+      estimatedValue: number | null;
+      daysSinceUpdate: number;
+    }>;
+    recentWins: Array<{
+      id: string;
+      name: string;
+      clientName: string | null;
+      estimatedValue: number | null;
+      updatedAt: Date | null;
+    }>;
+  }> {
+    const STAGE_PROBABILITIES: Record<string, number> = {
+      prospect: 5,
+      qualified: 15,
+      proposal: 25,
+      design_signed: 50,
+      negotiation: 75,
+      won: 100,
+      lost: 0,
+    };
+
+    // Get all opportunities with client info
+    const allOpps = await db
+      .select({
+        id: opportunities.id,
+        name: opportunities.name,
+        stage: opportunities.stage,
+        probability: opportunities.probability,
+        estimatedValue: opportunities.estimatedValue,
+        createdAt: opportunities.createdAt,
+        updatedAt: opportunities.updatedAt,
+        clientId: opportunities.clientId,
+      })
+      .from(opportunities);
+
+    // Get client names
+    const clientIds = [...new Set(allOpps.filter(o => o.clientId).map(o => o.clientId!))];
+    const clientsList = clientIds.length > 0
+      ? await db.select({ id: clients.id, name: clients.name }).from(clients).where(inArray(clients.id, clientIds))
+      : [];
+    const clientMap = new Map(clientsList.map(c => [c.id, c.name]));
+
+    // Filter active opportunities (not won or lost)
+    const activeOpps = allOpps.filter(o => o.stage !== 'won' && o.stage !== 'lost');
+    const wonOpps = allOpps.filter(o => o.stage === 'won');
+    const lostOpps = allOpps.filter(o => o.stage === 'lost');
+
+    // Calculate totals
+    const totalPipelineValue = activeOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+    const weightedPipelineValue = activeOpps.reduce((sum, o) => {
+      const prob = o.probability ?? STAGE_PROBABILITIES[o.stage] ?? 0;
+      return sum + ((o.estimatedValue || 0) * prob / 100);
+    }, 0);
+    const wonValue = wonOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+    const lostValue = lostOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+
+    // Stage breakdown - use per-opportunity probability for weighted value
+    const stages = ['prospect', 'qualified', 'proposal', 'design_signed', 'negotiation', 'won', 'lost'];
+    const stageBreakdown = stages.map(stage => {
+      const stageOpps = allOpps.filter(o => o.stage === stage);
+      const totalValue = stageOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+      // Sum weighted values using each opportunity's actual probability
+      const weightedValue = stageOpps.reduce((sum, o) => {
+        const prob = o.probability ?? STAGE_PROBABILITIES[o.stage] ?? 0;
+        return sum + ((o.estimatedValue || 0) * prob / 100);
+      }, 0);
+      return {
+        stage,
+        count: stageOpps.length,
+        totalValue,
+        weightedValue,
+      };
+    });
+
+    // Top opportunities by value (top 5 active)
+    const topOpportunities = activeOpps
+      .filter(o => o.estimatedValue && o.estimatedValue > 0)
+      .sort((a, b) => (b.estimatedValue || 0) - (a.estimatedValue || 0))
+      .slice(0, 5)
+      .map(o => ({
+        id: o.id,
+        name: o.name,
+        clientName: o.clientId ? clientMap.get(o.clientId) || null : null,
+        stage: o.stage,
+        probability: o.probability ?? STAGE_PROBABILITIES[o.stage] ?? 0,
+        estimatedValue: o.estimatedValue,
+        updatedAt: o.updatedAt,
+      }));
+
+    // At-risk opportunities (inactive > 30 days, excluding won/lost)
+    // Use updatedAt, falling back to createdAt for newly created opportunities
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const atRiskOpportunities = activeOpps
+      .filter(o => {
+        const lastActivity = o.updatedAt || o.createdAt;
+        if (!lastActivity) return false; // No date at all = skip (shouldn't happen)
+        return new Date(lastActivity) < thirtyDaysAgo;
+      })
+      .map(o => {
+        const lastActivity = o.updatedAt || o.createdAt;
+        const daysSinceUpdate = lastActivity 
+          ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24))
+          : 0;
+        return {
+          id: o.id,
+          name: o.name,
+          clientName: o.clientId ? clientMap.get(o.clientId) || null : null,
+          stage: o.stage,
+          estimatedValue: o.estimatedValue,
+          daysSinceUpdate,
+        };
+      })
+      .sort((a, b) => b.daysSinceUpdate - a.daysSinceUpdate)
+      .slice(0, 5);
+
+    // Recent wins (last 5)
+    const recentWins = wonOpps
+      .sort((a, b) => {
+        const aDate = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const bDate = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return bDate - aDate;
+      })
+      .slice(0, 5)
+      .map(o => ({
+        id: o.id,
+        name: o.name,
+        clientName: o.clientId ? clientMap.get(o.clientId) || null : null,
+        estimatedValue: o.estimatedValue,
+        updatedAt: o.updatedAt,
+      }));
+
+    return {
+      totalPipelineValue,
+      weightedPipelineValue,
+      wonValue,
+      lostValue,
+      activeOpportunityCount: activeOpps.length,
+      stageBreakdown,
+      topOpportunities,
+      atRiskOpportunities,
+      recentWins,
+    };
+  }
+
   // Site Visits
   async getSiteVisits(): Promise<SiteVisitWithSite[]> {
     const allVisits = await db.select().from(siteVisits).orderBy(desc(siteVisits.createdAt));
