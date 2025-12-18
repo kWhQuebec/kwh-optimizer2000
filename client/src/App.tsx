@@ -44,6 +44,7 @@ const ConstructionAgreementsPage = lazy(() => import("@/pages/construction-agree
 const OmContractsPage = lazy(() => import("@/pages/om-contracts"));
 const OmVisitsPage = lazy(() => import("@/pages/om-visits"));
 const OmPerformancePage = lazy(() => import("@/pages/om-performance"));
+const PipelinePage = lazy(() => import("@/pages/pipeline"));
 
 function PageLoader() {
   return (
@@ -375,6 +376,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <PortfolioDetailPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Sales Pipeline */}
+      <Route path="/app/pipeline">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <PipelinePage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

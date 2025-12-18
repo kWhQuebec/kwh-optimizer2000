@@ -1,0 +1,892 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { 
+  Target, 
+  Plus, 
+  Building2, 
+  DollarSign, 
+  Calendar, 
+  User, 
+  ChevronRight, 
+  Filter,
+  X,
+  TrendingUp,
+  Trophy,
+  XCircle
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import type { Opportunity, User as UserType, Client } from "@shared/schema";
+
+const STAGES = ["prospect", "qualified", "proposal", "negotiation", "won", "lost"] as const;
+type Stage = typeof STAGES[number];
+
+const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
+  prospect: { fr: "Prospect", en: "Prospect" },
+  qualified: { fr: "Qualifié", en: "Qualified" },
+  proposal: { fr: "Proposition", en: "Proposal" },
+  negotiation: { fr: "Négociation", en: "Negotiation" },
+  won: { fr: "Gagné", en: "Won" },
+  lost: { fr: "Perdu", en: "Lost" },
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+  low: "bg-muted text-muted-foreground",
+  medium: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+  urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+};
+
+const SOURCE_OPTIONS = ["web_form", "referral", "cold_call", "event", "other"] as const;
+
+interface OpportunityWithRelations extends Opportunity {
+  owner?: UserType | null;
+  client?: Client | null;
+}
+
+const opportunityFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  stage: z.string().default("prospect"),
+  estimatedValue: z.coerce.number().optional(),
+  pvSizeKW: z.coerce.number().optional(),
+  expectedCloseDate: z.string().optional(),
+  priority: z.string().default("medium"),
+  source: z.string().optional(),
+  clientId: z.string().optional(),
+});
+
+type OpportunityFormValues = z.infer<typeof opportunityFormSchema>;
+
+function OpportunityCard({ 
+  opportunity, 
+  onStageChange, 
+  onClick 
+}: { 
+  opportunity: OpportunityWithRelations; 
+  onStageChange: (id: string, stage: Stage) => void;
+  onClick: () => void;
+}) {
+  const { language } = useI18n();
+  const currentStageIndex = STAGES.indexOf(opportunity.stage as Stage);
+  const canMoveForward = currentStageIndex < STAGES.length - 2;
+  const canMoveBack = currentStageIndex > 0 && opportunity.stage !== "won" && opportunity.stage !== "lost";
+
+  return (
+    <Card 
+      className="hover-elevate cursor-pointer mb-3"
+      onClick={onClick}
+      data-testid={`card-opportunity-${opportunity.id}`}
+    >
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="font-medium text-sm leading-tight line-clamp-2">{opportunity.name}</h4>
+            <Badge 
+              className={`shrink-0 text-xs ${PRIORITY_COLORS[opportunity.priority || "medium"]}`}
+              data-testid={`badge-priority-${opportunity.id}`}
+            >
+              {opportunity.priority || "medium"}
+            </Badge>
+          </div>
+
+          {opportunity.client && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Building2 className="w-3 h-3" />
+              <span className="truncate">{opportunity.client.name}</span>
+            </div>
+          )}
+
+          {opportunity.estimatedValue && (
+            <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>${opportunity.estimatedValue.toLocaleString()}</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            {opportunity.expectedCloseDate && (
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                <span>{format(new Date(opportunity.expectedCloseDate), "MMM d, yyyy")}</span>
+              </div>
+            )}
+            {opportunity.owner && (
+              <div className="flex items-center gap-1">
+                <User className="w-3 h-3" />
+                <span className="truncate max-w-[80px]">{opportunity.owner.name || opportunity.owner.email}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
+            {canMoveBack && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 px-2 text-xs"
+                onClick={() => onStageChange(opportunity.id, STAGES[currentStageIndex - 1])}
+                data-testid={`button-move-back-${opportunity.id}`}
+              >
+                <ChevronRight className="w-3 h-3 rotate-180" />
+              </Button>
+            )}
+            {canMoveForward && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 px-2 text-xs flex-1"
+                onClick={() => onStageChange(opportunity.id, STAGES[currentStageIndex + 1])}
+                data-testid={`button-move-forward-${opportunity.id}`}
+              >
+                {STAGE_LABELS[STAGES[currentStageIndex + 1]][language]}
+                <ChevronRight className="w-3 h-3 ml-1" />
+              </Button>
+            )}
+            {opportunity.stage !== "won" && opportunity.stage !== "lost" && (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-green-600"
+                  onClick={() => onStageChange(opportunity.id, "won")}
+                  data-testid={`button-mark-won-${opportunity.id}`}
+                >
+                  <Trophy className="w-3 h-3" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-red-600"
+                  onClick={() => onStageChange(opportunity.id, "lost")}
+                  data-testid={`button-mark-lost-${opportunity.id}`}
+                >
+                  <XCircle className="w-3 h-3" />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StageColumn({ 
+  stage, 
+  opportunities, 
+  onStageChange,
+  onCardClick
+}: { 
+  stage: Stage; 
+  opportunities: OpportunityWithRelations[];
+  onStageChange: (id: string, stage: Stage) => void;
+  onCardClick: (opp: OpportunityWithRelations) => void;
+}) {
+  const { language } = useI18n();
+  const stageOpps = opportunities.filter(o => o.stage === stage);
+  const stageValue = stageOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  
+  const stageColors: Record<Stage, string> = {
+    prospect: "border-t-slate-400",
+    qualified: "border-t-blue-400",
+    proposal: "border-t-purple-400",
+    negotiation: "border-t-orange-400",
+    won: "border-t-green-500",
+    lost: "border-t-red-500",
+  };
+
+  return (
+    <div 
+      className="flex-shrink-0 w-72"
+      data-testid={`column-${stage}`}
+    >
+      <div className={`bg-muted/30 rounded-lg border-t-4 ${stageColors[stage]} min-h-[500px]`}>
+        <div className="p-3 border-b">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm">{STAGE_LABELS[stage][language]}</h3>
+            <Badge variant="secondary" className="text-xs" data-testid={`badge-count-${stage}`}>
+              {stageOpps.length}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 font-mono">
+            ${stageValue.toLocaleString()}
+          </p>
+        </div>
+        <div className="p-3">
+          {stageOpps.map((opp) => (
+            <OpportunityCard 
+              key={opp.id} 
+              opportunity={opp} 
+              onStageChange={onStageChange}
+              onClick={() => onCardClick(opp)}
+            />
+          ))}
+          {stageOpps.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-8">
+              {language === "fr" ? "Aucune opportunité" : "No opportunities"}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PipelinePage() {
+  const { t, language } = useI18n();
+  const { toast } = useToast();
+  const [filterOwner, setFilterOwner] = useState<string>("all");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [filterSource, setFilterSource] = useState<string>("all");
+  const [selectedOpportunity, setSelectedOpportunity] = useState<OpportunityWithRelations | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const { data: opportunities = [], isLoading } = useQuery<OpportunityWithRelations[]>({
+    queryKey: ["/api/opportunities"],
+  });
+
+  const { data: users = [] } = useQuery<UserType[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+  });
+
+  const stageChangeMutation = useMutation({
+    mutationFn: async ({ id, stage }: { id: string; stage: Stage }) => {
+      return apiRequest("POST", `/api/opportunities/${id}/stage`, { stage });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      toast({
+        title: language === "fr" ? "Étape mise à jour" : "Stage updated",
+      });
+    },
+    onError: () => {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: OpportunityFormValues) => {
+      const payload = {
+        ...data,
+        expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate).toISOString() : undefined,
+      };
+      return apiRequest("POST", "/api/opportunities", payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      setIsAddOpen(false);
+      toast({
+        title: language === "fr" ? "Opportunité créée" : "Opportunity created",
+      });
+    },
+    onError: () => {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<OpportunityFormValues> }) => {
+      const payload = {
+        ...data,
+        expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate).toISOString() : undefined,
+      };
+      return apiRequest("PATCH", `/api/opportunities/${id}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      setIsDetailOpen(false);
+      setSelectedOpportunity(null);
+      toast({
+        title: language === "fr" ? "Opportunité mise à jour" : "Opportunity updated",
+      });
+    },
+    onError: () => {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addForm = useForm<OpportunityFormValues>({
+    resolver: zodResolver(opportunityFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      stage: "prospect",
+      priority: "medium",
+      source: "web_form",
+    },
+  });
+
+  const editForm = useForm<OpportunityFormValues>({
+    resolver: zodResolver(opportunityFormSchema),
+  });
+
+  const handleStageChange = (id: string, stage: Stage) => {
+    stageChangeMutation.mutate({ id, stage });
+  };
+
+  const handleCardClick = (opp: OpportunityWithRelations) => {
+    setSelectedOpportunity(opp);
+    editForm.reset({
+      name: opp.name,
+      description: opp.description || "",
+      stage: opp.stage,
+      estimatedValue: opp.estimatedValue || undefined,
+      pvSizeKW: opp.pvSizeKW || undefined,
+      expectedCloseDate: opp.expectedCloseDate 
+        ? format(new Date(opp.expectedCloseDate), "yyyy-MM-dd") 
+        : undefined,
+      priority: opp.priority || "medium",
+      source: opp.source || undefined,
+      clientId: opp.clientId || undefined,
+    });
+    setIsDetailOpen(true);
+  };
+
+  const filteredOpportunities = opportunities.filter((opp) => {
+    if (filterOwner !== "all" && opp.ownerId !== filterOwner) return false;
+    if (filterPriority !== "all" && opp.priority !== filterPriority) return false;
+    if (filterSource !== "all" && opp.source !== filterSource) return false;
+    return true;
+  });
+
+  const activeOpportunities = filteredOpportunities.filter(o => o.stage !== "won" && o.stage !== "lost");
+  const totalPipelineValue = activeOpportunities.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  const wonValue = filteredOpportunities.filter(o => o.stage === "won").reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+
+  const owners = users.filter(u => u.role === "admin" || u.role === "analyst");
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-36" />
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+        <div className="flex gap-4 overflow-hidden">
+          {STAGES.map((stage) => (
+            <Skeleton key={stage} className="h-[500px] w-72 shrink-0" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
+            {language === "fr" ? "Pipeline de ventes" : "Sales Pipeline"}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {language === "fr" ? "Gérez vos opportunités commerciales" : "Manage your sales opportunities"}
+          </p>
+        </div>
+        <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-opportunity">
+          <Plus className="w-4 h-4 mr-2" />
+          {language === "fr" ? "Nouvelle opportunité" : "Add Opportunity"}
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">{language === "fr" ? "Filtres:" : "Filters:"}</span>
+        </div>
+        
+        <Select value={filterOwner} onValueChange={setFilterOwner}>
+          <SelectTrigger className="w-40" data-testid="select-filter-owner">
+            <SelectValue placeholder={language === "fr" ? "Propriétaire" : "Owner"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{language === "fr" ? "Tous" : "All"}</SelectItem>
+            {owners.map((owner) => (
+              <SelectItem key={owner.id} value={owner.id}>
+                {owner.name || owner.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="w-32" data-testid="select-filter-priority">
+            <SelectValue placeholder={language === "fr" ? "Priorité" : "Priority"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{language === "fr" ? "Toutes" : "All"}</SelectItem>
+            <SelectItem value="low">{language === "fr" ? "Basse" : "Low"}</SelectItem>
+            <SelectItem value="medium">{language === "fr" ? "Moyenne" : "Medium"}</SelectItem>
+            <SelectItem value="high">{language === "fr" ? "Haute" : "High"}</SelectItem>
+            <SelectItem value="urgent">{language === "fr" ? "Urgente" : "Urgent"}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterSource} onValueChange={setFilterSource}>
+          <SelectTrigger className="w-36" data-testid="select-filter-source">
+            <SelectValue placeholder="Source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{language === "fr" ? "Toutes" : "All"}</SelectItem>
+            <SelectItem value="web_form">{language === "fr" ? "Formulaire web" : "Web Form"}</SelectItem>
+            <SelectItem value="referral">{language === "fr" ? "Référence" : "Referral"}</SelectItem>
+            <SelectItem value="cold_call">{language === "fr" ? "Appel froid" : "Cold Call"}</SelectItem>
+            <SelectItem value="event">{language === "fr" ? "Événement" : "Event"}</SelectItem>
+            <SelectItem value="other">{language === "fr" ? "Autre" : "Other"}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {(filterOwner !== "all" || filterPriority !== "all" || filterSource !== "all") && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              setFilterOwner("all");
+              setFilterPriority("all");
+              setFilterSource("all");
+            }}
+            data-testid="button-clear-filters"
+          >
+            <X className="w-3 h-3 mr-1" />
+            {language === "fr" ? "Effacer" : "Clear"}
+          </Button>
+        )}
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {language === "fr" ? "Pipeline actif" : "Active Pipeline"}
+                </p>
+                <p className="text-xl font-bold font-mono" data-testid="stat-pipeline-value">
+                  ${totalPipelineValue.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {language === "fr" ? "Gagnées" : "Won"}
+                </p>
+                <p className="text-xl font-bold font-mono text-green-600" data-testid="stat-won-value">
+                  ${wonValue.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {language === "fr" ? "Opportunités actives" : "Active Opportunities"}
+                </p>
+                <p className="text-xl font-bold font-mono" data-testid="stat-active-count">
+                  {activeOpportunities.length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {language === "fr" ? "Valeur moyenne" : "Average Value"}
+                </p>
+                <p className="text-xl font-bold font-mono" data-testid="stat-avg-value">
+                  ${activeOpportunities.length > 0 
+                    ? Math.round(totalPipelineValue / activeOpportunities.length).toLocaleString() 
+                    : 0}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <ScrollArea className="w-full">
+        <div className="flex gap-4 pb-4">
+          {STAGES.map((stage) => (
+            <StageColumn
+              key={stage}
+              stage={stage}
+              opportunities={filteredOpportunities}
+              onStageChange={handleStageChange}
+              onCardClick={handleCardClick}
+            />
+          ))}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {language === "fr" ? "Nouvelle opportunité" : "New Opportunity"}
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...addForm}>
+            <form onSubmit={addForm.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={addForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Nom" : "Name"}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-opportunity-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={addForm.control}
+                name="clientId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Client" : "Client"}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-opportunity-client">
+                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={addForm.control}
+                  name="estimatedValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Valeur ($)" : "Value ($)"}</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} data-testid="input-opportunity-value" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={addForm.control}
+                  name="pvSizeKW"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Taille PV (kW)" : "PV Size (kW)"}</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} data-testid="input-opportunity-pv" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={addForm.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Priorité" : "Priority"}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-opportunity-priority">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">{language === "fr" ? "Basse" : "Low"}</SelectItem>
+                          <SelectItem value="medium">{language === "fr" ? "Moyenne" : "Medium"}</SelectItem>
+                          <SelectItem value="high">{language === "fr" ? "Haute" : "High"}</SelectItem>
+                          <SelectItem value="urgent">{language === "fr" ? "Urgente" : "Urgent"}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={addForm.control}
+                  name="source"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Source</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-opportunity-source">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="web_form">{language === "fr" ? "Formulaire web" : "Web Form"}</SelectItem>
+                          <SelectItem value="referral">{language === "fr" ? "Référence" : "Referral"}</SelectItem>
+                          <SelectItem value="cold_call">{language === "fr" ? "Appel froid" : "Cold Call"}</SelectItem>
+                          <SelectItem value="event">{language === "fr" ? "Événement" : "Event"}</SelectItem>
+                          <SelectItem value="other">{language === "fr" ? "Autre" : "Other"}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={addForm.control}
+                name="expectedCloseDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Date de clôture prévue" : "Expected Close Date"}</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} data-testid="input-opportunity-date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={addForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Description" : "Description"}</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={3} data-testid="input-opportunity-description" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                  {language === "fr" ? "Annuler" : "Cancel"}
+                </Button>
+                <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-opportunity">
+                  {createMutation.isPending 
+                    ? (language === "fr" ? "Création..." : "Creating...") 
+                    : (language === "fr" ? "Créer" : "Create")}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {language === "fr" ? "Détails de l'opportunité" : "Opportunity Details"}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedOpportunity && (
+            <Form {...editForm}>
+              <form 
+                onSubmit={editForm.handleSubmit((data) => 
+                  updateMutation.mutate({ id: selectedOpportunity.id, data })
+                )} 
+                className="space-y-4"
+              >
+                <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Nom" : "Name"}</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-edit-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="stage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Étape" : "Stage"}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-edit-stage">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {STAGES.map((stage) => (
+                            <SelectItem key={stage} value={stage}>
+                              {STAGE_LABELS[stage][language]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="estimatedValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Valeur ($)" : "Value ($)"}</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} data-testid="input-edit-value" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Priorité" : "Priority"}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-edit-priority">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="low">{language === "fr" ? "Basse" : "Low"}</SelectItem>
+                            <SelectItem value="medium">{language === "fr" ? "Moyenne" : "Medium"}</SelectItem>
+                            <SelectItem value="high">{language === "fr" ? "Haute" : "High"}</SelectItem>
+                            <SelectItem value="urgent">{language === "fr" ? "Urgente" : "Urgent"}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={editForm.control}
+                  name="expectedCloseDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Date de clôture prévue" : "Expected Close Date"}</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} data-testid="input-edit-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{language === "fr" ? "Description" : "Description"}</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} rows={3} data-testid="input-edit-description" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsDetailOpen(false)}>
+                    {language === "fr" ? "Annuler" : "Cancel"}
+                  </Button>
+                  <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-opportunity">
+                    {updateMutation.isPending 
+                      ? (language === "fr" ? "Sauvegarde..." : "Saving...") 
+                      : (language === "fr" ? "Sauvegarder" : "Save")}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

@@ -63,6 +63,11 @@ export function AppSidebar() {
       url: "/app/portfolios",
       icon: FolderKanban,
     },
+    {
+      title: language === "fr" ? "Pipeline ventes" : "Sales Pipeline",
+      url: "/app/pipeline",
+      icon: Target,
+    },
   ];
 
   const staffAnalysisItems = [
