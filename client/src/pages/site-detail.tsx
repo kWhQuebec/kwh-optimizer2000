@@ -24,6 +24,7 @@ import {
   Settings,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Home,
   Calculator,
   Percent,
@@ -5586,29 +5587,56 @@ export default function SiteDetailPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Process Tabs with progression indicators */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="consumption" data-testid="tab-consumption">{t("site.consumption")}</TabsTrigger>
-          <TabsTrigger value="analysis" data-testid="tab-analysis">{t("analysis.title")}</TabsTrigger>
-          <TabsTrigger value="compare" data-testid="tab-compare">
-            {language === "fr" ? "Comparer" : "Compare"}
-          </TabsTrigger>
-          {isStaff && (
-            <TabsTrigger value="site-visit" data-testid="tab-site-visit">
-              {language === "fr" ? "Visite technique" : "Technical Visit"}
-            </TabsTrigger>
-          )}
-          {isStaff && (
-            <TabsTrigger value="design-agreement" data-testid="tab-design-agreement">
-              {language === "fr" ? "Entente de design" : "Design Agreement"}
-            </TabsTrigger>
-          )}
-          {isStaff && (
-            <TabsTrigger value="activities" data-testid="tab-activities">
-              {t("activity.title")}
-            </TabsTrigger>
-          )}
+        {/* Custom process step navigation with chevrons */}
+        <div className="flex flex-wrap items-center bg-muted/50 rounded-lg p-1 gap-1" role="presentation">
+          {/* Build tabs array based on user role */}
+          {(() => {
+            const tabs = [
+              { value: "consumption", label: t("site.consumption"), showAlways: true },
+              { value: "analysis", label: t("analysis.title"), showAlways: true },
+              { value: "site-visit", label: language === "fr" ? "Visite technique" : "Technical Visit", showAlways: false },
+              { value: "compare", label: language === "fr" ? "Comparer" : "Compare", showAlways: true },
+              { value: "design-agreement", label: language === "fr" ? "Entente de design" : "Design Agreement", showAlways: false },
+              { value: "activities", label: t("activity.title"), showAlways: false },
+            ];
+            
+            const visibleTabs = tabs.filter(tab => tab.showAlways || isStaff);
+            
+            return visibleTabs.map((tab, index) => (
+              <Fragment key={tab.value}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={`
+                    inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium 
+                    ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
+                    ${activeTab === tab.value 
+                      ? "bg-background text-foreground shadow-sm" 
+                      : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                    }
+                  `}
+                  data-testid={`tab-${tab.value}`}
+                >
+                  {tab.label}
+                </button>
+                {index < visibleTabs.length - 1 && (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+                )}
+              </Fragment>
+            ));
+          })()}
+        </div>
+        
+        {/* Hidden TabsList for Radix state management */}
+        <TabsList className="sr-only">
+          <TabsTrigger value="consumption">{t("site.consumption")}</TabsTrigger>
+          <TabsTrigger value="analysis">{t("analysis.title")}</TabsTrigger>
+          {isStaff && <TabsTrigger value="site-visit">{language === "fr" ? "Visite technique" : "Technical Visit"}</TabsTrigger>}
+          <TabsTrigger value="compare">{language === "fr" ? "Comparer" : "Compare"}</TabsTrigger>
+          {isStaff && <TabsTrigger value="design-agreement">{language === "fr" ? "Entente de design" : "Design Agreement"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="activities">{t("activity.title")}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="consumption" className="space-y-6">
