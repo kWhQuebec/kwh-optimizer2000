@@ -13,7 +13,8 @@ import {
   X,
   TrendingUp,
   Trophy,
-  XCircle
+  XCircle,
+  HelpCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -37,13 +39,44 @@ const STAGES = ["prospect", "qualified", "proposal", "design_signed", "negotiati
 type Stage = typeof STAGES[number];
 
 const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
-  prospect: { fr: "Prospect", en: "Prospect" },
-  qualified: { fr: "Qualifié", en: "Qualified" },
-  proposal: { fr: "Proposition", en: "Proposal" },
-  design_signed: { fr: "Design signé", en: "Design Signed" },
-  negotiation: { fr: "Négociation", en: "Negotiation" },
-  won: { fr: "Gagné", en: "Won" },
-  lost: { fr: "Perdu", en: "Lost" },
+  prospect: { fr: "Prospect (5%)", en: "Prospect (5%)" },
+  qualified: { fr: "Qualifié (15%)", en: "Qualified (15%)" },
+  proposal: { fr: "Proposition (25%)", en: "Proposal (25%)" },
+  design_signed: { fr: "Design signé (50%)", en: "Design Signed (50%)" },
+  negotiation: { fr: "Négociation (75%)", en: "Negotiation (75%)" },
+  won: { fr: "Gagné (100%)", en: "Won (100%)" },
+  lost: { fr: "Perdu (0%)", en: "Lost (0%)" },
+};
+
+const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
+  prospect: { 
+    fr: "Premier contact – lead entrant ou identifié, aucune qualification faite encore", 
+    en: "First contact – incoming or identified lead, no qualification done yet" 
+  },
+  qualified: { 
+    fr: "Intérêt confirmé, site viable pour le solaire, budget réaliste et décideur identifié", 
+    en: "Confirmed interest, viable solar site, realistic budget and decision-maker identified" 
+  },
+  proposal: { 
+    fr: "Analyse solaire et proposition financière remises au client", 
+    en: "Solar analysis and financial proposal delivered to client" 
+  },
+  design_signed: { 
+    fr: "Client a signé l'entente de design pour les plans détaillés", 
+    en: "Client signed the design agreement for detailed plans" 
+  },
+  negotiation: { 
+    fr: "Négociation du contrat de construction en cours", 
+    en: "Construction contract negotiation in progress" 
+  },
+  won: { 
+    fr: "Contrat signé – projet remporté!", 
+    en: "Contract signed – project won!" 
+  },
+  lost: { 
+    fr: "Opportunité fermée sans succès", 
+    en: "Opportunity closed without success" 
+  },
 };
 
 const STAGE_PROBABILITIES: Record<Stage, number> = {
@@ -230,8 +263,20 @@ function StageColumn({
     >
       <div className={`bg-muted/30 rounded-lg border-t-4 ${stageColors[stage]} min-h-[500px]`}>
         <div className="p-3 border-b">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm">{STAGE_LABELS[stage][language]}</h3>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-semibold text-sm">{STAGE_LABELS[stage][language]}</h3>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-muted-foreground hover:text-foreground transition-colors" data-testid={`tooltip-trigger-${stage}`}>
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[250px] text-center">
+                  <p className="text-xs">{STAGE_DESCRIPTIONS[stage][language]}</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Badge variant="secondary" className="text-xs" data-testid={`badge-count-${stage}`}>
               {stageOpps.length}
             </Badge>
