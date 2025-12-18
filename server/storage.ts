@@ -12,6 +12,7 @@ import type {
   ComponentCatalog, InsertComponentCatalog,
   SiteVisit, InsertSiteVisit,
   SiteVisitWithSite,
+  SiteVisitPhoto, InsertSiteVisitPhoto,
   DesignAgreement, InsertDesignAgreement,
   Portfolio, InsertPortfolio,
   PortfolioSite, InsertPortfolioSite,
@@ -159,6 +160,12 @@ export interface IStorage {
   createSiteVisit(visit: InsertSiteVisit): Promise<SiteVisit>;
   updateSiteVisit(id: string, visit: Partial<SiteVisit>): Promise<SiteVisit | undefined>;
   deleteSiteVisit(id: string): Promise<boolean>;
+
+  // Site Visit Photos
+  getSiteVisitPhotos(siteId: string): Promise<SiteVisitPhoto[]>;
+  getSiteVisitPhotosByVisit(visitId: string): Promise<SiteVisitPhoto[]>;
+  createSiteVisitPhoto(photo: InsertSiteVisitPhoto): Promise<SiteVisitPhoto>;
+  deleteSiteVisitPhoto(id: string): Promise<boolean>;
 
   // Design Agreements (Étape 3)
   getDesignAgreements(): Promise<DesignAgreement[]>;
@@ -311,6 +318,7 @@ export class MemStorage implements IStorage {
   private bomItems: Map<string, BomItem> = new Map();
   private catalogItems: Map<string, ComponentCatalog> = new Map();
   private siteVisits: Map<string, SiteVisit> = new Map();
+  private siteVisitPhotos: Map<string, SiteVisitPhoto> = new Map();
   private designAgreements: Map<string, DesignAgreement> = new Map();
   private portfolios: Map<string, Portfolio> = new Map();
   private portfolioSites: Map<string, PortfolioSite> = new Map();
@@ -830,6 +838,34 @@ export class MemStorage implements IStorage {
 
   async deleteSiteVisit(id: string): Promise<boolean> {
     return this.siteVisits.delete(id);
+  }
+
+  // Site Visit Photos
+  async getSiteVisitPhotos(siteId: string): Promise<SiteVisitPhoto[]> {
+    return Array.from(this.siteVisitPhotos.values())
+      .filter(p => p.siteId === siteId)
+      .sort((a, b) => new Date(b.uploadedAt!).getTime() - new Date(a.uploadedAt!).getTime());
+  }
+
+  async getSiteVisitPhotosByVisit(visitId: string): Promise<SiteVisitPhoto[]> {
+    return Array.from(this.siteVisitPhotos.values())
+      .filter(p => p.visitId === visitId)
+      .sort((a, b) => new Date(b.uploadedAt!).getTime() - new Date(a.uploadedAt!).getTime());
+  }
+
+  async createSiteVisitPhoto(photo: InsertSiteVisitPhoto): Promise<SiteVisitPhoto> {
+    const id = randomUUID();
+    const newPhoto: SiteVisitPhoto = {
+      ...photo,
+      id,
+      uploadedAt: new Date(),
+    };
+    this.siteVisitPhotos.set(id, newPhoto);
+    return newPhoto;
+  }
+
+  async deleteSiteVisitPhoto(id: string): Promise<boolean> {
+    return this.siteVisitPhotos.delete(id);
   }
 
   // Design Agreements

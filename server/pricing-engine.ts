@@ -96,9 +96,18 @@ export function calculatePricingFromSiteVisit(context: PricingContext): PricingB
     };
   }
   
-  // Use anchoringMethod field, fallback to inferring from anchoringPossible
-  const anchoringMethod = siteVisit.anchoringMethod || 
-    (siteVisit.anchoringPossible === false ? "ballast" : "anchored");
+  // Normalize and validate fields - only apply modifiers when data is explicitly set
+  // Use anchoringMethod field, fallback to inferring from anchoringPossible (only if explicitly set)
+  let anchoringMethod: string | null = null;
+  if (siteVisit.anchoringMethod && siteVisit.anchoringMethod.trim() !== "") {
+    anchoringMethod = siteVisit.anchoringMethod;
+  } else if (siteVisit.anchoringPossible === false) {
+    anchoringMethod = "ballast";
+  } else if (siteVisit.anchoringPossible === true) {
+    anchoringMethod = "anchored";
+  } else {
+    warnings.push("Anchoring method not specified - racking costs not included");
+  }
   
   if (anchoringMethod && RACKING_COSTS[anchoringMethod as keyof typeof RACKING_COSTS]) {
     const racking = RACKING_COSTS[anchoringMethod as keyof typeof RACKING_COSTS];
@@ -165,7 +174,8 @@ export function calculatePricingFromSiteVisit(context: PricingContext): PricingB
     }
   }
   
-  if (!siteVisit.sldMainAvailable) {
+  // SLD costs - only apply when explicitly set (not null/undefined)
+  if (siteVisit.sldMainAvailable === false) {
     modifiers.push({
       category: "ENGINEERING",
       description: SLD_COSTS.mainNeeded.description,
@@ -173,7 +183,7 @@ export function calculatePricingFromSiteVisit(context: PricingContext): PricingB
       cost: SLD_COSTS.mainNeeded.cost,
       condition: "Main SLD not available",
     });
-  } else if (siteVisit.sldMainNeedsUpdate) {
+  } else if (siteVisit.sldMainAvailable === true && siteVisit.sldMainNeedsUpdate === true) {
     modifiers.push({
       category: "ENGINEERING",
       description: SLD_COSTS.mainUpdate.description,
@@ -181,9 +191,11 @@ export function calculatePricingFromSiteVisit(context: PricingContext): PricingB
       cost: SLD_COSTS.mainUpdate.cost,
       condition: "Main SLD needs update",
     });
+  } else if (siteVisit.sldMainAvailable === null || siteVisit.sldMainAvailable === undefined) {
+    warnings.push("Main SLD status not confirmed - engineering costs may vary");
   }
   
-  if (!siteVisit.sldSecondaryAvailable) {
+  if (siteVisit.sldSecondaryAvailable === false) {
     modifiers.push({
       category: "ENGINEERING",
       description: SLD_COSTS.secondaryNeeded.description,
@@ -191,7 +203,7 @@ export function calculatePricingFromSiteVisit(context: PricingContext): PricingB
       cost: SLD_COSTS.secondaryNeeded.cost,
       condition: "Secondary SLD not available",
     });
-  } else if (siteVisit.sldSecondaryNeedsUpdate) {
+  } else if (siteVisit.sldSecondaryAvailable === true && siteVisit.sldSecondaryNeedsUpdate === true) {
     modifiers.push({
       category: "ENGINEERING",
       description: SLD_COSTS.secondaryUpdate.description,
@@ -199,6 +211,8 @@ export function calculatePricingFromSiteVisit(context: PricingContext): PricingB
       cost: SLD_COSTS.secondaryUpdate.cost,
       condition: "Secondary SLD needs update",
     });
+  } else if (siteVisit.sldSecondaryAvailable === null || siteVisit.sldSecondaryAvailable === undefined) {
+    warnings.push("Secondary SLD status not confirmed - engineering costs may vary");
   }
   
   if (siteVisit.technicalRoomDistance && siteVisit.technicalRoomDistance > 10) {
@@ -213,7 +227,8 @@ export function calculatePricingFromSiteVisit(context: PricingContext): PricingB
     });
   }
   
-  if (siteVisit.treesPresent && siteVisit.treeNotes) {
+  // Tree/obstacle costs - only apply when explicitly confirmed
+  if (siteVisit.treesPresent === true && siteVisit.treeNotes && siteVisit.treeNotes.trim() !== "") {
     modifiers.push({
       category: "SITE_PREP",
       description: OBSTACLE_COSTS.treeRemoval.description,
@@ -223,15 +238,17 @@ export function calculatePricingFromSiteVisit(context: PricingContext): PricingB
     });
   }
   
-  if (siteVisit.hasObstacles && siteVisit.otherObstacles) {
-    const obstacleCount = (siteVisit.otherObstacles.match(/,/g) || []).length + 1;
+  if (siteVisit.hasObstacles === true && siteVisit.otherObstacles && siteVisit.otherObstacles.trim() !== "") {
+    // Parse obstacles - normalize and filter empty entries
+    const obstacles = siteVisit.otherObstacles.split(",").map(s => s.trim()).filter(s => s.length > 0);
+    const obstacleCount = Math.max(1, obstacles.length);
     const obstacleCost = obstacleCount * OBSTACLE_COSTS.roofObstacles.perObstacle;
     modifiers.push({
       category: "SITE_PREP",
       description: OBSTACLE_COSTS.roofObstacles.description,
       descriptionFr: OBSTACLE_COSTS.roofObstacles.descriptionFr,
       cost: obstacleCost,
-      condition: `${obstacleCount} obstacle(s): ${siteVisit.otherObstacles}`,
+      condition: `${obstacleCount} obstacle(s): ${obstacles.join(", ")}`,
     });
   }
   

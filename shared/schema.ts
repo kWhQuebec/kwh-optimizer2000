@@ -342,6 +342,35 @@ export const siteVisits = pgTable("site_visits", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Site Visit Photos - Individual photo metadata storage
+export const siteVisitPhotos = pgTable("site_visit_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  visitId: varchar("visit_id").references(() => siteVisits.id, { onDelete: "set null" }),
+  
+  // Photo metadata
+  category: text("category").notNull(), // "roof" | "electrical" | "meters" | "obstacles" | "general"
+  filename: text("filename").notNull(),
+  filepath: text("filepath").notNull(),
+  mimetype: text("mimetype"),
+  sizeBytes: integer("size_bytes"),
+  
+  // Optional description/notes
+  caption: text("caption"),
+  
+  // GPS location if captured
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  
+  // Tracking
+  uploadedBy: varchar("uploaded_by").references(() => users.id),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+export const insertSiteVisitPhotoSchema = createInsertSchema(siteVisitPhotos).omit({ id: true, uploadedAt: true });
+export type InsertSiteVisitPhoto = z.infer<typeof insertSiteVisitPhotoSchema>;
+export type SiteVisitPhoto = typeof siteVisitPhotos.$inferSelect;
+
 // Portfolios - Group multiple sites into a project for consolidated analysis
 export const portfolios = pgTable("portfolios", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

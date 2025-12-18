@@ -2,7 +2,7 @@ import { eq, desc, and, inArray, count, sum, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
-  simulationRuns, designs, bomItems, componentCatalog, siteVisits, designAgreements,
+  simulationRuns, designs, bomItems, componentCatalog, siteVisits, siteVisitPhotos, designAgreements,
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
   competitors, battleCards, marketNotes, marketDocuments,
   constructionAgreements, constructionMilestones, omContracts, omVisits, omPerformanceSnapshots,
@@ -21,6 +21,7 @@ import type {
   ComponentCatalog, InsertComponentCatalog,
   SiteVisit, InsertSiteVisit,
   SiteVisitWithSite,
+  SiteVisitPhoto, InsertSiteVisitPhoto,
   DesignAgreement, InsertDesignAgreement,
   Portfolio, InsertPortfolio,
   PortfolioSite, InsertPortfolioSite,
@@ -652,6 +653,29 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSiteVisit(id: string): Promise<boolean> {
     const result = await db.delete(siteVisits).where(eq(siteVisits.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Site Visit Photos
+  async getSiteVisitPhotos(siteId: string): Promise<SiteVisitPhoto[]> {
+    return db.select().from(siteVisitPhotos)
+      .where(eq(siteVisitPhotos.siteId, siteId))
+      .orderBy(desc(siteVisitPhotos.uploadedAt));
+  }
+
+  async getSiteVisitPhotosByVisit(visitId: string): Promise<SiteVisitPhoto[]> {
+    return db.select().from(siteVisitPhotos)
+      .where(eq(siteVisitPhotos.visitId, visitId))
+      .orderBy(desc(siteVisitPhotos.uploadedAt));
+  }
+
+  async createSiteVisitPhoto(photo: InsertSiteVisitPhoto): Promise<SiteVisitPhoto> {
+    const [result] = await db.insert(siteVisitPhotos).values(photo).returning();
+    return result;
+  }
+
+  async deleteSiteVisitPhoto(id: string): Promise<boolean> {
+    const result = await db.delete(siteVisitPhotos).where(eq(siteVisitPhotos.id, id)).returning();
     return result.length > 0;
   }
 

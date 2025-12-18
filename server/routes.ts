@@ -23,6 +23,7 @@ import {
   insertOmPerformanceSnapshotSchema,
   insertOpportunitySchema,
   insertActivitySchema,
+  insertSiteVisitPhotoSchema,
   AnalysisAssumptions, 
   defaultAnalysisAssumptions, 
   CashflowEntry, 
@@ -2655,41 +2656,59 @@ export async function registerRoutes(
   // Upload photos for site visit
   app.post("/api/site-visits/photos", authMiddleware, requireStaff, upload.single("photo"), async (req: AuthRequest, res) => {
     try {
-      const { category, siteId, visitId } = req.body;
       const file = req.file;
       
       if (!file) {
         return res.status(400).json({ error: "No photo file provided" });
       }
       
-      if (!siteId) {
-        return res.status(400).json({ error: "Site ID is required" });
-      }
+      // Validate allowed categories
+      const allowedCategories = ["roof", "electrical", "meters", "obstacles", "general"];
+      const category = allowedCategories.includes(req.body.category) ? req.body.category : "general";
       
-      // Store photo info (in production, you'd upload to cloud storage)
-      const photoRecord = {
-        id: crypto.randomUUID(),
-        siteId,
-        visitId: visitId || null,
-        category: category || "general",
-        filename: file.originalname,
+      // Sanitize filename - remove path components and special characters
+      const sanitizedFilename = file.originalname
+        .replace(/[\/\\]/g, "_")
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .substring(0, 255);
+      
+      // Prepare and validate photo data using schema
+      const photoData = {
+        siteId: req.body.siteId,
+        visitId: req.body.visitId || null,
+        category,
+        filename: sanitizedFilename,
         filepath: file.path,
-        mimetype: file.mimetype,
-        size: file.size,
-        uploadedAt: new Date(),
-        uploadedBy: req.userId,
+        mimetype: file.mimetype || null,
+        sizeBytes: file.size || null,
+        caption: req.body.caption?.substring(0, 500) || null,
+        latitude: req.body.latitude ? parseFloat(req.body.latitude) : null,
+        longitude: req.body.longitude ? parseFloat(req.body.longitude) : null,
+        uploadedBy: req.userId || null,
       };
       
-      // For now, we'll store photo metadata in a simple way
-      // In production, this would be saved to a photos table
-      console.log("Photo uploaded:", photoRecord);
+      // Validate using Zod schema
+      const validationResult = insertSiteVisitPhotoSchema.safeParse(photoData);
+      if (!validationResult.success) {
+        // Clean up uploaded file on validation failure
+        fs.unlink(file.path, () => {});
+        return res.status(400).json({ 
+          error: "Invalid photo data", 
+          details: validationResult.error.format() 
+        });
+      }
+      
+      // Save photo metadata to database
+      const photo = await storage.createSiteVisitPhoto(validationResult.data);
       
       res.json({
         success: true,
         photo: {
-          id: photoRecord.id,
-          category: photoRecord.category,
-          filename: photoRecord.filename,
+          id: photo.id,
+          category: photo.category,
+          filename: photo.filename,
+          filepath: photo.filepath,
+          uploadedAt: photo.uploadedAt,
         },
       });
     } catch (error) {
@@ -2698,17 +2717,41 @@ export async function registerRoutes(
     }
   });
   
-  // Get photos for a site visit
+  // Get photos for a site
   app.get("/api/sites/:siteId/photos", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const siteId = req.params.siteId;
-      const category = req.query.category as string | undefined;
-      
-      // In production, this would fetch from a photos table
-      // For now, return empty array as photos are stored locally
-      res.json([]);
+      const photos = await storage.getSiteVisitPhotos(siteId);
+      res.json(photos);
     } catch (error) {
       console.error("Error fetching photos:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Get photos for a specific site visit
+  app.get("/api/site-visits/:visitId/photos", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const visitId = req.params.visitId;
+      const photos = await storage.getSiteVisitPhotosByVisit(visitId);
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching visit photos:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Delete a photo
+  app.delete("/api/site-visits/photos/:photoId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const photoId = req.params.photoId;
+      const deleted = await storage.deleteSiteVisitPhoto(photoId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting photo:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
