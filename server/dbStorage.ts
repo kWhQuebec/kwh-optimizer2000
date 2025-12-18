@@ -626,6 +626,13 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async isSiteInAnyPortfolio(siteId: string): Promise<boolean> {
+    const result = await db.select().from(portfolioSites)
+      .where(eq(portfolioSites.siteId, siteId))
+      .limit(1);
+    return result.length > 0;
+  }
+
   async addSiteToPortfolio(portfolioSite: InsertPortfolioSite): Promise<PortfolioSite> {
     const [result] = await db.insert(portfolioSites).values(portfolioSite).returning();
     return result;

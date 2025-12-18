@@ -134,6 +134,7 @@ export interface IStorage {
 
   // Portfolio Sites (Junction)
   getPortfolioSites(portfolioId: string): Promise<PortfolioSiteWithDetails[]>;
+  isSiteInAnyPortfolio(siteId: string): Promise<boolean>;
   addSiteToPortfolio(portfolioSite: InsertPortfolioSite): Promise<PortfolioSite>;
   removeSiteFromPortfolio(portfolioId: string, siteId: string): Promise<boolean>;
   updatePortfolioSite(id: string, data: Partial<PortfolioSite>): Promise<PortfolioSite | undefined>;
@@ -902,6 +903,10 @@ export class MemStorage implements IStorage {
         latestSimulation,
       };
     });
+  }
+
+  async isSiteInAnyPortfolio(siteId: string): Promise<boolean> {
+    return Array.from(this.portfolioSites.values()).some(ps => ps.siteId === siteId);
   }
 
   async addSiteToPortfolio(portfolioSite: InsertPortfolioSite): Promise<PortfolioSite> {

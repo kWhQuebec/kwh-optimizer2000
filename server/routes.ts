@@ -1275,7 +1275,7 @@ export async function registerRoutes(
   });
 
   // Staff-only routes for site management
-  app.post("/api/sites", authMiddleware, requireStaff, async (req, res) => {
+  app.post("/api/sites", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
       const parsed = insertSiteSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -1297,6 +1297,38 @@ export async function registerRoutes(
         triggerRoofEstimation(site.id).catch(err => {
           console.error("Background roof estimation failed:", err);
         });
+      }
+      
+      // Auto-create Prospect opportunity for new sites (unless site is part of a portfolio)
+      const isInPortfolio = await storage.isSiteInAnyPortfolio(site.id);
+      
+      if (!isInPortfolio) {
+        try {
+          // Check if an opportunity already exists for this site (idempotency)
+          const existingOpps = await storage.getOpportunitiesBySiteId(site.id);
+          if (existingOpps.length === 0) {
+            const client = await storage.getClient(site.clientId);
+            const clientName = client?.name || "Unknown";
+            
+              await storage.createOpportunity({
+              name: `${site.name} - Solar Project`,
+              description: `Opportunity for ${clientName} - ${site.name}. Auto-created on site creation.`,
+              clientId: site.clientId,
+              siteId: site.id,
+              stage: "prospect",
+              probability: 5, // Prospect stage = 5%
+              estimatedValue: null, // Will be updated after analysis
+              estimatedCloseDate: null,
+              ownerId: req.userId || null,
+              source: "internal",
+              sourceDetails: "Auto-created on site creation",
+              priority: "medium",
+            });
+          }
+        } catch (oppError) {
+          console.error("Failed to auto-create opportunity:", oppError);
+          // Don't fail the site creation if opportunity creation fails
+        }
       }
       
       res.status(201).json(site);
@@ -3394,6 +3426,37 @@ export async function registerRoutes(
         ...parsed.data,
         createdBy: req.userId,
       });
+      
+      // Auto-create Prospect opportunity for new portfolio (with idempotency check)
+      try {
+        // Check if an opportunity already exists for this client with portfolio tags
+        // This prevents duplicates from retries/double-submits
+        const existingClientOpps = await storage.getOpportunitiesByClientId(portfolio.clientId);
+        const hasPortfolioOpp = existingClientOpps.some(opp => 
+          opp.sourceDetails?.includes(`portfolio: ${portfolio.id}`)
+        );
+        
+        if (!hasPortfolioOpp) {
+          await storage.createOpportunity({
+            name: `${portfolio.name} - Multi-Site Solar Project`,
+            description: `Portfolio opportunity auto-created for: ${portfolio.name}`,
+            clientId: portfolio.clientId,
+            siteId: null, // No single site, it's a portfolio-level opportunity
+            stage: "prospect",
+            probability: 5, // Prospect stage = 5%
+            estimatedValue: null, // Will be updated after analysis
+            estimatedCloseDate: null,
+            ownerId: req.userId || null,
+            source: "internal",
+            sourceDetails: `Auto-created for portfolio: ${portfolio.id}`,
+            priority: "medium",
+            tags: ["portfolio"],
+          });
+        }
+      } catch (oppError) {
+        console.error("Failed to auto-create portfolio opportunity:", oppError);
+        // Don't fail the portfolio creation if opportunity creation fails
+      }
       
       res.status(201).json(portfolio);
     } catch (error) {
