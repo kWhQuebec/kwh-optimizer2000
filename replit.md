@@ -30,7 +30,7 @@ The backend provides a RESTful API with JWT-based authentication. It includes a 
 
 ### Database Schema
 
-A PostgreSQL database, managed by Drizzle ORM, includes `users`, `leads`, `clients`, `sites`, `meterFiles`, `meterReadings`, `simulationRuns`, `designs`, `bomItems`, `componentCatalog`, `portfolios`, and `portfolioSites`. It uses UUID primary keys, timestamp tracking, and foreign key relationships.
+A PostgreSQL database, managed by Drizzle ORM, includes `users`, `leads`, `clients`, `sites`, `meterFiles`, `meterReadings`, `simulationRuns`, `designs`, `bomItems`, `componentCatalog`, `portfolios`, `portfolioSites`, `designAgreements`, `constructionAgreements`, `constructionMilestones`, `omContracts`, `omVisits`, and `omPerformanceSnapshots`. It uses UUID primary keys, timestamp tracking, and foreign key relationships.
 
 ### Key Features and Implementations
 
@@ -105,6 +105,10 @@ annualConsumptionKWh = totalKWh × annualizationFactor
 -   **Portfolio Management**: Allows multi-building project management, including volume pricing based on building count, aggregated KPIs, executive summary PDFs, and travel optimization estimates.
 -   **Email Templates**: Bilingual email templates for various notifications and nurturing sequences with placeholder substitution.
 -   **Hydro-Québec Procuration System**: A 3-step wizard for electronic signature and PDF generation of Hydro-Québec data access authorization forms, including in-browser signature capture and legal metadata capture.
+-   **Construction Agreements Module**: Manages construction contracts with status tracking (draft→sent→accepted→in_progress→completed→cancelled), milestone-based payment scheduling, electronic signature capture, and Stripe payment integration. Includes deposit payment status and progress tracking.
+-   **O&M Contracts Management**: Recurring operations and maintenance contract system with coverage types (basic/standard/premium/custom), SLA tracking, billing cadence (monthly/quarterly/annual), and contract period progress indicators. Links clients and sites to maintenance services.
+-   **Maintenance Visits Tracking**: Comprehensive visit scheduling and logging system supporting scheduled, emergency, warranty, and inspection visit types. Tracks technician assignments, findings, actions taken, issues found/resolved, and parts used.
+-   **O&M Performance Dashboard**: Real-time monitoring of installed solar systems with KPI cards (performance ratio, uptime, savings, issues), production/savings charts using Recharts, recent visits log, and alert notifications for system anomalies.
 
 ## External Dependencies
 
