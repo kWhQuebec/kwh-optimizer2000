@@ -33,7 +33,6 @@ import {
   BatterySweepPoint,
 } from "@shared/schema";
 import { z } from "zod";
-import * as zoho from "./zohoClient";
 import * as googleSolar from "./googleSolarService";
 import { sendEmail, generatePortalInvitationEmail } from "./gmail";
 import { generateProcurationPDF, createProcurationData } from "./procurationPdfGenerator";
@@ -819,30 +818,6 @@ export async function registerRoutes(
         console.error("[Detailed Analysis] Failed to create signature record:", sigError);
       }
 
-      // Sync to Zoho CRM
-      try {
-        const zohoResult = await zoho.createLead({
-          firstName: firstName || "",
-          lastName: lastName || "-",
-          email,
-          phone: phone || undefined,
-          company: companyName || undefined,
-          description: combinedNotes,
-          source: "Website - Detailed Analysis",
-          streetAddress: streetAddress || undefined,
-          city: city || undefined,
-          province: province || "Québec",
-          postalCode: postalCode || undefined,
-        });
-        
-        if (zohoResult.success && zohoResult.data) {
-          lead = await storage.updateLead(lead.id, { zohoLeadId: zohoResult.data }) || lead;
-          console.log(`[Detailed Analysis] Lead synced to Zoho: ${lead.id} -> ${zohoResult.data}`);
-        }
-      } catch (zohoError) {
-        console.error("[Detailed Analysis] Zoho sync failed:", zohoError);
-      }
-
       // Generate and send procuration PDF using official HQ template
       // TODO: BEFORE LAUNCH - Change email recipient from info@kwh.quebec to Hydro-Québec's official email
       try {
@@ -941,42 +916,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: parsed.error.errors });
       }
       
-      // Create lead in local database first
-      let lead = await storage.createLead(parsed.data);
-      let zohoSyncStatus: { synced: boolean; error?: string; isMock?: boolean } = { synced: false };
-      
-      // Attempt to sync to Zoho CRM
-      try {
-        const nameParts = (parsed.data.contactName || "").split(" ");
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "-";
-        
-        const zohoResult = await zoho.createLead({
-          firstName,
-          lastName,
-          email: parsed.data.email,
-          phone: parsed.data.phone || undefined,
-          company: parsed.data.companyName || undefined,
-          description: parsed.data.notes || undefined,
-          source: "Website - kWh Québec",
-          streetAddress: parsed.data.streetAddress || undefined,
-          city: parsed.data.city || undefined,
-          province: parsed.data.province || "Québec",
-          postalCode: parsed.data.postalCode || undefined,
-        });
-        
-        if (zohoResult.success && zohoResult.data) {
-          lead = await storage.updateLead(lead.id, { zohoLeadId: zohoResult.data }) || lead;
-          zohoSyncStatus = { synced: true, isMock: zohoResult.isMock };
-          console.log(`[Lead] Created and synced to Zoho: ${lead.id} -> ${zohoResult.data}`);
-        } else {
-          zohoSyncStatus = { synced: false, error: zohoResult.error };
-          console.warn(`[Lead] Zoho sync failed: ${zohoResult.error}`);
-        }
-      } catch (zohoError) {
-        console.error("[Zoho] Failed to sync lead:", zohoError);
-        zohoSyncStatus = { synced: false, error: String(zohoError) };
-      }
+      // Create lead in local database
+      const lead = await storage.createLead(parsed.data);
       
       // Trigger automatic roof estimation in the background (non-blocking)
       if (parsed.data.streetAddress && parsed.data.city) {
@@ -985,7 +926,7 @@ export async function registerRoutes(
         });
       }
       
-      res.status(201).json({ ...lead, zohoSyncStatus });
+      res.status(201).json(lead);
     } catch (error) {
       console.error("Create lead error:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -1036,55 +977,6 @@ export async function registerRoutes(
         });
         
         console.log(`[Lead ${leadId}] Roof estimate complete: ${roofEstimate.roofAreaSqM.toFixed(0)} m², potential ${roofPotentialKw} kW`);
-        
-        // Sync to Zoho: Update lead status and roof data, create follow-up task
-        if (updatedLead?.zohoLeadId) {
-          try {
-            // Update Zoho lead with roof estimate status and description
-            const updateResult = await zoho.updateLead(updatedLead.zohoLeadId, {
-              stage: "Contacted", // Standard Zoho status - lead has been engaged with estimate
-              description: `[Roof Estimate Completed]\nArea: ${roofEstimate.roofAreaSqM.toFixed(0)} m²\nSolar Potential: ${roofPotentialKw} kW\nAddress: ${fullAddress}`,
-            });
-            
-            if (!updateResult.success && !updateResult.isMock) {
-              console.warn(`[Lead ${leadId}] Zoho lead update failed: ${updateResult.error}`);
-            }
-            
-            // Add note to Zoho lead
-            await zoho.addNote("Leads", updatedLead.zohoLeadId, 
-              `Roof estimate completed via Google Solar API.\n` +
-              `Address: ${fullAddress}\n` +
-              `Roof Area: ${roofEstimate.roofAreaSqM.toFixed(0)} m²\n` +
-              `Solar Potential: ${roofPotentialKw} kW\n` +
-              `Next step: Contact lead to sign HQ proxy.`
-            );
-            
-            // Create follow-up task for sales team
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 1); // Due tomorrow
-            
-            const taskResult = await zoho.createTask({
-              subject: `Follow-up: ${data.companyName} - Roof estimate sent (${roofPotentialKw} kW)`,
-              dueDate: dueDate.toISOString().split("T")[0],
-              priority: roofPotentialKw >= 100 ? "High" : "Normal", // High priority for large projects
-              status: "Not Started",
-              description: `Lead received roof estimate email.\n` +
-                `Company: ${data.companyName}\n` +
-                `Contact: ${data.contactName}\n` +
-                `Solar Potential: ${roofPotentialKw} kW\n\n` +
-                `Action: Call to schedule HQ proxy signature meeting.`,
-              relatedTo: { module: "Leads", id: updatedLead.zohoLeadId },
-            });
-            
-            if (taskResult.success) {
-              console.log(`[Lead ${leadId}] Zoho CRM updated with roof estimate and follow-up task created`);
-            } else if (!taskResult.isMock) {
-              console.warn(`[Lead ${leadId}] Zoho task creation failed: ${taskResult.error}`);
-            }
-          } catch (zohoError) {
-            console.error(`[Lead ${leadId}] Zoho sync failed:`, zohoError);
-          }
-        }
         
         // Send email with roof estimate
         await sendRoofEstimateEmail(data.email, data.contactName, data.companyName, {
@@ -2140,119 +2032,6 @@ export async function registerRoutes(
       res.status(201).json({ ...design, bomItems });
     } catch (error) {
       console.error("Design creation error:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  app.post("/api/designs/:id/sync-zoho", authMiddleware, async (req, res) => {
-    try {
-      const designId = req.params.id;
-      const design = await storage.getDesign(designId);
-      
-      if (!design) {
-        return res.status(404).json({ error: "Design not found" });
-      }
-
-      // Get site and client info for the deal
-      const simulation = await storage.getSimulationRun(design.simulationRunId);
-      const site = simulation?.site;
-      const client = site?.client;
-
-      // Validate we have minimum required data
-      const siteName = site?.name || "Site";
-      const clientName = client?.name || "Client";
-
-      // Prepare deal data
-      const dealName = `${siteName} - Solar + Storage System`;
-      const dealDescription = `
-kWh Québec Solar + Storage Design
-
-Site: ${siteName}
-Client: ${clientName}
-Location: ${site?.city || "N/A"}, ${site?.province || "QC"}
-
-System Specifications:
-- PV Capacity: ${design.pvSizeKW?.toFixed(1) || 0} kWc
-- Battery: ${design.battEnergyKWh?.toFixed(0) || 0} kWh / ${design.battPowerKW?.toFixed(0) || 0} kW
-- Module: ${design.moduleSku || "N/A"}
-- Inverter: ${design.inverterSku || "N/A"}
-- Battery Model: ${design.batterySku || "N/A"}
-
-Pricing:
-- Subtotal: ${design.subtotalDollars?.toLocaleString() || 0} $
-- Margin: ${design.marginPercent?.toFixed(1) || 0}%
-- Final Price: ${design.totalPriceDollars?.toLocaleString() || 0} $
-      `.trim();
-
-      let zohoDealId = design.zohoDealId;
-      let zohoSyncResult: { success: boolean; error?: string; isMock?: boolean };
-
-      if (zohoDealId) {
-        // Update existing deal
-        const updateResult = await zoho.updateDeal(zohoDealId, {
-          dealName,
-          amount: design.totalPriceDollars || 0,
-          description: dealDescription,
-          stage: "Proposal/Price Quote",
-        });
-        zohoSyncResult = { success: updateResult.success, error: updateResult.error, isMock: updateResult.isMock };
-        
-        if (updateResult.success) {
-          console.log(`[Zoho] Updated deal: ${zohoDealId}`);
-        }
-      } else {
-        // Create new deal
-        const accountId = client?.zohoAccountId;
-        const createResult = await zoho.createDeal({
-          dealName,
-          amount: design.totalPriceDollars || 0,
-          description: dealDescription,
-          stage: "Qualification",
-          closingDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], // 60 days from now
-        }, accountId && !accountId.startsWith("MOCK_") ? accountId : undefined);
-
-        zohoSyncResult = { success: createResult.success, error: createResult.error, isMock: createResult.isMock };
-
-        if (createResult.success && createResult.data) {
-          zohoDealId = createResult.data;
-          await storage.updateDesign(designId, { zohoDealId });
-          console.log(`[Zoho] Created deal: ${zohoDealId}`);
-        }
-      }
-
-      // Add a note to the deal with latest update (only for real Zoho IDs)
-      if (zohoDealId && !zohoDealId.startsWith("MOCK_") && zohoSyncResult.success) {
-        await zoho.addNote("Deals", zohoDealId, `Design updated via kWh Québec platform at ${new Date().toISOString()}`);
-      }
-
-      const updatedDesign = await storage.getDesign(designId);
-      
-      // Return design with sync status
-      res.json({ 
-        ...updatedDesign, 
-        zohoSyncStatus: {
-          synced: zohoSyncResult.success,
-          error: zohoSyncResult.error,
-          isMock: zohoSyncResult.isMock,
-        }
-      });
-    } catch (error) {
-      console.error("Zoho sync error:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // ==================== ZOHO STATUS ROUTE ====================
-  
-  app.get("/api/zoho/status", authMiddleware, async (req, res) => {
-    try {
-      res.json({
-        configured: zoho.isZohoConfigured(),
-        message: zoho.isZohoConfigured() 
-          ? "Zoho CRM integration is configured and active"
-          : "Zoho CRM integration is running in mock mode (no credentials configured)",
-      });
-    } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -5095,219 +4874,8 @@ Pricing:
     }
   });
 
-  // ==================== PROCURATION SIGNATURES (Zoho Sign) ====================
+  // ==================== PROCURATION SIGNATURES ====================
   
-  // Check if Zoho Sign is configured
-  app.get("/api/procuration/status", async (req: Request, res: Response) => {
-    try {
-      const { isZohoSignConfigured } = await import("./zohoSignService");
-      res.json({ 
-        configured: isZohoSignConfigured(),
-        message: isZohoSignConfigured() 
-          ? "Zoho Sign is configured and ready" 
-          : "Zoho Sign credentials not configured"
-      });
-    } catch (error) {
-      console.error("Error checking Zoho Sign status:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Send procuration for signature (called after detailed analysis form submission)
-  app.post("/api/procuration/send", async (req: Request, res: Response) => {
-    try {
-      const { signerName, signerEmail, companyName, hqAccountNumber, language, leadId } = req.body;
-      
-      if (!signerName || !signerEmail || !companyName) {
-        return res.status(400).json({ error: "Missing required fields: signerName, signerEmail, companyName" });
-      }
-
-      const { isZohoSignConfigured, sendProcurationForSignature } = await import("./zohoSignService");
-      
-      if (!isZohoSignConfigured()) {
-        // Fallback: create signature record without sending (for when Zoho Sign is not configured)
-        const signature = await storage.createProcurationSignature({
-          signerName,
-          signerEmail,
-          companyName,
-          hqAccountNumber,
-          language: language || "fr",
-          leadId,
-          status: "draft",
-        });
-        
-        return res.status(200).json({ 
-          success: true,
-          signatureId: signature.id,
-          message: "Signature record created (Zoho Sign not configured)",
-          zohoConfigured: false,
-        });
-      }
-
-      // Create signature record first
-      const signature = await storage.createProcurationSignature({
-        signerName,
-        signerEmail,
-        companyName,
-        hqAccountNumber,
-        language: language || "fr",
-        leadId,
-        status: "draft",
-      });
-
-      // Send to Zoho Sign
-      const result = await sendProcurationForSignature({
-        signerName,
-        signerEmail,
-        companyName,
-        hqAccountNumber,
-        language: language || "fr",
-      });
-
-      // Update signature record with Zoho data
-      await storage.updateProcurationSignature(signature.id, {
-        zohoRequestId: result.requestId,
-        zohoDocumentId: result.documentId,
-        zohoStatus: result.status,
-        status: "sent",
-        sentAt: new Date(),
-      });
-
-      res.status(200).json({ 
-        success: true,
-        signatureId: signature.id,
-        zohoRequestId: result.requestId,
-        message: "Procuration sent for signature",
-        zohoConfigured: true,
-      });
-    } catch (error: any) {
-      console.error("Error sending procuration for signature:", error);
-      res.status(500).json({ error: error.message || "Failed to send procuration for signature" });
-    }
-  });
-
-  // Get signature status
-  app.get("/api/procuration/:id/status", async (req: Request, res: Response) => {
-    try {
-      const signature = await storage.getProcurationSignature(req.params.id);
-      if (!signature) {
-        return res.status(404).json({ error: "Signature not found" });
-      }
-
-      // If we have a Zoho request ID, check the status
-      if (signature.zohoRequestId) {
-        try {
-          const { getSignatureStatus } = await import("./zohoSignService");
-          const zohoStatus = await getSignatureStatus(signature.zohoRequestId);
-          
-          // Update local record if status changed
-          if (zohoStatus.status !== signature.zohoStatus) {
-            await storage.updateProcurationSignature(signature.id, {
-              zohoStatus: zohoStatus.status,
-              signedAt: zohoStatus.signedAt,
-              viewedAt: zohoStatus.viewedAt,
-              status: zohoStatus.status === "completed" ? "signed" : signature.status,
-            });
-          }
-          
-          res.json({
-            id: signature.id,
-            status: zohoStatus.status === "completed" ? "signed" : signature.status,
-            zohoStatus: zohoStatus.status,
-            signedAt: zohoStatus.signedAt,
-            viewedAt: zohoStatus.viewedAt,
-          });
-        } catch (error) {
-          // Return cached status if Zoho API fails
-          res.json({
-            id: signature.id,
-            status: signature.status,
-            zohoStatus: signature.zohoStatus,
-            signedAt: signature.signedAt,
-            viewedAt: signature.viewedAt,
-          });
-        }
-      } else {
-        res.json({
-          id: signature.id,
-          status: signature.status,
-          zohoStatus: signature.zohoStatus,
-        });
-      }
-    } catch (error) {
-      console.error("Error getting signature status:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Webhook for Zoho Sign callbacks
-  app.post("/api/procuration/webhook", async (req: Request, res: Response) => {
-    try {
-      const { requests } = req.body;
-      
-      if (!requests || !requests.request_id) {
-        return res.status(400).json({ error: "Invalid webhook payload" });
-      }
-
-      const requestId = requests.request_id;
-      const status = requests.request_status;
-
-      // Find signature by Zoho request ID
-      const signatures = await storage.getProcurationSignatures();
-      const signature = signatures.find(s => s.zohoRequestId === requestId);
-
-      if (signature) {
-        const updates: any = {
-          zohoStatus: status,
-        };
-
-        if (status === "completed") {
-          updates.status = "signed";
-          updates.signedAt = new Date();
-        } else if (status === "viewed") {
-          updates.viewedAt = new Date();
-        } else if (status === "declined" || status === "expired") {
-          updates.status = "failed";
-        }
-
-        await storage.updateProcurationSignature(signature.id, updates);
-      }
-
-      res.status(200).json({ success: true });
-    } catch (error) {
-      console.error("Error processing webhook:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Download signed document
-  app.get("/api/procuration/:id/download", async (req: Request, res: Response) => {
-    try {
-      const signature = await storage.getProcurationSignature(req.params.id);
-      if (!signature) {
-        return res.status(404).json({ error: "Signature not found" });
-      }
-
-      if (!signature.zohoRequestId) {
-        return res.status(400).json({ error: "No Zoho Sign request associated" });
-      }
-
-      if (signature.status !== "signed") {
-        return res.status(400).json({ error: "Document not yet signed" });
-      }
-
-      const { downloadSignedDocument } = await import("./zohoSignService");
-      const pdfBuffer = await downloadSignedDocument(signature.zohoRequestId);
-
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename=procuration_hq_${signature.id}.pdf`);
-      res.send(pdfBuffer);
-    } catch (error: any) {
-      console.error("Error downloading signed document:", error);
-      res.status(500).json({ error: error.message || "Failed to download document" });
-    }
-  });
-
   // Get all signatures (admin only)
   app.get("/api/admin/procurations", authMiddleware, requireStaff, async (req: AuthRequest, res: Response) => {
     try {

@@ -33,12 +33,6 @@ function DesignCard({ design }: { design: DesignWithDetails }) {
                 </p>
               </div>
             </div>
-            {design.zohoDealId && (
-              <Badge variant="default" className="gap-1 shrink-0">
-                <CheckCircle2 className="w-3 h-3" />
-                Zoho
-              </Badge>
-            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -68,12 +62,6 @@ function DesignCard({ design }: { design: DesignWithDetails }) {
                 {t("common.view")}
               </Button>
             </Link>
-            {design.zohoDealId && (
-              <Button variant="ghost" size="sm" className="gap-1.5">
-                <ExternalLink className="w-3.5 h-3.5" />
-                Zoho
-              </Button>
-            )}
           </div>
         </div>
       </CardContent>

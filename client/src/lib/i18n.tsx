@@ -297,7 +297,6 @@ const translations: Translations = {
   "design.sellPrice": { fr: "Prix de vente", en: "Sell price" },
   "design.totalCapex": { fr: "CAPEX total", en: "Total CAPEX" },
   "design.totalSellPrice": { fr: "Prix de vente total", en: "Total sell price" },
-  "design.syncZoho": { fr: "Créer/mettre à jour l'offre dans Zoho", en: "Create/update deal in Zoho" },
   "design.configuration": { fr: "Configuration du design", en: "Design Configuration" },
   "design.selectPlaceholder": { fr: "Sélectionner...", en: "Select..." },
   "design.summary": { fr: "Résumé", en: "Summary" },
@@ -389,7 +388,6 @@ const translations: Translations = {
   "design.syncError": { fr: "Erreur lors de la synchronisation", en: "Error during sync" },
   "design.createDesign": { fr: "Créer un design", en: "Create design" },
   "design.designGenerated": { fr: "Design généré avec succès", en: "Design generated successfully" },
-  "design.zohoSynced": { fr: "Offre synchronisée avec Zoho", en: "Quote synced with Zoho" },
   "design.simulationNotFound": { fr: "Simulation non trouvée", en: "Simulation not found" },
 
   // Sites

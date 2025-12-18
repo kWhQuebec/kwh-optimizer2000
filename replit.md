@@ -115,7 +115,6 @@ annualConsumptionKWh = totalKWh × annualizationFactor
 ### Third-Party Services
 
 -   **Google Solar API**: Used for roof area estimation, solar production potential, and imagery via Building Insights and Data Layers APIs, and for yield calibration in simulations. The platform addresses its limitations for large commercial/industrial buildings.
--   **Zoho CRM**: OAuth2 authenticated integration for lead synchronization and deal creation/updates.
 -   **Neon Database**: Serverless PostgreSQL solution.
 
 ### Key npm Packages

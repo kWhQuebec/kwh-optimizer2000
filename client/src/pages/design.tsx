@@ -218,19 +218,6 @@ export default function DesignPage() {
     },
   });
 
-  const syncZohoMutation = useMutation({
-    mutationFn: async () => {
-      if (!generatedDesign) return;
-      return apiRequest("POST", `/api/designs/${generatedDesign.id}/sync-zoho`);
-    },
-    onSuccess: () => {
-      toast({ title: t("design.zohoSynced") });
-    },
-    onError: () => {
-      toast({ title: t("design.syncError"), variant: "destructive" });
-    },
-  });
-
   const onSubmit = (data: DesignFormValues) => {
     generateMutation.mutate(data);
   };
@@ -544,27 +531,6 @@ export default function DesignPage() {
                   </div>
                 </div>
 
-                <Button 
-                  variant="outline" 
-                  className="w-full gap-2"
-                  onClick={() => syncZohoMutation.mutate()}
-                  disabled={syncZohoMutation.isPending}
-                  data-testid="button-sync-zoho"
-                >
-                  {syncZohoMutation.isPending ? (
-                    t("common.loading")
-                  ) : generatedDesign.zohoDealId ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      Synced with Zoho
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="w-4 h-4" />
-                      {t("design.syncZoho")}
-                    </>
-                  )}
-                </Button>
               </>
             ) : (
               <div className="text-center py-8 text-muted-foreground">

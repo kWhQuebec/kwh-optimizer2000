@@ -361,7 +361,6 @@ export class MemStorage implements IStorage {
       roofPotentialKw: null,
       estimateError: null,
       estimateCompletedAt: null,
-      zohoLeadId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -395,7 +394,6 @@ export class MemStorage implements IStorage {
     const newClient: Client = {
       id,
       ...client,
-      zohoAccountId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -594,7 +592,6 @@ export class MemStorage implements IStorage {
     const newDesign: Design = {
       id,
       ...design,
-      zohoDealId: null,
       createdAt: new Date(),
     };
     this.designs.set(id, newDesign);
@@ -984,9 +981,6 @@ export class MemStorage implements IStorage {
       hqAccountNumber: signature.hqAccountNumber ?? null,
       leadId: signature.leadId ?? null,
       status: signature.status || "draft",
-      zohoStatus: "pending",
-      zohoRequestId: null,
-      zohoDocumentId: null,
       sentAt: null,
       viewedAt: null,
       signedAt: null,

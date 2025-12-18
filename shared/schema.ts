@@ -35,7 +35,6 @@ export const leads = pgTable("leads", {
   roofPotentialKw: real("roof_potential_kw"),
   estimateError: text("estimate_error"),
   estimateCompletedAt: timestamp("estimate_completed_at"),
-  zohoLeadId: text("zoho_lead_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -50,7 +49,6 @@ export const clients = pgTable("clients", {
   city: text("city"),
   province: text("province"),
   postalCode: text("postal_code"),
-  zohoAccountId: text("zoho_account_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -209,7 +207,6 @@ export const designs = pgTable("designs", {
   totalCapexBOS: real("total_capex_bos"),
   marginPercent: real("margin_percent"),
   totalSellPrice: real("total_sell_price"),
-  zohoDealId: text("zoho_deal_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -431,7 +428,7 @@ export const blogArticles = pgTable("blog_articles", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Procuration Signatures - HQ Authorization via Zoho Sign
+// Procuration Signatures - HQ Authorization
 export const procurationSignatures = pgTable("procuration_signatures", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: varchar("lead_id").references(() => leads.id), // Link to lead if from detailed analysis form
@@ -441,11 +438,6 @@ export const procurationSignatures = pgTable("procuration_signatures", {
   signerEmail: text("signer_email").notNull(),
   companyName: text("company_name"),
   hqAccountNumber: text("hq_account_number"),
-  
-  // Zoho Sign tracking
-  zohoRequestId: text("zoho_request_id"), // Zoho Sign request ID
-  zohoDocumentId: text("zoho_document_id"),
-  zohoStatus: text("zoho_status").default("pending"), // "pending" | "sent" | "viewed" | "signed" | "declined" | "expired"
   
   // Status tracking
   status: text("status").notNull().default("draft"), // "draft" | "sent" | "signed" | "failed"
@@ -508,9 +500,6 @@ export const designAgreements = pgTable("design_agreements", {
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   depositAmount: real("deposit_amount"), // Amount paid as deposit
   depositPaidAt: timestamp("deposit_paid_at"),
-  
-  // Zoho CRM sync
-  zohoDealId: text("zoho_deal_id"),
   
   // Notes
   internalNotes: text("internal_notes"),
@@ -677,9 +666,6 @@ export const constructionAgreements = pgTable("construction_agreements", {
   // Stripe payment tracking
   stripeSessionId: text("stripe_session_id"),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
-  
-  // Zoho CRM sync
-  zohoDealId: text("zoho_deal_id"),
   
   // Notes
   internalNotes: text("internal_notes"),
@@ -916,7 +902,6 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  zohoLeadId: true,
   source: true,
   status: true,
   latitude: true,
@@ -931,7 +916,6 @@ export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  zohoAccountId: true,
 });
 
 export const insertSiteSchema = createInsertSchema(sites).omit({
@@ -960,7 +944,6 @@ export const insertSimulationRunSchema = createInsertSchema(simulationRuns).omit
 export const insertDesignSchema = createInsertSchema(designs).omit({
   id: true,
   createdAt: true,
-  zohoDealId: true,
 });
 
 export const insertBomItemSchema = createInsertSchema(bomItems).omit({
@@ -1005,9 +988,6 @@ export const insertProcurationSignatureSchema = createInsertSchema(procurationSi
   id: true,
   createdAt: true,
   updatedAt: true,
-  zohoRequestId: true,
-  zohoDocumentId: true,
-  zohoStatus: true,
   sentAt: true,
   viewedAt: true,
   signedAt: true,
