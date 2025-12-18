@@ -629,6 +629,256 @@ export const marketDocuments = pgTable("market_documents", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Construction Agreements - Final contracts for installation
+export const constructionAgreements = pgTable("construction_agreements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id),
+  designId: varchar("design_id").references(() => designs.id), // Link to selected design
+  designAgreementId: varchar("design_agreement_id").references(() => designAgreements.id),
+  
+  // Public access token for client signing page
+  publicToken: varchar("public_token").default(sql`gen_random_uuid()`),
+  
+  // Contract details
+  contractNumber: text("contract_number"), // Auto-generated contract number
+  status: text("status").notNull().default("draft"), // "draft" | "sent" | "accepted" | "in_progress" | "completed" | "cancelled"
+  
+  // System specs (snapshot at contract time)
+  pvSizeKW: real("pv_size_kw"),
+  batteryEnergyKWh: real("battery_energy_kwh"),
+  
+  // Pricing
+  totalContractValue: real("total_contract_value"),
+  currency: text("currency").default("CAD"),
+  
+  // Payment schedule
+  paymentSchedule: jsonb("payment_schedule"), // Array of { milestone, percent, amount, dueDate, paidAt }
+  depositPercent: real("deposit_percent").default(30), // Default 30% deposit
+  depositAmount: real("deposit_amount"),
+  depositPaidAt: timestamp("deposit_paid_at"),
+  
+  // Timeline
+  estimatedStartDate: timestamp("estimated_start_date"),
+  estimatedCompletionDate: timestamp("estimated_completion_date"),
+  actualStartDate: timestamp("actual_start_date"),
+  actualCompletionDate: timestamp("actual_completion_date"),
+  
+  // Terms and conditions
+  termsVersion: text("terms_version").default("v1.0"),
+  warrantyYears: integer("warranty_years").default(10),
+  
+  // Client acceptance
+  acceptedByName: text("accepted_by_name"),
+  acceptedByEmail: text("accepted_by_email"),
+  acceptedByTitle: text("accepted_by_title"),
+  signatureData: text("signature_data"), // Base64 signature
+  acceptedAt: timestamp("accepted_at"),
+  
+  // Stripe payment tracking
+  stripeSessionId: text("stripe_session_id"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  
+  // Zoho CRM sync
+  zohoDealId: text("zoho_deal_id"),
+  
+  // Notes
+  internalNotes: text("internal_notes"),
+  specialConditions: text("special_conditions"), // Visible to client
+  
+  // Tracking
+  createdBy: varchar("created_by").references(() => users.id),
+  sentAt: timestamp("sent_at"),
+  validUntil: timestamp("valid_until"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Construction Milestones - Payment and progress tracking
+export const constructionMilestones = pgTable("construction_milestones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  constructionAgreementId: varchar("construction_agreement_id").notNull().references(() => constructionAgreements.id, { onDelete: "cascade" }),
+  
+  // Milestone details
+  name: text("name").notNull(), // "Deposit", "Materials Delivery", "Installation Complete", etc.
+  description: text("description"),
+  orderIndex: integer("order_index").notNull().default(0),
+  
+  // Payment
+  paymentPercent: real("payment_percent"), // % of total contract
+  paymentAmount: real("payment_amount"), // $ amount
+  
+  // Status
+  status: text("status").notNull().default("pending"), // "pending" | "in_progress" | "completed" | "invoiced" | "paid"
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  invoicedAt: timestamp("invoiced_at"),
+  paidAt: timestamp("paid_at"),
+  
+  // Stripe
+  stripeInvoiceId: text("stripe_invoice_id"),
+  
+  // Notes
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// O&M Contracts - Recurring maintenance agreements
+export const omContracts = pgTable("om_contracts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id),
+  clientId: varchar("client_id").notNull().references(() => clients.id),
+  constructionAgreementId: varchar("construction_agreement_id").references(() => constructionAgreements.id),
+  
+  // Contract details
+  contractNumber: text("contract_number"),
+  status: text("status").notNull().default("draft"), // "draft" | "active" | "suspended" | "expired" | "cancelled"
+  
+  // Coverage
+  coverageType: text("coverage_type").notNull().default("standard"), // "basic" | "standard" | "premium" | "custom"
+  coverageDetails: jsonb("coverage_details"), // Detailed scope of services
+  
+  // System covered (snapshot)
+  pvSizeKW: real("pv_size_kw"),
+  batteryEnergyKWh: real("battery_energy_kwh"),
+  
+  // Contract period
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  termMonths: integer("term_months").default(12),
+  autoRenew: boolean("auto_renew").default(true),
+  
+  // Pricing
+  annualFee: real("annual_fee"),
+  billingFrequency: text("billing_frequency").default("annual"), // "monthly" | "quarterly" | "annual"
+  priceEscalationPercent: real("price_escalation_percent").default(2.5),
+  
+  // SLA targets
+  responseTimeHours: integer("response_time_hours").default(48),
+  scheduledVisitsPerYear: integer("scheduled_visits_per_year").default(2),
+  performanceGuaranteePercent: real("performance_guarantee_percent"), // Min. production guarantee
+  
+  // Client contact
+  siteContactName: text("site_contact_name"),
+  siteContactPhone: text("site_contact_phone"),
+  siteContactEmail: text("site_contact_email"),
+  
+  // Signature
+  acceptedByName: text("accepted_by_name"),
+  acceptedByEmail: text("accepted_by_email"),
+  signatureData: text("signature_data"),
+  acceptedAt: timestamp("accepted_at"),
+  
+  // Stripe subscription
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  
+  // Notes
+  internalNotes: text("internal_notes"),
+  specialConditions: text("special_conditions"),
+  
+  // Tracking
+  createdBy: varchar("created_by").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// O&M Visits - Maintenance visit logs
+export const omVisits = pgTable("om_visits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  omContractId: varchar("om_contract_id").notNull().references(() => omContracts.id),
+  siteId: varchar("site_id").notNull().references(() => sites.id),
+  
+  // Visit details
+  visitType: text("visit_type").notNull().default("scheduled"), // "scheduled" | "emergency" | "warranty" | "inspection"
+  status: text("status").notNull().default("scheduled"), // "scheduled" | "in_progress" | "completed" | "cancelled"
+  
+  // Scheduling
+  scheduledDate: timestamp("scheduled_date"),
+  actualDate: timestamp("actual_date"),
+  duration: integer("duration"), // Minutes
+  
+  // Technician
+  technicianName: text("technician_name"),
+  technicianId: varchar("technician_id").references(() => users.id),
+  
+  // Findings
+  findings: jsonb("findings"), // Array of { category, description, severity, resolved }
+  issuesFound: integer("issues_found").default(0),
+  issuesResolved: integer("issues_resolved").default(0),
+  
+  // System readings
+  systemReadings: jsonb("system_readings"), // { productionKWh, inverterStatus, batterySOH, etc. }
+  
+  // Actions taken
+  actionsTaken: text("actions_taken"),
+  partsUsed: jsonb("parts_used"), // Array of { partNumber, description, quantity, cost }
+  
+  // Follow-up
+  followUpRequired: boolean("follow_up_required").default(false),
+  followUpNotes: text("follow_up_notes"),
+  followUpScheduledDate: timestamp("follow_up_scheduled_date"),
+  
+  // Photos
+  photos: jsonb("photos"), // Array of { url, caption, category }
+  
+  // Client sign-off
+  clientSignatureName: text("client_signature_name"),
+  clientSignatureData: text("client_signature_data"),
+  clientSignedAt: timestamp("client_signed_at"),
+  
+  // Costs (for tracking, not necessarily billed)
+  laborCost: real("labor_cost"),
+  partsCost: real("parts_cost"),
+  travelCost: real("travel_cost"),
+  totalCost: real("total_cost"),
+  billable: boolean("billable").default(false),
+  
+  // Notes
+  internalNotes: text("internal_notes"),
+  clientVisibleNotes: text("client_visible_notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// O&M Performance Snapshots - Periodic KPI tracking
+export const omPerformanceSnapshots = pgTable("om_performance_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  omContractId: varchar("om_contract_id").notNull().references(() => omContracts.id),
+  siteId: varchar("site_id").notNull().references(() => sites.id),
+  
+  // Period
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  periodType: text("period_type").notNull().default("monthly"), // "daily" | "weekly" | "monthly" | "annual"
+  
+  // Production KPIs
+  expectedProductionKWh: real("expected_production_kwh"),
+  actualProductionKWh: real("actual_production_kwh"),
+  performanceRatio: real("performance_ratio"), // Actual/Expected as %
+  
+  // Availability
+  systemUptimePercent: real("system_uptime_percent"),
+  inverterUptimePercent: real("inverter_uptime_percent"),
+  
+  // Financial
+  expectedSavings: real("expected_savings"),
+  actualSavings: real("actual_savings"),
+  
+  // Issues
+  alertsCount: integer("alerts_count").default(0),
+  ticketsOpened: integer("tickets_opened").default(0),
+  ticketsResolved: integer("tickets_resolved").default(0),
+  
+  // Weather (for context)
+  avgIrradianceKWhM2: real("avg_irradiance_kwh_m2"),
+  avgTemperatureC: real("avg_temperature_c"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Email logs for tracking sent emails and enabling follow-up
 export const emailLogs = pgTable("email_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -796,6 +1046,46 @@ export const insertMarketDocumentSchema = createInsertSchema(marketDocuments).om
   updatedAt: true,
 });
 
+// Construction and O&M insert schemas
+export const insertConstructionAgreementSchema = createInsertSchema(constructionAgreements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  publicToken: true,
+  sentAt: true,
+  acceptedAt: true,
+  depositPaidAt: true,
+  actualStartDate: true,
+  actualCompletionDate: true,
+});
+
+export const insertConstructionMilestoneSchema = createInsertSchema(constructionMilestones).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+  invoicedAt: true,
+  paidAt: true,
+});
+
+export const insertOmContractSchema = createInsertSchema(omContracts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  acceptedAt: true,
+});
+
+export const insertOmVisitSchema = createInsertSchema(omVisits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  clientSignedAt: true,
+});
+
+export const insertOmPerformanceSnapshotSchema = createInsertSchema(omPerformanceSnapshots).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -861,6 +1151,22 @@ export type MarketNote = typeof marketNotes.$inferSelect;
 export type InsertMarketDocument = z.infer<typeof insertMarketDocumentSchema>;
 export type MarketDocument = typeof marketDocuments.$inferSelect;
 
+// Construction and O&M types
+export type InsertConstructionAgreement = z.infer<typeof insertConstructionAgreementSchema>;
+export type ConstructionAgreement = typeof constructionAgreements.$inferSelect;
+
+export type InsertConstructionMilestone = z.infer<typeof insertConstructionMilestoneSchema>;
+export type ConstructionMilestone = typeof constructionMilestones.$inferSelect;
+
+export type InsertOmContract = z.infer<typeof insertOmContractSchema>;
+export type OmContract = typeof omContracts.$inferSelect;
+
+export type InsertOmVisit = z.infer<typeof insertOmVisitSchema>;
+export type OmVisit = typeof omVisits.$inferSelect;
+
+export type InsertOmPerformanceSnapshot = z.infer<typeof insertOmPerformanceSnapshotSchema>;
+export type OmPerformanceSnapshot = typeof omPerformanceSnapshots.$inferSelect;
+
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };
 
@@ -871,6 +1177,22 @@ export type DesignWithBom = Design & { bomItems: BomItem[] };
 export type SiteVisitWithSite = SiteVisit & { site: SiteWithClient };
 export type PortfolioWithSites = Portfolio & { sites: Site[]; client: Client };
 export type PortfolioSiteWithDetails = PortfolioSite & { site: Site; latestSimulation?: SimulationRun };
+
+// Construction and O&M extended types
+export type ConstructionAgreementWithDetails = ConstructionAgreement & { 
+  site: SiteWithClient; 
+  design?: Design;
+  milestones: ConstructionMilestone[];
+};
+export type OmContractWithDetails = OmContract & { 
+  site: SiteWithClient; 
+  client: Client;
+  visits?: OmVisit[];
+};
+export type OmVisitWithDetails = OmVisit & { 
+  site: Site; 
+  contract: OmContract;
+};
 
 // Rematek cost structure (based on quote #12885)
 export interface RematekCostBreakdown {

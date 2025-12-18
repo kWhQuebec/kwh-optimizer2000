@@ -40,6 +40,10 @@ const SignAgreementPage = lazy(() => import("@/pages/sign-agreement"));
 const PortfoliosPage = lazy(() => import("@/pages/portfolios"));
 const PortfolioDetailPage = lazy(() => import("@/pages/portfolio-detail"));
 const MarketIntelligencePage = lazy(() => import("@/pages/market-intelligence"));
+const ConstructionAgreementsPage = lazy(() => import("@/pages/construction-agreements"));
+const OmContractsPage = lazy(() => import("@/pages/om-contracts"));
+const OmVisitsPage = lazy(() => import("@/pages/om-visits"));
+const OmPerformancePage = lazy(() => import("@/pages/om-performance"));
 
 function PageLoader() {
   return (
@@ -246,6 +250,46 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <DesignsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/construction-agreements">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <ConstructionAgreementsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/om-contracts">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <OmContractsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/om-visits">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <OmVisitsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/om-performance/:siteId">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <OmPerformancePage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

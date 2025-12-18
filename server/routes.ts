@@ -16,6 +16,11 @@ import {
   insertDesignAgreementSchema,
   insertPortfolioSchema,
   insertPortfolioSiteSchema,
+  insertConstructionAgreementSchema,
+  insertConstructionMilestoneSchema,
+  insertOmContractSchema,
+  insertOmVisitSchema,
+  insertOmPerformanceSnapshotSchema,
   AnalysisAssumptions, 
   defaultAnalysisAssumptions, 
   CashflowEntry, 
@@ -5367,6 +5372,571 @@ Pricing:
       res.sendFile(filePath);
     } catch (error) {
       console.error("Error downloading procuration PDF:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== CONSTRUCTION AGREEMENTS ROUTES ====================
+
+  // List all construction agreements with site/client data
+  app.get("/api/construction-agreements", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const agreements = await storage.getConstructionAgreements();
+      
+      // Enrich with site and client data
+      const enrichedAgreements = await Promise.all(
+        agreements.map(async (agreement) => {
+          const site = await storage.getSite(agreement.siteId);
+          let siteWithClient = null;
+          if (site) {
+            const client = await storage.getClient(site.clientId);
+            siteWithClient = { ...site, client };
+          }
+          return { ...agreement, site: siteWithClient };
+        })
+      );
+      
+      res.json(enrichedAgreements);
+    } catch (error) {
+      console.error("Error fetching construction agreements:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single construction agreement with site, design, milestones
+  app.get("/api/construction-agreements/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const agreement = await storage.getConstructionAgreement(req.params.id);
+      if (!agreement) {
+        return res.status(404).json({ error: "Construction agreement not found" });
+      }
+      
+      // Enrich with related data
+      const site = await storage.getSite(agreement.siteId);
+      const milestones = await storage.getConstructionMilestonesByAgreementId(agreement.id);
+      let design = null;
+      if (agreement.designId) {
+        design = await storage.getDesign(agreement.designId);
+      }
+      
+      res.json({
+        ...agreement,
+        site,
+        design,
+        milestones,
+      });
+    } catch (error) {
+      console.error("Error fetching construction agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get construction agreements by site
+  app.get("/api/construction-agreements/site/:siteId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const agreements = await storage.getConstructionAgreementsBySiteId(req.params.siteId);
+      res.json(agreements);
+    } catch (error) {
+      console.error("Error fetching construction agreements by site:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create new construction agreement
+  app.post("/api/construction-agreements", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertConstructionAgreementSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      
+      const agreement = await storage.createConstructionAgreement({
+        ...parsed.data,
+        createdBy: req.userId,
+      });
+      res.status(201).json(agreement);
+    } catch (error) {
+      console.error("Error creating construction agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update construction agreement
+  app.patch("/api/construction-agreements/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const agreement = await storage.updateConstructionAgreement(req.params.id, req.body);
+      if (!agreement) {
+        return res.status(404).json({ error: "Construction agreement not found" });
+      }
+      res.json(agreement);
+    } catch (error) {
+      console.error("Error updating construction agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete construction agreement
+  app.delete("/api/construction-agreements/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteConstructionAgreement(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Construction agreement not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting construction agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Send construction agreement to client
+  app.post("/api/construction-agreements/:id/send", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const agreement = await storage.getConstructionAgreement(req.params.id);
+      if (!agreement) {
+        return res.status(404).json({ error: "Construction agreement not found" });
+      }
+      
+      const updated = await storage.updateConstructionAgreement(req.params.id, {
+        status: "sent",
+        sentAt: new Date(),
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error sending construction agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Client accepts construction agreement
+  app.post("/api/construction-agreements/:id/accept", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const agreement = await storage.getConstructionAgreement(req.params.id);
+      if (!agreement) {
+        return res.status(404).json({ error: "Construction agreement not found" });
+      }
+      
+      const { acceptedByName, acceptedByEmail, acceptedByTitle, signatureData } = req.body;
+      
+      if (!acceptedByName || !acceptedByEmail || !signatureData) {
+        return res.status(400).json({ error: "Name, email, and signature are required" });
+      }
+      
+      const updated = await storage.updateConstructionAgreement(req.params.id, {
+        status: "accepted",
+        acceptedAt: new Date(),
+        acceptedByName,
+        acceptedByEmail,
+        acceptedByTitle,
+        signatureData,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error accepting construction agreement:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== CONSTRUCTION MILESTONES ROUTES ====================
+
+  // Get milestones for an agreement
+  app.get("/api/construction-milestones/agreement/:agreementId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const milestones = await storage.getConstructionMilestonesByAgreementId(req.params.agreementId);
+      res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching construction milestones:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create milestone
+  app.post("/api/construction-milestones", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertConstructionMilestoneSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      
+      const milestone = await storage.createConstructionMilestone(parsed.data);
+      res.status(201).json(milestone);
+    } catch (error) {
+      console.error("Error creating construction milestone:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update milestone
+  app.patch("/api/construction-milestones/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const milestone = await storage.updateConstructionMilestone(req.params.id, req.body);
+      if (!milestone) {
+        return res.status(404).json({ error: "Construction milestone not found" });
+      }
+      res.json(milestone);
+    } catch (error) {
+      console.error("Error updating construction milestone:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete milestone
+  app.delete("/api/construction-milestones/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteConstructionMilestone(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Construction milestone not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting construction milestone:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Mark milestone as completed
+  app.post("/api/construction-milestones/:id/complete", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const milestone = await storage.getConstructionMilestone(req.params.id);
+      if (!milestone) {
+        return res.status(404).json({ error: "Construction milestone not found" });
+      }
+      
+      const updated = await storage.updateConstructionMilestone(req.params.id, {
+        status: "completed",
+        completedAt: new Date(),
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error completing construction milestone:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== O&M CONTRACTS ROUTES ====================
+
+  // List all O&M contracts
+  app.get("/api/om-contracts", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const contracts = await storage.getOmContracts();
+      res.json(contracts);
+    } catch (error) {
+      console.error("Error fetching O&M contracts:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single O&M contract with details
+  app.get("/api/om-contracts/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const contract = await storage.getOmContract(req.params.id);
+      if (!contract) {
+        return res.status(404).json({ error: "O&M contract not found" });
+      }
+      
+      // Enrich with related data
+      const site = await storage.getSite(contract.siteId);
+      const client = await storage.getClient(contract.clientId);
+      const visits = await storage.getOmVisitsByContractId(contract.id);
+      
+      res.json({
+        ...contract,
+        site,
+        client,
+        visits,
+      });
+    } catch (error) {
+      console.error("Error fetching O&M contract:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get O&M contracts by client
+  app.get("/api/om-contracts/client/:clientId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const contracts = await storage.getOmContractsByClientId(req.params.clientId);
+      res.json(contracts);
+    } catch (error) {
+      console.error("Error fetching O&M contracts by client:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get O&M contracts by site
+  app.get("/api/om-contracts/site/:siteId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const contracts = await storage.getOmContractsBySiteId(req.params.siteId);
+      res.json(contracts);
+    } catch (error) {
+      console.error("Error fetching O&M contracts by site:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create new O&M contract
+  app.post("/api/om-contracts", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertOmContractSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      
+      const contract = await storage.createOmContract({
+        ...parsed.data,
+        createdBy: req.userId,
+      });
+      res.status(201).json(contract);
+    } catch (error) {
+      console.error("Error creating O&M contract:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update O&M contract
+  app.patch("/api/om-contracts/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const contract = await storage.updateOmContract(req.params.id, req.body);
+      if (!contract) {
+        return res.status(404).json({ error: "O&M contract not found" });
+      }
+      res.json(contract);
+    } catch (error) {
+      console.error("Error updating O&M contract:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete O&M contract
+  app.delete("/api/om-contracts/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteOmContract(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "O&M contract not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting O&M contract:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Activate O&M contract
+  app.post("/api/om-contracts/:id/activate", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const contract = await storage.getOmContract(req.params.id);
+      if (!contract) {
+        return res.status(404).json({ error: "O&M contract not found" });
+      }
+      
+      const updated = await storage.updateOmContract(req.params.id, {
+        status: "active",
+        startDate: req.body.startDate || new Date(),
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error activating O&M contract:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== O&M VISITS ROUTES ====================
+
+  // List all O&M visits
+  app.get("/api/om-visits", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visits = await storage.getOmVisits();
+      res.json(visits);
+    } catch (error) {
+      console.error("Error fetching O&M visits:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single O&M visit
+  app.get("/api/om-visits/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visit = await storage.getOmVisit(req.params.id);
+      if (!visit) {
+        return res.status(404).json({ error: "O&M visit not found" });
+      }
+      res.json(visit);
+    } catch (error) {
+      console.error("Error fetching O&M visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get O&M visits by contract
+  app.get("/api/om-visits/contract/:contractId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visits = await storage.getOmVisitsByContractId(req.params.contractId);
+      res.json(visits);
+    } catch (error) {
+      console.error("Error fetching O&M visits by contract:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create/schedule O&M visit
+  app.post("/api/om-visits", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertOmVisitSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      
+      const visit = await storage.createOmVisit(parsed.data);
+      res.status(201).json(visit);
+    } catch (error) {
+      console.error("Error creating O&M visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update O&M visit
+  app.patch("/api/om-visits/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visit = await storage.updateOmVisit(req.params.id, req.body);
+      if (!visit) {
+        return res.status(404).json({ error: "O&M visit not found" });
+      }
+      res.json(visit);
+    } catch (error) {
+      console.error("Error updating O&M visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete O&M visit
+  app.delete("/api/om-visits/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteOmVisit(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "O&M visit not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting O&M visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Complete O&M visit with findings
+  app.post("/api/om-visits/:id/complete", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const visit = await storage.getOmVisit(req.params.id);
+      if (!visit) {
+        return res.status(404).json({ error: "O&M visit not found" });
+      }
+      
+      const { findings, actionsTaken, issuesFound, issuesResolved, systemReadings, partsUsed } = req.body;
+      
+      const updated = await storage.updateOmVisit(req.params.id, {
+        status: "completed",
+        actualDate: new Date(),
+        findings,
+        actionsTaken,
+        issuesFound: issuesFound || 0,
+        issuesResolved: issuesResolved || 0,
+        systemReadings,
+        partsUsed,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error completing O&M visit:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== O&M PERFORMANCE SNAPSHOTS ROUTES ====================
+
+  // Get performance snapshots for a contract
+  app.get("/api/om-performance/contract/:contractId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const snapshots = await storage.getOmPerformanceSnapshotsByContractId(req.params.contractId);
+      res.json(snapshots);
+    } catch (error) {
+      console.error("Error fetching O&M performance snapshots:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create performance snapshot
+  app.post("/api/om-performance", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertOmPerformanceSnapshotSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      
+      const snapshot = await storage.createOmPerformanceSnapshot(parsed.data);
+      res.status(201).json(snapshot);
+    } catch (error) {
+      console.error("Error creating O&M performance snapshot:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get performance dashboard data for a site
+  app.get("/api/om-performance/dashboard/:siteId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.siteId;
+      
+      // Get all O&M contracts for this site
+      const contracts = await storage.getOmContractsBySiteId(siteId);
+      
+      if (contracts.length === 0) {
+        return res.json({
+          contracts: [],
+          snapshots: [],
+          visits: [],
+          summary: null,
+        });
+      }
+      
+      // Get all snapshots and visits for all contracts
+      const allSnapshots: Awaited<ReturnType<typeof storage.getOmPerformanceSnapshotsByContractId>>[] = [];
+      const allVisits: Awaited<ReturnType<typeof storage.getOmVisitsByContractId>>[] = [];
+      
+      for (const contract of contracts) {
+        const snapshots = await storage.getOmPerformanceSnapshotsByContractId(contract.id);
+        const visits = await storage.getOmVisitsByContractId(contract.id);
+        allSnapshots.push(snapshots);
+        allVisits.push(visits);
+      }
+      
+      // Flatten arrays
+      const flatSnapshots = allSnapshots.flat();
+      const flatVisits = allVisits.flat();
+      
+      // Calculate summary metrics
+      const latestSnapshots = flatSnapshots.slice(-12); // Last 12 snapshots
+      const avgPerformanceRatio = latestSnapshots.length > 0
+        ? latestSnapshots.reduce((sum, s) => sum + (s.performanceRatio || 0), 0) / latestSnapshots.length
+        : null;
+      const totalProductionKWh = latestSnapshots.reduce((sum, s) => sum + (s.actualProductionKWh || 0), 0);
+      const totalSavings = latestSnapshots.reduce((sum, s) => sum + (s.actualSavings || 0), 0);
+      
+      res.json({
+        contracts,
+        snapshots: flatSnapshots,
+        visits: flatVisits,
+        summary: {
+          avgPerformanceRatio,
+          totalProductionKWh,
+          totalSavings,
+          totalVisits: flatVisits.length,
+          completedVisits: flatVisits.filter(v => v.status === "completed").length,
+          openIssues: flatVisits.reduce((sum, v) => sum + ((v.issuesFound || 0) - (v.issuesResolved || 0)), 0),
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching O&M performance dashboard:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

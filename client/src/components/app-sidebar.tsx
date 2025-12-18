@@ -12,7 +12,11 @@ import {
   UserCog,
   FolderKanban,
   FileSignature,
-  Target
+  Target,
+  FileCheck,
+  HardHat,
+  Wrench,
+  Activity
 } from "lucide-react";
 import {
   Sidebar,
@@ -71,6 +75,21 @@ export function AppSidebar() {
       title: t("nav.designs"),
       url: "/app/designs",
       icon: PenTool,
+    },
+    {
+      title: language === "fr" ? "Ententes construction" : "Construction Agreements",
+      url: "/app/construction-agreements",
+      icon: HardHat,
+    },
+    {
+      title: language === "fr" ? "Contrats O&M" : "O&M Contracts",
+      url: "/app/om-contracts",
+      icon: FileCheck,
+    },
+    {
+      title: language === "fr" ? "Visites maintenance" : "Maintenance Visits",
+      url: "/app/om-visits",
+      icon: Wrench,
     },
     {
       title: t("nav.catalog"),

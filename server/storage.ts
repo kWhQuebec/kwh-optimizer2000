@@ -25,6 +25,11 @@ import type {
   BattleCardWithCompetitor,
   MarketNote, InsertMarketNote,
   MarketDocument, InsertMarketDocument,
+  ConstructionAgreement, InsertConstructionAgreement,
+  ConstructionMilestone, InsertConstructionMilestone,
+  OmContract, InsertOmContract,
+  OmVisit, InsertOmVisit,
+  OmPerformanceSnapshot, InsertOmPerformanceSnapshot,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -180,6 +185,47 @@ export interface IStorage {
   createMarketDocument(doc: InsertMarketDocument): Promise<MarketDocument>;
   updateMarketDocument(id: string, doc: Partial<MarketDocument>): Promise<MarketDocument | undefined>;
   deleteMarketDocument(id: string): Promise<boolean>;
+
+  // Construction Agreements
+  getConstructionAgreements(): Promise<ConstructionAgreement[]>;
+  getConstructionAgreement(id: string): Promise<ConstructionAgreement | undefined>;
+  getConstructionAgreementsBySiteId(siteId: string): Promise<ConstructionAgreement[]>;
+  createConstructionAgreement(agreement: InsertConstructionAgreement): Promise<ConstructionAgreement>;
+  updateConstructionAgreement(id: string, agreement: Partial<ConstructionAgreement>): Promise<ConstructionAgreement | undefined>;
+  deleteConstructionAgreement(id: string): Promise<boolean>;
+
+  // Construction Milestones
+  getConstructionMilestones(agreementId: string): Promise<ConstructionMilestone[]>;
+  getConstructionMilestone(id: string): Promise<ConstructionMilestone | undefined>;
+  getConstructionMilestonesByAgreementId(agreementId: string): Promise<ConstructionMilestone[]>;
+  createConstructionMilestone(milestone: InsertConstructionMilestone): Promise<ConstructionMilestone>;
+  updateConstructionMilestone(id: string, milestone: Partial<ConstructionMilestone>): Promise<ConstructionMilestone | undefined>;
+  deleteConstructionMilestone(id: string): Promise<boolean>;
+
+  // O&M Contracts
+  getOmContracts(): Promise<OmContract[]>;
+  getOmContract(id: string): Promise<OmContract | undefined>;
+  getOmContractsByClientId(clientId: string): Promise<OmContract[]>;
+  getOmContractsBySiteId(siteId: string): Promise<OmContract[]>;
+  createOmContract(contract: InsertOmContract): Promise<OmContract>;
+  updateOmContract(id: string, contract: Partial<OmContract>): Promise<OmContract | undefined>;
+  deleteOmContract(id: string): Promise<boolean>;
+
+  // O&M Visits
+  getOmVisits(): Promise<OmVisit[]>;
+  getOmVisit(id: string): Promise<OmVisit | undefined>;
+  getOmVisitsByContractId(contractId: string): Promise<OmVisit[]>;
+  createOmVisit(visit: InsertOmVisit): Promise<OmVisit>;
+  updateOmVisit(id: string, visit: Partial<OmVisit>): Promise<OmVisit | undefined>;
+  deleteOmVisit(id: string): Promise<boolean>;
+
+  // O&M Performance Snapshots
+  getOmPerformanceSnapshots(): Promise<OmPerformanceSnapshot[]>;
+  getOmPerformanceSnapshot(id: string): Promise<OmPerformanceSnapshot | undefined>;
+  getOmPerformanceSnapshotsByContractId(contractId: string): Promise<OmPerformanceSnapshot[]>;
+  createOmPerformanceSnapshot(snapshot: InsertOmPerformanceSnapshot): Promise<OmPerformanceSnapshot>;
+  updateOmPerformanceSnapshot(id: string, snapshot: Partial<OmPerformanceSnapshot>): Promise<OmPerformanceSnapshot | undefined>;
+  deleteOmPerformanceSnapshot(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1194,6 +1240,220 @@ export class MemStorage implements IStorage {
 
   async deleteMarketDocument(id: string): Promise<boolean> {
     return this.marketDocumentsMap.delete(id);
+  }
+
+  // Construction Agreements - stub implementations (MemStorage not used in production)
+  private constructionAgreementsMap: Map<string, ConstructionAgreement> = new Map();
+
+  async getConstructionAgreements(): Promise<ConstructionAgreement[]> {
+    return Array.from(this.constructionAgreementsMap.values())
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getConstructionAgreement(id: string): Promise<ConstructionAgreement | undefined> {
+    return this.constructionAgreementsMap.get(id);
+  }
+
+  async getConstructionAgreementsBySiteId(siteId: string): Promise<ConstructionAgreement[]> {
+    return Array.from(this.constructionAgreementsMap.values())
+      .filter(a => a.siteId === siteId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async createConstructionAgreement(agreement: InsertConstructionAgreement): Promise<ConstructionAgreement> {
+    const id = randomUUID();
+    const newAgreement: ConstructionAgreement = {
+      ...agreement,
+      id,
+      publicToken: randomUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as ConstructionAgreement;
+    this.constructionAgreementsMap.set(id, newAgreement);
+    return newAgreement;
+  }
+
+  async updateConstructionAgreement(id: string, agreement: Partial<ConstructionAgreement>): Promise<ConstructionAgreement | undefined> {
+    const existing = this.constructionAgreementsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...agreement, updatedAt: new Date() };
+    this.constructionAgreementsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteConstructionAgreement(id: string): Promise<boolean> {
+    return this.constructionAgreementsMap.delete(id);
+  }
+
+  // Construction Milestones
+  private constructionMilestonesMap: Map<string, ConstructionMilestone> = new Map();
+
+  async getConstructionMilestones(agreementId: string): Promise<ConstructionMilestone[]> {
+    return Array.from(this.constructionMilestonesMap.values())
+      .filter(m => m.constructionAgreementId === agreementId)
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+  }
+
+  async getConstructionMilestone(id: string): Promise<ConstructionMilestone | undefined> {
+    return this.constructionMilestonesMap.get(id);
+  }
+
+  async getConstructionMilestonesByAgreementId(agreementId: string): Promise<ConstructionMilestone[]> {
+    return this.getConstructionMilestones(agreementId);
+  }
+
+  async createConstructionMilestone(milestone: InsertConstructionMilestone): Promise<ConstructionMilestone> {
+    const id = randomUUID();
+    const newMilestone: ConstructionMilestone = {
+      ...milestone,
+      id,
+      createdAt: new Date(),
+    } as ConstructionMilestone;
+    this.constructionMilestonesMap.set(id, newMilestone);
+    return newMilestone;
+  }
+
+  async updateConstructionMilestone(id: string, milestone: Partial<ConstructionMilestone>): Promise<ConstructionMilestone | undefined> {
+    const existing = this.constructionMilestonesMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...milestone };
+    this.constructionMilestonesMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteConstructionMilestone(id: string): Promise<boolean> {
+    return this.constructionMilestonesMap.delete(id);
+  }
+
+  // O&M Contracts
+  private omContractsMap: Map<string, OmContract> = new Map();
+
+  async getOmContracts(): Promise<OmContract[]> {
+    return Array.from(this.omContractsMap.values())
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOmContract(id: string): Promise<OmContract | undefined> {
+    return this.omContractsMap.get(id);
+  }
+
+  async getOmContractsByClientId(clientId: string): Promise<OmContract[]> {
+    return Array.from(this.omContractsMap.values())
+      .filter(c => c.clientId === clientId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOmContractsBySiteId(siteId: string): Promise<OmContract[]> {
+    return Array.from(this.omContractsMap.values())
+      .filter(c => c.siteId === siteId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async createOmContract(contract: InsertOmContract): Promise<OmContract> {
+    const id = randomUUID();
+    const newContract: OmContract = {
+      ...contract,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as OmContract;
+    this.omContractsMap.set(id, newContract);
+    return newContract;
+  }
+
+  async updateOmContract(id: string, contract: Partial<OmContract>): Promise<OmContract | undefined> {
+    const existing = this.omContractsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...contract, updatedAt: new Date() };
+    this.omContractsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteOmContract(id: string): Promise<boolean> {
+    return this.omContractsMap.delete(id);
+  }
+
+  // O&M Visits
+  private omVisitsMap: Map<string, OmVisit> = new Map();
+
+  async getOmVisits(): Promise<OmVisit[]> {
+    return Array.from(this.omVisitsMap.values())
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOmVisit(id: string): Promise<OmVisit | undefined> {
+    return this.omVisitsMap.get(id);
+  }
+
+  async getOmVisitsByContractId(contractId: string): Promise<OmVisit[]> {
+    return Array.from(this.omVisitsMap.values())
+      .filter(v => v.omContractId === contractId)
+      .sort((a, b) => new Date(b.scheduledDate!).getTime() - new Date(a.scheduledDate!).getTime());
+  }
+
+  async createOmVisit(visit: InsertOmVisit): Promise<OmVisit> {
+    const id = randomUUID();
+    const newVisit: OmVisit = {
+      ...visit,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as OmVisit;
+    this.omVisitsMap.set(id, newVisit);
+    return newVisit;
+  }
+
+  async updateOmVisit(id: string, visit: Partial<OmVisit>): Promise<OmVisit | undefined> {
+    const existing = this.omVisitsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...visit, updatedAt: new Date() };
+    this.omVisitsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteOmVisit(id: string): Promise<boolean> {
+    return this.omVisitsMap.delete(id);
+  }
+
+  // O&M Performance Snapshots
+  private omPerformanceSnapshotsMap: Map<string, OmPerformanceSnapshot> = new Map();
+
+  async getOmPerformanceSnapshots(): Promise<OmPerformanceSnapshot[]> {
+    return Array.from(this.omPerformanceSnapshotsMap.values())
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getOmPerformanceSnapshot(id: string): Promise<OmPerformanceSnapshot | undefined> {
+    return this.omPerformanceSnapshotsMap.get(id);
+  }
+
+  async getOmPerformanceSnapshotsByContractId(contractId: string): Promise<OmPerformanceSnapshot[]> {
+    return Array.from(this.omPerformanceSnapshotsMap.values())
+      .filter(s => s.omContractId === contractId)
+      .sort((a, b) => new Date(b.periodStart!).getTime() - new Date(a.periodStart!).getTime());
+  }
+
+  async createOmPerformanceSnapshot(snapshot: InsertOmPerformanceSnapshot): Promise<OmPerformanceSnapshot> {
+    const id = randomUUID();
+    const newSnapshot: OmPerformanceSnapshot = {
+      ...snapshot,
+      id,
+      createdAt: new Date(),
+    } as OmPerformanceSnapshot;
+    this.omPerformanceSnapshotsMap.set(id, newSnapshot);
+    return newSnapshot;
+  }
+
+  async updateOmPerformanceSnapshot(id: string, snapshot: Partial<OmPerformanceSnapshot>): Promise<OmPerformanceSnapshot | undefined> {
+    const existing = this.omPerformanceSnapshotsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...snapshot };
+    this.omPerformanceSnapshotsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteOmPerformanceSnapshot(id: string): Promise<boolean> {
+    return this.omPerformanceSnapshotsMap.delete(id);
   }
 }
 
