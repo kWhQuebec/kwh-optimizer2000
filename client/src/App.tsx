@@ -45,6 +45,7 @@ const OmContractsPage = lazy(() => import("@/pages/om-contracts"));
 const OmVisitsPage = lazy(() => import("@/pages/om-visits"));
 const OmPerformancePage = lazy(() => import("@/pages/om-performance"));
 const PipelinePage = lazy(() => import("@/pages/pipeline"));
+const SiteVisitFormPage = lazy(() => import("@/pages/site-visit-form"));
 
 function PageLoader() {
   return (
@@ -223,6 +224,15 @@ function AppRoutes() {
               <SiteDetailPage />
             </Suspense>
           </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Mobile-friendly site visit form - no sidebar for field use */}
+      <Route path="/app/site-visit/:siteId">
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <SiteVisitFormPage />
+          </Suspense>
         </ProtectedRoute>
       </Route>
 

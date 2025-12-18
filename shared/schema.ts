@@ -262,6 +262,7 @@ export const siteVisits = pgTable("site_visits", {
   roofMaterialOther: text("roof_material_other"),
   roofAge: integer("roof_age"), // years
   anchoringPossible: boolean("anchoring_possible"), // Can we anchor or ballast?
+  anchoringMethod: text("anchoring_method"), // "ballast" | "anchored" | "carport" | "ground_mount"
   anchoringNotes: text("anchoring_notes"),
   lightningRodPresent: boolean("lightning_rod_present"),
   pvReservedAreas: text("pv_reserved_areas"), // Areas designated for PV

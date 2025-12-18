@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Link } from "wouter";
 import {
   Calendar,
   Building2,
@@ -25,6 +26,8 @@ import {
   Settings,
   FileText,
   Download,
+  Smartphone,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1597,16 +1600,29 @@ export function SiteVisitSection({ siteId, siteLat, siteLng, designAgreementStat
               : "Schedule and document on-site technical visits"}
           </CardDescription>
         </div>
-        <Button 
-          onClick={handleNewVisit} 
-          className="gap-1" 
-          disabled={!isAgreementSigned}
-          data-testid="button-new-site-visit"
-        >
-          {!isAgreementSigned && <Lock className="w-4 h-4" />}
-          {isAgreementSigned && <Plus className="w-4 h-4" />}
-          {t("siteVisit.newVisit")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href={`/app/site-visit/${siteId}`}>
+            <Button 
+              variant="outline"
+              className="gap-1" 
+              disabled={!isAgreementSigned}
+              data-testid="button-mobile-form"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span className="hidden sm:inline">{language === "fr" ? "Formulaire terrain" : "Field Form"}</span>
+            </Button>
+          </Link>
+          <Button 
+            onClick={handleNewVisit} 
+            className="gap-1" 
+            disabled={!isAgreementSigned}
+            data-testid="button-new-site-visit"
+          >
+            {!isAgreementSigned && <Lock className="w-4 h-4" />}
+            {isAgreementSigned && <Plus className="w-4 h-4" />}
+            {t("siteVisit.newVisit")}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (

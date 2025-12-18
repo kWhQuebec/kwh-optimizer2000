@@ -38,6 +38,7 @@ import { z } from "zod";
 import * as googleSolar from "./googleSolarService";
 import { sendEmail, generatePortalInvitationEmail } from "./gmail";
 import { generateProcurationPDF, createProcurationData } from "./procurationPdfGenerator";
+import { calculatePricingFromSiteVisit, getSiteVisitCompleteness, estimateConstructionCost } from "./pricing-engine";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -2081,6 +2082,82 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== PRICING ENGINE ROUTES ====================
+  
+  app.get("/api/designs/:id/pricing", authMiddleware, async (req, res) => {
+    try {
+      const designId = req.params.id;
+      const design = await storage.getDesign(designId);
+      if (!design) {
+        return res.status(404).json({ error: "Design not found" });
+      }
+      
+      const simulation = await storage.getSimulationRun(design.simulationRunId);
+      if (!simulation) {
+        return res.status(404).json({ error: "Simulation not found" });
+      }
+      
+      const visits = await storage.getSiteVisits(simulation.siteId);
+      const completedVisit = visits.find(v => v.status === "completed") || visits[0] || null;
+      
+      const pricingBreakdown = calculatePricingFromSiteVisit({
+        siteVisit: completedVisit,
+        design,
+        pvSizeKW: design.pvSizeKW || 0,
+        batteryEnergyKWh: design.batteryEnergyKWh || 0,
+      });
+      
+      const visitCompleteness = getSiteVisitCompleteness(completedVisit);
+      
+      res.json({
+        designId,
+        siteId: simulation.siteId,
+        siteVisitId: completedVisit?.id || null,
+        visitCompleteness,
+        pricing: pricingBreakdown,
+      });
+    } catch (error) {
+      console.error("Pricing calculation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/sites/:siteId/construction-estimate", authMiddleware, async (req, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      const simulations = await storage.getSimulationRuns(siteId);
+      const latestSim = simulations.find(s => s.type === "SCENARIO") || simulations[0];
+      
+      const visits = await storage.getSiteVisits(siteId);
+      const completedVisit = visits.find(v => v.status === "completed") || visits[0] || null;
+      
+      const pvSizeKW = latestSim?.pvSizeKW || 100;
+      const batteryEnergyKWh = latestSim?.battEnergyKWh || 0;
+      
+      const estimate = estimateConstructionCost(pvSizeKW, batteryEnergyKWh, completedVisit);
+      const visitCompleteness = getSiteVisitCompleteness(completedVisit);
+      
+      res.json({
+        siteId,
+        siteName: site.name,
+        pvSizeKW,
+        batteryEnergyKWh,
+        siteVisitId: completedVisit?.id || null,
+        siteVisitStatus: completedVisit?.status || "none",
+        visitCompleteness,
+        estimate,
+      });
+    } catch (error) {
+      console.error("Construction estimate error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== CATALOG ROUTES ====================
   
   app.get("/api/catalog", authMiddleware, async (req, res) => {
@@ -2571,6 +2648,67 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("Error calculating site visit cost:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Upload photos for site visit
+  app.post("/api/site-visits/photos", authMiddleware, requireStaff, upload.single("photo"), async (req: AuthRequest, res) => {
+    try {
+      const { category, siteId, visitId } = req.body;
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ error: "No photo file provided" });
+      }
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "Site ID is required" });
+      }
+      
+      // Store photo info (in production, you'd upload to cloud storage)
+      const photoRecord = {
+        id: crypto.randomUUID(),
+        siteId,
+        visitId: visitId || null,
+        category: category || "general",
+        filename: file.originalname,
+        filepath: file.path,
+        mimetype: file.mimetype,
+        size: file.size,
+        uploadedAt: new Date(),
+        uploadedBy: req.userId,
+      };
+      
+      // For now, we'll store photo metadata in a simple way
+      // In production, this would be saved to a photos table
+      console.log("Photo uploaded:", photoRecord);
+      
+      res.json({
+        success: true,
+        photo: {
+          id: photoRecord.id,
+          category: photoRecord.category,
+          filename: photoRecord.filename,
+        },
+      });
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Get photos for a site visit
+  app.get("/api/sites/:siteId/photos", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const category = req.query.category as string | undefined;
+      
+      // In production, this would fetch from a photos table
+      // For now, return empty array as photos are stored locally
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching photos:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
