@@ -102,6 +102,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { LoadProfileEditor, SingleBillEstimator, KPIDashboard } from "@/components/consumption-tools";
 import { SiteVisitSection } from "@/components/site-visit-section";
 import { DesignAgreementSection } from "@/components/design-agreement-section";
+import { ActivityFeed } from "@/components/activity-feed";
 import type { Site, Client, MeterFile, SimulationRun } from "@shared/schema";
 
 interface SiteWithDetails extends Site {
@@ -5603,6 +5604,11 @@ export default function SiteDetailPage() {
               {language === "fr" ? "Entente de design" : "Design Agreement"}
             </TabsTrigger>
           )}
+          {isStaff && (
+            <TabsTrigger value="activities" data-testid="tab-activities">
+              {t("activity.title")}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="consumption" className="space-y-6">
@@ -5869,6 +5875,16 @@ export default function SiteDetailPage() {
         {isStaff && (
           <TabsContent value="design-agreement" className="space-y-6">
             <DesignAgreementSection siteId={site.id} />
+          </TabsContent>
+        )}
+
+        {/* Activities Tab - Staff only */}
+        {isStaff && (
+          <TabsContent value="activities" className="space-y-6">
+            <ActivityFeed 
+              siteId={site.id} 
+              clientId={site.clientId}
+            />
           </TabsContent>
         )}
       </Tabs>

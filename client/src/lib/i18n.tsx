@@ -399,6 +399,9 @@ const translations: Translations = {
   "sites.siteUpdated": { fr: "Site mis à jour", en: "Site updated" },
   "sites.siteDeleted": { fr: "Site supprimé", en: "Site deleted" },
 
+  // Activities
+  "activity.title": { fr: "Activités", en: "Activities" },
+
   // Clients
   "clients.subtitle": { fr: "Gérez vos clients et leurs sites", en: "Manage your clients and their sites" },
   "clients.createError": { fr: "Erreur lors de la création", en: "Error creating client" },
