@@ -5882,6 +5882,29 @@ Pricing:
     }
   });
 
+  // Get sites with O&M contracts (for performance dashboard site selector)
+  app.get("/api/om-performance/sites", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Get all O&M contracts and extract unique site IDs
+      const contracts = await storage.getOmContracts();
+      const siteIds = [...new Set(contracts.map(c => c.siteId))];
+      
+      // Get site details for each
+      const sites = await Promise.all(
+        siteIds.map(async (siteId) => {
+          const site = await storage.getSite(siteId);
+          return site;
+        })
+      );
+      
+      // Filter out any null sites and return
+      res.json(sites.filter(Boolean));
+    } catch (error) {
+      console.error("Error fetching O&M sites:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Get performance dashboard data for a site
   app.get("/api/om-performance/dashboard/:siteId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
