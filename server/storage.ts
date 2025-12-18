@@ -240,7 +240,7 @@ export interface IStorage {
   createOpportunity(opportunity: InsertOpportunity): Promise<Opportunity>;
   updateOpportunity(id: string, opportunity: Partial<Opportunity>): Promise<Opportunity | undefined>;
   deleteOpportunity(id: string): Promise<boolean>;
-  updateOpportunityStage(id: string, stage: string, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined>;
+  updateOpportunityStage(id: string, stage: string, probability?: number, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined>;
 
   // Activities (Calls, Emails, Meetings Log)
   getActivities(): Promise<Activity[]>;
@@ -1561,12 +1561,13 @@ export class MemStorage implements IStorage {
     return this.opportunitiesMap.delete(id);
   }
 
-  async updateOpportunityStage(id: string, stage: string, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined> {
+  async updateOpportunityStage(id: string, stage: string, probability?: number, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined> {
     const existing = this.opportunitiesMap.get(id);
     if (!existing) return undefined;
     const updated: Opportunity = {
       ...existing,
       stage,
+      probability: probability ?? existing.probability,
       lostReason: lostReason ?? existing.lostReason,
       lostNotes: lostNotes ?? existing.lostNotes,
       actualCloseDate: (stage === "won" || stage === "lost") ? new Date() : existing.actualCloseDate,

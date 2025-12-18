@@ -880,9 +880,16 @@ export const opportunities = pgTable("opportunities", {
   name: text("name").notNull(), // "123 Rue Commerce - 500kW Solar"
   description: text("description"),
   
-  // Pipeline stage
-  stage: text("stage").notNull().default("prospect"), // "prospect" | "qualified" | "proposal" | "negotiation" | "won" | "lost"
-  probability: integer("probability").default(10), // % likelihood to close
+  // Pipeline stage with probability mapping:
+  // "prospect" (5%) - Nouveau site, analyse rapide en ligne
+  // "qualified" (15%) - Procuration HQ signée, analyse détaillée en cours  
+  // "proposal" (25%) - Analyse détaillée envoyée avec proposition design
+  // "design_signed" (50%) - Entente design signée, dépôt reçu
+  // "negotiation" (75%) - Proposition construction présentée, en négociation
+  // "won" (100%) - Contrat construction signé
+  // "lost" (0%) - Projet abandonné
+  stage: text("stage").notNull().default("prospect"),
+  probability: integer("probability").default(5), // % likelihood to close - auto-set by stage
   
   // Value
   estimatedValue: real("estimated_value"), // $ potential deal value

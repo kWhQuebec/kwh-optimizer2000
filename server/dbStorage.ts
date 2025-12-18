@@ -1157,11 +1157,12 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  async updateOpportunityStage(id: string, stage: string, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined> {
+  async updateOpportunityStage(id: string, stage: string, probability?: number, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined> {
     const updateData: Partial<Opportunity> = {
       stage,
       updatedAt: new Date(),
     };
+    if (probability !== undefined) updateData.probability = probability;
     if (lostReason !== undefined) updateData.lostReason = lostReason;
     if (lostNotes !== undefined) updateData.lostNotes = lostNotes;
     if (stage === "won" || stage === "lost") updateData.actualCloseDate = new Date();

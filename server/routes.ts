@@ -5657,10 +5657,10 @@ export async function registerRoutes(
     }
   });
   
-  // Update opportunity stage only (with lostReason/lostNotes if lost)
+  // Update opportunity stage only (with probability, lostReason/lostNotes if lost)
   app.post("/api/opportunities/:id/stage", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
-      const { stage, lostReason, lostNotes } = req.body;
+      const { stage, probability, lostReason, lostNotes } = req.body;
       
       if (!stage) {
         return res.status(400).json({ error: "Stage is required" });
@@ -5669,6 +5669,7 @@ export async function registerRoutes(
       const opportunity = await storage.updateOpportunityStage(
         req.params.id, 
         stage, 
+        probability,
         lostReason, 
         lostNotes
       );

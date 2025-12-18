@@ -33,16 +33,27 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Opportunity, User as UserType, Client } from "@shared/schema";
 
-const STAGES = ["prospect", "qualified", "proposal", "negotiation", "won", "lost"] as const;
+const STAGES = ["prospect", "qualified", "proposal", "design_signed", "negotiation", "won", "lost"] as const;
 type Stage = typeof STAGES[number];
 
 const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
   prospect: { fr: "Prospect", en: "Prospect" },
   qualified: { fr: "Qualifié", en: "Qualified" },
   proposal: { fr: "Proposition", en: "Proposal" },
+  design_signed: { fr: "Design signé", en: "Design Signed" },
   negotiation: { fr: "Négociation", en: "Negotiation" },
   won: { fr: "Gagné", en: "Won" },
   lost: { fr: "Perdu", en: "Lost" },
+};
+
+const STAGE_PROBABILITIES: Record<Stage, number> = {
+  prospect: 5,
+  qualified: 15,
+  proposal: 25,
+  design_signed: 50,
+  negotiation: 75,
+  won: 100,
+  lost: 0,
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -206,6 +217,7 @@ function StageColumn({
     prospect: "border-t-slate-400",
     qualified: "border-t-blue-400",
     proposal: "border-t-purple-400",
+    design_signed: "border-t-yellow-500",
     negotiation: "border-t-orange-400",
     won: "border-t-green-500",
     lost: "border-t-red-500",
@@ -272,7 +284,8 @@ export default function PipelinePage() {
 
   const stageChangeMutation = useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: Stage }) => {
-      return apiRequest("POST", `/api/opportunities/${id}/stage`, { stage });
+      const probability = STAGE_PROBABILITIES[stage];
+      return apiRequest("POST", `/api/opportunities/${id}/stage`, { stage, probability });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
@@ -381,6 +394,10 @@ export default function PipelinePage() {
 
   const activeOpportunities = filteredOpportunities.filter(o => o.stage !== "won" && o.stage !== "lost");
   const totalPipelineValue = activeOpportunities.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  const weightedPipelineValue = activeOpportunities.reduce((sum, o) => {
+    const prob = o.probability ?? STAGE_PROBABILITIES[o.stage as Stage] ?? 0;
+    return sum + ((o.estimatedValue || 0) * prob / 100);
+  }, 0);
   const wonValue = filteredOpportunities.filter(o => o.stage === "won").reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
 
   const owners = users.filter(u => u.role === "admin" || u.role === "analyst");
@@ -550,12 +567,10 @@ export default function PipelinePage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
-                  {language === "fr" ? "Valeur moyenne" : "Average Value"}
+                  {language === "fr" ? "Valeur pondérée" : "Weighted Value"}
                 </p>
-                <p className="text-xl font-bold font-mono" data-testid="stat-avg-value">
-                  ${activeOpportunities.length > 0 
-                    ? Math.round(totalPipelineValue / activeOpportunities.length).toLocaleString() 
-                    : 0}
+                <p className="text-xl font-bold font-mono" data-testid="stat-weighted-value">
+                  ${Math.round(weightedPipelineValue).toLocaleString()}
                 </p>
               </div>
             </div>
