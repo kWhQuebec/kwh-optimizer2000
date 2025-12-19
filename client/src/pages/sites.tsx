@@ -306,7 +306,6 @@ function SiteForm({
 const ITEMS_PER_PAGE = 24;
 
 export default function SitesPage() {
-  console.log("[SitesPage] Component rendering");
   const { t, language } = useI18n();
   const { toast } = useToast();
   const params = useParams<{ clientId?: string }>();
@@ -342,19 +341,11 @@ export default function SitesPage() {
   const { data: sitesData, isLoading, error, isError } = useQuery<SitesListResponse>({
     queryKey: ["/api/sites/list", queryParams],
     queryFn: async () => {
-      console.log("[sites] Fetching sites with params:", queryParams);
-      const result = await apiRequest<SitesListResponse>("GET", `/api/sites/list?${queryParams}`);
-      console.log("[sites] Received result:", result);
-      return result;
+      return await apiRequest<SitesListResponse>("GET", `/api/sites/list?${queryParams}`);
     },
-    staleTime: 0, // Always refetch on mount to avoid stale cache issues
+    staleTime: 0,
     refetchOnMount: true,
   });
-
-  // Log any errors for debugging
-  if (isError) {
-    console.error("[sites] Query error:", error);
-  }
 
   const sites = sitesData?.sites ?? [];
   const totalSites = sitesData?.total ?? 0;

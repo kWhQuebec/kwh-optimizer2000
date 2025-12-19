@@ -246,13 +246,13 @@ export class DatabaseStorage implements IStorage {
       siteIds.length > 0 
         ? db.select({ siteId: simulationRuns.siteId })
             .from(simulationRuns)
-            .where(sql`${simulationRuns.siteId} = ANY(${siteIds})`)
+            .where(inArray(simulationRuns.siteId, siteIds))
             .groupBy(simulationRuns.siteId)
         : [],
       siteIds.length > 0
         ? db.select({ siteId: designAgreements.siteId })
             .from(designAgreements)
-            .where(sql`${designAgreements.siteId} = ANY(${siteIds})`)
+            .where(inArray(designAgreements.siteId, siteIds))
             .groupBy(designAgreements.siteId)
         : []
     ]);
