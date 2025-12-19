@@ -337,16 +337,10 @@ export default function SitesPage() {
     return params.toString();
   }, [page, debouncedSearch, clientId]);
 
-  // Fetch sites with optimized endpoint
+  // Fetch sites with optimized endpoint using apiRequest (handles auth properly)
   const { data: sitesData, isLoading } = useQuery<SitesListResponse>({
     queryKey: ["/api/sites/list", queryParams],
-    queryFn: async () => {
-      const response = await fetch(`/api/sites/list?${queryParams}`, {
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch sites");
-      return response.json();
-    },
+    queryFn: () => apiRequest<SitesListResponse>("GET", `/api/sites/list?${queryParams}`),
   });
 
   const sites = sitesData?.sites ?? [];
