@@ -306,6 +306,7 @@ function SiteForm({
 const ITEMS_PER_PAGE = 24;
 
 export default function SitesPage() {
+  console.log("[SitesPage] Component rendering");
   const { t, language } = useI18n();
   const { toast } = useToast();
   const params = useParams<{ clientId?: string }>();
@@ -338,10 +339,20 @@ export default function SitesPage() {
   }, [page, debouncedSearch, clientId]);
 
   // Fetch sites with optimized endpoint using apiRequest (handles auth properly)
-  const { data: sitesData, isLoading } = useQuery<SitesListResponse>({
+  const { data: sitesData, isLoading, error, isError } = useQuery<SitesListResponse>({
     queryKey: ["/api/sites/list", queryParams],
-    queryFn: () => apiRequest<SitesListResponse>("GET", `/api/sites/list?${queryParams}`),
+    queryFn: async () => {
+      console.log("[sites] Fetching sites with params:", queryParams);
+      const result = await apiRequest<SitesListResponse>("GET", `/api/sites/list?${queryParams}`);
+      console.log("[sites] Received result:", result);
+      return result;
+    },
   });
+
+  // Log any errors for debugging
+  if (isError) {
+    console.error("[sites] Query error:", error);
+  }
 
   const sites = sitesData?.sites ?? [];
   const totalSites = sitesData?.total ?? 0;
@@ -484,7 +495,19 @@ export default function SitesPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <Card className="p-6">
+          <div className="text-center space-y-4">
+            <Building2 className="w-12 h-12 mx-auto text-destructive" />
+            <h3 className="font-semibold text-lg text-destructive">
+              {language === "fr" ? "Erreur de chargement" : "Loading Error"}
+            </h3>
+            <p className="text-muted-foreground">
+              {error?.message || (language === "fr" ? "Impossible de charger les sites" : "Failed to load sites")}
+            </p>
+          </div>
+        </Card>
+      ) : isLoading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <Card key={i}>

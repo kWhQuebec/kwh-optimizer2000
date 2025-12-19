@@ -1222,6 +1222,7 @@ export async function registerRoutes(
   // Optimized paginated sites list endpoint - lightweight, fast loading
   app.get("/api/sites/list", authMiddleware, async (req: AuthRequest, res) => {
     try {
+      console.log("[sites/list] Request received, userId:", req.userId, "userRole:", req.userRole);
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
       const offset = parseInt(req.query.offset as string) || 0;
       const search = req.query.search as string | undefined;
@@ -1231,12 +1232,16 @@ export async function registerRoutes(
         ? req.userClientId 
         : (req.query.clientId as string | undefined);
       
+      console.log("[sites/list] Params:", { limit, offset, search, clientId });
+      
       const result = await storage.getSitesListPaginated({
         limit,
         offset,
         search,
         clientId,
       });
+      
+      console.log("[sites/list] Result: total =", result.total, ", sites count =", result.sites.length);
       
       res.json(result);
     } catch (error) {
