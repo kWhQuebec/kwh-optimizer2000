@@ -15,7 +15,7 @@ import type {
   Site, InsertSite,
   MeterFile, InsertMeterFile,
   MeterReading, InsertMeterReading,
-  SimulationRun, InsertSimulationRun,
+  SimulationRun, InsertSimulationRun, SimulationRunSummary,
   Design, InsertDesign,
   BomItem, InsertBomItem,
   ComponentCatalog, InsertComponentCatalog,
@@ -270,17 +270,72 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRun[] }) | undefined> {
+  async getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRunSummary[] }) | undefined> {
+    // First get the site to get the clientId
     const [site] = await db.select().from(sites).where(eq(sites.id, id)).limit(1);
     if (!site) return undefined;
     
-    const [client] = await db.select().from(clients).where(eq(clients.id, site.clientId)).limit(1);
+    // Parallel fetch: client, meter files, and simulation runs (lightweight - excludes heavy JSON columns)
+    const [clientResult, siteFiles, simRuns] = await Promise.all([
+      db.select().from(clients).where(eq(clients.id, site.clientId)).limit(1),
+      db.select().from(meterFiles).where(eq(meterFiles.siteId, id)),
+      // Lightweight query: exclude heavy JSON columns (cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
+      db.select({
+        id: simulationRuns.id,
+        siteId: simulationRuns.siteId,
+        label: simulationRuns.label,
+        type: simulationRuns.type,
+        pvSizeKW: simulationRuns.pvSizeKW,
+        battEnergyKWh: simulationRuns.battEnergyKWh,
+        battPowerKW: simulationRuns.battPowerKW,
+        demandShavingSetpointKW: simulationRuns.demandShavingSetpointKW,
+        annualConsumptionKWh: simulationRuns.annualConsumptionKWh,
+        peakDemandKW: simulationRuns.peakDemandKW,
+        annualEnergySavingsKWh: simulationRuns.annualEnergySavingsKWh,
+        annualDemandReductionKW: simulationRuns.annualDemandReductionKW,
+        selfConsumptionKWh: simulationRuns.selfConsumptionKWh,
+        selfSufficiencyPercent: simulationRuns.selfSufficiencyPercent,
+        totalProductionKWh: simulationRuns.totalProductionKWh,
+        totalExportedKWh: simulationRuns.totalExportedKWh,
+        annualSurplusRevenue: simulationRuns.annualSurplusRevenue,
+        annualCostBefore: simulationRuns.annualCostBefore,
+        annualCostAfter: simulationRuns.annualCostAfter,
+        annualSavings: simulationRuns.annualSavings,
+        savingsYear1: simulationRuns.savingsYear1,
+        capexGross: simulationRuns.capexGross,
+        capexPV: simulationRuns.capexPV,
+        capexBattery: simulationRuns.capexBattery,
+        incentivesHQ: simulationRuns.incentivesHQ,
+        incentivesHQSolar: simulationRuns.incentivesHQSolar,
+        incentivesHQBattery: simulationRuns.incentivesHQBattery,
+        incentivesFederal: simulationRuns.incentivesFederal,
+        taxShield: simulationRuns.taxShield,
+        totalIncentives: simulationRuns.totalIncentives,
+        capexNet: simulationRuns.capexNet,
+        npv25: simulationRuns.npv25,
+        npv10: simulationRuns.npv10,
+        npv20: simulationRuns.npv20,
+        irr25: simulationRuns.irr25,
+        irr10: simulationRuns.irr10,
+        irr20: simulationRuns.irr20,
+        simplePaybackYears: simulationRuns.simplePaybackYears,
+        lcoe: simulationRuns.lcoe,
+        co2AvoidedTonnesPerYear: simulationRuns.co2AvoidedTonnesPerYear,
+        assumptions: simulationRuns.assumptions,
+        interpolatedMonths: simulationRuns.interpolatedMonths,
+        createdAt: simulationRuns.createdAt,
+      }).from(simulationRuns).where(eq(simulationRuns.siteId, id)).orderBy(desc(simulationRuns.createdAt)),
+    ]);
+    
+    const [client] = clientResult;
     if (!client) return undefined;
     
-    const siteFiles = await db.select().from(meterFiles).where(eq(meterFiles.siteId, id));
-    const simRuns = await db.select().from(simulationRuns).where(eq(simulationRuns.siteId, id)).orderBy(desc(simulationRuns.createdAt));
-    
     return { ...site, client, meterFiles: siteFiles, simulationRuns: simRuns };
+  }
+
+  async getSimulationRunFull(id: string): Promise<SimulationRun | undefined> {
+    const [run] = await db.select().from(simulationRuns).where(eq(simulationRuns.id, id)).limit(1);
+    return run;
   }
 
   async getSitesByClient(clientId: string): Promise<Site[]> {

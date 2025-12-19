@@ -6,7 +6,7 @@ import type {
   Site, InsertSite,
   MeterFile, InsertMeterFile,
   MeterReading, InsertMeterReading,
-  SimulationRun, InsertSimulationRun,
+  SimulationRun, InsertSimulationRun, SimulationRunSummary,
   Design, InsertDesign,
   BomItem, InsertBomItem,
   ComponentCatalog, InsertComponentCatalog,
@@ -58,7 +58,8 @@ export interface IStorage {
 
   // Sites
   getSites(): Promise<(Site & { client: Client })[]>;
-  getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRun[] }) | undefined>;
+  getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRunSummary[] }) | undefined>;
+  getSimulationRunFull(id: string): Promise<SimulationRun | undefined>;
   getSitesByClient(clientId: string): Promise<Site[]>;
   createSite(site: InsertSite): Promise<Site>;
   updateSite(id: string, site: Partial<Site>): Promise<Site | undefined>;
@@ -503,16 +504,18 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRun[] }) | undefined> {
+  async getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRunSummary[] }) | undefined> {
     const site = this.sites.get(id);
     if (!site) return undefined;
     const client = this.clients.get(site.clientId);
     if (!client) return undefined;
     
     // Sort simulation runs by createdAt descending so the latest is first
+    // Return lightweight summaries (exclude heavy JSON columns)
     const simRuns = Array.from(this.simulationRuns.values())
       .filter(r => r.siteId === id)
-      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+      .map(({ cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity, ...rest }) => rest);
     
     return {
       ...site,
@@ -520,6 +523,10 @@ export class MemStorage implements IStorage {
       meterFiles: Array.from(this.meterFiles.values()).filter(f => f.siteId === id),
       simulationRuns: simRuns,
     };
+  }
+
+  async getSimulationRunFull(id: string): Promise<SimulationRun | undefined> {
+    return this.simulationRuns.get(id);
   }
 
   async getSitesByClient(clientId: string): Promise<Site[]> {

@@ -3190,7 +3190,7 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   );
 }
 
-function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesignAgreement }: { simulation: SimulationRun; site: SiteWithDetails; isStaff?: boolean; onNavigateToDesignAgreement?: () => void }) {
+function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesignAgreement, isLoadingFullData = false }: { simulation: SimulationRun; site: SiteWithDetails; isStaff?: boolean; onNavigateToDesignAgreement?: () => void; isLoadingFullData?: boolean }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [showIncentives, setShowIncentives] = useState(true);
@@ -4117,7 +4117,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
       )}
 
       {/* Section: Analysis & Optimization */}
-      {simulation.sensitivity && (
+      {(simulation.sensitivity || isLoadingFullData) && (
         <>
           <SectionDivider 
             title={language === "fr" ? "Analyse et optimisation" : "Analysis & Optimization"} 
@@ -4135,6 +4135,16 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
                 : "Scenario comparison and system sizing optimization"}
             </CardDescription>
           </CardHeader>
+          {isLoadingFullData && !simulation.sensitivity ? (
+            <CardContent className="py-12">
+              <div className="flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" ? "Chargement des données d'analyse..." : "Loading analysis data..."}
+                </p>
+              </div>
+            </CardContent>
+          ) : (
           <CardContent className="space-y-8">
             {/* Efficiency Frontier Chart */}
             <div>
@@ -4802,6 +4812,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
               </div>
             </div>
           </CardContent>
+          )}
         </Card>
         </>
       )}
@@ -5284,6 +5295,10 @@ export default function SiteDetailPage() {
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
   const pendingNewSimulationIdRef = useRef<string | null>(null); // Track newly created simulation ID across data refresh
   const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
+  
+  // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
+  const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
+  const [loadingFullSimulation, setLoadingFullSimulation] = useState<string | null>(null);
 
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
     queryKey: ["/api/sites", id],
@@ -5399,6 +5414,23 @@ export default function SiteDetailPage() {
     }
   }, [site]);
 
+  // Fetch full simulation data (with heavy JSON columns) for a specific simulation
+  const fetchFullSimulation = useCallback(async (simulationId: string) => {
+    if (fullSimulationRuns.has(simulationId)) return fullSimulationRuns.get(simulationId);
+    
+    setLoadingFullSimulation(simulationId);
+    try {
+      const data = await apiRequest<SimulationRun>("GET", `/api/simulation-runs/${simulationId}/full`);
+      setFullSimulationRuns(prev => new Map(prev).set(simulationId, data));
+      return data;
+    } catch (error) {
+      console.error("Error fetching full simulation:", error);
+      return null;
+    } finally {
+      setLoadingFullSimulation(null);
+    }
+  }, [fullSimulationRuns]);
+
   // Get valid scenarios for comparison
   const validScenarios = site?.simulationRuns?.filter(s => 
     s.type === "SCENARIO" && 
@@ -5462,6 +5494,34 @@ export default function SiteDetailPage() {
   const latestSimulation = selectedSimulationId && selectedSimulationId !== "__latest__"
     ? site?.simulationRuns?.find(s => s.id === selectedSimulationId)
     : (mostRecentSimulationFromAll || bestScenarioByNPV || site?.simulationRuns?.find(s => s.type === "SCENARIO") || site?.simulationRuns?.[0]);
+
+  // Auto-fetch full simulation data when viewing analysis tab
+  useEffect(() => {
+    if (activeTab === "analysis") {
+      // Determine which simulation to fetch (selected or latest)
+      const targetSimId = selectedSimulationId && selectedSimulationId !== "__latest__"
+        ? selectedSimulationId
+        : (mostRecentSimulationFromAll?.id || site?.simulationRuns?.[0]?.id || null);
+      
+      if (targetSimId && !fullSimulationRuns.has(targetSimId)) {
+        fetchFullSimulation(targetSimId);
+      }
+    }
+  }, [activeTab, selectedSimulationId, mostRecentSimulationFromAll?.id, site?.simulationRuns, fullSimulationRuns, fetchFullSimulation]);
+
+  // Get full simulation with heavy data (merges lightweight + full data)
+  const getFullSimulation = useCallback((simId: string): SimulationRun | null => {
+    const full = fullSimulationRuns.get(simId);
+    if (full) return full;
+    // Return lightweight version if full not loaded yet
+    const lightweight = site?.simulationRuns?.find(s => s.id === simId);
+    return lightweight || null;
+  }, [fullSimulationRuns, site?.simulationRuns]);
+
+  // Check if full data is loaded for a simulation
+  const isFullDataLoaded = useCallback((simId: string): boolean => {
+    return fullSimulationRuns.has(simId);
+  }, [fullSimulationRuns]);
 
   if (isLoading) {
     return (
@@ -5920,7 +5980,13 @@ export default function SiteDetailPage() {
               </CardContent>
             </Card>
           ) : latestSimulation ? (
-            <AnalysisResults simulation={latestSimulation} site={site} isStaff={isStaff} onNavigateToDesignAgreement={() => setActiveTab("design-agreement")} />
+            <AnalysisResults 
+              simulation={getFullSimulation(latestSimulation.id) || latestSimulation} 
+              site={site} 
+              isStaff={isStaff} 
+              onNavigateToDesignAgreement={() => setActiveTab("design-agreement")}
+              isLoadingFullData={loadingFullSimulation === latestSimulation.id || !isFullDataLoaded(latestSimulation.id)}
+            />
           ) : (
             <Card>
               <CardContent className="py-16 text-center">

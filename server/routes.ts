@@ -1905,6 +1905,20 @@ export async function registerRoutes(
     }
   });
 
+  // Get full simulation run with heavy data (for analysis display)
+  app.get("/api/simulation-runs/:id/full", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const run = await storage.getSimulationRunFull(req.params.id);
+      if (!run) {
+        return res.status(404).json({ error: "Simulation run not found" });
+      }
+      res.json(run);
+    } catch (error) {
+      console.error("Error fetching full simulation run:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // PDF Report Generation - Professional multi-page report
   app.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req: AuthRequest, res) => {
     try {

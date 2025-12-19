@@ -1226,6 +1226,9 @@ export type MeterReading = typeof meterReadings.$inferSelect;
 export type InsertSimulationRun = z.infer<typeof insertSimulationRunSchema>;
 export type SimulationRun = typeof simulationRuns.$inferSelect;
 
+// Lightweight simulation run summary (excludes heavy JSON columns for faster loading)
+export type SimulationRunSummary = Omit<SimulationRun, 'cashflows' | 'breakdown' | 'hourlyProfile' | 'peakWeekData' | 'sensitivity'>;
+
 export type InsertDesign = z.infer<typeof insertDesignSchema>;
 export type Design = typeof designs.$inferSelect;
 
