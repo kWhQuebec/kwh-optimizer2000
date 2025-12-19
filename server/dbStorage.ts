@@ -167,6 +167,109 @@ export class DatabaseStorage implements IStorage {
     })).filter(s => s.client);
   }
 
+  // Optimized lightweight query for sites list - excludes heavy JSON columns
+  async getSitesListPaginated(options: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+    clientId?: string;
+  } = {}): Promise<{
+    sites: Array<{
+      id: string;
+      name: string;
+      address: string | null;
+      city: string | null;
+      province: string | null;
+      postalCode: string | null;
+      analysisAvailable: boolean | null;
+      createdAt: Date | null;
+      clientId: string;
+      clientName: string;
+      hasSimulation: boolean;
+      hasDesignAgreement: boolean;
+    }>;
+    total: number;
+  }> {
+    const { limit = 50, offset = 0, search, clientId } = options;
+    
+    // Build lightweight query - only essential columns, no heavy JSON
+    let query = db.select({
+      id: sites.id,
+      name: sites.name,
+      address: sites.address,
+      city: sites.city,
+      province: sites.province,
+      postalCode: sites.postalCode,
+      analysisAvailable: sites.analysisAvailable,
+      createdAt: sites.createdAt,
+      clientId: sites.clientId,
+      clientName: clients.name,
+    })
+    .from(sites)
+    .innerJoin(clients, eq(sites.clientId, clients.id))
+    .orderBy(desc(sites.createdAt));
+    
+    // Apply filters
+    const conditions = [];
+    if (clientId) {
+      conditions.push(eq(sites.clientId, clientId));
+    }
+    if (search) {
+      const searchLower = `%${search.toLowerCase()}%`;
+      conditions.push(
+        sql`(LOWER(${sites.name}) LIKE ${searchLower} OR LOWER(${clients.name}) LIKE ${searchLower} OR LOWER(${sites.city}) LIKE ${searchLower})`
+      );
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
+    }
+    
+    // Get total count (without limit/offset)
+    const countQuery = db.select({ count: sql<number>`count(*)` })
+      .from(sites)
+      .innerJoin(clients, eq(sites.clientId, clients.id));
+    
+    if (conditions.length > 0) {
+      (countQuery as any).where(and(...conditions));
+    }
+    
+    const [{ count: total }] = await countQuery;
+    
+    // Apply pagination
+    const paginatedSites = await query.limit(limit).offset(offset);
+    
+    // Get simulation and design agreement status in bulk (much faster than per-site)
+    const siteIds = paginatedSites.map(s => s.id);
+    
+    const [simulations, agreements] = await Promise.all([
+      siteIds.length > 0 
+        ? db.select({ siteId: simulationRuns.siteId })
+            .from(simulationRuns)
+            .where(sql`${simulationRuns.siteId} = ANY(${siteIds})`)
+            .groupBy(simulationRuns.siteId)
+        : [],
+      siteIds.length > 0
+        ? db.select({ siteId: designAgreements.siteId })
+            .from(designAgreements)
+            .where(sql`${designAgreements.siteId} = ANY(${siteIds})`)
+            .groupBy(designAgreements.siteId)
+        : []
+    ]);
+    
+    const sitesWithSim = new Set(simulations.map(s => s.siteId));
+    const sitesWithAgreement = new Set(agreements.map(a => a.siteId));
+    
+    return {
+      sites: paginatedSites.map(site => ({
+        ...site,
+        hasSimulation: sitesWithSim.has(site.id),
+        hasDesignAgreement: sitesWithAgreement.has(site.id),
+      })),
+      total: Number(total),
+    };
+  }
+
   async getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRun[] }) | undefined> {
     const [site] = await db.select().from(sites).where(eq(sites.id, id)).limit(1);
     if (!site) return undefined;

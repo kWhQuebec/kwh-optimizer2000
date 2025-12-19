@@ -30,11 +30,6 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -216,23 +211,17 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {staffMainItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
-                      <Tooltip delayDuration={500}>
-                        <TooltipTrigger asChild>
-                          <SidebarMenuButton 
-                            asChild 
-                            isActive={isActive(item.url)}
-                            data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                          >
-                            <Link href={item.url}>
-                              <item.icon className="w-4 h-4" />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[200px]">
-                          <p className="text-xs">{item.tooltip}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive(item.url)}
+                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                        title={item.tooltip}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
@@ -245,23 +234,17 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {staffAnalysisItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
-                      <Tooltip delayDuration={500}>
-                        <TooltipTrigger asChild>
-                          <SidebarMenuButton 
-                            asChild 
-                            isActive={isActive(item.url)}
-                            data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                          >
-                            <Link href={item.url}>
-                              <item.icon className="w-4 h-4" />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[200px]">
-                          <p className="text-xs">{item.tooltip}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive(item.url)}
+                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                        title={item.tooltip}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
@@ -275,23 +258,17 @@ export function AppSidebar() {
                   <SidebarMenu>
                     {adminItems.map((item) => (
                       <SidebarMenuItem key={item.url}>
-                        <Tooltip delayDuration={500}>
-                          <TooltipTrigger asChild>
-                            <SidebarMenuButton 
-                              asChild 
-                              isActive={isActive(item.url)}
-                              data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                            >
-                              <Link href={item.url}>
-                                <item.icon className="w-4 h-4" />
-                                <span>{item.title}</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-[200px]">
-                            <p className="text-xs">{item.tooltip}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={isActive(item.url)}
+                          data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                          title={item.tooltip}
+                        >
+                          <Link href={item.url}>
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
                   </SidebarMenu>

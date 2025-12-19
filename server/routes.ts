@@ -1219,6 +1219,32 @@ export async function registerRoutes(
 
   // ==================== SITE ROUTES ====================
   
+  // Optimized paginated sites list endpoint - lightweight, fast loading
+  app.get("/api/sites/list", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const offset = parseInt(req.query.offset as string) || 0;
+      const search = req.query.search as string | undefined;
+      
+      // Client users only see their own sites
+      const clientId = req.userRole === "client" && req.userClientId 
+        ? req.userClientId 
+        : (req.query.clientId as string | undefined);
+      
+      const result = await storage.getSitesListPaginated({
+        limit,
+        offset,
+        search,
+        clientId,
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching sites list:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
   app.get("/api/sites", authMiddleware, async (req: AuthRequest, res) => {
     try {
       let sites: Awaited<ReturnType<typeof storage.getSites>>;

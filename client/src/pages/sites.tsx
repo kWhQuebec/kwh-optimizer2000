@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,27 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Client, Site } from "@shared/schema";
 
+// Lightweight site type for list view
+interface SiteListItem {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  province: string | null;
+  postalCode: string | null;
+  analysisAvailable: boolean | null;
+  createdAt: string | null;
+  clientId: string;
+  clientName: string;
+  hasSimulation: boolean;
+  hasDesignAgreement: boolean;
+}
+
+interface SitesListResponse {
+  sites: SiteListItem[];
+  total: number;
+}
+
 const siteFormSchema = z.object({
   name: z.string().min(1, "Ce champ est requis"),
   clientId: z.string().min(1, "Ce champ est requis"),
@@ -32,11 +53,7 @@ const siteFormSchema = z.object({
 
 type SiteFormValues = z.infer<typeof siteFormSchema>;
 
-interface SiteWithClient extends Site {
-  client: Client;
-}
-
-function SiteCard({ site, onEdit, onDelete }: { site: SiteWithClient; onEdit: () => void; onDelete: () => void }) {
+function SiteCard({ site, onEdit, onDelete }: { site: SiteListItem; onEdit: () => void; onDelete: () => void }) {
   const { t } = useI18n();
 
   return (
@@ -50,13 +67,13 @@ function SiteCard({ site, onEdit, onDelete }: { site: SiteWithClient; onEdit: ()
               </div>
               <div className="min-w-0">
                 <h3 className="font-semibold truncate">{site.name}</h3>
-                {site.client ? (
+                {site.clientName ? (
                   <Link 
-                    href={`/app/clients/${site.client.id}/sites`}
+                    href={`/app/clients/${site.clientId}/sites`}
                     className="text-sm text-muted-foreground hover:text-primary hover:underline cursor-pointer truncate block"
-                    data-testid={`link-client-${site.client.id}`}
+                    data-testid={`link-client-${site.clientId}`}
                   >
-                    {site.client.name}
+                    {site.clientName}
                   </Link>
                 ) : (
                   <p className="text-sm text-muted-foreground truncate">—</p>
@@ -120,6 +137,17 @@ function SiteCard({ site, onEdit, onDelete }: { site: SiteWithClient; onEdit: ()
   );
 }
 
+type SiteFormInput = {
+  id?: string;
+  clientId?: string;
+  name?: string;
+  address?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postalCode?: string | null;
+  notes?: string | null;
+};
+
 function SiteForm({ 
   site, 
   clients,
@@ -127,7 +155,7 @@ function SiteForm({
   onCancel, 
   isLoading 
 }: { 
-  site?: Site; 
+  site?: SiteFormInput; 
   clients: Client[];
   onSubmit: (data: SiteFormValues) => void; 
   onCancel: () => void; 
@@ -275,23 +303,55 @@ function SiteForm({
   );
 }
 
+const ITEMS_PER_PAGE = 24;
+
 export default function SitesPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { toast } = useToast();
   const params = useParams<{ clientId?: string }>();
   const clientId = params.clientId;
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingSite, setEditingSite] = useState<Site | null>(null);
+  const [editingSite, setEditingSite] = useState<SiteListItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(0);
 
-  // Fetch all sites
-  const { data: allSites, isLoading } = useQuery<SiteWithClient[]>({
-    queryKey: ["/api/sites"],
+  // Debounce search input
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    setPage(0); // Reset to first page on search
+    // Debounce the actual API call
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearch(value);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Build query params
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("limit", String(ITEMS_PER_PAGE));
+    params.set("offset", String(page * ITEMS_PER_PAGE));
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (clientId) params.set("clientId", clientId);
+    return params.toString();
+  }, [page, debouncedSearch, clientId]);
+
+  // Fetch sites with optimized endpoint
+  const { data: sitesData, isLoading } = useQuery<SitesListResponse>({
+    queryKey: ["/api/sites/list", queryParams],
+    queryFn: async () => {
+      const response = await fetch(`/api/sites/list?${queryParams}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch sites");
+      return response.json();
+    },
   });
 
-  // Filter sites by clientId if provided
-  const sites = clientId 
-    ? allSites?.filter(site => site.clientId === clientId)
-    : allSites;
+  const sites = sitesData?.sites ?? [];
+  const totalSites = sitesData?.total ?? 0;
+  const totalPages = Math.ceil(totalSites / ITEMS_PER_PAGE);
 
   const { data: clients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
@@ -307,7 +367,7 @@ export default function SitesPage() {
       return apiRequest("POST", "/api/sites", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
       setDialogOpen(false);
       toast({ title: t("sites.siteCreated") });
     },
@@ -322,7 +382,7 @@ export default function SitesPage() {
       return apiRequest("PATCH", `/api/sites/${id}`, rest);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
       setEditingSite(null);
       toast({ title: t("sites.siteUpdated") });
     },
@@ -336,7 +396,7 @@ export default function SitesPage() {
       return apiRequest("DELETE", `/api/sites/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
       toast({ title: t("sites.siteDeleted") });
     },
     onError: () => {
@@ -386,13 +446,28 @@ export default function SitesPage() {
           </h1>
           <p className="text-muted-foreground mt-1">
             {currentClient 
-              ? `${sites?.length || 0} site(s) pour ce client`
-              : "Gérez les sites et leurs données de consommation"
+              ? `${totalSites} site(s) pour ce client`
+              : language === "fr" 
+                ? `${totalSites} site(s) au total`
+                : `${totalSites} site(s) total`
             }
           </p>
         </div>
         
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <div className="flex items-center gap-2">
+          {/* Search input */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder={language === "fr" ? "Rechercher..." : "Search..."}
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 w-48"
+              data-testid="input-search-sites"
+            />
+          </div>
+          
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2" disabled={!clients || clients.length === 0} data-testid="button-add-site">
               <Plus className="w-4 h-4" />
@@ -412,6 +487,7 @@ export default function SitesPage() {
             />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {isLoading ? (
@@ -464,6 +540,38 @@ export default function SitesPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(Math.max(0, page - 1))}
+            disabled={page === 0}
+            data-testid="button-prev-page"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {language === "fr" ? "Précédent" : "Previous"}
+          </Button>
+          <span className="text-sm text-muted-foreground px-3">
+            {language === "fr" 
+              ? `Page ${page + 1} de ${totalPages}`
+              : `Page ${page + 1} of ${totalPages}`
+            }
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+            disabled={page >= totalPages - 1}
+            data-testid="button-next-page"
+          >
+            {language === "fr" ? "Suivant" : "Next"}
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
       )}
 
       {/* Edit Dialog */}
