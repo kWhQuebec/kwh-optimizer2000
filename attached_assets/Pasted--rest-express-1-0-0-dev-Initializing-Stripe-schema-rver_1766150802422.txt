@@ -1,0 +1,62 @@
+
+> rest-express@1.0.0 dev
+Initializing Stripe schema...rver/index.ts
+Stripe schema ready
+{ autoExpandLists: undefined, stripeApiVersion: undefined } StripeSync initialized
+Setting up managed webhook...
+Webhook configured: https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/api/stripe/webhook/dc9cd271-772f-42fb-8d10-b8d5fd1f1f3d (UUID: dc9cd271-772f-42fb-8d10-b8d5fd1f1f3d)
+Syncing Stripe data...
+Syncing products
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing prices
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing plans
+Fetching items to sync from Stripe
+1:24:25 PM [express] serving on port 5000
+Sync complete: 0 items synced
+Syncing customers
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing subscriptions
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing subscription schedules
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing invoices
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing charges
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing setup_intents
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing payment method
+Getting payment methods for 0 customers
+Syncing payment_intents
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing tax_ids
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing credit notes
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing disputes
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing early fraud warnings
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing refunds
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Syncing checkout sessions
+Fetching items to sync from Stripe
+Sync complete: 0 items synced
+Stripe data synced

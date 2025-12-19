@@ -347,6 +347,8 @@ export default function SitesPage() {
       console.log("[sites] Received result:", result);
       return result;
     },
+    staleTime: 0, // Always refetch on mount to avoid stale cache issues
+    refetchOnMount: true,
   });
 
   // Log any errors for debugging
