@@ -30,6 +30,11 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -47,26 +52,31 @@ export function AppSidebar() {
       title: t("nav.dashboard"),
       url: "/app",
       icon: LayoutDashboard,
+      tooltip: language === "fr" ? "Vue d'ensemble du pipeline et des opportunités" : "Pipeline and opportunities overview",
     },
     {
       title: t("nav.clients"),
       url: "/app/clients",
       icon: Users,
+      tooltip: language === "fr" ? "Gérer les entreprises clientes" : "Manage client companies",
     },
     {
       title: t("nav.sites"),
       url: "/app/sites",
       icon: Building2,
+      tooltip: language === "fr" ? "Bâtiments à analyser pour projets solaires" : "Buildings to analyze for solar projects",
     },
     {
       title: language === "fr" ? "Portfolios" : "Portfolios",
       url: "/app/portfolios",
       icon: FolderKanban,
+      tooltip: language === "fr" ? "Regroupements multi-sites" : "Multi-site project groups",
     },
     {
       title: language === "fr" ? "Pipeline ventes" : "Sales Pipeline",
       url: "/app/pipeline",
       icon: Target,
+      tooltip: language === "fr" ? "Suivi des opportunités et prévisions" : "Opportunity tracking and forecasting",
     },
   ];
 
@@ -75,31 +85,37 @@ export function AppSidebar() {
       title: t("nav.analyses"),
       url: "/app/analyses",
       icon: BarChart3,
+      tooltip: language === "fr" ? "Résultats des simulations solaires" : "Solar simulation results",
     },
     {
       title: t("nav.designs"),
       url: "/app/designs",
       icon: PenTool,
+      tooltip: language === "fr" ? "Configurations d'équipement et devis" : "Equipment configurations and quotes",
     },
     {
       title: language === "fr" ? "Ententes construction" : "Construction Agreements",
       url: "/app/construction-agreements",
       icon: HardHat,
+      tooltip: language === "fr" ? "Contrats et jalons de construction" : "Construction contracts and milestones",
     },
     {
       title: language === "fr" ? "Contrats O&M" : "O&M Contracts",
       url: "/app/om-contracts",
       icon: FileCheck,
+      tooltip: language === "fr" ? "Entretien et exploitation des systèmes" : "System maintenance and operations",
     },
     {
       title: language === "fr" ? "Visites maintenance" : "Maintenance Visits",
       url: "/app/om-visits",
       icon: Wrench,
+      tooltip: language === "fr" ? "Historique des interventions terrain" : "Field intervention history",
     },
     {
       title: t("nav.catalog"),
       url: "/app/catalog",
       icon: Package,
+      tooltip: language === "fr" ? "Composants solaires et prix" : "Solar components and pricing",
     },
   ];
 
@@ -108,21 +124,25 @@ export function AppSidebar() {
       title: t("nav.userManagement") || "User Management",
       url: "/app/users",
       icon: UserCog,
+      tooltip: language === "fr" ? "Gestion des comptes utilisateurs" : "User account management",
     },
     {
       title: t("nav.procurations") || "Procurations",
       url: "/app/procurations",
       icon: FileSignature,
+      tooltip: language === "fr" ? "Autorisations d'accès aux données HQ" : "Hydro-Québec data access authorizations",
     },
     {
       title: language === "fr" ? "Intelligence marché" : "Market Intelligence",
       url: "/app/market-intelligence",
       icon: Target,
+      tooltip: language === "fr" ? "Analyses concurrentielles et tendances" : "Competitive analysis and trends",
     },
     {
       title: t("nav.methodology"),
       url: "/app/methodology",
       icon: FileText,
+      tooltip: language === "fr" ? "Documentation technique et calculs" : "Technical documentation and calculations",
     },
   ];
 
@@ -196,16 +216,23 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {staffMainItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={isActive(item.url)}
-                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                      >
-                        <Link href={item.url}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
+                      <Tooltip delayDuration={500}>
+                        <TooltipTrigger asChild>
+                          <SidebarMenuButton 
+                            asChild 
+                            isActive={isActive(item.url)}
+                            data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                          >
+                            <Link href={item.url}>
+                              <item.icon className="w-4 h-4" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[200px]">
+                          <p className="text-xs">{item.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
@@ -213,21 +240,28 @@ export function AppSidebar() {
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>{t("sidebar.analysis")}</SidebarGroupLabel>
+              <SidebarGroupLabel>{language === "fr" ? "Projets" : "Projects"}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {staffAnalysisItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={isActive(item.url)}
-                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                      >
-                        <Link href={item.url}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
+                      <Tooltip delayDuration={500}>
+                        <TooltipTrigger asChild>
+                          <SidebarMenuButton 
+                            asChild 
+                            isActive={isActive(item.url)}
+                            data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                          >
+                            <Link href={item.url}>
+                              <item.icon className="w-4 h-4" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[200px]">
+                          <p className="text-xs">{item.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
@@ -241,16 +275,23 @@ export function AppSidebar() {
                   <SidebarMenu>
                     {adminItems.map((item) => (
                       <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton 
-                          asChild 
-                          isActive={isActive(item.url)}
-                          data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                        >
-                          <Link href={item.url}>
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
+                        <Tooltip delayDuration={500}>
+                          <TooltipTrigger asChild>
+                            <SidebarMenuButton 
+                              asChild 
+                              isActive={isActive(item.url)}
+                              data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                            >
+                              <Link href={item.url}>
+                                <item.icon className="w-4 h-4" />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-[200px]">
+                            <p className="text-xs">{item.tooltip}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </SidebarMenuItem>
                     ))}
                   </SidebarMenu>

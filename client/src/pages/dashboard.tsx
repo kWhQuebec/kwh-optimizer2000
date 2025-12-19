@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
@@ -10,7 +11,12 @@ import {
   Trophy,
   AlertTriangle,
   Target,
-  ArrowRight
+  ArrowRight,
+  Sparkles,
+  Upload,
+  Play,
+  FileCheck,
+  X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -218,8 +224,106 @@ function OpportunityRow({
   );
 }
 
+function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDismiss: () => void }) {
+  const steps = [
+    {
+      icon: Building2,
+      title: language === 'fr' ? '1. Créer un site' : '1. Create a Site',
+      description: language === 'fr' 
+        ? 'Ajoutez un nouveau bâtiment à analyser' 
+        : 'Add a new building to analyze',
+      href: '/app/sites',
+      action: language === 'fr' ? 'Voir les sites' : 'View Sites'
+    },
+    {
+      icon: Upload,
+      title: language === 'fr' ? '2. Importer les données' : '2. Import Data',
+      description: language === 'fr' 
+        ? 'Téléversez les fichiers CSV d\'Hydro-Québec' 
+        : 'Upload Hydro-Québec CSV files',
+      href: '/app/sites',
+      action: null
+    },
+    {
+      icon: Play,
+      title: language === 'fr' ? '3. Lancer l\'analyse' : '3. Run Analysis',
+      description: language === 'fr' 
+        ? 'Calculez le potentiel solaire et les économies' 
+        : 'Calculate solar potential and savings',
+      href: null,
+      action: null
+    },
+    {
+      icon: FileCheck,
+      title: language === 'fr' ? '4. Générer la proposition' : '4. Generate Proposal',
+      description: language === 'fr' 
+        ? 'Créez un devis professionnel pour votre client' 
+        : 'Create a professional quote for your client',
+      href: null,
+      action: null
+    }
+  ];
+
+  return (
+    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-base">
+              {language === 'fr' ? 'Démarrage rapide' : 'Quick Start'}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {language === 'fr' ? 'Suivez ces étapes pour créer votre première analyse solaire' : 'Follow these steps to create your first solar analysis'}
+            </p>
+          </div>
+        </div>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 shrink-0" 
+          onClick={onDismiss}
+          title={language === 'fr' ? 'Masquer' : 'Dismiss'}
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="pt-2">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {steps.map((step, index) => (
+            <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
+              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                <step.icon className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm">{step.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
+                {step.href && step.action && (
+                  <Link href={step.href} className="inline-flex items-center text-xs text-primary hover:underline mt-1">
+                    {step.action}
+                    <ArrowRight className="w-3 h-3 ml-1" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const { t, language } = useI18n();
+  const [showQuickStart, setShowQuickStart] = useState(() => {
+    // Check localStorage for dismissed state
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('kwhq_quickstart_dismissed') !== 'true';
+    }
+    return true;
+  });
 
   const { data: stats, isLoading } = useQuery<PipelineStats>({
     queryKey: ["/api/dashboard/pipeline-stats"],
@@ -228,6 +332,13 @@ export default function DashboardPage() {
   const coverageRatio = stats?.weightedPipelineValue 
     ? Math.round((stats.weightedPipelineValue / 100000) * 100) // Assuming 100k as a target
     : 0;
+
+  const handleDismissQuickStart = () => {
+    setShowQuickStart(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kwhq_quickstart_dismissed', 'true');
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -247,6 +358,14 @@ export default function DashboardPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Quick Start Guide for new users */}
+      {showQuickStart && (
+        <QuickStartCard 
+          language={language as 'fr' | 'en'} 
+          onDismiss={handleDismissQuickStart} 
+        />
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

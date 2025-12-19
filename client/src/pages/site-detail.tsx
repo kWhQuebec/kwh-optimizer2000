@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, Fragment, useRef, useMemo } from "react";
+import React, { useState, useCallback, useEffect, Fragment, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useDropzone } from "react-dropzone";
@@ -25,6 +25,9 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronRight,
+  Circle,
+  CircleCheck,
+  CircleDot,
   Home,
   Calculator,
   Percent,
@@ -1141,7 +1144,7 @@ function AnalysisParametersEditor({
                   
                   {/* Roof Segments from Google Solar API */}
                   {site.roofEstimateStatus === "success" && site.roofAreaAutoDetails && (
-                    ((): JSX.Element | null => {
+                    ((): React.ReactNode => {
                       const details = site.roofAreaAutoDetails as any;
                       const segments = details?.solarPotential?.roofSegmentStats;
                       const maxSunshine = details?.solarPotential?.maxSunshineHoursPerYear;
@@ -5589,44 +5592,108 @@ export default function SiteDetailPage() {
 
       {/* Process Tabs with progression indicators */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        {/* Custom process step navigation with chevrons */}
-        <div className="flex flex-wrap items-center bg-muted/50 rounded-lg p-1 gap-1" role="presentation">
-          {/* Build tabs array based on user role */}
-          {(() => {
-            const tabs = [
-              { value: "consumption", label: t("site.consumption"), showAlways: true },
-              { value: "analysis", label: t("analysis.title"), showAlways: true },
-              { value: "site-visit", label: language === "fr" ? "Visite technique" : "Technical Visit", showAlways: false },
-              { value: "compare", label: language === "fr" ? "Comparer" : "Compare", showAlways: true },
-              { value: "design-agreement", label: language === "fr" ? "Entente de design" : "Design Agreement", showAlways: false },
-              { value: "activities", label: t("activity.title"), showAlways: false },
-            ];
-            
-            const visibleTabs = tabs.filter(tab => tab.showAlways || isStaff);
-            
-            return visibleTabs.map((tab, index) => (
-              <Fragment key={tab.value}>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab(tab.value)}
-                  className={`
-                    inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium 
-                    ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
-                    ${activeTab === tab.value 
-                      ? "bg-background text-foreground shadow-sm" 
-                      : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+        {/* Custom process step navigation with chevrons and status indicators */}
+        <div className="flex flex-wrap items-center gap-2" role="presentation">
+          <div className="flex flex-wrap items-center bg-muted/50 rounded-lg p-1 gap-1 flex-1">
+            {/* Build tabs array based on user role with step completion status */}
+            {(() => {
+              const hasConsumptionData = (site.meterFiles?.length ?? 0) > 0;
+              const hasAnalysis = !!latestSimulation;
+              const hasDesignAgreement = !!designAgreement;
+              
+              const tabs = [
+                { 
+                  value: "consumption", 
+                  label: t("site.consumption"), 
+                  showAlways: true,
+                  status: hasConsumptionData ? "complete" : "pending"
+                },
+                { 
+                  value: "analysis", 
+                  label: t("analysis.title"), 
+                  showAlways: true,
+                  status: hasAnalysis ? "complete" : hasConsumptionData ? "available" : "pending"
+                },
+                { 
+                  value: "site-visit", 
+                  label: language === "fr" ? "Visite technique" : "Technical Visit", 
+                  showAlways: false,
+                  status: hasAnalysis ? "available" : "pending"
+                },
+                { 
+                  value: "compare", 
+                  label: language === "fr" ? "Comparer" : "Compare", 
+                  showAlways: true,
+                  status: hasAnalysis ? "available" : "pending"
+                },
+                { 
+                  value: "design-agreement", 
+                  label: language === "fr" ? "Entente de design" : "Design Agreement", 
+                  showAlways: false,
+                  status: hasDesignAgreement ? "complete" : hasAnalysis ? "available" : "pending"
+                },
+              ];
+              
+              const visibleTabs = tabs.filter(tab => tab.showAlways || isStaff);
+              
+              const getStatusIcon = (status: string) => {
+                switch (status) {
+                  case "complete":
+                    return <CircleCheck className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />;
+                  case "available":
+                    return <CircleDot className="w-3.5 h-3.5 text-blue-500" />;
+                  default:
+                    return <Circle className="w-3.5 h-3.5 text-muted-foreground/50" />;
+                }
+              };
+              
+              return visibleTabs.map((tab, index) => (
+                <Fragment key={tab.value}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(tab.value)}
+                    className={`
+                      inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium 
+                      ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
+                      ${activeTab === tab.value 
+                        ? "bg-background text-foreground shadow-sm" 
+                        : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                      }
+                    `}
+                    data-testid={`tab-${tab.value}`}
+                    title={
+                      tab.status === "complete" 
+                        ? (language === "fr" ? "Complété" : "Completed")
+                        : tab.status === "available"
+                        ? (language === "fr" ? "Disponible" : "Available")
+                        : (language === "fr" ? "En attente" : "Pending")
                     }
-                  `}
-                  data-testid={`tab-${tab.value}`}
-                >
-                  {tab.label}
-                </button>
-                {index < visibleTabs.length - 1 && (
-                  <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
-                )}
-              </Fragment>
-            ));
-          })()}
+                  >
+                    {getStatusIcon(tab.status)}
+                    {tab.label}
+                  </button>
+                  {index < visibleTabs.length - 1 && (
+                    <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+                  )}
+                </Fragment>
+              ));
+            })()}
+          </div>
+          
+          {/* Separate Activities button - not part of the process flow */}
+          {isStaff && (
+            <Button
+              variant={activeTab === "activities" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("activities")}
+              className="gap-1.5"
+              data-testid="tab-activities"
+              title={language === "fr" ? "Historique des activités" : "Activity History"}
+            >
+              <Clock className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("activity.title")}</span>
+            </Button>
+          )}
         </div>
         
         {/* Hidden TabsList for Radix state management */}
@@ -5806,9 +5873,25 @@ export default function SiteDetailPage() {
                   </TableBody>
                 </Table>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>Aucun fichier importé</p>
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                    <Upload className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <h4 className="font-medium mb-1">
+                    {language === "fr" ? "Aucun fichier importé" : "No files imported"}
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3 max-w-sm mx-auto">
+                    {language === "fr" 
+                      ? "Utilisez la zone d'importation ci-dessus pour ajouter des fichiers CSV d'Hydro-Québec."
+                      : "Use the upload zone above to add Hydro-Québec CSV files."}
+                  </p>
+                  {isStaff && (
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" 
+                        ? "Formats acceptés: Données horaires ou aux 15 minutes"
+                        : "Accepted formats: Hourly or 15-minute data"}
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
