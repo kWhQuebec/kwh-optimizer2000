@@ -303,6 +303,110 @@ interface PhotoFile {
   uploading?: boolean;
 }
 
+function InlinePhotoCapture({
+  siteId,
+  visitId,
+  category,
+  label,
+}: {
+  siteId: string;
+  visitId?: string;
+  category: string;
+  label: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [photoCount, setPhotoCount] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const { language } = useI18n();
+  const { toast } = useToast();
+
+  const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append("photo", file);
+        formData.append("category", category);
+        formData.append("siteId", siteId);
+        if (visitId) {
+          formData.append("visitId", visitId);
+        }
+
+        const response = await fetch("/api/site-visits/photos", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          setPhotoCount(prev => prev + 1);
+          toast({
+            title: language === 'fr' ? 'Photo ajoutée' : 'Photo added',
+            description: label,
+          });
+        } else {
+          throw new Error("Upload failed");
+        }
+      } catch (error) {
+        toast({
+          title: language === 'fr' ? "Erreur" : "Error",
+          description: language === 'fr' ? "Échec de l'envoi de la photo" : "Failed to upload photo",
+          variant: "destructive",
+        });
+      }
+    }
+    
+    setUploading(false);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  };
+
+  const openCamera = () => {
+    if (inputRef.current) {
+      inputRef.current.setAttribute("capture", "environment");
+      inputRef.current.click();
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleCapture}
+        data-testid={`input-inline-photo-${category}`}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 shrink-0"
+        onClick={openCamera}
+        disabled={uploading}
+        data-testid={`button-inline-photo-${category}`}
+      >
+        {uploading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Camera className="w-4 h-4 text-muted-foreground hover:text-primary" />
+        )}
+      </Button>
+      {photoCount > 0 && (
+        <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+          {photoCount}
+        </Badge>
+      )}
+    </>
+  );
+}
+
 function PhotoUploader({
   siteId,
   visitId,
@@ -864,7 +968,15 @@ export default function SiteVisitFormPage() {
                     name="meterNumbers"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{language === 'fr' ? 'Numéro(s) de compteur' : 'Meter number(s)'}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>{language === 'fr' ? 'Numéro(s) de compteur' : 'Meter number(s)'}</FormLabel>
+                          <InlinePhotoCapture
+                            siteId={siteId}
+                            visitId={existingVisit?.id}
+                            category="meters"
+                            label={language === 'fr' ? 'Compteurs' : 'Meters'}
+                          />
+                        </div>
                         <FormControl>
                           <Input {...field} placeholder={language === 'fr' ? 'Ex: 12345678, 23456789' : 'E.g., 12345678, 23456789'} data-testid="input-meter-numbers" />
                         </FormControl>
@@ -960,7 +1072,15 @@ export default function SiteVisitFormPage() {
                     name="roofMaterial"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{language === 'fr' ? 'Type/matériaux de toiture' : 'Roof type/materials'}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>{language === 'fr' ? 'Type/matériaux de toiture' : 'Roof type/materials'}</FormLabel>
+                          <InlinePhotoCapture
+                            siteId={siteId}
+                            visitId={existingVisit?.id}
+                            category="roof"
+                            label={language === 'fr' ? 'Matériau de toiture' : 'Roof material'}
+                          />
+                        </div>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-roof-material">
@@ -1017,7 +1137,15 @@ export default function SiteVisitFormPage() {
                     name="anchoringMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{language === 'fr' ? "Méthode d'installation de structure PV" : 'PV structure installation method'}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>{language === 'fr' ? "Méthode d'installation de structure PV" : 'PV structure installation method'}</FormLabel>
+                          <InlinePhotoCapture
+                            siteId={siteId}
+                            visitId={existingVisit?.id}
+                            category="roof"
+                            label={language === 'fr' ? 'Ancrage' : 'Anchoring'}
+                          />
+                        </div>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-anchoring-method">
@@ -1040,7 +1168,15 @@ export default function SiteVisitFormPage() {
                     name="lightningRodPresent"
                     render={({ field }) => (
                       <FormItem className="flex items-center justify-between gap-4">
-                        <FormLabel>{language === 'fr' ? 'Paratonnerre présent' : 'Lightning rod present'}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>{language === 'fr' ? 'Paratonnerre présent' : 'Lightning rod present'}</FormLabel>
+                          <InlinePhotoCapture
+                            siteId={siteId}
+                            visitId={existingVisit?.id}
+                            category="roof"
+                            label={language === 'fr' ? 'Paratonnerre' : 'Lightning rod'}
+                          />
+                        </div>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-lightning-rod" />
                         </FormControl>
@@ -1053,7 +1189,15 @@ export default function SiteVisitFormPage() {
                     name="hasObstacles"
                     render={({ field }) => (
                       <FormItem className="flex items-center justify-between gap-4">
-                        <FormLabel>{language === 'fr' ? 'Arbres ou autres obstacles présents' : 'Trees or other obstacles present'}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>{language === 'fr' ? 'Arbres ou autres obstacles présents' : 'Trees or other obstacles present'}</FormLabel>
+                          <InlinePhotoCapture
+                            siteId={siteId}
+                            visitId={existingVisit?.id}
+                            category="obstacles"
+                            label={language === 'fr' ? 'Obstacles' : 'Obstacles'}
+                          />
+                        </div>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-obstacles" />
                         </FormControl>
@@ -1081,7 +1225,15 @@ export default function SiteVisitFormPage() {
                     name="parapetHeight"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{language === 'fr' ? 'Hauteur du parapet (m)' : 'Parapet height (m)'}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>{language === 'fr' ? 'Hauteur du parapet (m)' : 'Parapet height (m)'}</FormLabel>
+                          <InlinePhotoCapture
+                            siteId={siteId}
+                            visitId={existingVisit?.id}
+                            category="roof"
+                            label={language === 'fr' ? 'Parapet' : 'Parapet'}
+                          />
+                        </div>
                         <FormControl>
                           <Input 
                             type="number" 
@@ -1142,7 +1294,15 @@ export default function SiteVisitFormPage() {
                     name="accessMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{language === 'fr' ? "Méthode d'accès" : 'Access method'}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>{language === 'fr' ? "Méthode d'accès" : 'Access method'}</FormLabel>
+                          <InlinePhotoCapture
+                            siteId={siteId}
+                            visitId={existingVisit?.id}
+                            category="general"
+                            label={language === 'fr' ? 'Accès au toit' : 'Roof access'}
+                          />
+                        </div>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-access-method">
@@ -1212,7 +1372,15 @@ export default function SiteVisitFormPage() {
                     name="technicalRoomCovered"
                     render={({ field }) => (
                       <FormItem className="flex items-center justify-between gap-4">
-                        <FormLabel>{language === 'fr' ? 'Espace disponible' : 'Space available'}</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>{language === 'fr' ? 'Espace disponible' : 'Space available'}</FormLabel>
+                          <InlinePhotoCapture
+                            siteId={siteId}
+                            visitId={existingVisit?.id}
+                            category="electrical"
+                            label={language === 'fr' ? 'Salle technique' : 'Technical room'}
+                          />
+                        </div>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-tech-room" />
                         </FormControl>
@@ -1260,6 +1428,15 @@ export default function SiteVisitFormPage() {
                 icon={Zap}
               >
                 <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-medium">{language === 'fr' ? 'Panneau principal' : 'Main panel'}</span>
+                    <InlinePhotoCapture
+                      siteId={siteId}
+                      visitId={existingVisit?.id}
+                      category="electrical"
+                      label={language === 'fr' ? 'Panneau principal' : 'Main panel'}
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
