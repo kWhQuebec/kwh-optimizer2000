@@ -102,7 +102,7 @@ annualConsumptionKWh = totalKWh × annualizationFactor
 -   **PDF Report Generation**: Generates professional PDF analysis reports with detailed financial and technical breakdowns.
 -   **Public Landing Page & Marketing Pages**: Serves as the primary lead generation tool with sections on services, process, resources, and contact forms. All public pages are fully bilingual (FR-CA/EN-CA).
 -   **SEO Infrastructure**: Utilizes an `SEOHead` component for dynamic meta tags, Open Graph, Twitter Cards, and Schema.org JSON-LD structured data for various page types.
--   **Portfolio Management**: Allows multi-building project management, including volume pricing based on building count, aggregated KPIs, executive summary PDFs, and travel optimization estimates.
+-   **Portfolio Management**: Allows multi-building project management, including volume pricing based on building count, aggregated KPIs, executive summary PDFs, and travel optimization estimates. Supports manual override values for externally-analyzed sites (e.g., Dream RFP use case) with inline editable cells displayed in blue text.
 -   **Email Templates**: Bilingual email templates for various notifications and nurturing sequences with placeholder substitution.
 -   **Hydro-Québec Procuration System**: A 3-step wizard for electronic signature and PDF generation of Hydro-Québec data access authorization forms, including in-browser signature capture and legal metadata capture.
 -   **Construction Agreements Module**: Manages construction contracts with status tracking (draft→sent→accepted→in_progress→completed→cancelled), milestone-based payment scheduling, electronic signature capture, and Stripe payment integration. Includes deposit payment status and progress tracking.

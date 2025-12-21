@@ -3600,7 +3600,7 @@ export async function registerRoutes(
       // Fetch sites in same request
       const portfolioSites = await storage.getPortfolioSites(req.params.id);
       
-      // Pre-calculate aggregated KPIs server-side
+      // Pre-calculate aggregated KPIs server-side, using override values when present
       let totalPvSizeKW = 0;
       let totalBatteryCapacityKWh = 0;
       let totalNetCapex = 0;
@@ -3612,16 +3612,23 @@ export async function registerRoutes(
 
       for (const ps of portfolioSites) {
         const sim = ps.latestSimulation;
-        if (sim?.results) {
-          const results = sim.results as any;
-          const pvSize = results.pvSizeKW || results.optimalPvSizeKW || 0;
-          const batterySize = results.batteryCapacityKWh || results.optimalBatteryKWh || 0;
-          const netCapex = results.netCapex || 0;
-          const npv = results.npv || 0;
-          const irr = results.irr || 0;
-          const annualSavings = results.annualSavings || results.firstYearSavings || 0;
-          const co2 = results.co2AvoidedTonnes || results.annualCo2Avoided || 0;
+        const results = sim?.results as any;
+        
+        // Use override values if set, otherwise fall back to simulation values
+        const pvSize = ps.overridePvSizeKW ?? results?.pvSizeKW ?? results?.optimalPvSizeKW ?? 0;
+        const batterySize = ps.overrideBatteryKWh ?? results?.batteryCapacityKWh ?? results?.optimalBatteryKWh ?? 0;
+        const netCapex = ps.overrideCapexNet ?? results?.netCapex ?? 0;
+        const npv = ps.overrideNpv ?? results?.npv ?? 0;
+        const irr = ps.overrideIrr ?? results?.irr ?? 0;
+        const annualSavings = ps.overrideAnnualSavings ?? results?.annualSavings ?? results?.firstYearSavings ?? 0;
+        const co2 = results?.co2AvoidedTonnes ?? results?.annualCo2Avoided ?? 0;
+        
+        // Track if site has data from either source
+        const hasData = pvSize > 0 || netCapex !== 0 || npv !== 0 || annualSavings !== 0 ||
+                       ps.overridePvSizeKW != null || ps.overrideCapexNet != null ||
+                       ps.overrideNpv != null || ps.overrideAnnualSavings != null;
 
+        if (hasData || sim?.results) {
           totalPvSizeKW += pvSize;
           totalBatteryCapacityKWh += batterySize;
           totalNetCapex += netCapex;
@@ -3629,8 +3636,10 @@ export async function registerRoutes(
           totalAnnualSavings += annualSavings;
           totalCo2Avoided += co2;
           
-          if (netCapex > 0) {
+          if (netCapex > 0 && irr !== 0) {
             weightedIrrSum += irr * netCapex;
+          }
+          if (netCapex !== 0 || pvSize > 0) {
             sitesWithSimulations++;
           }
         }
@@ -3847,6 +3856,41 @@ export async function registerRoutes(
     }
   });
 
+  // Update portfolio site overrides (for externally analyzed sites)
+  app.patch("/api/portfolio-sites/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { 
+        overridePvSizeKW, 
+        overrideBatteryKWh, 
+        overrideCapexNet, 
+        overrideNpv, 
+        overrideIrr, 
+        overrideAnnualSavings,
+        notes 
+      } = req.body;
+
+      const updated = await storage.updatePortfolioSite(id, {
+        overridePvSizeKW: overridePvSizeKW !== undefined ? overridePvSizeKW : undefined,
+        overrideBatteryKWh: overrideBatteryKWh !== undefined ? overrideBatteryKWh : undefined,
+        overrideCapexNet: overrideCapexNet !== undefined ? overrideCapexNet : undefined,
+        overrideNpv: overrideNpv !== undefined ? overrideNpv : undefined,
+        overrideIrr: overrideIrr !== undefined ? overrideIrr : undefined,
+        overrideAnnualSavings: overrideAnnualSavings !== undefined ? overrideAnnualSavings : undefined,
+        notes: notes !== undefined ? notes : undefined,
+      });
+
+      if (!updated) {
+        return res.status(404).json({ error: "Portfolio site not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating portfolio site:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Generate Portfolio PDF Summary
   app.get("/api/portfolios/:id/pdf", authMiddleware, async (req: AuthRequest, res) => {
     try {
@@ -3928,7 +3972,7 @@ export async function registerRoutes(
       
       const portfolioSites = await storage.getPortfolioSites(req.params.id);
       
-      // Aggregate KPIs from all sites' latest simulations
+      // Aggregate KPIs from all sites' latest simulations OR override values
       let totalPvSizeKW = 0;
       let totalBatteryKWh = 0;
       let totalCapexNet = 0;
@@ -3939,19 +3983,34 @@ export async function registerRoutes(
       let weightedIrrSum = 0;
       
       for (const ps of portfolioSites) {
-        if (ps.latestSimulation) {
-          const sim = ps.latestSimulation;
-          totalPvSizeKW += sim.pvSizeKW || 0;
-          totalBatteryKWh += sim.battEnergyKWh || 0;
-          totalCapexNet += sim.capexNet || 0;
-          totalNpv25 += sim.npv25 || 0;
-          totalAnnualSavings += sim.annualSavings || 0;
-          totalCo2Avoided += sim.co2AvoidedTonnesPerYear || 0;
+        // Use override values if set, otherwise fall back to simulation values
+        const pvSize = ps.overridePvSizeKW ?? ps.latestSimulation?.pvSizeKW ?? 0;
+        const battKWh = ps.overrideBatteryKWh ?? ps.latestSimulation?.battEnergyKWh ?? 0;
+        const capexNet = ps.overrideCapexNet ?? ps.latestSimulation?.capexNet ?? 0;
+        const npv = ps.overrideNpv ?? ps.latestSimulation?.npv25 ?? 0;
+        const irr = ps.overrideIrr ?? ps.latestSimulation?.irr25 ?? 0;
+        const annualSavings = ps.overrideAnnualSavings ?? ps.latestSimulation?.annualSavings ?? 0;
+        const co2 = ps.latestSimulation?.co2AvoidedTonnesPerYear ?? 0; // No override for CO2
+        
+        // Only aggregate if at least one value is present (from either override or simulation)
+        const hasData = pvSize > 0 || capexNet !== 0 || npv !== 0 || annualSavings !== 0 || 
+                       ps.overridePvSizeKW != null || ps.overrideCapexNet != null || 
+                       ps.overrideNpv != null || ps.overrideAnnualSavings != null;
+        
+        if (hasData || ps.latestSimulation) {
+          totalPvSizeKW += pvSize;
+          totalBatteryKWh += battKWh;
+          totalCapexNet += capexNet;
+          totalNpv25 += npv;
+          totalAnnualSavings += annualSavings;
+          totalCo2Avoided += co2;
           
-          // For weighted IRR: weight by capex
-          const capex = sim.capexGross || 0;
-          totalCapexGross += capex;
-          weightedIrrSum += (sim.irr25 || 0) * capex;
+          // For weighted IRR: weight by capex (use capex net as proxy if no gross available)
+          const capex = ps.latestSimulation?.capexGross || capexNet || 0;
+          if (capex > 0 && irr !== 0) {
+            totalCapexGross += capex;
+            weightedIrrSum += irr * capex;
+          }
         }
       }
       

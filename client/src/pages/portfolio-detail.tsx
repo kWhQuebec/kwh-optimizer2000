@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { 
   ArrowLeft, Building2, Plus, Trash2, Calculator, FileText, 
   Zap, Battery, DollarSign, TrendingUp, Leaf, Download, Loader2,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Pencil, Check, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription 
 } from "@/components/ui/dialog";
@@ -44,6 +45,106 @@ function formatNumber(value: number | null | undefined, decimals = 0): string {
 function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return `${(value * 100).toFixed(1)}%`;
+}
+
+// Inline editable cell component for override values
+function EditableCell({
+  value,
+  overrideValue,
+  portfolioSiteId,
+  field,
+  type = "number",
+  formatFn,
+  onSave,
+  isOverride,
+}: {
+  value: number | null | undefined;
+  overrideValue: number | null | undefined;
+  portfolioSiteId: string;
+  field: string;
+  type?: "number" | "currency" | "percent";
+  formatFn: (v: number | null | undefined) => string;
+  onSave: (id: string, field: string, value: number | null) => void;
+  isOverride: boolean;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Display override if present, otherwise show simulation value
+  const displayValue = overrideValue ?? value;
+  
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+  
+  const handleStartEdit = () => {
+    // For percent, convert from decimal to percentage display
+    const initialValue = type === "percent" && displayValue != null 
+      ? (displayValue * 100).toFixed(1)
+      : displayValue?.toString() || "";
+    setEditValue(initialValue);
+    setIsEditing(true);
+  };
+  
+  const handleSave = () => {
+    let parsedValue: number | null = null;
+    const trimmed = editValue.trim();
+    
+    if (trimmed !== "") {
+      const num = parseFloat(trimmed.replace(/[^0-9.-]/g, ""));
+      if (!isNaN(num)) {
+        // For percent, convert back to decimal
+        parsedValue = type === "percent" ? num / 100 : num;
+      }
+    }
+    
+    onSave(portfolioSiteId, field, parsedValue);
+    setIsEditing(false);
+  };
+  
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") handleCancel();
+  };
+  
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          ref={inputRef}
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          className="w-20 h-7 text-right text-sm px-1"
+          data-testid={`input-edit-${field}-${portfolioSiteId}`}
+        />
+      </div>
+    );
+  }
+  
+  return (
+    <div 
+      className={`group flex items-center justify-end gap-1 cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 ${
+        isOverride ? "font-medium text-blue-600 dark:text-blue-400" : ""
+      }`}
+      onClick={handleStartEdit}
+      title={isOverride ? "Valeur manuelle (cliquer pour modifier)" : "Cliquer pour saisir une valeur manuelle"}
+      data-testid={`cell-${field}-${portfolioSiteId}`}
+    >
+      <span>{formatFn(displayValue)}</span>
+      <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+    </div>
+  );
 }
 
 function AddSiteDialog({ 
@@ -308,6 +409,32 @@ export default function PortfolioDetailPage() {
       });
     },
   });
+
+  // Mutation for updating portfolio site overrides
+  const updateOverrideMutation = useMutation({
+    mutationFn: async ({ portfolioSiteId, field, value }: { portfolioSiteId: string; field: string; value: number | null }) => {
+      const response = await apiRequest("PATCH", `/api/portfolio-sites/${portfolioSiteId}`, { [field]: value });
+      return response;
+    },
+    onSuccess: async () => {
+      // Invalidate and refetch to ensure all data is fresh
+      await queryClient.invalidateQueries({ queryKey: ["/api/portfolios", id, "full"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/portfolios", id, "full"] });
+      toast({ 
+        title: language === "fr" ? "Valeur mise à jour" : "Value updated" 
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: language === "fr" ? "Erreur lors de la mise à jour" : "Error updating value", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleSaveOverride = async (portfolioSiteId: string, field: string, value: number | null) => {
+    await updateOverrideMutation.mutateAsync({ portfolioSiteId, field, value });
+  };
 
   if (isLoading) {
     return (
@@ -592,6 +719,8 @@ export default function PortfolioDetailPage() {
                 <TableBody>
                   {portfolioSites.map((ps) => {
                     const sim = ps.latestSimulation;
+                    // Check if portfolio site has override values
+                    const psAny = ps as any; // Access override fields
                     return (
                       <TableRow key={ps.siteId}>
                         <TableCell>
@@ -604,12 +733,78 @@ export default function PortfolioDetailPage() {
                             <span className="text-muted-foreground text-sm block">{ps.site.city}</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">{formatNumber(sim?.pvSizeKW)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(sim?.battEnergyKWh)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(sim?.capexNet)}</TableCell>
-                        <TableCell className="text-right text-green-600 dark:text-green-400">{formatCurrency(sim?.npv25)}</TableCell>
-                        <TableCell className="text-right">{sim?.irr25 ? formatPercent(sim.irr25) : "—"}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(sim?.annualSavings)}</TableCell>
+                        <TableCell className="text-right">
+                          <EditableCell
+                            value={sim?.pvSizeKW}
+                            overrideValue={psAny.overridePvSizeKW}
+                            portfolioSiteId={ps.id}
+                            field="overridePvSizeKW"
+                            type="number"
+                            formatFn={formatNumber}
+                            onSave={handleSaveOverride}
+                            isOverride={psAny.overridePvSizeKW != null}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <EditableCell
+                            value={sim?.battEnergyKWh}
+                            overrideValue={psAny.overrideBatteryKWh}
+                            portfolioSiteId={ps.id}
+                            field="overrideBatteryKWh"
+                            type="number"
+                            formatFn={formatNumber}
+                            onSave={handleSaveOverride}
+                            isOverride={psAny.overrideBatteryKWh != null}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <EditableCell
+                            value={sim?.capexNet}
+                            overrideValue={psAny.overrideCapexNet}
+                            portfolioSiteId={ps.id}
+                            field="overrideCapexNet"
+                            type="currency"
+                            formatFn={formatCurrency}
+                            onSave={handleSaveOverride}
+                            isOverride={psAny.overrideCapexNet != null}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <EditableCell
+                            value={sim?.npv25}
+                            overrideValue={psAny.overrideNpv}
+                            portfolioSiteId={ps.id}
+                            field="overrideNpv"
+                            type="currency"
+                            formatFn={formatCurrency}
+                            onSave={handleSaveOverride}
+                            isOverride={psAny.overrideNpv != null}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <EditableCell
+                            value={sim?.irr25}
+                            overrideValue={psAny.overrideIrr}
+                            portfolioSiteId={ps.id}
+                            field="overrideIrr"
+                            type="percent"
+                            formatFn={formatPercent}
+                            onSave={handleSaveOverride}
+                            isOverride={psAny.overrideIrr != null}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <EditableCell
+                            value={sim?.annualSavings}
+                            overrideValue={psAny.overrideAnnualSavings}
+                            portfolioSiteId={ps.id}
+                            field="overrideAnnualSavings"
+                            type="currency"
+                            formatFn={formatCurrency}
+                            onSave={handleSaveOverride}
+                            isOverride={psAny.overrideAnnualSavings != null}
+                          />
+                        </TableCell>
                         <TableCell>
                           <Button 
                             variant="ghost" 

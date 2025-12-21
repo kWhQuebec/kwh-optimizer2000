@@ -94,7 +94,8 @@ function PortfolioCard({
 
   const status = portfolio.status || "draft";
   // Use dynamic count from sites array, fallback to stored numBuildings
-  const numBuildings = portfolio.sites?.length ?? portfolio.numBuildings ?? 0;
+  // Note: || is used instead of ?? because sites array may be empty [] (length 0 is falsy)
+  const numBuildings = portfolio.sites?.length || portfolio.numBuildings || 0;
   const discount = portfolio.volumeDiscountPercent || 0;
 
   return (

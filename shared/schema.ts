@@ -420,6 +420,15 @@ export const portfolioSites = pgTable("portfolio_sites", {
   // Order for display purposes
   displayOrder: integer("display_order").default(0),
   
+  // Manual override values for sites analyzed externally (e.g., Dream RFP)
+  // When set, these values take precedence over simulation results
+  overridePvSizeKW: real("override_pv_size_kw"),
+  overrideBatteryKWh: real("override_battery_kwh"),
+  overrideCapexNet: real("override_capex_net"),
+  overrideNpv: real("override_npv"),
+  overrideIrr: real("override_irr"), // Stored as decimal (e.g., 0.15 for 15%)
+  overrideAnnualSavings: real("override_annual_savings"),
+  
   createdAt: timestamp("created_at").defaultNow(),
 });
 
