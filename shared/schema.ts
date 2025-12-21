@@ -917,6 +917,7 @@ export const opportunities = pgTable("opportunities", {
   leadId: varchar("lead_id").references(() => leads.id),
   clientId: varchar("client_id").references(() => clients.id),
   siteId: varchar("site_id").references(() => sites.id),
+  portfolioId: varchar("portfolio_id").references(() => portfolios.id), // Link to portfolio for auto-sync of values
   
   // Basic info
   name: text("name").notNull(), // "123 Rue Commerce - 500kW Solar"

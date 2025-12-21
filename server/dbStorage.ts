@@ -639,22 +639,74 @@ export class DatabaseStorage implements IStorage {
       lost: 0,
     };
 
-    // Get all opportunities with client info
-    const allOpps = await db
+    // Get all opportunities with client info (including portfolioId for auto-sync)
+    const allOppsRaw = await db
       .select({
         id: opportunities.id,
         name: opportunities.name,
         stage: opportunities.stage,
         probability: opportunities.probability,
         estimatedValue: opportunities.estimatedValue,
+        pvSizeKW: opportunities.pvSizeKW,
         createdAt: opportunities.createdAt,
         updatedAt: opportunities.updatedAt,
         clientId: opportunities.clientId,
+        portfolioId: opportunities.portfolioId,
       })
       .from(opportunities);
 
+    // Get portfolio KPIs for opportunities linked to portfolios (auto-sync feature)
+    const portfolioIds = Array.from(new Set(allOppsRaw.filter(o => o.portfolioId).map(o => o.portfolioId!)));
+    const portfolioKPIs = new Map<string, { totalCapex: number; totalPvKW: number }>();
+    
+    if (portfolioIds.length > 0) {
+      // Get aggregated KPIs from portfolio_sites for each portfolio
+      for (const portfolioId of portfolioIds) {
+        const pSites = await db.select().from(portfolioSites).where(eq(portfolioSites.portfolioId, portfolioId));
+        const siteIds = pSites.map(ps => ps.siteId);
+        
+        // Get latest simulations for each site
+        const latestSims = new Map<string, typeof simulationRuns.$inferSelect>();
+        if (siteIds.length > 0) {
+          const sims = await db.select().from(simulationRuns).where(inArray(simulationRuns.siteId, siteIds));
+          for (const sim of sims) {
+            const existing = latestSims.get(sim.siteId);
+            if (!existing || (sim.createdAt && existing.createdAt && new Date(sim.createdAt) > new Date(existing.createdAt))) {
+              latestSims.set(sim.siteId, sim);
+            }
+          }
+        }
+        
+        // Aggregate using override values when present (same logic as /api/portfolios/:id/full)
+        let totalCapex = 0;
+        let totalPvKW = 0;
+        for (const ps of pSites) {
+          const sim = latestSims.get(ps.siteId);
+          // Prioritize override values over simulation values
+          const capex = ps.overrideCapexNet ?? sim?.capexNet ?? 0;
+          const pvKW = ps.overridePvSizeKW ?? sim?.pvSizeKW ?? 0;
+          totalCapex += capex;
+          totalPvKW += pvKW;
+        }
+        portfolioKPIs.set(portfolioId, { totalCapex, totalPvKW });
+      }
+    }
+
+    // Map opportunities with portfolio KPIs auto-synced
+    const allOpps = allOppsRaw.map(o => {
+      if (o.portfolioId && portfolioKPIs.has(o.portfolioId)) {
+        const kpis = portfolioKPIs.get(o.portfolioId)!;
+        return {
+          ...o,
+          estimatedValue: kpis.totalCapex, // Auto-sync from portfolio
+          pvSizeKW: kpis.totalPvKW,
+        };
+      }
+      return o;
+    });
+
     // Get client names
-    const clientIds = [...new Set(allOpps.filter(o => o.clientId).map(o => o.clientId!))];
+    const clientIds = Array.from(new Set(allOpps.filter(o => o.clientId).map(o => o.clientId!)));
     const clientsList = clientIds.length > 0
       ? await db.select({ id: clients.id, name: clients.name }).from(clients).where(inArray(clients.id, clientIds))
       : [];
@@ -876,7 +928,7 @@ export class DatabaseStorage implements IStorage {
     const allPortfolios = await db.select().from(portfolios).orderBy(desc(portfolios.createdAt));
     
     // Only load clients that are referenced by portfolios
-    const clientIds = [...new Set(allPortfolios.map(p => p.clientId))];
+    const clientIds = Array.from(new Set(allPortfolios.map(p => p.clientId)));
     const relevantClients = clientIds.length > 0 
       ? await db.select().from(clients).where(inArray(clients.id, clientIds))
       : [];
