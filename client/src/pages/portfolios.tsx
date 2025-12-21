@@ -39,6 +39,7 @@ type PortfolioFormValues = z.infer<typeof portfolioFormSchema>;
 
 interface PortfolioWithClient extends Portfolio {
   client?: Client;
+  sites?: { id: string }[];
 }
 
 function formatCurrency(value: number | null | undefined): string {
@@ -92,7 +93,8 @@ function PortfolioCard({
   };
 
   const status = portfolio.status || "draft";
-  const numBuildings = portfolio.numBuildings || 0;
+  // Use dynamic count from sites array, fallback to stored numBuildings
+  const numBuildings = portfolio.sites?.length ?? portfolio.numBuildings ?? 0;
   const discount = portfolio.volumeDiscountPercent || 0;
 
   return (
