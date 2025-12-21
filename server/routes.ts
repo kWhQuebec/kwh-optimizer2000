@@ -24,6 +24,7 @@ import {
   insertOpportunitySchema,
   insertActivitySchema,
   insertSiteVisitPhotoSchema,
+  insertPartnershipSchema,
   AnalysisAssumptions, 
   defaultAnalysisAssumptions, 
   CashflowEntry, 
@@ -6104,6 +6105,82 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting activity:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== PARTNERSHIPS ====================
+
+  // Get all partnerships
+  app.get("/api/partnerships", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const partnerships = await storage.getPartnerships();
+      res.json(partnerships);
+    } catch (error) {
+      console.error("Error fetching partnerships:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single partnership
+  app.get("/api/partnerships/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const partnership = await storage.getPartnership(req.params.id);
+      if (!partnership) {
+        return res.status(404).json({ error: "Partnership not found" });
+      }
+      res.json(partnership);
+    } catch (error) {
+      console.error("Error fetching partnership:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create partnership
+  app.post("/api/partnerships", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const data = insertPartnershipSchema.parse(req.body);
+      const partnership = await storage.createPartnership(data);
+      res.status(201).json(partnership);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("Error creating partnership:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update partnership
+  app.patch("/api/partnerships/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const existing = await storage.getPartnership(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Partnership not found" });
+      }
+      const data = insertPartnershipSchema.partial().parse(req.body);
+      const partnership = await storage.updatePartnership(req.params.id, data);
+      res.json(partnership);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("Error updating partnership:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete partnership
+  app.delete("/api/partnerships/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const existing = await storage.getPartnership(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Partnership not found" });
+      }
+      await storage.deletePartnership(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting partnership:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

@@ -1017,6 +1017,65 @@ export const emailLogs = pgTable("email_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ==================== PARTNERSHIPS / BUSINESS DEVELOPMENT ====================
+
+// Partnerships - Strategic business relationships (financing, technical, distribution partners)
+export const partnerships = pgTable("partnerships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Partner info
+  partnerName: text("partner_name").notNull(), // "RBC", "Rematek", "Sunbird", etc.
+  partnerType: text("partner_type").notNull(), // "financing" | "technical" | "distribution" | "supplier" | "installer" | "other"
+  
+  // Opportunity details
+  title: text("title").notNull(), // "Financement commercial RBC" or "Partenariat technique Rematek"
+  description: text("description"),
+  
+  // Status tracking
+  // "initial_contact" - Premier contact établi
+  // "discussion" - Discussions en cours
+  // "negotiation" - Négociation des termes
+  // "pending_signature" - En attente de signature
+  // "active" - Partenariat actif
+  // "on_hold" - En pause
+  // "closed" - Partenariat terminé
+  status: text("status").notNull().default("initial_contact"),
+  
+  // Potential value/impact
+  estimatedAnnualValue: real("estimated_annual_value"), // $ potential annual revenue/savings
+  strategicPriority: text("strategic_priority").default("medium"), // "low" | "medium" | "high" | "critical"
+  
+  // Contacts at the partner organization
+  primaryContactName: text("primary_contact_name"),
+  primaryContactEmail: text("primary_contact_email"),
+  primaryContactPhone: text("primary_contact_phone"),
+  primaryContactRole: text("primary_contact_role"), // "VP Sales", "Business Development Manager", etc.
+  
+  // Key dates
+  firstContactDate: timestamp("first_contact_date"),
+  lastContactDate: timestamp("last_contact_date"),
+  nextFollowUpDate: timestamp("next_follow_up_date"),
+  expectedDecisionDate: timestamp("expected_decision_date"),
+  
+  // Agreement details (if active)
+  agreementStartDate: timestamp("agreement_start_date"),
+  agreementEndDate: timestamp("agreement_end_date"),
+  agreementTerms: text("agreement_terms"), // Summary of key terms
+  
+  // Notes and documentation
+  notes: text("notes"),
+  documentLinks: text("document_links").array(), // Links to contracts, proposals, etc.
+  
+  // Tags for categorization
+  tags: text("tags").array(),
+  
+  // Assignment
+  ownerId: varchar("owner_id").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -1204,6 +1263,13 @@ export const insertActivitySchema = createInsertSchema(activities).omit({
   createdAt: true,
 });
 
+// Partnerships schema
+export const insertPartnershipSchema = createInsertSchema(partnerships).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -1294,6 +1360,9 @@ export type Opportunity = typeof opportunities.$inferSelect;
 
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
+
+export type InsertPartnership = z.infer<typeof insertPartnershipSchema>;
+export type Partnership = typeof partnerships.$inferSelect;
 
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };

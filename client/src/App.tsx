@@ -45,6 +45,7 @@ const OmContractsPage = lazy(() => import("@/pages/om-contracts"));
 const OmVisitsPage = lazy(() => import("@/pages/om-visits"));
 const OmPerformancePage = lazy(() => import("@/pages/om-performance"));
 const PipelinePage = lazy(() => import("@/pages/pipeline"));
+const PartnershipsPage = lazy(() => import("@/pages/partnerships"));
 const SiteVisitFormPage = lazy(() => import("@/pages/site-visit-form"));
 
 function PageLoader() {
@@ -397,6 +398,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <PipelinePage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Partnerships */}
+      <Route path="/app/partnerships">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <PartnershipsPage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

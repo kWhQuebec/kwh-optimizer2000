@@ -16,7 +16,8 @@ import {
   FileCheck,
   HardHat,
   Wrench,
-  Activity
+  Activity,
+  Handshake
 } from "lucide-react";
 import {
   Sidebar,
@@ -72,6 +73,12 @@ export function AppSidebar() {
       url: "/app/pipeline",
       icon: Target,
       tooltip: language === "fr" ? "Suivi des opportunités et prévisions" : "Opportunity tracking and forecasting",
+    },
+    {
+      title: language === "fr" ? "Partenariats" : "Partnerships",
+      url: "/app/partnerships",
+      icon: Handshake,
+      tooltip: language === "fr" ? "Partenaires stratégiques et développement d'affaires" : "Strategic partners and business development",
     },
   ];
 

@@ -53,7 +53,8 @@ import {
   TreePine,
   Phone,
   ArrowRight,
-  XCircle
+  XCircle,
+  Scale
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -5681,12 +5682,6 @@ export default function SiteDetailPage() {
                   status: hasAnalysis ? "available" : "pending"
                 },
                 { 
-                  value: "compare", 
-                  label: language === "fr" ? "Comparer" : "Compare", 
-                  showAlways: true,
-                  status: hasAnalysis ? "available" : "pending"
-                },
-                { 
                   value: "design-agreement", 
                   label: language === "fr" ? "Entente de design" : "Design Agreement", 
                   showAlways: false,
@@ -5761,9 +5756,9 @@ export default function SiteDetailPage() {
           <TabsTrigger value="consumption">{t("site.consumption")}</TabsTrigger>
           <TabsTrigger value="analysis">{t("analysis.title")}</TabsTrigger>
           {isStaff && <TabsTrigger value="site-visit">{language === "fr" ? "Visite technique" : "Technical Visit"}</TabsTrigger>}
-          <TabsTrigger value="compare">{language === "fr" ? "Comparer" : "Compare"}</TabsTrigger>
           {isStaff && <TabsTrigger value="design-agreement">{language === "fr" ? "Entente de design" : "Design Agreement"}</TabsTrigger>}
           {isStaff && <TabsTrigger value="activities">{t("activity.title")}</TabsTrigger>}
+          <TabsTrigger value="compare">{language === "fr" ? "Comparer" : "Compare"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="consumption" className="space-y-6">
@@ -5980,13 +5975,29 @@ export default function SiteDetailPage() {
               </CardContent>
             </Card>
           ) : latestSimulation ? (
-            <AnalysisResults 
-              simulation={getFullSimulation(latestSimulation.id) || latestSimulation} 
-              site={site} 
-              isStaff={isStaff} 
-              onNavigateToDesignAgreement={() => setActiveTab("design-agreement")}
-              isLoadingFullData={loadingFullSimulation === latestSimulation.id || !isFullDataLoaded(latestSimulation.id)}
-            />
+            <>
+              {/* Compare scenarios button - only show when there are multiple simulation runs */}
+              {(site.simulationRuns?.length ?? 0) > 1 && (
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveTab("compare")}
+                    className="gap-2"
+                    data-testid="button-compare-scenarios"
+                  >
+                    <Scale className="w-4 h-4" />
+                    {language === "fr" ? "Comparer les scénarios" : "Compare scenarios"}
+                  </Button>
+                </div>
+              )}
+              <AnalysisResults 
+                simulation={getFullSimulation(latestSimulation.id) || latestSimulation} 
+                site={site} 
+                isStaff={isStaff} 
+                onNavigateToDesignAgreement={() => setActiveTab("design-agreement")}
+                isLoadingFullData={loadingFullSimulation === latestSimulation.id || !isFullDataLoaded(latestSimulation.id)}
+              />
+            </>
           ) : (
             <Card>
               <CardContent className="py-16 text-center">

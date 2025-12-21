@@ -33,6 +33,7 @@ import type {
   OmPerformanceSnapshot, InsertOmPerformanceSnapshot,
   Opportunity, InsertOpportunity,
   Activity, InsertActivity,
+  Partnership, InsertPartnership,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -305,6 +306,13 @@ export interface IStorage {
   createActivity(activity: InsertActivity): Promise<Activity>;
   updateActivity(id: string, activity: Partial<Activity>): Promise<Activity | undefined>;
   deleteActivity(id: string): Promise<boolean>;
+
+  // Partnerships
+  getPartnerships(): Promise<Partnership[]>;
+  getPartnership(id: string): Promise<Partnership | undefined>;
+  createPartnership(data: InsertPartnership): Promise<Partnership>;
+  updatePartnership(id: string, data: Partial<InsertPartnership>): Promise<Partnership>;
+  deletePartnership(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -1765,6 +1773,13 @@ export class MemStorage implements IStorage {
   async deleteActivity(id: string): Promise<boolean> {
     return this.activitiesMap.delete(id);
   }
+
+  // Partnerships
+  async getPartnerships(): Promise<Partnership[]> { return []; }
+  async getPartnership(id: string): Promise<Partnership | undefined> { return undefined; }
+  async createPartnership(data: InsertPartnership): Promise<Partnership> { throw new Error("Not implemented"); }
+  async updatePartnership(id: string, data: Partial<InsertPartnership>): Promise<Partnership> { throw new Error("Not implemented"); }
+  async deletePartnership(id: string): Promise<void> {}
 }
 
 import { DatabaseStorage } from "./dbStorage";

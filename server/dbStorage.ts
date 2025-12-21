@@ -6,7 +6,7 @@ import {
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
   competitors, battleCards, marketNotes, marketDocuments,
   constructionAgreements, constructionMilestones, omContracts, omVisits, omPerformanceSnapshots,
-  opportunities, activities,
+  opportunities, activities, partnerships,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -42,6 +42,7 @@ import type {
   OmPerformanceSnapshot, InsertOmPerformanceSnapshot,
   Opportunity, InsertOpportunity,
   Activity, InsertActivity,
+  Partnership, InsertPartnership,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -1585,5 +1586,32 @@ export class DatabaseStorage implements IStorage {
   async deleteActivity(id: string): Promise<boolean> {
     const result = await db.delete(activities).where(eq(activities.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Partnerships
+  async getPartnerships(): Promise<Partnership[]> {
+    return db.select().from(partnerships).orderBy(desc(partnerships.updatedAt));
+  }
+
+  async getPartnership(id: string): Promise<Partnership | undefined> {
+    const [partnership] = await db.select().from(partnerships).where(eq(partnerships.id, id)).limit(1);
+    return partnership;
+  }
+
+  async createPartnership(data: InsertPartnership): Promise<Partnership> {
+    const [partnership] = await db.insert(partnerships).values(data).returning();
+    return partnership;
+  }
+
+  async updatePartnership(id: string, data: Partial<InsertPartnership>): Promise<Partnership> {
+    const [partnership] = await db.update(partnerships)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(partnerships.id, id))
+      .returning();
+    return partnership;
+  }
+
+  async deletePartnership(id: string): Promise<void> {
+    await db.delete(partnerships).where(eq(partnerships.id, id));
   }
 }
