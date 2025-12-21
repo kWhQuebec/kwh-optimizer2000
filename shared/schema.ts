@@ -1,5 +1,8 @@
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, real, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+
+// Re-export chat schema for AI integrations
+export * from "./models/chat";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 

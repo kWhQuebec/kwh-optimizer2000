@@ -17,7 +17,8 @@ import {
   HardHat,
   Wrench,
   Activity,
-  Handshake
+  Handshake,
+  Upload
 } from "lucide-react";
 import {
   Sidebar,
@@ -133,6 +134,12 @@ export function AppSidebar() {
       url: "/app/procurations",
       icon: FileSignature,
       tooltip: language === "fr" ? "Autorisations d'accès aux données HQ" : "Hydro-Québec data access authorizations",
+    },
+    {
+      title: language === "fr" ? "Import en lot" : "Batch Import",
+      url: "/app/import",
+      icon: Upload,
+      tooltip: language === "fr" ? "Importer des prospects via fichier CSV" : "Import prospects from CSV files",
     },
     {
       title: language === "fr" ? "Intelligence marché" : "Market Intelligence",

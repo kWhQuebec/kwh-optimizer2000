@@ -47,6 +47,7 @@ const OmPerformancePage = lazy(() => import("@/pages/om-performance"));
 const PipelinePage = lazy(() => import("@/pages/pipeline"));
 const PartnershipsPage = lazy(() => import("@/pages/partnerships"));
 const SiteVisitFormPage = lazy(() => import("@/pages/site-visit-form"));
+const BatchImportPage = lazy(() => import("@/pages/batch-import"));
 
 function PageLoader() {
   return (
@@ -409,6 +410,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <PartnershipsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Batch Import */}
+      <Route path="/app/import">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <BatchImportPage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

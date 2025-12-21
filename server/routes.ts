@@ -7,6 +7,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import PDFDocument from "pdfkit";
+import { GoogleGenAI } from "@google/genai";
 import {
   insertLeadSchema,
   insertClientSchema,
@@ -35,6 +36,7 @@ import {
   FrontierPoint,
   SolarSweepPoint,
   BatterySweepPoint,
+  Lead,
 } from "@shared/schema";
 import { z } from "zod";
 import * as googleSolar from "./googleSolarService";
@@ -64,6 +66,27 @@ const upload = multer({
       'application/vnd.ms-excel',
     ];
     if (allowedMimes.includes(file.mimetype) || file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  }
+});
+
+// Memory storage multer for AI batch import (needs buffer access)
+const uploadMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max for AI parsing
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain',
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(null, false);
@@ -6182,6 +6205,161 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting partnership:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== AI BATCH IMPORT ====================
+
+  // AI-powered batch import of prospects from Excel/CSV
+  app.post("/api/import/prospects/ai-parse", authMiddleware, requireStaff, uploadMemory.single("file"), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Check file type - only accept CSV for now
+      const fileName = req.file.originalname.toLowerCase();
+      if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        return res.status(400).json({ 
+          error: "Excel files not yet supported",
+          details: "Please convert your Excel file to CSV format before uploading. In Excel, use File > Save As > CSV (Comma delimited)."
+        });
+      }
+
+      // Read file content as text (CSV files only)
+      const fileContent = req.file.buffer.toString("utf-8");
+      
+      // Initialize Gemini AI
+      const ai = new GoogleGenAI({
+        apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
+        httpOptions: {
+          apiVersion: "",
+          baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+        },
+      });
+
+      // Ask Gemini to parse the file and extract prospect data
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{
+          role: "user",
+          parts: [{ text: `You are a data extraction assistant. Parse this file content and extract prospect information.
+
+For each row/entry, extract:
+- companyName (required): Company or organization name
+- contactName (required): Contact person name
+- email (required): Email address
+- phone: Phone number
+- streetAddress: Street address
+- city: City
+- province: Province (default to "Québec" if not specified)
+- postalCode: Postal code
+- estimatedMonthlyBill: Estimated monthly electricity bill in $
+- buildingType: Type of building (commercial, industrial, institutional, etc.)
+- notes: Any additional notes
+
+Return ONLY a valid JSON array of objects. Do not include any markdown formatting or explanation.
+Example output format:
+[{"companyName": "ABC Corp", "contactName": "John Doe", "email": "john@abc.com", ...}]
+
+File content:
+${fileContent}`
+          }]
+        }],
+      });
+
+      // Extract text from Gemini response
+      const candidate = response.candidates?.[0];
+      const textPart = candidate?.content?.parts?.find((part: any) => part.text);
+      const responseText = textPart?.text || "";
+      
+      // Parse the JSON response
+      let prospects: any[];
+      try {
+        // Try to extract JSON from the response
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          prospects = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("No JSON array found in response");
+        }
+      } catch (parseError) {
+        console.error("Failed to parse AI response:", responseText);
+        return res.status(422).json({ 
+          error: "Failed to parse file content",
+          details: "The AI could not extract structured data from the file. Please ensure the file contains prospect data in a recognizable format."
+        });
+      }
+
+      // Validate parsed prospects have required fields
+      const validProspects = prospects.filter((p: any) => 
+        p.companyName && p.contactName && p.email
+      );
+      const invalidCount = prospects.length - validProspects.length;
+
+      res.json({ 
+        prospects: validProspects,
+        count: validProspects.length,
+        invalidCount,
+        message: invalidCount > 0 
+          ? `Successfully parsed ${validProspects.length} prospects (${invalidCount} entries skipped due to missing required fields)`
+          : `Successfully parsed ${validProspects.length} prospects from the file`
+      });
+    } catch (error) {
+      console.error("Error in AI batch import:", error);
+      res.status(500).json({ error: "Failed to process file" });
+    }
+  });
+
+  // Batch create prospects
+  app.post("/api/import/prospects/batch", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { prospects } = req.body;
+      
+      if (!Array.isArray(prospects) || prospects.length === 0) {
+        return res.status(400).json({ error: "No prospects provided" });
+      }
+
+      const created: Lead[] = [];
+      const errors: { index: number; error: string }[] = [];
+
+      for (let i = 0; i < prospects.length; i++) {
+        try {
+          // Validate required fields
+          const prospect = prospects[i];
+          if (!prospect.companyName || !prospect.contactName || !prospect.email) {
+            errors.push({ index: i, error: "Missing required fields (companyName, contactName, email)" });
+            continue;
+          }
+
+          const lead = await storage.createLead({
+            companyName: prospect.companyName,
+            contactName: prospect.contactName,
+            email: prospect.email,
+            phone: prospect.phone || null,
+            streetAddress: prospect.streetAddress || null,
+            city: prospect.city || null,
+            province: prospect.province || "Québec",
+            postalCode: prospect.postalCode || null,
+            estimatedMonthlyBill: prospect.estimatedMonthlyBill ? parseFloat(prospect.estimatedMonthlyBill) : null,
+            buildingType: prospect.buildingType || null,
+            notes: prospect.notes || `Imported via batch import`,
+          });
+          created.push(lead);
+        } catch (err) {
+          errors.push({ index: i, error: err instanceof Error ? err.message : "Unknown error" });
+        }
+      }
+
+      res.json({
+        created: created.length,
+        errors: errors.length,
+        errorDetails: errors,
+        leads: created
+      });
+    } catch (error) {
+      console.error("Error in batch prospect creation:", error);
+      res.status(500).json({ error: "Failed to create prospects" });
     }
   });
 
