@@ -87,6 +87,9 @@ const STAGE_COLORS: Record<string, string> = {
   lost: "bg-red-500",
 };
 
+const WON_STAGES = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
+const isWonStage = (stage: string) => WON_STAGES.includes(stage);
+
 // Format currency compactly: k for < 1M, M for >= 1M
 function formatCompactCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined || value === 0) return "$0";
@@ -142,7 +145,7 @@ function StatCard({
 }
 
 function FunnelChart({ data, language }: { data: PipelineStats['stageBreakdown']; language: 'fr' | 'en' }) {
-  const activeStages = data.filter(s => s.stage !== 'won' && s.stage !== 'lost');
+  const activeStages = data.filter(s => !isWonStage(s.stage) && s.stage !== 'lost');
   const maxValue = Math.max(...activeStages.map(s => s.totalValue), 1);
   
   return (
