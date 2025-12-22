@@ -1522,44 +1522,101 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  // Portfolio auto-sync helper - applies portfolio KPIs to linked opportunities
+  private async applyPortfolioAutoSync(opps: Opportunity[]): Promise<Opportunity[]> {
+    if (opps.length === 0) return opps;
+    
+    const portfolioIds = Array.from(new Set(opps.filter(o => o.portfolioId).map(o => o.portfolioId!)));
+    if (portfolioIds.length === 0) return opps;
+    
+    const portfolioKPIs = new Map<string, { totalCapex: number; totalPvKW: number }>();
+    
+    for (const portfolioId of portfolioIds) {
+      const pSites = await db.select().from(portfolioSites).where(eq(portfolioSites.portfolioId, portfolioId));
+      const siteIds = pSites.map(ps => ps.siteId);
+      
+      const latestSims = new Map<string, typeof simulationRuns.$inferSelect>();
+      if (siteIds.length > 0) {
+        const sims = await db.select().from(simulationRuns).where(inArray(simulationRuns.siteId, siteIds));
+        for (const sim of sims) {
+          const existing = latestSims.get(sim.siteId);
+          if (!existing || (sim.createdAt && existing.createdAt && new Date(sim.createdAt) > new Date(existing.createdAt))) {
+            latestSims.set(sim.siteId, sim);
+          }
+        }
+      }
+      
+      let totalCapex = 0;
+      let totalPvKW = 0;
+      for (const ps of pSites) {
+        const sim = latestSims.get(ps.siteId);
+        const capex = ps.overrideCapexNet ?? sim?.capexNet ?? 0;
+        const pvKW = ps.overridePvSizeKW ?? sim?.pvSizeKW ?? 0;
+        totalCapex += capex;
+        totalPvKW += pvKW;
+      }
+      portfolioKPIs.set(portfolioId, { totalCapex, totalPvKW });
+    }
+
+    return opps.map(o => {
+      if (o.portfolioId && portfolioKPIs.has(o.portfolioId)) {
+        const kpis = portfolioKPIs.get(o.portfolioId)!;
+        return {
+          ...o,
+          estimatedValue: kpis.totalCapex,
+          pvSizeKW: kpis.totalPvKW,
+        };
+      }
+      return o;
+    });
+  }
+
   // Opportunities (Sales Pipeline)
   async getOpportunities(): Promise<Opportunity[]> {
-    return db.select().from(opportunities).orderBy(desc(opportunities.createdAt));
+    const opps = await db.select().from(opportunities).orderBy(desc(opportunities.createdAt));
+    return this.applyPortfolioAutoSync(opps);
   }
 
   async getOpportunity(id: string): Promise<Opportunity | undefined> {
     const result = await db.select().from(opportunities).where(eq(opportunities.id, id)).limit(1);
-    return result[0];
+    if (result.length === 0) return undefined;
+    const synced = await this.applyPortfolioAutoSync(result);
+    return synced[0];
   }
 
   async getOpportunitiesByStage(stage: string): Promise<Opportunity[]> {
-    return db.select().from(opportunities)
+    const opps = await db.select().from(opportunities)
       .where(eq(opportunities.stage, stage))
       .orderBy(desc(opportunities.createdAt));
+    return this.applyPortfolioAutoSync(opps);
   }
 
   async getOpportunitiesByLeadId(leadId: string): Promise<Opportunity[]> {
-    return db.select().from(opportunities)
+    const opps = await db.select().from(opportunities)
       .where(eq(opportunities.leadId, leadId))
       .orderBy(desc(opportunities.createdAt));
+    return this.applyPortfolioAutoSync(opps);
   }
 
   async getOpportunitiesByClientId(clientId: string): Promise<Opportunity[]> {
-    return db.select().from(opportunities)
+    const opps = await db.select().from(opportunities)
       .where(eq(opportunities.clientId, clientId))
       .orderBy(desc(opportunities.createdAt));
+    return this.applyPortfolioAutoSync(opps);
   }
 
   async getOpportunitiesBySiteId(siteId: string): Promise<Opportunity[]> {
-    return db.select().from(opportunities)
+    const opps = await db.select().from(opportunities)
       .where(eq(opportunities.siteId, siteId))
       .orderBy(desc(opportunities.createdAt));
+    return this.applyPortfolioAutoSync(opps);
   }
 
   async getOpportunitiesByOwnerId(ownerId: string): Promise<Opportunity[]> {
-    return db.select().from(opportunities)
+    const opps = await db.select().from(opportunities)
       .where(eq(opportunities.ownerId, ownerId))
       .orderBy(desc(opportunities.createdAt));
+    return this.applyPortfolioAutoSync(opps);
   }
 
   async createOpportunity(opportunity: InsertOpportunity): Promise<Opportunity> {
