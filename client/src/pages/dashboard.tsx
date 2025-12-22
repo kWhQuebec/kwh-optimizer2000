@@ -83,6 +83,15 @@ const STAGE_COLORS: Record<string, string> = {
   lost: "bg-red-500",
 };
 
+// Format currency compactly: k for < 1M, M for >= 1M
+function formatCompactCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined || value === 0) return "$0";
+  if (value >= 1000000) {
+    return `$${(value / 1000000).toFixed(1)}M`;
+  }
+  return `$${(value / 1000).toFixed(0)}k`;
+}
+
 function StatCard({ 
   title, 
   value, 
@@ -145,7 +154,7 @@ function FunnelChart({ data, language }: { data: PipelineStats['stageBreakdown']
                 <Badge variant="secondary" className="text-xs">{stage.count}</Badge>
               </div>
               <span className="font-mono text-muted-foreground">
-                ${(stage.totalValue / 1000).toFixed(0)}k
+                {formatCompactCurrency(stage.totalValue)}
               </span>
             </div>
             <div className="relative h-6 bg-muted/50 rounded overflow-hidden">
@@ -204,7 +213,7 @@ function OpportunityRow({
         <div className="flex items-center gap-2 shrink-0">
           {value && (
             <span className="font-mono text-sm font-medium" data-testid={`text-opportunity-value-${id}`}>
-              ${(value / 1000).toFixed(0)}k
+              {formatCompactCurrency(value)}
             </span>
           )}
           {badge && (
@@ -370,14 +379,14 @@ export default function DashboardPage() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title={language === 'fr' ? 'Pipeline total' : 'Total Pipeline'}
-          value={stats?.totalPipelineValue ? `$${(stats.totalPipelineValue / 1000).toFixed(0)}k` : "$0"}
+          value={formatCompactCurrency(stats?.totalPipelineValue)}
           subtitle={`${stats?.activeOpportunityCount || 0} ${language === 'fr' ? 'opportunités actives' : 'active opportunities'}`}
           icon={TrendingUp}
           loading={isLoading}
         />
         <StatCard
           title={language === 'fr' ? 'Valeur pondérée' : 'Weighted Value'}
-          value={stats?.weightedPipelineValue ? `$${(stats.weightedPipelineValue / 1000).toFixed(0)}k` : "$0"}
+          value={formatCompactCurrency(stats?.weightedPipelineValue)}
           subtitle={language === 'fr' ? 'Prévision réaliste' : 'Realistic forecast'}
           icon={Target}
           iconBg="bg-purple-500"
@@ -385,7 +394,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title={language === 'fr' ? 'Gagnées' : 'Won'}
-          value={stats?.wonValue ? `$${(stats.wonValue / 1000).toFixed(0)}k` : "$0"}
+          value={formatCompactCurrency(stats?.wonValue)}
           subtitle={`${stats?.stageBreakdown.find(s => s.stage === 'won')?.count || 0} ${language === 'fr' ? 'projets' : 'projects'}`}
           icon={Trophy}
           iconBg="bg-green-500"
