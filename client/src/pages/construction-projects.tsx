@@ -109,6 +109,54 @@ const riskConfig: Record<RiskLevel, {
   },
 };
 
+const workflowSteps: { key: ProjectStatus; labelFr: string; labelEn: string }[] = [
+  { key: "planning", labelFr: "Plan", labelEn: "Plan" },
+  { key: "mobilization", labelFr: "Mob", labelEn: "Mob" },
+  { key: "in_progress", labelFr: "Constr", labelEn: "Build" },
+  { key: "commissioning", labelFr: "Mise", labelEn: "Comm" },
+  { key: "punch_list", labelFr: "Punch", labelEn: "Punch" },
+  { key: "completed", labelFr: "Fini", labelEn: "Done" },
+];
+
+function WorkflowStepsIndicator({ currentStatus, language }: { currentStatus: ProjectStatus; language: "fr" | "en" }) {
+  const currentIndex = workflowSteps.findIndex(s => s.key === currentStatus);
+  
+  return (
+    <div className="flex items-center gap-1 w-full" data-testid="workflow-steps">
+      {workflowSteps.map((step, index) => {
+        const isCompleted = index < currentIndex;
+        const isCurrent = index === currentIndex;
+        const isPending = index > currentIndex;
+        
+        return (
+          <div key={step.key} className="flex items-center flex-1">
+            <div className="flex flex-col items-center flex-1">
+              <div 
+                className={`w-3 h-3 rounded-full flex items-center justify-center transition-colors ${
+                  isCompleted 
+                    ? "bg-green-500" 
+                    : isCurrent 
+                    ? "bg-primary ring-2 ring-primary/30" 
+                    : "bg-muted"
+                }`}
+                title={language === "fr" ? step.labelFr : step.labelEn}
+              >
+                {isCompleted && <CheckCircle2 className="w-2 h-2 text-white" />}
+              </div>
+              <span className={`text-[9px] mt-0.5 ${isCurrent ? "font-medium text-primary" : "text-muted-foreground"}`}>
+                {language === "fr" ? step.labelFr : step.labelEn}
+              </span>
+            </div>
+            {index < workflowSteps.length - 1 && (
+              <div className={`h-0.5 flex-1 mx-0.5 ${isCompleted ? "bg-green-500" : "bg-muted"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return new Intl.NumberFormat("fr-CA", {
@@ -179,6 +227,8 @@ function ProjectCard({ project }: { project: ConstructionProjectWithDetails }) {
               <span className="truncate">{siteName} • {clientName}</span>
             </div>
           </div>
+
+          <WorkflowStepsIndicator currentStatus={status} language={language} />
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
