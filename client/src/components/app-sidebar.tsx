@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
@@ -16,14 +17,16 @@ import {
   FileCheck,
   HardHat,
   Wrench,
-  Activity,
   Handshake,
   Upload,
   GanttChart,
   ListTodo,
-  Settings2,
   Gauge,
-  ClipboardList
+  ClipboardList,
+  ChevronDown,
+  Cog,
+  Hammer,
+  Settings
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +40,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -104,6 +108,12 @@ export function AppSidebar() {
       tooltip: language === "fr" ? "Configurations d'équipement et devis" : "Equipment configurations and quotes",
     },
     {
+      title: t("nav.catalog"),
+      url: "/app/catalog",
+      icon: Package,
+      tooltip: language === "fr" ? "Composants solaires et prix" : "Solar components and pricing",
+    },
+    {
       title: language === "fr" ? "Ententes de services" : "Service Agreements",
       url: "/app/construction-agreements",
       icon: ClipboardList,
@@ -152,12 +162,6 @@ export function AppSidebar() {
       url: "/app/om-performance",
       icon: Gauge,
       tooltip: language === "fr" ? "Tableau de bord performance systèmes" : "System performance dashboard",
-    },
-    {
-      title: t("nav.catalog"),
-      url: "/app/catalog",
-      icon: Package,
-      tooltip: language === "fr" ? "Composants solaires et prix" : "Solar components and pricing",
     },
   ];
 
@@ -218,6 +222,79 @@ export function AppSidebar() {
 
   const roleBadge = getRoleBadge();
 
+  // Collapsible state for each section
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    development: true,
+    engineering: true,
+    construction: false,
+    operations: false,
+    admin: false,
+  });
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Check if any item in a section is active
+  const hasSectionActiveItem = (items: typeof businessDevItems) => {
+    return items.some(item => isActive(item.url));
+  };
+
+  // Collapsible Section Component
+  const CollapsibleSection = ({ 
+    id, 
+    label, 
+    icon: Icon, 
+    items 
+  }: { 
+    id: string; 
+    label: string; 
+    icon: typeof Cog; 
+    items: typeof businessDevItems;
+  }) => {
+    const isOpen = openSections[id] || hasSectionActiveItem(items);
+    
+    return (
+      <SidebarGroup>
+        <Collapsible open={isOpen} onOpenChange={() => toggleSection(id)}>
+          <CollapsibleTrigger asChild>
+            <button 
+              className="flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
+              data-testid={`sidebar-section-${id}`}
+            >
+              <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4" />
+                <span>{label}</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <SidebarGroupContent className="mt-1">
+              <SidebarMenu>
+                {items.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive(item.url)}
+                      data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                      title={item.tooltip}
+                    >
+                      <Link href={item.url}>
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </SidebarGroup>
+    );
+  };
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
@@ -258,7 +335,7 @@ export function AppSidebar() {
 
         {isStaff && (
           <>
-            {/* Section 1: Développement Commercial */}
+            {/* Section 1: Développement Commercial - Always visible, not collapsible */}
             <SidebarGroup>
               <SidebarGroupLabel>{language === "fr" ? "Développement" : "Business Dev"}</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -282,102 +359,38 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Section 2: Ingénierie */}
-            <SidebarGroup>
-              <SidebarGroupLabel>{language === "fr" ? "Ingénierie" : "Engineering"}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {engineeringItems.map((item) => (
-                    <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={isActive(item.url)}
-                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                        title={item.tooltip}
-                      >
-                        <Link href={item.url}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {/* Section 2: Ingénierie - Collapsible */}
+            <CollapsibleSection 
+              id="engineering"
+              label={language === "fr" ? "Ingénierie" : "Engineering"}
+              icon={Cog}
+              items={engineeringItems}
+            />
 
-            {/* Section 3: Construction */}
-            <SidebarGroup>
-              <SidebarGroupLabel>{language === "fr" ? "Construction" : "Construction"}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {constructionItems.map((item) => (
-                    <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={isActive(item.url)}
-                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                        title={item.tooltip}
-                      >
-                        <Link href={item.url}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {/* Section 3: Construction - Collapsible */}
+            <CollapsibleSection 
+              id="construction"
+              label={language === "fr" ? "Construction" : "Construction"}
+              icon={Hammer}
+              items={constructionItems}
+            />
 
-            {/* Section 4: Exploitation */}
-            <SidebarGroup>
-              <SidebarGroupLabel>{language === "fr" ? "Exploitation" : "Operations"}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {operationsItems.map((item) => (
-                    <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={isActive(item.url)}
-                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                        title={item.tooltip}
-                      >
-                        <Link href={item.url}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {/* Section 4: Exploitation - Collapsible */}
+            <CollapsibleSection 
+              id="operations"
+              label={language === "fr" ? "Exploitation" : "Operations"}
+              icon={Wrench}
+              items={operationsItems}
+            />
 
-            {/* Section 5: Administration */}
+            {/* Section 5: Administration - Collapsible */}
             {isAdmin && (
-              <SidebarGroup>
-                <SidebarGroupLabel>{t("sidebar.admin") || "Administration"}</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {adminItems.map((item) => (
-                      <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton 
-                          asChild 
-                          isActive={isActive(item.url)}
-                          data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                          title={item.tooltip}
-                        >
-                          <Link href={item.url}>
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
+              <CollapsibleSection 
+                id="admin"
+                label={t("sidebar.admin") || "Administration"}
+                icon={Settings}
+                items={adminItems}
+              />
             )}
           </>
         )}

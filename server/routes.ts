@@ -6609,6 +6609,175 @@ ${fileContent}`
     }
   });
 
+  // Batch import clients
+  app.post("/api/import/clients", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { items } = req.body;
+      
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "No items provided" });
+      }
+
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
+      const errors: { index: number; error: string }[] = [];
+
+      for (let i = 0; i < items.length; i++) {
+        try {
+          const item = items[i];
+          
+          // Validate required field
+          if (!item.name || typeof item.name !== 'string' || item.name.trim() === '') {
+            errors.push({ index: i, error: "Missing required field: name" });
+            continue;
+          }
+
+          // Check for existing client by name (case-insensitive)
+          const existingClients = await storage.getClients();
+          const existingClient = existingClients.find(
+            c => c.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+          );
+
+          if (existingClient) {
+            // Update existing client
+            await storage.updateClient(existingClient.id, {
+              mainContactName: item.mainContactName || existingClient.mainContactName,
+              email: item.email || existingClient.email,
+              phone: item.phone || existingClient.phone,
+              address: item.address || existingClient.address,
+              city: item.city || existingClient.city,
+              province: item.province || existingClient.province,
+              postalCode: item.postalCode || existingClient.postalCode,
+            });
+            updated++;
+          } else {
+            // Create new client
+            await storage.createClient({
+              name: item.name.trim(),
+              mainContactName: item.mainContactName || null,
+              email: item.email || null,
+              phone: item.phone || null,
+              address: item.address || null,
+              city: item.city || null,
+              province: item.province || null,
+              postalCode: item.postalCode || null,
+            });
+            created++;
+          }
+        } catch (err) {
+          errors.push({ index: i, error: err instanceof Error ? err.message : "Unknown error" });
+        }
+      }
+
+      res.json({
+        created,
+        updated,
+        skipped,
+        errors: errors.length,
+        errorDetails: errors,
+      });
+    } catch (error) {
+      console.error("Error in batch client import:", error);
+      res.status(500).json({ error: "Failed to import clients" });
+    }
+  });
+
+  // Batch import component catalog
+  app.post("/api/import/catalog", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { items } = req.body;
+      
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "No items provided" });
+      }
+
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
+      const errors: { index: number; error: string }[] = [];
+
+      for (let i = 0; i < items.length; i++) {
+        try {
+          const item = items[i];
+          
+          // Validate required fields
+          if (!item.category || typeof item.category !== 'string' || item.category.trim() === '') {
+            errors.push({ index: i, error: "Missing required field: category" });
+            continue;
+          }
+          if (!item.manufacturer || typeof item.manufacturer !== 'string' || item.manufacturer.trim() === '') {
+            errors.push({ index: i, error: "Missing required field: manufacturer" });
+            continue;
+          }
+          if (!item.model || typeof item.model !== 'string' || item.model.trim() === '') {
+            errors.push({ index: i, error: "Missing required field: model" });
+            continue;
+          }
+
+          // Check for existing catalog item by manufacturer + model (case-insensitive)
+          const catalog = await storage.getCatalog();
+          const existingItem = catalog.find(
+            c => c.manufacturer.toLowerCase().trim() === item.manufacturer.toLowerCase().trim() &&
+                 c.model.toLowerCase().trim() === item.model.toLowerCase().trim()
+          );
+
+          // Parse specJson if it's a string
+          let specJson = item.specJson;
+          if (typeof specJson === 'string' && specJson.trim()) {
+            try {
+              specJson = JSON.parse(specJson);
+            } catch {
+              specJson = null;
+            }
+          }
+
+          // Parse numeric values
+          const unitCost = item.unitCost ? parseFloat(String(item.unitCost)) : null;
+          const unitSellPrice = item.unitSellPrice ? parseFloat(String(item.unitSellPrice)) : null;
+          const active = item.active !== undefined ? Boolean(item.active) : true;
+
+          if (existingItem) {
+            // Update existing catalog item
+            await storage.updateCatalogItem(existingItem.id, {
+              category: item.category.trim().toUpperCase(),
+              specJson: specJson || existingItem.specJson,
+              unitCost: unitCost !== null && !isNaN(unitCost) ? unitCost : existingItem.unitCost,
+              unitSellPrice: unitSellPrice !== null && !isNaN(unitSellPrice) ? unitSellPrice : existingItem.unitSellPrice,
+              active,
+            });
+            updated++;
+          } else {
+            // Create new catalog item
+            await storage.createCatalogItem({
+              category: item.category.trim().toUpperCase(),
+              manufacturer: item.manufacturer.trim(),
+              model: item.model.trim(),
+              specJson: specJson || null,
+              unitCost: unitCost !== null && !isNaN(unitCost) ? unitCost : null,
+              unitSellPrice: unitSellPrice !== null && !isNaN(unitSellPrice) ? unitSellPrice : null,
+              active,
+            });
+            created++;
+          }
+        } catch (err) {
+          errors.push({ index: i, error: err instanceof Error ? err.message : "Unknown error" });
+        }
+      }
+
+      res.json({
+        created,
+        updated,
+        skipped,
+        errors: errors.length,
+        errorDetails: errors,
+      });
+    } catch (error) {
+      console.error("Error in batch catalog import:", error);
+      res.status(500).json({ error: "Failed to import catalog items" });
+    }
+  });
+
   return httpServer;
 }
 
