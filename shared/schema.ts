@@ -713,6 +713,18 @@ export const constructionAgreements = pgTable("construction_agreements", {
   internalNotes: text("internal_notes"),
   specialConditions: text("special_conditions"), // Visible to client
   
+  // O&M Annexe (integrated O&M terms)
+  includeOmAnnexe: boolean("include_om_annexe").default(false),
+  omCoverageType: text("om_coverage_type"), // "basic" | "standard" | "premium"
+  omAnnualFee: real("om_annual_fee"),
+  omTermMonths: integer("om_term_months").default(12),
+  omResponseTimeHours: integer("om_response_time_hours").default(48),
+  omScheduledVisitsPerYear: integer("om_scheduled_visits_per_year").default(2),
+  omPerformanceGuaranteePercent: real("om_performance_guarantee_percent"),
+  omAutoRenew: boolean("om_auto_renew").default(true),
+  omBillingFrequency: text("om_billing_frequency").default("annual"), // "monthly" | "quarterly" | "annual"
+  omSpecialConditions: text("om_special_conditions"),
+  
   // Tracking
   createdBy: varchar("created_by").references(() => users.id),
   sentAt: timestamp("sent_at"),
@@ -905,6 +917,187 @@ export const omPerformanceSnapshots = pgTable("om_performance_snapshots", {
   avgTemperatureC: real("avg_temperature_c"),
   
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ==================== CONSTRUCTION PROJECT MANAGEMENT ====================
+
+// Construction Projects - Active construction project management
+export const constructionProjects = pgTable("construction_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  constructionAgreementId: varchar("construction_agreement_id").notNull().references(() => constructionAgreements.id),
+  siteId: varchar("site_id").notNull().references(() => sites.id),
+  
+  // Project basics
+  projectNumber: text("project_number"), // Auto-generated: PROJ-2024-001
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // Status: planning → mobilization → in_progress → commissioning → punch_list → completed
+  status: text("status").notNull().default("planning"),
+  statusNote: text("status_note"),
+  
+  // Progress
+  progressPercent: real("progress_percent").default(0), // 0-100
+  
+  // Timeline
+  plannedStartDate: timestamp("planned_start_date"),
+  plannedEndDate: timestamp("planned_end_date"),
+  actualStartDate: timestamp("actual_start_date"),
+  actualEndDate: timestamp("actual_end_date"),
+  
+  // Team assignment
+  projectManagerId: varchar("project_manager_id").references(() => users.id),
+  siteForeman: text("site_foreman"),
+  siteContact: text("site_contact"),
+  siteContactPhone: text("site_contact_phone"),
+  
+  // Subcontractors
+  subcontractors: jsonb("subcontractors"), // Array of { name, trade, contact, phone, status }
+  
+  // Location & logistics
+  siteAccessNotes: text("site_access_notes"),
+  parkingInstructions: text("parking_instructions"),
+  safetyRequirements: text("safety_requirements"),
+  
+  // Budget tracking
+  budgetTotal: real("budget_total"),
+  budgetSpent: real("budget_spent").default(0),
+  changeOrdersTotal: real("change_orders_total").default(0),
+  
+  // Risk & issues
+  riskLevel: text("risk_level").default("low"), // "low" | "medium" | "high"
+  activeIssues: integer("active_issues").default(0),
+  
+  // Weather delay tracking
+  weatherDelayDays: integer("weather_delay_days").default(0),
+  
+  // Photos & documents
+  photosUrl: text("photos_url"), // Link to photo gallery
+  documentsUrl: text("documents_url"), // Link to documents folder
+  
+  // Notes
+  internalNotes: text("internal_notes"),
+  dailyLogEnabled: boolean("daily_log_enabled").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Construction Tasks - Individual work items with dependencies (for GANTT)
+export const constructionTasks = pgTable("construction_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => constructionProjects.id, { onDelete: "cascade" }),
+  
+  // Task basics
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull().default("general"), // "permitting" | "procurement" | "electrical" | "mechanical" | "structural" | "inspection" | "general"
+  
+  // Status
+  status: text("status").notNull().default("pending"), // "pending" | "in_progress" | "blocked" | "completed" | "cancelled"
+  priority: text("priority").default("medium"), // "low" | "medium" | "high" | "critical"
+  
+  // GANTT timeline
+  plannedStartDate: timestamp("planned_start_date"),
+  plannedEndDate: timestamp("planned_end_date"),
+  actualStartDate: timestamp("actual_start_date"),
+  actualEndDate: timestamp("actual_end_date"),
+  durationDays: integer("duration_days"),
+  
+  // Progress
+  progressPercent: real("progress_percent").default(0),
+  
+  // Dependencies (for GANTT arrows)
+  dependsOnTaskIds: text("depends_on_task_ids").array(), // Array of task IDs this task depends on
+  
+  // Assignment
+  assignedToId: varchar("assigned_to_id").references(() => users.id),
+  assignedToName: text("assigned_to_name"), // For external subcontractors
+  
+  // Resources
+  estimatedHours: real("estimated_hours"),
+  actualHours: real("actual_hours"),
+  laborCost: real("labor_cost"),
+  materialCost: real("material_cost"),
+  
+  // Checklist (for sub-items)
+  checklist: jsonb("checklist"), // Array of { item, completed, completedAt, completedBy }
+  
+  // Attachments & photos
+  attachments: jsonb("attachments"), // Array of { name, url, type }
+  
+  // Blocking reason
+  blockedReason: text("blocked_reason"),
+  blockedAt: timestamp("blocked_at"),
+  
+  // Notes
+  notes: text("notes"),
+  
+  // Sorting order within project
+  sortOrder: integer("sort_order").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Construction Daily Logs - Daily site reports
+export const constructionDailyLogs = pgTable("construction_daily_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => constructionProjects.id, { onDelete: "cascade" }),
+  
+  // Log date
+  logDate: timestamp("log_date").notNull(),
+  
+  // Weather
+  weatherCondition: text("weather_condition"), // "sunny" | "cloudy" | "rain" | "snow" | "extreme"
+  temperatureHigh: real("temperature_high"),
+  temperatureLow: real("temperature_low"),
+  weatherNotes: text("weather_notes"),
+  weatherDelay: boolean("weather_delay").default(false),
+  
+  // Workforce
+  crewCount: integer("crew_count"),
+  crewDetails: jsonb("crew_details"), // Array of { name, role, hours }
+  subcontractorsOnSite: jsonb("subcontractors_on_site"), // Array of { company, workers, task }
+  
+  // Work performed
+  workPerformed: text("work_performed"),
+  tasksCompleted: text("tasks_completed").array(),
+  
+  // Materials
+  materialsReceived: jsonb("materials_received"), // Array of { description, quantity, vendor }
+  materialsUsed: jsonb("materials_used"), // Array of { description, quantity }
+  
+  // Equipment
+  equipmentOnSite: text("equipment_on_site").array(),
+  equipmentIssues: text("equipment_issues"),
+  
+  // Safety
+  safetyIncidents: integer("safety_incidents").default(0),
+  safetyNotes: text("safety_notes"),
+  
+  // Visitors
+  visitors: jsonb("visitors"), // Array of { name, company, purpose, timeIn, timeOut }
+  
+  // Issues & delays
+  issuesEncountered: text("issues_encountered"),
+  delaysExperienced: text("delays_experienced"),
+  
+  // Photos
+  photos: jsonb("photos"), // Array of { url, caption, timestamp }
+  
+  // Approval
+  preparedBy: varchar("prepared_by").references(() => users.id),
+  preparedByName: text("prepared_by_name"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  
+  // Notes
+  generalNotes: text("general_notes"),
+  tomorrowPlan: text("tomorrow_plan"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // ==================== SALES CRM TABLES ====================
@@ -1264,6 +1457,31 @@ export const insertOmPerformanceSnapshotSchema = createInsertSchema(omPerformanc
   createdAt: true,
 });
 
+// Construction Project Management schemas
+export const insertConstructionProjectSchema = createInsertSchema(constructionProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  actualStartDate: true,
+  actualEndDate: true,
+});
+
+export const insertConstructionTaskSchema = createInsertSchema(constructionTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  actualStartDate: true,
+  actualEndDate: true,
+  blockedAt: true,
+});
+
+export const insertConstructionDailyLogSchema = createInsertSchema(constructionDailyLogs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  approvedAt: true,
+});
+
 // Sales CRM schemas
 export const insertOpportunitySchema = createInsertSchema(opportunities).omit({
   id: true,
@@ -1367,6 +1585,16 @@ export type OmVisit = typeof omVisits.$inferSelect;
 export type InsertOmPerformanceSnapshot = z.infer<typeof insertOmPerformanceSnapshotSchema>;
 export type OmPerformanceSnapshot = typeof omPerformanceSnapshots.$inferSelect;
 
+// Construction Project Management types
+export type InsertConstructionProject = z.infer<typeof insertConstructionProjectSchema>;
+export type ConstructionProject = typeof constructionProjects.$inferSelect;
+
+export type InsertConstructionTask = z.infer<typeof insertConstructionTaskSchema>;
+export type ConstructionTask = typeof constructionTasks.$inferSelect;
+
+export type InsertConstructionDailyLog = z.infer<typeof insertConstructionDailyLogSchema>;
+export type ConstructionDailyLog = typeof constructionDailyLogs.$inferSelect;
+
 // Sales CRM types
 export type InsertOpportunity = z.infer<typeof insertOpportunitySchema>;
 export type Opportunity = typeof opportunities.$inferSelect;
@@ -1402,6 +1630,25 @@ export type OmContractWithDetails = OmContract & {
 export type OmVisitWithDetails = OmVisit & { 
   site: Site; 
   contract: OmContract;
+};
+
+// Construction Project Management extended types
+export type ConstructionProjectWithDetails = ConstructionProject & {
+  site: SiteWithClient;
+  agreement: ConstructionAgreement;
+  tasks?: ConstructionTask[];
+  projectManager?: User;
+};
+
+export type ConstructionTaskWithProject = ConstructionTask & {
+  project: ConstructionProject;
+  assignedTo?: User;
+};
+
+export type ConstructionDailyLogWithProject = ConstructionDailyLog & {
+  project: ConstructionProject;
+  preparer?: User;
+  approver?: User;
 };
 
 // Rematek cost structure (based on quote #12885)

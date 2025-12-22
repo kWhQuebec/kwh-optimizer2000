@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
   FileText, Building2, Calendar, DollarSign, CheckCircle2, 
-  Clock, XCircle, Send, Eye, Filter 
+  Clock, XCircle, Send, Eye, Filter, Wrench, Shield
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -152,8 +152,25 @@ function AgreementCard({ agreement }: { agreement: ConstructionAgreementWithDeta
             </div>
           </div>
 
+          {/* O&M Annexe indicator */}
+          {agreement.includeOmAnnexe && (
+            <div className="flex items-center gap-2 py-2 px-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+              <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                {language === "fr" ? "Annexe O&M incluse" : "O&M Annex included"}
+              </span>
+              <Badge variant="outline" className="text-xs ml-auto">
+                {agreement.omCoverageType === "premium" 
+                  ? (language === "fr" ? "Premium" : "Premium")
+                  : agreement.omCoverageType === "standard"
+                    ? "Standard"
+                    : (language === "fr" ? "Base" : "Basic")}
+              </Badge>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-2 pt-2 border-t">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">
                 {language === "fr" ? "Dépôt:" : "Deposit:"}
               </span>
@@ -215,12 +232,12 @@ export default function ConstructionAgreementsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
-            {language === "fr" ? "Contrats de construction" : "Construction Agreements"}
+            {language === "fr" ? "Ententes de services" : "Service Agreements"}
           </h1>
           <p className="text-muted-foreground mt-1">
             {language === "fr" 
-              ? "Gérez vos contrats et suivez les paiements" 
-              : "Manage your contracts and track payments"}
+              ? "Contrats de construction avec annexe O&M intégrée" 
+              : "Construction contracts with integrated O&M annex"}
           </p>
         </div>
         

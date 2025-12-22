@@ -5,7 +5,7 @@ import {
   simulationRuns, designs, bomItems, componentCatalog, siteVisits, siteVisitPhotos, designAgreements,
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
   competitors, battleCards, marketNotes, marketDocuments,
-  constructionAgreements, constructionMilestones, omContracts, omVisits, omPerformanceSnapshots,
+  constructionAgreements, constructionMilestones, constructionProjects, constructionTasks, omContracts, omVisits, omPerformanceSnapshots,
   opportunities, activities, partnerships,
 } from "@shared/schema";
 import type {
@@ -37,6 +37,8 @@ import type {
   MarketDocument, InsertMarketDocument,
   ConstructionAgreement, InsertConstructionAgreement,
   ConstructionMilestone, InsertConstructionMilestone,
+  ConstructionProject, InsertConstructionProject,
+  ConstructionTask, InsertConstructionTask,
   OmContract, InsertOmContract,
   OmVisit, InsertOmVisit,
   OmPerformanceSnapshot, InsertOmPerformanceSnapshot,
@@ -1674,5 +1676,73 @@ export class DatabaseStorage implements IStorage {
 
   async deletePartnership(id: string): Promise<void> {
     await db.delete(partnerships).where(eq(partnerships.id, id));
+  }
+
+  // Construction Projects
+  async getConstructionProjects(): Promise<ConstructionProject[]> {
+    return db.select().from(constructionProjects).orderBy(desc(constructionProjects.updatedAt));
+  }
+
+  async getConstructionProject(id: string): Promise<ConstructionProject | undefined> {
+    const [result] = await db.select().from(constructionProjects).where(eq(constructionProjects.id, id)).limit(1);
+    return result;
+  }
+
+  async getConstructionProjectsBySiteId(siteId: string): Promise<ConstructionProject[]> {
+    return db.select().from(constructionProjects)
+      .where(eq(constructionProjects.siteId, siteId))
+      .orderBy(desc(constructionProjects.updatedAt));
+  }
+
+  async createConstructionProject(project: InsertConstructionProject): Promise<ConstructionProject> {
+    const [result] = await db.insert(constructionProjects).values(project).returning();
+    return result;
+  }
+
+  async updateConstructionProject(id: string, project: Partial<ConstructionProject>): Promise<ConstructionProject | undefined> {
+    const [result] = await db.update(constructionProjects)
+      .set({ ...project, updatedAt: new Date() })
+      .where(eq(constructionProjects.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteConstructionProject(id: string): Promise<boolean> {
+    const result = await db.delete(constructionProjects).where(eq(constructionProjects.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Construction Tasks
+  async getConstructionTasks(): Promise<ConstructionTask[]> {
+    return db.select().from(constructionTasks).orderBy(desc(constructionTasks.updatedAt));
+  }
+
+  async getConstructionTask(id: string): Promise<ConstructionTask | undefined> {
+    const [result] = await db.select().from(constructionTasks).where(eq(constructionTasks.id, id)).limit(1);
+    return result;
+  }
+
+  async getConstructionTasksByProjectId(projectId: string): Promise<ConstructionTask[]> {
+    return db.select().from(constructionTasks)
+      .where(eq(constructionTasks.projectId, projectId))
+      .orderBy(constructionTasks.sortOrder);
+  }
+
+  async createConstructionTask(task: InsertConstructionTask): Promise<ConstructionTask> {
+    const [result] = await db.insert(constructionTasks).values(task).returning();
+    return result;
+  }
+
+  async updateConstructionTask(id: string, task: Partial<ConstructionTask>): Promise<ConstructionTask | undefined> {
+    const [result] = await db.update(constructionTasks)
+      .set({ ...task, updatedAt: new Date() })
+      .where(eq(constructionTasks.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteConstructionTask(id: string): Promise<boolean> {
+    const result = await db.delete(constructionTasks).where(eq(constructionTasks.id, id)).returning();
+    return result.length > 0;
   }
 }

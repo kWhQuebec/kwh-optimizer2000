@@ -28,6 +28,8 @@ import type {
   MarketDocument, InsertMarketDocument,
   ConstructionAgreement, InsertConstructionAgreement,
   ConstructionMilestone, InsertConstructionMilestone,
+  ConstructionProject, InsertConstructionProject,
+  ConstructionTask, InsertConstructionTask,
   OmContract, InsertOmContract,
   OmVisit, InsertOmVisit,
   OmPerformanceSnapshot, InsertOmPerformanceSnapshot,
@@ -313,6 +315,22 @@ export interface IStorage {
   createPartnership(data: InsertPartnership): Promise<Partnership>;
   updatePartnership(id: string, data: Partial<InsertPartnership>): Promise<Partnership>;
   deletePartnership(id: string): Promise<void>;
+
+  // Construction Projects
+  getConstructionProjects(): Promise<ConstructionProject[]>;
+  getConstructionProject(id: string): Promise<ConstructionProject | undefined>;
+  getConstructionProjectsBySiteId(siteId: string): Promise<ConstructionProject[]>;
+  createConstructionProject(project: InsertConstructionProject): Promise<ConstructionProject>;
+  updateConstructionProject(id: string, project: Partial<ConstructionProject>): Promise<ConstructionProject | undefined>;
+  deleteConstructionProject(id: string): Promise<boolean>;
+
+  // Construction Tasks
+  getConstructionTasks(): Promise<ConstructionTask[]>;
+  getConstructionTask(id: string): Promise<ConstructionTask | undefined>;
+  getConstructionTasksByProjectId(projectId: string): Promise<ConstructionTask[]>;
+  createConstructionTask(task: InsertConstructionTask): Promise<ConstructionTask>;
+  updateConstructionTask(id: string, task: Partial<ConstructionTask>): Promise<ConstructionTask | undefined>;
+  deleteConstructionTask(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1780,6 +1798,22 @@ export class MemStorage implements IStorage {
   async createPartnership(data: InsertPartnership): Promise<Partnership> { throw new Error("Not implemented"); }
   async updatePartnership(id: string, data: Partial<InsertPartnership>): Promise<Partnership> { throw new Error("Not implemented"); }
   async deletePartnership(id: string): Promise<void> {}
+
+  // Construction Projects
+  async getConstructionProjects(): Promise<ConstructionProject[]> { return []; }
+  async getConstructionProject(id: string): Promise<ConstructionProject | undefined> { return undefined; }
+  async getConstructionProjectsBySiteId(siteId: string): Promise<ConstructionProject[]> { return []; }
+  async createConstructionProject(project: InsertConstructionProject): Promise<ConstructionProject> { throw new Error("Not implemented"); }
+  async updateConstructionProject(id: string, project: Partial<ConstructionProject>): Promise<ConstructionProject | undefined> { return undefined; }
+  async deleteConstructionProject(id: string): Promise<boolean> { return false; }
+
+  // Construction Tasks
+  async getConstructionTasks(): Promise<ConstructionTask[]> { return []; }
+  async getConstructionTask(id: string): Promise<ConstructionTask | undefined> { return undefined; }
+  async getConstructionTasksByProjectId(projectId: string): Promise<ConstructionTask[]> { return []; }
+  async createConstructionTask(task: InsertConstructionTask): Promise<ConstructionTask> { throw new Error("Not implemented"); }
+  async updateConstructionTask(id: string, task: Partial<ConstructionTask>): Promise<ConstructionTask | undefined> { return undefined; }
+  async deleteConstructionTask(id: string): Promise<boolean> { return false; }
 }
 
 import { DatabaseStorage } from "./dbStorage";

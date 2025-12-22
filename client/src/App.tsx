@@ -41,6 +41,9 @@ const PortfoliosPage = lazy(() => import("@/pages/portfolios"));
 const PortfolioDetailPage = lazy(() => import("@/pages/portfolio-detail"));
 const MarketIntelligencePage = lazy(() => import("@/pages/market-intelligence"));
 const ConstructionAgreementsPage = lazy(() => import("@/pages/construction-agreements"));
+const ConstructionProjectsPage = lazy(() => import("@/pages/construction-projects"));
+const ConstructionGanttPage = lazy(() => import("@/pages/construction-gantt"));
+const ConstructionTasksPage = lazy(() => import("@/pages/construction-tasks"));
 const OmContractsPage = lazy(() => import("@/pages/om-contracts"));
 const OmVisitsPage = lazy(() => import("@/pages/om-visits"));
 const OmPerformancePage = lazy(() => import("@/pages/om-performance"));
@@ -273,6 +276,36 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <ConstructionAgreementsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/construction-projects">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <ConstructionProjectsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/construction-gantt">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <ConstructionGanttPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/construction-tasks">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <ConstructionTasksPage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

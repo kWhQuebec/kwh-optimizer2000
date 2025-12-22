@@ -18,7 +18,12 @@ import {
   Wrench,
   Activity,
   Handshake,
-  Upload
+  Upload,
+  GanttChart,
+  ListTodo,
+  Settings2,
+  Gauge,
+  ClipboardList
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,7 +49,8 @@ export function AppSidebar() {
   const [location] = useLocation();
   const currentLogo = language === "fr" ? sidebarLogoFr : sidebarLogoEn;
 
-  const staffMainItems = [
+  // SECTION 1: Développement Commercial
+  const businessDevItems = [
     {
       title: t("nav.dashboard"),
       url: "/app",
@@ -83,7 +89,8 @@ export function AppSidebar() {
     },
   ];
 
-  const staffAnalysisItems = [
+  // SECTION 2: Ingénierie (pré-construction)
+  const engineeringItems = [
     {
       title: t("nav.analyses"),
       url: "/app/analyses",
@@ -97,22 +104,54 @@ export function AppSidebar() {
       tooltip: language === "fr" ? "Configurations d'équipement et devis" : "Equipment configurations and quotes",
     },
     {
-      title: language === "fr" ? "Ententes construction" : "Construction Agreements",
+      title: language === "fr" ? "Ententes de services" : "Service Agreements",
       url: "/app/construction-agreements",
-      icon: HardHat,
-      tooltip: language === "fr" ? "Contrats et jalons de construction" : "Construction contracts and milestones",
+      icon: ClipboardList,
+      tooltip: language === "fr" ? "Contrats construction + O&M intégrés" : "Integrated construction + O&M contracts",
     },
+  ];
+
+  // SECTION 3: Construction (exécution)
+  const constructionItems = [
+    {
+      title: language === "fr" ? "Projets" : "Projects",
+      url: "/app/construction-projects",
+      icon: HardHat,
+      tooltip: language === "fr" ? "Projets de construction en cours" : "Active construction projects",
+    },
+    {
+      title: language === "fr" ? "Diagramme GANTT" : "GANTT Chart",
+      url: "/app/construction-gantt",
+      icon: GanttChart,
+      tooltip: language === "fr" ? "Planification et échéanciers" : "Scheduling and timelines",
+    },
+    {
+      title: language === "fr" ? "Tâches" : "Tasks",
+      url: "/app/construction-tasks",
+      icon: ListTodo,
+      tooltip: language === "fr" ? "Suivi des tâches et assignations" : "Task tracking and assignments",
+    },
+  ];
+
+  // SECTION 4: Exploitation (O&M post-construction)
+  const operationsItems = [
     {
       title: language === "fr" ? "Contrats O&M" : "O&M Contracts",
       url: "/app/om-contracts",
       icon: FileCheck,
-      tooltip: language === "fr" ? "Entretien et exploitation des systèmes" : "System maintenance and operations",
+      tooltip: language === "fr" ? "Contrats d'exploitation actifs" : "Active operations contracts",
     },
     {
       title: language === "fr" ? "Visites maintenance" : "Maintenance Visits",
       url: "/app/om-visits",
       icon: Wrench,
       tooltip: language === "fr" ? "Historique des interventions terrain" : "Field intervention history",
+    },
+    {
+      title: language === "fr" ? "Performance" : "Performance",
+      url: "/app/om-performance",
+      icon: Gauge,
+      tooltip: language === "fr" ? "Tableau de bord performance systèmes" : "System performance dashboard",
     },
     {
       title: t("nav.catalog"),
@@ -219,11 +258,12 @@ export function AppSidebar() {
 
         {isStaff && (
           <>
+            {/* Section 1: Développement Commercial */}
             <SidebarGroup>
-              <SidebarGroupLabel>{t("sidebar.main")}</SidebarGroupLabel>
+              <SidebarGroupLabel>{language === "fr" ? "Développement" : "Business Dev"}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {staffMainItems.map((item) => (
+                  {businessDevItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton 
                         asChild 
@@ -242,11 +282,12 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
 
+            {/* Section 2: Ingénierie */}
             <SidebarGroup>
-              <SidebarGroupLabel>{language === "fr" ? "Projets" : "Projects"}</SidebarGroupLabel>
+              <SidebarGroupLabel>{language === "fr" ? "Ingénierie" : "Engineering"}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {staffAnalysisItems.map((item) => (
+                  {engineeringItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton 
                         asChild 
@@ -265,6 +306,55 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
 
+            {/* Section 3: Construction */}
+            <SidebarGroup>
+              <SidebarGroupLabel>{language === "fr" ? "Construction" : "Construction"}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {constructionItems.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive(item.url)}
+                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                        title={item.tooltip}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Section 4: Exploitation */}
+            <SidebarGroup>
+              <SidebarGroupLabel>{language === "fr" ? "Exploitation" : "Operations"}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {operationsItems.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive(item.url)}
+                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                        title={item.tooltip}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Section 5: Administration */}
             {isAdmin && (
               <SidebarGroup>
                 <SidebarGroupLabel>{t("sidebar.admin") || "Administration"}</SidebarGroupLabel>

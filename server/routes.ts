@@ -5564,6 +5564,193 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== CONSTRUCTION PROJECTS ROUTES ====================
+
+  // List all construction projects
+  app.get("/api/construction-projects", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const projects = await storage.getConstructionProjects();
+      
+      // Enrich with related data
+      const enrichedProjects = await Promise.all(
+        projects.map(async (project) => {
+          const site = await storage.getSite(project.siteId);
+          const projectManager = project.projectManagerId 
+            ? await storage.getUser(project.projectManagerId) 
+            : null;
+          return {
+            ...project,
+            site,
+            client: site?.client,
+            projectManager: projectManager ? { id: projectManager.id, name: projectManager.name, email: projectManager.email } : null,
+          };
+        })
+      );
+      
+      res.json(enrichedProjects);
+    } catch (error) {
+      console.error("Error fetching construction projects:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single construction project
+  app.get("/api/construction-projects/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const project = await storage.getConstructionProject(req.params.id);
+      if (!project) {
+        return res.status(404).json({ error: "Construction project not found" });
+      }
+      
+      const site = await storage.getSite(project.siteId);
+      const projectManager = project.projectManagerId 
+        ? await storage.getUser(project.projectManagerId) 
+        : null;
+      
+      res.json({
+        ...project,
+        site,
+        client: site?.client,
+        projectManager: projectManager ? { id: projectManager.id, name: projectManager.name, email: projectManager.email } : null,
+      });
+    } catch (error) {
+      console.error("Error fetching construction project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get construction projects by site
+  app.get("/api/construction-projects/site/:siteId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const projects = await storage.getConstructionProjectsBySiteId(req.params.siteId);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching construction projects by site:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create construction project
+  app.post("/api/construction-projects", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const project = await storage.createConstructionProject(req.body);
+      res.status(201).json(project);
+    } catch (error) {
+      console.error("Error creating construction project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update construction project
+  app.patch("/api/construction-projects/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const project = await storage.updateConstructionProject(req.params.id, req.body);
+      if (!project) {
+        return res.status(404).json({ error: "Construction project not found" });
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Error updating construction project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete construction project
+  app.delete("/api/construction-projects/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteConstructionProject(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Construction project not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting construction project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== CONSTRUCTION TASKS ROUTES ====================
+
+  // List all construction tasks (with optional project filter)
+  app.get("/api/construction-tasks", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const projectId = req.query.projectId as string | undefined;
+      let tasks;
+      if (projectId) {
+        tasks = await storage.getConstructionTasksByProjectId(projectId);
+      } else {
+        tasks = await storage.getConstructionTasks();
+      }
+      
+      // Enrich with project data
+      const enrichedTasks = await Promise.all(
+        tasks.map(async (task) => {
+          const project = await storage.getConstructionProject(task.projectId);
+          return { ...task, project };
+        })
+      );
+      
+      res.json(enrichedTasks);
+    } catch (error) {
+      console.error("Error fetching construction tasks:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single construction task
+  app.get("/api/construction-tasks/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const task = await storage.getConstructionTask(req.params.id);
+      if (!task) {
+        return res.status(404).json({ error: "Construction task not found" });
+      }
+      const project = await storage.getConstructionProject(task.projectId);
+      res.json({ ...task, project });
+    } catch (error) {
+      console.error("Error fetching construction task:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create construction task
+  app.post("/api/construction-tasks", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const task = await storage.createConstructionTask(req.body);
+      res.status(201).json(task);
+    } catch (error) {
+      console.error("Error creating construction task:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update construction task
+  app.patch("/api/construction-tasks/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const task = await storage.updateConstructionTask(req.params.id, req.body);
+      if (!task) {
+        return res.status(404).json({ error: "Construction task not found" });
+      }
+      res.json(task);
+    } catch (error) {
+      console.error("Error updating construction task:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete construction task
+  app.delete("/api/construction-tasks/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteConstructionTask(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Construction task not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting construction task:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== O&M CONTRACTS ROUTES ====================
 
   // List all O&M contracts
