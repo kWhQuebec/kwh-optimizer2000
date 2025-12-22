@@ -16,7 +16,9 @@ import {
   Upload,
   Play,
   FileCheck,
-  X
+  X,
+  Package,
+  CheckCircle2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +43,10 @@ interface PipelineStats {
   weightedPipelineValue: number;
   wonValue: number;
   lostValue: number;
+  deliveryBacklogValue: number;
+  deliveryBacklogCount: number;
+  deliveredValue: number;
+  deliveredCount: number;
   activeOpportunityCount: number;
   stageBreakdown: Array<{
     stage: string;
@@ -539,11 +545,11 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <StatCard
-          title={language === 'fr' ? 'Pipeline total' : 'Total Pipeline'}
+          title={language === 'fr' ? 'Pipeline actif' : 'Active Pipeline'}
           value={formatCompactCurrency(stats?.totalPipelineValue)}
-          subtitle={`${stats?.activeOpportunityCount || 0} ${language === 'fr' ? 'opportunités actives' : 'active opportunities'}`}
+          subtitle={`${stats?.activeOpportunityCount || 0} ${language === 'fr' ? 'opportunités' : 'opportunities'}`}
           icon={TrendingUp}
           loading={isLoading}
         />
@@ -556,9 +562,25 @@ export default function DashboardPage() {
           loading={isLoading}
         />
         <StatCard
-          title={language === 'fr' ? 'Gagnées' : 'Won'}
+          title={language === 'fr' ? 'Carnet de livraison' : 'Delivery Backlog'}
+          value={formatCompactCurrency(stats?.deliveryBacklogValue)}
+          subtitle={`${stats?.deliveryBacklogCount || 0} ${language === 'fr' ? 'projets en cours' : 'projects in progress'}`}
+          icon={Package}
+          iconBg="bg-blue-500"
+          loading={isLoading}
+        />
+        <StatCard
+          title={language === 'fr' ? 'Livrés' : 'Delivered'}
+          value={formatCompactCurrency(stats?.deliveredValue)}
+          subtitle={`${stats?.deliveredCount || 0} ${language === 'fr' ? 'projets complétés' : 'completed projects'}`}
+          icon={CheckCircle2}
+          iconBg="bg-green-600"
+          loading={isLoading}
+        />
+        <StatCard
+          title={language === 'fr' ? 'Total gagné' : 'Total Won'}
           value={formatCompactCurrency(stats?.wonValue)}
-          subtitle={`${stats?.stageBreakdown.find(s => s.stage === 'won')?.count || 0} ${language === 'fr' ? 'projets' : 'projects'}`}
+          subtitle={language === 'fr' ? 'Toutes phases confondues' : 'All phases combined'}
           icon={Trophy}
           iconBg="bg-green-500"
           loading={isLoading}
@@ -747,53 +769,28 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <div>
-              <CardTitle className="text-lg">
-                {language === 'fr' ? 'Valeur par étape' : 'Value by Stage'}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {language === 'fr' 
-                  ? 'Répartition du pipeline actif' 
-                  : 'Active pipeline distribution'}
-              </p>
-            </div>
-            <BarChart3 className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[250px] w-full" />
-            ) : (
-              <StageValueChart stageBreakdown={stats?.stageBreakdown || []} language={language as 'fr' | 'en'} />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <div>
-              <CardTitle className="text-lg">
-                {language === 'fr' ? 'Total vs Pondéré' : 'Total vs Weighted'}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {language === 'fr' 
-                  ? 'Comparaison valeur totale et pondérée' 
-                  : 'Compare total and probability-weighted values'}
-              </p>
-            </div>
-            <Target className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[250px] w-full" />
-            ) : (
-              <WeightedVsActualChart stageBreakdown={stats?.stageBreakdown || []} language={language as 'fr' | 'en'} />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+          <div>
+            <CardTitle className="text-lg">
+              {language === 'fr' ? 'Pipeline par étape' : 'Pipeline by Stage'}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {language === 'fr' 
+                ? 'Comparaison valeur totale et pondérée par étape' 
+                : 'Compare total and weighted value by stage'}
+            </p>
+          </div>
+          <BarChart3 className="w-4 h-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-[250px] w-full" />
+          ) : (
+            <WeightedVsActualChart stageBreakdown={stats?.stageBreakdown || []} language={language as 'fr' | 'en'} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -120,6 +120,11 @@ export interface IStorage {
     weightedPipelineValue: number;
     wonValue: number;
     lostValue: number;
+    // Delivery phase metrics
+    deliveryBacklogValue: number;
+    deliveryBacklogCount: number;
+    deliveredValue: number;
+    deliveredCount: number;
     activeOpportunityCount: number;
     // Stage breakdown
     stageBreakdown: Array<{
@@ -799,6 +804,10 @@ export class MemStorage implements IStorage {
     weightedPipelineValue: number;
     wonValue: number;
     lostValue: number;
+    deliveryBacklogValue: number;
+    deliveryBacklogCount: number;
+    deliveredValue: number;
+    deliveredCount: number;
     activeOpportunityCount: number;
     stageBreakdown: Array<{ stage: string; count: number; totalValue: number; weightedValue: number }>;
     topOpportunities: Array<{ id: string; name: string; clientName: string | null; stage: string; probability: number; estimatedValue: number | null; updatedAt: Date | null }>;
@@ -811,6 +820,10 @@ export class MemStorage implements IStorage {
       weightedPipelineValue: 0,
       wonValue: 0,
       lostValue: 0,
+      deliveryBacklogValue: 0,
+      deliveryBacklogCount: 0,
+      deliveredValue: 0,
+      deliveredCount: 0,
       activeOpportunityCount: 0,
       stageBreakdown: [],
       topOpportunities: [],

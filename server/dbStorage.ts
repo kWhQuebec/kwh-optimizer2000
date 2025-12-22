@@ -599,6 +599,10 @@ export class DatabaseStorage implements IStorage {
     weightedPipelineValue: number;
     wonValue: number;
     lostValue: number;
+    deliveryBacklogValue: number;
+    deliveryBacklogCount: number;
+    deliveredValue: number;
+    deliveredCount: number;
     activeOpportunityCount: number;
     stageBreakdown: Array<{
       stage: string;
@@ -734,6 +738,16 @@ export class DatabaseStorage implements IStorage {
     }, 0);
     const wonValue = wonOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
     const lostValue = lostOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+    
+    // Delivery phase breakdown
+    const deliveryBacklogValue = allOpps
+      .filter(o => o.stage === 'won_to_be_delivered' || o.stage === 'won_in_construction')
+      .reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+    const deliveredValue = allOpps
+      .filter(o => o.stage === 'won_delivered')
+      .reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+    const deliveryBacklogCount = allOpps.filter(o => o.stage === 'won_to_be_delivered' || o.stage === 'won_in_construction').length;
+    const deliveredCount = allOpps.filter(o => o.stage === 'won_delivered').length;
 
     // Stage breakdown - use per-opportunity probability for weighted value
     const stages = ['prospect', 'qualified', 'proposal', 'design_signed', 'negotiation', 'won_to_be_delivered', 'won_in_construction', 'won_delivered', 'lost'];
@@ -817,6 +831,10 @@ export class DatabaseStorage implements IStorage {
       weightedPipelineValue,
       wonValue,
       lostValue,
+      deliveryBacklogValue,
+      deliveryBacklogCount,
+      deliveredValue,
+      deliveredCount,
       activeOpportunityCount: activeOpps.length,
       stageBreakdown,
       topOpportunities,
