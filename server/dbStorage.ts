@@ -635,6 +635,9 @@ export class DatabaseStorage implements IStorage {
       proposal: 25,
       design_signed: 50,
       negotiation: 75,
+      won_to_be_delivered: 100,
+      won_in_construction: 100,
+      won_delivered: 100,
       won: 100,
       lost: 0,
     };
@@ -712,9 +715,13 @@ export class DatabaseStorage implements IStorage {
       : [];
     const clientMap = new Map(clientsList.map(c => [c.id, c.name]));
 
+    // Helper to check if a stage is a "won" stage
+    const WON_STAGES = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
+    const isWonStage = (stage: string) => WON_STAGES.includes(stage);
+
     // Filter active opportunities (not won or lost)
-    const activeOpps = allOpps.filter(o => o.stage !== 'won' && o.stage !== 'lost');
-    const wonOpps = allOpps.filter(o => o.stage === 'won');
+    const activeOpps = allOpps.filter(o => !isWonStage(o.stage) && o.stage !== 'lost');
+    const wonOpps = allOpps.filter(o => isWonStage(o.stage));
     const lostOpps = allOpps.filter(o => o.stage === 'lost');
 
     // Calculate totals
@@ -727,7 +734,7 @@ export class DatabaseStorage implements IStorage {
     const lostValue = lostOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
 
     // Stage breakdown - use per-opportunity probability for weighted value
-    const stages = ['prospect', 'qualified', 'proposal', 'design_signed', 'negotiation', 'won', 'lost'];
+    const stages = ['prospect', 'qualified', 'proposal', 'design_signed', 'negotiation', 'won_to_be_delivered', 'won_in_construction', 'won_delivered', 'lost'];
     const stageBreakdown = stages.map(stage => {
       const stageOpps = allOpps.filter(o => o.stage === stage);
       const totalValue = stageOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
@@ -1579,7 +1586,9 @@ export class DatabaseStorage implements IStorage {
     if (probability !== undefined) updateData.probability = probability;
     if (lostReason !== undefined) updateData.lostReason = lostReason;
     if (lostNotes !== undefined) updateData.lostNotes = lostNotes;
-    if (stage === "won" || stage === "lost") updateData.actualCloseDate = new Date();
+    // Set actualCloseDate for won stages or lost
+    const wonStages = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
+    if (wonStages.includes(stage) || stage === "lost") updateData.actualCloseDate = new Date();
     
     const [result] = await db.update(opportunities)
       .set(updateData)
