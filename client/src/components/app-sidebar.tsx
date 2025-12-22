@@ -114,10 +114,10 @@ export function AppSidebar() {
       tooltip: language === "fr" ? "Composants solaires et prix" : "Solar components and pricing",
     },
     {
-      title: language === "fr" ? "Ententes de services" : "Service Agreements",
+      title: language === "fr" ? "Entente construction + O&M" : "Construction + O&M Agreement",
       url: "/app/construction-agreements",
       icon: ClipboardList,
-      tooltip: language === "fr" ? "Contrats construction + O&M intégrés" : "Integrated construction + O&M contracts",
+      tooltip: language === "fr" ? "Contrats construction avec annexe O&M intégrée" : "Construction contracts with integrated O&M annex",
     },
   ];
 
