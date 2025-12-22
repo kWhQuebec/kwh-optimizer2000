@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   LayoutDashboard, 
   Users, 
@@ -51,6 +52,7 @@ export function AppSidebar() {
   const { t, language } = useI18n();
   const { user, logout, isStaff, isClient, isAdmin } = useAuth();
   const [location] = useLocation();
+  const isMobile = useIsMobile();
   const currentLogo = language === "fr" ? sidebarLogoFr : sidebarLogoEn;
 
   // SECTION 1: Développement Commercial
@@ -190,12 +192,6 @@ export function AppSidebar() {
       icon: Target,
       tooltip: language === "fr" ? "Analyses concurrentielles et tendances" : "Competitive analysis and trends",
     },
-    {
-      title: t("nav.methodology"),
-      url: "/app/methodology",
-      icon: FileText,
-      tooltip: language === "fr" ? "Documentation technique et calculs" : "Technical documentation and calculations",
-    },
   ];
 
   const clientItems = [
@@ -222,14 +218,21 @@ export function AppSidebar() {
 
   const roleBadge = getRoleBadge();
 
-  // Collapsible state for each section
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+  // Collapsible state for each section - collapse more on mobile
+  const getDefaultSections = (mobile: boolean) => ({
     development: true,
-    engineering: true,
+    engineering: !mobile, // Collapse on mobile
     construction: false,
     operations: false,
     admin: false,
   });
+
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(getDefaultSections(false));
+
+  // Update collapsed state when switching to/from mobile
+  useEffect(() => {
+    setOpenSections(getDefaultSections(isMobile));
+  }, [isMobile]);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -297,7 +300,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-3 md:px-4 md:py-4">
         <Link href={isClient ? "/app/portal" : "/app"}>
           <img 
             src={currentLogo} 
@@ -396,7 +399,7 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t px-4 py-3">
+      <SidebarFooter className="border-t px-3 py-2 md:px-4 md:py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">

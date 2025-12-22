@@ -16,7 +16,9 @@ import {
   Upload,
   Play,
   FileCheck,
-  X
+  X,
+  Timer,
+  LineChart as LineChartIcon
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +26,17 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { useI18n } from "@/lib/i18n";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid
+} from "recharts";
 
 interface PipelineStats {
   totalPipelineValue: number;
@@ -90,6 +103,21 @@ const STAGE_COLORS: Record<string, string> = {
 const WON_STAGES = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
 const isWonStage = (stage: string) => WON_STAGES.includes(stage);
 
+const STAGE_VELOCITY_MOCK_DATA = [
+  { stage: 'prospect', days: 5 },
+  { stage: 'qualified', days: 8 },
+  { stage: 'proposal', days: 12 },
+  { stage: 'design_signed', days: 15 },
+  { stage: 'negotiation', days: 10 },
+];
+
+const PIPELINE_TREND_MOCK_DATA = [
+  { month: 'Sep', value: 850000 },
+  { month: 'Oct', value: 920000 },
+  { month: 'Nov', value: 1100000 },
+  { month: 'Dec', value: 1250000 },
+];
+
 // Format currency compactly: k for < 1M, M for >= 1M
 function formatCompactCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined || value === 0) return "$0";
@@ -118,15 +146,15 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between gap-4">
+      <CardContent className="p-4 md:p-6">
+        <div className="flex items-start justify-between gap-3 md:gap-4">
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">{title}</p>
             {loading ? (
-              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-7 md:h-8 w-20 md:w-24" />
             ) : (
               <>
-                <p className="text-2xl font-bold font-mono" data-testid={`stat-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+                <p className="text-xl md:text-2xl font-bold font-mono" data-testid={`stat-${title.toLowerCase().replace(/\s+/g, '-')}`}>
                   {typeof value === "number" ? value.toLocaleString() : value}
                 </p>
                 {subtitle && (
@@ -135,8 +163,8 @@ function StatCard({
               </>
             )}
           </div>
-          <div className={`w-10 h-10 rounded-xl ${iconBg || "bg-primary/10"} flex items-center justify-center shrink-0`}>
-            <Icon className={`w-5 h-5 ${iconBg ? "text-white" : "text-primary"}`} />
+          <div className={`w-9 h-9 md:w-10 md:h-10 rounded-xl ${iconBg || "bg-primary/10"} flex items-center justify-center shrink-0`}>
+            <Icon className={`w-4 h-4 md:w-5 md:h-5 ${iconBg ? "text-white" : "text-primary"}`} />
           </div>
         </div>
       </CardContent>
@@ -331,6 +359,118 @@ function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDism
   );
 }
 
+function StageVelocityChart({ language }: { language: 'fr' | 'en' }) {
+  const data = STAGE_VELOCITY_MOCK_DATA.map(item => ({
+    ...item,
+    name: STAGE_LABELS[item.stage]?.[language] || item.stage,
+  }));
+
+  return (
+    <div className="space-y-4">
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <XAxis 
+            dataKey="name" 
+            tick={{ fontSize: 11 }}
+            angle={-20}
+            textAnchor="end"
+            height={60}
+            className="text-muted-foreground"
+          />
+          <YAxis 
+            tick={{ fontSize: 11 }}
+            className="text-muted-foreground"
+            label={{ 
+              value: language === 'fr' ? 'Jours' : 'Days', 
+              angle: -90, 
+              position: 'insideLeft',
+              style: { fontSize: 11, fill: 'hsl(var(--muted-foreground))' }
+            }}
+          />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '8px',
+              fontSize: 12
+            }}
+            formatter={(value: number) => [
+              `${value} ${language === 'fr' ? 'jours' : 'days'}`,
+              language === 'fr' ? 'Durée moyenne' : 'Average Duration'
+            ]}
+          />
+          <Bar 
+            dataKey="days" 
+            fill="hsl(var(--primary))" 
+            radius={[4, 4, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg py-2 px-3">
+        <Clock className="w-3 h-3" />
+        <span>
+          {language === 'fr' 
+            ? 'Bientôt disponible - données historiques requises' 
+            : 'Coming soon - historical data required'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function PipelineTrendChart({ language }: { language: 'fr' | 'en' }) {
+  const data = PIPELINE_TREND_MOCK_DATA;
+
+  return (
+    <div className="space-y-4">
+      <ResponsiveContainer width="100%" height={250}>
+        <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <XAxis 
+            dataKey="month" 
+            tick={{ fontSize: 11 }}
+            className="text-muted-foreground"
+          />
+          <YAxis 
+            tick={{ fontSize: 11 }}
+            className="text-muted-foreground"
+            tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
+          />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '8px',
+              fontSize: 12
+            }}
+            formatter={(value: number) => [
+              formatCompactCurrency(value),
+              language === 'fr' ? 'Valeur pipeline' : 'Pipeline Value'
+            ]}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="value" 
+            stroke="hsl(var(--primary))" 
+            strokeWidth={2}
+            dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+            activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg py-2 px-3">
+        <LineChartIcon className="w-3 h-3" />
+        <span>
+          {language === 'fr' 
+            ? 'Bientôt disponible - données historiques requises' 
+            : 'Coming soon - historical data required'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { t, language } = useI18n();
   const [showQuickStart, setShowQuickStart] = useState(() => {
@@ -357,8 +497,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight" data-testid="text-dashboard-title">
             {language === 'fr' ? 'Tableau de bord' : 'Dashboard'}
@@ -383,7 +523,7 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           title={language === 'fr' ? 'Pipeline total' : 'Total Pipeline'}
           value={formatCompactCurrency(stats?.totalPipelineValue)}
@@ -417,7 +557,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
             <CardTitle className="text-lg">
@@ -492,7 +632,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
             <CardTitle className="text-lg">
@@ -587,6 +727,46 @@ export default function DashboardPage() {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+            <div>
+              <CardTitle className="text-lg">
+                {language === 'fr' ? 'Vélocité par étape' : 'Stage Velocity'}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {language === 'fr' 
+                  ? 'Temps moyen passé dans chaque étape' 
+                  : 'Average time spent in each stage'}
+              </p>
+            </div>
+            <Timer className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <StageVelocityChart language={language as 'fr' | 'en'} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+            <div>
+              <CardTitle className="text-lg">
+                {language === 'fr' ? 'Tendance du pipeline' : 'Pipeline Trend'}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {language === 'fr' 
+                  ? 'Évolution de la valeur du pipeline' 
+                  : 'Pipeline value over time'}
+              </p>
+            </div>
+            <LineChartIcon className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <PipelineTrendChart language={language as 'fr' | 'en'} />
           </CardContent>
         </Card>
       </div>

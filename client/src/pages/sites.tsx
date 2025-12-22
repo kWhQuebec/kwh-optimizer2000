@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -48,6 +49,11 @@ const siteFormSchema = z.object({
   city: z.string().optional(),
   province: z.string().optional(),
   postalCode: z.string().optional(),
+  buildingType: z.string().optional(),
+  roofType: z.string().optional(),
+  roofAreaSqM: z.coerce.number().optional().or(z.literal("")),
+  latitude: z.coerce.number().optional().or(z.literal("")),
+  longitude: z.coerce.number().optional().or(z.literal("")),
   notes: z.string().optional(),
 });
 
@@ -145,6 +151,11 @@ type SiteFormInput = {
   city?: string | null;
   province?: string | null;
   postalCode?: string | null;
+  buildingType?: string | null;
+  roofType?: string | null;
+  roofAreaSqM?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   notes?: string | null;
 };
 
@@ -161,7 +172,8 @@ function SiteForm({
   onCancel: () => void; 
   isLoading: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   
   const form = useForm<SiteFormValues>({
     resolver: zodResolver(siteFormSchema),
@@ -170,8 +182,13 @@ function SiteForm({
       clientId: site?.clientId || "",
       address: site?.address || "",
       city: site?.city || "",
-      province: site?.province || "QC",
+      province: site?.province || (language === "fr" ? "Québec" : "Quebec"),
       postalCode: site?.postalCode || "",
+      buildingType: site?.buildingType || "",
+      roofType: site?.roofType || "",
+      roofAreaSqM: site?.roofAreaSqM ?? "",
+      latitude: site?.latitude ?? "",
+      longitude: site?.longitude ?? "",
       notes: site?.notes || "",
     },
   });
@@ -179,6 +196,21 @@ function SiteForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Primary Fields */}
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("sites.name")} *</FormLabel>
+              <FormControl>
+                <Input placeholder="Ex: Usine A – Montréal" {...field} data-testid="input-site-name" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="clientId"
@@ -188,7 +220,7 @@ function SiteForm({
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-site-client">
-                    <SelectValue placeholder="Sélectionner un client..." />
+                    <SelectValue placeholder={language === "fr" ? "Sélectionner un client..." : "Select a client..."} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -199,20 +231,6 @@ function SiteForm({
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("sites.name")} *</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: Usine A – Montréal" {...field} data-testid="input-site-name" />
-              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -266,7 +284,7 @@ function SiteForm({
             name="postalCode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Code postal</FormLabel>
+                <FormLabel>{t("form.postalCode")}</FormLabel>
                 <FormControl>
                   <Input {...field} data-testid="input-site-postal" />
                 </FormControl>
@@ -276,19 +294,151 @@ function SiteForm({
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea rows={3} className="resize-none" {...field} data-testid="textarea-site-notes" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Secondary Fields - Collapsible Section */}
+        <Collapsible open={moreOptionsOpen} onOpenChange={setMoreOptionsOpen} className="border rounded-lg">
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full flex items-center justify-between px-4 py-3 h-auto"
+              data-testid="button-more-options"
+            >
+              <span className="font-medium">{t("sites.moreOptions")}</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${moreOptionsOpen ? "rotate-180" : ""}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="buildingType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("form.buildingType")}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-site-building-type">
+                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="industrial">{t("form.buildingType.industrial")}</SelectItem>
+                        <SelectItem value="commercial">{t("form.buildingType.commercial")}</SelectItem>
+                        <SelectItem value="institutional">{t("form.buildingType.institutional")}</SelectItem>
+                        <SelectItem value="other">{t("form.buildingType.other")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="roofType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("sites.roofType")}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-site-roof-type">
+                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="flat">{t("sites.roofType.flat")}</SelectItem>
+                        <SelectItem value="inclined">{t("sites.roofType.inclined")}</SelectItem>
+                        <SelectItem value="other">{t("sites.roofType.other")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="roofAreaSqM"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("sites.roofArea")}</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="Ex: 5000" 
+                      {...field} 
+                      value={field.value === "" ? "" : field.value}
+                      data-testid="input-site-roof-area" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-2">
+              <FormLabel className="text-sm font-medium">{t("sites.gpsCoordinates")}</FormLabel>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="latitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground">{t("sites.latitude")}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="any"
+                          placeholder="Ex: 45.5017" 
+                          {...field}
+                          value={field.value === "" ? "" : field.value}
+                          data-testid="input-site-latitude" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="longitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground">{t("sites.longitude")}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="any"
+                          placeholder="Ex: -73.5673" 
+                          {...field}
+                          value={field.value === "" ? "" : field.value}
+                          data-testid="input-site-longitude" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("form.notes")}</FormLabel>
+                  <FormControl>
+                    <Textarea rows={3} className="resize-none" {...field} data-testid="textarea-site-notes" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CollapsibleContent>
+        </Collapsible>
 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>

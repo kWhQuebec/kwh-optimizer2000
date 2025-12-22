@@ -1170,6 +1170,76 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== GLOBAL SEARCH ====================
+
+  // Global search across clients, sites, and opportunities
+  app.get("/api/search", authMiddleware, requireStaff, async (req, res) => {
+    try {
+      const query = (req.query.q as string || "").toLowerCase().trim();
+      
+      if (!query) {
+        return res.json({ clients: [], sites: [], opportunities: [] });
+      }
+
+      // Get all data and filter
+      const [allClients, allSites, allOpportunities] = await Promise.all([
+        storage.getClients(),
+        storage.getSites(),
+        storage.getOpportunities(),
+      ]);
+
+      // Search clients by name, contact name, or email
+      const clients = allClients
+        .filter(client => 
+          client.name.toLowerCase().includes(query) ||
+          (client.mainContactName && client.mainContactName.toLowerCase().includes(query)) ||
+          (client.email && client.email.toLowerCase().includes(query))
+        )
+        .slice(0, 5)
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          mainContactName: c.mainContactName,
+          email: c.email,
+        }));
+
+      // Search sites by name, city, or address
+      const sites = allSites
+        .filter(site =>
+          site.name.toLowerCase().includes(query) ||
+          (site.city && site.city.toLowerCase().includes(query)) ||
+          (site.address && site.address.toLowerCase().includes(query)) ||
+          (site.client && site.client.name.toLowerCase().includes(query))
+        )
+        .slice(0, 5)
+        .map(s => ({
+          id: s.id,
+          name: s.name,
+          city: s.city,
+          clientName: s.client?.name || null,
+        }));
+
+      // Search opportunities by name or description
+      const opportunities = allOpportunities
+        .filter(opp =>
+          opp.name.toLowerCase().includes(query) ||
+          (opp.description && opp.description.toLowerCase().includes(query))
+        )
+        .slice(0, 5)
+        .map(o => ({
+          id: o.id,
+          name: o.name,
+          stage: o.stage,
+          estimatedValue: o.estimatedValue,
+        }));
+
+      res.json({ clients, sites, opportunities });
+    } catch (error) {
+      console.error("Error in global search:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== CLIENT ROUTES ====================
   
   // Staff-only client management

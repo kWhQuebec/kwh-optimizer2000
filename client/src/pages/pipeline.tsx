@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
@@ -14,7 +14,9 @@ import {
   TrendingUp,
   Trophy,
   XCircle,
-  HelpCircle
+  HelpCircle,
+  LayoutGrid,
+  List
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -124,6 +128,16 @@ const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
   urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
 };
+
+const PRIORITY_LABELS: Record<string, { fr: string; en: string }> = {
+  low: { fr: "Basse", en: "Low" },
+  medium: { fr: "Moyenne", en: "Medium" },
+  high: { fr: "Haute", en: "High" },
+  urgent: { fr: "Urgente", en: "Urgent" },
+};
+
+type ViewMode = "kanban" | "list";
+const VIEW_STORAGE_KEY = "pipeline-view-preference";
 
 const SOURCE_OPTIONS = ["web_form", "referral", "cold_call", "event", "other"] as const;
 
@@ -336,15 +350,170 @@ function StageColumn({
   );
 }
 
+function OpportunityListView({
+  opportunities,
+  onRowClick,
+}: {
+  opportunities: OpportunityWithRelations[];
+  onRowClick: (opp: OpportunityWithRelations) => void;
+}) {
+  const { language } = useI18n();
+
+  const stageColors: Record<Stage, string> = {
+    prospect: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    qualified: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    proposal: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+    design_signed: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
+    negotiation: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+    won_to_be_delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+    won_in_construction: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+    won_delivered: "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200",
+    lost: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+  };
+
+  if (opportunities.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          {language === "fr" ? "Aucune opportunité" : "No opportunities"}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      {/* Mobile: Stacked Cards View */}
+      <div className="md:hidden space-y-3">
+        {opportunities.map((opp) => (
+          <Card 
+            key={opp.id}
+            className="hover-elevate cursor-pointer"
+            onClick={() => onRowClick(opp)}
+            data-testid={`card-opportunity-${opp.id}`}
+          >
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h4 className="font-medium text-sm truncate">{opp.name}</h4>
+                  {opp.client && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Building2 className="w-3 h-3" />
+                      <span className="truncate">{opp.client.name}</span>
+                    </p>
+                  )}
+                </div>
+                <Badge className={`shrink-0 text-xs ${PRIORITY_COLORS[opp.priority || "medium"]}`}>
+                  {PRIORITY_LABELS[opp.priority || "medium"]?.[language] || opp.priority}
+                </Badge>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className={`text-xs ${stageColors[opp.stage as Stage]}`}>
+                  {STAGE_LABELS[opp.stage]?.[language] || opp.stage}
+                </Badge>
+                {opp.estimatedValue && (
+                  <span className="text-sm font-medium font-mono text-primary">
+                    {formatCompactCurrency(opp.estimatedValue)}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {opp.expectedCloseDate && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>{format(new Date(opp.expectedCloseDate), "MMM d, yyyy")}</span>
+                  </div>
+                )}
+                {opp.owner && (
+                  <div className="flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    <span className="truncate">{opp.owner.name || opp.owner.email}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop: Table View */}
+      <Card className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{language === "fr" ? "Nom" : "Name"}</TableHead>
+              <TableHead>{language === "fr" ? "Client" : "Client"}</TableHead>
+              <TableHead>{language === "fr" ? "Étape" : "Stage"}</TableHead>
+              <TableHead className="text-right">{language === "fr" ? "Valeur" : "Value"}</TableHead>
+              <TableHead>{language === "fr" ? "Date de clôture" : "Close Date"}</TableHead>
+              <TableHead>{language === "fr" ? "Priorité" : "Priority"}</TableHead>
+              <TableHead>{language === "fr" ? "Propriétaire" : "Owner"}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {opportunities.map((opp) => (
+              <TableRow 
+                key={opp.id} 
+                className="cursor-pointer hover-elevate"
+                onClick={() => onRowClick(opp)}
+                data-testid={`row-opportunity-${opp.id}`}
+              >
+                <TableCell className="font-medium">{opp.name}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {opp.client?.name || "—"}
+                </TableCell>
+                <TableCell>
+                  <Badge className={`text-xs ${stageColors[opp.stage as Stage]}`}>
+                    {STAGE_LABELS[opp.stage]?.[language] || opp.stage}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right font-mono">
+                  {formatCompactCurrency(opp.estimatedValue)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {opp.expectedCloseDate 
+                    ? format(new Date(opp.expectedCloseDate), "MMM d, yyyy")
+                    : "—"}
+                </TableCell>
+                <TableCell>
+                  <Badge className={`text-xs ${PRIORITY_COLORS[opp.priority || "medium"]}`}>
+                    {PRIORITY_LABELS[opp.priority || "medium"]?.[language] || opp.priority}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {opp.owner?.name || opp.owner?.email || "—"}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </>
+  );
+}
+
 export default function PipelinePage() {
   const { t, language } = useI18n();
   const { toast } = useToast();
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(VIEW_STORAGE_KEY);
+      return (stored === "kanban" || stored === "list") ? stored : "kanban";
+    }
+    return "kanban";
+  });
   const [filterOwner, setFilterOwner] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
   const [selectedOpportunity, setSelectedOpportunity] = useState<OpportunityWithRelations | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
+  }, [viewMode]);
 
   const { data: opportunities = [], isLoading } = useQuery<OpportunityWithRelations[]>({
     queryKey: ["/api/opportunities"],
@@ -500,8 +669,8 @@ export default function PipelinePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
             {language === "fr" ? "Pipeline de ventes" : "Sales Pipeline"}
@@ -510,10 +679,34 @@ export default function PipelinePage() {
             {language === "fr" ? "Gérez vos opportunités commerciales" : "Manage your sales opportunities"}
           </p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-opportunity">
-          <Plus className="w-4 h-4 mr-2" />
-          {language === "fr" ? "Nouvelle opportunité" : "Add Opportunity"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border rounded-lg p-1 gap-1">
+            <Button
+              variant={viewMode === "kanban" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("kanban")}
+              data-testid="button-view-kanban"
+              className="gap-1.5"
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">{language === "fr" ? "Kanban" : "Kanban"}</span>
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              data-testid="button-view-list"
+              className="gap-1.5"
+            >
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">{language === "fr" ? "Liste" : "List"}</span>
+            </Button>
+          </div>
+          <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-opportunity">
+            <Plus className="w-4 h-4 mr-2" />
+            {language === "fr" ? "Nouvelle opportunité" : "Add Opportunity"}
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -580,12 +773,12 @@ export default function PipelinePage() {
         )}
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-primary" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -600,10 +793,10 @@ export default function PipelinePage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+                <Trophy className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -618,10 +811,10 @@ export default function PipelinePage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0">
+                <Target className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -636,10 +829,10 @@ export default function PipelinePage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
+                <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -654,20 +847,27 @@ export default function PipelinePage() {
         </Card>
       </div>
 
-      <ScrollArea className="w-full">
-        <div className="flex gap-4 pb-4">
-          {STAGES.map((stage) => (
-            <StageColumn
-              key={stage}
-              stage={stage}
-              opportunities={filteredOpportunities}
-              onStageChange={handleStageChange}
-              onCardClick={handleCardClick}
-            />
-          ))}
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      {viewMode === "kanban" ? (
+        <ScrollArea className="w-full">
+          <div className="flex gap-4 pb-4">
+            {STAGES.map((stage) => (
+              <StageColumn
+                key={stage}
+                stage={stage}
+                opportunities={filteredOpportunities}
+                onStageChange={handleStageChange}
+                onCardClick={handleCardClick}
+              />
+            ))}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      ) : (
+        <OpportunityListView
+          opportunities={filteredOpportunities}
+          onRowClick={handleCardClick}
+        />
+      )}
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="max-w-lg">
@@ -678,153 +878,202 @@ export default function PipelinePage() {
           </DialogHeader>
           <Form {...addForm}>
             <form onSubmit={addForm.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={addForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{language === "fr" ? "Nom" : "Name"}</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-opportunity-name" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Tabs defaultValue="opportunity" className="w-full">
+                <TabsList className="grid w-full grid-cols-3" data-testid="tabs-add-opportunity">
+                  <TabsTrigger value="opportunity" data-testid="tab-add-opportunity">
+                    {language === "fr" ? "Opportunité" : "Opportunity"}
+                  </TabsTrigger>
+                  <TabsTrigger value="financial" data-testid="tab-add-financial">
+                    {language === "fr" ? "Financier" : "Financial"}
+                  </TabsTrigger>
+                  <TabsTrigger value="stakeholders" data-testid="tab-add-stakeholders">
+                    {language === "fr" ? "Parties prenantes" : "Stakeholders"}
+                  </TabsTrigger>
+                </TabsList>
 
-              <FormField
-                control={addForm.control}
-                name="clientId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{language === "fr" ? "Client" : "Client"}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-opportunity-client">
-                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={addForm.control}
-                  name="estimatedValue"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === "fr" ? "Valeur ($)" : "Value ($)"}</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} data-testid="input-opportunity-value" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={addForm.control}
-                  name="pvSizeKW"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === "fr" ? "Taille PV (kW)" : "PV Size (kW)"}</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} data-testid="input-opportunity-pv" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={addForm.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === "fr" ? "Priorité" : "Priority"}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                <TabsContent value="opportunity" className="space-y-4 mt-4" data-testid="tabcontent-add-opportunity">
+                  <FormField
+                    control={addForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Nom" : "Name"} *</FormLabel>
                         <FormControl>
-                          <SelectTrigger data-testid="select-opportunity-priority">
-                            <SelectValue />
-                          </SelectTrigger>
+                          <Input {...field} data-testid="input-opportunity-name" />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="low">{language === "fr" ? "Basse" : "Low"}</SelectItem>
-                          <SelectItem value="medium">{language === "fr" ? "Moyenne" : "Medium"}</SelectItem>
-                          <SelectItem value="high">{language === "fr" ? "Haute" : "High"}</SelectItem>
-                          <SelectItem value="urgent">{language === "fr" ? "Urgente" : "Urgent"}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={addForm.control}
-                  name="source"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Source</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                  <FormField
+                    control={addForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Description" : "Description"}</FormLabel>
                         <FormControl>
-                          <SelectTrigger data-testid="select-opportunity-source">
-                            <SelectValue />
-                          </SelectTrigger>
+                          <Textarea {...field} rows={3} data-testid="input-opportunity-description" />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="web_form">{language === "fr" ? "Formulaire web" : "Web Form"}</SelectItem>
-                          <SelectItem value="referral">{language === "fr" ? "Référence" : "Referral"}</SelectItem>
-                          <SelectItem value="cold_call">{language === "fr" ? "Appel froid" : "Cold Call"}</SelectItem>
-                          <SelectItem value="event">{language === "fr" ? "Événement" : "Event"}</SelectItem>
-                          <SelectItem value="other">{language === "fr" ? "Autre" : "Other"}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={addForm.control}
-                name="expectedCloseDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{language === "fr" ? "Date de clôture prévue" : "Expected Close Date"}</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} data-testid="input-opportunity-date" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={addForm.control}
+                    name="clientId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Client" : "Client"}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-opportunity-client">
+                              <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id}>
+                                {client.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={addForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{language === "fr" ? "Description" : "Description"}</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={3} data-testid="input-opportunity-description" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={addForm.control}
+                    name="stage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Étape" : "Stage"}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-opportunity-stage">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {STAGES.map((stage) => (
+                              <SelectItem key={stage} value={stage}>
+                                {STAGE_LABELS[stage][language]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={addForm.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Priorité" : "Priority"}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-opportunity-priority">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="low">{language === "fr" ? "Basse" : "Low"}</SelectItem>
+                              <SelectItem value="medium">{language === "fr" ? "Moyenne" : "Medium"}</SelectItem>
+                              <SelectItem value="high">{language === "fr" ? "Haute" : "High"}</SelectItem>
+                              <SelectItem value="urgent">{language === "fr" ? "Urgente" : "Urgent"}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={addForm.control}
+                      name="source"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Source</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-opportunity-source">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="web_form">{language === "fr" ? "Formulaire web" : "Web Form"}</SelectItem>
+                              <SelectItem value="referral">{language === "fr" ? "Référence" : "Referral"}</SelectItem>
+                              <SelectItem value="cold_call">{language === "fr" ? "Appel froid" : "Cold Call"}</SelectItem>
+                              <SelectItem value="event">{language === "fr" ? "Événement" : "Event"}</SelectItem>
+                              <SelectItem value="other">{language === "fr" ? "Autre" : "Other"}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="financial" className="space-y-4 mt-4" data-testid="tabcontent-add-financial">
+                  <FormField
+                    control={addForm.control}
+                    name="estimatedValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Valeur estimée ($)" : "Estimated Value ($)"}</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} data-testid="input-opportunity-value" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="pvSizeKW"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Taille PV (kW)" : "PV Size (kW)"}</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} data-testid="input-opportunity-pv" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="expectedCloseDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{language === "fr" ? "Date de clôture prévue" : "Expected Close Date"}</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} data-testid="input-opportunity-date" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+
+                <TabsContent value="stakeholders" className="mt-4" data-testid="tabcontent-add-stakeholders">
+                  <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+                    {language === "fr" 
+                      ? "Les contacts clés seront ajoutés prochainement" 
+                      : "Key contacts coming soon"}
+                  </div>
+                </TabsContent>
+              </Tabs>
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
@@ -856,112 +1105,202 @@ export default function PipelinePage() {
                 )} 
                 className="space-y-4"
               >
-                <FormField
-                  control={editForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === "fr" ? "Nom" : "Name"}</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-edit-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <Tabs defaultValue="opportunity" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3" data-testid="tabs-edit-opportunity">
+                    <TabsTrigger value="opportunity" data-testid="tab-edit-opportunity">
+                      {language === "fr" ? "Opportunité" : "Opportunity"}
+                    </TabsTrigger>
+                    <TabsTrigger value="financial" data-testid="tab-edit-financial">
+                      {language === "fr" ? "Financier" : "Financial"}
+                    </TabsTrigger>
+                    <TabsTrigger value="stakeholders" data-testid="tab-edit-stakeholders">
+                      {language === "fr" ? "Parties prenantes" : "Stakeholders"}
+                    </TabsTrigger>
+                  </TabsList>
 
-                <FormField
-                  control={editForm.control}
-                  name="stage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === "fr" ? "Étape" : "Stage"}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-edit-stage">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {STAGES.map((stage) => (
-                            <SelectItem key={stage} value={stage}>
-                              {STAGE_LABELS[stage][language]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="estimatedValue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{language === "fr" ? "Valeur ($)" : "Value ($)"}</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} data-testid="input-edit-value" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={editForm.control}
-                    name="priority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{language === "fr" ? "Priorité" : "Priority"}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                  <TabsContent value="opportunity" className="space-y-4 mt-4" data-testid="tabcontent-edit-opportunity">
+                    <FormField
+                      control={editForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Nom" : "Name"} *</FormLabel>
                           <FormControl>
-                            <SelectTrigger data-testid="select-edit-priority">
-                              <SelectValue />
-                            </SelectTrigger>
+                            <Input {...field} data-testid="input-edit-name" />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="low">{language === "fr" ? "Basse" : "Low"}</SelectItem>
-                            <SelectItem value="medium">{language === "fr" ? "Moyenne" : "Medium"}</SelectItem>
-                            <SelectItem value="high">{language === "fr" ? "Haute" : "High"}</SelectItem>
-                            <SelectItem value="urgent">{language === "fr" ? "Urgente" : "Urgent"}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={editForm.control}
-                  name="expectedCloseDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === "fr" ? "Date de clôture prévue" : "Expected Close Date"}</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} data-testid="input-edit-date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={editForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Description" : "Description"}</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} rows={3} data-testid="input-edit-description" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={editForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{language === "fr" ? "Description" : "Description"}</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} rows={3} data-testid="input-edit-description" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={editForm.control}
+                      name="clientId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Client" : "Client"}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-edit-client">
+                                <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {clients.map((client) => (
+                                <SelectItem key={client.id} value={client.id}>
+                                  {client.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={editForm.control}
+                      name="stage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Étape" : "Stage"}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-edit-stage">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {STAGES.map((stage) => (
+                                <SelectItem key={stage} value={stage}>
+                                  {STAGE_LABELS[stage][language]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={editForm.control}
+                        name="priority"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{language === "fr" ? "Priorité" : "Priority"}</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-edit-priority">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="low">{language === "fr" ? "Basse" : "Low"}</SelectItem>
+                                <SelectItem value="medium">{language === "fr" ? "Moyenne" : "Medium"}</SelectItem>
+                                <SelectItem value="high">{language === "fr" ? "Haute" : "High"}</SelectItem>
+                                <SelectItem value="urgent">{language === "fr" ? "Urgente" : "Urgent"}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={editForm.control}
+                        name="source"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Source</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-edit-source">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="web_form">{language === "fr" ? "Formulaire web" : "Web Form"}</SelectItem>
+                                <SelectItem value="referral">{language === "fr" ? "Référence" : "Referral"}</SelectItem>
+                                <SelectItem value="cold_call">{language === "fr" ? "Appel froid" : "Cold Call"}</SelectItem>
+                                <SelectItem value="event">{language === "fr" ? "Événement" : "Event"}</SelectItem>
+                                <SelectItem value="other">{language === "fr" ? "Autre" : "Other"}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="financial" className="space-y-4 mt-4" data-testid="tabcontent-edit-financial">
+                    <FormField
+                      control={editForm.control}
+                      name="estimatedValue"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Valeur estimée ($)" : "Estimated Value ($)"}</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} data-testid="input-edit-value" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={editForm.control}
+                      name="pvSizeKW"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Taille PV (kW)" : "PV Size (kW)"}</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} data-testid="input-edit-pv" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={editForm.control}
+                      name="expectedCloseDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Date de clôture prévue" : "Expected Close Date"}</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} data-testid="input-edit-date" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="stakeholders" className="mt-4" data-testid="tabcontent-edit-stakeholders">
+                    <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+                      {language === "fr" 
+                        ? "Les contacts clés seront ajoutés prochainement" 
+                        : "Key contacts coming soon"}
+                    </div>
+                  </TabsContent>
+                </Tabs>
 
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsDetailOpen(false)}>

@@ -52,6 +52,7 @@ export const clients = pgTable("clients", {
   city: text("city"),
   province: text("province"),
   postalCode: text("postal_code"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -65,6 +66,10 @@ export const sites = pgTable("sites", {
   province: text("province"),
   postalCode: text("postal_code"),
   notes: text("notes"),
+  
+  // Building characteristics
+  buildingType: text("building_type"), // "industrial" | "commercial" | "institutional" | "other"
+  roofType: text("roof_type"), // "flat" | "inclined" | "other"
   roofAreaSqM: real("roof_area_sqm"),
   
   // Geolocation for Google Solar API

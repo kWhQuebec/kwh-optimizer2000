@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -29,6 +30,7 @@ const clientFormSchema = z.object({
   city: z.string().optional(),
   province: z.string().optional(),
   postalCode: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -91,12 +93,14 @@ function GrantPortalAccessDialog({
     },
   });
   
+  type GrantAccessResult = { success: boolean; emailSent: boolean; tempPassword?: string; error?: string; warning?: string };
+  
   const grantAccessMutation = useMutation({
-    mutationFn: async (data: PortalAccessFormValues) => {
+    mutationFn: async (data: PortalAccessFormValues): Promise<GrantAccessResult> => {
       // apiRequest already returns parsed JSON and throws on non-ok status
-      return await apiRequest("POST", `/api/clients/${client.id}/grant-portal-access`, data);
+      return await apiRequest("POST", `/api/clients/${client.id}/grant-portal-access`, data) as GrantAccessResult;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: { success: boolean; emailSent: boolean; tempPassword?: string; error?: string; warning?: string }) => {
       setResult(data);
       if (data.emailSent) {
         toast({ 
@@ -443,6 +447,11 @@ function ClientForm({
 }) {
   const { t } = useI18n();
   
+  const [addressOpen, setAddressOpen] = useState(
+    !!(client?.address || client?.city || client?.province || client?.postalCode)
+  );
+  const { language } = useI18n();
+  
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
@@ -454,6 +463,7 @@ function ClientForm({
       city: client?.city || "",
       province: client?.province || "QC",
       postalCode: client?.postalCode || "",
+      notes: client?.notes || "",
     },
   });
 
@@ -488,93 +498,127 @@ function ClientForm({
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("form.email")}</FormLabel>
-                <FormControl>
-                  <Input type="email" {...field} data-testid="input-client-email" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("form.phone")}</FormLabel>
-                <FormControl>
-                  <Input type="tel" {...field} data-testid="input-client-phone" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
         <FormField
           control={form.control}
-          name="address"
+          name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t("sites.address")}</FormLabel>
+              <FormLabel>{t("form.email")}</FormLabel>
               <FormControl>
-                <Input {...field} data-testid="input-client-address" />
+                <Input type="email" {...field} data-testid="input-client-email" />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-3 gap-4">
-          <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("form.city")}</FormLabel>
-                <FormControl>
-                  <Input {...field} data-testid="input-client-city" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("form.phone")}</FormLabel>
+              <FormControl>
+                <Input type="tel" {...field} data-testid="input-client-phone" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="province"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("form.province")}</FormLabel>
-                <FormControl>
-                  <Input {...field} data-testid="input-client-province" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <Collapsible open={addressOpen} onOpenChange={setAddressOpen}>
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2 w-full justify-start text-muted-foreground hover:text-foreground"
+              data-testid="button-toggle-address"
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform ${addressOpen ? "rotate-180" : ""}`} />
+              <MapPin className="w-4 h-4" />
+              {language === "fr" ? "Adresse complète" : "Full Address"}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-4">
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("sites.address")}</FormLabel>
+                  <FormControl>
+                    <Input {...field} data-testid="input-client-address" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="postalCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Code postal</FormLabel>
-                <FormControl>
-                  <Input {...field} data-testid="input-client-postal" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("form.city")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-client-city" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="province"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("form.province")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-client-province" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="postalCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Code postal" : "Postal Code"}</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-client-postal" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{language === "fr" ? "Notes" : "Notes"}</FormLabel>
+              <FormControl>
+                <Textarea 
+                  {...field} 
+                  placeholder={language === "fr" ? "Notes internes sur ce client..." : "Internal notes about this client..."}
+                  className="min-h-[80px] resize-none"
+                  data-testid="input-client-notes" 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>

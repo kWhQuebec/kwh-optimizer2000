@@ -1,0 +1,26 @@
+RETIRER
+1. Pages publiques (Landing, Blog, Resources) dans le shell authentifié — Créent de la confusion Mon commentaire: pourquoi on ferait ça? C’est la partie Lead gen qui sera éventuellement notre site web public et qui évoluera en fonction du marché et de notre veille automatisé… please explain!
+2. Tooltips par rangée dans les tableaux — Surcharge visuelle Mon commentaire: go
+3. Badges tertiaires multiples sur les cartes — Trop de micro-informations Mon commentaire: go
+4. Boutons "Générer PDF" dupliqués — Un seul suffit Mon commentaire: go
+5. Section "Méthodologie" dans sidebar — Contenu statique Mon commentaire: go
+
+AJUSTER
+1. Dashboard KPIs — Grille 2x2 responsive, métriques compactes Mon commentaire: go
+2. Pipeline Modal création — Diviser en onglets (Opportunité → Financier → Parties prenantes) Mon commentaire: je ne comprends pas. Donne-moi plus de détails.
+3. Formulaires Clients/Sites — Champs critiques en premier, métadonnées en accordéon Mon commentaire: go
+4. Pages détail (Site/Portfolio) — Résumé fixe à gauche + onglets analytics à droite Mon commentaire: go
+5. Labels FR/EN — Centraliser dans fichier de traductions Mon commentaire: go
+6. États de chargement — Skeletons dimensionnés au contenu final Mon commentaire: go
+7. Messages d'erreur — Bannières inline plutôt que seulement toasts Mon commentaire: go
+8. Navigation sidebar — Regrouper Construction + O&M sous "Projets" Mon commentaire: pas convaincu. L’étape de construction est très différente que celle de O&M. La seule partie qui se passe en même temps, idéalement, c’est de faire accepter notre entente à long terme d’O&M, en meme temps que la proposition de construction
+
+AJOUTER
+1. Barre d'actions globale — Raccourcis "+ Client", "+ Site", "+ Opportunité" Mon commentaire: go
+2. Filtres sauvegardés sur Pipeline — Sauver vues favorites Mon commentaire: go
+3. Vue Kanban sur Pipeline — Alternative visuelle aux tableaux Mon commentaire: go
+4. Graphiques comparatifs — CAPEX vs Économies, Vélocité par stage Mon commentaire: donnes moi plus de détails
+5. Header sticky avec stats — Métriques clés toujours visibles Mon commentaire: donnes moi plus de détails
+6. Indicateur de progression — Pour workflows multi-étapes Mon commentaire: go
+7. Recherche globale — Trouver rapidement depuis n'importe où Mon commentaire: go
+8. Mode mobile optimisé — Sections collapsibles Mon commentaire: go

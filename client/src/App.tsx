@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { GlobalSearch } from "@/components/global-search";
+import { GlobalActionBar } from "@/components/global-action-bar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
@@ -109,6 +110,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      <GlobalActionBar />
     </SidebarProvider>
   );
 }

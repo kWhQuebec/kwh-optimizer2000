@@ -230,6 +230,15 @@ const translations: Translations = {
   "sites.pending": { fr: "En attente", en: "Pending" },
   "sites.empty": { fr: "Aucun site", en: "No sites" },
   "sites.emptyDescription": { fr: "Ajoutez un site pour commencer l'analyse.", en: "Add a site to start the analysis." },
+  "sites.moreOptions": { fr: "Plus d'options", en: "More Options" },
+  "sites.roofType": { fr: "Type de toiture", en: "Roof type" },
+  "sites.roofType.flat": { fr: "Plat", en: "Flat" },
+  "sites.roofType.inclined": { fr: "Incliné", en: "Inclined" },
+  "sites.roofType.other": { fr: "Autre", en: "Other" },
+  "sites.roofArea": { fr: "Surface de toiture (m²)", en: "Roof area (m²)" },
+  "sites.latitude": { fr: "Latitude", en: "Latitude" },
+  "sites.longitude": { fr: "Longitude", en: "Longitude" },
+  "sites.gpsCoordinates": { fr: "Coordonnées GPS", en: "GPS Coordinates" },
 
   // Site Detail
   "site.details": { fr: "Détails du site", en: "Site Details" },
