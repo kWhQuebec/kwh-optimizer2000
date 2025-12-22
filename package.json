@@ -47,6 +47,8 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/pdfkit": "^0.17.4",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +28,14 @@ import {
   Download,
   Smartphone,
   ExternalLink,
+  Camera,
+  Upload,
+  ScanBarcode,
+  Image,
+  X,
+  FolderOpen,
 } from "lucide-react";
+import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -264,6 +271,438 @@ function calculateEstimatedCost(numBuildings: number, travelDays: number, hasSld
   breakdown.total = breakdown.travel + breakdown.visit + breakdown.evaluation + breakdown.diagrams + breakdown.sldSupplement;
   
   return breakdown;
+}
+
+// Photo Capture Section Component
+function PhotoCaptureSection({ 
+  siteId, 
+  visitId,
+  language 
+}: { 
+  siteId: string; 
+  visitId?: string;
+  language: string;
+}) {
+  const { toast } = useToast();
+  const [photos, setPhotos] = useState<{ category: string; file: File; preview: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("general");
+
+  const categories = [
+    { id: "roof", label: language === "fr" ? "Toit" : "Roof", icon: Building2 },
+    { id: "electrical", label: language === "fr" ? "Électrique" : "Electrical", icon: Zap },
+    { id: "meter", label: language === "fr" ? "Compteurs" : "Meters", icon: Settings },
+    { id: "general", label: language === "fr" ? "Général" : "General", icon: Image },
+  ];
+
+  const handleCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPhotos(prev => [...prev, {
+          category: activeCategory,
+          file,
+          preview: reader.result as string
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadPhotos = async () => {
+    if (photos.length === 0) return;
+    
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      photos.forEach((photo, i) => {
+        formData.append("photos", photo.file);
+        formData.append(`categories[${i}]`, photo.category);
+      });
+
+      const response = await fetch(`/api/sites/${siteId}/photos`, {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      toast({
+        title: language === "fr" 
+          ? `${photos.length} photo(s) téléversée(s)` 
+          : `${photos.length} photo(s) uploaded`
+      });
+      setPhotos([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
+    } catch (error) {
+      toast({
+        title: language === "fr" ? "Erreur de téléversement" : "Upload error",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 p-4 border rounded-lg bg-primary/5 border-primary/20">
+      <div className="flex items-center gap-2">
+        <Camera className="w-5 h-5 text-primary" />
+        <h4 className="font-medium text-sm">
+          {language === "fr" ? "Capture de photos" : "Photo Capture"}
+        </h4>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        {categories.map(cat => (
+          <Button
+            key={cat.id}
+            type="button"
+            variant={activeCategory === cat.id ? "default" : "outline"}
+            size="sm"
+            className="flex flex-col h-auto py-2 gap-1"
+            onClick={() => setActiveCategory(cat.id)}
+            data-testid={`button-photo-category-${cat.id}`}
+          >
+            <cat.icon className="w-4 h-4" />
+            <span className="text-xs">{cat.label}</span>
+          </Button>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className="hidden"
+          onChange={handleCapture}
+          data-testid="input-photo-capture"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1 gap-2"
+          onClick={() => {
+            if (fileInputRef.current) {
+              fileInputRef.current.setAttribute("capture", "environment");
+              fileInputRef.current.click();
+            }
+          }}
+          data-testid="button-take-photo"
+        >
+          <Camera className="w-4 h-4" />
+          {language === "fr" ? "Prendre photo" : "Take Photo"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1 gap-2"
+          onClick={() => {
+            if (fileInputRef.current) {
+              fileInputRef.current.removeAttribute("capture");
+              fileInputRef.current.click();
+            }
+          }}
+          data-testid="button-choose-photo"
+        >
+          <FolderOpen className="w-4 h-4" />
+          {language === "fr" ? "Galerie" : "Gallery"}
+        </Button>
+      </div>
+
+      {photos.length > 0 && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-4 gap-2">
+            {photos.map((photo, i) => (
+              <div key={i} className="relative aspect-square rounded-md overflow-hidden border">
+                <img src={photo.preview} alt="" className="w-full h-full object-cover" />
+                <Badge className="absolute top-1 left-1 text-[10px] px-1">{photo.category}</Badge>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-1 right-1 h-5 w-5"
+                  onClick={() => removePhoto(i)}
+                  data-testid={`button-remove-photo-${i}`}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            onClick={uploadPhotos}
+            disabled={uploading}
+            className="w-full gap-2"
+            data-testid="button-upload-photos"
+          >
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {language === "fr" 
+              ? `Téléverser ${photos.length} photo(s)` 
+              : `Upload ${photos.length} photo(s)`}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Document Upload Section Component
+function DocumentUploadSection({ 
+  siteId, 
+  language 
+}: { 
+  siteId: string;
+  language: string;
+}) {
+  const { toast } = useToast();
+  const [documents, setDocuments] = useState<{ name: string; file: File; type: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      setDocuments(prev => [...prev, {
+        name: file.name,
+        file,
+        type: file.type
+      }]);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removeDocument = (index: number) => {
+    setDocuments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadDocuments = async () => {
+    if (documents.length === 0) return;
+    
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      documents.forEach((doc) => {
+        formData.append("documents", doc.file);
+      });
+
+      const response = await fetch(`/api/sites/${siteId}/documents`, {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      toast({
+        title: language === "fr" 
+          ? `${documents.length} document(s) téléversé(s)` 
+          : `${documents.length} document(s) uploaded`
+      });
+      setDocuments([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
+    } catch (error) {
+      toast({
+        title: language === "fr" ? "Erreur de téléversement" : "Upload error",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+        data-testid="input-document-upload"
+      />
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full gap-2"
+        onClick={() => fileInputRef.current?.click()}
+        data-testid="button-upload-document"
+      >
+        <Upload className="w-4 h-4" />
+        {language === "fr" ? "Téléverser des documents" : "Upload Documents"}
+      </Button>
+
+      {documents.length > 0 && (
+        <div className="space-y-2">
+          {documents.map((doc, i) => (
+            <div key={i} className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm truncate">{doc.name}</span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={() => removeDocument(i)}
+                data-testid={`button-remove-doc-${i}`}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            onClick={uploadDocuments}
+            disabled={uploading}
+            className="w-full gap-2"
+            data-testid="button-submit-documents"
+          >
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {language === "fr" 
+              ? `Téléverser ${documents.length} document(s)` 
+              : `Upload ${documents.length} document(s)`}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Barcode Scanner Component
+function BarcodeScanner({ 
+  onScan, 
+  label,
+  language 
+}: { 
+  onScan: (code: string) => void;
+  label: string;
+  language: string;
+}) {
+  const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+
+  const startScanning = async () => {
+    setScanning(true);
+    setError(null);
+    
+    try {
+      const reader = new BrowserMultiFormatReader();
+      readerRef.current = reader;
+      
+      const videoInputDevices = await reader.listVideoInputDevices();
+      if (videoInputDevices.length === 0) {
+        throw new Error(language === "fr" ? "Aucune caméra trouvée" : "No camera found");
+      }
+
+      // Prefer back camera
+      const backCamera = videoInputDevices.find(d => 
+        d.label.toLowerCase().includes("back") || 
+        d.label.toLowerCase().includes("arrière")
+      ) || videoInputDevices[0];
+
+      if (videoRef.current) {
+        reader.decodeFromVideoDevice(backCamera.deviceId, videoRef.current, (result, err) => {
+          if (result) {
+            onScan(result.getText());
+            stopScanning();
+          }
+          if (err && !(err instanceof NotFoundException)) {
+            console.error("Scan error:", err);
+          }
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Scanner error");
+      setScanning(false);
+    }
+  };
+
+  const stopScanning = () => {
+    if (readerRef.current) {
+      readerRef.current.reset();
+      readerRef.current = null;
+    }
+    setScanning(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (readerRef.current) {
+        readerRef.current.reset();
+      }
+    };
+  }, []);
+
+  if (scanning) {
+    return (
+      <div className="space-y-2">
+        <div className="relative aspect-video bg-black rounded-md overflow-hidden">
+          <video ref={videoRef} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-48 h-32 border-2 border-primary rounded-lg" />
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={stopScanning}
+          className="w-full"
+          data-testid="button-stop-scan"
+        >
+          <X className="w-4 h-4 mr-2" />
+          {language === "fr" ? "Annuler" : "Cancel"}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={startScanning}
+        className="gap-1 h-7 px-2 text-xs border-primary/30 text-primary"
+        data-testid={`button-scan-${label.toLowerCase().replace(/\s/g, '-')}`}
+      >
+        <ScanBarcode className="w-3 h-3" />
+        {language === "fr" ? "Scanner" : "Scan"}
+      </Button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
 }
 
 function SiteVisitForm({ 
@@ -942,7 +1381,14 @@ function SiteVisitForm({
                 name="mainPanelManufacturer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{language === "fr" ? "Fabricant panneau" : "Panel Manufacturer"}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{language === "fr" ? "Fabricant panneau" : "Panel Manufacturer"}</FormLabel>
+                      <BarcodeScanner 
+                        label="panel"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-panel-manufacturer" />
                     </FormControl>
@@ -956,7 +1402,14 @@ function SiteVisitForm({
                 name="mainPanelModel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{language === "fr" ? "Modèle panneau" : "Panel Model"}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{language === "fr" ? "Modèle panneau" : "Panel Model"}</FormLabel>
+                      <BarcodeScanner 
+                        label="model"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-panel-model" />
                     </FormControl>
@@ -993,7 +1446,17 @@ function SiteVisitForm({
                 name="meterNumbers"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("siteVisit.meterNumber")}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{t("siteVisit.meterNumber")}</FormLabel>
+                      <BarcodeScanner 
+                        label="meter"
+                        language={language}
+                        onScan={(code) => {
+                          const current = field.value || "";
+                          field.onChange(current ? `${current}, ${code}` : code);
+                        }}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-meter-numbers" />
                     </FormControl>
@@ -1007,7 +1470,14 @@ function SiteVisitForm({
                 name="hqMeterNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{language === "fr" ? "No compteur HQ" : "HQ Meter No"}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{language === "fr" ? "No compteur HQ" : "HQ Meter No"}</FormLabel>
+                      <BarcodeScanner 
+                        label="hq-meter"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-hq-meter" />
                     </FormControl>
@@ -1039,7 +1509,14 @@ function SiteVisitForm({
                 name="circuitBreakerManufacturer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                      <BarcodeScanner 
+                        label="breaker"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-circuit-breaker-manufacturer" />
                     </FormControl>
@@ -1052,7 +1529,14 @@ function SiteVisitForm({
                 name="circuitBreakerModel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("siteVisit.model")}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{t("siteVisit.model")}</FormLabel>
+                      <BarcodeScanner 
+                        label="breaker-model"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-circuit-breaker-model" />
                     </FormControl>
@@ -1069,7 +1553,14 @@ function SiteVisitForm({
                 name="disconnectSwitchManufacturer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                      <BarcodeScanner 
+                        label="disconnect"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-disconnect-switch-manufacturer" />
                     </FormControl>
@@ -1082,7 +1573,14 @@ function SiteVisitForm({
                 name="disconnectSwitchModel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("siteVisit.model")}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{t("siteVisit.model")}</FormLabel>
+                      <BarcodeScanner 
+                        label="disconnect-model"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-disconnect-switch-model" />
                     </FormControl>
@@ -1100,7 +1598,14 @@ function SiteVisitForm({
                 name="secondaryPanelManufacturer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{t("siteVisit.manufacturer")}</FormLabel>
+                      <BarcodeScanner 
+                        label="sec-panel"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-secondary-panel-manufacturer" />
                     </FormControl>
@@ -1113,7 +1618,14 @@ function SiteVisitForm({
                 name="secondaryPanelModel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("siteVisit.model")}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{t("siteVisit.model")}</FormLabel>
+                      <BarcodeScanner 
+                        label="sec-panel-model"
+                        language={language}
+                        onScan={(code) => field.onChange(code)}
+                      />
+                    </div>
                     <FormControl>
                       <Input {...field} data-testid="input-secondary-panel-model" />
                     </FormControl>
@@ -1416,6 +1928,13 @@ function SiteVisitForm({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-4">
+            {/* Photo Capture Section */}
+            <PhotoCaptureSection 
+              siteId={siteId} 
+              visitId={visit?.id}
+              language={language} 
+            />
+            
             <FormField
               control={form.control}
               name="photosTaken"
@@ -1434,6 +1953,9 @@ function SiteVisitForm({
             />
             
             <h4 className="text-sm font-medium">{t("siteVisit.documentsCollected")}</h4>
+            
+            {/* Document Upload Section */}
+            <DocumentUploadSection siteId={siteId} language={language} />
             <div className="space-y-3">
               <FormField
                 control={form.control}
