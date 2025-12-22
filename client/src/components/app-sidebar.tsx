@@ -375,10 +375,10 @@ export function AppSidebar() {
               items={constructionItems}
             />
 
-            {/* Section 4: Exploitation - Collapsible */}
+            {/* Section 4: O&M - Collapsible */}
             <CollapsibleSection 
               id="operations"
-              label={language === "fr" ? "Exploitation" : "Operations"}
+              label="O&M"
               icon={Wrench}
               items={operationsItems}
             />
