@@ -35,6 +35,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Opportunity, User as UserType, Client } from "@shared/schema";
 
+// Format currency in a compact, readable way (e.g., "$128M", "$1.5M", "$250k")
+function formatCompactCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined || value === 0) return "$0";
+  if (value >= 1000000) {
+    const millions = value / 1000000;
+    return millions >= 10 ? `$${Math.round(millions)}M` : `$${millions.toFixed(1)}M`;
+  }
+  if (value >= 1000) {
+    return `$${Math.round(value / 1000)}k`;
+  }
+  return `$${Math.round(value)}`;
+}
+
 const STAGES = ["prospect", "qualified", "proposal", "design_signed", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered", "lost"] as const;
 type Stage = typeof STAGES[number];
 
@@ -175,7 +188,7 @@ function OpportunityCard({
           {opportunity.estimatedValue && (
             <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
               <DollarSign className="w-3.5 h-3.5" />
-              <span>${opportunity.estimatedValue.toLocaleString()}</span>
+              <span>{formatCompactCurrency(opportunity.estimatedValue)}</span>
             </div>
           )}
 
@@ -300,7 +313,7 @@ function StageColumn({
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1 font-mono">
-            ${stageValue.toLocaleString()}
+            {formatCompactCurrency(stageValue)}
           </p>
         </div>
         <div className="p-3">
@@ -579,7 +592,7 @@ export default function PipelinePage() {
                   {language === "fr" ? "Pipeline actif" : "Active Pipeline"}
                 </p>
                 <p className="text-xl font-bold font-mono" data-testid="stat-pipeline-value">
-                  ${totalPipelineValue.toLocaleString()}
+                  {formatCompactCurrency(totalPipelineValue)}
                 </p>
               </div>
             </div>
@@ -597,7 +610,7 @@ export default function PipelinePage() {
                   {language === "fr" ? "Gagnées" : "Won"}
                 </p>
                 <p className="text-xl font-bold font-mono text-green-600" data-testid="stat-won-value">
-                  ${wonValue.toLocaleString()}
+                  {formatCompactCurrency(wonValue)}
                 </p>
               </div>
             </div>
@@ -633,7 +646,7 @@ export default function PipelinePage() {
                   {language === "fr" ? "Valeur pondérée" : "Weighted Value"}
                 </p>
                 <p className="text-xl font-bold font-mono" data-testid="stat-weighted-value">
-                  ${Math.round(weightedPipelineValue).toLocaleString()}
+                  {formatCompactCurrency(weightedPipelineValue)}
                 </p>
               </div>
             </div>
