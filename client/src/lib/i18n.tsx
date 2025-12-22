@@ -389,6 +389,15 @@ const translations: Translations = {
   "design.createDesign": { fr: "Créer un design", en: "Create design" },
   "design.designGenerated": { fr: "Design généré avec succès", en: "Design generated successfully" },
   "design.simulationNotFound": { fr: "Simulation non trouvée", en: "Simulation not found" },
+  "design.generateSchedule": { fr: "Générer calendrier préliminaire", en: "Generate Preliminary Schedule" },
+  "design.scheduleGenerated": { fr: "Calendrier préliminaire généré", en: "Preliminary schedule generated" },
+  "design.scheduleGeneratedDesc": { fr: "Les tâches ont été créées avec succès", en: "Tasks have been created successfully" },
+  "design.viewGantt": { fr: "Voir le diagramme Gantt", en: "View GANTT Chart" },
+  "design.selectStartDate": { fr: "Sélectionner la date de début", en: "Select Start Date" },
+  "design.projectStartDate": { fr: "Date de début du projet", en: "Project Start Date" },
+  "design.scheduleDialogTitle": { fr: "Générer le calendrier préliminaire", en: "Generate Preliminary Schedule" },
+  "design.scheduleDialogDesc": { fr: "Sélectionnez la date de début prévue pour générer automatiquement les tâches de construction basées sur le BOM.", en: "Select the planned start date to auto-generate construction tasks based on the BOM." },
+  "design.generateScheduleError": { fr: "Erreur lors de la génération du calendrier", en: "Error generating schedule" },
 
   // Sites
   "sites.createError": { fr: "Erreur lors de la création", en: "Error creating site" },
@@ -879,6 +888,9 @@ const translations: Translations = {
   "gantt.category.structural": { fr: "Structure", en: "Structural" },
   "gantt.category.inspection": { fr: "Inspection", en: "Inspection" },
   "gantt.category.general": { fr: "Général", en: "General" },
+  "gantt.category.commissioning": { fr: "Mise en service", en: "Commissioning" },
+  "gantt.preliminary": { fr: "Préliminaire", en: "Preliminary" },
+  "gantt.preliminaryTask": { fr: "Tâche préliminaire (auto-générée)", en: "Preliminary task (auto-generated)" },
 
   // Blog / Articles
   "blog.title": { fr: "Ressources et guides", en: "Resources & Guides" },

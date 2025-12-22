@@ -359,6 +359,10 @@ export default function ConstructionGanttPage() {
           <div className="w-px h-4 border-l-2 border-dashed border-red-500" />
           <span>{t("gantt.today")}</span>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-3 bg-blue-400/60 border-2 border-dashed border-blue-500 rounded-sm" />
+          <span>{t("gantt.preliminary")}</span>
+        </div>
       </Card>
 
       {filteredTasks.length === 0 ? (
@@ -392,7 +396,14 @@ export default function ConstructionGanttPage() {
                   >
                     <div className={`w-2 h-2 rounded-full ${getStatusColor(task.status)}`} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{task.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">{task.name}</span>
+                        {task.isPreliminary && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0 border-dashed">
+                            {t("gantt.preliminary")}
+                          </Badge>
+                        )}
+                      </div>
                       {task.project && (
                         <div className="text-xs text-muted-foreground truncate">
                           {task.project.name}
@@ -440,7 +451,11 @@ export default function ConstructionGanttPage() {
                         >
                           {barStyles && (
                             <div
-                              className="absolute top-2 h-4 bg-blue-500/80 rounded cursor-pointer hover:bg-blue-600/80 transition-colors"
+                              className={`absolute top-2 h-4 rounded cursor-pointer transition-colors ${
+                                task.isPreliminary 
+                                  ? "bg-blue-400/60 border-2 border-dashed border-blue-500 hover:bg-blue-500/60" 
+                                  : "bg-blue-500/80 hover:bg-blue-600/80"
+                              }`}
                               style={{
                                 left: barStyles.left,
                                 width: barStyles.width,

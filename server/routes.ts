@@ -5751,6 +5751,212 @@ export async function registerRoutes(
     }
   });
 
+  // Generate preliminary schedule from design BOM
+  app.post("/api/designs/:designId/generate-preliminary-schedule", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { designId } = req.params;
+      const { startDate } = req.body;
+
+      if (!startDate) {
+        return res.status(400).json({ error: "startDate is required" });
+      }
+
+      // Get design with BOM items
+      const design = await storage.getDesign(designId);
+      if (!design) {
+        return res.status(404).json({ error: "Design not found" });
+      }
+
+      const bomItems = await storage.getBomItemsByDesignId(designId);
+      const simulationRun = design.simulationRunId ? await storage.getSimulationRun(design.simulationRunId) : null;
+      const site = simulationRun?.siteId ? await storage.getSite(simulationRun.siteId) : null;
+
+      // Get or create a construction project
+      let project;
+      
+      // Check if there's already a construction project linked to this design's agreement
+      if (design.constructionAgreementId) {
+        const existingProjects = await storage.getConstructionProjects();
+        project = existingProjects.find(p => p.constructionAgreementId === design.constructionAgreementId);
+      }
+
+      // If no project exists, create a temporary one for the preliminary schedule
+      if (!project) {
+        // First check if there's a construction agreement for this design
+        const agreements = await storage.getConstructionAgreements();
+        let agreementId = design.constructionAgreementId;
+        
+        if (!agreementId && site) {
+          // Create a preliminary construction agreement
+          const agreement = await storage.createConstructionAgreement({
+            siteId: site.id,
+            designId: designId,
+            status: "draft",
+            pvSizeKW: design.pvSizeKW || 0,
+            batteryEnergyKWh: design.batteryEnergyKWh || 0,
+            totalContractValue: design.totalSellPrice || 0,
+          });
+          agreementId = agreement.id;
+        }
+
+        if (agreementId && site) {
+          project = await storage.createConstructionProject({
+            constructionAgreementId: agreementId,
+            siteId: site.id,
+            name: `${site.name || 'Site'} - Preliminary Schedule`,
+            status: "planning",
+            plannedStartDate: new Date(startDate),
+          });
+        } else {
+          return res.status(400).json({ error: "Cannot create project: missing site or agreement data" });
+        }
+      }
+
+      // Calculate system size metrics
+      const pvSizeKW = design.pvSizeKW || 0;
+      const batteryEnergyKWh = design.batteryEnergyKWh || 0;
+
+      // Define task templates with duration formulas
+      const taskTemplates = [
+        {
+          name: "Mobilisation",
+          nameEn: "Mobilization",
+          category: "general",
+          durationDays: 2,
+          dependencies: [] as string[],
+        },
+        {
+          name: "Approvisionnement équipements",
+          nameEn: "Equipment Procurement",
+          category: "procurement",
+          durationDays: pvSizeKW > 100 ? 21 : 14, // Larger systems need more lead time
+          dependencies: ["Mobilisation"],
+        },
+        {
+          name: "Installation structure",
+          nameEn: "Structure Installation",
+          category: "structural",
+          durationDays: Math.max(2, Math.ceil(pvSizeKW * 0.05)),
+          dependencies: ["Approvisionnement équipements"],
+        },
+        {
+          name: "Installation panneaux",
+          nameEn: "Panel Installation",
+          category: "mechanical",
+          durationDays: Math.max(3, Math.ceil(pvSizeKW * 0.1)),
+          dependencies: ["Installation structure"],
+        },
+        ...(batteryEnergyKWh > 0 ? [{
+          name: "Installation batteries",
+          nameEn: "Battery Installation",
+          category: "mechanical" as const,
+          durationDays: Math.max(1, Math.ceil(batteryEnergyKWh * 0.02)),
+          dependencies: ["Installation panneaux"],
+        }] : []),
+        {
+          name: "Câblage électrique",
+          nameEn: "Electrical Wiring",
+          category: "electrical",
+          durationDays: Math.max(2, Math.ceil(pvSizeKW * 0.08)),
+          dependencies: batteryEnergyKWh > 0 ? ["Installation panneaux", "Installation batteries"] : ["Installation panneaux"],
+        },
+        {
+          name: "Inspection électrique",
+          nameEn: "Electrical Inspection",
+          category: "inspection",
+          durationDays: 1,
+          dependencies: ["Câblage électrique"],
+        },
+        {
+          name: "Mise en service",
+          nameEn: "Commissioning",
+          category: "commissioning",
+          durationDays: 2,
+          dependencies: ["Inspection électrique"],
+        },
+      ];
+
+      // Delete any existing preliminary tasks for this design
+      const existingTasks = await storage.getConstructionTasksByProjectId(project.id);
+      for (const task of existingTasks) {
+        if (task.isPreliminary && task.sourceDesignId === designId) {
+          await storage.deleteConstructionTask(task.id);
+        }
+      }
+
+      // Create tasks with calculated dates
+      const createdTasks: any[] = [];
+      const taskIdMap: Record<string, string> = {};
+      let currentDate = new Date(startDate);
+
+      for (let i = 0; i < taskTemplates.length; i++) {
+        const template = taskTemplates[i];
+        
+        // Calculate start date based on dependencies
+        let taskStartDate = new Date(startDate);
+        if (template.dependencies.length > 0) {
+          for (const depName of template.dependencies) {
+            const depTask = createdTasks.find(t => t.name === depName);
+            if (depTask && depTask.plannedEndDate) {
+              const depEndDate = new Date(depTask.plannedEndDate);
+              if (depEndDate > taskStartDate) {
+                taskStartDate = new Date(depEndDate);
+                taskStartDate.setDate(taskStartDate.getDate() + 1); // Start day after dependency ends
+              }
+            }
+          }
+        }
+
+        // Calculate end date
+        const taskEndDate = new Date(taskStartDate);
+        taskEndDate.setDate(taskEndDate.getDate() + template.durationDays - 1);
+
+        // Get dependency task IDs
+        const dependsOnTaskIds = template.dependencies
+          .map(depName => taskIdMap[depName])
+          .filter(Boolean);
+
+        const task = await storage.createConstructionTask({
+          projectId: project.id,
+          name: template.name,
+          description: `${template.nameEn} - Auto-generated from design BOM`,
+          category: template.category,
+          status: "pending",
+          priority: "medium",
+          plannedStartDate: taskStartDate,
+          plannedEndDate: taskEndDate,
+          durationDays: template.durationDays,
+          dependsOnTaskIds: dependsOnTaskIds.length > 0 ? dependsOnTaskIds : null,
+          isPreliminary: true,
+          sourceDesignId: designId,
+          sortOrder: i,
+        });
+
+        createdTasks.push(task);
+        taskIdMap[template.name] = task.id;
+      }
+
+      // Update project planned dates
+      if (createdTasks.length > 0) {
+        const firstTask = createdTasks[0];
+        const lastTask = createdTasks[createdTasks.length - 1];
+        await storage.updateConstructionProject(project.id, {
+          plannedStartDate: firstTask.plannedStartDate,
+          plannedEndDate: lastTask.plannedEndDate,
+        });
+      }
+
+      res.status(201).json({
+        project,
+        tasks: createdTasks,
+        message: `Generated ${createdTasks.length} preliminary tasks`,
+      });
+    } catch (error) {
+      console.error("Error generating preliminary schedule:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== O&M CONTRACTS ROUTES ====================
 
   // List all O&M contracts

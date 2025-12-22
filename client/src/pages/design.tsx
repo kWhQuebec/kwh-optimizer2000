@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,7 +13,9 @@ import {
   TrendingUp,
   Settings,
   ExternalLink,
-  CheckCircle2
+  CheckCircle2,
+  CalendarDays,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +25,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -153,9 +165,12 @@ function BomTable({ items }: { items: BomItem[] }) {
 
 export default function DesignPage() {
   const { simulationId } = useParams<{ simulationId: string }>();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [generatedDesign, setGeneratedDesign] = useState<DesignWithBom | null>(null);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [selectedStartDate, setSelectedStartDate] = useState<Date | undefined>(undefined);
 
   const { data: simulation, isLoading: simLoading } = useQuery<SimulationWithSite>({
     queryKey: ["/api/simulation-runs", simulationId],
@@ -215,6 +230,37 @@ export default function DesignPage() {
     },
     onError: () => {
       toast({ title: t("design.generateError"), variant: "destructive" });
+    },
+  });
+
+  const generateScheduleMutation = useMutation({
+    mutationFn: async ({ designId, startDate }: { designId: string; startDate: string }) => {
+      const response = await apiRequest("POST", `/api/designs/${designId}/generate-preliminary-schedule`, {
+        startDate,
+      });
+      return response;
+    },
+    onSuccess: (data) => {
+      setScheduleDialogOpen(false);
+      setSelectedStartDate(undefined);
+      queryClient.invalidateQueries({ queryKey: ["/api/construction-projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/construction-tasks"] });
+      toast({
+        title: t("design.scheduleGenerated"),
+        description: t("design.scheduleGeneratedDesc"),
+        action: (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setLocation("/app/construction/gantt")}
+          >
+            {t("design.viewGantt")}
+          </Button>
+        ),
+      });
+    },
+    onError: () => {
+      toast({ title: t("design.generateScheduleError"), variant: "destructive" });
     },
   });
 
@@ -545,14 +591,92 @@ export default function DesignPage() {
       {/* BOM Table */}
       {generatedDesign && generatedDesign.bomItems && generatedDesign.bomItems.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
             <CardTitle>{t("design.bom")}</CardTitle>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setScheduleDialogOpen(true)}
+              data-testid="button-generate-schedule"
+            >
+              <CalendarDays className="w-4 h-4" />
+              {t("design.generateSchedule")}
+            </Button>
           </CardHeader>
           <CardContent>
             <BomTable items={generatedDesign.bomItems} />
           </CardContent>
         </Card>
       )}
+
+      {/* Schedule Generation Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent data-testid="dialog-generate-schedule">
+          <DialogHeader>
+            <DialogTitle>{t("design.scheduleDialogTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("design.scheduleDialogDesc")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium mb-2 block">
+              {t("design.projectStartDate")}
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal gap-2"
+                  data-testid="button-select-start-date"
+                >
+                  <Calendar className="w-4 h-4" />
+                  {selectedStartDate
+                    ? selectedStartDate.toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : t("design.selectStartDate")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedStartDate}
+                  onSelect={setSelectedStartDate}
+                  initialFocus
+                  disabled={(date) => date < new Date()}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setScheduleDialogOpen(false)}
+              data-testid="button-cancel-schedule"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={!selectedStartDate || !generatedDesign || generateScheduleMutation.isPending}
+              onClick={() => {
+                if (generatedDesign && selectedStartDate) {
+                  generateScheduleMutation.mutate({
+                    designId: generatedDesign.id,
+                    startDate: selectedStartDate.toISOString(),
+                  });
+                }
+              }}
+              className="gap-2"
+              data-testid="button-confirm-schedule"
+            >
+              <CalendarDays className="w-4 h-4" />
+              {generateScheduleMutation.isPending ? t("common.loading") : t("design.generateSchedule")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

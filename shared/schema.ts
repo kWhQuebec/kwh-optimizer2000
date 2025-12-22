@@ -1036,6 +1036,10 @@ export const constructionTasks = pgTable("construction_tasks", {
   // Sorting order within project
   sortOrder: integer("sort_order").default(0),
   
+  // Preliminary schedule (auto-generated from Design BOM)
+  isPreliminary: boolean("is_preliminary").default(false), // Indicates auto-generated tasks from design
+  sourceDesignId: varchar("source_design_id").references(() => designs.id), // Links to originating design
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
