@@ -5487,6 +5487,96 @@ export async function registerRoutes(
     }
   });
 
+  // Generate construction proposal PDF
+  app.get("/api/construction-agreements/:id/proposal-pdf", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+      
+      const agreement = await storage.getConstructionAgreement(req.params.id);
+      if (!agreement) {
+        return res.status(404).json({ error: "Construction agreement not found" });
+      }
+
+      const site = await storage.getSite(agreement.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      const client = await storage.getClient(site.clientId);
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+
+      let design = null;
+      let bomItems: any[] = [];
+      if (agreement.designId) {
+        design = await storage.getDesign(agreement.designId);
+        bomItems = await storage.getBomItems(agreement.designId);
+      }
+
+      const milestones = await storage.getConstructionMilestonesByAgreementId(agreement.id);
+
+      const allProjects = await storage.getConstructionProjects();
+      const project = allProjects.find(p => p.constructionAgreementId === agreement.id) || null;
+
+      let preliminaryTasks: any[] = [];
+      if (project) {
+        const projectTasks = await storage.getConstructionTasksByProjectId(project.id);
+        preliminaryTasks = projectTasks.filter(t => t.isPreliminary === true);
+      }
+
+      // Return 404 if no preliminary schedule exists
+      if (preliminaryTasks.length === 0) {
+        return res.status(404).json({ 
+          error: lang === "fr" 
+            ? "Aucun calendrier préliminaire disponible. Veuillez d'abord générer le calendrier depuis la page Design." 
+            : "No preliminary schedule available. Please generate the schedule from the Design page first."
+        });
+      }
+
+      const { generateConstructionProposalPDF } = await import("./constructionProposalPdf");
+
+      const doc = new PDFDocument({
+        size: "letter",
+        margin: 50,
+        bufferPages: true,
+        info: {
+          Title: lang === "fr" ? "Proposition de Construction" : "Construction Proposal",
+          Author: "kWh Québec",
+          Subject: `${site.name} - Construction Proposal`,
+        },
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="proposition-construction-${agreement.id.substring(0, 8)}.pdf"`
+        );
+        res.send(pdfBuffer);
+      });
+
+      generateConstructionProposalPDF(doc, {
+        agreement,
+        site,
+        client,
+        design,
+        bomItems,
+        milestones,
+        project,
+        preliminaryTasks,
+      }, lang);
+
+      doc.end();
+    } catch (error) {
+      console.error("Error generating construction proposal PDF:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== CONSTRUCTION MILESTONES ROUTES ====================
 
   // Get milestones for an agreement

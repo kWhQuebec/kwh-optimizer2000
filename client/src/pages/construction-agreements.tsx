@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
   FileText, Building2, Calendar, DollarSign, CheckCircle2, 
-  Clock, XCircle, Send, Eye, Filter, Wrench, Shield
+  Clock, XCircle, Send, Eye, Filter, Wrench, Shield, Download, Loader2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 import type { ConstructionAgreement, Site, Client } from "@shared/schema";
 
 interface ConstructionAgreementWithDetails extends ConstructionAgreement {
@@ -90,11 +91,56 @@ function formatDate(date: Date | string | null | undefined, language: "fr" | "en
 
 function AgreementCard({ agreement }: { agreement: ConstructionAgreementWithDetails }) {
   const { language } = useI18n();
+  const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
   
   const status = (agreement.status as AgreementStatus) || "draft";
   const config = statusConfig[status];
   const StatusIcon = config.icon;
   const statusLabel = language === "fr" ? config.labelFr : config.labelEn;
+
+  const handleDownloadPdf = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch(`/api/construction-agreements/${agreement.id}/proposal-pdf?lang=${language}`);
+      
+      if (response.status === 404) {
+        const errorData = await response.json();
+        toast({
+          title: language === "fr" ? "Calendrier non disponible" : "Schedule not available",
+          description: errorData.error || (language === "fr" 
+            ? "Veuillez d'abord générer le calendrier depuis la page Design."
+            : "Please generate the schedule from the Design page first."),
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF");
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `proposition-construction-${agreement.id.substring(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr" 
+          ? "Impossible de générer le PDF. Veuillez réessayer."
+          : "Unable to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
   
   const siteName = agreement.site?.name || "—";
   const clientName = agreement.site?.client?.name || "—";
@@ -191,12 +237,29 @@ function AgreementCard({ agreement }: { agreement: ConstructionAgreementWithDeta
                 </span>
               )}
             </div>
-            <Link href={`/app/construction-agreements/${agreement.id}`}>
-              <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-view-agreement-${agreement.id}`}>
-                <Eye className="w-3.5 h-3.5" />
-                {language === "fr" ? "Voir" : "View"}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1.5" 
+                onClick={handleDownloadPdf}
+                disabled={isDownloading}
+                data-testid="button-download-proposal-pdf"
+              >
+                {isDownloading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                PDF
               </Button>
-            </Link>
+              <Link href={`/app/construction-agreements/${agreement.id}`}>
+                <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-view-agreement-${agreement.id}`}>
+                  <Eye className="w-3.5 h-3.5" />
+                  {language === "fr" ? "Voir" : "View"}
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </CardContent>
