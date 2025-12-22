@@ -69,7 +69,9 @@ const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
   proposal: { fr: "Proposition", en: "Proposal" },
   design_signed: { fr: "Design signé", en: "Design Signed" },
   negotiation: { fr: "Négociation", en: "Negotiation" },
-  won: { fr: "Gagné", en: "Won" },
+  won_to_be_delivered: { fr: "Gagné - À livrer", en: "Won - To be Delivered" },
+  won_in_construction: { fr: "Gagné - En construction", en: "Won - In Construction" },
+  won_delivered: { fr: "Gagné - Livré", en: "Won - Delivered" },
   lost: { fr: "Perdu", en: "Lost" },
 };
 
@@ -79,7 +81,9 @@ const STAGE_COLORS: Record<string, string> = {
   proposal: "bg-purple-400",
   design_signed: "bg-yellow-500",
   negotiation: "bg-orange-400",
-  won: "bg-green-500",
+  won_to_be_delivered: "bg-emerald-400",
+  won_in_construction: "bg-green-500",
+  won_delivered: "bg-green-700",
   lost: "bg-red-500",
 };
 

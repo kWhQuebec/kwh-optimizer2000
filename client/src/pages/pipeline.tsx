@@ -35,7 +35,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Opportunity, User as UserType, Client } from "@shared/schema";
 
-const STAGES = ["prospect", "qualified", "proposal", "design_signed", "negotiation", "won", "lost"] as const;
+const STAGES = ["prospect", "qualified", "proposal", "design_signed", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered", "lost"] as const;
 type Stage = typeof STAGES[number];
 
 const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
@@ -44,7 +44,9 @@ const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
   proposal: { fr: "Proposition (25%)", en: "Proposal (25%)" },
   design_signed: { fr: "Design signé (50%)", en: "Design Signed (50%)" },
   negotiation: { fr: "Négociation (75%)", en: "Negotiation (75%)" },
-  won: { fr: "Gagné (100%)", en: "Won (100%)" },
+  won_to_be_delivered: { fr: "Gagné - À livrer (100%)", en: "Won - To be Delivered (100%)" },
+  won_in_construction: { fr: "Gagné - En construction (100%)", en: "Won - In Construction (100%)" },
+  won_delivered: { fr: "Gagné - Livré (100%)", en: "Won - Delivered (100%)" },
   lost: { fr: "Perdu (0%)", en: "Lost (0%)" },
 };
 
@@ -69,9 +71,17 @@ const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
     fr: "Négociation du contrat de construction en cours", 
     en: "Construction contract negotiation in progress" 
   },
-  won: { 
-    fr: "Contrat signé – projet remporté!", 
-    en: "Contract signed – project won!" 
+  won_to_be_delivered: { 
+    fr: "Contrat signé – en attente de démarrage de la construction", 
+    en: "Contract signed – awaiting construction start" 
+  },
+  won_in_construction: { 
+    fr: "Construction en cours sur le site", 
+    en: "Construction in progress on site" 
+  },
+  won_delivered: { 
+    fr: "Projet complété et livré au client", 
+    en: "Project completed and delivered to client" 
   },
   lost: { 
     fr: "Opportunité fermée sans succès", 
@@ -85,9 +95,15 @@ const STAGE_PROBABILITIES: Record<Stage, number> = {
   proposal: 25,
   design_signed: 50,
   negotiation: 75,
-  won: 100,
+  won_to_be_delivered: 100,
+  won_in_construction: 100,
+  won_delivered: 100,
   lost: 0,
 };
+
+// Helper to check if a stage is a "won" stage
+const WON_STAGES = ["won_to_be_delivered", "won_in_construction", "won_delivered"] as const;
+const isWonStage = (stage: string) => WON_STAGES.includes(stage as any);
 
 const PRIORITY_COLORS: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
@@ -129,7 +145,7 @@ function OpportunityCard({
   const { language } = useI18n();
   const currentStageIndex = STAGES.indexOf(opportunity.stage as Stage);
   const canMoveForward = currentStageIndex < STAGES.length - 2;
-  const canMoveBack = currentStageIndex > 0 && opportunity.stage !== "won" && opportunity.stage !== "lost";
+  const canMoveBack = currentStageIndex > 0 && !isWonStage(opportunity.stage) && opportunity.stage !== "lost";
 
   return (
     <Card 
@@ -202,13 +218,13 @@ function OpportunityCard({
                 <ChevronRight className="w-3 h-3 ml-1" />
               </Button>
             )}
-            {opportunity.stage !== "won" && opportunity.stage !== "lost" && (
+            {!isWonStage(opportunity.stage) && opportunity.stage !== "lost" && (
               <>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   className="h-7 px-2 text-xs text-green-600"
-                  onClick={() => onStageChange(opportunity.id, "won")}
+                  onClick={() => onStageChange(opportunity.id, "won_to_be_delivered")}
                   data-testid={`button-mark-won-${opportunity.id}`}
                 >
                   <Trophy className="w-3 h-3" />
@@ -252,7 +268,9 @@ function StageColumn({
     proposal: "border-t-purple-400",
     design_signed: "border-t-yellow-500",
     negotiation: "border-t-orange-400",
-    won: "border-t-green-500",
+    won_to_be_delivered: "border-t-emerald-400",
+    won_in_construction: "border-t-green-500",
+    won_delivered: "border-t-green-700",
     lost: "border-t-red-500",
   };
 
@@ -437,13 +455,13 @@ export default function PipelinePage() {
     return true;
   });
 
-  const activeOpportunities = filteredOpportunities.filter(o => o.stage !== "won" && o.stage !== "lost");
+  const activeOpportunities = filteredOpportunities.filter(o => !isWonStage(o.stage) && o.stage !== "lost");
   const totalPipelineValue = activeOpportunities.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
   const weightedPipelineValue = activeOpportunities.reduce((sum, o) => {
     const prob = o.probability ?? STAGE_PROBABILITIES[o.stage as Stage] ?? 0;
     return sum + ((o.estimatedValue || 0) * prob / 100);
   }, 0);
-  const wonValue = filteredOpportunities.filter(o => o.stage === "won").reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  const wonValue = filteredOpportunities.filter(o => isWonStage(o.stage)).reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
 
   const owners = users.filter(u => u.role === "admin" || u.role === "analyst");
 
