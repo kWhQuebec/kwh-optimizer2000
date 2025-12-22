@@ -385,24 +385,24 @@ function InlinePhotoCapture({
       />
       <Button
         type="button"
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 shrink-0"
+        variant="outline"
+        size="sm"
+        className="h-7 px-2 gap-1 text-xs border-primary/30 text-primary hover:bg-primary/10"
         onClick={openCamera}
         disabled={uploading}
         data-testid={`button-inline-photo-${category}`}
       >
         {uploading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-3 h-3 animate-spin" />
         ) : (
-          <Camera className="w-4 h-4 text-muted-foreground hover:text-primary" />
+          <Camera className="w-3 h-3" />
+        )}
+        {photoCount > 0 ? (
+          <span>{photoCount}</span>
+        ) : (
+          <span>{language === 'fr' ? 'Photo' : 'Photo'}</span>
         )}
       </Button>
-      {photoCount > 0 && (
-        <Badge variant="secondary" className="h-5 px-1.5 text-xs">
-          {photoCount}
-        </Badge>
-      )}
     </>
   );
 }
@@ -886,6 +886,53 @@ export default function SiteVisitFormPage() {
                       </FormControl>
                     </FormItem>
                   )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Quick Photo Capture - Prominent Section */}
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Camera className="w-5 h-5 text-primary" />
+                {language === 'fr' ? 'Capture de photos' : 'Photo Capture'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                {language === 'fr' 
+                  ? 'Prenez des photos du site pour documenter votre visite. Cliquez sur une catégorie pour capturer ou téléverser des images.'
+                  : 'Take photos of the site to document your visit. Click a category to capture or upload images.'}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <PhotoUploader
+                  siteId={siteId}
+                  visitId={existingVisit?.id}
+                  category="roof"
+                  label={language === 'fr' ? 'Toit' : 'Roof'}
+                  maxPhotos={10}
+                />
+                <PhotoUploader
+                  siteId={siteId}
+                  visitId={existingVisit?.id}
+                  category="electrical"
+                  label={language === 'fr' ? 'Électrique' : 'Electrical'}
+                  maxPhotos={10}
+                />
+                <PhotoUploader
+                  siteId={siteId}
+                  visitId={existingVisit?.id}
+                  category="meter"
+                  label={language === 'fr' ? 'Compteurs' : 'Meters'}
+                  maxPhotos={5}
+                />
+                <PhotoUploader
+                  siteId={siteId}
+                  visitId={existingVisit?.id}
+                  category="general"
+                  label={language === 'fr' ? 'Général' : 'General'}
+                  maxPhotos={5}
                 />
               </div>
             </CardContent>
