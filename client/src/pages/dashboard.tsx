@@ -16,9 +16,7 @@ import {
   Upload,
   Play,
   FileCheck,
-  X,
-  Timer,
-  LineChart as LineChartIcon
+  X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,9 +31,9 @@ import {
   YAxis, 
   Tooltip, 
   ResponsiveContainer,
-  LineChart,
-  Line,
-  CartesianGrid
+  CartesianGrid,
+  Cell,
+  Legend
 } from "recharts";
 
 interface PipelineStats {
@@ -103,20 +101,17 @@ const STAGE_COLORS: Record<string, string> = {
 const WON_STAGES = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
 const isWonStage = (stage: string) => WON_STAGES.includes(stage);
 
-const STAGE_VELOCITY_MOCK_DATA = [
-  { stage: 'prospect', days: 5 },
-  { stage: 'qualified', days: 8 },
-  { stage: 'proposal', days: 12 },
-  { stage: 'design_signed', days: 15 },
-  { stage: 'negotiation', days: 10 },
-];
-
-const PIPELINE_TREND_MOCK_DATA = [
-  { month: 'Sep', value: 850000 },
-  { month: 'Oct', value: 920000 },
-  { month: 'Nov', value: 1100000 },
-  { month: 'Dec', value: 1250000 },
-];
+const STAGE_BAR_COLORS: Record<string, string> = {
+  prospect: "#64748b",
+  qualified: "#3b82f6",
+  proposal: "#a855f7",
+  design_signed: "#eab308",
+  negotiation: "#f97316",
+  won_to_be_delivered: "#34d399",
+  won_in_construction: "#22c55e",
+  won_delivered: "#15803d",
+  lost: "#ef4444",
+};
 
 // Format currency compactly: k for < 1M, M for >= 1M
 function formatCompactCurrency(value: number | null | undefined): string {
@@ -359,34 +354,45 @@ function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDism
   );
 }
 
-function StageVelocityChart({ language }: { language: 'fr' | 'en' }) {
-  const data = STAGE_VELOCITY_MOCK_DATA.map(item => ({
-    ...item,
-    name: STAGE_LABELS[item.stage]?.[language] || item.stage,
-  }));
+function StageValueChart({ stageBreakdown, language }: { stageBreakdown: PipelineStats['stageBreakdown']; language: 'fr' | 'en' }) {
+  const activeStages = ['prospect', 'qualified', 'proposal', 'design_signed', 'negotiation'];
+  const data = stageBreakdown
+    .filter(s => activeStages.includes(s.stage))
+    .map(item => ({
+      stage: item.stage,
+      name: STAGE_LABELS[item.stage]?.[language] || item.stage,
+      value: item.totalValue,
+      count: item.count,
+      fill: STAGE_BAR_COLORS[item.stage] || "#64748b",
+    }));
+
+  const hasData = data.some(d => d.value > 0 || d.count > 0);
+
+  if (!hasData) {
+    return (
+      <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
+        {language === 'fr' ? 'Aucune opportunité active' : 'No active opportunities'}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis 
             dataKey="name" 
-            tick={{ fontSize: 11 }}
-            angle={-20}
+            tick={{ fontSize: 10 }}
+            angle={-15}
             textAnchor="end"
-            height={60}
+            height={50}
             className="text-muted-foreground"
           />
           <YAxis 
             tick={{ fontSize: 11 }}
             className="text-muted-foreground"
-            label={{ 
-              value: language === 'fr' ? 'Jours' : 'Days', 
-              angle: -90, 
-              position: 'insideLeft',
-              style: { fontSize: 11, fill: 'hsl(var(--muted-foreground))' }
-            }}
+            tickFormatter={(value) => formatCompactCurrency(value)}
           />
           <Tooltip 
             contentStyle={{ 
@@ -395,47 +401,63 @@ function StageVelocityChart({ language }: { language: 'fr' | 'en' }) {
               borderRadius: '8px',
               fontSize: 12
             }}
-            formatter={(value: number) => [
-              `${value} ${language === 'fr' ? 'jours' : 'days'}`,
-              language === 'fr' ? 'Durée moyenne' : 'Average Duration'
+            formatter={(value: number, name: string, props: any) => [
+              `${formatCompactCurrency(value)} (${props.payload.count} ${language === 'fr' ? 'opp.' : 'opp.'})`,
+              language === 'fr' ? 'Valeur' : 'Value'
             ]}
           />
           <Bar 
-            dataKey="days" 
-            fill="hsl(var(--primary))" 
+            dataKey="value" 
             radius={[4, 4, 0, 0]}
-          />
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
-      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg py-2 px-3">
-        <Clock className="w-3 h-3" />
-        <span>
-          {language === 'fr' 
-            ? 'Bientôt disponible - données historiques requises' 
-            : 'Coming soon - historical data required'}
-        </span>
-      </div>
     </div>
   );
 }
 
-function PipelineTrendChart({ language }: { language: 'fr' | 'en' }) {
-  const data = PIPELINE_TREND_MOCK_DATA;
+function WeightedVsActualChart({ stageBreakdown, language }: { stageBreakdown: PipelineStats['stageBreakdown']; language: 'fr' | 'en' }) {
+  const activeStages = ['prospect', 'qualified', 'proposal', 'design_signed', 'negotiation'];
+  const data = stageBreakdown
+    .filter(s => activeStages.includes(s.stage))
+    .map(item => ({
+      stage: item.stage,
+      name: STAGE_LABELS[item.stage]?.[language] || item.stage,
+      actual: item.totalValue,
+      weighted: item.weightedValue,
+    }));
+
+  const hasData = data.some(d => d.actual > 0);
+
+  if (!hasData) {
+    return (
+      <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
+        {language === 'fr' ? 'Aucune opportunité active' : 'No active opportunities'}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <ResponsiveContainer width="100%" height={250}>
-        <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+        <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis 
-            dataKey="month" 
-            tick={{ fontSize: 11 }}
+            dataKey="name" 
+            tick={{ fontSize: 10 }}
+            angle={-15}
+            textAnchor="end"
+            height={50}
             className="text-muted-foreground"
           />
           <YAxis 
             tick={{ fontSize: 11 }}
             className="text-muted-foreground"
-            tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
+            tickFormatter={(value) => formatCompactCurrency(value)}
           />
           <Tooltip 
             contentStyle={{ 
@@ -444,29 +466,23 @@ function PipelineTrendChart({ language }: { language: 'fr' | 'en' }) {
               borderRadius: '8px',
               fontSize: 12
             }}
-            formatter={(value: number) => [
+            formatter={(value: number, name: string) => [
               formatCompactCurrency(value),
-              language === 'fr' ? 'Valeur pipeline' : 'Pipeline Value'
+              name === 'actual' 
+                ? (language === 'fr' ? 'Valeur totale' : 'Total Value')
+                : (language === 'fr' ? 'Valeur pondérée' : 'Weighted Value')
             ]}
           />
-          <Line 
-            type="monotone" 
-            dataKey="value" 
-            stroke="hsl(var(--primary))" 
-            strokeWidth={2}
-            dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
+          <Legend 
+            formatter={(value) => value === 'actual' 
+              ? (language === 'fr' ? 'Total' : 'Total')
+              : (language === 'fr' ? 'Pondéré' : 'Weighted')
+            }
           />
-        </LineChart>
+          <Bar dataKey="actual" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="weighted" fill="#22c55e" radius={[4, 4, 0, 0]} />
+        </BarChart>
       </ResponsiveContainer>
-      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg py-2 px-3">
-        <LineChartIcon className="w-3 h-3" />
-        <span>
-          {language === 'fr' 
-            ? 'Bientôt disponible - données historiques requises' 
-            : 'Coming soon - historical data required'}
-        </span>
-      </div>
     </div>
   );
 }
@@ -736,18 +752,22 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
             <div>
               <CardTitle className="text-lg">
-                {language === 'fr' ? 'Vélocité par étape' : 'Stage Velocity'}
+                {language === 'fr' ? 'Valeur par étape' : 'Value by Stage'}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 {language === 'fr' 
-                  ? 'Temps moyen passé dans chaque étape' 
-                  : 'Average time spent in each stage'}
+                  ? 'Répartition du pipeline actif' 
+                  : 'Active pipeline distribution'}
               </p>
             </div>
-            <Timer className="w-4 h-4 text-muted-foreground" />
+            <BarChart3 className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <StageVelocityChart language={language as 'fr' | 'en'} />
+            {isLoading ? (
+              <Skeleton className="h-[250px] w-full" />
+            ) : (
+              <StageValueChart stageBreakdown={stats?.stageBreakdown || []} language={language as 'fr' | 'en'} />
+            )}
           </CardContent>
         </Card>
 
@@ -755,18 +775,22 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
             <div>
               <CardTitle className="text-lg">
-                {language === 'fr' ? 'Tendance du pipeline' : 'Pipeline Trend'}
+                {language === 'fr' ? 'Total vs Pondéré' : 'Total vs Weighted'}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 {language === 'fr' 
-                  ? 'Évolution de la valeur du pipeline' 
-                  : 'Pipeline value over time'}
+                  ? 'Comparaison valeur totale et pondérée' 
+                  : 'Compare total and probability-weighted values'}
               </p>
             </div>
-            <LineChartIcon className="w-4 h-4 text-muted-foreground" />
+            <Target className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <PipelineTrendChart language={language as 'fr' | 'en'} />
+            {isLoading ? (
+              <Skeleton className="h-[250px] w-full" />
+            ) : (
+              <WeightedVsActualChart stageBreakdown={stats?.stageBreakdown || []} language={language as 'fr' | 'en'} />
+            )}
           </CardContent>
         </Card>
       </div>

@@ -6771,10 +6771,23 @@ export async function registerRoutes(
     }
   });
 
+  // Helper to convert date strings to Date objects for partnership
+  function preprocessPartnershipDates(body: any) {
+    const dateFields = ['firstContactDate', 'lastContactDate', 'nextFollowUpDate', 'expectedDecisionDate', 'agreementStartDate', 'agreementEndDate'];
+    const result = { ...body };
+    for (const field of dateFields) {
+      if (result[field] && typeof result[field] === 'string') {
+        result[field] = new Date(result[field]);
+      }
+    }
+    return result;
+  }
+
   // Create partnership
   app.post("/api/partnerships", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
-      const data = insertPartnershipSchema.parse(req.body);
+      const preprocessed = preprocessPartnershipDates(req.body);
+      const data = insertPartnershipSchema.parse(preprocessed);
       const partnership = await storage.createPartnership(data);
       res.status(201).json(partnership);
     } catch (error) {
@@ -6793,7 +6806,8 @@ export async function registerRoutes(
       if (!existing) {
         return res.status(404).json({ error: "Partnership not found" });
       }
-      const data = insertPartnershipSchema.partial().parse(req.body);
+      const preprocessed = preprocessPartnershipDates(req.body);
+      const data = insertPartnershipSchema.partial().parse(preprocessed);
       const partnership = await storage.updatePartnership(req.params.id, data);
       res.json(partnership);
     } catch (error) {
