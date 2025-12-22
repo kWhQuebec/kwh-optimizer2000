@@ -1,0 +1,32 @@
+Le Prompt "Audit & Upgrade" pour Replit
+Context: I have a mature and complex codebase for a commercial solar analysis tool (Quebec market). The core logic for energy production and basic financial modeling is already working well. I do not want to rewrite the existing core.
+
+Goal: I want to explore specific high-level enhancements to "level up" the tool's capabilities, inspired by advanced EPC risk management strategies.
+
+Your Task: Read my existing codebase to understand the current data structures and logic flow. Then, propose how to implement the following 3 specific "Add-On Modules" without breaking the existing code:
+
+Module A: Probabilistic ROI (Monte Carlo Wrapper)
+
+Concept: Instead of a static output, I want to wrap my existing financial calculation function in a simulation loop.
+
+Requirement: Analyze my main ROI function. Show me how to run it 1,000 times with slight variations in variables like inflation_rate (3-6%), grid_price_increase, and production_variance to generate a P90 (90% confidence) financial outcome.
+
+Module B: 15-Minute Peak Shaving Calculator (Quebec Tariffs)
+
+Concept: Moving from monthly averages to granular analysis to capture "Demand Charge" savings (Puissance Appelée).
+
+Requirement: Check if my current data model supports 15-minute interval data (CSV). If not, propose a separate module that takes granular consumption data + simulated solar production to identify specific peaks that can be eliminated (Peak Shaving), specifically targeting Hydro-Quebec "Rate M/G" demand charges.
+
+Module C: "Standard Kit" Recommender
+
+Concept: Move from custom sizing to standardized products.
+
+Requirement: Propose a logic layer that takes the "Optimal System Size" (which my code currently calculates) and "snaps" it to the nearest defined Standard Kit (e.g., if result is 43kW, suggest "50kW Kit" and re-run numbers).
+
+Deliverable: Don't write the full code yet.
+
+Analyze the relevant files in my project.
+
+Explain where these new modules would sit in my current architecture.
+
+Provide a pseudo-code example for just the Monte Carlo Wrapper around my existing ROI function.

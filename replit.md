@@ -110,6 +110,43 @@ annualConsumptionKWh = totalKWh × annualizationFactor
 -   **Maintenance Visits Tracking**: Comprehensive visit scheduling and logging system supporting scheduled, emergency, warranty, and inspection visit types. Tracks technician assignments, findings, actions taken, issues found/resolved, and parts used.
 -   **O&M Performance Dashboard**: Real-time monitoring of installed solar systems with KPI cards (performance ratio, uptime, savings, issues), production/savings charts using Recharts, recent visits log, and alert notifications for system anomalies.
 
+### Advanced Analysis Modules (December 2024)
+
+Three new add-on modules enhance the analysis engine without modifying core logic:
+
+#### Module A: Monte Carlo Probabilistic ROI (`/api/sites/:siteId/monte-carlo-analysis`)
+Wraps the existing financial calculation in a 1,000-iteration simulation loop with variable ranges:
+- Inflation rate: 3-6%
+- Grid price increase: 2-7%
+- Production variance: ±10%
+
+Returns P10/P50/P90 confidence intervals for NPV, IRR, and payback period.
+
+#### Module B: 15-Minute Peak Shaving Calculator (`/api/sites/:siteId/peak-shaving-analysis`)
+Analyzes granular consumption data to identify demand peaks for battery storage optimization:
+- Leverages existing 15-minute interval data support in meter readings
+- Calculates HQ Rate M/G demand charge savings ("Puissance Appelée")
+- Recommends optimal battery power (kW) and energy (kWh) for peak shaving
+- Generates monthly peak distribution analysis
+
+#### Module C: Standard Kit Recommender (`/api/sites/:siteId/kit-recommendation`)
+Snaps optimal system sizing to predefined standard kits for simplified sales proposals:
+- 11 pre-defined kits from 20kW to 1MW (with/without storage)
+- Bilingual kit names and features (FR/EN)
+- Comparison of kit vs. custom pricing
+- Alternative kit suggestions with oversize/undersize percentages
+
+API endpoint for kit catalog: `GET /api/standard-kits`
+
+**File Structure:**
+```
+server/analysis/
+├── index.ts                    # Module exports
+├── monteCarloWrapper.ts        # Module A
+├── peakShavingAnalysis.ts      # Module B
+└── standardKitRecommender.ts   # Module C
+```
+
 ## External Dependencies
 
 ### Third-Party Services

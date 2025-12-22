@@ -43,6 +43,16 @@ import * as googleSolar from "./googleSolarService";
 import { sendEmail, generatePortalInvitationEmail } from "./gmail";
 import { generateProcurationPDF, createProcurationData } from "./procurationPdfGenerator";
 import { calculatePricingFromSiteVisit, getSiteVisitCompleteness, estimateConstructionCost } from "./pricing-engine";
+import { 
+  runMonteCarloAnalysis, 
+  defaultMonteCarloConfig,
+  analyzePeakShaving, 
+  generateSolarProductionProfile,
+  recommendStandardKit,
+  STANDARD_KITS,
+  type MonteCarloConfig,
+  type PeakShavingConfig,
+} from "./analysis";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -1956,6 +1966,207 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Analysis error:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== ADVANCED ANALYSIS MODULES ====================
+
+  // Module A: Monte Carlo Probabilistic ROI Analysis
+  app.post("/api/sites/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async (req, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const config = req.body?.config as Partial<MonteCarloConfig> | undefined;
+      const customAssumptions = req.body?.assumptions as Partial<AnalysisAssumptions> | undefined;
+      
+      const rawReadings = await storage.getMeterReadingsBySite(siteId);
+      if (rawReadings.length === 0) {
+        return res.status(400).json({ error: "No meter data available for Monte Carlo analysis" });
+      }
+      
+      const dedupResult = deduplicateMeterReadingsByHour(rawReadings);
+      const readings = dedupResult.readings;
+      const preCalculatedDataSpanDays = dedupResult.dataSpanDays;
+      
+      const site = await storage.getSite(siteId);
+      const siteAssumptions = (site?.analysisAssumptions || {}) as Partial<AnalysisAssumptions>;
+      const mergedAssumptions: AnalysisAssumptions = { 
+        ...defaultAnalysisAssumptions, 
+        ...siteAssumptions, 
+        ...customAssumptions 
+      };
+      
+      const monteCarloConfig: MonteCarloConfig = {
+        ...defaultMonteCarloConfig,
+        ...config,
+      };
+      
+      const { hourlyData } = buildHourlyData(readings);
+      const peakKW = Math.max(...hourlyData.map((h: { hour: number; month: number; consumption: number; peak: number }) => h.peak));
+      const annualConsumptionKWh = hourlyData.reduce((sum: number, h: { hour: number; month: number; consumption: number; peak: number }) => sum + h.consumption, 0);
+      
+      const baseAnalysis = runPotentialAnalysis(readings, mergedAssumptions, { preCalculatedDataSpanDays });
+      const pvSizeKW = baseAnalysis.pvSizeKW;
+      const batteryKWh = baseAnalysis.battEnergyKWh;
+      const batteryKW = baseAnalysis.battPowerKW;
+      
+      const monteCarloResult = runMonteCarloAnalysis(
+        mergedAssumptions,
+        (assumptions) => runScenarioWithSizing(
+          hourlyData,
+          pvSizeKW,
+          batteryKWh,
+          batteryKW,
+          peakKW,
+          annualConsumptionKWh,
+          assumptions
+        ),
+        monteCarloConfig
+      );
+      
+      res.json({
+        success: true,
+        siteId,
+        systemSizing: { pvSizeKW, batteryKWh, batteryKW },
+        monteCarlo: monteCarloResult,
+        baseAssumptions: mergedAssumptions,
+      });
+    } catch (error) {
+      console.error("Monte Carlo analysis error:", error);
+      res.status(500).json({ error: "Monte Carlo analysis failed" });
+    }
+  });
+
+  // Module B: 15-Minute Peak Shaving Analysis
+  app.post("/api/sites/:siteId/peak-shaving-analysis", authMiddleware, requireStaff, async (req, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const config = req.body as Partial<PeakShavingConfig> | undefined;
+      
+      const rawReadings = await storage.getMeterReadingsBySite(siteId);
+      if (rawReadings.length === 0) {
+        return res.status(400).json({ error: "No meter data available for peak shaving analysis" });
+      }
+      
+      const site = await storage.getSite(siteId);
+      const siteAssumptions = (site?.analysisAssumptions || {}) as Partial<AnalysisAssumptions>;
+      const tariffCode = (config?.tariffCode || siteAssumptions.tariffCode || 'M') as 'G' | 'M' | 'L';
+      
+      const simulations = await storage.getSimulationRunsBySite(siteId);
+      const latestSimulation = simulations.length > 0 
+        ? simulations.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+          })[0]
+        : null;
+      let solarProfile = config?.solarProductionProfile;
+      
+      if (!solarProfile && latestSimulation) {
+        const systemSizeKW = latestSimulation.pvSizeKW || 0;
+        const yieldKWhPerKWp = siteAssumptions.solarYieldKWhPerKWp || 1150;
+        solarProfile = generateSolarProductionProfile(systemSizeKW, yieldKWhPerKWp);
+      }
+      
+      const peakShavingConfig: PeakShavingConfig = {
+        tariffCode,
+        targetReductionPercent: config?.targetReductionPercent || 0.15,
+        minBatteryCoverage: config?.minBatteryCoverage || 0.5,
+        solarProductionProfile: solarProfile,
+      };
+      
+      const meterReadings = rawReadings.map(r => ({
+        timestamp: r.timestamp,
+        kWh: r.kWh,
+        kW: r.kW,
+        granularity: r.granularity || undefined,
+      }));
+      
+      const result = analyzePeakShaving(meterReadings, peakShavingConfig);
+      
+      const fifteenMinCount = rawReadings.filter(r => r.granularity === 'FIFTEEN_MIN').length;
+      const hourlyCount = rawReadings.filter(r => r.granularity === 'HOUR').length;
+      
+      res.json({
+        success: true,
+        siteId,
+        dataQuality: {
+          fifteenMinReadings: fifteenMinCount,
+          hourlyReadings: hourlyCount,
+          granularityUsed: fifteenMinCount > 0 ? 'FIFTEEN_MIN' : 'HOUR',
+        },
+        peakShaving: result,
+      });
+    } catch (error) {
+      console.error("Peak shaving analysis error:", error);
+      res.status(500).json({ error: "Peak shaving analysis failed" });
+    }
+  });
+
+  // Module C: Standard Kit Recommendation
+  app.post("/api/sites/:siteId/kit-recommendation", authMiddleware, requireStaff, async (req, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const options = req.body || {};
+      
+      const simulations = await storage.getSimulationRunsBySite(siteId);
+      const latestSimulation = simulations.length > 0 
+        ? simulations.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+          })[0]
+        : null;
+      if (!latestSimulation) {
+        return res.status(400).json({ 
+          error: "No analysis available. Run a potential analysis first to get optimal sizing." 
+        });
+      }
+      
+      const optimalPvKW = latestSimulation.pvSizeKW || 0;
+      const optimalBatteryKWh = latestSimulation.battEnergyKWh || 0;
+      const optimalBatteryKW = latestSimulation.battPowerKW || 0;
+      
+      if (optimalPvKW === 0) {
+        return res.status(400).json({ 
+          error: "Invalid system size in analysis. Please re-run the potential analysis." 
+        });
+      }
+      
+      const recommendation = recommendStandardKit(
+        optimalPvKW,
+        optimalBatteryKWh,
+        optimalBatteryKW,
+        {
+          preferOversizing: options.preferOversizing !== false,
+          maxOversizePercent: options.maxOversizePercent || 30,
+          includeAlternative: options.includeAlternative !== false,
+          customPricePerWatt: options.customPricePerWatt,
+          customBatteryCapacityCost: options.customBatteryCapacityCost,
+          customBatteryPowerCost: options.customBatteryPowerCost,
+        }
+      );
+      
+      res.json({
+        success: true,
+        siteId,
+        simulationId: latestSimulation.id,
+        recommendation,
+      });
+    } catch (error) {
+      console.error("Kit recommendation error:", error);
+      res.status(500).json({ error: "Kit recommendation failed" });
+    }
+  });
+
+  // Get all available standard kits
+  app.get("/api/standard-kits", authMiddleware, async (_req, res) => {
+    try {
+      res.json({
+        success: true,
+        kits: STANDARD_KITS,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve standard kits" });
     }
   });
 
