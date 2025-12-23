@@ -24,6 +24,18 @@ import {
   Mail,
   Copy,
   Check,
+  TrendingUp,
+  TrendingDown,
+  Wrench,
+  Hammer,
+  CircleCheck,
+  CircleX,
+  Banknote,
+  CreditCard,
+  Building,
+  ShieldCheck,
+  Percent,
+  Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1025,37 +1037,37 @@ export default function MarketIntelligencePage() {
                 };
 
                 return (
-                  <Card key={proposal.id} data-testid={`card-proposal-${proposal.id}`}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between gap-4">
+                  <Card key={proposal.id} data-testid={`card-proposal-${proposal.id}`} className="overflow-hidden">
+                    {/* HERO: Big advantage number - always visible */}
+                    <div 
+                      className={`p-6 text-white ${
+                        proposal.totalAdvantageKwh && proposal.totalAdvantageKwh > 0
+                          ? "bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800"
+                          : "bg-gradient-to-r from-slate-500 to-slate-600 dark:from-slate-600 dark:to-slate-700"
+                      }`} 
+                      data-testid={`text-proposal-advantage-${proposal.id}`}
+                    >
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div>
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            {competitor && (
-                              <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                                {competitor.name}
-                              </Badge>
-                            )}
-                            {getStatusBadge(proposal.status)}
-                          </div>
-                          <CardTitle className="text-lg" data-testid={`text-proposal-name-${proposal.id}`}>
-                            {proposal.projectName}
-                          </CardTitle>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            <span data-testid={`text-proposal-client-${proposal.id}`}>
-                              {language === "fr" ? "Client" : "Client"}: {proposal.clientName}
-                            </span>
-                            {proposal.tenantName && (
-                              <span> | {language === "fr" ? "Locataire" : "Tenant"}: {proposal.tenantName}</span>
-                            )}
-                          </div>
-                          {proposal.projectAddress && (
-                            <p className="text-sm text-muted-foreground">{proposal.projectAddress}</p>
-                          )}
+                          <p className="text-white/80 text-sm mb-1">
+                            {language === "fr" ? "Votre avantage avec kWh Québec" : "Your advantage with kWh Québec"}
+                          </p>
+                          <p className="text-4xl font-bold tracking-tight">
+                            {proposal.totalAdvantageKwh && proposal.totalAdvantageKwh > 0
+                              ? formatCurrency(proposal.totalAdvantageKwh)
+                              : language === "fr" ? "Analyse en cours..." : "Analysis pending..."}
+                          </p>
+                          <p className="text-white/80 text-sm mt-1">
+                            {proposal.totalAdvantageKwh && proposal.totalAdvantageKwh > 0
+                              ? `${language === "fr" ? "d'économies sur 25 ans vs" : "in savings over 25 years vs"} ${competitor?.name || "concurrent"}`
+                              : language === "fr" ? "Données en attente" : "Awaiting data"}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 print:hidden">
                           <Button 
                             size="icon" 
-                            variant="ghost"
+                            variant="secondary"
+                            className="bg-white/20 hover:bg-white/30 text-white border-0"
                             onClick={() => {
                               setEditingProposal(proposal);
                               setIsProposalDialogOpen(true);
@@ -1066,129 +1078,291 @@ export default function MarketIntelligencePage() {
                           </Button>
                           <Button 
                             size="icon" 
-                            variant="ghost"
+                            variant="secondary"
+                            className="bg-white/20 hover:bg-white/30 text-white border-0"
                             onClick={() => setDeleteProposalId(proposal.id)}
                             data-testid={`button-delete-proposal-${proposal.id}`}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
+                    </div>
+
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        {competitor && (
+                          <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                            vs {competitor.name}
+                          </Badge>
+                        )}
+                        {getStatusBadge(proposal.status)}
+                        {proposal.dealType === "ppa" && (
+                          <Badge variant="outline" className="text-purple-600 border-purple-300">
+                            PPA {proposal.ppaTerm} {language === "fr" ? "ans" : "years"}
+                          </Badge>
+                        )}
+                      </div>
+                      <CardTitle className="text-lg" data-testid={`text-proposal-name-${proposal.id}`}>
+                        {proposal.projectName}
+                      </CardTitle>
+                      <div className="text-sm text-muted-foreground">
+                        <span data-testid={`text-proposal-client-${proposal.id}`}>
+                          {proposal.clientName}
+                        </span>
+                        {proposal.tenantName && <span> | {proposal.tenantName}</span>}
+                        {proposal.projectAddress && <span> | {proposal.projectAddress}</span>}
+                      </div>
                       <div className="flex items-center gap-4 text-sm mt-2">
                         {proposal.systemSizeKW && (
-                          <span className="flex items-center gap-1" data-testid={`text-proposal-system-${proposal.id}`}>
+                          <span className="flex items-center gap-1">
                             <Target className="w-3 h-3" />
                             {proposal.systemSizeKW.toLocaleString()} kW
                           </span>
                         )}
                         {proposal.projectCostTotal && (
-                          <span className="flex items-center gap-1" data-testid={`text-proposal-cost-${proposal.id}`}>
+                          <span className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
                             {formatCurrency(proposal.projectCostTotal)}
                           </span>
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="overflow-x-auto print:overflow-visible" id={`proposal-card-${proposal.id}`}>
-                        <table className="w-full text-sm border-collapse" data-testid={`table-assumptions-${proposal.id}`}>
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-2 pr-4 font-medium">
-                                {language === "fr" ? "Hypothèses" : "Assumptions"}
-                              </th>
-                              <th className="text-right py-2 px-4 font-medium">
-                                {language === "fr" ? "Concurrent" : "Competitor"}
-                              </th>
-                              <th className="text-right py-2 px-4 font-medium text-primary">
-                                kWh Québec
-                              </th>
-                              <th className="text-right py-2 pl-4 font-medium text-green-600 dark:text-green-400">
-                                {language === "fr" ? "Impact ($)" : "Impact ($)"}
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="border-b border-muted">
-                              <td className="py-2 pr-4">
-                                {language === "fr" ? "Inflation" : "Inflation"}
-                              </td>
-                              <td className="text-right py-2 px-4 font-mono">
-                                {formatPercent(proposal.compInflationRate)}
-                              </td>
-                              <td className="text-right py-2 px-4 font-mono text-primary">
-                                {formatPercent(proposal.kwhInflationRate)}
-                              </td>
-                              <td className="text-right py-2 pl-4 font-mono text-green-600 dark:text-green-400">
-                                {formatCurrency(proposal.inflationDiff25Years)}
-                              </td>
-                            </tr>
-                            <tr className="border-b border-muted">
-                              <td className="py-2 pr-4">
-                                {language === "fr" ? "Dégradation" : "Degradation"}
-                              </td>
-                              <td className="text-right py-2 px-4 font-mono">
-                                {formatPercent(proposal.compDegradationRate)}
-                              </td>
-                              <td className="text-right py-2 px-4 font-mono text-primary">
-                                {formatPercent(proposal.kwhDegradationRate)}
-                              </td>
-                              <td className="text-right py-2 pl-4 font-mono text-green-600 dark:text-green-400">
-                                {formatCurrency(proposal.degradationDiffValue)}
-                              </td>
-                            </tr>
-                            <tr className="border-b border-muted">
-                              <td className="py-2 pr-4">
-                                {language === "fr" 
-                                  ? `O&M (après ${proposal.compOmStartYear || 16} ans)` 
-                                  : `O&M (after year ${proposal.compOmStartYear || 16})`}
-                              </td>
-                              <td className="text-right py-2 px-4 font-mono">
-                                {formatPercent(proposal.compOmCostPercent)}
-                              </td>
-                              <td className="text-right py-2 px-4 font-mono text-primary">
-                                {formatPercent(proposal.kwhOmCostPercent)}
-                              </td>
-                              <td className="text-right py-2 pl-4 font-mono text-green-600 dark:text-green-400">
-                                {formatCurrency(proposal.omDiff)}
-                              </td>
-                            </tr>
-                            {proposal.constructionCostDiff && (
-                              <tr>
-                                <td className="py-2 pr-4">
-                                  {language === "fr" ? "Construction" : "Construction"}
-                                </td>
-                                <td className="text-right py-2 px-4 font-mono">
-                                  ${proposal.costPerWatt?.toFixed(2) || "—"}/W
-                                </td>
-                                <td className="text-right py-2 px-4 font-mono text-primary">
-                                  ${proposal.kwhCostPerWatt?.toFixed(2) || "2.00"}/W
-                                </td>
-                                <td className="text-right py-2 pl-4 font-mono text-green-600 dark:text-green-400">
-                                  {formatCurrency(proposal.constructionCostDiff)}
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
+
+                    <CardContent className="space-y-6">
+                      {/* Section 1: Visual assumption cards */}
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-orange-500" />
+                          {language === "fr" ? "Pourquoi leurs projections sont trompeuses" : "Why their projections are misleading"}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid={`cards-assumptions-${proposal.id}`}>
+                          {/* Inflation card - only show if data exists */}
+                          {proposal.inflationDiff25Years && proposal.inflationDiff25Years > 0 && (
+                            <div className="p-3 rounded-lg border bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-full bg-red-100 dark:bg-red-900">
+                                  <TrendingUp className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">Inflation HQ</span>
+                                    <span className="text-green-600 dark:text-green-400 font-semibold text-sm">
+                                      +{formatCurrency(proposal.inflationDiff25Years)}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {language === "fr" 
+                                      ? `${competitor?.name || "Concurrent"} utilise ${formatPercent(proposal.compInflationRate)}. La réalité: ${formatPercent(proposal.kwhInflationRate)}`
+                                      : `${competitor?.name || "Competitor"} uses ${formatPercent(proposal.compInflationRate)}. Reality: ${formatPercent(proposal.kwhInflationRate)}`}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Degradation card - only show if data exists */}
+                          {proposal.degradationDiffValue && proposal.degradationDiffValue > 0 && (
+                            <div className="p-3 rounded-lg border bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-full bg-red-100 dark:bg-red-900">
+                                  <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">{language === "fr" ? "Dégradation panneaux" : "Panel degradation"}</span>
+                                    <span className="text-green-600 dark:text-green-400 font-semibold text-sm">
+                                      +{formatCurrency(proposal.degradationDiffValue)}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {language === "fr"
+                                      ? `Ils promettent ${formatPercent(proposal.compDegradationRate)}/an. L'industrie: ${formatPercent(proposal.kwhDegradationRate)}/an`
+                                      : `They promise ${formatPercent(proposal.compDegradationRate)}/yr. Industry: ${formatPercent(proposal.kwhDegradationRate)}/yr`}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* O&M card - only show if data exists */}
+                          {proposal.omDiff && proposal.omDiff > 0 && (
+                            <div className="p-3 rounded-lg border bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-full bg-red-100 dark:bg-red-900">
+                                  <Wrench className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">O&M {language === "fr" ? `après ${proposal.compOmStartYear || 16} ans` : `after year ${proposal.compOmStartYear || 16}`}</span>
+                                    <span className="text-green-600 dark:text-green-400 font-semibold text-sm">
+                                      +{formatCurrency(proposal.omDiff)}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {language === "fr"
+                                      ? `Ils facturent ${formatPercent(proposal.compOmCostPercent)}. Le marché: ${formatPercent(proposal.kwhOmCostPercent)}`
+                                      : `They charge ${formatPercent(proposal.compOmCostPercent)}. Market rate: ${formatPercent(proposal.kwhOmCostPercent)}`}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Construction card - only show if data exists */}
+                          {proposal.constructionCostDiff && proposal.constructionCostDiff > 0 && (
+                            <div className="p-3 rounded-lg border bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-full bg-green-100 dark:bg-green-900">
+                                  <Hammer className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">Construction</span>
+                                    <span className="text-green-600 dark:text-green-400 font-semibold text-sm">
+                                      +{formatCurrency(proposal.constructionCostDiff)}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {language === "fr"
+                                      ? `kWh: $${proposal.kwhCostPerWatt?.toFixed(2) || "2.00"}/W vs ${competitor?.name || "concurrent"}: $${proposal.costPerWatt?.toFixed(2) || "—"}/W`
+                                      : `kWh: $${proposal.kwhCostPerWatt?.toFixed(2) || "2.00"}/W vs ${competitor?.name || "competitor"}: $${proposal.costPerWatt?.toFixed(2) || "—"}/W`}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      {proposal.totalAdvantageKwh && (
-                        <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg" data-testid={`text-proposal-advantage-${proposal.id}`}>
-                          <span className="font-medium text-green-700 dark:text-green-300">
-                            {language === "fr" ? "Avantage kWh" : "kWh Advantage"}: {formatCurrency(proposal.totalAdvantageKwh)}
-                          </span>
+                      {/* Section 2: Financing comparison */}
+                      <div className="p-4 bg-muted/30 rounded-lg border">
+                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <Banknote className="w-4 h-4 text-primary" />
+                          {language === "fr" ? '"Mais le PPA me coûte 0$ CAPEX!"' : '"But PPA costs me $0 CAPEX!"'}
+                        </h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {language === "fr" 
+                            ? "Le crédit-bail aussi! Et vous gardez tous les avantages:"
+                            : "So does a capital lease! And you keep all the benefits:"}
+                        </p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left py-2 pr-2 font-medium"></th>
+                                <th className="text-center py-2 px-2 font-medium text-orange-600">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <CreditCard className="w-4 h-4" />
+                                    <span>PPA</span>
+                                  </div>
+                                </th>
+                                <th className="text-center py-2 px-2 font-medium text-primary">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <Calendar className="w-4 h-4" />
+                                    <span>{language === "fr" ? "Crédit-bail" : "Lease"}</span>
+                                  </div>
+                                </th>
+                                <th className="text-center py-2 px-2 font-medium text-green-600">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <Banknote className="w-4 h-4" />
+                                    <span>Cash</span>
+                                  </div>
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr className="border-b border-muted">
+                                <td className="py-2 pr-2">{language === "fr" ? "CAPEX initial" : "Upfront CAPEX"}</td>
+                                <td className="text-center py-2 px-2">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">0$</Badge>
+                                </td>
+                                <td className="text-center py-2 px-2">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">0$</Badge>
+                                </td>
+                                <td className="text-center py-2 px-2 text-sm">
+                                  {proposal.projectCostTotal && proposal.systemSizeKW
+                                    ? (() => {
+                                        const hqIncentive = Math.min((proposal.systemSizeKW || 0) * 1000, proposal.projectCostTotal * 0.4);
+                                        const netCost = Math.max(0, proposal.projectCostTotal - hqIncentive);
+                                        return `~${formatCurrency(Math.round(netCost * 0.7))}*`;
+                                      })()
+                                    : "—"}
+                                </td>
+                              </tr>
+                              <tr className="border-b border-muted">
+                                <td className="py-2 pr-2">{language === "fr" ? "Propriété" : "Ownership"}</td>
+                                <td className="text-center py-2 px-2">
+                                  <CircleX className="w-4 h-4 text-red-500 mx-auto" />
+                                </td>
+                                <td className="text-center py-2 px-2">
+                                  <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
+                                </td>
+                                <td className="text-center py-2 px-2">
+                                  <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
+                                </td>
+                              </tr>
+                              <tr className="border-b border-muted">
+                                <td className="py-2 pr-2">{language === "fr" ? "Incitatif HQ ($1,000/kW)" : "HQ Incentive ($1,000/kW)"}</td>
+                                <td className="text-center py-2 px-2">
+                                  <span className="text-xs text-muted-foreground">{language === "fr" ? "TRC garde" : "TRC keeps"}</span>
+                                </td>
+                                <td className="text-center py-2 px-2">
+                                  <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
+                                </td>
+                                <td className="text-center py-2 px-2">
+                                  <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
+                                </td>
+                              </tr>
+                              <tr className="border-b border-muted">
+                                <td className="py-2 pr-2">{language === "fr" ? "Bouclier fiscal (CCA)" : "Tax Shield (CCA)"}</td>
+                                <td className="text-center py-2 px-2">
+                                  <CircleX className="w-4 h-4 text-red-500 mx-auto" />
+                                </td>
+                                <td className="text-center py-2 px-2">
+                                  <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
+                                </td>
+                                <td className="text-center py-2 px-2">
+                                  <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="py-2 pr-2">{language === "fr" ? "Coût total 25 ans" : "25-year total cost"}</td>
+                                <td className="text-center py-2 px-2 text-red-600 font-semibold">
+                                  {proposal.totalAdvantageKwh && proposal.totalAdvantageKwh > 0
+                                    ? `+${formatCurrency(Math.round(proposal.totalAdvantageKwh / 100000) * 100000)}`
+                                    : "—"}
+                                </td>
+                                <td className="text-center py-2 px-2 text-green-600 font-semibold">
+                                  {language === "fr" ? "Optimal" : "Optimal"}
+                                </td>
+                                <td className="text-center py-2 px-2 text-green-600 font-semibold">
+                                  {language === "fr" ? "Meilleur" : "Best"}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
-                      )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          *{language === "fr" 
+                            ? "CAPEX estimé: coût projet − incitatif HQ (min de $1000/kW ou 40% CAPEX) × 70% après incitatifs fédéraux. PPA et Crédit-bail = 0$ initial par définition du modèle." 
+                            : "Estimated CAPEX: project cost − HQ incentive (min of $1000/kW or 40% CAPEX) × 70% after federal incentives. PPA and Credit-lease = $0 upfront by model definition."}
+                        </p>
+                      </div>
 
+                      {/* Section 3: Key findings */}
                       {proposal.keyFindings && proposal.keyFindings.length > 0 && (
                         <div data-testid={`list-findings-${proposal.id}`}>
-                          <h4 className="text-sm font-medium mb-2">
-                            {language === "fr" ? "Points clés" : "Key Findings"}
+                          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-primary" />
+                            {language === "fr" ? "Points à mentionner au client" : "Key points for the client"}
                           </h4>
-                          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                          <ul className="space-y-2">
                             {proposal.keyFindings.map((finding, idx) => (
-                              <li key={idx}>{finding}</li>
+                              <li key={idx} className="flex items-start gap-2 text-sm">
+                                <CircleCheck className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                <span>{finding}</span>
+                              </li>
                             ))}
                           </ul>
                         </div>
