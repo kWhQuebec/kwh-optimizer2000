@@ -1238,8 +1238,8 @@ export default function MarketIntelligencePage() {
                                   </div>
                                   <p className="text-xs text-muted-foreground mt-1">
                                     {language === "fr"
-                                      ? `kWh: $${proposal.kwhCostPerWatt?.toFixed(2) || "2.00"}/W vs ${competitor?.name || "concurrent"}: $${proposal.costPerWatt?.toFixed(2) || "—"}/W`
-                                      : `kWh: $${proposal.kwhCostPerWatt?.toFixed(2) || "2.00"}/W vs ${competitor?.name || "competitor"}: $${proposal.costPerWatt?.toFixed(2) || "—"}/W`}
+                                      ? `kWh: $${proposal.kwhCostPerWatt?.toFixed(2) || "2.15"}/W vs ${competitor?.name || "concurrent"}: $${proposal.costPerWatt?.toFixed(2) || "—"}/W`
+                                      : `kWh: $${proposal.kwhCostPerWatt?.toFixed(2) || "2.15"}/W vs ${competitor?.name || "competitor"}: $${proposal.costPerWatt?.toFixed(2) || "—"}/W`}
                                   </p>
                                 </div>
                               </div>
