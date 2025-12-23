@@ -20,6 +20,11 @@ import {
   ChevronDown,
   ChevronRight,
   Tag,
+  Printer,
+  Share2,
+  Mail,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,6 +155,7 @@ export default function MarketIntelligencePage() {
   const [isProposalDialogOpen, setIsProposalDialogOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<CompetitorProposalAnalysis | null>(null);
   const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
+  const [copiedProposalId, setCopiedProposalId] = useState<string | null>(null);
 
   const { data: competitorsList = [], isLoading: competitorsLoading } = useQuery<Competitor[]>({
     queryKey: ["/api/admin/competitors"],
@@ -1085,7 +1091,7 @@ export default function MarketIntelligencePage() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto print:overflow-visible" id={`proposal-card-${proposal.id}`}>
                         <table className="w-full text-sm border-collapse" data-testid={`table-assumptions-${proposal.id}`}>
                           <thead>
                             <tr className="border-b">
@@ -1095,8 +1101,11 @@ export default function MarketIntelligencePage() {
                               <th className="text-right py-2 px-4 font-medium">
                                 {language === "fr" ? "Concurrent" : "Competitor"}
                               </th>
-                              <th className="text-right py-2 pl-4 font-medium text-primary">
+                              <th className="text-right py-2 px-4 font-medium text-primary">
                                 kWh Québec
+                              </th>
+                              <th className="text-right py-2 pl-4 font-medium text-green-600 dark:text-green-400">
+                                {language === "fr" ? "Impact ($)" : "Impact ($)"}
                               </th>
                             </tr>
                           </thead>
@@ -1108,8 +1117,11 @@ export default function MarketIntelligencePage() {
                               <td className="text-right py-2 px-4 font-mono">
                                 {formatPercent(proposal.compInflationRate)}
                               </td>
-                              <td className="text-right py-2 pl-4 font-mono text-primary">
+                              <td className="text-right py-2 px-4 font-mono text-primary">
                                 {formatPercent(proposal.kwhInflationRate)}
+                              </td>
+                              <td className="text-right py-2 pl-4 font-mono text-green-600 dark:text-green-400">
+                                {formatCurrency(proposal.inflationDiff25Years)}
                               </td>
                             </tr>
                             <tr className="border-b border-muted">
@@ -1119,11 +1131,14 @@ export default function MarketIntelligencePage() {
                               <td className="text-right py-2 px-4 font-mono">
                                 {formatPercent(proposal.compDegradationRate)}
                               </td>
-                              <td className="text-right py-2 pl-4 font-mono text-primary">
+                              <td className="text-right py-2 px-4 font-mono text-primary">
                                 {formatPercent(proposal.kwhDegradationRate)}
                               </td>
+                              <td className="text-right py-2 pl-4 font-mono text-green-600 dark:text-green-400">
+                                {formatCurrency(proposal.degradationDiffValue)}
+                              </td>
                             </tr>
-                            <tr>
+                            <tr className="border-b border-muted">
                               <td className="py-2 pr-4">
                                 {language === "fr" 
                                   ? `O&M (après ${proposal.compOmStartYear || 16} ans)` 
@@ -1132,10 +1147,29 @@ export default function MarketIntelligencePage() {
                               <td className="text-right py-2 px-4 font-mono">
                                 {formatPercent(proposal.compOmCostPercent)}
                               </td>
-                              <td className="text-right py-2 pl-4 font-mono text-primary">
+                              <td className="text-right py-2 px-4 font-mono text-primary">
                                 {formatPercent(proposal.kwhOmCostPercent)}
                               </td>
+                              <td className="text-right py-2 pl-4 font-mono text-green-600 dark:text-green-400">
+                                {formatCurrency(proposal.omDiff)}
+                              </td>
                             </tr>
+                            {proposal.constructionCostDiff && (
+                              <tr>
+                                <td className="py-2 pr-4">
+                                  {language === "fr" ? "Construction" : "Construction"}
+                                </td>
+                                <td className="text-right py-2 px-4 font-mono">
+                                  ${proposal.costPerWatt?.toFixed(2) || "—"}/W
+                                </td>
+                                <td className="text-right py-2 px-4 font-mono text-primary">
+                                  ${proposal.kwhCostPerWatt?.toFixed(2) || "2.00"}/W
+                                </td>
+                                <td className="text-right py-2 pl-4 font-mono text-green-600 dark:text-green-400">
+                                  {formatCurrency(proposal.constructionCostDiff)}
+                                </td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>
