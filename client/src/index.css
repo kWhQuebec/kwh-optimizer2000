@@ -291,10 +291,13 @@
 
 /* Print styles for Market Intelligence */
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
   body {
     background: white !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
   
   /* Hide navigation, sidebar, and action buttons */
@@ -303,36 +306,81 @@
   aside,
   .sidebar,
   [data-sidebar],
+  [data-slot="sidebar"],
   .print\\:hidden {
     display: none !important;
+  }
+  
+  /* Remove ALL height restrictions */
+  main,
+  main > *,
+  [data-slot="main"],
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .overflow-scroll,
+  .overflow-hidden {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: auto !important;
   }
   
   /* Ensure main content fills the page */
   main {
     margin: 0 !important;
-    padding: 1rem !important;
+    padding: 0.5rem !important;
     width: 100% !important;
     max-width: none !important;
+    position: static !important;
   }
   
-  /* Card styling for print */
+  /* Remove fixed/absolute positioning */
+  .fixed,
+  .absolute,
+  .sticky {
+    position: static !important;
+  }
+  
+  /* Hero banner - ensure it prints with colors */
+  .bg-gradient-to-r {
+    background: linear-gradient(to right, #16a34a, #22c55e) !important;
+  }
+  
+  /* Card styling for print - allow page breaks */
   .card,
   [class*="Card"] {
     box-shadow: none !important;
     border: 1px solid #ddd !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    page-break-inside: auto !important;
+  }
+  
+  /* Charts - give them enough height to print */
+  .h-64,
+  .recharts-wrapper,
+  .recharts-surface {
+    height: 250px !important;
+    min-height: 250px !important;
+    max-height: 300px !important;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Ensure SVG charts print */
+  svg {
+    overflow: visible !important;
   }
   
   /* Tables print nicely */
   table {
     border-collapse: collapse;
     width: 100%;
+    page-break-inside: auto;
   }
   
   th, td {
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 6px;
+    font-size: 11px;
   }
   
   /* Green advantage text */
@@ -341,10 +389,27 @@
     color: #16a34a !important;
   }
   
+  /* Red competitor text */
+  .text-red-600,
+  .text-orange-600 {
+    color: #dc2626 !important;
+  }
+  
   /* Badges print with background */
   .badge,
   [class*="Badge"] {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  
+  /* Page break hints */
+  .border-t {
+    page-break-before: auto;
+  }
+  
+  /* Print-specific sizing */
+  @page {
+    margin: 1cm;
+    size: letter portrait;
   }
 }
