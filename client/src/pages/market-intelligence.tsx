@@ -1358,8 +1358,8 @@ export default function MarketIntelligencePage() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
                           *{language === "fr" 
-                            ? "CAPEX estimé: coût projet − incitatif HQ (min de $1000/kW ou 40% CAPEX) × 70% après incitatifs fédéraux. PPA et Crédit-bail = 0$ initial par définition du modèle." 
-                            : "Estimated CAPEX: project cost − HQ incentive (min of $1000/kW or 40% CAPEX) × 70% after federal incentives. PPA and Credit-lease = $0 upfront by model definition."}
+                            ? "CAPEX estimé: coût − incitatif HQ (min $1000/kW ou 40%) × 70% après ITC fédéral. Le graphique inclut le bouclier fiscal CCA (Classe 43.2, 50% dégressif, taux 26.5%)." 
+                            : "Estimated CAPEX: cost − HQ incentive (min $1000/kW or 40%) × 70% after federal ITC. Chart includes CCA tax shield (Class 43.2, 50% declining, 26.5% rate)."}
                         </p>
 
                         {/* Cashflow comparison chart */}
@@ -1377,7 +1377,7 @@ export default function MarketIntelligencePage() {
                                     const systemKW = proposal.systemSizeKW || 0;
                                     const hqIncentive = Math.min(systemKW * 1000, projectCost * 0.4);
                                     const netCostAfterHQ = projectCost - hqIncentive;
-                                    const cashCapex = netCostAfterHQ * 0.7;
+                                    const cashCapex = netCostAfterHQ * 0.7; // After 30% ITC
                                     const annualProduction = systemKW * 1200;
                                     
                                     // Use TRC's actual data
@@ -1385,10 +1385,40 @@ export default function MarketIntelligencePage() {
                                     const ppaDiscountPercent = proposal.ppaDiscountPercent || 40; // TRC's discount
                                     const ppaRate = compElecRate * (1 - ppaDiscountPercent / 100); // Calculate actual PPA rate
                                     const ppaTerm = proposal.ppaTerm || 16; // TRC's 16-year term
-                                    const compInflationRate = proposal.compInflationRate || 0.03; // TRC's optimistic inflation
                                     const realInflationRate = proposal.kwhInflationRate || 0.048; // Real HQ inflation
                                     
                                     const leasePayment = cashCapex / 7 * 1.15; // 7-year lease with interest
+                                    
+                                    // CCA Tax Shield (Class 43.2: 50% declining balance)
+                                    const ccaRate = 0.50; // Class 43.2 for clean energy
+                                    const taxRate = 0.265; // Quebec combined: 15% fed + 11.5% prov
+                                    const ccaBase = cashCapex; // Depreciable amount after incentives
+                                    
+                                    // Pre-calculate annual CCA benefits for ownership scenarios
+                                    const ccaBenefits: { cash: number; lease: number }[] = [];
+                                    let uccCash = ccaBase;
+                                    let uccLease = ccaBase;
+                                    const leaseOwnershipYear = 8; // Year when lease ownership transfers
+                                    
+                                    for (let y = 1; y <= 30; y++) {
+                                      // Half-year rule: applies to FIRST year of CCA claim for each scenario
+                                      const cashEffectiveRate = y === 1 ? ccaRate * 0.5 : ccaRate;
+                                      const leaseEffectiveRate = y === leaseOwnershipYear ? ccaRate * 0.5 : ccaRate;
+                                      
+                                      // Cash: CCA from year 1
+                                      const ccaDeductionCash = uccCash * cashEffectiveRate;
+                                      
+                                      // Lease: CCA only after ownership (year 8+), with half-year rule on first claim
+                                      const ccaDeductionLease = y < leaseOwnershipYear ? 0 : uccLease * leaseEffectiveRate;
+                                      
+                                      ccaBenefits.push({
+                                        cash: ccaDeductionCash * taxRate,
+                                        lease: ccaDeductionLease * taxRate
+                                      });
+                                      
+                                      uccCash -= ccaDeductionCash;
+                                      if (y >= leaseOwnershipYear) uccLease -= ccaDeductionLease;
+                                    }
                                     
                                     const data = [];
                                     let ppaCumulative = 0;
@@ -1401,7 +1431,7 @@ export default function MarketIntelligencePage() {
                                           year,
                                           ppa: 0,
                                           lease: 0,
-                                          cash: Math.round(cashCumulative / 100000) / 10, // Same M$ scale
+                                          cash: Math.round(cashCumulative / 100000) / 10,
                                         });
                                         continue;
                                       }
@@ -1410,25 +1440,27 @@ export default function MarketIntelligencePage() {
                                       const realGridRate = compElecRate * Math.pow(1 + realInflationRate, year);
                                       const annualGridCost = annualProduction * realGridRate;
                                       
-                                      // PPA: Fixed rate for ppaTerm years (TRC's terms)
+                                      // Get CCA tax shield for this year (ownership benefits)
+                                      const ccaBenefit = ccaBenefits[year - 1] as { cash: number; lease: number };
+                                      
+                                      // PPA: Fixed rate for ppaTerm years (TRC's terms) - NO TAX BENEFITS
                                       if (year <= ppaTerm) {
-                                        // PPA rate escalates at TRC's assumed inflation (2% typical for PPA)
                                         const ppaAnnualCost = annualProduction * ppaRate * Math.pow(1.02, year - 1);
                                         ppaCumulative += (annualGridCost - ppaAnnualCost);
                                       } else {
-                                        // After PPA ends, client pays full grid rate (no solar)
-                                        ppaCumulative += 0; // No more savings - system belongs to TRC
+                                        // After PPA ends, client pays full grid rate (no solar, no ownership)
+                                        ppaCumulative += 0;
                                       }
                                       
-                                      // Credit-lease: 7-year payments then free solar
+                                      // Credit-lease: 7-year payments then free solar + CCA benefits after ownership
                                       if (year <= 7) {
                                         leaseCumulative += (annualGridCost - leasePayment);
                                       } else {
-                                        leaseCumulative += annualGridCost;
+                                        leaseCumulative += annualGridCost + ccaBenefit.lease;
                                       }
                                       
-                                      // Cash: Own the system, all savings
-                                      cashCumulative += annualGridCost;
+                                      // Cash: Own the system from day 1, all savings + CCA tax shield
+                                      cashCumulative += annualGridCost + ccaBenefit.cash;
                                       
                                       data.push({
                                         year,
