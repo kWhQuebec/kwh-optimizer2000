@@ -1432,9 +1432,9 @@ export default function MarketIntelligencePage() {
                                       
                                       data.push({
                                         year,
-                                        ppa: Math.round(ppaCumulative / 1000),
-                                        lease: Math.round(leaseCumulative / 1000),
-                                        cash: Math.round(cashCumulative / 1000),
+                                        ppa: Math.round(ppaCumulative / 100000) / 10,
+                                        lease: Math.round(leaseCumulative / 100000) / 10,
+                                        cash: Math.round(cashCumulative / 100000) / 10,
                                       });
                                     }
                                     return data;
@@ -1449,11 +1449,11 @@ export default function MarketIntelligencePage() {
                                   />
                                   <YAxis 
                                     tick={{ fontSize: 11 }}
-                                    tickFormatter={(value) => `${value}k$`}
-                                    label={{ value: language === "fr" ? "$ cumulés (k$)" : "Cumulative ($k)", angle: -90, position: "insideLeft", fontSize: 11 }}
+                                    tickFormatter={(value) => `${value}M$`}
+                                    label={{ value: language === "fr" ? "$ cumulés (M$)" : "Cumulative ($M)", angle: -90, position: "insideLeft", fontSize: 11 }}
                                   />
                                   <Tooltip 
-                                    formatter={(value: number) => [`${value.toLocaleString()}k$`, ""]}
+                                    formatter={(value: number) => [`${value.toFixed(1)}M$`, ""]}
                                     labelFormatter={(label) => `${language === "fr" ? "Année" : "Year"} ${label}`}
                                     contentStyle={{ 
                                       backgroundColor: 'hsl(var(--background))', 
