@@ -300,15 +300,35 @@
     background: white !important;
   }
   
-  /* Hide navigation, sidebar, and action buttons */
-  nav,
-  header,
-  aside,
-  .sidebar,
-  [data-sidebar],
+  /* Hide Shadcn Sidebar completely */
   [data-slot="sidebar"],
+  [data-slot="sidebar-wrapper"],
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"],
+  [data-slot="sidebar-inner"],
+  [data-slot="sidebar-trigger"],
+  [data-sidebar="sidebar"],
+  [data-sidebar="trigger"],
+  [data-sidebar="rail"] {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+  }
+  
+  /* Hide header, nav, and print:hidden elements */
+  header,
+  nav,
+  aside,
   .print\\:hidden {
     display: none !important;
+  }
+  
+  /* SidebarProvider wrapper - make content full width */
+  [data-slot="sidebar-wrapper"],
+  .has-data-\\[variant\\=inset\\]\\:bg-sidebar {
+    display: block !important;
+    width: 100% !important;
   }
   
   /* Remove ALL height restrictions */
@@ -319,7 +339,8 @@
   .overflow-y-auto,
   .overflow-x-auto,
   .overflow-scroll,
-  .overflow-hidden {
+  .overflow-hidden,
+  .flex-1 {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
@@ -333,6 +354,17 @@
     width: 100% !important;
     max-width: none !important;
     position: static !important;
+  }
+  
+  /* Reset flex layout for print - force single column */
+  .flex.h-screen.w-full {
+    display: block !important;
+    height: auto !important;
+  }
+  
+  .flex.flex-col.flex-1.min-w-0 {
+    display: block !important;
+    width: 100% !important;
   }
   
   /* Remove fixed/absolute positioning */
