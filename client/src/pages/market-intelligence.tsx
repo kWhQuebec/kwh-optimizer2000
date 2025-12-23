@@ -1379,11 +1379,16 @@ export default function MarketIntelligencePage() {
                                     const netCostAfterHQ = projectCost - hqIncentive;
                                     const cashCapex = netCostAfterHQ * 0.7;
                                     const annualProduction = systemKW * 1200;
-                                    const baseEnergyCost = 0.12;
-                                    const inflationRate = proposal.kwhInflationRate || 0.048;
-                                    const ppaRate = proposal.ppaRate || 0.10;
-                                    const ppaTerm = proposal.ppaTerm || 25;
-                                    const leasePayment = cashCapex / 7 * 1.15;
+                                    
+                                    // Use TRC's actual data
+                                    const compElecRate = proposal.compElecRate || 0.12; // TRC's grid rate assumption
+                                    const ppaDiscountPercent = proposal.ppaDiscountPercent || 40; // TRC's discount
+                                    const ppaRate = compElecRate * (1 - ppaDiscountPercent / 100); // Calculate actual PPA rate
+                                    const ppaTerm = proposal.ppaTerm || 16; // TRC's 16-year term
+                                    const compInflationRate = proposal.compInflationRate || 0.03; // TRC's optimistic inflation
+                                    const realInflationRate = proposal.kwhInflationRate || 0.048; // Real HQ inflation
+                                    
+                                    const leasePayment = cashCapex / 7 * 1.15; // 7-year lease with interest
                                     
                                     const data = [];
                                     let ppaCumulative = 0;
@@ -1401,22 +1406,28 @@ export default function MarketIntelligencePage() {
                                         continue;
                                       }
                                       
-                                      const gridRate = baseEnergyCost * Math.pow(1 + inflationRate, year);
-                                      const annualGridCost = annualProduction * gridRate;
+                                      // Real grid rate with actual HQ inflation
+                                      const realGridRate = compElecRate * Math.pow(1 + realInflationRate, year);
+                                      const annualGridCost = annualProduction * realGridRate;
                                       
+                                      // PPA: Fixed rate for ppaTerm years (TRC's terms)
                                       if (year <= ppaTerm) {
+                                        // PPA rate escalates at TRC's assumed inflation (2% typical for PPA)
                                         const ppaAnnualCost = annualProduction * ppaRate * Math.pow(1.02, year - 1);
                                         ppaCumulative += (annualGridCost - ppaAnnualCost);
                                       } else {
-                                        ppaCumulative += annualGridCost;
+                                        // After PPA ends, client pays full grid rate (no solar)
+                                        ppaCumulative += 0; // No more savings - system belongs to TRC
                                       }
                                       
+                                      // Credit-lease: 7-year payments then free solar
                                       if (year <= 7) {
                                         leaseCumulative += (annualGridCost - leasePayment);
                                       } else {
                                         leaseCumulative += annualGridCost;
                                       }
                                       
+                                      // Cash: Own the system, all savings
                                       cashCumulative += annualGridCost;
                                       
                                       data.push({
