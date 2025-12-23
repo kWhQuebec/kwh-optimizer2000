@@ -4,7 +4,7 @@ import {
   users, leads, clients, sites, meterFiles, meterReadings,
   simulationRuns, designs, bomItems, componentCatalog, siteVisits, siteVisitPhotos, designAgreements,
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
-  competitors, battleCards, marketNotes, marketDocuments,
+  competitors, battleCards, marketNotes, marketDocuments, competitorProposalAnalysis,
   constructionAgreements, constructionMilestones, constructionProjects, constructionTasks, omContracts, omVisits, omPerformanceSnapshots,
   opportunities, activities, partnerships,
 } from "@shared/schema";
@@ -45,6 +45,7 @@ import type {
   Opportunity, InsertOpportunity,
   Activity, InsertActivity,
   Partnership, InsertPartnership,
+  CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -1353,6 +1354,36 @@ export class DatabaseStorage implements IStorage {
   async deleteMarketDocument(id: string): Promise<boolean> {
     const result = await db.delete(marketDocuments)
       .where(eq(marketDocuments.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Market Intelligence - Competitor Proposal Analyses
+  async getCompetitorProposalAnalyses(): Promise<CompetitorProposalAnalysis[]> {
+    return db.select().from(competitorProposalAnalysis).orderBy(desc(competitorProposalAnalysis.createdAt));
+  }
+
+  async getCompetitorProposalAnalysis(id: string): Promise<CompetitorProposalAnalysis | undefined> {
+    const result = await db.select().from(competitorProposalAnalysis).where(eq(competitorProposalAnalysis.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createCompetitorProposalAnalysis(data: InsertCompetitorProposalAnalysis): Promise<CompetitorProposalAnalysis> {
+    const [result] = await db.insert(competitorProposalAnalysis).values(data).returning();
+    return result;
+  }
+
+  async updateCompetitorProposalAnalysis(id: string, data: Partial<InsertCompetitorProposalAnalysis>): Promise<CompetitorProposalAnalysis | undefined> {
+    const [result] = await db.update(competitorProposalAnalysis)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(competitorProposalAnalysis.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCompetitorProposalAnalysis(id: string): Promise<boolean> {
+    const result = await db.delete(competitorProposalAnalysis)
+      .where(eq(competitorProposalAnalysis.id, id))
       .returning();
     return result.length > 0;
   }

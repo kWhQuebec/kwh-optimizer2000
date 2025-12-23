@@ -72,7 +72,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import type { Competitor, BattleCardWithCompetitor, MarketNote, MarketDocument } from "@shared/schema";
+import type { Competitor, BattleCardWithCompetitor, MarketNote, MarketDocument, CompetitorProposalAnalysis } from "@shared/schema";
 
 const competitorSchema = z.object({
   name: z.string().min(1, "Name required"),
@@ -147,6 +147,10 @@ export default function MarketIntelligencePage() {
   const [editingDocument, setEditingDocument] = useState<MarketDocument | null>(null);
   const [deleteDocumentId, setDeleteDocumentId] = useState<string | null>(null);
 
+  const [isProposalDialogOpen, setIsProposalDialogOpen] = useState(false);
+  const [editingProposal, setEditingProposal] = useState<CompetitorProposalAnalysis | null>(null);
+  const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
+
   const { data: competitorsList = [], isLoading: competitorsLoading } = useQuery<Competitor[]>({
     queryKey: ["/api/admin/competitors"],
     enabled: isAdmin,
@@ -164,6 +168,11 @@ export default function MarketIntelligencePage() {
 
   const { data: marketDocuments = [], isLoading: documentsLoading } = useQuery<MarketDocument[]>({
     queryKey: ["/api/admin/market-documents"],
+    enabled: isAdmin,
+  });
+
+  const { data: proposalAnalyses = [], isLoading: proposalsLoading } = useQuery<CompetitorProposalAnalysis[]>({
+    queryKey: ["/api/market-intelligence/proposal-analyses"],
     enabled: isAdmin,
   });
 
@@ -525,7 +534,7 @@ export default function MarketIntelligencePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="competitors" data-testid="tab-competitors">
             <Building2 className="w-4 h-4 mr-2" />
             {language === "fr" ? "Concurrents" : "Competitors"}
@@ -541,6 +550,10 @@ export default function MarketIntelligencePage() {
           <TabsTrigger value="documents" data-testid="tab-documents">
             <FileArchive className="w-4 h-4 mr-2" />
             {language === "fr" ? "Documents" : "Documents"}
+          </TabsTrigger>
+          <TabsTrigger value="proposals" data-testid="tab-proposals">
+            <Scale className="w-4 h-4 mr-2" />
+            {language === "fr" ? "Analyses de propositions" : "Proposal Analyses"}
           </TabsTrigger>
         </TabsList>
 
@@ -955,6 +968,202 @@ export default function MarketIntelligencePage() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="proposals" className="space-y-4">
+          {proposalsLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-48" />)}
+            </div>
+          ) : proposalAnalyses.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                {language === "fr" 
+                  ? "Aucune analyse de proposition. Les analyses seront ajoutées ici."
+                  : "No proposal analyses. Analyses will be added here."}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {proposalAnalyses.map(proposal => {
+                const competitor = competitorsList.find(c => c.id === proposal.competitorId);
+                const getStatusBadge = (status: string | null) => {
+                  const colors: Record<string, string> = {
+                    active: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+                    won: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+                    lost: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+                    archived: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
+                  };
+                  const labels: Record<string, string> = {
+                    active: language === "fr" ? "Actif" : "Active",
+                    won: language === "fr" ? "Gagné" : "Won",
+                    lost: language === "fr" ? "Perdu" : "Lost",
+                    archived: language === "fr" ? "Archivé" : "Archived",
+                  };
+                  return <Badge className={colors[status || "active"] || colors.active}>{labels[status || "active"] || status}</Badge>;
+                };
+
+                const formatPercent = (value: number | null) => {
+                  if (value === null || value === undefined) return "—";
+                  return `${(value * 100).toFixed(1)}%`;
+                };
+
+                const formatCurrency = (value: number | null) => {
+                  if (value === null || value === undefined) return "—";
+                  return new Intl.NumberFormat(language === "fr" ? "fr-CA" : "en-CA", {
+                    style: "currency",
+                    currency: "CAD",
+                    maximumFractionDigits: 0,
+                  }).format(value);
+                };
+
+                return (
+                  <Card key={proposal.id} data-testid={`card-proposal-${proposal.id}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            {competitor && (
+                              <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                {competitor.name}
+                              </Badge>
+                            )}
+                            {getStatusBadge(proposal.status)}
+                          </div>
+                          <CardTitle className="text-lg" data-testid={`text-proposal-name-${proposal.id}`}>
+                            {proposal.projectName}
+                          </CardTitle>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            <span data-testid={`text-proposal-client-${proposal.id}`}>
+                              {language === "fr" ? "Client" : "Client"}: {proposal.clientName}
+                            </span>
+                            {proposal.tenantName && (
+                              <span> | {language === "fr" ? "Locataire" : "Tenant"}: {proposal.tenantName}</span>
+                            )}
+                          </div>
+                          {proposal.projectAddress && (
+                            <p className="text-sm text-muted-foreground">{proposal.projectAddress}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            size="icon" 
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingProposal(proposal);
+                              setIsProposalDialogOpen(true);
+                            }}
+                            data-testid={`button-edit-proposal-${proposal.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost"
+                            onClick={() => setDeleteProposalId(proposal.id)}
+                            data-testid={`button-delete-proposal-${proposal.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm mt-2">
+                        {proposal.systemSizeKW && (
+                          <span className="flex items-center gap-1" data-testid={`text-proposal-system-${proposal.id}`}>
+                            <Target className="w-3 h-3" />
+                            {proposal.systemSizeKW.toLocaleString()} kW
+                          </span>
+                        )}
+                        {proposal.projectCostTotal && (
+                          <span className="flex items-center gap-1" data-testid={`text-proposal-cost-${proposal.id}`}>
+                            <DollarSign className="w-3 h-3" />
+                            {formatCurrency(proposal.projectCostTotal)}
+                          </span>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border-collapse" data-testid={`table-assumptions-${proposal.id}`}>
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 pr-4 font-medium">
+                                {language === "fr" ? "Hypothèses" : "Assumptions"}
+                              </th>
+                              <th className="text-right py-2 px-4 font-medium">
+                                {language === "fr" ? "Concurrent" : "Competitor"}
+                              </th>
+                              <th className="text-right py-2 pl-4 font-medium text-primary">
+                                kWh Québec
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b border-muted">
+                              <td className="py-2 pr-4">
+                                {language === "fr" ? "Inflation" : "Inflation"}
+                              </td>
+                              <td className="text-right py-2 px-4 font-mono">
+                                {formatPercent(proposal.compInflationRate)}
+                              </td>
+                              <td className="text-right py-2 pl-4 font-mono text-primary">
+                                {formatPercent(proposal.kwhInflationRate)}
+                              </td>
+                            </tr>
+                            <tr className="border-b border-muted">
+                              <td className="py-2 pr-4">
+                                {language === "fr" ? "Dégradation" : "Degradation"}
+                              </td>
+                              <td className="text-right py-2 px-4 font-mono">
+                                {formatPercent(proposal.compDegradationRate)}
+                              </td>
+                              <td className="text-right py-2 pl-4 font-mono text-primary">
+                                {formatPercent(proposal.kwhDegradationRate)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-2 pr-4">
+                                {language === "fr" 
+                                  ? `O&M (après ${proposal.compOmStartYear || 16} ans)` 
+                                  : `O&M (after year ${proposal.compOmStartYear || 16})`}
+                              </td>
+                              <td className="text-right py-2 px-4 font-mono">
+                                {formatPercent(proposal.compOmCostPercent)}
+                              </td>
+                              <td className="text-right py-2 pl-4 font-mono text-primary">
+                                {formatPercent(proposal.kwhOmCostPercent)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {proposal.totalAdvantageKwh && (
+                        <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg" data-testid={`text-proposal-advantage-${proposal.id}`}>
+                          <span className="font-medium text-green-700 dark:text-green-300">
+                            {language === "fr" ? "Avantage kWh" : "kWh Advantage"}: {formatCurrency(proposal.totalAdvantageKwh)}
+                          </span>
+                        </div>
+                      )}
+
+                      {proposal.keyFindings && proposal.keyFindings.length > 0 && (
+                        <div data-testid={`list-findings-${proposal.id}`}>
+                          <h4 className="text-sm font-medium mb-2">
+                            {language === "fr" ? "Points clés" : "Key Findings"}
+                          </h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                            {proposal.keyFindings.map((finding, idx) => (
+                              <li key={idx}>{finding}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>

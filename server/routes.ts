@@ -26,6 +26,7 @@ import {
   insertActivitySchema,
   insertSiteVisitPhotoSchema,
   insertPartnershipSchema,
+  insertCompetitorProposalAnalysisSchema,
   AnalysisAssumptions, 
   defaultAnalysisAssumptions, 
   CashflowEntry, 
@@ -7366,6 +7367,82 @@ ${fileContent}`
     } catch (error) {
       console.error("Error in batch catalog import:", error);
       res.status(500).json({ error: "Failed to import catalog items" });
+    }
+  });
+
+  // ==================== MARKET INTELLIGENCE - COMPETITOR PROPOSAL ANALYSES ====================
+
+  // GET /api/market-intelligence/proposal-analyses - List all analyses
+  app.get("/api/market-intelligence/proposal-analyses", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const analyses = await storage.getCompetitorProposalAnalyses();
+      res.json(analyses);
+    } catch (error) {
+      console.error("Error fetching competitor proposal analyses:", error);
+      res.status(500).json({ error: "Failed to fetch competitor proposal analyses" });
+    }
+  });
+
+  // GET /api/market-intelligence/proposal-analyses/:id - Get single analysis
+  app.get("/api/market-intelligence/proposal-analyses/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const analysis = await storage.getCompetitorProposalAnalysis(req.params.id);
+      if (!analysis) {
+        return res.status(404).json({ error: "Competitor proposal analysis not found" });
+      }
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error fetching competitor proposal analysis:", error);
+      res.status(500).json({ error: "Failed to fetch competitor proposal analysis" });
+    }
+  });
+
+  // POST /api/market-intelligence/proposal-analyses - Create new analysis
+  app.post("/api/market-intelligence/proposal-analyses", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertCompetitorProposalAnalysisSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.errors });
+      }
+      const analysis = await storage.createCompetitorProposalAnalysis(parsed.data);
+      res.status(201).json(analysis);
+    } catch (error) {
+      console.error("Error creating competitor proposal analysis:", error);
+      res.status(500).json({ error: "Failed to create competitor proposal analysis" });
+    }
+  });
+
+  // PATCH /api/market-intelligence/proposal-analyses/:id - Update analysis
+  app.patch("/api/market-intelligence/proposal-analyses/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const existing = await storage.getCompetitorProposalAnalysis(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Competitor proposal analysis not found" });
+      }
+      const parsed = insertCompetitorProposalAnalysisSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.errors });
+      }
+      const updated = await storage.updateCompetitorProposalAnalysis(req.params.id, parsed.data);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating competitor proposal analysis:", error);
+      res.status(500).json({ error: "Failed to update competitor proposal analysis" });
+    }
+  });
+
+  // DELETE /api/market-intelligence/proposal-analyses/:id - Delete analysis
+  app.delete("/api/market-intelligence/proposal-analyses/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const existing = await storage.getCompetitorProposalAnalysis(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Competitor proposal analysis not found" });
+      }
+      await storage.deleteCompetitorProposalAnalysis(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting competitor proposal analysis:", error);
+      res.status(500).json({ error: "Failed to delete competitor proposal analysis" });
     }
   });
 

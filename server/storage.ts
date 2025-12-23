@@ -36,6 +36,7 @@ import type {
   Opportunity, InsertOpportunity,
   Activity, InsertActivity,
   Partnership, InsertPartnership,
+  CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -248,6 +249,13 @@ export interface IStorage {
   createMarketDocument(doc: InsertMarketDocument): Promise<MarketDocument>;
   updateMarketDocument(id: string, doc: Partial<MarketDocument>): Promise<MarketDocument | undefined>;
   deleteMarketDocument(id: string): Promise<boolean>;
+
+  // Market Intelligence - Competitor Proposal Analyses
+  getCompetitorProposalAnalyses(): Promise<CompetitorProposalAnalysis[]>;
+  getCompetitorProposalAnalysis(id: string): Promise<CompetitorProposalAnalysis | undefined>;
+  createCompetitorProposalAnalysis(data: InsertCompetitorProposalAnalysis): Promise<CompetitorProposalAnalysis>;
+  updateCompetitorProposalAnalysis(id: string, data: Partial<InsertCompetitorProposalAnalysis>): Promise<CompetitorProposalAnalysis | undefined>;
+  deleteCompetitorProposalAnalysis(id: string): Promise<boolean>;
 
   // Construction Agreements
   getConstructionAgreements(): Promise<ConstructionAgreement[]>;
@@ -1417,6 +1425,13 @@ export class MemStorage implements IStorage {
   async deleteMarketDocument(id: string): Promise<boolean> {
     return this.marketDocumentsMap.delete(id);
   }
+
+  // Competitor Proposal Analyses - stub implementations
+  async getCompetitorProposalAnalyses(): Promise<CompetitorProposalAnalysis[]> { return []; }
+  async getCompetitorProposalAnalysis(id: string): Promise<CompetitorProposalAnalysis | undefined> { return undefined; }
+  async createCompetitorProposalAnalysis(data: InsertCompetitorProposalAnalysis): Promise<CompetitorProposalAnalysis> { throw new Error("Not implemented"); }
+  async updateCompetitorProposalAnalysis(id: string, data: Partial<InsertCompetitorProposalAnalysis>): Promise<CompetitorProposalAnalysis | undefined> { return undefined; }
+  async deleteCompetitorProposalAnalysis(id: string): Promise<boolean> { return false; }
 
   // Construction Agreements - stub implementations (MemStorage not used in production)
   private constructionAgreementsMap: Map<string, ConstructionAgreement> = new Map();

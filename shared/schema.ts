@@ -665,6 +665,77 @@ export const marketDocuments = pgTable("market_documents", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Competitor Proposal Analysis - Detailed comparison of competitor proposals
+export const competitorProposalAnalysis = pgTable("competitor_proposal_analysis", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Links
+  competitorId: varchar("competitor_id").references(() => competitors.id),
+  siteId: varchar("site_id").references(() => sites.id), // Optional link to our site if we're competing
+  
+  // Project identification
+  projectName: text("project_name").notNull(), // e.g., "Brasswater 3235 Guenette"
+  clientName: text("client_name").notNull(), // e.g., "Brasswater"
+  projectAddress: text("project_address"),
+  tenantName: text("tenant_name"), // e.g., "Hagen"
+  proposalDate: timestamp("proposal_date"),
+  proposalNumber: text("proposal_number"), // e.g., "#112525a"
+  
+  // System specifications from competitor
+  systemSizeKW: real("system_size_kw"),
+  roofAreaSqM: real("roof_area_sq_m"),
+  annualProductionKWh: real("annual_production_kwh"),
+  projectCostTotal: real("project_cost_total"),
+  costPerWatt: real("cost_per_watt"),
+  
+  // Deal structure
+  dealType: text("deal_type"), // "ppa" | "cash" | "lease" | "loan"
+  ppaTerm: integer("ppa_term"), // Years
+  ppaDiscountPercent: real("ppa_discount_percent"), // e.g., 40 for 40% off
+  
+  // Competitor assumptions (what they used)
+  compInflationRate: real("comp_inflation_rate"), // e.g., 0.03 for 3%
+  compDegradationRate: real("comp_degradation_rate"), // e.g., 0.0002 for 0.02%
+  compOmCostPercent: real("comp_om_cost_percent"), // e.g., 0.07 for 7%
+  compOmStartYear: integer("comp_om_start_year"), // e.g., 17
+  compSunshineHours: real("comp_sunshine_hours"), // e.g., 1176
+  compElecRate: real("comp_elec_rate"), // $/kWh
+  
+  // Our assumptions (kWh standard)
+  kwhInflationRate: real("kwh_inflation_rate"), // e.g., 0.048 for 4.8%
+  kwhDegradationRate: real("kwh_degradation_rate"), // e.g., 0.005 for 0.5%
+  kwhOmCostPercent: real("kwh_om_cost_percent"), // e.g., 0.01 for 1%
+  kwhCostPerWatt: real("kwh_cost_per_watt"), // Our price for comparison
+  
+  // Google Solar data (verified)
+  googleSolarSunshineHours: real("google_solar_sunshine_hours"),
+  googleSolarRoofArea: real("google_solar_roof_area"),
+  googleSolarMaxSystemKW: real("google_solar_max_system_kw"),
+  googleSolarYield: real("google_solar_yield"), // kWh/kWp
+  
+  // Calculated differences (impact analysis)
+  inflationDiff25Years: real("inflation_diff_25_years"), // $ difference over 25 years
+  degradationDiffProduction: real("degradation_diff_production"), // kWh difference
+  degradationDiffValue: real("degradation_diff_value"), // $ difference
+  omDiff: real("om_diff"), // $ difference in O&M costs
+  constructionCostDiff: real("construction_cost_diff"), // $ difference if our price is lower
+  
+  // Summary
+  totalAdvantageKwh: real("total_advantage_kwh"), // Total $ advantage of choosing kWh
+  keyFindings: text("key_findings").array(), // Array of key points
+  salesTalkingPoints: text("sales_talking_points").array(), // Array of sales arguments
+  
+  // Attachments (references to marketDocuments)
+  attachedDocumentIds: text("attached_document_ids").array(),
+  
+  // Status
+  status: text("status").default("active"), // "active" | "won" | "lost" | "archived"
+  outcome: text("outcome"), // Notes on what happened
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Construction Agreements - Final contracts for installation
 export const constructionAgreements = pgTable("construction_agreements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1426,6 +1497,12 @@ export const insertMarketDocumentSchema = createInsertSchema(marketDocuments).om
   updatedAt: true,
 });
 
+export const insertCompetitorProposalAnalysisSchema = createInsertSchema(competitorProposalAnalysis).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Construction and O&M insert schemas
 export const insertConstructionAgreementSchema = createInsertSchema(constructionAgreements).omit({
   id: true,
@@ -1577,6 +1654,9 @@ export type MarketNote = typeof marketNotes.$inferSelect;
 
 export type InsertMarketDocument = z.infer<typeof insertMarketDocumentSchema>;
 export type MarketDocument = typeof marketDocuments.$inferSelect;
+
+export type InsertCompetitorProposalAnalysis = z.infer<typeof insertCompetitorProposalAnalysisSchema>;
+export type CompetitorProposalAnalysis = typeof competitorProposalAnalysis.$inferSelect;
 
 // Construction and O&M types
 export type InsertConstructionAgreement = z.infer<typeof insertConstructionAgreementSchema>;
