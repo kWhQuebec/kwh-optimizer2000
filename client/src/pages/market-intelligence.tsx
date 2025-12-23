@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +37,19 @@ import {
   Percent,
   Calendar,
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  ReferenceLine,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1348,6 +1361,139 @@ export default function MarketIntelligencePage() {
                             ? "CAPEX estimé: coût projet − incitatif HQ (min de $1000/kW ou 40% CAPEX) × 70% après incitatifs fédéraux. PPA et Crédit-bail = 0$ initial par définition du modèle." 
                             : "Estimated CAPEX: project cost − HQ incentive (min of $1000/kW or 40% CAPEX) × 70% after federal incentives. PPA and Credit-lease = $0 upfront by model definition."}
                         </p>
+
+                        {/* Cashflow comparison chart */}
+                        {proposal.projectCostTotal && proposal.systemSizeKW && (
+                          <div className="mt-4 pt-4 border-t">
+                            <h5 className="text-sm font-medium mb-3 flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-primary" />
+                              {language === "fr" ? "Flux de trésorerie cumulés sur 30 ans" : "Cumulative Cashflow over 30 years"}
+                            </h5>
+                            <div className="h-64">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart
+                                  data={(() => {
+                                    const projectCost = proposal.projectCostTotal || 0;
+                                    const systemKW = proposal.systemSizeKW || 0;
+                                    const hqIncentive = Math.min(systemKW * 1000, projectCost * 0.4);
+                                    const netCostAfterHQ = projectCost - hqIncentive;
+                                    const cashCapex = netCostAfterHQ * 0.7;
+                                    const annualProduction = systemKW * 1200;
+                                    const baseEnergyCost = 0.12;
+                                    const inflationRate = proposal.kwhInflationRate || 0.048;
+                                    const ppaRate = proposal.ppaRate || 0.10;
+                                    const ppaTerm = proposal.ppaTerm || 25;
+                                    const leasePayment = cashCapex / 7 * 1.15;
+                                    
+                                    const data = [];
+                                    let ppaCumulative = 0;
+                                    let leaseCumulative = 0;
+                                    let cashCumulative = -cashCapex;
+                                    
+                                    for (let year = 0; year <= 30; year++) {
+                                      if (year === 0) {
+                                        data.push({
+                                          year,
+                                          ppa: 0,
+                                          lease: 0,
+                                          cash: Math.round(cashCumulative / 1000),
+                                        });
+                                        continue;
+                                      }
+                                      
+                                      const gridRate = baseEnergyCost * Math.pow(1 + inflationRate, year);
+                                      const annualGridCost = annualProduction * gridRate;
+                                      
+                                      if (year <= ppaTerm) {
+                                        const ppaAnnualCost = annualProduction * ppaRate * Math.pow(1.02, year - 1);
+                                        ppaCumulative += (annualGridCost - ppaAnnualCost);
+                                      } else {
+                                        ppaCumulative += annualGridCost;
+                                      }
+                                      
+                                      if (year <= 7) {
+                                        leaseCumulative += (annualGridCost - leasePayment);
+                                      } else {
+                                        leaseCumulative += annualGridCost;
+                                      }
+                                      
+                                      cashCumulative += annualGridCost;
+                                      
+                                      data.push({
+                                        year,
+                                        ppa: Math.round(ppaCumulative / 1000),
+                                        lease: Math.round(leaseCumulative / 1000),
+                                        cash: Math.round(cashCumulative / 1000),
+                                      });
+                                    }
+                                    return data;
+                                  })()}
+                                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                                >
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                                  <XAxis 
+                                    dataKey="year" 
+                                    tick={{ fontSize: 11 }}
+                                    label={{ value: language === "fr" ? "Année" : "Year", position: "insideBottomRight", offset: -5, fontSize: 11 }}
+                                  />
+                                  <YAxis 
+                                    tick={{ fontSize: 11 }}
+                                    tickFormatter={(value) => `${value}k$`}
+                                    label={{ value: language === "fr" ? "$ cumulés (k$)" : "Cumulative ($k)", angle: -90, position: "insideLeft", fontSize: 11 }}
+                                  />
+                                  <Tooltip 
+                                    formatter={(value: number) => [`${value.toLocaleString()}k$`, ""]}
+                                    labelFormatter={(label) => `${language === "fr" ? "Année" : "Year"} ${label}`}
+                                    contentStyle={{ 
+                                      backgroundColor: 'hsl(var(--background))', 
+                                      border: '1px solid hsl(var(--border))',
+                                      borderRadius: '8px',
+                                      fontSize: '12px'
+                                    }}
+                                  />
+                                  <Legend 
+                                    wrapperStyle={{ fontSize: '12px' }}
+                                    formatter={(value) => {
+                                      const labels: Record<string, string> = {
+                                        ppa: "PPA",
+                                        lease: language === "fr" ? "Crédit-bail" : "Credit Lease",
+                                        cash: language === "fr" ? "Comptant" : "Cash"
+                                      };
+                                      return labels[value] || value;
+                                    }}
+                                  />
+                                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="ppa" 
+                                    stroke="#ef4444" 
+                                    strokeWidth={2}
+                                    dot={false}
+                                  />
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="lease" 
+                                    stroke="#22c55e" 
+                                    strokeWidth={2}
+                                    dot={false}
+                                  />
+                                  <Line 
+                                    type="monotone" 
+                                    dataKey="cash" 
+                                    stroke="#3b82f6" 
+                                    strokeWidth={2}
+                                    dot={false}
+                                  />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                              {language === "fr" 
+                                ? "Comptant devient plus avantageux après le remboursement initial (~7-10 ans)"
+                                : "Cash becomes more advantageous after initial payback (~7-10 years)"}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Section 3: Key findings */}
