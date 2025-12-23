@@ -1222,29 +1222,38 @@ export default function MarketIntelligencePage() {
                             </div>
                           )}
 
-                          {/* Construction card - only show if data exists */}
-                          {proposal.constructionCostDiff && proposal.constructionCostDiff > 0 && (
-                            <div className="p-3 rounded-lg border bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900">
-                              <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-full bg-green-100 dark:bg-green-900">
-                                  <Hammer className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium text-sm">Construction</span>
-                                    <span className="text-green-600 dark:text-green-400 font-semibold text-sm">
-                                      +{formatCurrency(proposal.constructionCostDiff)}
-                                    </span>
+                          {/* Construction card - calculate dynamically from $/W prices */}
+                          {(() => {
+                            const kwhPrice = proposal.kwhCostPerWatt || 2.15;
+                            const compPrice = proposal.costPerWatt || 0;
+                            const systemW = (proposal.systemSizeKW || 0) * 1000;
+                            const constructionSavings = compPrice > kwhPrice ? (compPrice - kwhPrice) * systemW : 0;
+                            
+                            if (constructionSavings <= 0) return null;
+                            
+                            return (
+                              <div className="p-3 rounded-lg border bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900">
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 rounded-full bg-green-100 dark:bg-green-900">
+                                    <Hammer className="w-4 h-4 text-green-600 dark:text-green-400" />
                                   </div>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {language === "fr"
-                                      ? `kWh: $${proposal.kwhCostPerWatt?.toFixed(2) || "2.15"}/W vs ${competitor?.name || "concurrent"}: $${proposal.costPerWatt?.toFixed(2) || "—"}/W`
-                                      : `kWh: $${proposal.kwhCostPerWatt?.toFixed(2) || "2.15"}/W vs ${competitor?.name || "competitor"}: $${proposal.costPerWatt?.toFixed(2) || "—"}/W`}
-                                  </p>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium text-sm">Construction</span>
+                                      <span className="text-green-600 dark:text-green-400 font-semibold text-sm">
+                                        +{formatCurrency(constructionSavings)}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {language === "fr"
+                                        ? `kWh: $${kwhPrice.toFixed(2)}/W vs ${competitor?.name || "concurrent"}: $${compPrice.toFixed(2)}/W`
+                                        : `kWh: $${kwhPrice.toFixed(2)}/W vs ${competitor?.name || "competitor"}: $${compPrice.toFixed(2)}/W`}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       </div>
 
@@ -1578,6 +1587,12 @@ export default function MarketIntelligencePage() {
                                 ? `Analyse comparative: ${proposal.projectName}` 
                                 : `Comparative Analysis: ${proposal.projectName}`
                             );
+                            // Calculate construction savings dynamically
+                            const kwhPrice = proposal.kwhCostPerWatt || 2.15;
+                            const compPrice = proposal.costPerWatt || 0;
+                            const systemW = (proposal.systemSizeKW || 0) * 1000;
+                            const constructionSavings = compPrice > kwhPrice ? (compPrice - kwhPrice) * systemW : 0;
+                            
                             const body = encodeURIComponent(
                               `${language === "fr" ? "Projet" : "Project"}: ${proposal.projectName}\n` +
                               `${language === "fr" ? "Client" : "Client"}: ${proposal.clientName}\n` +
@@ -1587,7 +1602,7 @@ export default function MarketIntelligencePage() {
                               `- Inflation: ${formatPercent(proposal.compInflationRate)} vs ${formatPercent(proposal.kwhInflationRate)} (${formatCurrency(proposal.inflationDiff25Years)})\n` +
                               `- ${language === "fr" ? "Dégradation" : "Degradation"}: ${formatPercent(proposal.compDegradationRate)} vs ${formatPercent(proposal.kwhDegradationRate)} (${formatCurrency(proposal.degradationDiffValue)})\n` +
                               `- O&M: ${formatPercent(proposal.compOmCostPercent)} vs ${formatPercent(proposal.kwhOmCostPercent)} (${formatCurrency(proposal.omDiff)})\n` +
-                              (proposal.constructionCostDiff ? `- Construction: ${formatCurrency(proposal.constructionCostDiff)}\n` : "") +
+                              (constructionSavings > 0 ? `- Construction: ${formatCurrency(constructionSavings)}\n` : "") +
                               `\n${language === "fr" ? "Points clés" : "Key Findings"}:\n` +
                               (proposal.keyFindings?.map(f => `• ${f}`).join("\n") || "")
                             );
@@ -1602,6 +1617,12 @@ export default function MarketIntelligencePage() {
                           variant="outline"
                           size="sm"
                           onClick={async () => {
+                            // Calculate construction savings dynamically
+                            const kwhPrice = proposal.kwhCostPerWatt || 2.15;
+                            const compPrice = proposal.costPerWatt || 0;
+                            const systemW = (proposal.systemSizeKW || 0) * 1000;
+                            const constructionSavings = compPrice > kwhPrice ? (compPrice - kwhPrice) * systemW : 0;
+                            
                             const text = 
                               `${language === "fr" ? "Projet" : "Project"}: ${proposal.projectName}\n` +
                               `${language === "fr" ? "Client" : "Client"}: ${proposal.clientName}\n` +
@@ -1611,7 +1632,7 @@ export default function MarketIntelligencePage() {
                               `- Inflation: ${formatPercent(proposal.compInflationRate)} vs ${formatPercent(proposal.kwhInflationRate)} → ${formatCurrency(proposal.inflationDiff25Years)}\n` +
                               `- ${language === "fr" ? "Dégradation" : "Degradation"}: ${formatPercent(proposal.compDegradationRate)} vs ${formatPercent(proposal.kwhDegradationRate)} → ${formatCurrency(proposal.degradationDiffValue)}\n` +
                               `- O&M: ${formatPercent(proposal.compOmCostPercent)} vs ${formatPercent(proposal.kwhOmCostPercent)} → ${formatCurrency(proposal.omDiff)}\n` +
-                              (proposal.constructionCostDiff ? `- Construction: → ${formatCurrency(proposal.constructionCostDiff)}\n` : "") +
+                              (constructionSavings > 0 ? `- Construction: → ${formatCurrency(constructionSavings)}\n` : "") +
                               `\n${language === "fr" ? "Points clés" : "Key Findings"}:\n` +
                               (proposal.keyFindings?.map(f => `• ${f}`).join("\n") || "");
                             
