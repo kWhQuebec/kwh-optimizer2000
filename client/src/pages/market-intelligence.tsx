@@ -1194,6 +1194,83 @@ export default function MarketIntelligencePage() {
                           </ul>
                         </div>
                       )}
+
+                      <div className="flex items-center gap-2 pt-4 border-t print:hidden">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            window.print();
+                          }}
+                          data-testid={`button-print-proposal-${proposal.id}`}
+                        >
+                          <Printer className="w-4 h-4 mr-2" />
+                          {language === "fr" ? "Imprimer" : "Print"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const subject = encodeURIComponent(
+                              language === "fr" 
+                                ? `Analyse comparative: ${proposal.projectName}` 
+                                : `Comparative Analysis: ${proposal.projectName}`
+                            );
+                            const body = encodeURIComponent(
+                              `${language === "fr" ? "Projet" : "Project"}: ${proposal.projectName}\n` +
+                              `${language === "fr" ? "Client" : "Client"}: ${proposal.clientName}\n` +
+                              `${language === "fr" ? "Concurrent" : "Competitor"}: ${competitor?.name || "N/A"}\n\n` +
+                              `${language === "fr" ? "Avantage kWh Québec" : "kWh Québec Advantage"}: ${formatCurrency(proposal.totalAdvantageKwh)}\n\n` +
+                              `${language === "fr" ? "Hypothèses comparées" : "Compared Assumptions"}:\n` +
+                              `- Inflation: ${formatPercent(proposal.compInflationRate)} vs ${formatPercent(proposal.kwhInflationRate)} (${formatCurrency(proposal.inflationDiff25Years)})\n` +
+                              `- ${language === "fr" ? "Dégradation" : "Degradation"}: ${formatPercent(proposal.compDegradationRate)} vs ${formatPercent(proposal.kwhDegradationRate)} (${formatCurrency(proposal.degradationDiffValue)})\n` +
+                              `- O&M: ${formatPercent(proposal.compOmCostPercent)} vs ${formatPercent(proposal.kwhOmCostPercent)} (${formatCurrency(proposal.omDiff)})\n` +
+                              (proposal.constructionCostDiff ? `- Construction: ${formatCurrency(proposal.constructionCostDiff)}\n` : "") +
+                              `\n${language === "fr" ? "Points clés" : "Key Findings"}:\n` +
+                              (proposal.keyFindings?.map(f => `• ${f}`).join("\n") || "")
+                            );
+                            window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
+                          }}
+                          data-testid={`button-email-proposal-${proposal.id}`}
+                        >
+                          <Mail className="w-4 h-4 mr-2" />
+                          {language === "fr" ? "Envoyer par email" : "Email"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const text = 
+                              `${language === "fr" ? "Projet" : "Project"}: ${proposal.projectName}\n` +
+                              `${language === "fr" ? "Client" : "Client"}: ${proposal.clientName}\n` +
+                              `${language === "fr" ? "Concurrent" : "Competitor"}: ${competitor?.name || "N/A"}\n\n` +
+                              `${language === "fr" ? "Avantage kWh Québec" : "kWh Québec Advantage"}: ${formatCurrency(proposal.totalAdvantageKwh)}\n\n` +
+                              `${language === "fr" ? "Hypothèses comparées" : "Compared Assumptions"}:\n` +
+                              `- Inflation: ${formatPercent(proposal.compInflationRate)} vs ${formatPercent(proposal.kwhInflationRate)} → ${formatCurrency(proposal.inflationDiff25Years)}\n` +
+                              `- ${language === "fr" ? "Dégradation" : "Degradation"}: ${formatPercent(proposal.compDegradationRate)} vs ${formatPercent(proposal.kwhDegradationRate)} → ${formatCurrency(proposal.degradationDiffValue)}\n` +
+                              `- O&M: ${formatPercent(proposal.compOmCostPercent)} vs ${formatPercent(proposal.kwhOmCostPercent)} → ${formatCurrency(proposal.omDiff)}\n` +
+                              (proposal.constructionCostDiff ? `- Construction: → ${formatCurrency(proposal.constructionCostDiff)}\n` : "") +
+                              `\n${language === "fr" ? "Points clés" : "Key Findings"}:\n` +
+                              (proposal.keyFindings?.map(f => `• ${f}`).join("\n") || "");
+                            
+                            await navigator.clipboard.writeText(text);
+                            setCopiedProposalId(proposal.id);
+                            setTimeout(() => setCopiedProposalId(null), 2000);
+                            toast({ 
+                              title: language === "fr" ? "Copié!" : "Copied!",
+                              description: language === "fr" ? "Analyse copiée dans le presse-papiers" : "Analysis copied to clipboard"
+                            });
+                          }}
+                          data-testid={`button-copy-proposal-${proposal.id}`}
+                        >
+                          {copiedProposalId === proposal.id ? (
+                            <Check className="w-4 h-4 mr-2 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4 mr-2" />
+                          )}
+                          {language === "fr" ? "Copier" : "Copy"}
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );
