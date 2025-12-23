@@ -1,7 +1,7 @@
 # Analyse Comparative: kWh Québec vs TRC Solar
 ## Projet: Brasswater - 3235 Rue Guénette, Saint-Laurent (Locataire: Hagen)
 
-**Date:** 23 décembre 2025  
+**Date:** 23 décembre 2025 (Mise à jour: 23 décembre 2025)  
 **Proposition TRC:** #112525a
 
 ---
@@ -10,8 +10,9 @@
 
 | Métrique | TRC Solar | kWh Québec | Avantage kWh |
 |----------|-----------|------------|--------------|
-| Coût/W | $2.33/W | $2.00/W | **$500,000** |
-| Total 25 ans | Projections optimistes | Projections réalistes | **+$3M** en économies réelles |
+| Coût/W | $2.33/W | $2.15/W | **$274,573** |
+| Hypothèses | Optimistes | Réalistes | Projections fiables |
+| Total 25 ans | Économies gonflées | Économies réelles | **+$2.5M+** |
 
 ---
 
@@ -35,8 +36,7 @@
 |-----------|-----------|--------------------------------|-------------------|
 | **Inflation HQ** | 3% | 4.8% | **-$2,992,000** sous-estimé |
 | **Dégradation panneaux** | 0.02%/an | 0.5%/an | **-$317,000** surestimé |
-| **O&M après 16 ans** | 7% | 1% | **-$336,000** trop élevé |
-| **Coût construction** | $2.33/W | $2.00/W | **-$500,000** |
+| **Coût construction** | $2.33/W | $2.15/W | **-$274,573** |
 
 ---
 
@@ -68,17 +68,25 @@ Les fabricants de panneaux garantissent typiquement une dégradation de 0.4-0.5%
 
 **Impact:** TRC promet des kWh que le système ne produira pas.
 
-### 3.3 Frais O&M après 16 ans (7% vs 1%)
+### 3.3 Frais O&M après 16 ans - Clarification Méthodologique
 
-Après le transfert de propriété à l'année 17, TRC facture 7% de la valeur solaire en O&M.
+**Important:** Les deux modèles utilisent des méthodologies différentes pour calculer l'O&M.
 
-| Métrique | TRC (7%) | Industrie (1%) |
-|----------|----------|----------------|
-| O&M annuel moyen | $28,000 | $4,000 |
-| Total années 17-30 | $392,000 | $56,000 |
-| **Différence** | | **$336,000** |
+| Métrique | TRC Solar | kWh Québec |
+|----------|-----------|------------|
+| **Base de calcul** | Valeur solaire annuelle | CAPEX initial |
+| **Taux** | 7% | 1% |
+| **Escalation** | 3%/an (via la base) | 2.5%/an |
+| **Année 17** | $25,766 | ~$52,000 |
+| **Année 30** | $37,839 | ~$72,000 |
+| **Total 14 ans** | ~$440,000 | ~$860,000 |
 
-**Impact:** Revenu récurrent caché pour TRC, coût excessif pour le client.
+**Analyse:** 
+- Le modèle TRC (7% de la valeur solaire) est **moins coûteux en O&M** que le modèle standard industrie
+- Cependant, avec le modèle PPA de TRC, le client ne possède pas le système pendant 16 ans et paie un prix d'énergie élevé
+- Le coût O&M réel dépend du contrat de maintenance négocié
+
+**Note:** L'O&M n'est pas un facteur différenciateur majeur entre les deux propositions.
 
 ---
 
@@ -87,10 +95,9 @@ Après le transfert de propriété à l'année 17, TRC facture 7% de la valeur s
 | Catégorie | Avantage Financier |
 |-----------|-------------------|
 | Inflation réaliste (4.8%) | +$2,094,000* |
-| Construction moins chère ($2/W) | +$500,000 |
-| O&M raisonnable (1%) | +$336,000 |
-| Projections production honnêtes | (valeur qualitative) |
-| **Total estimé** | **~$2.9M+** |
+| Construction moins chère ($2.15/W) | +$274,573 |
+| Projections production honnêtes | +$317,000 (valeur qualitative) |
+| **Total estimé** | **~$2.5M+** |
 
 *Note: L'avantage inflation représente ~70% de la différence totale des coûts HQ projetés.
 
@@ -102,9 +109,7 @@ Après le transfert de propriété à l'année 17, TRC facture 7% de la valeur s
 
 2. **Dégradation:** "Les fabricants garantissent 0.4-0.5%/an. Comment justifiez-vous 0.02%?"
 
-3. **O&M:** "Pourquoi 7% quand l'industrie est à 1-2%? C'est $336k de plus sur 14 ans."
-
-4. **Expansion:** "Le toit peut supporter 3,900 kW. Pourquoi proposer seulement 1,500 kW?"
+3. **Expansion:** "Le toit peut supporter 3,900 kW. Pourquoi proposer seulement 1,500 kW?"
 
 ---
 
@@ -113,12 +118,13 @@ Après le transfert de propriété à l'année 17, TRC facture 7% de la valeur s
 Le modèle PPA de TRC Solar est conçu pour **maximiser leurs revenus**, pas les économies du client:
 
 - Le "rabais de 40%" diminue avec le temps car l'inflation réelle > 3%
-- Le client paie pour des kWh non livrés (dégradation irréaliste)
-- Le client est captif d'un contrat O&M à 7x le prix du marché après 16 ans
+- Le client paie pour des kWh non livrés (dégradation irréaliste de 0.02%)
+- Le client ne possède pas le système pendant 16 ans
 
-**kWh Québec offre des projections honnêtes et un prix compétitif qui génère de vraies économies.**
+**kWh Québec offre des projections honnêtes et un prix de construction compétitif qui génère de vraies économies.**
 
 ---
 
 *Document préparé par kWh Québec - Intelligence de Marché*  
-*Données vérifiées via Google Solar API*
+*Données vérifiées via Google Solar API*  
+*Dernière mise à jour: 23 décembre 2025*
