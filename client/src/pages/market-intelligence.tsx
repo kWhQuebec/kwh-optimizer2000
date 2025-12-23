@@ -1401,7 +1401,7 @@ export default function MarketIntelligencePage() {
                                           year,
                                           ppa: 0,
                                           lease: 0,
-                                          cash: Math.round(cashCumulative / 1000),
+                                          cash: Math.round(cashCumulative / 100000) / 10, // Same M$ scale
                                         });
                                         continue;
                                       }
