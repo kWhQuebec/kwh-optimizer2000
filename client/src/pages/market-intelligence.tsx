@@ -21,7 +21,6 @@ import {
   ChevronRight,
   Tag,
   Printer,
-  Share2,
   Mail,
   Copy,
   Check,

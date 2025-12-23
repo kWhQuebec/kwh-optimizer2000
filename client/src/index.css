@@ -288,3 +288,63 @@
     inset: -1px;
   }
 }
+
+/* Print styles for Market Intelligence */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Hide navigation, sidebar, and action buttons */
+  nav,
+  header,
+  aside,
+  .sidebar,
+  [data-sidebar],
+  .print\\:hidden {
+    display: none !important;
+  }
+  
+  /* Ensure main content fills the page */
+  main {
+    margin: 0 !important;
+    padding: 1rem !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  /* Card styling for print */
+  .card,
+  [class*="Card"] {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  
+  /* Tables print nicely */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+  
+  /* Green advantage text */
+  .text-green-600,
+  .text-green-700 {
+    color: #16a34a !important;
+  }
+  
+  /* Badges print with background */
+  .badge,
+  [class*="Badge"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
