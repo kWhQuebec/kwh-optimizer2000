@@ -1252,7 +1252,12 @@ export default function MarketIntelligencePage() {
 
                 const formatPercent = (value: number | null) => {
                   if (value === null || value === undefined) return "—";
-                  return `${(value * 100).toFixed(1)}%`;
+                  const percent = value * 100;
+                  // Use more precision for small values to avoid showing 0.0% when it's 0.02%
+                  if (Math.abs(percent) < 0.1 && percent !== 0) {
+                    return `${percent.toFixed(2)}%`;
+                  }
+                  return `${percent.toFixed(1)}%`;
                 };
 
                 const formatCurrency = (value: number | null) => {
