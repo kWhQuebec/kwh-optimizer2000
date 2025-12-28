@@ -1452,13 +1452,18 @@ export default function MarketIntelligencePage() {
                                       // Get CCA tax shield for this year (ownership benefits)
                                       const ccaBenefit = ccaBenefits[year - 1] as { cash: number; lease: number };
                                       
-                                      // PPA: Fixed rate for ppaTerm years (TRC's terms) - NO TAX BENEFITS
+                                      // PPA: Fixed rate for ppaTerm years (TRC's terms) - NO TAX BENEFITS during term
                                       if (year <= ppaTerm) {
+                                        // During PPA: savings = grid cost - PPA payment (escalates 2%/year typically)
                                         const ppaAnnualCost = annualProduction * ppaRate * Math.pow(1.02, year - 1);
                                         ppaCumulative += (annualGridCost - ppaAnnualCost);
                                       } else {
-                                        // After PPA ends, client pays full grid rate (no solar, no ownership)
-                                        ppaCumulative += 0;
+                                        // After PPA ends (year 17+): client OWNS the system for $1
+                                        // Full solar savings minus O&M costs (TRC: 7% of solar value)
+                                        const omCostPercent = 0.07; // TRC charges 7% of annual solar value for O&M
+                                        const solarValue = annualGridCost; // Solar value = avoided grid cost
+                                        const omCost = solarValue * omCostPercent;
+                                        ppaCumulative += (solarValue - omCost); // Net savings after O&M
                                       }
                                       
                                       // Credit-lease: 7-year payments then free solar + CCA benefits after ownership
