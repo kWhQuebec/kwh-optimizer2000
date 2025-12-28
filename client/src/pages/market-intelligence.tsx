@@ -37,6 +37,7 @@ import {
   Percent,
   Calendar,
 } from "lucide-react";
+import { useCashflowModel } from "@/hooks/useCashflowModel";
 import {
   LineChart,
   Line,
@@ -151,6 +152,220 @@ type CompetitorForm = z.infer<typeof competitorSchema>;
 type BattleCardForm = z.infer<typeof battleCardSchema>;
 type MarketNoteForm = z.infer<typeof marketNoteSchema>;
 type DocumentForm = z.infer<typeof documentFormSchema>;
+
+interface FinancingComparisonSectionProps {
+  proposal: CompetitorProposalAnalysis;
+  competitorName: string;
+  language: string;
+  formatCurrency: (value: number) => string;
+}
+
+function FinancingComparisonSection({ proposal, competitorName, language, formatCurrency }: FinancingComparisonSectionProps) {
+  const cashflowModel = useCashflowModel({
+    systemSizeKW: proposal.systemSizeKW || 0,
+    annualProductionKWh: proposal.annualProductionKWh,
+    kwhCostPerWatt: proposal.kwhCostPerWatt,
+    gridRateY1: proposal.compElecRate,
+    kwhInflation: proposal.kwhInflationRate,
+    trcInflation: proposal.compInflationRate,
+    degradation: proposal.kwhDegradationRate,
+    ppaTerm: proposal.ppaTerm,
+    ppaDiscount: (proposal.ppaDiscountPercent || 40) / 100,
+    trcProjectCost: proposal.projectCostTotal
+  });
+
+  if (!cashflowModel) {
+    return null;
+  }
+
+  const { cash, lease, ppa, providerEconomics, foregoneIncentives } = cashflowModel;
+
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse" data-testid={`table-financing-comparison-${proposal.id}`}>
+          <thead>
+            <tr className="bg-muted/50">
+              <th className="text-left py-2 px-3 font-medium border-b">
+                {language === "fr" ? "Option" : "Option"}
+              </th>
+              <th className="text-center py-2 px-3 font-medium border-b">
+                {language === "fr" ? "Écon. annuelles" : "Annual Savings"}
+              </th>
+              <th className="text-center py-2 px-3 font-medium border-b">
+                {language === "fr" ? "Investissement" : "Investment"}
+              </th>
+              <th className="text-center py-2 px-3 font-medium border-b">
+                {language === "fr" ? "Économies 25 ans" : "25-Year Savings"}
+              </th>
+              <th className="text-center py-2 px-3 font-medium border-b">
+                {language === "fr" ? "Propriété" : "Ownership"}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-blue-50 dark:bg-blue-950/30">
+              <td className="py-2 px-3 border-b font-medium text-blue-700 dark:text-blue-400">
+                <Banknote className="w-4 h-4 inline mr-1" />
+                {language === "fr" ? cash.name : cash.nameEn}
+              </td>
+              <td className={`text-center py-2 px-3 border-b font-bold ${cash.avgAnnualSavings >= 0 ? 'text-blue-600' : 'text-red-600'}`} data-testid={`text-cash-annual-${proposal.id}`}>
+                {cash.avgAnnualSavings >= 0 
+                  ? `${formatCurrency(Math.round(cash.avgAnnualSavings))}/an`
+                  : `(${formatCurrency(Math.round(Math.abs(cash.avgAnnualSavings)))})/an`}
+              </td>
+              <td className="text-center py-2 px-3 border-b">
+                {formatCurrency(Math.round(cash.investment))}
+              </td>
+              <td className={`text-center py-2 px-3 border-b font-semibold ${cash.totalSavings >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid={`text-cash-savings-${proposal.id}`}>
+                {cash.totalSavings >= 0 
+                  ? formatCurrency(Math.round(cash.totalSavings))
+                  : `(${formatCurrency(Math.round(Math.abs(cash.totalSavings)))})`}
+              </td>
+              <td className="text-center py-2 px-3 border-b text-green-600 font-medium">
+                {language === "fr" ? "Jour 1" : "Day 1"}
+              </td>
+            </tr>
+            <tr className="bg-green-50 dark:bg-green-950/30">
+              <td className="py-2 px-3 border-b font-medium text-green-700 dark:text-green-400">
+                <CreditCard className="w-4 h-4 inline mr-1" />
+                {language === "fr" ? lease.name : lease.nameEn}
+              </td>
+              <td className={`text-center py-2 px-3 border-b font-bold ${lease.avgAnnualSavings >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid={`text-lease-annual-${proposal.id}`}>
+                {lease.avgAnnualSavings >= 0 
+                  ? `${formatCurrency(Math.round(lease.avgAnnualSavings))}/an`
+                  : `(${formatCurrency(Math.round(Math.abs(lease.avgAnnualSavings)))})/an`}
+              </td>
+              <td className="text-center py-2 px-3 border-b">
+                $0
+              </td>
+              <td className={`text-center py-2 px-3 border-b font-semibold ${lease.totalSavings >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid={`text-lease-savings-${proposal.id}`}>
+                {lease.totalSavings >= 0 
+                  ? formatCurrency(Math.round(lease.totalSavings))
+                  : `(${formatCurrency(Math.round(Math.abs(lease.totalSavings)))})`}
+              </td>
+              <td className="text-center py-2 px-3 border-b">
+                {language === "fr" ? `Année ${lease.ownershipYear}` : `Year ${lease.ownershipYear}`}
+              </td>
+            </tr>
+            <tr className="bg-red-50 dark:bg-red-950/30">
+              <td className="py-2 px-3 border-b font-medium text-red-700 dark:text-red-400">
+                <Building className="w-4 h-4 inline mr-1" />
+                PPA ({competitorName})
+              </td>
+              <td className={`text-center py-2 px-3 border-b font-bold ${ppa.avgAnnualSavings >= 0 ? 'text-amber-600' : 'text-red-600'}`} data-testid={`text-ppa-annual-${proposal.id}`}>
+                {ppa.avgAnnualSavings >= 0 
+                  ? `${formatCurrency(Math.round(ppa.avgAnnualSavings))}/an`
+                  : `(${formatCurrency(Math.round(Math.abs(ppa.avgAnnualSavings)))})/an`}
+              </td>
+              <td className="text-center py-2 px-3 border-b">
+                $0
+              </td>
+              <td className={`text-center py-2 px-3 border-b font-semibold ${ppa.totalSavings >= 0 ? 'text-amber-600' : 'text-red-600'}`} data-testid={`text-ppa-savings-${proposal.id}`}>
+                {ppa.totalSavings >= 0 
+                  ? formatCurrency(Math.round(ppa.totalSavings))
+                  : `(${formatCurrency(Math.round(Math.abs(ppa.totalSavings)))})`}
+              </td>
+              <td className="text-center py-2 px-3 border-b">
+                {language === "fr" ? `Année ${ppa.ownershipYear}` : `Year ${ppa.ownershipYear}`}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div className="text-xs text-muted-foreground">
+        <p>{language === "fr" 
+          ? "Économies annuelles moyennes sur 25 ans. Crédit-bail inclut paiements sur 7 ans. PPA inclut rabais pendant le terme et frais O&M après." 
+          : "Average annual savings over 25 years. Lease includes payments over 7 years. PPA includes discount during term and O&M fees after."}</p>
+      </div>
+
+      <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+        <h6 className="text-sm font-semibold mb-3 flex items-center gap-2 text-amber-800 dark:text-amber-300">
+          <DollarSign className="w-4 h-4" />
+          {language === "fr" ? "Comment le fournisseur PPA fait-il de l'argent?" : "How does the PPA provider make money?"}
+        </h6>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p className="font-medium text-amber-700 dark:text-amber-400 mb-2">
+              {language === "fr" ? "Incitatifs captés par le fournisseur:" : "Incentives captured by provider:"}
+            </p>
+            <ul className="space-y-1 text-amber-900 dark:text-amber-200">
+              <li className="flex justify-between gap-2">
+                <span>{language === "fr" ? "Incitatif HQ:" : "HQ Incentive:"}</span>
+                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.hqIncentive))}</span>
+              </li>
+              <li className="flex justify-between gap-2">
+                <span>{language === "fr" ? "ITC fédéral (30%):" : "Federal ITC (30%):"}</span>
+                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.itc))}</span>
+              </li>
+              <li className="flex justify-between gap-2">
+                <span>{language === "fr" ? "Bouclier CCA (est.):" : "CCA Shield (est.):"}</span>
+                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.ccaShield))}</span>
+              </li>
+              <li className="flex justify-between gap-2 font-semibold border-t border-amber-300 dark:border-amber-700 pt-1 mt-1">
+                <span>{language === "fr" ? "Total incitatifs:" : "Total incentives:"}</span>
+                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.totalIncentives))}</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div>
+            <p className="font-medium text-amber-700 dark:text-amber-400 mb-2">
+              {language === "fr" ? "Économique pour le fournisseur:" : "Provider economics:"}
+            </p>
+            <ul className="space-y-1 text-amber-900 dark:text-amber-200">
+              <li className="flex justify-between gap-2">
+                <span>{language === "fr" ? "Coût brut:" : "Gross cost:"}</span>
+                <span className="font-mono">{formatCurrency(providerEconomics.grossCost)}</span>
+              </li>
+              <li className="flex justify-between gap-2">
+                <span>{language === "fr" ? "- Incitatifs:" : "- Incentives:"}</span>
+                <span className="font-mono text-green-600">-{formatCurrency(Math.round(providerEconomics.totalIncentives))}</span>
+              </li>
+              <li className="flex justify-between gap-2 font-semibold border-t border-amber-300 dark:border-amber-700 pt-1 mt-1">
+                <span>{language === "fr" ? "Investissement réel:" : "Actual investment:"}</span>
+                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.actualInvestment))}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        
+        <p className="mt-3 text-xs text-amber-800 dark:text-amber-300 italic">
+          {language === "fr" 
+            ? "Le fournisseur PPA utilise les incitatifs gouvernementaux pour financer le système. Le client obtient de l'électricité à rabais, mais renonce aux avantages fiscaux." 
+            : "The PPA provider uses government incentives to fund the system. The client gets discounted electricity but gives up the tax benefits."}
+        </p>
+      </div>
+
+      <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+        <h6 className="text-sm font-semibold mb-2 flex items-center gap-2 text-green-800 dark:text-green-300">
+          <CircleCheck className="w-4 h-4" />
+          {language === "fr" ? "Avantage kWh Québec" : "kWh Québec Advantage"}
+        </h6>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="text-center p-2 bg-white dark:bg-background rounded border" data-testid={`card-savings-advantage-${proposal.id}`}>
+            <p className="text-2xl font-bold text-green-600">
+              +{formatCurrency(Math.round(cash.totalSavings - ppa.totalSavings))}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {language === "fr" ? "Économies additionnelles (Cash vs PPA)" : "Additional savings (Cash vs PPA)"}
+            </p>
+          </div>
+          <div className="text-center p-2 bg-white dark:bg-background rounded border" data-testid={`card-avg-savings-${proposal.id}`}>
+            <p className="text-2xl font-bold text-blue-600">
+              {formatCurrency(Math.round(cash.avgAnnualSavings))}/an
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {language === "fr" ? "Économies annuelles moyennes (Cash)" : "Average annual savings (Cash)"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function MarketIntelligencePage() {
   const { t, language } = useI18n();
@@ -1560,292 +1775,12 @@ export default function MarketIntelligencePage() {
                               {language === "fr" ? "Comparaison des options de financement" : "Financing Options Comparison"}
                             </h5>
                             
-                            {/* Calculate IRR values dynamically */}
-                            {(() => {
-                              // Use TRC's project cost for provider calculations
-                              const trcProjectCost = proposal.projectCostTotal || 0;
-                              const systemKW = proposal.systemSizeKW || 0;
-                              
-                              // kWh Québec pricing for client options
-                              const kwhCostPerWatt = proposal.kwhCostPerWatt || 2.15;
-                              const kwhCapex = systemKW * 1000 * kwhCostPerWatt;
-                              const hqIncentiveKwh = Math.min(systemKW * 1000, kwhCapex * 0.4);
-                              const netAfterHQKwh = kwhCapex - hqIncentiveKwh;
-                              const cashCapex = netAfterHQKwh * 0.7; // After 30% ITC
-                              
-                              // TRC provider incentives (based on their cost)
-                              const hqIncentiveTrc = Math.min(systemKW * 1000, trcProjectCost * 0.4);
-                              const netAfterHQTrc = trcProjectCost - hqIncentiveTrc;
-                              const itcTrc = netAfterHQTrc * 0.3;
-                              const trcNetInvestment = netAfterHQTrc - itcTrc;
-                              const ccaShieldTrc = trcNetInvestment * 0.26; // ~26% tax shield on depreciable base
-                              const totalTrcIncentives = hqIncentiveTrc + itcTrc + ccaShieldTrc;
-                              // Ensure actual investment is never negative
-                              const trcActualInvestment = Math.max(0, trcProjectCost - totalTrcIncentives);
-                              
-                              const annualProduction = proposal.annualProductionKWh || (systemKW * 1200);
-                              const gridRateY1 = proposal.compElecRate || 0.13;
-                              const realInflation = proposal.kwhInflationRate || 0.048;
-                              const trcInflation = proposal.compInflationRate || 0.03;
-                              const ppaTerm = proposal.ppaTerm || 16;
-                              const ppaDiscount = (proposal.ppaDiscountPercent || 40) / 100;
-                              const degradation = proposal.kwhDegradationRate || 0.005;
-                              
-                              // Single consistent loop for all calculations
-                              const leasePayment = cashCapex / 7 * 1.15;
-                              
-                              // CCA parameters for cash option
-                              const ccaRate = 0.50;
-                              const taxRate = 0.265;
-                              let uccCash = cashCapex;
-                              
-                              // Cumulative tracking for totals and payback
-                              const cashCumulativeByYear: number[] = [];
-                              const leaseCumulativeByYear: number[] = [];
-                              const ppaCumulativeByYear: number[] = [];
-                              
-                              let cashCumulative = -cashCapex;
-                              let leaseCumulative = 0;
-                              let ppaCumulative = 0;
-                              
-                              for (let y = 1; y <= 25; y++) {
-                                const prod = annualProduction * Math.pow(1 - degradation, y - 1);
-                                const rate = gridRateY1 * Math.pow(1 + realInflation, y - 1);
-                                const gridSavings = prod * rate;
-                                const omCost = kwhCapex * 0.01 * Math.pow(1.025, y - 1);
-                                
-                                // Cash: savings minus O&M plus CCA tax shield
-                                const ccaEffective = y === 1 ? ccaRate * 0.5 : ccaRate;
-                                const ccaDeduction = uccCash * ccaEffective;
-                                const ccaBenefit = ccaDeduction * taxRate;
-                                uccCash -= ccaDeduction;
-                                const cashNet = gridSavings - omCost + ccaBenefit;
-                                cashCumulative += cashNet;
-                                cashCumulativeByYear.push(cashCumulative);
-                                
-                                // Lease: savings minus O&M minus lease payments (years 1-7)
-                                const leasePaymentThisYear = y <= 7 ? leasePayment : 0;
-                                const leaseNet = gridSavings - omCost - leasePaymentThisYear;
-                                leaseCumulative += leaseNet;
-                                leaseCumulativeByYear.push(leaseCumulative);
-                                
-                                // PPA: during term, pay discounted rate; post-term, own with 7% O&M
-                                if (y <= ppaTerm) {
-                                  const trcRate = gridRateY1 * Math.pow(1 + trcInflation, y - 1) * (1 - ppaDiscount);
-                                  const ppaNet = gridSavings - (prod * trcRate);
-                                  ppaCumulative += ppaNet;
-                                } else {
-                                  const solarValue = prod * rate;
-                                  const ppaOm = solarValue * 0.07;
-                                  const ppaNet = solarValue - ppaOm;
-                                  ppaCumulative += ppaNet;
-                                }
-                                ppaCumulativeByYear.push(ppaCumulative);
-                              }
-                              
-                              // Find payback year (first year cumulative >= 0)
-                              const findPaybackYear = (cumulativeByYear: number[]): number | null => {
-                                for (let y = 0; y < cumulativeByYear.length; y++) {
-                                  if (cumulativeByYear[y] >= 0) return y + 1;
-                                }
-                                return null;
-                              };
-                              
-                              const cashPaybackYear = findPaybackYear(cashCumulativeByYear);
-                              const leasePaybackYear = findPaybackYear(leaseCumulativeByYear);
-                              
-                              // For PPA: foregone incentives using provider (TRC) economics with 26% CCA
-                              const foregoneIncentives = hqIncentiveTrc + itcTrc + ccaShieldTrc;
-                              const ppaPaybackIdx = ppaCumulativeByYear.findIndex(v => v >= foregoneIncentives);
-                              const ppaPaybackYear = ppaPaybackIdx >= 0 ? ppaPaybackIdx + 1 : null;
-                              
-                              // Average annual savings
-                              const avgAnnualSavingsCash = (cashCumulative + cashCapex) / 25;
-                              
-                              return (
-                                <div className="space-y-4">
-                                  {/* Comparison Table */}
-                                  <div className="overflow-x-auto">
-                                    <table className="w-full text-sm border-collapse" data-testid={`table-financing-comparison-${proposal.id}`}>
-                                      <thead>
-                                        <tr className="bg-muted/50">
-                                          <th className="text-left py-2 px-3 font-medium border-b">
-                                            {language === "fr" ? "Option" : "Option"}
-                                          </th>
-                                          <th className="text-center py-2 px-3 font-medium border-b">
-                                            {language === "fr" ? "Écon. annuelles" : "Annual Savings"}
-                                          </th>
-                                          <th className="text-center py-2 px-3 font-medium border-b">
-                                            {language === "fr" ? "Investissement" : "Investment"}
-                                          </th>
-                                          <th className="text-center py-2 px-3 font-medium border-b">
-                                            {language === "fr" ? "Économies 25 ans" : "25-Year Savings"}
-                                          </th>
-                                          <th className="text-center py-2 px-3 font-medium border-b">
-                                            {language === "fr" ? "Propriété" : "Ownership"}
-                                          </th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        <tr className="bg-blue-50 dark:bg-blue-950/30">
-                                          <td className="py-2 px-3 border-b font-medium text-blue-700 dark:text-blue-400">
-                                            <Banknote className="w-4 h-4 inline mr-1" />
-                                            {language === "fr" ? "Comptant (kWh)" : "Cash (kWh)"}
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b font-bold text-blue-600" data-testid={`text-cash-annual-${proposal.id}`}>
-                                            {formatCurrency(Math.round(avgAnnualSavingsCash))}/an
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b">
-                                            {formatCurrency(Math.round(cashCapex))}
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b font-semibold text-green-600" data-testid={`text-cash-savings-${proposal.id}`}>
-                                            {formatCurrency(Math.round(cashCumulative))}
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b text-green-600 font-medium">
-                                            {language === "fr" ? "Jour 1" : "Day 1"}
-                                          </td>
-                                        </tr>
-                                        <tr className="bg-green-50 dark:bg-green-950/30">
-                                          <td className="py-2 px-3 border-b font-medium text-green-700 dark:text-green-400">
-                                            <CreditCard className="w-4 h-4 inline mr-1" />
-                                            {language === "fr" ? "Crédit-bail (kWh)" : "Lease (kWh)"}
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b font-bold text-green-600" data-testid={`text-lease-payback-${proposal.id}`}>
-                                            {leasePaybackYear !== null 
-                                              ? `${leasePaybackYear} ${language === "fr" ? "ans*" : "yrs*"}`
-                                              : (language === "fr" ? ">25 ans" : ">25 yrs")}
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b">
-                                            $0
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b font-semibold text-green-600" data-testid={`text-lease-savings-${proposal.id}`}>
-                                            {formatCurrency(Math.round(leaseCumulative))}
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b">
-                                            {language === "fr" ? "Année 8" : "Year 8"}
-                                          </td>
-                                        </tr>
-                                        <tr className="bg-red-50 dark:bg-red-950/30">
-                                          <td className="py-2 px-3 border-b font-medium text-red-700 dark:text-red-400">
-                                            <Building className="w-4 h-4 inline mr-1" />
-                                            PPA ({competitor?.name || "TRC"})
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b font-bold text-red-600" data-testid={`text-ppa-payback-${proposal.id}`}>
-                                            {ppaPaybackYear !== null 
-                                              ? `${ppaPaybackYear} ${language === "fr" ? "ans**" : "yrs**"}`
-                                              : (language === "fr" ? ">25 ans" : ">25 yrs")}
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b">
-                                            $0
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b text-amber-600" data-testid={`text-ppa-savings-${proposal.id}`}>
-                                            {formatCurrency(Math.round(ppaCumulative))}
-                                          </td>
-                                          <td className="text-center py-2 px-3 border-b">
-                                            {language === "fr" ? `Année ${ppaTerm + 1}` : `Year ${ppaTerm + 1}`}
-                                          </td>
-                                        </tr>
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                  
-                                  <div className="text-xs text-muted-foreground space-y-1">
-                                    <p>*{language === "fr" 
-                                      ? "Économies dès l'année 1; paiements de location étalés sur 7 ans" 
-                                      : "Savings from year 1; lease payments spread over 7 years"}</p>
-                                    <p>**{language === "fr" 
-                                      ? `Basé sur le coût d'opportunité des incitatifs perdus (${formatCurrency(Math.round(foregoneIncentives))})` 
-                                      : `Based on opportunity cost of foregone incentives (${formatCurrency(Math.round(foregoneIncentives))})`}</p>
-                                  </div>
-
-                                  {/* How TRC Makes Money Section */}
-                                  <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-                                    <h6 className="text-sm font-semibold mb-3 flex items-center gap-2 text-amber-800 dark:text-amber-300">
-                                      <DollarSign className="w-4 h-4" />
-                                      {language === "fr" ? "Comment le fournisseur PPA fait-il de l'argent?" : "How does the PPA provider make money?"}
-                                    </h6>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                      <div>
-                                        <p className="font-medium text-amber-700 dark:text-amber-400 mb-2">
-                                          {language === "fr" ? "Incitatifs captés par le fournisseur:" : "Incentives captured by provider:"}
-                                        </p>
-                                        <ul className="space-y-1 text-amber-900 dark:text-amber-200">
-                                          <li className="flex justify-between gap-2">
-                                            <span>{language === "fr" ? "Incitatif HQ:" : "HQ Incentive:"}</span>
-                                            <span className="font-mono">{formatCurrency(Math.round(hqIncentiveTrc))}</span>
-                                          </li>
-                                          <li className="flex justify-between gap-2">
-                                            <span>{language === "fr" ? "ITC fédéral (30%):" : "Federal ITC (30%):"}</span>
-                                            <span className="font-mono">{formatCurrency(Math.round(itcTrc))}</span>
-                                          </li>
-                                          <li className="flex justify-between gap-2">
-                                            <span>{language === "fr" ? "Bouclier CCA (est.):" : "CCA Shield (est.):"}</span>
-                                            <span className="font-mono">{formatCurrency(Math.round(ccaShieldTrc))}</span>
-                                          </li>
-                                          <li className="flex justify-between gap-2 font-semibold border-t border-amber-300 dark:border-amber-700 pt-1 mt-1">
-                                            <span>{language === "fr" ? "Total incitatifs:" : "Total incentives:"}</span>
-                                            <span className="font-mono">{formatCurrency(Math.round(totalTrcIncentives))}</span>
-                                          </li>
-                                        </ul>
-                                      </div>
-                                      
-                                      <div>
-                                        <p className="font-medium text-amber-700 dark:text-amber-400 mb-2">
-                                          {language === "fr" ? "Économique pour le fournisseur:" : "Provider economics:"}
-                                        </p>
-                                        <ul className="space-y-1 text-amber-900 dark:text-amber-200">
-                                          <li className="flex justify-between gap-2">
-                                            <span>{language === "fr" ? "Coût brut:" : "Gross cost:"}</span>
-                                            <span className="font-mono">{formatCurrency(trcProjectCost)}</span>
-                                          </li>
-                                          <li className="flex justify-between gap-2">
-                                            <span>{language === "fr" ? "- Incitatifs:" : "- Incentives:"}</span>
-                                            <span className="font-mono text-green-600">-{formatCurrency(Math.round(totalTrcIncentives))}</span>
-                                          </li>
-                                          <li className="flex justify-between gap-2 font-semibold border-t border-amber-300 dark:border-amber-700 pt-1 mt-1">
-                                            <span>{language === "fr" ? "Investissement réel:" : "Actual investment:"}</span>
-                                            <span className="font-mono">{formatCurrency(Math.round(trcActualInvestment))}</span>
-                                          </li>
-                                        </ul>
-                                      </div>
-                                    </div>
-                                    
-                                    <p className="mt-3 text-xs text-amber-800 dark:text-amber-300 italic">
-                                      {language === "fr" 
-                                        ? "Le fournisseur PPA utilise les incitatifs gouvernementaux pour financer le système. Le client obtient de l'électricité à rabais, mais renonce aux avantages fiscaux." 
-                                        : "The PPA provider uses government incentives to fund the system. The client gets discounted electricity but gives up the tax benefits."}
-                                    </p>
-                                  </div>
-
-                                  {/* kWh Québec Advantage Summary */}
-                                  <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                                    <h6 className="text-sm font-semibold mb-2 flex items-center gap-2 text-green-800 dark:text-green-300">
-                                      <CircleCheck className="w-4 h-4" />
-                                      {language === "fr" ? "Avantage kWh Québec" : "kWh Québec Advantage"}
-                                    </h6>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div className="text-center p-2 bg-white dark:bg-background rounded border" data-testid={`card-savings-advantage-${proposal.id}`}>
-                                        <p className="text-2xl font-bold text-green-600">
-                                          +{formatCurrency(Math.round(cashCumulative - ppaCumulative))}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {language === "fr" ? "Économies additionnelles (Cash vs PPA)" : "Additional savings (Cash vs PPA)"}
-                                        </p>
-                                      </div>
-                                      <div className="text-center p-2 bg-white dark:bg-background rounded border" data-testid={`card-avg-savings-${proposal.id}`}>
-                                        <p className="text-2xl font-bold text-blue-600">
-                                          {formatCurrency(Math.round(avgAnnualSavingsCash))}/an
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {language === "fr" ? "Économies annuelles moyennes (Cash)" : "Average annual savings (Cash)"}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })()}
+                            <FinancingComparisonSection
+                              proposal={proposal}
+                              competitorName={competitor?.name || "TRC"}
+                              language={language}
+                              formatCurrency={formatCurrency}
+                            />
                           </div>
                         )}
                       </div>
