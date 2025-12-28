@@ -36,6 +36,8 @@ import {
   ShieldCheck,
   Percent,
   Calendar,
+  FileQuestion,
+  HelpCircle,
 } from "lucide-react";
 import { useCashflowModel } from "@/hooks/useCashflowModel";
 import {
@@ -1474,8 +1476,98 @@ export default function MarketIntelligencePage() {
                               </div>
                             );
                           })()}
+
+                          {/* Overproduction Billing Risk card - PPA only */}
+                          {proposal.dealType === "ppa" && (
+                            <div className="p-3 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900">
+                                  <FileQuestion className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">
+                                      {language === "fr" ? "Facturation surproduction" : "Overproduction Billing"}
+                                    </span>
+                                    {proposal.billingModel === "production" ? (
+                                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700">
+                                        {language === "fr" ? "100% prod." : "100% prod."}
+                                      </Badge>
+                                    ) : proposal.billingModel === "consumption" ? (
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700">
+                                        {language === "fr" ? "Conso. seulement" : "Consumption only"}
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700">
+                                        {language === "fr" ? "À clarifier" : "To clarify"}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {language === "fr"
+                                      ? proposal.billingModel === "production"
+                                        ? `Client paie 100% de la production, même les surplus exportés à HQ. Risque: ${proposal.overproductionRiskValue ? formatCurrency(proposal.overproductionRiskValue) + "/an" : "à calculer"}`
+                                        : proposal.billingModel === "consumption"
+                                        ? "Client paie seulement l'énergie autoconsommée"
+                                        : "Demandez: Payez-vous 100% de la production ou seulement ce que vous consommez?"
+                                      : proposal.billingModel === "production"
+                                        ? `Client pays for 100% of production, even surplus exported to HQ. Risk: ${proposal.overproductionRiskValue ? formatCurrency(proposal.overproductionRiskValue) + "/yr" : "to calculate"}`
+                                        : proposal.billingModel === "consumption"
+                                        ? "Client pays only for self-consumed energy"
+                                        : "Ask: Do you pay for 100% of production or only what you consume?"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
+
+                      {/* Section 1.5: Questions to Clarify */}
+                      {proposal.dealType === "ppa" && (
+                        <div className="p-4 bg-amber-50/30 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900">
+                          <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                            <HelpCircle className="w-4 h-4" />
+                            {language === "fr" ? "Questions à clarifier avec le client" : "Questions to Clarify with Client"}
+                          </h4>
+                          <ul className="space-y-2 text-sm">
+                            {(!proposal.billingModel || proposal.billingModel === "unknown") && (
+                              <li className="flex items-start gap-2">
+                                <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                                <span>
+                                  {language === "fr"
+                                    ? `"Avec ${competitor?.name || "votre fournisseur"}, payez-vous pour 100% de l'électricité produite, ou seulement ce que vous consommez?"`
+                                    : `"With ${competitor?.name || "your provider"}, do you pay for 100% of electricity produced, or only what you consume?"`}
+                                </span>
+                              </li>
+                            )}
+                            <li className="flex items-start gap-2">
+                              <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                              <span>
+                                {language === "fr"
+                                  ? `"Qui garde les crédits de surplus accumulés après 24 mois (compensation HQ à 4.54¢/kWh)?"`
+                                  : `"Who keeps the surplus credits accumulated after 24 months (HQ compensation at 4.54¢/kWh)?"`}
+                              </span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                              <span>
+                                {language === "fr"
+                                  ? `"Après ${proposal.ppaTerm || 16} ans, le système sera-t-il vraiment gratuit ou y a-t-il des frais de transfert?"`
+                                  : `"After ${proposal.ppaTerm || 16} years, will the system truly be free or are there transfer fees?"`}
+                              </span>
+                            </li>
+                            {proposal.questionsToAsk && proposal.questionsToAsk.length > 0 && 
+                              proposal.questionsToAsk.map((q, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
+                                  <span>"{q}"</span>
+                                </li>
+                              ))
+                            }
+                          </ul>
+                        </div>
+                      )}
 
                       {/* Section 2: Financing comparison */}
                       <div className="p-4 bg-muted/30 rounded-lg border">

@@ -725,6 +725,15 @@ export const competitorProposalAnalysis = pgTable("competitor_proposal_analysis"
   keyFindings: text("key_findings").array(), // Array of key points
   salesTalkingPoints: text("sales_talking_points").array(), // Array of sales arguments
   
+  // Billing model risk analysis
+  billingModel: text("billing_model"), // "production" | "consumption" | "unknown"
+  billingModelNotes: text("billing_model_notes"), // Details from contract analysis
+  selfConsumptionRate: real("self_consumption_rate"), // e.g., 0.70 for 70% self-consumption
+  overproductionRiskValue: real("overproduction_risk_value"), // $ at risk if billed on production
+  
+  // Questions to clarify with competitor
+  questionsToAsk: text("questions_to_ask").array(), // Sales team questions to clarify
+  
   // Attachments (references to marketDocuments)
   attachedDocumentIds: text("attached_document_ids").array(),
   
