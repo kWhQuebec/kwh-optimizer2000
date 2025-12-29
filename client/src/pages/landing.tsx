@@ -418,7 +418,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={quickPathExpanded ? "lg:col-span-2" : ""}
             >
-              <Card ref={quickPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${quickPathExpanded ? 'border-primary' : 'border-primary/40 hover:border-primary/60'}`}>
+              <Card ref={quickPathRef} className={`border-2 transition-all scroll-mt-24 relative ${quickPathExpanded ? 'border-primary' : 'border-primary/40 hover:border-primary/60'}`}>
                 {/* Step 1 badge - prominent circle */}
                 {!quickPathExpanded && (
                   <div className="absolute -top-3 left-6 z-10">
@@ -838,7 +838,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={`${detailedPathExpanded ? "lg:col-span-2" : ""} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
             >
-                <Card ref={detailedPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
+                <Card ref={detailedPathRef} className={`border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
                   {/* Step 2 badge - prominent circle with essential label */}
                   {!detailedPathExpanded && (
                     <div className="absolute -top-3 left-6 z-10 flex items-center gap-2">
