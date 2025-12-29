@@ -839,15 +839,12 @@ export default function LandingPage() {
               className={`${detailedPathExpanded ? "lg:col-span-2" : ""} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
             >
                 <Card ref={detailedPathRef} className={`border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
-                  {/* Step 2 badge - prominent circle with essential label */}
+                  {/* Step 2 badge - prominent circle */}
                   {!detailedPathExpanded && (
-                    <div className="absolute -top-3 left-6 z-10 flex items-center gap-2">
+                    <div className="absolute -top-3 left-6 z-10">
                       <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground text-sm font-bold flex items-center justify-center shadow-md">
                         2
                       </div>
-                      <Badge className="bg-accent/20 text-accent border-accent/30 text-xs">
-                        {language === "fr" ? "Essentiel" : "Essential"}
-                      </Badge>
                     </div>
                   )}
                   {/* Header - Always visible */}
