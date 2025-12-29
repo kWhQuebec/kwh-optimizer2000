@@ -1075,7 +1075,7 @@ export default function LandingPage() {
             viewport={{ once: true }}
           >
             <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-              {language === "fr" ? "Votre parcours vers l'autonomie énergétique" : "Your journey to energy independence"}
+              {language === "fr" ? "Le solaire simplifié pour votre entreprise" : "Streamlined solar for your business"}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               {language === "fr" 
