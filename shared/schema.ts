@@ -96,6 +96,11 @@ export const sites = pgTable("sites", {
   
   analysisAssumptions: jsonb("analysis_assumptions"),
   analysisAvailable: boolean("analysis_available").default(false),
+  
+  // Structural engineering constraints from feasibility studies
+  structuralNotes: text("structural_notes"),
+  structuralConstraints: jsonb("structural_constraints"), // { maxPvLoadKpa, roofChangeRequired, engineeringReportRef, zones: [...] }
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
