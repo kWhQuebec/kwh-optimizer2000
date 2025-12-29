@@ -198,7 +198,7 @@ export function AIChatWidget() {
                       <p className="text-sm">
                         {language === "fr" 
                           ? "Bonjour! Posez-moi des questions sur les sites, clients, analyses ou toute autre fonctionnalité de la plateforme."
-                          : "Hello! Ask me questions about sites, clients, analyses, or any other platform feature."}
+                          : "Hello! Ask me questions about sites, clients, solar analysis, or any other platform feature."}
                       </p>
                       {(user.role === "admin" || user.role === "analyst") && (
                         <p className="text-xs mt-2 text-primary">
