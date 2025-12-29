@@ -66,7 +66,8 @@ annualConsumptionKWh = totalKWh × annualizationFactor
 | Self-Sufficiency | 25-40% typical | Varies by system sizing |
 | Tariff M Energy Rate | 11.933¢/kWh | HQ official 2024-2025 |
 | HQ Solar Incentive | $1,000/kW (max 40% CAPEX) | Official program |
--   **UI Visualization**: Uses Recharts for interactive charts and shadcn/ui table components. The Site Detail Page features an editable Analysis Parameters Editor, enhanced analysis results display, and an Optimization Analysis Section.
+-   **Structural Constraints Tracking**: Stores and displays engineering feasibility data for each site including maximum PV load capacity (kPa), roof replacement requirements, engineering report references, and zone-specific constraints. Data is stored in JSONB format for flexibility. UI component allows staff to edit constraints with bilingual support.
+-   **UI Visualization**: Uses Recharts for interactive charts and shadcn/ui table components. The Site Detail Page features an editable Analysis Parameters Editor, Structural Constraints Editor, enhanced analysis results display, and an Optimization Analysis Section.
 -   **Analysis Page Flow**: Structured progression from Summary KPIs to Technical Details, including system configuration, financial breakdown, financing options, and environmental impact.
 -   **Tariff Auto-Detection**: Automatically detects appropriate Hydro-Québec tariff codes (Tariff G or M) based on simulated peak demand.
 -   **HQ Incentive Policy**: Implements current Hydro-Québec incentives for solar ($1,000/kW, capped at 40% CAPEX) and paired storage (only within solar cap).
@@ -79,16 +80,16 @@ annualConsumptionKWh = totalKWh × annualizationFactor
 - After 24-month bank reset, unused surplus is compensated at HQ's **cost of supply rate** (NOT client's energy tariff)
 
 **Compensation Rate:**
-- **4.54¢/kWh** (coût moyen d'approvisionnement HQ 2025)
-- Source: Hydro-Québec Tariff Proposal R-4270-2024 filed with Régie de l'énergie
+- **4.60¢/kWh** (coût moyen d'approvisionnement HQ avril 2025)
+- Source: Grille tarifaire Hydro-Québec, en vigueur le 1er avril 2025
 
 **Why This Matters:**
 - Previous incorrect assumption: compensation at client's tariff (~6-12¢/kWh)
-- Correct methodology: compensation at HQ cost of supply (~4.54¢/kWh)
+- Correct methodology: compensation at HQ cost of supply (~4.60¢/kWh)
 - This significantly impacts surplus revenue projections in financial models
 
 **Implementation:**
-- Parameter: `hqSurplusCompensationRate` in AnalysisAssumptions (default: 0.0454 $/kWh)
+- Parameter: `hqSurplusCompensationRate` in AnalysisAssumptions (default: 0.0460 $/kWh)
 - Surplus revenue starts year 3+ (after first 24-month cycle)
 - Subject to annual inflation escalation like other revenues
 

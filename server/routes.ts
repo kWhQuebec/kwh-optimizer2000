@@ -1572,7 +1572,54 @@ export async function registerRoutes(
 
   app.patch("/api/sites/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
-      const site = await storage.updateSite(req.params.id, req.body);
+      // Whitelist of allowed fields for site PATCH updates
+      const allowedFields = [
+        'name', 'address', 'latitude', 'longitude', 'buildingType', 'buildingSqFt',
+        'roofAreaSqFt', 'roofType', 'roofSlope', 'roofOrientation', 'notes',
+        'structuralNotes', 'structuralConstraints',
+        'roofEstimateStatus', 'roofEstimateError', 'roofEstimatePendingAt',
+        'analysisAssumptions', 'googleSolarData'
+      ];
+      
+      // Filter body to only include allowed fields
+      const filteredBody: Record<string, unknown> = {};
+      for (const key of allowedFields) {
+        if (key in req.body) {
+          filteredBody[key] = req.body[key];
+        }
+      }
+      
+      // Basic validation for structural fields
+      if ('structuralNotes' in filteredBody && filteredBody.structuralNotes !== null) {
+        if (typeof filteredBody.structuralNotes !== 'string') {
+          return res.status(400).json({ error: "structuralNotes must be a string" });
+        }
+      }
+      
+      if ('structuralConstraints' in filteredBody && filteredBody.structuralConstraints !== null) {
+        const sc = filteredBody.structuralConstraints as Record<string, unknown>;
+        if (typeof sc !== 'object' || Array.isArray(sc)) {
+          return res.status(400).json({ error: "structuralConstraints must be an object" });
+        }
+        // Validate known fields if present
+        if ('maxPvLoadKpa' in sc && sc.maxPvLoadKpa !== undefined) {
+          if (typeof sc.maxPvLoadKpa !== 'number' || isNaN(sc.maxPvLoadKpa)) {
+            return res.status(400).json({ error: "maxPvLoadKpa must be a number" });
+          }
+        }
+        if ('roofChangeRequired' in sc && sc.roofChangeRequired !== undefined) {
+          if (typeof sc.roofChangeRequired !== 'boolean') {
+            return res.status(400).json({ error: "roofChangeRequired must be a boolean" });
+          }
+        }
+        if ('engineeringReportRef' in sc && sc.engineeringReportRef !== undefined) {
+          if (typeof sc.engineeringReportRef !== 'string') {
+            return res.status(400).json({ error: "engineeringReportRef must be a string" });
+          }
+        }
+      }
+      
+      const site = await storage.updateSite(req.params.id, filteredBody);
       if (!site) {
         return res.status(404).json({ error: "Site not found" });
       }
