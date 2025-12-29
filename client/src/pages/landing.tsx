@@ -362,7 +362,54 @@ export default function LandingPage() {
       {/* ========== TWO PATHWAYS SECTION ========== */}
       <section id="paths" className="py-12 px-4 sm:px-6 lg:px-8 scroll-mt-24">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-6">
+          {/* Section header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8"
+          >
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2" data-testid="text-paths-title">
+              {language === "fr" ? "Votre parcours en 2 étapes" : "Your journey in 2 steps"}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {language === "fr" 
+                ? "Commencez par une estimation rapide, puis obtenez une analyse complète pour recevoir votre proposition"
+                : "Start with a quick estimate, then get a complete analysis to receive your proposal"
+              }
+            </p>
+          </motion.div>
+          
+          {/* Timeline connector - visible on desktop */}
+          <div className="hidden lg:flex items-center justify-center mb-6 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center font-bold text-primary">
+                1
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">
+                {language === "fr" ? "Estimation" : "Estimate"}
+              </span>
+            </div>
+            <div className="flex-1 max-w-32 h-0.5 bg-gradient-to-r from-primary/50 via-muted-foreground/30 to-accent/50 relative">
+              <ArrowRight className="w-5 h-5 text-muted-foreground absolute -right-2 -top-2" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center font-bold text-accent">
+                2
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">
+                {language === "fr" ? "Analyse complète" : "Full analysis"}
+              </span>
+            </div>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 relative mt-4">
+            {/* Mobile arrow connector between cards */}
+            <div className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+              <div className="bg-background border-2 border-muted rounded-full p-2 shadow-sm">
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </div>
             
             {/* ===== PATH 1: QUICK ANALYSIS (5 min) ===== */}
             <motion.div
@@ -371,18 +418,18 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={quickPathExpanded ? "lg:col-span-2" : ""}
             >
-              <Card ref={quickPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${quickPathExpanded ? 'border-primary' : 'border-dashed border-muted-foreground/30'}`}>
-                {/* Step 1 badge */}
+              <Card ref={quickPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${quickPathExpanded ? 'border-primary' : 'border-primary/40 hover:border-primary/60'}`}>
+                {/* Step 1 badge - prominent circle */}
                 {!quickPathExpanded && (
-                  <div className="absolute -top-0 -left-0 z-10">
-                    <div className="bg-muted text-muted-foreground text-xs font-semibold px-3 py-1 rounded-br-lg rounded-tl-md">
-                      {language === "fr" ? "Étape 1" : "Step 1"}
+                  <div className="absolute -top-3 left-6 z-10">
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shadow-md">
+                      1
                     </div>
                   </div>
                 )}
                 {/* Header - Always visible */}
                 <div 
-                  className={`p-6 cursor-pointer ${!quickPathExpanded ? 'hover-elevate' : ''}`}
+                  className={`p-6 cursor-pointer ${!quickPathExpanded ? 'hover-elevate pt-8' : ''}`}
                   onClick={() => {
                     if (!quickPathExpanded) {
                       setQuickPathExpanded(true);
@@ -791,18 +838,21 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={`${detailedPathExpanded ? "lg:col-span-2" : ""} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
             >
-                <Card ref={detailedPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
-                  {/* Step 2 badge - Essential */}
+                <Card ref={detailedPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
+                  {/* Step 2 badge - prominent circle with essential label */}
                   {!detailedPathExpanded && (
-                    <div className="absolute -top-0 -left-0 z-10">
-                      <div className="bg-accent text-accent-foreground text-xs font-semibold px-3 py-1 rounded-br-lg rounded-tl-md">
-                        {language === "fr" ? "Étape 2 — Essentiel" : "Step 2 — Essential"}
+                    <div className="absolute -top-3 left-6 z-10 flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground text-sm font-bold flex items-center justify-center shadow-md">
+                        2
                       </div>
+                      <Badge className="bg-accent/20 text-accent border-accent/30 text-xs">
+                        {language === "fr" ? "Essentiel" : "Essential"}
+                      </Badge>
                     </div>
                   )}
                   {/* Header - Always visible */}
                   <div 
-                    className={`p-6 cursor-pointer ${!detailedPathExpanded ? 'hover-elevate' : ''}`}
+                    className={`p-6 cursor-pointer ${!detailedPathExpanded ? 'hover-elevate pt-8' : ''}`}
                     onClick={() => {
                       if (!detailedPathExpanded) {
                         setDetailedPathExpanded(true);
