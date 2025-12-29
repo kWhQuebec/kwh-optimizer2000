@@ -726,6 +726,9 @@ function SiteVisitForm({
   const [techRoomOpen, setTechRoomOpen] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
   const [documentationOpen, setDocumentationOpen] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const existingCost = visit?.estimatedCost as EstimatedCost | null | undefined;
   
@@ -853,6 +856,59 @@ function SiteVisitForm({
     },
   });
   
+  // Auto-save mutation (silent, no close)
+  const autoSaveMutation = useMutation({
+    mutationFn: async (data: VisitFormValues) => {
+      const { numBuildings: nb, travelDays: td, ...formData } = data;
+      const estimatedCost = calculateEstimatedCost(nb, td, formData.sldMainAvailable ?? false);
+      const payload = {
+        ...formData,
+        visitDate: data.visitDate ? new Date(data.visitDate) : null,
+        estimatedCost,
+      };
+      return apiRequest("PATCH", `/api/site-visits/${visit!.id}`, payload);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "visits"] });
+      // Reset form with current values to clear isDirty flag
+      form.reset(variables, { keepValues: true });
+      setLastSaved(new Date());
+      setAutoSaving(false);
+    },
+    onError: () => {
+      setAutoSaving(false);
+    },
+  });
+  
+  // Auto-save effect using form subscription (only for existing visits)
+  useEffect(() => {
+    if (!visit) return; // Only auto-save for existing visits
+    
+    // Subscribe to form changes
+    const subscription = form.watch((values) => {
+      // Clear previous timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      
+      // Set new timeout for auto-save (1.5 second debounce)
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        const currentValues = form.getValues();
+        if (form.formState.isDirty && !autoSaveMutation.isPending && !updateMutation.isPending) {
+          setAutoSaving(true);
+          autoSaveMutation.mutate(currentValues);
+        }
+      }, 1500);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [visit?.id]);
+  
   const deleteMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("DELETE", `/api/site-visits/${visit!.id}`);
@@ -869,6 +925,12 @@ function SiteVisitForm({
   });
   
   const onSubmit = (data: VisitFormValues) => {
+    // Cancel any pending auto-save when manual save is triggered
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+    
     if (visit) {
       updateMutation.mutate(data);
     } else {
@@ -2050,7 +2112,23 @@ function SiteVisitForm({
           )}
         />
         
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 flex-wrap">
+          {/* Auto-save status indicator */}
+          {visit && (
+            <div className="flex-1 flex items-center text-xs text-muted-foreground" data-testid="auto-save-status">
+              {autoSaving ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                  {language === "fr" ? "Sauvegarde..." : "Saving..."}
+                </>
+              ) : lastSaved ? (
+                <>
+                  <CheckCircle2 className="w-3 h-3 text-green-600 mr-1" />
+                  {language === "fr" ? "Auto-sauvegardé" : "Auto-saved"}
+                </>
+              ) : null}
+            </div>
+          )}
           {visit && (
             <Button
               type="button"
