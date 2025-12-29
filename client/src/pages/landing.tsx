@@ -371,12 +371,12 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={quickPathExpanded ? "lg:col-span-2" : ""}
             >
-              <Card ref={quickPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${quickPathExpanded ? 'border-primary' : 'border-primary bg-gradient-to-br from-primary/5 to-transparent'}`}>
-                {/* Recommended badge */}
+              <Card ref={quickPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${quickPathExpanded ? 'border-primary' : 'border-dashed border-muted-foreground/30'}`}>
+                {/* Step 1 badge */}
                 {!quickPathExpanded && (
-                  <div className="absolute -top-0 -right-0 z-10">
-                    <div className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-bl-lg rounded-tr-md">
-                      {language === "fr" ? "Recommandé" : "Recommended"}
+                  <div className="absolute -top-0 -left-0 z-10">
+                    <div className="bg-muted text-muted-foreground text-xs font-semibold px-3 py-1 rounded-br-lg rounded-tl-md">
+                      {language === "fr" ? "Étape 1" : "Step 1"}
                     </div>
                   </div>
                 )}
@@ -397,8 +397,8 @@ export default function LandingPage() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="p-4 rounded-xl bg-primary/15 shrink-0">
-                        <Timer className="w-8 h-8 text-primary" />
+                      <div className="p-3 rounded-xl bg-primary/15 shrink-0">
+                        <Timer className="w-7 h-7 text-primary" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold">
@@ -769,7 +769,7 @@ export default function LandingPage() {
                                     }}
                                     data-testid="button-get-detailed-analysis"
                                   >
-                                    {language === "fr" ? "Obtenir une analyse détaillée" : "Get detailed analysis"}
+                                    {language === "fr" ? "Continuer vers l'Étape 2" : "Continue to Step 2"}
                                     <ArrowRight className="w-4 h-4" />
                                   </Button>
                                 </div>
@@ -791,7 +791,15 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={`${detailedPathExpanded ? "lg:col-span-2" : ""} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
             >
-                <Card ref={detailedPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 ${detailedPathExpanded ? 'border-accent' : 'border-accent/30'}`}>
+                <Card ref={detailedPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
+                  {/* Step 2 badge - Essential */}
+                  {!detailedPathExpanded && (
+                    <div className="absolute -top-0 -left-0 z-10">
+                      <div className="bg-accent text-accent-foreground text-xs font-semibold px-3 py-1 rounded-br-lg rounded-tl-md">
+                        {language === "fr" ? "Étape 2 — Essentiel" : "Step 2 — Essential"}
+                      </div>
+                    </div>
+                  )}
                   {/* Header - Always visible */}
                   <div 
                     className={`p-6 cursor-pointer ${!detailedPathExpanded ? 'hover-elevate' : ''}`}
@@ -826,8 +834,8 @@ export default function LandingPage() {
                           </div>
                           <p className="text-muted-foreground mt-1">
                             {language === "fr" 
-                              ? "Analyse complète basée sur vos données réelles"
-                              : "Complete analysis based on your real data"
+                              ? "Requis pour recevoir une proposition — basé sur vos données réelles"
+                              : "Required for a proposal — based on your real data"
                             }
                           </p>
                         </div>
