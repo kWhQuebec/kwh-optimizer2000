@@ -984,7 +984,7 @@ export default function LandingPage() {
                             </div>
                             
                             {/* Right: CTA to dedicated page */}
-                            <div className="p-6 space-y-5 flex flex-col justify-center">
+                            <div className="p-6 space-y-5 flex flex-col justify-start">
                               <h4 className="font-semibold">
                                 {language === "fr" ? "Demander mon analyse" : "Request my analysis"}
                               </h4>
