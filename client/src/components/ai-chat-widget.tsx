@@ -144,7 +144,7 @@ export function AIChatWidget() {
   if (!user) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50" data-testid="ai-chat-widget">
+    <div className="fixed bottom-24 right-6 z-50" data-testid="ai-chat-widget">
       {!isOpen ? (
         <Button
           onClick={toggleOpen}
