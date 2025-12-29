@@ -54,6 +54,7 @@ import {
   type MonteCarloConfig,
   type PeakShavingConfig,
 } from "./analysis";
+import { registerAIAssistantRoutes } from "./aiAssistant";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -105,13 +106,13 @@ const uploadMemory = multer({
   }
 });
 
-interface AuthRequest extends Request {
+export interface AuthRequest extends Request {
   userId?: string;
   userRole?: string;
   userClientId?: string | null;
 }
 
-async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -136,7 +137,7 @@ async function authMiddleware(req: AuthRequest, res: Response, next: NextFunctio
 }
 
 // Middleware to require admin or analyst role (internal staff only)
-function requireStaff(req: AuthRequest, res: Response, next: NextFunction) {
+export function requireStaff(req: AuthRequest, res: Response, next: NextFunction) {
   if (req.userRole !== "admin" && req.userRole !== "analyst") {
     return res.status(403).json({ error: "Access denied" });
   }
@@ -7581,6 +7582,9 @@ ${fileContent}`
       res.status(500).json({ error: "Failed to delete competitor proposal analysis" });
     }
   });
+
+  // ==================== AI ASSISTANT ROUTES ====================
+  registerAIAssistantRoutes(app, authMiddleware, requireStaff);
 
   return httpServer;
 }
