@@ -11,7 +11,7 @@ import {
   TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
   Timer, Rocket, BatteryCharging, BadgePercent, Calculator, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ChevronDown, ChevronUp,
-  ClipboardCheck, Phone, Mail, Building, CalendarDays
+  ClipboardCheck, Phone, Mail, Building, CalendarDays, User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -242,12 +242,6 @@ export default function LandingPage() {
               <a href="#paths" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-analyze">
                 {language === "fr" ? "Analyser" : "Analyze"}
               </a>
-              <Link href="/services" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-services">
-                Services
-              </Link>
-              <Link href="/comment-ca-marche" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-how-it-works">
-                {language === "fr" ? "Comment ça marche" : "How it works"}
-              </Link>
               <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-resources">
                 {language === "fr" ? "Ressources" : "Resources"}
               </Link>
@@ -377,7 +371,15 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className={quickPathExpanded ? "lg:col-span-2" : ""}
             >
-              <Card ref={quickPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 ${quickPathExpanded ? 'border-primary' : 'border-primary/30'}`}>
+              <Card ref={quickPathRef} className={`overflow-hidden border-2 transition-all scroll-mt-24 relative ${quickPathExpanded ? 'border-primary' : 'border-primary bg-gradient-to-br from-primary/5 to-transparent'}`}>
+                {/* Recommended badge */}
+                {!quickPathExpanded && (
+                  <div className="absolute -top-0 -right-0 z-10">
+                    <div className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-bl-lg rounded-tr-md">
+                      {language === "fr" ? "Recommandé" : "Recommended"}
+                    </div>
+                  </div>
+                )}
                 {/* Header - Always visible */}
                 <div 
                   className={`p-6 cursor-pointer ${!quickPathExpanded ? 'hover-elevate' : ''}`}
@@ -395,8 +397,8 @@ export default function LandingPage() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                        <Timer className="w-7 h-7 text-primary" />
+                      <div className="p-4 rounded-xl bg-primary/15 shrink-0">
+                        <Timer className="w-8 h-8 text-primary" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold">
@@ -1379,6 +1381,121 @@ export default function LandingPage() {
                           {t("landing.trust.experience")}
                         </Badge>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== SOCIAL PROOF SECTION ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-social-proof">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3" data-testid="text-social-proof-title">
+              {language === "fr" ? "Ils nous font confiance" : "They trust us"}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              {language === "fr" 
+                ? "Des entreprises québécoises de toutes tailles font confiance à notre expertise"
+                : "Quebec businesses of all sizes trust our expertise"
+              }
+            </p>
+          </motion.div>
+          
+          {/* Client Logos */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-wrap items-center justify-center gap-8 mb-16 opacity-60"
+          >
+            {/* Placeholder logos - replace with real client logos */}
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Building2 className="w-8 h-8" />
+              <span className="text-sm font-medium">{language === "fr" ? "Votre logo ici" : "Your logo here"}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Factory className="w-8 h-8" />
+              <span className="text-sm font-medium">{language === "fr" ? "Votre logo ici" : "Your logo here"}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <School className="w-8 h-8" />
+              <span className="text-sm font-medium">{language === "fr" ? "Votre logo ici" : "Your logo here"}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Building2 className="w-8 h-8" />
+              <span className="text-sm font-medium">{language === "fr" ? "Votre logo ici" : "Your logo here"}</span>
+            </div>
+          </motion.div>
+          
+          {/* Testimonials */}
+          <div className="grid md:grid-cols-2 gap-6" data-testid="container-testimonials">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0 }}
+            >
+              <Card className="p-6 h-full" data-testid="card-testimonial-1">
+                <div className="flex flex-col h-full">
+                  <div className="flex gap-1 mb-4">
+                    {[1,2,3,4,5].map(i => (
+                      <Zap key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    ))}
+                  </div>
+                  <blockquote className="text-muted-foreground flex-1 mb-4">
+                    "{language === "fr" 
+                      ? "L'analyse détaillée nous a permis de prendre une décision éclairée. Le retour sur investissement prévu s'est avéré exact à 2% près après la première année d'opération."
+                      : "The detailed analysis allowed us to make an informed decision. The projected ROI proved accurate within 2% after the first year of operation."
+                    }"
+                  </blockquote>
+                  <div className="flex items-center gap-3 pt-4 border-t">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{language === "fr" ? "Directeur des opérations" : "Operations Director"}</p>
+                      <p className="text-xs text-muted-foreground">{language === "fr" ? "Entreprise manufacturière, Montréal" : "Manufacturing company, Montreal"}</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card className="p-6 h-full" data-testid="card-testimonial-2">
+                <div className="flex flex-col h-full">
+                  <div className="flex gap-1 mb-4">
+                    {[1,2,3,4,5].map(i => (
+                      <Zap key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    ))}
+                  </div>
+                  <blockquote className="text-muted-foreground flex-1 mb-4">
+                    "{language === "fr" 
+                      ? "Service professionnel du début à la fin. L'équipe a géré toutes les démarches avec Hydro-Québec et nous avons économisé 35% sur notre facture d'électricité dès la première année."
+                      : "Professional service from start to finish. The team handled all the steps with Hydro-Québec and we saved 35% on our electricity bill in the first year."
+                    }"
+                  </blockquote>
+                  <div className="flex items-center gap-3 pt-4 border-t">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{language === "fr" ? "Propriétaire" : "Owner"}</p>
+                      <p className="text-xs text-muted-foreground">{language === "fr" ? "Centre de distribution, Québec" : "Distribution center, Quebec City"}</p>
                     </div>
                   </div>
                 </div>
