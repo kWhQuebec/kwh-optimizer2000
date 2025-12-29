@@ -14,6 +14,7 @@ import { GlobalActionBar } from "@/components/global-action-bar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
+import { AIChatWidget } from "@/components/ai-chat-widget";
 
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
@@ -111,6 +112,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <GlobalActionBar />
+      <AIChatWidget />
     </SidebarProvider>
   );
 }
