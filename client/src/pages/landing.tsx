@@ -756,12 +756,20 @@ export default function LandingPage() {
                                   >
                                     {language === "fr" ? "Refaire une analyse" : "Run another analysis"}
                                   </Button>
-                                  <a href="#contact" className="flex-1">
-                                    <Button className="w-full gap-2">
-                                      {language === "fr" ? "Obtenir une analyse détaillée" : "Get detailed analysis"}
-                                      <ArrowRight className="w-4 h-4" />
-                                    </Button>
-                                  </a>
+                                  <Button 
+                                    className="flex-1 gap-2"
+                                    onClick={() => {
+                                      setDetailedPathExpanded(true);
+                                      setQuickPathExpanded(false);
+                                      setTimeout(() => {
+                                        detailedPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                      }, 350);
+                                    }}
+                                    data-testid="button-get-detailed-analysis"
+                                  >
+                                    {language === "fr" ? "Obtenir une analyse détaillée" : "Get detailed analysis"}
+                                    <ArrowRight className="w-4 h-4" />
+                                  </Button>
                                 </div>
                               </div>
                             )}
