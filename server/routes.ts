@@ -287,11 +287,19 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
+      
+      // Check if user is active
+      if (user.status === "inactive") {
+        return res.status(403).json({ error: "Account is deactivated. Please contact an administrator." });
+      }
 
       const isValid = await bcrypt.compare(password, user.passwordHash);
       if (!isValid) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
+
+      // Update last login timestamp
+      await storage.updateUser(user.id, { lastLoginAt: new Date() });
 
       const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
       
@@ -417,6 +425,87 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Update a user (admin only)
+  app.patch("/api/users/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Only admins can update users
+      if (req.userRole !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const { name, role, clientId, status } = req.body;
+      
+      // Validate role if provided
+      if (role && !["client", "analyst", "admin"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+      
+      // Validate status if provided
+      if (status && !["active", "inactive"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      // Prevent demoting yourself from admin
+      if (req.params.id === req.userId && role && role !== "admin") {
+        return res.status(400).json({ error: "Cannot change your own admin role" });
+      }
+      
+      // Client users must have a clientId
+      if (role === "client" && clientId === undefined) {
+        // Keep existing clientId if not provided
+      } else if (role === "client" && !clientId) {
+        return res.status(400).json({ error: "Client users must be linked to a client" });
+      }
+      
+      const updateData: Record<string, any> = {};
+      if (name !== undefined) updateData.name = name;
+      if (role !== undefined) updateData.role = role;
+      if (clientId !== undefined) updateData.clientId = role === "client" ? clientId : null;
+      if (status !== undefined) updateData.status = status;
+      
+      const updated = await storage.updateUser(req.params.id, updateData);
+      if (!updated) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Return user without password hash
+      const { passwordHash: _, ...safeUser } = updated;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Reset user password (admin only)
+  app.post("/api/users/:id/reset-password", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Only admins can reset passwords
+      if (req.userRole !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const { password } = req.body;
+      
+      if (!password || password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+      
+      // Hash new password
+      const passwordHash = await bcrypt.hash(password, 10);
+      
+      const updated = await storage.updateUser(req.params.id, { passwordHash });
+      if (!updated) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json({ success: true, message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Reset password error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

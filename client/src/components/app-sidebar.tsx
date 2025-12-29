@@ -27,7 +27,8 @@ import {
   ChevronDown,
   Cog,
   Hammer,
-  Settings
+  Settings,
+  BookOpen
 } from "lucide-react";
 import {
   Sidebar,
@@ -191,6 +192,12 @@ export function AppSidebar() {
       url: "/app/market-intelligence",
       icon: Target,
       tooltip: language === "fr" ? "Analyses concurrentielles et tendances" : "Competitive analysis and trends",
+    },
+    {
+      title: language === "fr" ? "Méthodologie" : "Methodology",
+      url: "/app/methodology",
+      icon: BookOpen,
+      tooltip: language === "fr" ? "Hypothèses et explications des calculs" : "Calculation assumptions and explanations",
     },
   ];
 
