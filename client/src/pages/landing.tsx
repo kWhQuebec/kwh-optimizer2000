@@ -1105,7 +1105,7 @@ export default function LandingPage() {
                     <Timer className="w-6 h-6 text-primary" />
                   </div>
                   <Badge className="mb-3 bg-primary/10 text-primary border-primary/20">
-                    5 min
+                    2 min
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
                     {language === "fr" ? "Analyse RAPIDE" : "Quick Analysis"}
