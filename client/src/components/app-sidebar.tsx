@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
@@ -263,10 +263,23 @@ export function AppSidebar() {
     items: typeof businessDevItems;
   }) => {
     const isOpen = openSections[id] || hasSectionActiveItem(items);
+    const sectionRef = useRef<HTMLDivElement>(null);
+    
+    const handleOpenChange = () => {
+      const wasOpen = openSections[id];
+      toggleSection(id);
+      
+      // If opening (not closing), scroll into view after animation
+      if (!wasOpen) {
+        setTimeout(() => {
+          sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 150);
+      }
+    };
     
     return (
-      <SidebarGroup>
-        <Collapsible open={isOpen} onOpenChange={() => toggleSection(id)}>
+      <SidebarGroup ref={sectionRef}>
+        <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
           <CollapsibleTrigger asChild>
             <button 
               className="flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
