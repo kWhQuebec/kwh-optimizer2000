@@ -1557,14 +1557,6 @@ export default function MarketIntelligencePage() {
                                   : `"After ${proposal.ppaTerm || 16} years, will the system truly be free or are there transfer fees?"`}
                               </span>
                             </li>
-                            {proposal.questionsToAsk && proposal.questionsToAsk.length > 0 && 
-                              proposal.questionsToAsk.map((q, idx) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                  <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
-                                  <span>"{q}"</span>
-                                </li>
-                              ))
-                            }
                           </ul>
                         </div>
                       )}
