@@ -265,21 +265,21 @@ export function AppSidebar() {
     const isOpen = openSections[id] || hasSectionActiveItem(items);
     const sectionRef = useRef<HTMLDivElement>(null);
     
-    const handleOpenChange = () => {
-      const wasOpen = openSections[id];
-      toggleSection(id);
+    const handleOpenChange = (open: boolean) => {
+      setOpenSections(prev => ({ ...prev, [id]: open }));
       
       // If opening (not closing), scroll into view after animation
-      if (!wasOpen) {
+      if (open) {
         setTimeout(() => {
-          sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 150);
+          sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 200);
       }
     };
     
     return (
-      <SidebarGroup ref={sectionRef}>
-        <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
+      <div ref={sectionRef}>
+        <SidebarGroup>
+          <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
           <CollapsibleTrigger asChild>
             <button 
               className="flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
@@ -312,9 +312,10 @@ export function AppSidebar() {
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </SidebarGroup>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+      </div>
     );
   };
 
