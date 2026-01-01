@@ -30,6 +30,8 @@ import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
 import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
 import heroRoofAnalysis from "@assets/generated_images/industrial_roof_solar_potential_overlay.png";
+import roofZoneOverlay from "@assets/generated_images/commercial_roof_solar_zone_overlay.png";
+import roofMeasurementOverlay from "@assets/generated_images/commercial_roof_solar_measurement_overlay.png";
 import heroOptimization from "@assets/Screenshot_2025-12-11_at_2.44.53_PM_1765482299598.png";
 import heroCashflow from "@assets/Screenshot_2025-12-07_at_10.53.40_AM_1765122823607.png";
 import screenshotSystemEn from "@assets/Screenshot_2025-12-05_at_4.07.23_PM_1764968848494.png";
@@ -104,10 +106,10 @@ export default function LandingPage() {
         { id: "sensitivity", image: carouselSlide7Fr, label: "Sensibilité système" },
       ]
     : [
-        { id: "config", image: screenshotSystemEn, label: "System configuration" },
-        { id: "profile", image: screenshotConsumptionEn, label: "Energy profile" },
-        { id: "financial", image: screenshotFinancialEn, label: "Financial analysis" },
-        { id: "optimization", image: screenshotOptimizationEn, label: "Optimization analysis" },
+        { id: "potential", image: roofMeasurement, label: "Roof solar potential" },
+        { id: "industrial", image: heroRoofAnalysis, label: "Industrial analysis" },
+        { id: "zones", image: roofZoneOverlay, label: "Solar zone mapping" },
+        { id: "measurement", image: roofMeasurementOverlay, label: "Precision measurement" },
       ];
   
   // Building type labels
@@ -1455,46 +1457,122 @@ export default function LandingPage() {
               </Card>
             </motion.div>
             
-            {/* Team Card */}
+            </div>
+        </div>
+      </section>
+      
+      {/* ========== TEAM SECTION ========== */}
+      <section id="team" className="py-16 px-4 sm:px-6 lg:px-8" data-testid="section-team">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
+              className="order-2 md:order-1"
             >
-              <Card className="p-0 h-full overflow-hidden">
-                <div className="relative h-full">
-                  <img 
-                    src={installationPhoto} 
-                    alt={language === "fr" ? "Équipe d'installation" : "Installation team"}
-                    className="w-full h-full min-h-[200px] object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
-                  <div className="absolute inset-0 flex items-center p-6">
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-semibold text-white">
-                        {language === "fr" ? "Notre équipe" : "Our Team"}
-                      </h3>
-                      <p className="text-sm text-white/90">
-                        {language === "fr" 
-                          ? "De la conception à la mise en service, notre équipe s'occupe de tout."
-                          : "From design to commissioning, our team handles everything."
-                        }
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge className="bg-white/20 text-white border-white/30">
-                          <Shield className="w-3 h-3 mr-1" />
-                          {t("landing.trust.certified")}
-                        </Badge>
-                        <Badge className="bg-white/20 text-white border-white/30">
-                          <Award className="w-3 h-3 mr-1" />
-                          {t("landing.trust.experience")}
-                        </Badge>
-                      </div>
-                    </div>
+              <div className="relative rounded-xl overflow-hidden shadow-lg">
+                <img 
+                  src={installationPhoto} 
+                  alt={language === "fr" ? "Équipe kWh Québec sur un toit" : "kWh Québec team on a rooftop"}
+                  className="w-full h-[300px] md:h-[400px] object-cover"
+                  data-testid="img-team-photo"
+                />
+              </div>
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="order-1 md:order-2 space-y-6"
+            >
+              <div>
+                <Badge variant="outline" className="mb-3">
+                  {language === "fr" ? "Notre équipe" : "Our Team"}
+                </Badge>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-team-title">
+                  {language === "fr" 
+                    ? "Des experts dédiés à votre projet"
+                    : "Experts dedicated to your project"
+                  }
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  {language === "fr" 
+                    ? "De la première analyse jusqu'à la mise en service et au-delà, notre équipe multidisciplinaire s'occupe de tout. Ingénieurs, techniciens certifiés et gestionnaires de projet travaillent ensemble pour assurer le succès de votre installation solaire."
+                    : "From the initial analysis to commissioning and beyond, our multidisciplinary team handles everything. Engineers, certified technicians, and project managers work together to ensure the success of your solar installation."
+                  }
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <HardHat className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">
+                      {language === "fr" ? "Installation" : "Installation"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" ? "Techniciens certifiés" : "Certified technicians"}
+                    </p>
                   </div>
                 </div>
-              </Card>
+                
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileCheck className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">
+                      {language === "fr" ? "Ingénierie" : "Engineering"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" ? "Plans et calculs" : "Plans & calculations"}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <ClipboardCheck className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">
+                      {language === "fr" ? "Gestion" : "Management"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" ? "Suivi de projet" : "Project tracking"}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Wrench className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">
+                      {language === "fr" ? "Maintenance" : "Maintenance"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" ? "Support 25 ans" : "25-year support"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  <Shield className="w-3 h-3 mr-1" />
+                  {language === "fr" ? "Licence RBQ" : "RBQ Licensed"}
+                </Badge>
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  <Award className="w-3 h-3 mr-1" />
+                  {language === "fr" ? "15+ ans d'expérience" : "15+ years experience"}
+                </Badge>
+              </div>
             </motion.div>
           </div>
         </div>
