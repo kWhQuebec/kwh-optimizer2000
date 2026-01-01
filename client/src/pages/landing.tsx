@@ -239,9 +239,9 @@ export default function LandingPage() {
             </Link>
             
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#paths" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-analyze">
-                {language === "fr" ? "Analyser" : "Analyze"}
-              </a>
+              <Link href="/" className="text-sm font-medium text-foreground" data-testid="link-home">
+                {language === "fr" ? "Accueil" : "Home"}
+              </Link>
               <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-resources">
                 {language === "fr" ? "Ressources" : "Resources"}
               </Link>
@@ -1635,12 +1635,9 @@ export default function LandingPage() {
             </div>
             
             <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
-              <Link href="/services" className="hover:text-foreground transition-colors">
-                Services
-              </Link>
-              <Link href="/comment-ca-marche" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Comment ça marche" : "How it works"}
-              </Link>
+              <a href="#paths" className="hover:text-foreground transition-colors">
+                {language === "fr" ? "Analyser" : "Analyze"}
+              </a>
               <Link href="/ressources" className="hover:text-foreground transition-colors">
                 {language === "fr" ? "Ressources" : "Resources"}
               </Link>

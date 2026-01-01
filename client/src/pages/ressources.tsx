@@ -408,12 +408,6 @@ export default function RessourcesPage() {
               <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {language === "fr" ? "Accueil" : "Home"}
               </Link>
-              <Link href="/services" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Services" : "Services"}
-              </Link>
-              <Link href="/comment-ca-marche" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Comment ça marche" : "How it works"}
-              </Link>
               <Link href="/ressources" className="text-sm font-medium text-foreground">
                 {language === "fr" ? "Ressources" : "Resources"}
               </Link>
@@ -706,13 +700,15 @@ export default function RessourcesPage() {
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link href="/services" className="hover:text-foreground transition-colors">Services</Link>
-              <Link href="/comment-ca-marche" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Comment ça marche" : "How it works"}
+              <Link href="/" className="hover:text-foreground transition-colors">
+                {language === "fr" ? "Accueil" : "Home"}
               </Link>
               <Link href="/ressources" className="hover:text-foreground transition-colors">
                 {language === "fr" ? "Ressources" : "Resources"}
               </Link>
+              <a href="mailto:info@kwhquebec.com" className="hover:text-foreground transition-colors">
+                {language === "fr" ? "Contact" : "Contact"}
+              </a>
             </div>
           </div>
         </div>

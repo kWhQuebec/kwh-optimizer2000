@@ -22,8 +22,6 @@ import AnalyseDetailleePage from "@/pages/analyse-detaillee";
 import DashboardPage from "@/pages/dashboard";
 import ClientsPage from "@/pages/clients";
 import SitesPage from "@/pages/sites";
-import ServicesPage from "@/pages/services";
-import CommentCaMarchePage from "@/pages/comment-ca-marche";
 import RessourcesPage from "@/pages/ressources";
 import BlogPage from "@/pages/blog";
 import BlogArticlePage from "@/pages/blog-article";
@@ -180,8 +178,9 @@ function AppRoutes() {
     <Switch>
       {/* Public routes */}
       <Route path="/" component={LandingPage} />
-      <Route path="/services" component={ServicesPage} />
-      <Route path="/comment-ca-marche" component={CommentCaMarchePage} />
+      {/* Redirect old pages to landing page */}
+      <Route path="/services">{() => <Redirect to="/" />}</Route>
+      <Route path="/comment-ca-marche">{() => <Redirect to="/" />}</Route>
       <Route path="/ressources" component={RessourcesPage} />
       <Route path="/blog" component={BlogPage} />
       <Route path="/blog/:slug" component={BlogArticlePage} />
