@@ -1316,13 +1316,71 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t("landing.trust.title")}</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+              {language === "fr" ? "Pourquoi kWh Québec?" : "Why kWh Québec?"}
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               {language === "fr" 
-                ? "Une équipe d'experts dédiée à votre projet solaire"
-                : "A team of experts dedicated to your solar project"
+                ? "Nous accompagnons les entreprises dans leurs projets d'énergie renouvelable depuis 2011. En tant que Québécois, nous sommes fiers de vous offrir des solutions solaires maintenant rentables ici au Québec."
+                : "We've been supporting businesses in renewable energy projects since 2011. As Quebecers, we're proud to offer solar solutions that are now profitable here in Quebec."
               }
             </p>
+          </motion.div>
+          
+          {/* Core Values */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"
+          >
+            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-simplicity">
+              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-primary" />
+              </div>
+              <h4 className="font-semibold text-sm mb-1">
+                {language === "fr" ? "Simplicité" : "Simplicity"}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {language === "fr" ? "Solution clé en main, on s'occupe de tout" : "Turnkey solution, we handle everything"}
+              </p>
+            </div>
+            
+            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-reliability">
+              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-primary" />
+              </div>
+              <h4 className="font-semibold text-sm mb-1">
+                {language === "fr" ? "Fiabilité" : "Reliability"}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {language === "fr" ? "Performance garantie, on respecte nos engagements" : "Guaranteed performance, we keep our commitments"}
+              </p>
+            </div>
+            
+            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-sustainability">
+              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <h4 className="font-semibold text-sm mb-1">
+                {language === "fr" ? "Pérennité" : "Sustainability"}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {language === "fr" ? "Relations et solutions pour le long terme" : "Long-term relationships and solutions"}
+              </p>
+            </div>
+            
+            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-pride">
+              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
+                <Award className="w-5 h-5 text-primary" />
+              </div>
+              <h4 className="font-semibold text-sm mb-1">
+                {language === "fr" ? "Fierté" : "Pride"}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {language === "fr" ? "Fiers de nos projets et de leur impact" : "Proud of our projects and their impact"}
+              </p>
+            </div>
           </motion.div>
           
           <div className="grid md:grid-cols-2 gap-6">
