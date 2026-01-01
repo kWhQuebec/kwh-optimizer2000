@@ -104,13 +104,10 @@ export default function LandingPage() {
         { id: "sensitivity", image: carouselSlide7Fr, label: "Sensibilité système" },
       ]
     : [
-        { id: "impact", image: carouselSlide1Fr, label: "Impact on your bill" },
-        { id: "config", image: carouselSlide2Fr, label: "Optimal configuration" },
-        { id: "evolution", image: carouselSlide3Fr, label: "25-year evolution" },
-        { id: "financing", image: carouselSlide4Fr, label: "Financing options" },
-        { id: "profile", image: carouselSlide5Fr, label: "Energy profile" },
-        { id: "optimization", image: carouselSlide6Fr, label: "Optimization analysis" },
-        { id: "sensitivity", image: carouselSlide7Fr, label: "System sensitivity" },
+        { id: "config", image: screenshotSystemEn, label: "System configuration" },
+        { id: "profile", image: screenshotConsumptionEn, label: "Energy profile" },
+        { id: "financial", image: screenshotFinancialEn, label: "Financial analysis" },
+        { id: "optimization", image: screenshotOptimizationEn, label: "Optimization analysis" },
       ];
   
   // Building type labels
