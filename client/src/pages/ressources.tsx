@@ -343,13 +343,6 @@ export default function RessourcesPage() {
         : "Panels last 25 years - roof must support this duration."
     },
     {
-      criterion: language === "fr" ? "Consommation électrique minimum (~40 000 kWh/an)" : "Minimum electricity consumption (~40,000 kWh/year)",
-      required: true,
-      info: language === "fr"
-        ? "En dessous de ce seuil, les économies ne justifient généralement pas l'investissement commercial."
-        : "Below this threshold, savings generally don't justify commercial investment."
-    },
-    {
       criterion: language === "fr" ? "Facture Hydro-Québec disponible (12 mois)" : "Hydro-Québec bill available (12 months)",
       required: true,
       info: language === "fr"
