@@ -321,7 +321,7 @@ export default function LandingPage() {
             >
               <div className="rounded-2xl overflow-hidden shadow-2xl border">
                 <img 
-                  src={language === "fr" ? heroOptimization : roofMeasurement} 
+                  src={language === "fr" ? heroOptimization : screenshotOptimizationEn} 
                   alt={language === "fr" ? "Analyse d'optimisation" : "Optimization analysis"}
                   className="w-full h-auto"
                   data-testid="img-hero-analysis"
