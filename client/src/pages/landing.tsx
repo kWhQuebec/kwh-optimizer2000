@@ -1382,82 +1382,78 @@ export default function LandingPage() {
             </div>
           </motion.div>
           
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Key Strengths - Hero Numbers + Checklist */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <Card className="p-6 h-full bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
-                {/* Hero Numbers */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-3 rounded-xl bg-primary/10" data-testid="strength-experience">
-                    <p className="text-3xl sm:text-4xl font-bold text-primary">15+</p>
-                    <p className="text-xs sm:text-sm font-medium mt-1">
-                      {language === "fr" ? "ans" : "years"}
-                    </p>
-                    <p className="text-xs text-muted-foreground hidden sm:block">
-                      {language === "fr" ? "d'expérience" : "experience"}
-                    </p>
-                  </div>
-                  
-                  <div className="text-center p-3 rounded-xl bg-primary/10" data-testid="strength-capacity">
-                    <p className="text-3xl sm:text-4xl font-bold text-primary">120</p>
-                    <p className="text-xs sm:text-sm font-medium mt-1">MW</p>
-                    <p className="text-xs text-muted-foreground hidden sm:block">
-                      {language === "fr" ? "installés" : "installed"}
-                    </p>
-                  </div>
-                  
-                  <div className="text-center p-3 rounded-xl bg-primary/10" data-testid="strength-projects">
-                    <p className="text-3xl sm:text-4xl font-bold text-primary">25+</p>
-                    <p className="text-xs sm:text-sm font-medium mt-1">
-                      {language === "fr" ? "projets" : "projects"}
-                    </p>
-                    <p className="text-xs text-muted-foreground hidden sm:block">
-                      {language === "fr" ? "C&I" : "C&I"}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Checklist Benefits */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3" data-testid="strength-rbq">
-                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                    <span className="text-sm">
-                      <span className="font-medium">{language === "fr" ? "Licence RBQ" : "RBQ License"}</span>
-                      <span className="text-muted-foreground"> — {language === "fr" ? "Entrepreneur général" : "General contractor"}</span>
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3" data-testid="strength-financing">
-                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                    <span className="text-sm">
-                      <span className="font-medium">{language === "fr" ? "Financement flexible" : "Flexible financing"}</span>
-                      <span className="text-muted-foreground"> — {language === "fr" ? "Options disponibles" : "Options available"}</span>
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3" data-testid="strength-coverage">
-                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                    <span className="text-sm">
-                      <span className="font-medium">{language === "fr" ? "Service partout au Québec" : "Service across Quebec"}</span>
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3" data-testid="strength-warranty">
-                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                    <span className="text-sm">
-                      <span className="font-medium">{language === "fr" ? "Garantie 25 ans" : "25-year warranty"}</span>
-                      <span className="text-muted-foreground"> — {language === "fr" ? "Performance garantie" : "Performance guaranteed"}</span>
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-            
+          {/* Stats - Full width like core values */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-3 gap-4 mb-8"
+          >
+            <div className="text-center p-4 sm:p-6 rounded-xl bg-background border" data-testid="strength-experience">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">15+</p>
+              <p className="text-sm sm:text-base font-medium mt-1">
+                {language === "fr" ? "ans" : "years"}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {language === "fr" ? "d'expérience" : "experience"}
+              </p>
             </div>
+            
+            <div className="text-center p-4 sm:p-6 rounded-xl bg-background border" data-testid="strength-capacity">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">120</p>
+              <p className="text-sm sm:text-base font-medium mt-1">MW</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {language === "fr" ? "installés" : "installed"}
+              </p>
+            </div>
+            
+            <div className="text-center p-4 sm:p-6 rounded-xl bg-background border" data-testid="strength-projects">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">25+</p>
+              <p className="text-sm sm:text-base font-medium mt-1">
+                {language === "fr" ? "projets" : "projects"}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {language === "fr" ? "C&I" : "C&I"}
+              </p>
+            </div>
+          </motion.div>
+          
+          {/* Checklist Benefits - Centered */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-wrap justify-center gap-x-8 gap-y-3"
+          >
+            <div className="flex items-center gap-2" data-testid="strength-rbq">
+              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <span className="text-sm">
+                <span className="font-medium">{language === "fr" ? "Licence RBQ" : "RBQ License"}</span>
+                <span className="text-muted-foreground"> — {language === "fr" ? "Entrepreneur général" : "General contractor"}</span>
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2" data-testid="strength-financing">
+              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <span className="text-sm">
+                <span className="font-medium">{language === "fr" ? "Financement flexible" : "Flexible financing"}</span>
+                <span className="text-muted-foreground"> — {language === "fr" ? "Options disponibles" : "Options available"}</span>
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2" data-testid="strength-coverage">
+              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <span className="text-sm font-medium">{language === "fr" ? "Service partout au Québec" : "Service across Quebec"}</span>
+            </div>
+            
+            <div className="flex items-center gap-2" data-testid="strength-warranty">
+              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <span className="text-sm">
+                <span className="font-medium">{language === "fr" ? "Garantie 25 ans" : "25-year warranty"}</span>
+                <span className="text-muted-foreground"> — {language === "fr" ? "Performance garantie" : "Performance guaranteed"}</span>
+              </span>
+            </div>
+          </motion.div>
         </div>
       </section>
       
