@@ -402,7 +402,7 @@ export default function LandingPage() {
             </div>
           </div>
           
-          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 relative mt-4">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 relative mt-4 items-stretch">
             {/* Mobile arrow connector between cards */}
             <div className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
               <div className="bg-background border-2 border-muted rounded-full p-2 shadow-sm">
@@ -415,9 +415,9 @@ export default function LandingPage() {
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className={quickPathExpanded ? "lg:col-span-2" : ""}
+              className={quickPathExpanded ? "lg:col-span-2" : "h-full"}
             >
-              <Card ref={quickPathRef} className={`border-2 transition-all scroll-mt-24 relative ${quickPathExpanded ? 'border-primary' : 'border-primary/40 hover:border-primary/60'}`}>
+              <Card ref={quickPathRef} className={`border-2 transition-all scroll-mt-24 relative h-full ${quickPathExpanded ? 'border-primary' : 'border-primary/40 hover:border-primary/60'}`}>
                 {/* Step 1 badge - prominent circle */}
                 {!quickPathExpanded && (
                   <div className="absolute -top-3 left-6 z-10">
@@ -428,7 +428,7 @@ export default function LandingPage() {
                 )}
                 {/* Header - Always visible */}
                 <div 
-                  className={`p-6 cursor-pointer ${!quickPathExpanded ? 'hover-elevate pt-8' : ''}`}
+                  className={`p-6 cursor-pointer flex flex-col ${!quickPathExpanded ? 'hover-elevate pt-8 h-full' : ''}`}
                   onClick={() => {
                     if (!quickPathExpanded) {
                       setQuickPathExpanded(true);
@@ -458,7 +458,7 @@ export default function LandingPage() {
                             ~75% {language === "fr" ? "précision" : "accuracy"}
                           </Badge>
                         </div>
-                        <p className="text-muted-foreground mt-1">
+                        <p className="text-muted-foreground mt-1 min-h-[2.5rem]">
                           {language === "fr" 
                             ? "Estimez votre potentiel solaire en quelques clics"
                             : "Estimate your solar potential in a few clicks"
@@ -835,9 +835,9 @@ export default function LandingPage() {
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className={`${detailedPathExpanded ? "lg:col-span-2" : ""} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
+              className={`${detailedPathExpanded ? "lg:col-span-2" : "h-full"} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
             >
-                <Card ref={detailedPathRef} className={`border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
+                <Card ref={detailedPathRef} className={`border-2 transition-all scroll-mt-24 relative h-full ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
                   {/* Step 2 badge - prominent circle */}
                   {!detailedPathExpanded && (
                     <div className="absolute -top-3 left-6 z-10">
@@ -848,7 +848,7 @@ export default function LandingPage() {
                   )}
                   {/* Header - Always visible */}
                   <div 
-                    className={`p-6 cursor-pointer ${!detailedPathExpanded ? 'hover-elevate pt-8' : ''}`}
+                    className={`p-6 cursor-pointer flex flex-col ${!detailedPathExpanded ? 'hover-elevate pt-8 h-full' : ''}`}
                     onClick={() => {
                       if (!detailedPathExpanded) {
                         setDetailedPathExpanded(true);
@@ -878,7 +878,7 @@ export default function LandingPage() {
                               ~95% {language === "fr" ? "précision" : "accuracy"}
                             </Badge>
                           </div>
-                          <p className="text-muted-foreground mt-1">
+                          <p className="text-muted-foreground mt-1 min-h-[2.5rem]">
                             {language === "fr" 
                               ? "Requis pour recevoir une proposition — basé sur vos données réelles"
                               : "Required for a proposal — based on your real data"
