@@ -57,6 +57,31 @@ annualizationFactor = 365 / dataSpanDays
 annualConsumptionKWh = totalKWh × annualizationFactor
 ```
 
+### Solar Yield Calculation Methodology (Updated Jan 2026)
+
+**Yield Source Tracking:**
+The `yieldSource` field in AnalysisAssumptions tracks where solar yield data originates:
+- `'google'` - From Google Solar API (weather-adjusted, skip temperature correction)
+- `'manual'` - Analyst-entered value (apply temperature correction)
+- `'default'` - Using baseline 1150 kWh/kWp (apply temperature correction)
+
+**Bifacial Boost:**
+- Fixed 15% boost (1.15x) for all bifacial panel installations
+- Monte Carlo range: 10-20% (pessimistic to optimistic)
+- Previous albedo-based calculation (~21%) was removed for simplicity and accuracy
+
+**Temperature Correction:**
+- Applied ONLY when yieldSource !== 'google' (default or manual)
+- Google Solar API yield already includes local weather/temperature effects
+- Uses Quebec monthly average temperatures and STC cell temperature reference
+
+**Expected Yields:**
+| Source | Base Yield | + Bifacial | + Temp Correction | Final |
+|--------|------------|------------|-------------------|-------|
+| Google (1079) | 1079 | 1241 | Skipped | ~1241 kWh/kWp |
+| Manual (1200) | 1200 | 1380 | Applied | ~1450 kWh/kWp |
+| Default (1150) | 1150 | 1322 | Applied | ~1390 kWh/kWp |
+
 ### Validated Calculation Benchmarks (December 2024)
 
 | Metric | Platform Value | Industry Reference (Quebec) |
