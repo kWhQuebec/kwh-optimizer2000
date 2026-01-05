@@ -5567,6 +5567,11 @@ export default function SiteDetailPage() {
         ...defaultAnalysisAssumptions, 
         ...customAssumptionsOverrides 
       };
+      // CRITICAL: Don't send yieldSource from frontend - let server determine it 
+      // based on whether Google Solar API data is available
+      // This prevents overwriting the server's 'google' yieldSource with 'default'
+      delete (mergedAssumptions as any).yieldSource;
+      
       // Wrap assumptions in the expected format for the API
       // apiRequest returns parsed JSON directly
       const result = await apiRequest<{ id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions: mergedAssumptions });

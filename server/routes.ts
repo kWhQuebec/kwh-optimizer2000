@@ -8005,7 +8005,6 @@ function runPotentialAnalysis(
   // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
   // Apply temp correction for default (1150) and manual overrides
   const skipTempCorrection = h.yieldSource === 'google';
-  console.log(`[Analysis Debug] yieldSource=${h.yieldSource}, skipTempCorrection=${skipTempCorrection}, effectiveYield=${effectiveYield}`);
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
