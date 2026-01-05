@@ -43,6 +43,7 @@ interface MonteCarloConfig {
     solarYield: [number, number];
     bifacialBoost: [number, number];
     omPerKwc: [number, number];
+    solarCostPerW: [number, number];
   };
 }
 
@@ -123,6 +124,9 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
   // O&M per kWc: $10 (optimistic) to $20 (pessimistic)
   const [omMin, setOmMin] = useState(10);
   const [omMax, setOmMax] = useState(20);
+  // Solar cost per watt: $1.75 (optimistic) to $2.35 (pessimistic)
+  const [solarCostMin, setSolarCostMin] = useState(1.75);
+  const [solarCostMax, setSolarCostMax] = useState(2.35);
 
   const runAnalysisMutation = useMutation({
     mutationFn: async () => {
@@ -135,6 +139,7 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
           solarYield: [yieldMin, yieldMax],
           bifacialBoost: [bifacialMin / 100, bifacialMax / 100],
           omPerKwc: [omMin, omMax],
+          solarCostPerW: [solarCostMin, solarCostMax],
         },
       };
       
@@ -432,6 +437,36 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                       {language === "fr" 
                         ? "Coût d'entretien par kWc/an ($10 optimiste, $20 pessimiste)"
                         : "Maintenance cost per kWc/year ($10 optimistic, $20 pessimistic)"}
+                    </p>
+                  </div>
+
+                  {/* Solar Cost per Watt */}
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-emerald-600" />
+                      {language === "fr" ? "Coût solaire" : "Solar Cost"}
+                    </Label>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>${solarCostMin.toFixed(2)}/W</span>
+                        <span>${solarCostMax.toFixed(2)}/W</span>
+                      </div>
+                      <Slider
+                        value={[solarCostMin, solarCostMax]}
+                        onValueChange={([min, max]) => {
+                          setSolarCostMin(min);
+                          setSolarCostMax(max);
+                        }}
+                        min={1.75}
+                        max={2.35}
+                        step={0.05}
+                        data-testid="slider-solar-cost"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" 
+                        ? "Coût d'installation par watt ($1.75 optimiste, $2.35 pessimiste)"
+                        : "Installation cost per watt ($1.75 optimistic, $2.35 pessimistic)"}
                     </p>
                   </div>
                 </div>

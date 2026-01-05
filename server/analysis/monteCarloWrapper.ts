@@ -16,6 +16,7 @@
  * - solarYield (1075-1225) → solarYieldKWhPerKWp → absolute kWh/kWp/year
  * - bifacialBoost (10-20%) → multiplier on solar production (simplified, no albedo)
  * - omPerKwc ($10-20) → O&M cost per kWc/year (converted to % of CAPEX internally)
+ * - solarCostPerW ($1.75-2.35) → solarCostPerW → CAPEX per watt (lower = optimistic)
  */
 
 import type { AnalysisAssumptions } from "@shared/schema";
@@ -33,6 +34,8 @@ export interface MonteCarloConfig {
     bifacialBoost: [number, number];
     // O&M cost per kWc: $10 (optimistic) to $20 (pessimistic)
     omPerKwc: [number, number];
+    // Solar cost per watt: $1.75 (optimistic) to $2.35 (pessimistic)
+    solarCostPerW: [number, number];
   };
   seed?: number;
 }
@@ -45,6 +48,7 @@ export const defaultMonteCarloConfig: MonteCarloConfig = {
     solarYield: [1075, 1225],         // kWh/kWp/year direct
     bifacialBoost: [0.10, 0.20],      // 10-20% production boost
     omPerKwc: [10, 20],               // $10-20/kWc/year
+    solarCostPerW: [1.75, 2.35],      // $1.75-2.35/W (lower = optimistic)
   },
 };
 
@@ -140,6 +144,7 @@ export function runMonteCarloAnalysis(
       solarYield: number;
       bifacialBoost: number;
       omPerKwc: number;
+      solarCostPerW: number;
       effectiveYield: number;
     };
     result: ScenarioResult;
@@ -154,13 +159,14 @@ export function runMonteCarloAnalysis(
     const sampledSolarYield = Math.round(randomInRange(config.variableRanges.solarYield, random));
     const sampledBifacialBoost = randomInRange(config.variableRanges.bifacialBoost, random);
     const sampledOmPerKwc = randomInRange(config.variableRanges.omPerKwc, random);
+    const sampledSolarCostPerW = randomInRange(config.variableRanges.solarCostPerW, random);
     
     // Apply bifacial boost to solar yield
     const effectiveYield = Math.round(sampledSolarYield * (1 + sampledBifacialBoost));
     
     // Convert O&M per kWc to % of CAPEX for compatibility with existing engine
-    // Assuming ~$2.25/W = $2,250/kW CAPEX, $15/kWc O&M = 0.67%
-    const solarCostPerKw = (baseAssumptions.solarCostPerW || 2.25) * 1000;
+    // Using sampled solar cost per W for accurate O&M percentage
+    const solarCostPerKw = sampledSolarCostPerW * 1000;
     const omSolarPercent = sampledOmPerKwc / solarCostPerKw;
 
     const variedAssumptions: AnalysisAssumptions = {
@@ -169,6 +175,7 @@ export function runMonteCarloAnalysis(
       discountRate: sampledDiscountRate,
       solarYieldKWhPerKWp: effectiveYield,
       omSolarPercent: omSolarPercent,
+      solarCostPerW: sampledSolarCostPerW,
     };
 
     try {
@@ -183,6 +190,7 @@ export function runMonteCarloAnalysis(
           solarYield: sampledSolarYield,
           bifacialBoost: sampledBifacialBoost,
           omPerKwc: sampledOmPerKwc,
+          solarCostPerW: sampledSolarCostPerW,
           effectiveYield: effectiveYield,
         },
         result,

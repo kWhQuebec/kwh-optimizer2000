@@ -127,6 +127,7 @@ Wraps the existing financial calculation in a 500-iteration simulation loop with
 | Solar Yield | 1,075 kWh/kWp | 1,150 kWh/kWp | 1,225 kWh/kWp | Quebec annual production |
 | Bifacial Boost | +10% | +15% | +20% | Simplified, no albedo calculation |
 | O&M Cost | $20/kWc | $15/kWc | $10/kWc | Annual maintenance per kWc |
+| Solar Cost | $2.35/W | $2.00/W | $1.75/W | Installation cost per watt |
 
 **Default Base Assumptions (updated Jan 2026):**
 - `discountRate`: 7% (was 8%)
