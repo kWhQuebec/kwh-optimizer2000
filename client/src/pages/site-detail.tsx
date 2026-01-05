@@ -953,13 +953,9 @@ function AnalysisParametersEditor({
               {(() => {
                 const baseYield = merged.solarYieldKWhPerKWp || 1150;
                 const orientationFactor = merged.orientationFactor || 1.0;
-                const bifacialBoost = merged.bifacialEnabled 
-                  ? (1 + (merged.bifacialityFactor || 0.85) * (merged.roofAlbedo || 0.70) * 0.35)
-                  : 1.0;
+                const bifacialBoost = merged.bifacialEnabled ? 1.15 : 1.0;
                 const grossYield = Math.round(baseYield * orientationFactor * bifacialBoost);
-                const bifacialLabel = merged.bifacialEnabled 
-                  ? ` (+${Math.round((bifacialBoost - 1) * 100)}% bifacial)`
-                  : "";
+                const bifacialLabel = merged.bifacialEnabled ? " (+15% bifacial)" : "";
                 return (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -978,7 +974,7 @@ function AnalysisParametersEditor({
               })()}
               
               {/* Advanced System Modeling (Helioscope-inspired) */}
-              <div className="grid grid-cols-4 gap-3 pt-2 border-t border-dashed">
+              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-dashed">
                 <div className="space-y-1.5">
                   <Label className="text-xs">{language === "fr" ? "Ratio DC/AC (ILR)" : "DC/AC Ratio (ILR)"}</Label>
                   <Input
@@ -1008,20 +1004,6 @@ function AnalysisParametersEditor({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">{language === "fr" ? "Pertes câblage (%)" : "Wire Losses (%)"}</Label>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max="10"
-                    value={((merged.wireLossPercent || 0.02) * 100).toFixed(1)}
-                    onChange={(e) => updateField("wireLossPercent", (parseFloat(e.target.value) || 2) / 100)}
-                    disabled={disabled}
-                    className="h-8 text-sm font-mono"
-                    data-testid="input-wire-loss"
-                  />
-                </div>
-                <div className="space-y-1.5">
                   <Label className="text-xs">{language === "fr" ? "Dégradation (%/an)" : "Degradation (%/yr)"}</Label>
                   <Input
                     type="number"
@@ -1039,11 +1021,11 @@ function AnalysisParametersEditor({
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Info className="w-3 h-3" />
                 {language === "fr" 
-                  ? "Modélisation avancée: ILR typique 1.1-1.5, pertes câblage 1-3%, dégradation 0.5%/an"
-                  : "Advanced modeling: Typical ILR 1.1-1.5, wire losses 1-3%, degradation 0.5%/yr"}
+                  ? "Modélisation avancée: ILR typique 1.1-1.5, dégradation 0.5%/an"
+                  : "Advanced modeling: Typical ILR 1.1-1.5, degradation 0.5%/yr"}
               </p>
               
-              {/* Bifacial PV Section */}
+              {/* Bifacial PV Section - Simplified */}
               <div className="pt-3 border-t border-dashed space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium flex items-center gap-2">
@@ -1059,71 +1041,19 @@ function AnalysisParametersEditor({
                     />
                     <span className="text-xs text-muted-foreground">
                       {merged.bifacialEnabled 
-                        ? (language === "fr" ? "Activé" : "Enabled")
+                        ? (language === "fr" ? "Activé (+15%)" : "Enabled (+15%)")
                         : (language === "fr" ? "Désactivé" : "Disabled")}
                     </span>
                   </div>
                 </div>
                 
                 {merged.bifacialEnabled && (
-                  <>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr"
-                        ? "Les panneaux bifaciaux captent la lumière des deux côtés, augmentant le rendement sur les toits à membrane blanche."
-                        : "Bifacial panels capture light from both sides, increasing yield on white membrane roofs."}
-                    </p>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">{language === "fr" ? "Bifacialité (%)" : "Bifaciality (%)"}</Label>
-                        <Input
-                          type="number"
-                          step="1"
-                          min="70"
-                          max="95"
-                          value={Math.round((merged.bifacialityFactor || 0.85) * 100)}
-                          onChange={(e) => updateField("bifacialityFactor", (parseInt(e.target.value) || 85) / 100)}
-                          disabled={disabled}
-                          className="h-8 text-sm font-mono"
-                          data-testid="input-bifaciality-factor"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">{language === "fr" ? "Albédo du toit" : "Roof Albedo"}</Label>
-                        <select
-                          value={(merged.roofAlbedo || 0.70).toFixed(2)}
-                          onChange={(e) => updateField("roofAlbedo", parseFloat(e.target.value) || 0.70)}
-                          disabled={disabled}
-                          className="h-8 w-full text-sm font-mono rounded-md border border-input bg-background px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
-                          data-testid="select-roof-albedo"
-                        >
-                          <option value="0.70">{language === "fr" ? "Blanc (0.70)" : "White (0.70)"}</option>
-                          <option value="0.50">{language === "fr" ? "Clair (0.50)" : "Light (0.50)"}</option>
-                          <option value="0.20">{language === "fr" ? "Gravier (0.20)" : "Gravel (0.20)"}</option>
-                          <option value="0.10">{language === "fr" ? "Sombre (0.10)" : "Dark (0.10)"}</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">{language === "fr" ? "Prime coût ($/W)" : "Cost Premium ($/W)"}</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="0.50"
-                          value={(merged.bifacialCostPremium || 0.10).toFixed(2)}
-                          onChange={(e) => updateField("bifacialCostPremium", parseFloat(e.target.value) || 0.10)}
-                          disabled={disabled}
-                          className="h-8 text-sm font-mono"
-                          data-testid="input-bifacial-cost-premium"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Info className="w-3 h-3" />
-                      {language === "fr"
-                        ? `Gain estimé: +${Math.round((merged.bifacialityFactor || 0.85) * (merged.roofAlbedo || 0.70) * 0.35 * 100)}% rendement`
-                        : `Estimated gain: +${Math.round((merged.bifacialityFactor || 0.85) * (merged.roofAlbedo || 0.70) * 0.35 * 100)}% yield`}
-                    </p>
-                  </>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    {language === "fr"
+                      ? "Les panneaux bifaciaux captent la lumière des deux côtés. Gain estimé: +15% rendement (typique pour toits commerciaux)."
+                      : "Bifacial panels capture light from both sides. Estimated gain: +15% yield (typical for commercial roofs)."}
+                  </p>
                 )}
               </div>
             </div>
@@ -1404,7 +1334,7 @@ function AnalysisParametersEditor({
                   
                   {/* Roof Segments from Google Solar API */}
                   {site.roofEstimateStatus === "success" && site.roofAreaAutoDetails && (
-                    ((): React.ReactNode => {
+                    ((): React.ReactNode | null => {
                       const details = site.roofAreaAutoDetails as any;
                       const segments = details?.solarPotential?.roofSegmentStats;
                       const maxSunshine = details?.solarPotential?.maxSunshineHoursPerYear;
@@ -5104,9 +5034,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
             {(() => {
               const baseYield = assumptions.solarYieldKWhPerKWp || 1150;
               const orientationFactor = assumptions.orientationFactor || 1.0;
-              const bifacialBoost = assumptions.bifacialEnabled 
-                ? (1 + (assumptions.bifacialityFactor || 0.85) * (assumptions.roofAlbedo || 0.70) * 0.35)
-                : 1.0;
+              const bifacialBoost = assumptions.bifacialEnabled ? 1.15 : 1.0;
               const grossYield = Math.round(baseYield * orientationFactor * bifacialBoost);
               
               // Calculate net yield from actual simulation data
@@ -5123,7 +5051,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
                   <div>
                     <p className="text-muted-foreground">
                       {language === "fr" ? "Rendement brut" : "Gross yield"}
-                      {assumptions.bifacialEnabled && <span className="text-primary ml-1">(+bifacial)</span>}
+                      {assumptions.bifacialEnabled && <span className="text-primary ml-1">(+15%)</span>}
                     </p>
                     <p className="font-mono">{grossYield} kWh/kWc</p>
                   </div>

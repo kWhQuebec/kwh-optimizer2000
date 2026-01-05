@@ -8005,7 +8005,7 @@ function runPotentialAnalysis(
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
-    wireLossPercent: h.wireLossPercent || 0.02,
+    wireLossPercent: h.wireLossPercent ?? 0.0, // 0% for free analysis (Jan 2026)
   };
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams);
@@ -8833,7 +8833,7 @@ function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null
 interface SystemModelingParams {
   inverterLoadRatio: number;      // DC/AC ratio (ILR) - default 1.2
   temperatureCoefficient: number; // Power temp coefficient %/°C - default -0.004
-  wireLossPercent: number;        // DC wiring losses - default 0.02
+  wireLossPercent: number;        // DC wiring losses - default 0% for free analysis
 }
 
 // Quebec typical monthly average temperatures (°C) for temperature correction
@@ -8851,7 +8851,7 @@ function runHourlySimulation(
   battPowerKW: number,
   threshold: number,
   solarYieldFactor: number = 1.0, // Multiplier to adjust production (1.0 = default 1150 kWh/kWp)
-  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.02 }
+  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0 }
 ): {
   totalSelfConsumption: number;
   totalProductionKWh: number; // Total annual solar production
@@ -9242,7 +9242,7 @@ function runScenarioWithSizing(
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
-    wireLossPercent: h.wireLossPercent || 0.02,
+    wireLossPercent: h.wireLossPercent ?? 0.0, // 0% for free analysis (Jan 2026)
   };
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams);
