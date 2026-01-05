@@ -55,7 +55,7 @@ export function GlobalSearch() {
       }
       const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       if (!res.ok) throw new Error("Search failed");

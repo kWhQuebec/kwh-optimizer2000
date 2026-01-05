@@ -2270,7 +2270,7 @@ export function SiteVisitSection({ siteId, siteLat, siteLng, designAgreementStat
                           variant="ghost" 
                           onClick={async (e) => {
                             e.stopPropagation();
-                            const token = localStorage.getItem("auth_token");
+                            const token = localStorage.getItem("token");
                             const url = `/api/site-visits/${visit.id}/pdf?lang=${language}`;
                             let blobUrl: string | null = null;
                             try {
