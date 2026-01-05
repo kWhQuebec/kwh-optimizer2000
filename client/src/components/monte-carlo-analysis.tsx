@@ -123,10 +123,10 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
         },
       };
       
-      const response = await apiRequest("POST", `/api/sites/${siteId}/monte-carlo-analysis`, {
+      const response = await apiRequest<MonteCarloResponse>("POST", `/api/sites/${siteId}/monte-carlo-analysis`, {
         config,
       });
-      return (response as Response).json() as Promise<MonteCarloResponse>;
+      return response;
     },
     onSuccess: (data) => {
       setResult(data);
