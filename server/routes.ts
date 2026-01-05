@@ -2026,7 +2026,7 @@ export async function registerRoutes(
                                        googleData.googleProductionEstimate.systemSizeKw;
           mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleSpecificYield);
           mergedAssumptions.yieldSource = 'google'; // Mark as Google-derived (weather-adjusted)
-          console.log(`Using Google Solar production estimate: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year (from ${googleData.googleProductionEstimate.yearlyEnergyAcKwh} kWh AC / ${googleData.googleProductionEstimate.systemSizeKw} kW)`);
+          console.log(`Using Google Solar production estimate: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year, yieldSource='${mergedAssumptions.yieldSource}' (from ${googleData.googleProductionEstimate.yearlyEnergyAcKwh} kWh AC / ${googleData.googleProductionEstimate.systemSizeKw} kW)`);
         }
         // PRIORITY 2: Fall back to sunshine hours if no production estimate
         else if (googleData.maxSunshineHoursPerYear && !useManualYield) {
@@ -8005,6 +8005,7 @@ function runPotentialAnalysis(
   // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
   // Apply temp correction for default (1150) and manual overrides
   const skipTempCorrection = h.yieldSource === 'google';
+  console.log(`[Analysis Debug] yieldSource=${h.yieldSource}, skipTempCorrection=${skipTempCorrection}, effectiveYield=${effectiveYield}`);
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,

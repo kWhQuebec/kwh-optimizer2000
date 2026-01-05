@@ -1874,6 +1874,11 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   roofAlbedo: 0.70, // White membrane ~70% reflectivity
   bifacialCostPremium: 0.10, // $0.10/W additional cost
   
+  // Yield source tracking - controls temperature correction logic
+  // 'google' = skip temp correction (already weather-adjusted)
+  // 'manual' or 'default' = apply temp correction
+  yieldSource: 'default' as const,
+  
   // HQ Net Metering surplus compensation (April 2025+)
   // Source: HQ Grille tarifaire avril 2025 - Coût moyen d'approvisionnement
   // After 24-month bank reset, surplus kWh compensated at this rate (NOT client tariff)
