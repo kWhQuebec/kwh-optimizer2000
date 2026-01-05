@@ -1824,6 +1824,12 @@ export interface AnalysisAssumptions {
   // Manual yield override flag
   useManualYield?: boolean;       // If true, use solarYieldKWhPerKWp instead of Google data
   
+  // Yield source tracking for temperature correction
+  // 'google' = from Google Solar API (weather-adjusted, skip temp correction)
+  // 'manual' = analyst-entered value (apply temp correction)
+  // 'default' = using baseline 1150 (apply temp correction)
+  yieldSource?: 'google' | 'manual' | 'default';
+  
   // HQ Net Metering surplus compensation rate (April 2025)
   // Source: HQ Grille tarifaire avril 2025 - Compensation at average cost of supply
   // NOT client's energy tariff rate - HQ compensates at cost of supply after 24-month bank reset

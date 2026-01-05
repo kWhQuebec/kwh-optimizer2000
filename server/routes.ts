@@ -2025,6 +2025,7 @@ export async function registerRoutes(
           const googleSpecificYield = googleData.googleProductionEstimate.yearlyEnergyAcKwh / 
                                        googleData.googleProductionEstimate.systemSizeKw;
           mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleSpecificYield);
+          mergedAssumptions.yieldSource = 'google'; // Mark as Google-derived (weather-adjusted)
           console.log(`Using Google Solar production estimate: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year (from ${googleData.googleProductionEstimate.yearlyEnergyAcKwh} kWh AC / ${googleData.googleProductionEstimate.systemSizeKw} kW)`);
         }
         // PRIORITY 2: Fall back to sunshine hours if no production estimate
@@ -2032,8 +2033,10 @@ export async function registerRoutes(
           // Convert sunshine hours to kWh/kWp (roughly 1:1 ratio for well-oriented panels)
           // Google's maxSunshineHoursPerYear is the max possible, apply ~0.85 derating for realistic yield
           mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleData.maxSunshineHoursPerYear * 0.85);
+          mergedAssumptions.yieldSource = 'google'; // Mark as Google-derived (weather-adjusted)
           console.log(`Using Google Solar sunshine hours: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year (from ${googleData.maxSunshineHoursPerYear} hrs * 0.85)`);
         } else if (useManualYield) {
+          mergedAssumptions.yieldSource = 'manual'; // Mark as manually entered
           console.log(`Using manual yield override: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
         }
         
@@ -7971,15 +7974,12 @@ function runPotentialAnalysis(
   let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
   
   // Apply bifacial gain if enabled
-  // Formula: rear gain = bifaciality × albedo × view_factor (0.35 for flat commercial roofs)
-  // Typical boost: 8-15% for white membrane roofs
+  // Simplified: fixed 15% boost for bifacial panels (validated Jan 2026)
+  // Range in Monte Carlo: 10-20%, realistic default: 15%
   if (h.bifacialEnabled) {
-    const bifacialityFactor = h.bifacialityFactor || 0.85;
-    const roofAlbedo = h.roofAlbedo || 0.70;
-    const viewFactor = 0.35; // Conservative for flat commercial installations
-    const bifacialBoost = 1 + (bifacialityFactor * roofAlbedo * viewFactor);
+    const bifacialBoost = 1.15; // Fixed 15% boost
     effectiveYield = effectiveYield * bifacialBoost;
-    console.log(`Bifacial enabled: ${(bifacialBoost - 1) * 100}% yield boost applied`);
+    console.log(`Bifacial enabled: 15% yield boost applied`);
   }
   const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
   
@@ -8002,10 +8002,14 @@ function runPotentialAnalysis(
   const yieldFactor = effectiveYield / 1150;
   
   // Build Helioscope-inspired system modeling parameters
+  // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
+  // Apply temp correction for default (1150) and manual overrides
+  const skipTempCorrection = h.yieldSource === 'google';
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
     wireLossPercent: h.wireLossPercent ?? 0.0, // 0% for free analysis (Jan 2026)
+    skipTempCorrection,
   };
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams);
@@ -8427,12 +8431,9 @@ function runPotentialAnalysis(
     
     // LCOE - with degradation
     let optEffectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
-    // Apply bifacial gain if enabled
+    // Apply bifacial gain if enabled - fixed 15% boost (validated Jan 2026)
     if (h.bifacialEnabled) {
-      const bifacialityFactor = h.bifacialityFactor || 0.85;
-      const roofAlbedo = h.roofAlbedo || 0.70;
-      const viewFactor = 0.35;
-      const bifacialBoost = 1 + (bifacialityFactor * roofAlbedo * viewFactor);
+      const bifacialBoost = 1.15; // Fixed 15% boost
       optEffectiveYield = optEffectiveYield * bifacialBoost;
     }
     let optTotalProduction = 0;
@@ -8834,6 +8835,7 @@ interface SystemModelingParams {
   inverterLoadRatio: number;      // DC/AC ratio (ILR) - default 1.2
   temperatureCoefficient: number; // Power temp coefficient %/°C - default -0.004
   wireLossPercent: number;        // DC wiring losses - default 0% for free analysis
+  skipTempCorrection: boolean;    // Skip temp correction when using Google yield (already weather-adjusted)
 }
 
 // Quebec typical monthly average temperatures (°C) for temperature correction
@@ -8851,7 +8853,7 @@ function runHourlySimulation(
   battPowerKW: number,
   threshold: number,
   solarYieldFactor: number = 1.0, // Multiplier to adjust production (1.0 = default 1150 kWh/kWp)
-  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0 }
+  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0, skipTempCorrection: false }
 ): {
   totalSelfConsumption: number;
   totalProductionKWh: number; // Total annual solar production
@@ -8921,22 +8923,19 @@ function runHourlySimulation(
     const season = 1 - 0.4 * Math.cos((month - 6) * 2 * Math.PI / 12);
     const isDaytime = hour >= 5 && hour <= 20;
     
-    // Helioscope-inspired temperature correction
-    // Cell temp is ~25-30°C above ambient; compare to STC (25°C cell temp)
-    // Temperature effect: colder = higher output, hotter = lower output
-    const ambientTemp = QUEBEC_MONTHLY_TEMPS[month - 1] || 10;
-    // Estimate cell temperature: ambient + 25°C during peak production, less at night/low production
-    const cellTempRise = 25 * bell; // Max 25°C rise at peak production
-    const cellTemp = ambientTemp + cellTempRise;
-    const stcCellTemp = 25; // STC reference
-    // Temperature correction: negative coefficient means higher output when cold
-    const tempCorrectionFactor = 1 + systemParams.temperatureCoefficient * (cellTemp - stcCellTemp);
-    
     // Apply solarYieldFactor to scale production (1.0 = baseline 1150 kWh/kWp/year)
     let dcProduction = pvSizeKW * bell * season * 0.75 * solarYieldFactor * (isDaytime ? 1 : 0);
     
-    // Apply temperature correction
-    dcProduction *= tempCorrectionFactor;
+    // Apply temperature correction ONLY when not using Google yield (which already includes weather effects)
+    // skipTempCorrection = true when using Google Solar API or calibrated external data
+    if (!systemParams.skipTempCorrection) {
+      const ambientTemp = QUEBEC_MONTHLY_TEMPS[month - 1] || 10;
+      const cellTempRise = 25 * bell; // Max 25°C rise at peak production
+      const cellTemp = ambientTemp + cellTempRise;
+      const stcCellTemp = 25; // STC reference
+      const tempCorrectionFactor = 1 + systemParams.temperatureCoefficient * (cellTemp - stcCellTemp);
+      dcProduction *= tempCorrectionFactor;
+    }
     
     // Apply wire losses (reduce DC output before inverter)
     dcProduction *= (1 - systemParams.wireLossPercent);
@@ -9226,12 +9225,9 @@ function runScenarioWithSizing(
   // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)
   let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
   
-  // Apply bifacial gain if enabled
+  // Apply bifacial gain if enabled - fixed 15% boost (validated Jan 2026)
   if (h.bifacialEnabled) {
-    const bifacialityFactor = h.bifacialityFactor || 0.85;
-    const roofAlbedo = h.roofAlbedo || 0.70;
-    const viewFactor = 0.35;
-    const bifacialBoost = 1 + (bifacialityFactor * roofAlbedo * viewFactor);
+    const bifacialBoost = 1.15; // Fixed 15% boost
     effectiveYield = effectiveYield * bifacialBoost;
   }
   
@@ -9239,10 +9235,13 @@ function runScenarioWithSizing(
   const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
   
   // Build Helioscope-inspired system modeling parameters
+  // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
+  const skipTempCorrection = h.yieldSource === 'google';
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
     wireLossPercent: h.wireLossPercent ?? 0.0, // 0% for free analysis (Jan 2026)
+    skipTempCorrection,
   };
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams);

@@ -173,9 +173,11 @@ export function runMonteCarloAnalysis(
       ...JSON.parse(JSON.stringify(baseAssumptions)),
       inflationRate: sampledTariffEscalation,
       discountRate: sampledDiscountRate,
-      solarYieldKWhPerKWp: effectiveYield,
+      solarYieldKWhPerKWp: effectiveYield, // Already includes bifacial boost
       omSolarPercent: omSolarPercent,
       solarCostPerW: sampledSolarCostPerW,
+      bifacialEnabled: false, // Disable to prevent double-counting (bifacial already in effectiveYield)
+      yieldSource: 'manual' as const, // Monte Carlo samples its own yield, apply temp correction
     };
 
     try {
