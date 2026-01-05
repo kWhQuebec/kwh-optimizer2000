@@ -7933,8 +7933,15 @@ function runPotentialAnalysis(
   customAssumptions?: Partial<AnalysisAssumptions>,
   options?: AnalysisOptions
 ): AnalysisResult {
+  // DEBUG: Log incoming yieldSource BEFORE merge
+  console.log(`[runPotentialAnalysis] INCOMING customAssumptions.yieldSource = '${customAssumptions?.yieldSource}'`);
+  console.log(`[runPotentialAnalysis] defaultAnalysisAssumptions.yieldSource = '${defaultAnalysisAssumptions.yieldSource}'`);
+  
   // Merge custom assumptions with defaults
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
+  
+  // DEBUG: Log yieldSource AFTER merge
+  console.log(`[runPotentialAnalysis] AFTER MERGE h.yieldSource = '${h.yieldSource}'`);
   
   // ========== STEP 1: Build 8760-hour simulation data ==========
   // Aggregate readings into hourly consumption and peak power (with interpolation for missing months)
@@ -8005,6 +8012,7 @@ function runPotentialAnalysis(
   // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
   // Apply temp correction for default (1150) and manual overrides
   const skipTempCorrection = h.yieldSource === 'google';
+  console.log(`[runPotentialAnalysis] yieldSource='${h.yieldSource}', skipTempCorrection=${skipTempCorrection}, effectiveYield=${effectiveYield.toFixed(1)}`);
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
