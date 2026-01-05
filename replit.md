@@ -116,10 +116,22 @@ annualConsumptionKWh = totalKWh × annualizationFactor
 Three new add-on modules enhance the analysis engine without modifying core logic:
 
 #### Module A: Monte Carlo Probabilistic ROI (`/api/sites/:siteId/monte-carlo-analysis`)
-Wraps the existing financial calculation in a 1,000-iteration simulation loop with variable ranges:
-- Inflation rate: 3-6%
-- Grid price increase: 2-7%
-- Production variance: ±10%
+Wraps the existing financial calculation in a 500-iteration simulation loop with variable ranges.
+
+**Updated Jan 2026 per James (solar expert) - realistic 25-year assumptions:**
+
+| Parameter | Pessimistic | Realistic | Optimistic | Notes |
+|-----------|-------------|-----------|------------|-------|
+| HQ Tariff Inflation | 2.5% | 3.0% | 3.5% | Historic Quebec: 2.6-3.1% CAGR |
+| Discount Rate (WACC) | 8% | 7% | 6% | Higher = more conservative NPV |
+| Solar Yield | 1,075 kWh/kWp | 1,150 kWh/kWp | 1,225 kWh/kWp | Quebec annual production |
+| Bifacial Boost | +10% | +15% | +20% | Simplified, no albedo calculation |
+| O&M Cost | $20/kWc | $15/kWc | $10/kWc | Annual maintenance per kWc |
+
+**Default Base Assumptions (updated Jan 2026):**
+- `discountRate`: 7% (was 8%)
+- `inflationRate`: 3% (was 4.8%)
+- `wireLossPercent`: 0% for free analysis (was 2%)
 
 Returns P10/P50/P90 confidence intervals for NPV, IRR, and payback period.
 

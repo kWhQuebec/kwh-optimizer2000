@@ -39,8 +39,10 @@ interface MonteCarloConfig {
   iterations: number;
   variableRanges: {
     tariffEscalation: [number, number];
-    omEscalation: [number, number];
-    productionVariance: [number, number];
+    discountRate: [number, number];
+    solarYield: [number, number];
+    bifacialBoost: [number, number];
+    omPerKwc: [number, number];
   };
 }
 
@@ -105,11 +107,22 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
   const [result, setResult] = useState<MonteCarloResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  const [tariffMin, setTariffMin] = useState(2);
-  const [tariffMax, setTariffMax] = useState(7);
-  const [omMin, setOmMin] = useState(3);
-  const [omMax, setOmMax] = useState(6);
-  const [productionVariance, setProductionVariance] = useState(10);
+  // New variable ranges per James (solar expert) - Jan 2026
+  // Tariff escalation: 2.5% (pessimistic) to 3.5% (optimistic)
+  const [tariffMin, setTariffMin] = useState(2.5);
+  const [tariffMax, setTariffMax] = useState(3.5);
+  // Discount rate (WACC): 6% (optimistic) to 8% (pessimistic)
+  const [discountMin, setDiscountMin] = useState(6);
+  const [discountMax, setDiscountMax] = useState(8);
+  // Solar yield: 1075 (pessimistic) to 1225 (optimistic) kWh/kWp/year
+  const [yieldMin, setYieldMin] = useState(1075);
+  const [yieldMax, setYieldMax] = useState(1225);
+  // Bifacial boost: 10% (pessimistic) to 20% (optimistic)
+  const [bifacialMin, setBifacialMin] = useState(10);
+  const [bifacialMax, setBifacialMax] = useState(20);
+  // O&M per kWc: $10 (optimistic) to $20 (pessimistic)
+  const [omMin, setOmMin] = useState(10);
+  const [omMax, setOmMax] = useState(20);
 
   const runAnalysisMutation = useMutation({
     mutationFn: async () => {
@@ -118,8 +131,10 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
         iterations: 500,
         variableRanges: {
           tariffEscalation: [tariffMin / 100, tariffMax / 100],
-          omEscalation: [omMin / 100, omMax / 100],
-          productionVariance: [-productionVariance / 100, productionVariance / 100],
+          discountRate: [discountMin / 100, discountMax / 100],
+          solarYield: [yieldMin, yieldMax],
+          bifacialBoost: [bifacialMin / 100, bifacialMax / 100],
+          omPerKwc: [omMin, omMax],
         },
       };
       
@@ -269,93 +284,154 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Tariff Escalation */}
                   <div className="space-y-3">
                     <Label className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-primary" />
-                      {language === "fr" ? "Escalade tarifaire (inflation énergie)" : "Tariff Escalation (energy inflation)"}
+                      {language === "fr" ? "Inflation tarifaire HQ" : "HQ Tariff Inflation"}
                     </Label>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>{tariffMin}%</span>
-                          <span>{tariffMax}%</span>
-                        </div>
-                        <Slider
-                          value={[tariffMin, tariffMax]}
-                          onValueChange={([min, max]) => {
-                            setTariffMin(min);
-                            setTariffMax(max);
-                          }}
-                          min={0}
-                          max={10}
-                          step={0.5}
-                          data-testid="slider-tariff-escalation"
-                        />
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{tariffMin}%</span>
+                        <span>{tariffMax}%</span>
                       </div>
+                      <Slider
+                        value={[tariffMin, tariffMax]}
+                        onValueChange={([min, max]) => {
+                          setTariffMin(min);
+                          setTariffMax(max);
+                        }}
+                        min={2}
+                        max={4}
+                        step={0.25}
+                        data-testid="slider-tariff-escalation"
+                      />
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {language === "fr" 
-                        ? "Taux d'augmentation annuel des tarifs d'électricité"
-                        : "Annual electricity tariff increase rate"}
+                        ? "Taux d'augmentation annuel des tarifs HQ (historique: 2.6-3.1%)"
+                        : "Annual HQ tariff increase rate (historic: 2.6-3.1%)"}
                     </p>
                   </div>
 
+                  {/* Discount Rate */}
                   <div className="space-y-3">
                     <Label className="flex items-center gap-2">
-                      <Percent className="w-4 h-4 text-accent" />
-                      {language === "fr" ? "Escalade O&M" : "O&M Escalation"}
+                      <Percent className="w-4 h-4 text-orange-600" />
+                      {language === "fr" ? "Taux d'actualisation" : "Discount Rate (WACC)"}
                     </Label>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>{omMin}%</span>
-                          <span>{omMax}%</span>
-                        </div>
-                        <Slider
-                          value={[omMin, omMax]}
-                          onValueChange={([min, max]) => {
-                            setOmMin(min);
-                            setOmMax(max);
-                          }}
-                          min={0}
-                          max={10}
-                          step={0.5}
-                          data-testid="slider-om-escalation"
-                        />
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{discountMin}%</span>
+                        <span>{discountMax}%</span>
                       </div>
+                      <Slider
+                        value={[discountMin, discountMax]}
+                        onValueChange={([min, max]) => {
+                          setDiscountMin(min);
+                          setDiscountMax(max);
+                        }}
+                        min={5}
+                        max={10}
+                        step={0.5}
+                        data-testid="slider-discount-rate"
+                      />
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {language === "fr" 
-                        ? "Taux d'augmentation annuel des coûts d'entretien"
-                        : "Annual maintenance cost increase rate"}
+                        ? "Coût moyen pondéré du capital (6% optimiste, 8% pessimiste)"
+                        : "Weighted avg cost of capital (6% optimistic, 8% pessimistic)"}
                     </p>
                   </div>
 
+                  {/* Solar Yield */}
                   <div className="space-y-3">
                     <Label className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-green-600" />
-                      {language === "fr" ? "Variance de production" : "Production Variance"}
+                      <BarChart3 className="w-4 h-4 text-yellow-600" />
+                      {language === "fr" ? "Rendement solaire" : "Solar Yield"}
                     </Label>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>±{productionVariance}%</span>
-                        </div>
-                        <Slider
-                          value={[productionVariance]}
-                          onValueChange={([val]) => setProductionVariance(val)}
-                          min={0}
-                          max={20}
-                          step={1}
-                          data-testid="slider-production-variance"
-                        />
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{yieldMin} kWh/kWc</span>
+                        <span>{yieldMax} kWh/kWc</span>
                       </div>
+                      <Slider
+                        value={[yieldMin, yieldMax]}
+                        onValueChange={([min, max]) => {
+                          setYieldMin(min);
+                          setYieldMax(max);
+                        }}
+                        min={1000}
+                        max={1300}
+                        step={25}
+                        data-testid="slider-solar-yield"
+                      />
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {language === "fr" 
-                        ? "Variation possible de la production solaire annuelle"
-                        : "Possible variation in annual solar production"}
+                        ? "Production annuelle par kWc installé (Québec: 1075-1225)"
+                        : "Annual production per installed kWp (Quebec: 1075-1225)"}
+                    </p>
+                  </div>
+
+                  {/* Bifacial Boost */}
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      {language === "fr" ? "Bonus bifacial" : "Bifacial Boost"}
+                    </Label>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>+{bifacialMin}%</span>
+                        <span>+{bifacialMax}%</span>
+                      </div>
+                      <Slider
+                        value={[bifacialMin, bifacialMax]}
+                        onValueChange={([min, max]) => {
+                          setBifacialMin(min);
+                          setBifacialMax(max);
+                        }}
+                        min={5}
+                        max={25}
+                        step={5}
+                        data-testid="slider-bifacial-boost"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" 
+                        ? "Gain de production panneaux bifaciaux (10-20% typique)"
+                        : "Bifacial panel production gain (10-20% typical)"}
+                    </p>
+                  </div>
+
+                  {/* O&M Cost per kWc */}
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-blue-600" />
+                      {language === "fr" ? "Coût O&M annuel" : "Annual O&M Cost"}
+                    </Label>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>${omMin}/kWc</span>
+                        <span>${omMax}/kWc</span>
+                      </div>
+                      <Slider
+                        value={[omMin, omMax]}
+                        onValueChange={([min, max]) => {
+                          setOmMin(min);
+                          setOmMax(max);
+                        }}
+                        min={8}
+                        max={25}
+                        step={1}
+                        data-testid="slider-om-cost"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "fr" 
+                        ? "Coût d'entretien par kWc/an ($10 optimiste, $20 pessimiste)"
+                        : "Maintenance cost per kWc/year ($10 optimistic, $20 pessimistic)"}
                     </p>
                   </div>
                 </div>
@@ -364,8 +440,8 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                   <Info className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
                   <p className="text-sm text-muted-foreground">
                     {language === "fr"
-                      ? `Exemple: Avec une escalade tarifaire de ${tariffMin}% à ${tariffMax}%, la simulation compare des scénarios où l'inflation des coûts d'électricité varie entre ces bornes sur 25 ans.`
-                      : `Example: With tariff escalation of ${tariffMin}% to ${tariffMax}%, the simulation compares scenarios where electricity cost inflation varies between these bounds over 25 years.`}
+                      ? `Basé sur les recommandations d'experts solaires québécois (Jan 2026). La simulation exécute 500 itérations avec ces plages de paramètres.`
+                      : `Based on Quebec solar expert recommendations (Jan 2026). Simulation runs 500 iterations with these parameter ranges.`}
                   </p>
                 </div>
               </CardContent>

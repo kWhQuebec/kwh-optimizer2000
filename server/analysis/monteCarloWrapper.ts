@@ -7,12 +7,15 @@
  * This allows clients to understand the range of possible outcomes based on
  * uncertainty in key variables.
  * 
+ * Updated Jan 2026 per James (solar expert) - realistic 25-year assumptions:
+ * 
  * Variable Mapping (Config → AnalysisAssumptions → Financial Engine):
- * - tariffEscalation (2-7%) → inflationRate → HQ tariff escalation on savings/revenue
- *   (Note: The schema field is named "inflationRate" but is used for tariff escalation
- *   as confirmed by code comments: "Revenue = base savings * degradation * tariff inflation")
- * - omEscalation (3-6%) → omEscalation → O&M operating cost escalation
- * - productionVariance (±10%) → solarYieldKWhPerKWp → affects annual solar production
+ * - tariffEscalation (2.5-3.5%) → inflationRate → HQ tariff escalation on savings/revenue
+ *   (Note: Historic Quebec rates averaged 2.6-3.1% CAGR over 20 years)
+ * - discountRate (6-8%) → discountRate → WACC for NPV calculations
+ * - solarYield (1075-1225) → solarYieldKWhPerKWp → absolute kWh/kWp/year
+ * - bifacialBoost (10-20%) → multiplier on solar production (simplified, no albedo)
+ * - omPerKwc ($10-20) → O&M cost per kWc/year (converted to % of CAPEX internally)
  */
 
 import type { AnalysisAssumptions } from "@shared/schema";
@@ -20,19 +23,28 @@ import type { AnalysisAssumptions } from "@shared/schema";
 export interface MonteCarloConfig {
   iterations: number;
   variableRanges: {
+    // HQ tariff escalation: 2.5% (pessimistic) to 3.5% (optimistic)
     tariffEscalation: [number, number];
-    omEscalation: [number, number];
-    productionVariance: [number, number];
+    // Discount rate (WACC): 6% (optimistic) to 8% (pessimistic)
+    discountRate: [number, number];
+    // Solar yield: 1075 (pessimistic) to 1225 (optimistic) kWh/kWp/year
+    solarYield: [number, number];
+    // Bifacial production boost: 10% (pessimistic) to 20% (optimistic)
+    bifacialBoost: [number, number];
+    // O&M cost per kWc: $10 (optimistic) to $20 (pessimistic)
+    omPerKwc: [number, number];
   };
   seed?: number;
 }
 
 export const defaultMonteCarloConfig: MonteCarloConfig = {
-  iterations: 1000,
+  iterations: 500,
   variableRanges: {
-    tariffEscalation: [0.02, 0.07],
-    omEscalation: [0.03, 0.06],
-    productionVariance: [-0.10, 0.10],
+    tariffEscalation: [0.025, 0.035], // 2.5-3.5% per James
+    discountRate: [0.06, 0.08],       // 6-8% WACC
+    solarYield: [1075, 1225],         // kWh/kWp/year direct
+    bifacialBoost: [0.10, 0.20],      // 10-20% production boost
+    omPerKwc: [10, 20],               // $10-20/kWc/year
   },
 };
 
@@ -122,25 +134,41 @@ export function runMonteCarloAnalysis(
     : Math.random;
 
   const results: Array<{
-    assumptions: Partial<AnalysisAssumptions>;
+    sampledInputs: {
+      tariffEscalation: number;
+      discountRate: number;
+      solarYield: number;
+      bifacialBoost: number;
+      omPerKwc: number;
+      effectiveYield: number;
+    };
     result: ScenarioResult;
     paybackYears: number;
     totalSavings25: number;
   }> = [];
 
   for (let i = 0; i < config.iterations; i++) {
+    // Sample all variables per James's expert recommendations
     const sampledTariffEscalation = randomInRange(config.variableRanges.tariffEscalation, random);
-    const sampledOmEscalation = randomInRange(config.variableRanges.omEscalation, random);
-    const productionVariance = randomInRange(config.variableRanges.productionVariance, random);
-
-    const baseYield = baseAssumptions.solarYieldKWhPerKWp || 1150;
-    const variedYield = Math.round(baseYield * (1 + productionVariance));
+    const sampledDiscountRate = randomInRange(config.variableRanges.discountRate, random);
+    const sampledSolarYield = Math.round(randomInRange(config.variableRanges.solarYield, random));
+    const sampledBifacialBoost = randomInRange(config.variableRanges.bifacialBoost, random);
+    const sampledOmPerKwc = randomInRange(config.variableRanges.omPerKwc, random);
+    
+    // Apply bifacial boost to solar yield
+    const effectiveYield = Math.round(sampledSolarYield * (1 + sampledBifacialBoost));
+    
+    // Convert O&M per kWc to % of CAPEX for compatibility with existing engine
+    // Assuming ~$2.25/W = $2,250/kW CAPEX, $15/kWc O&M = 0.67%
+    const solarCostPerKw = (baseAssumptions.solarCostPerW || 2.25) * 1000;
+    const omSolarPercent = sampledOmPerKwc / solarCostPerKw;
 
     const variedAssumptions: AnalysisAssumptions = {
       ...JSON.parse(JSON.stringify(baseAssumptions)),
       inflationRate: sampledTariffEscalation,
-      omEscalation: sampledOmEscalation,
-      solarYieldKWhPerKWp: variedYield,
+      discountRate: sampledDiscountRate,
+      solarYieldKWhPerKWp: effectiveYield,
+      omSolarPercent: omSolarPercent,
     };
 
     try {
@@ -149,10 +177,13 @@ export function runMonteCarloAnalysis(
       const totalSavings25 = result.cashflows.reduce((sum, cf) => sum + cf.netCashflow, 0);
 
       results.push({
-        assumptions: { 
+        sampledInputs: { 
           tariffEscalation: sampledTariffEscalation,
-          omEscalation: sampledOmEscalation,
-          solarYieldKWhPerKWp: variedYield 
+          discountRate: sampledDiscountRate,
+          solarYield: sampledSolarYield,
+          bifacialBoost: sampledBifacialBoost,
+          omPerKwc: sampledOmPerKwc,
+          effectiveYield: effectiveYield,
         },
         result,
         paybackYears,

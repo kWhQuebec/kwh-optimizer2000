@@ -1841,11 +1841,13 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   // Helioscope-inspired system modeling defaults
   inverterLoadRatio: 1.2, // DC/AC ratio - typical 1.1-1.5, default 1.2
   temperatureCoefficient: -0.004, // -0.4%/°C typical for crystalline Si
-  wireLossPercent: 0.02, // 2% DC wiring losses
+  wireLossPercent: 0.0, // 0% for free analysis stage (re-enable for detailed design)
   degradationRatePercent: 0.005, // 0.5% annual degradation
   
-  inflationRate: 0.048, // 4.8% HQ tariff inflation
-  discountRate: 0.08, // 8% WACC
+  // Updated Jan 2026 per James (solar expert) - realistic 25-year assumptions
+  // Historic Quebec rates: 2.6-3.1% CAGR over 20 years
+  inflationRate: 0.03, // 3% HQ tariff inflation (realistic long-term)
+  discountRate: 0.07, // 7% WACC (midpoint of 6-8% range)
   taxRate: 0.265, // 26.5% corporate tax
   solarCostPerW: 2.25, // $2.25/Wc
   batteryCapacityCost: 550, // $550/kWh
