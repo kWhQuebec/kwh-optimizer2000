@@ -109,6 +109,7 @@ import { LoadProfileEditor, SingleBillEstimator, KPIDashboard } from "@/componen
 import { SiteVisitSection } from "@/components/site-visit-section";
 import { DesignAgreementSection } from "@/components/design-agreement-section";
 import { ActivityFeed } from "@/components/activity-feed";
+import { MonteCarloAnalysis } from "@/components/monte-carlo-analysis";
 import type { Site, Client, MeterFile, SimulationRun } from "@shared/schema";
 
 interface SiteWithDetails extends Site {
@@ -5156,6 +5157,14 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
           </div>
         </CardContent>
       </Card>
+      
+      {/* Monte Carlo Probabilistic Analysis */}
+      {isStaff && site?.id && (
+        <MonteCarloAnalysis 
+          siteId={site.id} 
+          hasMeterData={(site?.meterFiles?.length || 0) > 0}
+        />
+      )}
       
       {/* Data Quality Indicator - Interpolated Months */}
       {interpolatedMonths.length > 0 && (
