@@ -302,9 +302,9 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                           setTariffMin(min);
                           setTariffMax(max);
                         }}
-                        min={2}
-                        max={4}
-                        step={0.25}
+                        min={2.5}
+                        max={3.5}
+                        step={0.1}
                         data-testid="slider-tariff-escalation"
                       />
                     </div>
@@ -332,9 +332,9 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                           setDiscountMin(min);
                           setDiscountMax(max);
                         }}
-                        min={5}
-                        max={10}
-                        step={0.5}
+                        min={6}
+                        max={8}
+                        step={0.25}
                         data-testid="slider-discount-rate"
                       />
                     </div>
@@ -362,8 +362,8 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                           setYieldMin(min);
                           setYieldMax(max);
                         }}
-                        min={1000}
-                        max={1300}
+                        min={1075}
+                        max={1225}
                         step={25}
                         data-testid="slider-solar-yield"
                       />
@@ -392,9 +392,9 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                           setBifacialMin(min);
                           setBifacialMax(max);
                         }}
-                        min={5}
-                        max={25}
-                        step={5}
+                        min={10}
+                        max={20}
+                        step={1}
                         data-testid="slider-bifacial-boost"
                       />
                     </div>
@@ -422,8 +422,8 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                           setOmMin(min);
                           setOmMax(max);
                         }}
-                        min={8}
-                        max={25}
+                        min={10}
+                        max={20}
                         step={1}
                         data-testid="slider-om-cost"
                       />
