@@ -7964,21 +7964,29 @@ function runPotentialAnalysis(
   const usableRoofSqFt = h.roofAreaSqFt * h.roofUtilizationRatio;
   const maxPVFromRoof = usableRoofSqFt / 100; // ~100 sq ft per kW
   
-  // Target PV size based on consumption (120% of load coverage target)
-  // Use configurable solar yield (default 1150 kWh/kWp, can be set from Google Solar data)
-  // Orientation factor: SKIP for Google yield (already accounts for orientation), clamp to max 1.0 otherwise
-  const rawOrientationFactor = h.orientationFactor || 1.0;
-  const clampedOrientationFactor = Math.max(0.6, Math.min(1.0, rawOrientationFactor));
-  const applyOrientationFactor = h.yieldSource === 'google' ? 1.0 : clampedOrientationFactor;
-  let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * applyOrientationFactor;
+  // SIMPLIFIED YIELD CALCULATION (Jan 2026)
+  // For Google yield: Use ONLY Google data × bifacial boost (if enabled) - no other adjustments!
+  // For non-Google: Use stored yield × orientation factor × bifacial
+  const storedYieldStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
+  let effectiveYield: number;
   
-  // Apply bifacial gain if enabled
-  // Simplified: fixed 15% boost for bifacial panels (validated Jan 2026)
-  // Range in Monte Carlo: 10-20%, realistic default: 15%
-  if (h.bifacialEnabled) {
-    const bifacialBoost = 1.15; // Fixed 15% boost
-    effectiveYield = effectiveYield * bifacialBoost;
-    console.log(`Bifacial enabled: 15% yield boost applied`);
+  if (h.yieldSource === 'google') {
+    // PURE GOOGLE: Base yield from Google API, only apply bifacial if enabled
+    const googleBaseYield = h.solarYieldKWhPerKWp || 1079;
+    const bifacialMultiplier = h.bifacialEnabled ? 1.15 : 1.0;
+    effectiveYield = googleBaseYield * bifacialMultiplier;
+    console.log(`[Google Yield] Base=${googleBaseYield}, bifacial=${h.bifacialEnabled ? 'ON (+15%)' : 'OFF'}, effectiveYield=${effectiveYield.toFixed(0)}`);
+  } else if (storedYieldStrategy) {
+    // Use pre-resolved yield strategy from caller
+    effectiveYield = storedYieldStrategy.effectiveYield;
+    console.log(`[Stored Strategy] effectiveYield=${effectiveYield.toFixed(0)}, source=${storedYieldStrategy.yieldSource}`);
+  } else {
+    // Fallback: Manual calculation for non-Google sources
+    const baseYield = h.solarYieldKWhPerKWp || 1150;
+    const orientationFactor = Math.max(0.6, Math.min(1.0, h.orientationFactor || 1.0));
+    const bifacialMultiplier = h.bifacialEnabled ? 1.15 : 1.0;
+    effectiveYield = baseYield * orientationFactor * bifacialMultiplier;
+    console.log(`[Manual] Base=${baseYield}, orientation=${orientationFactor.toFixed(2)}, bifacial=${h.bifacialEnabled}, effectiveYield=${effectiveYield.toFixed(0)}`);
   }
   const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
   
@@ -8434,15 +8442,15 @@ function runPotentialAnalysis(
     }
     
     // LCOE - with degradation
-    // Orientation factor: SKIP for Google yield (already accounts for orientation), clamp to max 1.0 otherwise
-    const optRawOrientationFactor = h.orientationFactor || 1.0;
-    const optClampedOrientationFactor = Math.max(0.6, Math.min(1.0, optRawOrientationFactor));
-    const optApplyOrientationFactor = h.yieldSource === 'google' ? 1.0 : optClampedOrientationFactor;
-    let optEffectiveYield = (h.solarYieldKWhPerKWp || 1150) * optApplyOrientationFactor;
-    // Apply bifacial gain if enabled - fixed 15% boost (validated Jan 2026)
-    if (h.bifacialEnabled) {
-      const bifacialBoost = 1.15; // Fixed 15% boost
-      optEffectiveYield = optEffectiveYield * bifacialBoost;
+    // SIMPLIFIED: For Google yield, use pure Google data × bifacial only
+    let optEffectiveYield: number;
+    if (h.yieldSource === 'google') {
+      const googleBaseYield = h.solarYieldKWhPerKWp || 1079;
+      optEffectiveYield = googleBaseYield * (h.bifacialEnabled ? 1.15 : 1.0);
+    } else {
+      const baseYield = h.solarYieldKWhPerKWp || 1150;
+      const orientationFactor = Math.max(0.6, Math.min(1.0, h.orientationFactor || 1.0));
+      optEffectiveYield = baseYield * orientationFactor * (h.bifacialEnabled ? 1.15 : 1.0);
     }
     let optTotalProduction = 0;
     for (let y = 1; y <= h.analysisYears; y++) {
@@ -9232,17 +9240,15 @@ function runScenarioWithSizing(
   const h = assumptions;
   
   // Run simulation with specified sizes
-  // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)
-  // Orientation factor: SKIP for Google yield (already accounts for orientation), clamp to max 1.0 otherwise
-  const scenarioRawOrientationFactor = h.orientationFactor || 1.0;
-  const scenarioClampedOrientationFactor = Math.max(0.6, Math.min(1.0, scenarioRawOrientationFactor));
-  const scenarioApplyOrientationFactor = h.yieldSource === 'google' ? 1.0 : scenarioClampedOrientationFactor;
-  let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * scenarioApplyOrientationFactor;
-  
-  // Apply bifacial gain if enabled - fixed 15% boost (validated Jan 2026)
-  if (h.bifacialEnabled) {
-    const bifacialBoost = 1.15; // Fixed 15% boost
-    effectiveYield = effectiveYield * bifacialBoost;
+  // SIMPLIFIED: For Google yield, use pure Google data × bifacial only
+  let effectiveYield: number;
+  if (h.yieldSource === 'google') {
+    const googleBaseYield = h.solarYieldKWhPerKWp || 1079;
+    effectiveYield = googleBaseYield * (h.bifacialEnabled ? 1.15 : 1.0);
+  } else {
+    const baseYield = h.solarYieldKWhPerKWp || 1150;
+    const orientationFactor = Math.max(0.6, Math.min(1.0, h.orientationFactor || 1.0));
+    effectiveYield = baseYield * orientationFactor * (h.bifacialEnabled ? 1.15 : 1.0);
   }
   
   const yieldFactor = effectiveYield / 1150;
