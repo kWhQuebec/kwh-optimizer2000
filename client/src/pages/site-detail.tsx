@@ -1912,11 +1912,29 @@ function ScenarioComparison({
   }, [validScenarios]);
   
   // Get optimal scenarios from sensitivity analysis (real optimization, not heuristics)
+  // First try the reference simulation, then look for any simulation with optimalScenarios
   const optimalScenarios = useMemo(() => {
-    if (!referenceSimulation?.sensitivity) return null;
-    const sensitivity = referenceSimulation.sensitivity as SensitivityAnalysis;
-    return sensitivity.optimalScenarios || null;
-  }, [referenceSimulation]);
+    // First, check if referenceSimulation has optimalScenarios
+    if (referenceSimulation?.sensitivity) {
+      const sensitivity = referenceSimulation.sensitivity as SensitivityAnalysis;
+      if (sensitivity.optimalScenarios) {
+        return sensitivity.optimalScenarios;
+      }
+    }
+    
+    // If not, search through all simulations for one that has optimalScenarios
+    // Prefer the most recent one (simulations are typically ordered by creation date)
+    for (const sim of simulations) {
+      if (sim.sensitivity) {
+        const sensitivity = sim.sensitivity as SensitivityAnalysis;
+        if (sensitivity.optimalScenarios) {
+          return sensitivity.optimalScenarios;
+        }
+      }
+    }
+    
+    return null;
+  }, [referenceSimulation, simulations]);
   
   // Calculate optimization presets based on reference simulation (fallback to heuristics if no optimalScenarios)
   const optimizationPresets = useMemo(() => {
