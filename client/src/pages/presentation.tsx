@@ -403,9 +403,9 @@ function MetricsSlide({
   const metrics = [
     {
       icon: DollarSign,
-      label: language === 'fr' ? 'Valeur Actuelle Nette (25 ans)' : 'Net Present Value (25 years)',
+      label: language === 'fr' ? 'VAN @7% (25 ans)' : 'NPV @7% (25 years)',
       value: simulation?.npv25 ? formatCurrency(simulation.npv25) : '--',
-      sublabel: language === 'fr' ? 'Profit total actualisé' : 'Total discounted profit',
+      sublabel: language === 'fr' ? 'Valeur actuelle nette' : 'Net present value',
     },
     {
       icon: TrendingUp,
@@ -820,7 +820,7 @@ function SavingsSlide({
                 <Zap className="h-8 w-8" style={{ color: BRAND_COLORS.accentGold }} />
               </div>
               <p className="text-white/60 text-lg mb-2">
-                {language === 'fr' ? 'Valeur Totale (25 ans)' : 'Total Value (25 years)'}
+                {language === 'fr' ? 'VAN @7% (25 ans)' : 'NPV @7% (25 years)'}
               </p>
               <p className="text-4xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>
                 {totalSavings25 !== 0 
@@ -828,7 +828,7 @@ function SavingsSlide({
                   : '--'}
               </p>
               <p className="text-white/40 text-sm mt-2">
-                {language === 'fr' ? 'Valeur actuelle nette' : 'Net present value'}
+                {language === 'fr' ? 'Taux d\'actualisation: 7%' : 'Discount rate: 7%'}
               </p>
             </CardContent>
           </Card>
