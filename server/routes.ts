@@ -1851,6 +1851,66 @@ export async function registerRoutes(
     }
   });
 
+  // Endpoint to get solar mockup data (satellite image + panel positions)
+  app.get("/api/sites/:id/solar-mockup", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.id;
+      const panelCount = req.query.panelCount ? parseInt(req.query.panelCount as string) : undefined;
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      if (!googleSolar.isGoogleSolarConfigured()) {
+        return res.status(503).json({ error: "Google Solar API not configured" });
+      }
+
+      let latitude = site.latitude;
+      let longitude = site.longitude;
+
+      // If no coordinates, try to geocode
+      if (!latitude || !longitude) {
+        const fullAddress = [
+          site.address,
+          site.city,
+          site.province,
+          site.postalCode,
+          "Canada"
+        ].filter(Boolean).join(", ");
+
+        if (!fullAddress || fullAddress === "Canada") {
+          return res.status(400).json({ error: "Site address is required for solar mockup" });
+        }
+
+        const location = await googleSolar.geocodeAddress(fullAddress);
+        if (!location) {
+          return res.status(422).json({ error: "Could not geocode address" });
+        }
+        latitude = location.latitude;
+        longitude = location.longitude;
+      }
+
+      const result = await googleSolar.getSolarMockupData({ latitude, longitude }, panelCount);
+
+      if (!result.success) {
+        return res.status(422).json({ 
+          error: result.error || "Could not generate solar mockup for this location"
+        });
+      }
+
+      res.json({
+        success: true,
+        siteId,
+        siteName: site.name,
+        ...result
+      });
+    } catch (error) {
+      console.error("Solar mockup error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Endpoint to respond to bifacial analysis prompt
   app.post("/api/sites/:id/bifacial-response", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {

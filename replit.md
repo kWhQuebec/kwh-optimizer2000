@@ -54,6 +54,12 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   500 kW - 1 MW: $2.00/W (large commercial)
     -   1-3 MW: $1.85/W (industrial)
     -   3 MW+: $1.70/W (utility-scale)
+-   **Solar Mockup Visualization**: Automatically generates visual mockups of solar panel installations using Google Solar API data:
+    -   Satellite imagery overlay with panel positions (blue rectangles)
+    -   Constraint areas highlighted (orange) for roof obstacles
+    -   Adjustable panel count slider
+    -   PNG export for client presentations
+    -   Integration with system sizing recommendations
 -   **Advanced Analysis Modules**:
     -   **Monte Carlo Probabilistic ROI**: A 500-iteration simulation for financial calculations with variable ranges, returning P10/P50/P90 confidence intervals.
     -   **15-Minute Peak Shaving Calculator**: Analyzes granular consumption data for battery storage optimization and demand charge savings.

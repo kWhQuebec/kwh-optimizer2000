@@ -113,6 +113,7 @@ import { SiteVisitSection } from "@/components/site-visit-section";
 import { DesignAgreementSection } from "@/components/design-agreement-section";
 import { ActivityFeed } from "@/components/activity-feed";
 import { MonteCarloAnalysis } from "@/components/monte-carlo-analysis";
+import { SolarMockup } from "@/components/SolarMockup";
 import type { Site, Client, MeterFile, SimulationRun } from "@shared/schema";
 
 interface SiteWithDetails extends Site {
@@ -3838,6 +3839,14 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
             </div>
           </div>
         </div>
+      )}
+
+      {/* Solar Mockup - Visual representation with panels overlay */}
+      {site && site.latitude && site.longitude && (
+        <SolarMockup 
+          siteId={site.id} 
+          systemSizeKW={simulation.pvSizeKW || undefined}
+        />
       )}
 
       {/* ========== SECTION 1: RECOMMENDED SYSTEM ========== */}

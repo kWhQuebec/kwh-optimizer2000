@@ -54,6 +54,16 @@ export interface RoofSegment {
   pitchDegrees?: number;
 }
 
+export interface SolarPanel {
+  center: {
+    latitude: number;
+    longitude: number;
+  };
+  orientation: "LANDSCAPE" | "PORTRAIT";
+  yearlyEnergyDcKwh: number;
+  segmentIndex: number;
+}
+
 export interface SolarPotential {
   maxArrayPanelsCount: number;
   maxArrayAreaMeters2: number;
@@ -76,6 +86,7 @@ export interface SolarPotential {
       segmentIndex: number;
     }>;
   }>;
+  solarPanels?: SolarPanel[];
   panelCapacityWatts?: number;
   panelHeightMeters?: number;
   panelWidthMeters?: number;
@@ -501,6 +512,143 @@ export async function getRoofImagery(address: string): Promise<DataLayersResult>
   }
   
   return getDataLayers(location);
+}
+
+// Solar Mockup Generation
+export interface SolarMockupData {
+  success: boolean;
+  satelliteImageUrl?: string;
+  buildingCenter: GeoLocation;
+  boundingBox?: {
+    sw: { latitude: number; longitude: number };
+    ne: { latitude: number; longitude: number };
+  };
+  panels: Array<{
+    center: { latitude: number; longitude: number };
+    orientation: "LANDSCAPE" | "PORTRAIT";
+    segmentIndex: number;
+  }>;
+  roofSegments: Array<{
+    index: number;
+    center?: { latitude: number; longitude: number };
+    boundingBox?: {
+      sw: { latitude: number; longitude: number };
+      ne: { latitude: number; longitude: number };
+    };
+    areaMeters2: number;
+    azimuthDegrees: number;
+    pitchDegrees: number;
+  }>;
+  panelDimensions: {
+    widthMeters: number;
+    heightMeters: number;
+  };
+  imageryDate?: string;
+  imageryQuality?: string;
+  maxPanelsCount: number;
+  error?: string;
+}
+
+export async function getSolarMockupData(location: GeoLocation, panelCount?: number): Promise<SolarMockupData> {
+  if (!GOOGLE_SOLAR_API_KEY) {
+    return {
+      success: false,
+      buildingCenter: location,
+      panels: [],
+      roofSegments: [],
+      panelDimensions: { widthMeters: 1.0, heightMeters: 1.65 },
+      maxPanelsCount: 0,
+      error: "GOOGLE_SOLAR_API_KEY not configured"
+    };
+  }
+
+  try {
+    console.log(`[SolarMockup] Fetching data for lat=${location.latitude}, lng=${location.longitude}`);
+    
+    // Get building insights with full panel data
+    const insights = await getBuildingInsights(location);
+    
+    if (!insights || !insights.solarPotential) {
+      return {
+        success: false,
+        buildingCenter: location,
+        panels: [],
+        roofSegments: [],
+        panelDimensions: { widthMeters: 1.0, heightMeters: 1.65 },
+        maxPanelsCount: 0,
+        error: "No solar data available for this location"
+      };
+    }
+
+    const solarPotential = insights.solarPotential;
+    
+    // Panel dimensions from API or defaults
+    const panelDimensions = {
+      widthMeters: solarPotential.panelWidthMeters || 1.0,
+      heightMeters: solarPotential.panelHeightMeters || 1.65
+    };
+    
+    // Extract individual panel positions
+    const allPanels = solarPotential.solarPanels || [];
+    
+    // If panelCount is specified, only return that many panels (sorted by energy production)
+    const targetPanels = panelCount 
+      ? allPanels
+          .sort((a, b) => b.yearlyEnergyDcKwh - a.yearlyEnergyDcKwh)
+          .slice(0, panelCount)
+      : allPanels;
+    
+    // Extract roof segments with boundaries
+    const roofSegments = (solarPotential.roofSegmentStats || []).map((seg, index) => ({
+      index,
+      center: seg.center,
+      boundingBox: seg.boundingBox,
+      areaMeters2: seg.stats?.areaMeters2 || 0,
+      azimuthDegrees: seg.azimuthDegrees || 0,
+      pitchDegrees: seg.pitchDegrees || 0
+    }));
+    
+    // Generate satellite image URL
+    const satelliteImageUrl = getSatelliteImageUrl(location, {
+      width: 640,
+      height: 640,
+      zoom: 19 // Higher zoom for better detail
+    });
+    
+    // Format imagery date
+    let imageryDate: string | undefined;
+    if (insights.imageryDate) {
+      const { year, month, day } = insights.imageryDate;
+      imageryDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
+    return {
+      success: true,
+      satelliteImageUrl: satelliteImageUrl || undefined,
+      buildingCenter: insights.center,
+      panels: targetPanels.map(p => ({
+        center: p.center,
+        orientation: p.orientation,
+        segmentIndex: p.segmentIndex
+      })),
+      roofSegments,
+      panelDimensions,
+      imageryDate,
+      imageryQuality: insights.imageryQuality,
+      maxPanelsCount: solarPotential.maxArrayPanelsCount || 0
+    };
+  } catch (error) {
+    console.error("[SolarMockup] Error:", error);
+    return {
+      success: false,
+      buildingCenter: location,
+      panels: [],
+      roofSegments: [],
+      panelDimensions: { widthMeters: 1.0, heightMeters: 1.65 },
+      maxPanelsCount: 0,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
 }
 
 // Roof color detection types
