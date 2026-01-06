@@ -6114,7 +6114,7 @@ export default function SiteDetailPage() {
               {(site.address || site.city || site.province) && (
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" />
-                  {site.address || [site.city, site.province].filter(Boolean).join(", ")}
+                  {[site.address, site.city, site.province, site.postalCode].filter(Boolean).join(", ")}
                 </span>
               )}
               {/* Roof Estimation Status Badge */}
