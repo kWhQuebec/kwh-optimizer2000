@@ -7912,16 +7912,21 @@ function runPotentialAnalysis(
   // Merge custom assumptions with defaults
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
   
-  // CRITICAL: If customAssumptions had yieldSource set, ensure it's preserved after merge
-  // This is a safeguard against any TypeScript/spread issues
-  if (customAssumptions?.yieldSource) {
-    h.yieldSource = customAssumptions.yieldSource;
-    console.log(`[runPotentialAnalysis] FORCED yieldSource from customAssumptions: '${h.yieldSource}'`);
+  // CRITICAL: Copy _yieldStrategy if present in customAssumptions
+  const incomingStrategy = (customAssumptions as any)?._yieldStrategy;
+  if (incomingStrategy) {
+    (h as any)._yieldStrategy = incomingStrategy;
+    console.log(`[runPotentialAnalysis] COPIED _yieldStrategy: skipTempCorrection=${incomingStrategy.skipTempCorrection}`);
   }
   
-  // DEBUG: Log yieldSource AFTER merge
-  console.log(`[runPotentialAnalysis] AFTER MERGE h.yieldSource = '${h.yieldSource}'`);
-  console.log(`[runPotentialAnalysis] ======================================`);
+  // CRITICAL: If customAssumptions had yieldSource set, ensure it's preserved after merge
+  if (customAssumptions?.yieldSource) {
+    h.yieldSource = customAssumptions.yieldSource;
+    console.log(`[runPotentialAnalysis] yieldSource from customAssumptions: '${h.yieldSource}'`);
+  }
+  
+  // DEBUG: Verify yieldSource and strategy are correct
+  console.log(`[runPotentialAnalysis] AFTER MERGE: yieldSource='${h.yieldSource}', hasStrategy=${!!(h as any)._yieldStrategy}`);
   
   // ========== STEP 1: Build 8760-hour simulation data ==========
   // Aggregate readings into hourly consumption and peak power (with interpolation for missing months)
