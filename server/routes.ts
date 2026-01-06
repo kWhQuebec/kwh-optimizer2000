@@ -37,6 +37,8 @@ import {
   FrontierPoint,
   SolarSweepPoint,
   BatterySweepPoint,
+  OptimalScenario,
+  OptimalScenarios,
   Lead,
 } from "@shared/schema";
 import { z } from "zod";
@@ -9563,7 +9565,13 @@ function runSensitivityAnalysis(
       battPowerKW: configuredBattPowerKW,
       capexNet: configResult.capexNet,
       npv25: configuredNpv25 !== undefined ? configuredNpv25 : configResult.npv25,
-      isOptimal: false, // Will be determined later
+      isOptimal: false,
+      irr25: configResult.irr25,
+      simplePaybackYears: configResult.simplePaybackYears,
+      selfSufficiencyPercent: configResult.selfSufficiencyPercent,
+      annualSavings: configResult.annualSavings,
+      totalProductionKWh: configResult.totalProductionKWh,
+      co2AvoidedTonnesPerYear: configResult.co2AvoidedTonnesPerYear,
     });
   }
   
@@ -9616,7 +9624,13 @@ function runSensitivityAnalysis(
         capexNet: result.capexNet,
         npv25: result.npv25,
         isOptimal: false,
-        sweepSource: 'pvSweep', // PV varies, battery fixed
+        sweepSource: 'pvSweep',
+        irr25: result.irr25,
+        simplePaybackYears: result.simplePaybackYears,
+        selfSufficiencyPercent: result.selfSufficiencyPercent,
+        annualSavings: result.annualSavings,
+        totalProductionKWh: result.totalProductionKWh,
+        co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
       });
     }
   }
@@ -9672,7 +9686,13 @@ function runSensitivityAnalysis(
         capexNet: result.capexNet,
         npv25: result.npv25,
         isOptimal: false,
-        sweepSource: 'battSweep', // Battery varies, PV fixed
+        sweepSource: 'battSweep',
+        irr25: result.irr25,
+        simplePaybackYears: result.simplePaybackYears,
+        selfSufficiencyPercent: result.selfSufficiencyPercent,
+        annualSavings: result.annualSavings,
+        totalProductionKWh: result.totalProductionKWh,
+        co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
       });
     }
   }
@@ -9694,6 +9714,12 @@ function runSensitivityAnalysis(
         capexNet: result.capexNet,
         npv25: result.npv25,
         isOptimal: false,
+        irr25: result.irr25,
+        simplePaybackYears: result.simplePaybackYears,
+        selfSufficiencyPercent: result.selfSufficiencyPercent,
+        annualSavings: result.annualSavings,
+        totalProductionKWh: result.totalProductionKWh,
+        co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
       });
     }
   }
@@ -9717,6 +9743,12 @@ function runSensitivityAnalysis(
         capexNet: result.capexNet,
         npv25: result.npv25,
         isOptimal: false,
+        irr25: result.irr25,
+        simplePaybackYears: result.simplePaybackYears,
+        selfSufficiencyPercent: result.selfSufficiencyPercent,
+        annualSavings: result.annualSavings,
+        totalProductionKWh: result.totalProductionKWh,
+        co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
       });
     }
   }
@@ -9742,7 +9774,7 @@ function runSensitivityAnalysis(
     }
   }
   
-  // Find optimal scenario
+  // Find optimal scenario (best NPV)
   let optimalId: string | null = null;
   let maxNpv = -Infinity;
   for (const point of frontier) {
@@ -9752,23 +9784,9 @@ function runSensitivityAnalysis(
     }
   }
   
-  // Mark optimal and populate extended KPI fields for optimal point
+  // Mark optimal point
   for (const point of frontier) {
     point.isOptimal = point.id === optimalId;
-    
-    // For the optimal point, run full analysis to get extended KPIs for Dashboard
-    if (point.isOptimal) {
-      const optResult = runScenarioWithSizing(
-        hourlyData, point.pvSizeKW, point.battEnergyKWh, point.battPowerKW,
-        peakKW, annualConsumptionKWh, assumptions
-      );
-      point.annualSavings = optResult.annualSavings;
-      point.irr25 = optResult.irr25;
-      point.simplePaybackYears = optResult.simplePaybackYears;
-      point.totalProductionKWh = optResult.totalProductionKWh;
-      point.selfSufficiencyPercent = optResult.selfSufficiencyPercent;
-      point.co2AvoidedTonnesPerYear = optResult.co2AvoidedTonnesPerYear;
-    }
   }
   
   // Mark optimal point in solar sweep
@@ -9793,10 +9811,77 @@ function runSensitivityAnalysis(
     point.isOptimal = point.npv25 === maxBattNpv;
   }
   
+  // ==================== MULTI-OBJECTIVE OPTIMIZATION ====================
+  // Find optimal scenarios for different objectives from the frontier data
+  
+  // Helper to convert FrontierPoint to OptimalScenario
+  const toOptimalScenario = (point: FrontierPoint): OptimalScenario => ({
+    id: point.id,
+    pvSizeKW: point.pvSizeKW,
+    battEnergyKWh: point.battEnergyKWh,
+    battPowerKW: point.battPowerKW,
+    capexNet: point.capexNet,
+    npv25: point.npv25,
+    irr25: point.irr25 || 0,
+    simplePaybackYears: point.simplePaybackYears || 0,
+    selfSufficiencyPercent: point.selfSufficiencyPercent || 0,
+    annualSavings: point.annualSavings || 0,
+    totalProductionKWh: point.totalProductionKWh || 0,
+    co2AvoidedTonnesPerYear: point.co2AvoidedTonnesPerYear || 0,
+  });
+  
+  // Filter to only profitable scenarios (NPV > 0) for most objectives
+  const profitablePoints = frontier.filter(p => p.npv25 > 0 && p.pvSizeKW > 0);
+  const allValidPoints = frontier.filter(p => p.pvSizeKW > 0); // At least has PV
+  
+  // 1. Best NPV (already found above)
+  const bestNPVPoint = frontier.find(p => p.id === optimalId);
+  
+  // 2. Best IRR (maximize IRR, must be profitable)
+  let bestIRRPoint: FrontierPoint | null = null;
+  let maxIRR = -Infinity;
+  for (const point of profitablePoints) {
+    const irr = point.irr25 || 0;
+    if (irr > maxIRR && !isNaN(irr) && isFinite(irr)) {
+      maxIRR = irr;
+      bestIRRPoint = point;
+    }
+  }
+  
+  // 3. Max Self-Sufficiency (maximize %, from all valid points)
+  let maxSelfSuffPoint: FrontierPoint | null = null;
+  let maxSelfSuff = -Infinity;
+  for (const point of allValidPoints) {
+    const selfSuff = point.selfSufficiencyPercent || 0;
+    if (selfSuff > maxSelfSuff) {
+      maxSelfSuff = selfSuff;
+      maxSelfSuffPoint = point;
+    }
+  }
+  
+  // 4. Fast Payback (minimize years, must be profitable and have valid payback)
+  let fastPaybackPoint: FrontierPoint | null = null;
+  let minPayback = Infinity;
+  for (const point of profitablePoints) {
+    const payback = point.simplePaybackYears || Infinity;
+    if (payback > 0 && payback < minPayback && isFinite(payback)) {
+      minPayback = payback;
+      fastPaybackPoint = point;
+    }
+  }
+  
+  const optimalScenarios: OptimalScenarios = {
+    bestNPV: bestNPVPoint ? toOptimalScenario(bestNPVPoint) : null,
+    bestIRR: bestIRRPoint ? toOptimalScenario(bestIRRPoint) : null,
+    maxSelfSufficiency: maxSelfSuffPoint ? toOptimalScenario(maxSelfSuffPoint) : null,
+    fastPayback: fastPaybackPoint ? toOptimalScenario(fastPaybackPoint) : null,
+  };
+  
   return {
     frontier,
     solarSweep,
     batterySweep,
     optimalScenarioId: optimalId,
+    optimalScenarios,
   };
 }

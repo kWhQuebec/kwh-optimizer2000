@@ -85,7 +85,9 @@ import type {
   FrontierPoint,
   SolarSweepPoint,
   BatterySweepPoint,
-  HourlyProfileEntry
+  HourlyProfileEntry,
+  OptimalScenario,
+  OptimalScenarios
 } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -1909,20 +1911,89 @@ function ScenarioComparison({
     return bestNpvSim;
   }, [validScenarios]);
   
-  // Calculate optimization presets based on reference simulation
+  // Get optimal scenarios from sensitivity analysis (real optimization, not heuristics)
+  const optimalScenarios = useMemo(() => {
+    if (!referenceSimulation?.sensitivity) return null;
+    const sensitivity = referenceSimulation.sensitivity as SensitivityAnalysis;
+    return sensitivity.optimalScenarios || null;
+  }, [referenceSimulation]);
+  
+  // Calculate optimization presets based on reference simulation (fallback to heuristics if no optimalScenarios)
   const optimizationPresets = useMemo(() => {
     if (!referenceSimulation) return null;
     
+    // If we have real optimal scenarios from the backend, use those
+    if (optimalScenarios) {
+      return {
+        npv: optimalScenarios.bestNPV ? {
+          pvSize: optimalScenarios.bestNPV.pvSizeKW,
+          batterySize: optimalScenarios.bestNPV.battEnergyKWh,
+          batteryPower: optimalScenarios.bestNPV.battPowerKW,
+          label: language === "fr" ? "Meilleur VAN" : "Best NPV",
+          description: language === "fr"
+            ? "Profit total maximisé sur 25 ans"
+            : "Maximum total profit over 25 years",
+          npv25: optimalScenarios.bestNPV.npv25,
+          irr25: optimalScenarios.bestNPV.irr25,
+          selfSufficiency: optimalScenarios.bestNPV.selfSufficiencyPercent,
+          paybackYears: optimalScenarios.bestNPV.simplePaybackYears,
+          capexNet: optimalScenarios.bestNPV.capexNet,
+        } : null,
+        irr: optimalScenarios.bestIRR ? {
+          pvSize: optimalScenarios.bestIRR.pvSizeKW,
+          batterySize: optimalScenarios.bestIRR.battEnergyKWh,
+          batteryPower: optimalScenarios.bestIRR.battPowerKW,
+          label: language === "fr" ? "Meilleur TRI" : "Best IRR",
+          description: language === "fr"
+            ? "Rendement relatif maximisé"
+            : "Maximum relative return on investment",
+          npv25: optimalScenarios.bestIRR.npv25,
+          irr25: optimalScenarios.bestIRR.irr25,
+          selfSufficiency: optimalScenarios.bestIRR.selfSufficiencyPercent,
+          paybackYears: optimalScenarios.bestIRR.simplePaybackYears,
+          capexNet: optimalScenarios.bestIRR.capexNet,
+        } : null,
+        selfSufficiency: optimalScenarios.maxSelfSufficiency ? {
+          pvSize: optimalScenarios.maxSelfSufficiency.pvSizeKW,
+          batterySize: optimalScenarios.maxSelfSufficiency.battEnergyKWh,
+          batteryPower: optimalScenarios.maxSelfSufficiency.battPowerKW,
+          label: language === "fr" ? "Autonomie maximale" : "Max Self-Sufficiency",
+          description: language === "fr"
+            ? "Indépendance énergétique maximale"
+            : "Maximum energy independence",
+          npv25: optimalScenarios.maxSelfSufficiency.npv25,
+          irr25: optimalScenarios.maxSelfSufficiency.irr25,
+          selfSufficiency: optimalScenarios.maxSelfSufficiency.selfSufficiencyPercent,
+          paybackYears: optimalScenarios.maxSelfSufficiency.simplePaybackYears,
+          capexNet: optimalScenarios.maxSelfSufficiency.capexNet,
+        } : null,
+        payback: optimalScenarios.fastPayback ? {
+          pvSize: optimalScenarios.fastPayback.pvSizeKW,
+          batterySize: optimalScenarios.fastPayback.battEnergyKWh,
+          batteryPower: optimalScenarios.fastPayback.battPowerKW,
+          label: language === "fr" ? "Retour rapide" : "Fast Payback",
+          description: language === "fr"
+            ? "Récupération de l'investissement la plus rapide"
+            : "Fastest investment recovery",
+          npv25: optimalScenarios.fastPayback.npv25,
+          irr25: optimalScenarios.fastPayback.irr25,
+          selfSufficiency: optimalScenarios.fastPayback.selfSufficiencyPercent,
+          paybackYears: optimalScenarios.fastPayback.simplePaybackYears,
+          capexNet: optimalScenarios.fastPayback.capexNet,
+        } : null,
+      };
+    }
+    
+    // Fallback to heuristics if no optimalScenarios available
     const refPV = referenceSimulation.pvSizeKW || 100;
-    const refBattery = referenceSimulation.battEnergyKWh || 0;
-    const refBatteryPower = referenceSimulation.battPowerKW || 0;
     
     return {
+      npv: null, // Already shown as main result
       irr: {
         pvSize: Math.round(refPV * 0.6),
         batterySize: 0,
         batteryPower: 0,
-        label: language === "fr" ? "Optimisé TRI" : "IRR Optimized",
+        label: language === "fr" ? "Meilleur TRI" : "Best IRR",
         description: language === "fr" 
           ? "Système plus petit = CAPEX réduit = meilleur rendement relatif"
           : "Smaller system = lower CAPEX = better relative return"
@@ -1946,7 +2017,7 @@ function ScenarioComparison({
           : "Minimal investment = faster break-even"
       }
     };
-  }, [referenceSimulation, language]);
+  }, [referenceSimulation, optimalScenarios, language]);
   
   // Handler for opening optimization dialog with preset
   const handleOptimizationClick = (presetType: 'irr' | 'selfSufficiency' | 'payback') => {
@@ -1960,6 +2031,15 @@ function ScenarioComparison({
     }
     
     const preset = optimizationPresets[presetType];
+    if (!preset) {
+      toast({ 
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr" ? "Configuration non disponible" : "Configuration not available",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     setOptimizationPreset({
       pvSize: preset.pvSize,
       batterySize: preset.batterySize,
@@ -2204,102 +2284,229 @@ function ScenarioComparison({
         </CardContent>
       </Card>
       
-      {/* Optimization Suggestions Section */}
-      {referenceSimulation && optimizationPresets && (
-        <Card data-testid="card-optimization-suggestions">
+      {/* Multi-Objective Optimization Comparison Table */}
+      {referenceSimulation && optimalScenarios && (
+        <Card data-testid="card-optimization-strategies">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Zap className="w-5 h-5 text-amber-500" />
-              {language === "fr" ? "Générer des variantes optimisées" : "Generate Optimized Variants"}
+              {language === "fr" ? "Stratégies d'optimisation" : "Optimization Strategies"}
             </CardTitle>
             <CardDescription>
               {language === "fr" 
-                ? "Explorez différentes stratégies d'optimisation basées sur vos priorités"
-                : "Explore different optimization strategies based on your priorities"}
+                ? "Comparez différentes stratégies pour trouver le système optimal selon vos priorités"
+                : "Compare different strategies to find the optimal system for your priorities"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* IRR Optimization */}
-              <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-400">
-                    {language === "fr" ? "Meilleur TRI" : "Best IRR"}
-                  </h4>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {optimizationPresets.irr.description}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[140px]">{language === "fr" ? "Stratégie" : "Strategy"}</TableHead>
+                    <TableHead className="text-right">PV (kW)</TableHead>
+                    <TableHead className="text-right">{language === "fr" ? "Batterie" : "Battery"}</TableHead>
+                    <TableHead className="text-right">{language === "fr" ? "CAPEX net" : "Net CAPEX"}</TableHead>
+                    <TableHead className="text-right">VAN/NPV</TableHead>
+                    <TableHead className="text-right">TRI/IRR</TableHead>
+                    <TableHead className="text-right">{language === "fr" ? "Autonomie" : "Self-Suff"}</TableHead>
+                    <TableHead className="text-right">{language === "fr" ? "Retour" : "Payback"}</TableHead>
+                    <TableHead className="text-center">{language === "fr" ? "Action" : "Action"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {/* Best NPV Row */}
+                  {optimalScenarios.bestNPV && (
+                    <TableRow className="bg-green-50/50 dark:bg-green-950/20" data-testid="row-strategy-npv">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-green-600" />
+                          <div>
+                            <span className="font-medium text-green-700 dark:text-green-400">
+                              {language === "fr" ? "Meilleur VAN" : "Best NPV"}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              {language === "fr" ? "Profit maximisé" : "Max profit"}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="ml-1 text-xs bg-green-100 text-green-700 border-green-300">
+                            {language === "fr" ? "Recommandé" : "Recommended"}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestNPV.pvSizeKW, 0)}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {optimalScenarios.bestNPV.battEnergyKWh > 0 
+                          ? `${formatNumber(optimalScenarios.bestNPV.battEnergyKWh, 0)} kWh`
+                          : <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.bestNPV.capexNet)}</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(optimalScenarios.bestNPV.npv25)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestNPV.irr25 * 100, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestNPV.selfSufficiencyPercent, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestNPV.simplePaybackYears, 1)} {language === "fr" ? "ans" : "yrs"}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary" className="text-xs">
+                          {language === "fr" ? "Affiché" : "Shown"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Best IRR Row */}
+                  {optimalScenarios.bestIRR && optimalScenarios.bestIRR.id !== optimalScenarios.bestNPV?.id && (
+                    <TableRow className="hover-elevate" data-testid="row-strategy-irr">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-blue-600" />
+                          <div>
+                            <span className="font-medium text-blue-700 dark:text-blue-400">
+                              {language === "fr" ? "Meilleur TRI" : "Best IRR"}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              {language === "fr" ? "Rendement maximisé" : "Max return %"}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestIRR.pvSizeKW, 0)}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {optimalScenarios.bestIRR.battEnergyKWh > 0 
+                          ? `${formatNumber(optimalScenarios.bestIRR.battEnergyKWh, 0)} kWh`
+                          : <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.bestIRR.capexNet)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.bestIRR.npv25)}</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-blue-600">{formatNumber(optimalScenarios.bestIRR.irr25 * 100, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestIRR.selfSufficiencyPercent, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestIRR.simplePaybackYears, 1)} {language === "fr" ? "ans" : "yrs"}</TableCell>
+                      <TableCell className="text-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleOptimizationClick('irr')}
+                          data-testid="button-create-irr-variant"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          {language === "fr" ? "Variante" : "Variant"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Max Self-Sufficiency Row */}
+                  {optimalScenarios.maxSelfSufficiency && optimalScenarios.maxSelfSufficiency.id !== optimalScenarios.bestNPV?.id && (
+                    <TableRow className="hover-elevate" data-testid="row-strategy-self-sufficiency">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Battery className="w-4 h-4 text-purple-600" />
+                          <div>
+                            <span className="font-medium text-purple-700 dark:text-purple-400">
+                              {language === "fr" ? "Autonomie max" : "Max Independence"}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              {language === "fr" ? "Moins de réseau" : "Less grid"}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.maxSelfSufficiency.pvSizeKW, 0)}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {optimalScenarios.maxSelfSufficiency.battEnergyKWh > 0 
+                          ? `${formatNumber(optimalScenarios.maxSelfSufficiency.battEnergyKWh, 0)} kWh`
+                          : <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.maxSelfSufficiency.capexNet)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.maxSelfSufficiency.npv25)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.maxSelfSufficiency.irr25 * 100, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-purple-600">{formatNumber(optimalScenarios.maxSelfSufficiency.selfSufficiencyPercent, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.maxSelfSufficiency.simplePaybackYears, 1)} {language === "fr" ? "ans" : "yrs"}</TableCell>
+                      <TableCell className="text-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleOptimizationClick('selfSufficiency')}
+                          data-testid="button-create-self-sufficiency-variant"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          {language === "fr" ? "Variante" : "Variant"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Fast Payback Row */}
+                  {optimalScenarios.fastPayback && optimalScenarios.fastPayback.id !== optimalScenarios.bestNPV?.id && optimalScenarios.fastPayback.id !== optimalScenarios.bestIRR?.id && (
+                    <TableRow className="hover-elevate" data-testid="row-strategy-payback">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-orange-600" />
+                          <div>
+                            <span className="font-medium text-orange-700 dark:text-orange-400">
+                              {language === "fr" ? "Retour rapide" : "Fast Payback"}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              {language === "fr" ? "ROI le plus rapide" : "Fastest ROI"}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.fastPayback.pvSizeKW, 0)}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {optimalScenarios.fastPayback.battEnergyKWh > 0 
+                          ? `${formatNumber(optimalScenarios.fastPayback.battEnergyKWh, 0)} kWh`
+                          : <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.fastPayback.capexNet)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.fastPayback.npv25)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.fastPayback.irr25 * 100, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.fastPayback.selfSufficiencyPercent, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-orange-600">{formatNumber(optimalScenarios.fastPayback.simplePaybackYears, 1)} {language === "fr" ? "ans" : "yrs"}</TableCell>
+                      <TableCell className="text-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleOptimizationClick('payback')}
+                          data-testid="button-create-payback-variant"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          {language === "fr" ? "Variante" : "Variant"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Legend / Explanation */}
+            <div className="mt-4 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground space-y-2">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                <p>
+                  {language === "fr" 
+                    ? "Ces stratégies représentent les meilleures configurations trouvées par l'analyse de sensibilité. Cliquez sur 'Variante' pour créer une proposition basée sur cette configuration."
+                    : "These strategies represent the best configurations found by the sensitivity analysis. Click 'Variant' to create a proposal based on that configuration."}
                 </p>
-                <div className="text-xs text-muted-foreground mb-3 space-y-1">
-                  <p>PV: {formatNumber(optimizationPresets.irr.pvSize)} kW</p>
-                  <p>{language === "fr" ? "Batterie" : "Battery"}: {optimizationPresets.irr.batterySize > 0 ? `${formatNumber(optimizationPresets.irr.batterySize)} kWh` : (language === "fr" ? "Aucune" : "None")}</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full border-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900"
-                  onClick={() => handleOptimizationClick('irr')}
-                  data-testid="button-optimize-irr"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {language === "fr" ? "Générer" : "Generate"}
-                </Button>
               </div>
-              
-              {/* Self-Sufficiency Optimization */}
-              <div className="p-4 rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 dark:border-purple-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <Battery className="w-5 h-5 text-purple-600" />
-                  <h4 className="font-semibold text-purple-700 dark:text-purple-400">
-                    {language === "fr" ? "Autonomie maximale" : "Max Self-Sufficiency"}
-                  </h4>
+              {/* Note about shared configurations */}
+              {optimalScenarios && (
+                (optimalScenarios.bestIRR?.id === optimalScenarios.bestNPV?.id ||
+                 optimalScenarios.maxSelfSufficiency?.id === optimalScenarios.bestNPV?.id ||
+                 optimalScenarios.fastPayback?.id === optimalScenarios.bestNPV?.id ||
+                 optimalScenarios.fastPayback?.id === optimalScenarios.bestIRR?.id) && (
+                <div className="flex items-start gap-2 border-t border-muted pt-2">
+                  <span className="text-xs text-muted-foreground">
+                    {language === "fr" 
+                      ? "Note: Certaines stratégies partagent la même configuration optimale et ne sont pas affichées séparément."
+                      : "Note: Some strategies share the same optimal configuration and are not shown separately."}
+                  </span>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {optimizationPresets.selfSufficiency.description}
-                </p>
-                <div className="text-xs text-muted-foreground mb-3 space-y-1">
-                  <p>PV: {formatNumber(optimizationPresets.selfSufficiency.pvSize)} kW</p>
-                  <p>{language === "fr" ? "Batterie" : "Battery"}: {formatNumber(optimizationPresets.selfSufficiency.batterySize)} kWh</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full border-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900"
-                  onClick={() => handleOptimizationClick('selfSufficiency')}
-                  data-testid="button-optimize-self-sufficiency"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {language === "fr" ? "Générer" : "Generate"}
-                </Button>
-              </div>
-              
-              {/* Payback Optimization */}
-              <div className="p-4 rounded-lg border border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-5 h-5 text-orange-600" />
-                  <h4 className="font-semibold text-orange-700 dark:text-orange-400">
-                    {language === "fr" ? "Retour rapide" : "Fast Payback"}
-                  </h4>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {optimizationPresets.payback.description}
-                </p>
-                <div className="text-xs text-muted-foreground mb-3 space-y-1">
-                  <p>PV: {formatNumber(optimizationPresets.payback.pvSize)} kW</p>
-                  <p>{language === "fr" ? "Batterie" : "Battery"}: {optimizationPresets.payback.batterySize > 0 ? `${formatNumber(optimizationPresets.payback.batterySize)} kWh` : (language === "fr" ? "Aucune" : "None")}</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full border-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900"
-                  onClick={() => handleOptimizationClick('payback')}
-                  data-testid="button-optimize-payback"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {language === "fr" ? "Générer" : "Generate"}
-                </Button>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>

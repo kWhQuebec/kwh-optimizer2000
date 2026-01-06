@@ -1989,10 +1989,35 @@ export interface BatterySweepPoint {
   isOptimal?: boolean;   // Mark optimal point
 }
 
+// Optimal scenario for a specific objective
+export interface OptimalScenario {
+  id: string;
+  pvSizeKW: number;
+  battEnergyKWh: number;
+  battPowerKW: number;
+  capexNet: number;
+  npv25: number;
+  irr25: number;
+  simplePaybackYears: number;
+  selfSufficiencyPercent: number;
+  annualSavings: number;
+  totalProductionKWh: number;
+  co2AvoidedTonnesPerYear: number;
+}
+
+// Multi-objective optimization results
+export interface OptimalScenarios {
+  bestNPV: OptimalScenario | null;      // Maximum NPV25
+  bestIRR: OptimalScenario | null;       // Maximum IRR (with NPV > 0 constraint)
+  maxSelfSufficiency: OptimalScenario | null;  // Maximum self-consumption %
+  fastPayback: OptimalScenario | null;   // Minimum payback years (with NPV > 0 constraint)
+}
+
 // Complete sensitivity analysis result
 export interface SensitivityAnalysis {
   frontier: FrontierPoint[];        // Efficiency frontier scatter points
   solarSweep: SolarSweepPoint[];    // Solar optimization curve
   batterySweep: BatterySweepPoint[]; // Battery optimization curve
   optimalScenarioId: string | null;  // ID of the optimal scenario
+  optimalScenarios?: OptimalScenarios; // Multi-objective optimization results
 }
