@@ -2034,7 +2034,9 @@ export async function registerRoutes(
                                        googleData.googleProductionEstimate.systemSizeKw;
           mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleSpecificYield);
           mergedAssumptions.yieldSource = 'google'; // Mark as Google-derived (weather-adjusted)
-          console.log(`Using Google Solar production estimate: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year, yieldSource='${mergedAssumptions.yieldSource}' (from ${googleData.googleProductionEstimate.yearlyEnergyAcKwh} kWh AC / ${googleData.googleProductionEstimate.systemSizeKw} kW)`);
+          // CRITICAL: Also set skipTemperatureCorrection flag directly as backup
+          (mergedAssumptions as any).skipTemperatureCorrection = true;
+          console.log(`Using Google Solar production estimate: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year, yieldSource='${mergedAssumptions.yieldSource}', skipTempCorrection=true`);
         }
         // PRIORITY 2: Fall back to sunshine hours if no production estimate
         else if (googleData.maxSunshineHoursPerYear && !useManualYield) {
@@ -2042,7 +2044,9 @@ export async function registerRoutes(
           // Google's maxSunshineHoursPerYear is the max possible, apply ~0.85 derating for realistic yield
           mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleData.maxSunshineHoursPerYear * 0.85);
           mergedAssumptions.yieldSource = 'google'; // Mark as Google-derived (weather-adjusted)
-          console.log(`Using Google Solar sunshine hours: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year (from ${googleData.maxSunshineHoursPerYear} hrs * 0.85)`);
+          // CRITICAL: Also set skipTemperatureCorrection flag directly as backup
+          (mergedAssumptions as any).skipTemperatureCorrection = true;
+          console.log(`Using Google Solar sunshine hours: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year, skipTempCorrection=true`);
         } else if (useManualYield) {
           mergedAssumptions.yieldSource = 'manual'; // Mark as manually entered
           console.log(`Using manual yield override: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
@@ -8045,8 +8049,9 @@ function runPotentialAnalysis(
   // Build Helioscope-inspired system modeling parameters
   // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
   // Apply temp correction for default (1150) and manual overrides
-  const skipTempCorrection = h.yieldSource === 'google';
-  console.log(`[runPotentialAnalysis] yieldSource='${h.yieldSource}', skipTempCorrection=${skipTempCorrection}, effectiveYield=${effectiveYield.toFixed(1)}`);
+  // Check both yieldSource AND the backup skipTemperatureCorrection flag
+  const skipTempCorrection = h.yieldSource === 'google' || (h as any).skipTemperatureCorrection === true;
+  console.log(`[runPotentialAnalysis] yieldSource='${h.yieldSource}', skipTempCorrection=${skipTempCorrection}, backupFlag=${(h as any).skipTemperatureCorrection}, effectiveYield=${effectiveYield.toFixed(1)}`);
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
