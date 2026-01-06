@@ -249,8 +249,8 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
             </CardTitle>
             <CardDescription>
               {language === "fr"
-                ? "Simulation probabiliste avec 1000 itérations pour évaluer la robustesse du projet"
-                : "Probabilistic simulation with 1000 iterations to assess project robustness"}
+                ? "Simulation probabiliste avec 500 itérations pour évaluer la robustesse du projet"
+                : "Probabilistic simulation with 500 iterations to assess project robustness"}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
