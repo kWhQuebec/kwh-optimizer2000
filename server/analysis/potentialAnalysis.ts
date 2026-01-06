@@ -142,8 +142,13 @@ export function resolveYieldStrategy(
   // Bifacial boost (fixed 15%)
   const bifacialBoost = assumptions.bifacialEnabled ? BIFACIAL_BOOST : 1.0;
   
-  // Orientation factor
-  const orientationFactor = assumptions.orientationFactor || 1.0;
+  // Orientation factor - ONLY apply for default yield
+  // Google yield already accounts for roof orientation and shading
+  // Manual yield is assumed to be pre-adjusted by analyst
+  // Clamp to [0.6, 1.0] - it's a derating factor, never a boost
+  const rawOrientationFactor = assumptions.orientationFactor || 1.0;
+  const clampedOrientationFactor = Math.max(0.6, Math.min(1.0, rawOrientationFactor));
+  const orientationFactor = yieldSource === 'google' ? 1.0 : clampedOrientationFactor;
   
   // Calculate effective yield
   const effectiveYield = baseYield * bifacialBoost * orientationFactor;

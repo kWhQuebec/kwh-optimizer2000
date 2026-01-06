@@ -7966,7 +7966,11 @@ function runPotentialAnalysis(
   
   // Target PV size based on consumption (120% of load coverage target)
   // Use configurable solar yield (default 1150 kWh/kWp, can be set from Google Solar data)
-  let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+  // Orientation factor: SKIP for Google yield (already accounts for orientation), clamp to max 1.0 otherwise
+  const rawOrientationFactor = h.orientationFactor || 1.0;
+  const clampedOrientationFactor = Math.max(0.6, Math.min(1.0, rawOrientationFactor));
+  const applyOrientationFactor = h.yieldSource === 'google' ? 1.0 : clampedOrientationFactor;
+  let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * applyOrientationFactor;
   
   // Apply bifacial gain if enabled
   // Simplified: fixed 15% boost for bifacial panels (validated Jan 2026)
@@ -8430,7 +8434,11 @@ function runPotentialAnalysis(
     }
     
     // LCOE - with degradation
-    let optEffectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+    // Orientation factor: SKIP for Google yield (already accounts for orientation), clamp to max 1.0 otherwise
+    const optRawOrientationFactor = h.orientationFactor || 1.0;
+    const optClampedOrientationFactor = Math.max(0.6, Math.min(1.0, optRawOrientationFactor));
+    const optApplyOrientationFactor = h.yieldSource === 'google' ? 1.0 : optClampedOrientationFactor;
+    let optEffectiveYield = (h.solarYieldKWhPerKWp || 1150) * optApplyOrientationFactor;
     // Apply bifacial gain if enabled - fixed 15% boost (validated Jan 2026)
     if (h.bifacialEnabled) {
       const bifacialBoost = 1.15; // Fixed 15% boost
@@ -9225,7 +9233,11 @@ function runScenarioWithSizing(
   
   // Run simulation with specified sizes
   // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)
-  let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * (h.orientationFactor || 1.0);
+  // Orientation factor: SKIP for Google yield (already accounts for orientation), clamp to max 1.0 otherwise
+  const scenarioRawOrientationFactor = h.orientationFactor || 1.0;
+  const scenarioClampedOrientationFactor = Math.max(0.6, Math.min(1.0, scenarioRawOrientationFactor));
+  const scenarioApplyOrientationFactor = h.yieldSource === 'google' ? 1.0 : scenarioClampedOrientationFactor;
+  let effectiveYield = (h.solarYieldKWhPerKWp || 1150) * scenarioApplyOrientationFactor;
   
   // Apply bifacial gain if enabled - fixed 15% boost (validated Jan 2026)
   if (h.bifacialEnabled) {
