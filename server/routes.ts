@@ -7999,7 +7999,9 @@ function runPotentialAnalysis(
     ? storedStrategy.skipTempCorrection 
     : (h.yieldSource === 'google' || h.yieldSource === 'manual');
   
-  console.log(`[runPotentialAnalysis] Using unified skipTempCorrection=${skipTempCorrection}, yieldSource='${h.yieldSource}', effectiveYield=${effectiveYield.toFixed(1)}`);
+  // Get yieldSource for bulletproof temperature correction check (passed directly to runHourlySimulation)
+  const currentYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
+  console.log(`[runPotentialAnalysis] yieldSource='${currentYieldSource}', skipTempCorrection=${skipTempCorrection}, effectiveYield=${effectiveYield.toFixed(1)}`);
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
@@ -8007,7 +8009,7 @@ function runPotentialAnalysis(
     skipTempCorrection,
   };
   
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams);
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource);
   
   // Extract metrics from simulation
   const selfConsumptionKWh = simResult.totalSelfConsumption;
@@ -8264,7 +8266,7 @@ function runPotentialAnalysis(
     const optDemandShavingSetpointKW = Math.round(peakKW * 0.90);
     
     // Run simulation with optimal sizing
-    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams);
+    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource);
     
     // Recalculate all financials with optimal sizing
     const optSelfConsumptionKWh = optSimResult.totalSelfConsumption;
@@ -8487,7 +8489,7 @@ function runPotentialAnalysis(
       const finalBattPowerKW = regenOptimal.battPowerKW;
       
       // Run full simulation with the truly optimal sizing
-      const finalSimResult = runHourlySimulation(hourlyData, finalPvSizeKW, finalBattEnergyKWh, finalBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams);
+      const finalSimResult = runHourlySimulation(hourlyData, finalPvSizeKW, finalBattEnergyKWh, finalBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource);
       
       // Quick recalculate NPV for the truly optimal sizing
       const finalResult = runScenarioWithSizing(
@@ -8848,7 +8850,8 @@ function runHourlySimulation(
   battPowerKW: number,
   threshold: number,
   solarYieldFactor: number = 1.0, // Multiplier to adjust production (1.0 = default 1150 kWh/kWp)
-  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0, skipTempCorrection: false }
+  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0, skipTempCorrection: false },
+  yieldSource: 'google' | 'manual' | 'default' = 'default' // Direct yield source for bulletproof temp correction check
 ): {
   totalSelfConsumption: number;
   totalProductionKWh: number; // Total annual solar production
@@ -8921,9 +8924,10 @@ function runHourlySimulation(
     // Apply solarYieldFactor to scale production (1.0 = baseline 1150 kWh/kWp/year)
     let dcProduction = pvSizeKW * bell * season * 0.75 * solarYieldFactor * (isDaytime ? 1 : 0);
     
-    // Apply temperature correction ONLY when not using Google yield (which already includes weather effects)
-    // skipTempCorrection = true when using Google Solar API or calibrated external data
-    if (!systemParams.skipTempCorrection) {
+    // Apply temperature correction ONLY when using default yield (not Google or manual)
+    // BULLETPROOF CHECK: Use direct yieldSource parameter, ignore systemParams.skipTempCorrection legacy flag
+    const shouldSkipTempCorrection = yieldSource === 'google' || yieldSource === 'manual';
+    if (!shouldSkipTempCorrection) {
       const ambientTemp = QUEBEC_MONTHLY_TEMPS[month - 1] || 10;
       const cellTempRise = 25 * bell; // Max 25°C rise at peak production
       const cellTemp = ambientTemp + cellTempRise;
@@ -9235,6 +9239,8 @@ function runScenarioWithSizing(
   const skipTempCorrection = storedStrategy 
     ? storedStrategy.skipTempCorrection 
     : (h.yieldSource === 'google' || h.yieldSource === 'manual');
+  // Get yieldSource for bulletproof temperature correction check
+  const scenarioYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
@@ -9242,7 +9248,7 @@ function runScenarioWithSizing(
     skipTempCorrection,
   };
   
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams);
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource);
   
   // Calculate savings
   const selfConsumptionKWh = simResult.totalSelfConsumption;
