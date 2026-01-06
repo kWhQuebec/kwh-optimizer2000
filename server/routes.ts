@@ -2005,14 +2005,54 @@ export async function registerRoutes(
       let mergedAssumptions = { ...siteAssumptions, ...customAssumptions };
       
       // Use UNIFIED yield strategy resolver - single source of truth for yieldSource
-      const googleData = site?.roofAreaAutoDetails as {
+      // Google Solar API stores data in different places depending on the response structure
+      // We need to normalize to a consistent format for resolveYieldStrategy
+      const rawDetails = site?.roofAreaAutoDetails as {
+        // Top-level fields (may or may not be present)
         maxSunshineHoursPerYear?: number;
         roofSegments?: Array<{ azimuth?: number; pitch?: number }>;
         googleProductionEstimate?: {
           yearlyEnergyAcKwh: number;
           systemSizeKw: number;
         };
+        // Nested in solarPotential (Google Solar API response format)
+        solarPotential?: {
+          maxSunshineHoursPerYear?: number;
+          roofSegmentStats?: Array<{ azimuthDegrees?: number; pitchDegrees?: number }>;
+          solarPanelConfigs?: Array<{
+            panelsCount: number;
+            yearlyEnergyDcKwh: number;
+          }>;
+          panelCapacityWatts?: number;
+        };
       } | undefined;
+      
+      // Normalize to consistent format for resolveYieldStrategy
+      // Priority: top-level fields (enriched) > solarPotential fields (raw API)
+      const solarPotential = rawDetails?.solarPotential;
+      
+      // Calculate googleProductionEstimate from solarPanelConfigs
+      let calculatedProductionEstimate: { yearlyEnergyAcKwh: number; systemSizeKw: number } | undefined;
+      const configs = solarPotential?.solarPanelConfigs;
+      const panelWatts = solarPotential?.panelCapacityWatts ?? 400;
+      if (configs && configs.length > 0) {
+        const maxConfig = configs.reduce((max, c) => c.panelsCount > max.panelsCount ? c : max, configs[0]);
+        const systemSizeKw = (maxConfig.panelsCount * panelWatts) / 1000;
+        const yearlyEnergyAcKwh = maxConfig.yearlyEnergyDcKwh * 0.85; // 85% DC-to-AC
+        calculatedProductionEstimate = { yearlyEnergyAcKwh, systemSizeKw };
+        console.log(`[GoogleData] Calculated from solarPanelConfigs: maxPanels=${maxConfig.panelsCount}, dcKwh=${maxConfig.yearlyEnergyDcKwh.toFixed(0)}, systemSizeKw=${systemSizeKw.toFixed(1)}, acKwh=${yearlyEnergyAcKwh.toFixed(0)}, yield=${(yearlyEnergyAcKwh / systemSizeKw).toFixed(0)} kWh/kWp`);
+      }
+      
+      const googleData = {
+        maxSunshineHoursPerYear: rawDetails?.maxSunshineHoursPerYear ?? solarPotential?.maxSunshineHoursPerYear,
+        roofSegments: rawDetails?.roofSegments ?? solarPotential?.roofSegmentStats?.map(s => ({
+          azimuth: s.azimuthDegrees,
+          pitch: s.pitchDegrees,
+        })),
+        googleProductionEstimate: rawDetails?.googleProductionEstimate ?? calculatedProductionEstimate,
+      };
+      
+      console.log(`[GoogleData] Final: hasMaxSunshineHours=${!!googleData.maxSunshineHoursPerYear}, hasProductionEstimate=${!!googleData.googleProductionEstimate}, hasRoofSegments=${!!googleData.roofSegments?.length}`);
       
       // Resolve yield strategy using unified module
       const yieldStrategy = resolveYieldStrategy(mergedAssumptions, googleData);
