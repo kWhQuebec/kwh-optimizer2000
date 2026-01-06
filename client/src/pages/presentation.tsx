@@ -19,6 +19,17 @@ import {
   Loader2,
   Calendar
 } from "lucide-react";
+
+// kWh Québec logo assets - bilingual
+import logoFr from "@assets/solaire_fr_1764778573075.png";
+import logoEn from "@assets/solaire_en_1764778591753.png";
+
+// kWh Québec Brand Colors
+const BRAND_COLORS = {
+  primaryBlue: '#003DA6',
+  accentGold: '#FFB005',
+  darkBlue: '#002B75',
+};
 import { 
   AreaChart, 
   Area, 
@@ -147,22 +158,37 @@ export default function PresentationPage() {
 
   const slideContent = SLIDES[currentSlide];
 
+  // Select logo based on language
+  const currentLogo = language === 'fr' ? logoFr : logoEn;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      {/* Top Navigation Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-sm border-b border-white/10">
+    <div 
+      className="min-h-screen text-white font-['Montserrat',sans-serif]"
+      style={{ 
+        background: `linear-gradient(135deg, ${BRAND_COLORS.primaryBlue} 0%, ${BRAND_COLORS.darkBlue} 100%)`
+      }}
+    >
+      {/* Top Navigation Bar with kWh Québec Logo */}
+      <div 
+        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b border-white/10"
+        style={{ backgroundColor: 'rgba(0, 43, 117, 0.8)' }}
+      >
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
+            {/* kWh Québec Logo */}
+            <img 
+              src={currentLogo} 
+              alt="kWh Québec" 
+              className="h-10 w-auto"
+              data-testid="logo-kwh-quebec"
+            />
+            <div className="h-8 w-px bg-white/20" />
             <Link href={`/app/sites/${id}`}>
               <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10">
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 {language === 'fr' ? 'Quitter' : 'Exit'}
               </Button>
             </Link>
-            <div className="h-6 w-px bg-white/20" />
-            <span className="text-sm text-white/60">
-              {language === 'fr' ? 'Mode Présentation' : 'Presentation Mode'}
-            </span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -202,8 +228,11 @@ export default function PresentationPage() {
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-sm border-t border-white/10">
+      {/* Bottom Navigation with kWh Québec Branding */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-sm border-t border-white/10"
+        style={{ backgroundColor: 'rgba(0, 43, 117, 0.8)' }}
+      >
         <div className="flex items-center justify-between px-6 py-4">
           <Button
             variant="ghost"
@@ -216,20 +245,26 @@ export default function PresentationPage() {
             {language === 'fr' ? 'Précédent' : 'Previous'}
           </Button>
 
-          {/* Slide Indicators */}
-          <div className="flex items-center gap-2">
-            {SLIDES.map((slide, index) => (
-              <button
-                key={slide}
-                onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  index === currentSlide 
-                    ? 'bg-primary scale-110' 
-                    : 'bg-white/30 hover:bg-white/50'
-                }`}
-                data-testid={`slide-indicator-${index}`}
-              />
-            ))}
+          {/* Slide Indicators with Gold Accent */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2">
+              {SLIDES.map((slide, index) => (
+                <button
+                  key={slide}
+                  onClick={() => setCurrentSlide(index)}
+                  className="w-3 h-3 rounded-full transition-all"
+                  style={{ 
+                    backgroundColor: index === currentSlide ? BRAND_COLORS.accentGold : 'rgba(255,255,255,0.3)',
+                    transform: index === currentSlide ? 'scale(1.1)' : 'scale(1)'
+                  }}
+                  data-testid={`slide-indicator-${index}`}
+                />
+              ))}
+            </div>
+            {/* kWh Québec footer text */}
+            <span className="text-xs text-white/50">
+              {language === 'fr' ? 'Propulsé par' : 'Powered by'} kWh Québec
+            </span>
           </div>
 
           <Button
@@ -260,18 +295,16 @@ function HeroSlide({ site, language }: { site: SiteWithDetails; language: string
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
-        {/* Client Logo Placeholder */}
+        {/* Analysis Type Badge with Gold Accent */}
         <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center gap-4">
-            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-2xl">
-              <Sun className="h-10 w-10 text-white" />
-            </div>
-            <div>
-              <p className="text-lg text-white/60 uppercase tracking-widest">kWh Québec</p>
-              <p className="text-sm text-white/40">
-                {language === 'fr' ? 'Analyse Solaire Commerciale' : 'Commercial Solar Analysis'}
-              </p>
-            </div>
+          <div 
+            className="px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl"
+            style={{ backgroundColor: BRAND_COLORS.accentGold }}
+          >
+            <Sun className="h-6 w-6 text-white" />
+            <span className="text-white font-semibold text-lg uppercase tracking-wider">
+              {language === 'fr' ? 'Analyse Solaire Commerciale' : 'Commercial Solar Analysis'}
+            </span>
           </div>
         </div>
 
@@ -315,11 +348,15 @@ function HeroSlide({ site, language }: { site: SiteWithDetails; language: string
           </div>
         )}
 
-        {/* Building Info Tags */}
+        {/* Building Info Tags with Gold Border */}
         <div className="flex items-center justify-center gap-4 mt-8">
           {site.buildingType && (
-            <Badge variant="secondary" className="bg-white/10 text-white border-0 text-lg px-4 py-2">
-              <Building2 className="h-4 w-4 mr-2" />
+            <Badge 
+              variant="secondary" 
+              className="text-white text-lg px-4 py-2"
+              style={{ backgroundColor: 'rgba(255,176,5,0.2)', borderColor: BRAND_COLORS.accentGold, borderWidth: 1 }}
+            >
+              <Building2 className="h-4 w-4 mr-2" style={{ color: BRAND_COLORS.accentGold }} />
               {site.buildingType === 'industrial' 
                 ? (language === 'fr' ? 'Industriel' : 'Industrial')
                 : site.buildingType === 'commercial'
@@ -328,8 +365,12 @@ function HeroSlide({ site, language }: { site: SiteWithDetails; language: string
             </Badge>
           )}
           {site.roofAreaAutoSqM && (
-            <Badge variant="secondary" className="bg-white/10 text-white border-0 text-lg px-4 py-2">
-              <Sun className="h-4 w-4 mr-2" />
+            <Badge 
+              variant="secondary" 
+              className="text-white text-lg px-4 py-2"
+              style={{ backgroundColor: 'rgba(255,176,5,0.2)', borderColor: BRAND_COLORS.accentGold, borderWidth: 1 }}
+            >
+              <Sun className="h-4 w-4 mr-2" style={{ color: BRAND_COLORS.accentGold }} />
               {Math.round(site.roofAreaAutoSqM).toLocaleString()} m²
             </Badge>
           )}
@@ -356,34 +397,31 @@ function MetricsSlide({
     return `${Math.round(value).toLocaleString()}$`;
   };
 
+  // kWh Québec branded metrics - using gold accent for icons
   const metrics = [
     {
       icon: DollarSign,
       label: language === 'fr' ? 'Valeur Actuelle Nette (25 ans)' : 'Net Present Value (25 years)',
       value: simulation?.npv25 ? formatCurrency(simulation.npv25) : '--',
       sublabel: language === 'fr' ? 'Profit total actualisé' : 'Total discounted profit',
-      color: 'from-green-400 to-emerald-500'
     },
     {
       icon: TrendingUp,
       label: language === 'fr' ? 'Taux de Rendement Interne' : 'Internal Rate of Return',
       value: simulation?.irr25 ? `${(simulation.irr25 * 100).toFixed(1)}%` : '--',
       sublabel: language === 'fr' ? 'Rendement annuel moyen' : 'Average annual return',
-      color: 'from-blue-400 to-indigo-500'
     },
     {
       icon: Calendar,
       label: language === 'fr' ? 'Retour sur Investissement' : 'Payback Period',
       value: simulation?.simplePaybackYears ? `${simulation.simplePaybackYears.toFixed(1)} ${language === 'fr' ? 'ans' : 'years'}` : '--',
       sublabel: language === 'fr' ? 'Temps de récupération' : 'Time to recoup investment',
-      color: 'from-amber-400 to-orange-500'
     },
     {
       icon: Zap,
       label: language === 'fr' ? 'Économies Annuelles' : 'Annual Savings',
       value: simulation?.savingsYear1 ? formatCurrency(simulation.savingsYear1) : '--',
       sublabel: language === 'fr' ? 'Première année' : 'First year',
-      color: 'from-purple-400 to-pink-500'
     }
   ];
 
@@ -415,12 +453,15 @@ function MetricsSlide({
             >
               <CardContent className="p-8">
                 <div className="flex items-start gap-6">
-                  <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${metric.color} flex items-center justify-center shrink-0`}>
+                  <div 
+                    className="h-16 w-16 rounded-2xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: BRAND_COLORS.accentGold }}
+                  >
                     <metric.icon className="h-8 w-8 text-white" />
                   </div>
                   <div className="flex-1">
                     <p className="text-white/60 text-lg mb-2">{metric.label}</p>
-                    <p className="text-5xl font-bold text-white mb-2">{metric.value}</p>
+                    <p className="text-5xl font-bold mb-2" style={{ color: BRAND_COLORS.accentGold }}>{metric.value}</p>
                     <p className="text-white/40 text-sm">{metric.sublabel}</p>
                   </div>
                 </div>
@@ -477,7 +518,7 @@ function ProductionSlide({
           </h2>
           <div className="flex items-center justify-center gap-8 text-white/60">
             <div className="flex items-center gap-2">
-              <Sun className="h-5 w-5 text-amber-400" />
+              <Sun className="h-5 w-5" style={{ color: BRAND_COLORS.accentGold }} />
               <span className="text-xl">
                 {annualProductionKWh > 0 
                   ? `${Math.round(annualProductionKWh).toLocaleString()} kWh/${language === 'fr' ? 'an' : 'year'}`
@@ -486,7 +527,7 @@ function ProductionSlide({
             </div>
             {simulation?.selfSufficiencyPercent && (
               <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-green-400" />
+                <Zap className="h-5 w-5" style={{ color: BRAND_COLORS.accentGold }} />
                 <span className="text-xl">
                   {simulation.selfSufficiencyPercent.toFixed(0)}% {language === 'fr' ? 'autosuffisance' : 'self-sufficiency'}
                 </span>
@@ -526,8 +567,8 @@ function ProductionSlide({
                 />
                 <defs>
                   <linearGradient id="productionGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fbbf24" />
-                    <stop offset="100%" stopColor="#f59e0b" />
+                    <stop offset="0%" stopColor={BRAND_COLORS.accentGold} />
+                    <stop offset="100%" stopColor={BRAND_COLORS.accentGold} stopOpacity={0.7} />
                 </linearGradient>
               </defs>
             </BarChart>
@@ -547,20 +588,20 @@ function ProductionSlide({
         {simulation?.pvSizeKW && (
           <div className="grid grid-cols-3 gap-6 mt-8">
             <div className="bg-white/5 rounded-xl border border-white/10 p-6 text-center">
-              <Sun className="h-8 w-8 mx-auto mb-2 text-amber-400" />
-              <p className="text-3xl font-bold text-white">{simulation.pvSizeKW.toFixed(0)} kW</p>
+              <Sun className="h-8 w-8 mx-auto mb-2" style={{ color: BRAND_COLORS.accentGold }} />
+              <p className="text-3xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{simulation.pvSizeKW.toFixed(0)} kW</p>
               <p className="text-white/60">{language === 'fr' ? 'Puissance installée' : 'Installed capacity'}</p>
             </div>
             {simulation.battEnergyKWh && simulation.battEnergyKWh > 0 && (
               <div className="bg-white/5 rounded-xl border border-white/10 p-6 text-center">
-                <Battery className="h-8 w-8 mx-auto mb-2 text-blue-400" />
-                <p className="text-3xl font-bold text-white">{simulation.battEnergyKWh.toFixed(0)} kWh</p>
+                <Battery className="h-8 w-8 mx-auto mb-2" style={{ color: BRAND_COLORS.accentGold }} />
+                <p className="text-3xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{simulation.battEnergyKWh.toFixed(0)} kWh</p>
                 <p className="text-white/60">{language === 'fr' ? 'Stockage batterie' : 'Battery storage'}</p>
               </div>
             )}
             <div className="bg-white/5 rounded-xl border border-white/10 p-6 text-center">
-              <Leaf className="h-8 w-8 mx-auto mb-2 text-green-400" />
-              <p className="text-3xl font-bold text-white">
+              <Leaf className="h-8 w-8 mx-auto mb-2" style={{ color: BRAND_COLORS.accentGold }} />
+              <p className="text-3xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>
                 {simulation.co2AvoidedTonnesPerYear 
                   ? `${simulation.co2AvoidedTonnesPerYear.toFixed(0)} t`
                   : '--'}
@@ -603,7 +644,7 @@ function CashflowSlide({
           {breakEvenYear && (
             <p className="text-xl text-white/60">
               {language === 'fr' ? 'Seuil de rentabilité atteint en année ' : 'Break-even reached in year '}
-              <span className="text-green-400 font-semibold">{breakEvenYear}</span>
+              <span className="font-semibold" style={{ color: BRAND_COLORS.accentGold }}>{breakEvenYear}</span>
             </p>
           )}
         </div>
@@ -650,13 +691,13 @@ function CashflowSlide({
                 />
                 <Bar 
                   dataKey="annual" 
-                  fill="rgba(59, 130, 246, 0.5)" 
+                  fill="rgba(0,61,166,0.6)" 
                   radius={[2, 2, 0, 0]}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="cumulative" 
-                  stroke="#22c55e" 
+                  stroke={BRAND_COLORS.accentGold}
                   strokeWidth={3}
                   dot={false}
                 />
@@ -707,11 +748,20 @@ function SavingsSlide({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Investment */}
-          <Card className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 border-white/10">
+          {/* Investment - Corporate Blue */}
+          <Card 
+            className="border"
+            style={{ 
+              background: `linear-gradient(135deg, rgba(0,61,166,0.3) 0%, rgba(0,43,117,0.2) 100%)`,
+              borderColor: 'rgba(0,61,166,0.5)'
+            }}
+          >
             <CardContent className="p-8 text-center">
-              <div className="h-16 w-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
-                <DollarSign className="h-8 w-8 text-white/70" />
+              <div 
+                className="h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: 'rgba(0,61,166,0.3)' }}
+              >
+                <DollarSign className="h-8 w-8 text-white" />
               </div>
               <p className="text-white/60 text-lg mb-2">
                 {language === 'fr' ? 'Investissement Net' : 'Net Investment'}
@@ -725,16 +775,25 @@ function SavingsSlide({
             </CardContent>
           </Card>
 
-          {/* Annual Savings */}
-          <Card className="bg-gradient-to-br from-green-600/30 to-emerald-700/30 border-green-500/30">
+          {/* Annual Savings - Gold Accent */}
+          <Card 
+            className="border"
+            style={{ 
+              background: `linear-gradient(135deg, rgba(255,176,5,0.2) 0%, rgba(255,176,5,0.1) 100%)`,
+              borderColor: 'rgba(255,176,5,0.4)'
+            }}
+          >
             <CardContent className="p-8 text-center">
-              <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="h-8 w-8 text-green-400" />
+              <div 
+                className="h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: 'rgba(255,176,5,0.2)' }}
+              >
+                <TrendingUp className="h-8 w-8" style={{ color: BRAND_COLORS.accentGold }} />
               </div>
               <p className="text-white/60 text-lg mb-2">
                 {language === 'fr' ? 'Économies Année 1' : 'Year 1 Savings'}
               </p>
-              <p className="text-4xl font-bold text-green-400">
+              <p className="text-4xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>
                 {year1Savings > 0 ? `${Math.round(year1Savings).toLocaleString()}$` : '--'}
               </p>
               <p className="text-white/40 text-sm mt-2">
@@ -743,16 +802,25 @@ function SavingsSlide({
             </CardContent>
           </Card>
 
-          {/* 25-year Value */}
-          <Card className="bg-gradient-to-br from-amber-600/30 to-orange-700/30 border-amber-500/30">
+          {/* 25-year Value - kWh Québec Gold Accent */}
+          <Card 
+            className="border-2"
+            style={{ 
+              background: `linear-gradient(135deg, rgba(255,176,5,0.3) 0%, rgba(255,176,5,0.15) 100%)`,
+              borderColor: BRAND_COLORS.accentGold
+            }}
+          >
             <CardContent className="p-8 text-center">
-              <div className="h-16 w-16 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
-                <Zap className="h-8 w-8 text-amber-400" />
+              <div 
+                className="h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: `rgba(255,176,5,0.3)` }}
+              >
+                <Zap className="h-8 w-8" style={{ color: BRAND_COLORS.accentGold }} />
               </div>
               <p className="text-white/60 text-lg mb-2">
                 {language === 'fr' ? 'Valeur Totale (25 ans)' : 'Total Value (25 years)'}
               </p>
-              <p className="text-4xl font-bold text-amber-400">
+              <p className="text-4xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>
                 {totalSavings25 !== 0 
                   ? `${(totalSavings25 / 1000000).toFixed(1)}M$`
                   : '--'}
@@ -766,11 +834,17 @@ function SavingsSlide({
 
         {simulation?.irr25 && (
           <div className="mt-12 text-center">
-            <div className="inline-block bg-white/5 rounded-2xl border border-white/10 px-12 py-8">
+            <div 
+              className="inline-block rounded-2xl px-12 py-8 border-2"
+              style={{ 
+                backgroundColor: 'rgba(255,176,5,0.1)',
+                borderColor: BRAND_COLORS.accentGold
+              }}
+            >
               <p className="text-white/60 text-xl mb-2">
                 {language === 'fr' ? 'Taux de Rendement Interne' : 'Internal Rate of Return'}
               </p>
-              <p className="text-6xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+              <p className="text-6xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>
                 {(simulation.irr25 * 100).toFixed(1)}%
               </p>
               <p className="text-white/40 mt-2">
@@ -786,7 +860,7 @@ function SavingsSlide({
   );
 }
 
-// Summary Slide - Call to Action
+// Summary Slide - Call to Action with kWh Québec branding
 function SummarySlide({ 
   site, 
   simulation, 
@@ -796,11 +870,16 @@ function SummarySlide({
   simulation: SimulationRun | null; 
   language: string 
 }) {
+  const currentLogo = language === 'fr' ? logoFr : logoEn;
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-4xl w-full text-center">
         <div className="mb-12">
-          <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-8 shadow-2xl">
+          <div 
+            className="h-24 w-24 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl"
+            style={{ backgroundColor: BRAND_COLORS.accentGold }}
+          >
             <Sun className="h-12 w-12 text-white" />
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
@@ -810,8 +889,11 @@ function SummarySlide({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-            <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl font-bold text-blue-400">1</span>
+            <div 
+              className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'rgba(255,176,5,0.2)' }}
+            >
+              <span className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>1</span>
             </div>
             <h3 className="text-xl font-semibold mb-2">
               {language === 'fr' ? 'Données Énergétiques' : 'Energy Data'}
@@ -824,8 +906,11 @@ function SummarySlide({
           </div>
 
           <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-            <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl font-bold text-green-400">2</span>
+            <div 
+              className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'rgba(255,176,5,0.2)' }}
+            >
+              <span className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>2</span>
             </div>
             <h3 className="text-xl font-semibold mb-2">
               {language === 'fr' ? 'Visite Technique' : 'Technical Visit'}
@@ -838,8 +923,11 @@ function SummarySlide({
           </div>
 
           <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-            <div className="h-12 w-12 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl font-bold text-amber-400">3</span>
+            <div 
+              className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'rgba(255,176,5,0.2)' }}
+            >
+              <span className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>3</span>
             </div>
             <h3 className="text-xl font-semibold mb-2">
               {language === 'fr' ? 'Proposition Finale' : 'Final Proposal'}
@@ -852,10 +940,19 @@ function SummarySlide({
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-primary/20 to-primary/10 rounded-2xl border border-primary/30 p-8">
-          <h3 className="text-2xl font-bold mb-4">
-            {language === 'fr' ? 'kWh Québec' : 'kWh Quebec'}
-          </h3>
+        {/* kWh Québec contact footer with branding */}
+        <div 
+          className="rounded-2xl border-2 p-8"
+          style={{ 
+            backgroundColor: 'rgba(255,176,5,0.1)',
+            borderColor: BRAND_COLORS.accentGold
+          }}
+        >
+          <img 
+            src={currentLogo} 
+            alt="kWh Québec" 
+            className="h-16 mx-auto mb-4"
+          />
           <p className="text-white/80 text-lg mb-6">
             {language === 'fr' 
               ? 'Votre partenaire pour la transition énergétique commerciale au Québec'
@@ -863,7 +960,7 @@ function SummarySlide({
           </p>
           <div className="flex items-center justify-center gap-8 text-white/60">
             <span>info@kwhquebec.com</span>
-            <span>•</span>
+            <span style={{ color: BRAND_COLORS.accentGold }}>•</span>
             <span>kwhquebec.com</span>
           </div>
         </div>
