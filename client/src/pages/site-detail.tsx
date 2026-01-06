@@ -55,7 +55,8 @@ import {
   ArrowRight,
   XCircle,
   Scale,
-  Star
+  Star,
+  Grid3X3
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -1338,7 +1339,7 @@ function AnalysisParametersEditor({
                   
                   {/* Roof Segments from Google Solar API */}
                   {site.roofEstimateStatus === "success" && site.roofAreaAutoDetails && (
-                    ((): React.ReactNode | null => {
+                    ((): React.ReactNode => {
                       const details = site.roofAreaAutoDetails as any;
                       const segments = details?.solarPotential?.roofSegmentStats;
                       const maxSunshine = details?.solarPotential?.maxSunshineHoursPerYear;
@@ -1346,11 +1347,14 @@ function AnalysisParametersEditor({
                       const bestConfig = panelConfigs?.[panelConfigs.length - 1];
                       const panelWatts = details?.solarPotential?.panelCapacityWatts || 400;
                       
+                      // Detect if Google data is limited (< 10 panels means likely residential-focused or incomplete)
+                      const hasLimitedGoogleData = !bestConfig || (bestConfig.panelsCount || 0) < 10;
+                      
                       if (!segments || segments.length === 0) return null;
                       
                       return (
                         <div className="p-2 rounded-lg border border-dashed bg-muted/30 space-y-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Layers className="w-3.5 h-3.5 text-primary" />
                             <span className="text-xs font-medium">
                               {language === "fr" ? "Segments de toit détectés" : "Detected Roof Segments"}
@@ -1358,6 +1362,13 @@ function AnalysisParametersEditor({
                             <Badge variant="secondary" className="text-xs h-5">
                               {segments.length} {language === "fr" ? "segments" : "segments"}
                             </Badge>
+                            {/* Fallback mode indicator for limited Google data */}
+                            {hasLimitedGoogleData && (
+                              <Badge variant="outline" className="text-xs h-5 gap-1 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800">
+                                <Grid3X3 className="w-3 h-3" />
+                                {language === "fr" ? "Mode estimation" : "Estimation mode"}
+                              </Badge>
+                            )}
                           </div>
                           
                           {/* Segment summary table with solar quality */}
@@ -1434,8 +1445,8 @@ function AnalysisParametersEditor({
                               : "★★★ = Optimal (South, 30-35°) | ★★ = Good | ★ = Acceptable"}
                           </p>
                           
-                          {/* Google production estimate */}
-                          {bestConfig && (
+                          {/* Google production estimate or fallback algorithmic estimate */}
+                          {bestConfig && !hasLimitedGoogleData ? (
                             <div className="pt-2 border-t border-dashed">
                               <div className="flex items-center gap-2 mb-1">
                                 <Sun className="w-3.5 h-3.5 text-amber-500" />
@@ -1462,6 +1473,27 @@ function AnalysisParametersEditor({
                                   {language === "fr" 
                                     ? `Ensoleillement: ${Math.round(maxSunshine).toLocaleString()} h/an`
                                     : `Sunshine: ${Math.round(maxSunshine).toLocaleString()} h/year`}
+                                </p>
+                              )}
+                            </div>
+                          ) : hasLimitedGoogleData && (
+                            <div className="pt-2 border-t border-dashed">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Grid3X3 className="w-3.5 h-3.5 text-teal-500" />
+                                <span className="text-xs font-medium">
+                                  {language === "fr" ? "Estimation algorithmique" : "Algorithmic Estimate"}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {language === "fr" 
+                                  ? `Google Solar API n'a pas de données de panneaux détaillées pour ce bâtiment commercial. Utilisez les champs Surface de toit et Taux d'utilisation ci-dessous pour une estimation précise.`
+                                  : `Google Solar API doesn't have detailed panel data for this commercial building. Use the Roof Area and Utilization Rate fields below for an accurate estimate.`}
+                              </p>
+                              {maxSunshine && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {language === "fr" 
+                                    ? `Ensoleillement disponible: ${Math.round(maxSunshine).toLocaleString()} h/an`
+                                    : `Available sunshine: ${Math.round(maxSunshine).toLocaleString()} h/year`}
                                 </p>
                               )}
                             </div>
