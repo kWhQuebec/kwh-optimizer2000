@@ -2068,10 +2068,13 @@ export async function registerRoutes(
         ...analysisResult,
       });
 
-      // Update site to mark analysis as available and save assumptions
+      // Update site to mark analysis as available and save MERGED assumptions (includes yieldSource!)
+      // Clean up internal _yieldStrategy object before persisting
+      const assumptionsToSave = { ...mergedAssumptions };
+      delete (assumptionsToSave as any)._yieldStrategy;
       await storage.updateSite(siteId, { 
         analysisAvailable: true,
-        analysisAssumptions: customAssumptions || null,
+        analysisAssumptions: assumptionsToSave,
       });
 
       res.status(201).json(simulation);
