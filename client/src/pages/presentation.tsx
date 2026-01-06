@@ -70,11 +70,13 @@ export default function PresentationPage() {
     enabled: !!id,
   });
 
-  // Get the best simulation (highest NPV)
-  const bestSimulation = site?.simulationRuns?.reduce((best, sim) => {
-    if (!best) return sim;
-    return (sim.npv25 || 0) > (best.npv25 || 0) ? sim : best;
-  }, null as SimulationRun | null);
+  // Get the most recent simulation (for presentation purposes)
+  // Sort by createdAt descending and take the first one
+  const bestSimulation = site?.simulationRuns?.length 
+    ? [...site.simulationRuns].sort((a, b) => 
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      )[0]
+    : null;
 
   // Keyboard navigation
   useEffect(() => {
