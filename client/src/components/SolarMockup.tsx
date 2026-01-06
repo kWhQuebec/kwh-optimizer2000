@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Download, Sun, AlertTriangle, ZoomIn, ZoomOut, Eye, EyeOff, Info } from 'lucide-react';
+import { Download, Sun, AlertTriangle, ZoomIn, ZoomOut, Eye, EyeOff, Info, Cpu, Grid3X3 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface SolarMockupData {
@@ -37,6 +37,7 @@ interface SolarMockupData {
   imageryDate?: string;
   imageryQuality?: string;
   maxPanelsCount: number;
+  roofAreaSqM?: number;
   error?: string;
 }
 
@@ -44,35 +45,129 @@ interface SolarMockupProps {
   siteId: string;
   targetPanelCount?: number;
   systemSizeKW?: number;
+  roofAreaSqM?: number;
 }
 
-export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMockupProps) {
+// Panel dimensions in meters (standard 400W panel)
+const PANEL_WIDTH_M = 1.0;
+const PANEL_HEIGHT_M = 2.0;
+const PANEL_SPACING_M = 0.1;
+const PANEL_WATT = 400;
+
+// Generate algorithmic panel positions in a grid pattern
+function generateAlgorithmicPanels(
+  centerLat: number,
+  centerLng: number,
+  roofAreaSqM: number,
+  targetPanels: number,
+  metersPerDegLat: number,
+  metersPerDegLng: number
+): Array<{ center: { latitude: number; longitude: number }; orientation: "LANDSCAPE" | "PORTRAIT" }> {
+  const panels: Array<{ center: { latitude: number; longitude: number }; orientation: "LANDSCAPE" | "PORTRAIT" }> = [];
+  
+  // Calculate grid dimensions based on roof area
+  // Assume square-ish roof for simplicity
+  const roofSideM = Math.sqrt(roofAreaSqM);
+  const usableRatio = 0.7; // 70% usable for panels
+  const usableSideM = roofSideM * usableRatio;
+  
+  // Calculate how many panels fit
+  const panelWithSpacing = PANEL_WIDTH_M + PANEL_SPACING_M;
+  const panelHeightWithSpacing = PANEL_HEIGHT_M + PANEL_SPACING_M;
+  
+  const cols = Math.floor(usableSideM / panelWithSpacing);
+  const rows = Math.floor(usableSideM / panelHeightWithSpacing);
+  
+  // Start from top-left of the grid
+  const startX = -((cols - 1) * panelWithSpacing) / 2;
+  const startY = -((rows - 1) * panelHeightWithSpacing) / 2;
+  
+  let panelIndex = 0;
+  for (let row = 0; row < rows && panelIndex < targetPanels; row++) {
+    for (let col = 0; col < cols && panelIndex < targetPanels; col++) {
+      const offsetX = startX + col * panelWithSpacing;
+      const offsetY = startY + row * panelHeightWithSpacing;
+      
+      // Convert meters to degrees
+      const dLat = offsetY / metersPerDegLat;
+      const dLng = offsetX / metersPerDegLng;
+      
+      panels.push({
+        center: {
+          latitude: centerLat + dLat,
+          longitude: centerLng + dLng
+        },
+        orientation: "PORTRAIT" as const
+      });
+      
+      panelIndex++;
+    }
+  }
+  
+  return panels;
+}
+
+export function SolarMockup({ siteId, targetPanelCount, systemSizeKW, roofAreaSqM: propRoofArea }: SolarMockupProps) {
   const { language } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [panelCount, setPanelCount] = useState<number>(targetPanelCount || 0);
   const [zoom, setZoom] = useState<number>(1);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showConstraints, setShowConstraints] = useState(false);
+  const [coveragePercent, setCoveragePercent] = useState(70);
 
   // Fetch mockup data
   const { data: mockupData, isLoading, error } = useQuery<SolarMockupData>({
     queryKey: [`/api/sites/${siteId}/solar-mockup`],
   });
 
+  // Determine if we should use fallback mode
+  // Fallback when: API success with <10 panels, OR API failure but we have roof area from props
+  const useFallbackMode = useMemo(() => {
+    // If we have propRoofArea and API failed or has insufficient panels, use fallback
+    if (propRoofArea && propRoofArea > 0) {
+      if (!mockupData?.success) return true;
+      if (mockupData.panels.length < 10) return true;
+    }
+    // If API succeeded but has insufficient panels, use fallback
+    if (mockupData?.success && mockupData.panels.length < 10) return true;
+    return false;
+  }, [mockupData, propRoofArea]);
+
+  // Calculate available roof area for fallback mode
+  const effectiveRoofArea = useMemo(() => {
+    if (propRoofArea) return propRoofArea;
+    if (mockupData?.roofAreaSqM) return mockupData.roofAreaSqM;
+    // Sum from roof segments
+    if (mockupData?.roofSegments?.length) {
+      return mockupData.roofSegments.reduce((sum, seg) => sum + seg.areaMeters2, 0);
+    }
+    return 1000; // Default 1000 m² if nothing available
+  }, [mockupData, propRoofArea]);
+
+  // Calculate max panels for fallback mode
+  const fallbackMaxPanels = useMemo(() => {
+    const panelArea = PANEL_WIDTH_M * PANEL_HEIGHT_M;
+    const usableArea = effectiveRoofArea * (coveragePercent / 100);
+    return Math.floor(usableArea / (panelArea * 1.2)); // 1.2 factor for spacing
+  }, [effectiveRoofArea, coveragePercent]);
+
   // Calculate panel count from system size if provided
   useEffect(() => {
-    if (mockupData?.success) {
+    // Initialize panel count when we have data (either from API or fallback mode)
+    if (mockupData?.success || useFallbackMode) {
+      const maxPanels = useFallbackMode ? fallbackMaxPanels : (mockupData?.maxPanelsCount || 0);
+      
       if (targetPanelCount) {
-        setPanelCount(Math.min(targetPanelCount, mockupData.maxPanelsCount));
+        setPanelCount(Math.min(targetPanelCount, maxPanels));
       } else if (systemSizeKW) {
-        // Assume ~400W panels
-        const estimatedPanels = Math.round(systemSizeKW * 1000 / 400);
-        setPanelCount(Math.min(estimatedPanels, mockupData.maxPanelsCount));
+        const estimatedPanels = Math.round(systemSizeKW * 1000 / PANEL_WATT);
+        setPanelCount(Math.min(estimatedPanels, maxPanels));
       } else {
-        setPanelCount(mockupData.maxPanelsCount);
+        setPanelCount(Math.min(maxPanels, useFallbackMode ? 100 : (mockupData?.maxPanelsCount || 0)));
       }
     }
-  }, [mockupData, targetPanelCount, systemSizeKW]);
+  }, [mockupData, targetPanelCount, systemSizeKW, useFallbackMode, fallbackMaxPanels]);
 
   // Draw the mockup on canvas
   useEffect(() => {
@@ -125,15 +220,12 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
       };
 
       // FIRST: Draw constraint areas (orange) - so panels appear on top
-      if (showConstraints) {
-        ctx.fillStyle = 'rgba(249, 115, 22, 0.4)'; // Orange with transparency
+      if (showConstraints && !useFallbackMode) {
+        ctx.fillStyle = 'rgba(249, 115, 22, 0.4)';
         ctx.strokeStyle = 'rgba(234, 88, 12, 0.7)';
         ctx.lineWidth = 1;
 
         mockupData.roofSegments.forEach(segment => {
-          // Mark as constraint only if:
-          // - Very steep (> 60 degrees) 
-          // - Very small area (< 5 m²)
           const isConstraint = 
             segment.pitchDegrees > 60 ||
             segment.areaMeters2 < 5;
@@ -153,13 +245,36 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
         });
       }
 
-      // SECOND: Draw panels (blue with transparency) - on top of constraints
-      const panelsToShow = mockupData.panels.slice(0, panelCount);
-      const panelWidth = mockupData.panelDimensions.widthMeters / metersPerPixel;
-      const panelHeight = mockupData.panelDimensions.heightMeters / metersPerPixel;
+      // Determine panels to draw
+      let panelsToShow: Array<{ center: { latitude: number; longitude: number }; orientation: "LANDSCAPE" | "PORTRAIT" }>;
+      
+      if (useFallbackMode) {
+        // Generate algorithmic panels - use full roof area for the grid, 
+        // panelCount controls how many we actually show (up to max based on coverage)
+        panelsToShow = generateAlgorithmicPanels(
+          mockupData.buildingCenter.latitude,
+          mockupData.buildingCenter.longitude,
+          effectiveRoofArea, // Use full roof area for grid generation
+          panelCount,         // Number of panels to actually draw (controlled by slider)
+          metersPerDegLat,
+          metersPerDegLng
+        );
+      } else {
+        panelsToShow = mockupData.panels.slice(0, panelCount);
+      }
 
-      ctx.fillStyle = 'rgba(30, 64, 175, 0.7)'; // Blue with transparency
-      ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)';
+      // Draw panels (blue with transparency)
+      const panelWidth = (useFallbackMode ? PANEL_WIDTH_M : mockupData.panelDimensions.widthMeters) / metersPerPixel;
+      const panelHeight = (useFallbackMode ? PANEL_HEIGHT_M : mockupData.panelDimensions.heightMeters) / metersPerPixel;
+
+      // Different color for fallback mode (green-blue to distinguish)
+      if (useFallbackMode) {
+        ctx.fillStyle = 'rgba(20, 184, 166, 0.7)'; // Teal for estimated
+        ctx.strokeStyle = 'rgba(13, 148, 136, 0.9)';
+      } else {
+        ctx.fillStyle = 'rgba(30, 64, 175, 0.7)'; // Blue for Google AI
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)';
+      }
       ctx.lineWidth = 1;
 
       panelsToShow.forEach(panel => {
@@ -173,17 +288,25 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
       });
 
       // Add legend
-      const legendHeight = showConstraints ? 50 : 30;
+      const legendHeight = showConstraints && !useFallbackMode ? 50 : 30;
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(10, displayHeight - legendHeight - 10, 180, legendHeight);
+      ctx.fillRect(10, displayHeight - legendHeight - 10, 200, legendHeight);
       
       ctx.font = '12px sans-serif';
-      ctx.fillStyle = 'rgba(30, 64, 175, 1)';
-      ctx.fillRect(20, displayHeight - legendHeight, 15, 15);
-      ctx.fillStyle = 'white';
-      ctx.fillText(language === 'fr' ? 'Panneaux solaires' : 'Solar panels', 42, displayHeight - legendHeight + 11);
       
-      if (showConstraints) {
+      if (useFallbackMode) {
+        ctx.fillStyle = 'rgba(20, 184, 166, 1)'; // Teal
+        ctx.fillRect(20, displayHeight - legendHeight, 15, 15);
+        ctx.fillStyle = 'white';
+        ctx.fillText(language === 'fr' ? 'Panneaux (estimé)' : 'Panels (estimated)', 42, displayHeight - legendHeight + 11);
+      } else {
+        ctx.fillStyle = 'rgba(30, 64, 175, 1)'; // Blue
+        ctx.fillRect(20, displayHeight - legendHeight, 15, 15);
+        ctx.fillStyle = 'white';
+        ctx.fillText(language === 'fr' ? 'Panneaux (Google AI)' : 'Panels (Google AI)', 42, displayHeight - legendHeight + 11);
+      }
+      
+      if (showConstraints && !useFallbackMode) {
         ctx.fillStyle = 'rgba(249, 115, 22, 1)';
         ctx.fillRect(20, displayHeight - legendHeight + 20, 15, 15);
         ctx.fillStyle = 'white';
@@ -197,7 +320,7 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
     };
 
     img.src = mockupData.satelliteImageUrl;
-  }, [mockupData, panelCount, zoom, language, showConstraints]);
+  }, [mockupData, panelCount, zoom, language, showConstraints, useFallbackMode, effectiveRoofArea, coveragePercent]);
 
   // Export function
   const handleExport = () => {
@@ -225,7 +348,9 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
     );
   }
 
-  if (error || !mockupData?.success) {
+  // Only show error state if we truly can't render anything
+  // Don't show error if we have fallback mode available (propRoofArea exists)
+  if ((error || !mockupData?.success) && !useFallbackMode) {
     return (
       <Card>
         <CardHeader>
@@ -251,6 +376,8 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
     );
   }
 
+  const maxPanels = useFallbackMode ? fallbackMaxPanels : (mockupData?.maxPanelsCount || 0);
+
   return (
     <Card>
       <CardHeader>
@@ -260,14 +387,21 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
             {language === 'fr' ? 'Visualisation du système' : 'System Visualization'}
           </CardTitle>
           <div className="flex items-center gap-2">
-            {mockupData.imageryQuality && (
-              <Badge variant="outline">
-                {mockupData.imageryQuality}
+            {/* Mode indicator badge */}
+            {useFallbackMode ? (
+              <Badge variant="secondary" className="gap-1">
+                <Grid3X3 className="h-3 w-3" />
+                {language === 'fr' ? 'Disposition estimée' : 'Estimated Layout'}
+              </Badge>
+            ) : (
+              <Badge variant="default" className="gap-1">
+                <Cpu className="h-3 w-3" />
+                {language === 'fr' ? 'Google AI' : 'Google AI'}
               </Badge>
             )}
-            {mockupData.imageryDate && (
-              <Badge variant="secondary">
-                {language === 'fr' ? 'Image: ' : 'Imagery: '}{mockupData.imageryDate}
+            {mockupData?.imageryDate && (
+              <Badge variant="outline">
+                {mockupData.imageryDate}
               </Badge>
             )}
           </div>
@@ -283,26 +417,28 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
               data-testid="slider-panel-count"
               value={[panelCount]}
               onValueChange={([value]) => setPanelCount(value)}
-              max={mockupData.maxPanelsCount}
+              max={maxPanels}
               min={0}
               step={1}
               className="flex-1"
             />
             <span className="text-sm text-muted-foreground">
-              / {mockupData.maxPanelsCount}
+              / {maxPanels}
             </span>
           </div>
           
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant={showConstraints ? "default" : "outline"}
-              onClick={() => setShowConstraints(!showConstraints)}
-              data-testid="button-toggle-constraints"
-            >
-              {showConstraints ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-              {language === 'fr' ? 'Contraintes' : 'Constraints'}
-            </Button>
+            {!useFallbackMode && (
+              <Button
+                size="sm"
+                variant={showConstraints ? "default" : "outline"}
+                onClick={() => setShowConstraints(!showConstraints)}
+                data-testid="button-toggle-constraints"
+              >
+                {showConstraints ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                {language === 'fr' ? 'Contraintes' : 'Constraints'}
+              </Button>
+            )}
             <Button
               size="icon"
               variant="outline"
@@ -323,14 +459,47 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
           </div>
         </div>
 
-        {/* Warning if limited panel data */}
-        {mockupData.maxPanelsCount < 50 && (
+        {/* Coverage slider for fallback mode */}
+        {useFallbackMode && (
+          <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+            <span className="text-sm font-medium whitespace-nowrap">
+              {language === 'fr' ? 'Couverture toit:' : 'Roof coverage:'} {coveragePercent}%
+            </span>
+            <Slider
+              data-testid="slider-coverage"
+              value={[coveragePercent]}
+              onValueChange={([value]) => setCoveragePercent(value)}
+              max={90}
+              min={30}
+              step={5}
+              className="flex-1"
+            />
+            <span className="text-sm text-muted-foreground">
+              ({Math.round(effectiveRoofArea * coveragePercent / 100)} m²)
+            </span>
+          </div>
+        )}
+
+        {/* Info message for fallback mode */}
+        {useFallbackMode && (
+          <div className="flex items-start gap-2 p-3 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-md text-sm">
+            <Info className="h-4 w-4 text-teal-600 dark:text-teal-400 mt-0.5 shrink-0" />
+            <span className="text-teal-800 dark:text-teal-200">
+              {language === 'fr' 
+                ? `Mode estimation: Google Solar API n'a pas de données de panneaux pour ce bâtiment. Disposition générée algorithmiquement basée sur ${Math.round(effectiveRoofArea)} m² de surface de toit.` 
+                : `Estimation mode: Google Solar API has no panel data for this building. Layout generated algorithmically based on ${Math.round(effectiveRoofArea)} m² roof area.`}
+            </span>
+          </div>
+        )}
+
+        {/* Warning for limited Google data (but not in fallback mode) */}
+        {!useFallbackMode && mockupData && mockupData.maxPanelsCount < 50 && (
           <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md text-sm">
             <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
             <span className="text-amber-800 dark:text-amber-200">
               {language === 'fr' 
-                ? `Google Solar API a des données limitées pour ce bâtiment (${mockupData.maxPanelsCount} panneaux max). La visualisation peut ne pas couvrir tout le toit.` 
-                : `Google Solar API has limited data for this building (${mockupData.maxPanelsCount} panels max). Visualization may not cover the entire roof.`}
+                ? `Google Solar API a des données limitées pour ce bâtiment (${mockupData.maxPanelsCount} panneaux max).` 
+                : `Google Solar API has limited data for this building (${mockupData.maxPanelsCount} panels max).`}
             </span>
           </div>
         )}
@@ -353,9 +522,9 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
           <div className="text-sm text-muted-foreground">
             {language === 'fr' ? 'Capacité estimée: ' : 'Estimated capacity: '}
             <span className="font-medium">
-              {((panelCount * 400) / 1000).toFixed(1)} kW
+              {((panelCount * PANEL_WATT) / 1000).toFixed(1)} kW
             </span>
-            {' '}({panelCount} × 400W)
+            {' '}({panelCount} × {PANEL_WATT}W)
           </div>
           <Button
             variant="outline"

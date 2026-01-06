@@ -546,6 +546,7 @@ export interface SolarMockupData {
   imageryDate?: string;
   imageryQuality?: string;
   maxPanelsCount: number;
+  roofAreaSqM?: number;
   error?: string;
 }
 
@@ -622,6 +623,9 @@ export async function getSolarMockupData(location: GeoLocation, panelCount?: num
       imageryDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
 
+    // Calculate total roof area from segments
+    const totalRoofAreaSqM = roofSegments.reduce((sum, seg) => sum + seg.areaMeters2, 0);
+
     return {
       success: true,
       satelliteImageUrl: satelliteImageUrl || undefined,
@@ -635,7 +639,8 @@ export async function getSolarMockupData(location: GeoLocation, panelCount?: num
       panelDimensions,
       imageryDate,
       imageryQuality: insights.imageryQuality,
-      maxPanelsCount: solarPotential.maxArrayPanelsCount || 0
+      maxPanelsCount: solarPotential.maxArrayPanelsCount || 0,
+      roofAreaSqM: totalRoofAreaSqM > 0 ? totalRoofAreaSqM : undefined
     };
   } catch (error) {
     console.error("[SolarMockup] Error:", error);

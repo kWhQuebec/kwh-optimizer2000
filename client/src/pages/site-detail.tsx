@@ -3846,6 +3846,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
         <SolarMockup 
           siteId={site.id} 
           systemSizeKW={simulation.pvSizeKW || undefined}
+          roofAreaSqM={site.roofAreaAutoSqM || undefined}
         />
       )}
 
