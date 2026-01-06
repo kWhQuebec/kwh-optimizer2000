@@ -4617,67 +4617,26 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
                   </div>
                 )}
               </div>
-              {/* Optimal scenario indicator - only show recommendation if NPV is positive */}
+              {/* Warning if no profitable scenario */}
               {(() => {
                 const optimal = (simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal);
-                const isProfitable = optimal && optimal.npv25 > 0;
+                if (optimal && optimal.npv25 > 0) return null; // Profitable - recommendation shown at top
                 
-                if (!optimal) return null;
-                
-                const pvKW = optimal.pvSizeKW || 0;
-                const battKWh = optimal.battEnergyKWh || 0;
-                const actualType = pvKW > 0 && battKWh > 0 ? 'hybrid' : 
-                                  pvKW > 0 ? 'solar' : 
-                                  battKWh > 0 ? 'battery' : 'none';
-                
-                const typeLabel = actualType === 'hybrid' 
-                  ? (language === "fr" ? "Hybride" : "Hybrid")
-                  : actualType === 'solar' 
-                    ? (language === "fr" ? "Solaire seul" : "Solar only")
-                    : (language === "fr" ? "Stockage seul" : "Storage only");
-                
-                const sizingLabel = actualType === 'hybrid'
-                  ? `${pvKW}kW PV + ${battKWh}kWh`
-                  : actualType === 'solar'
-                    ? `${pvKW}kW PV`
-                    : `${battKWh}kWh`;
-                
-                const correctedLabel = `${typeLabel} - ${sizingLabel}`;
-                
-                if (isProfitable) {
-                  return (
-                    <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-3">
-                      <span className="text-2xl">⭐</span>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {language === "fr" ? "Recommandation: " : "Recommendation: "}
-                          <span className="text-primary">{correctedLabel}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {language === "fr" 
-                            ? "Ce scénario offre le meilleur retour sur investissement (VAN maximale)"
-                            : "This scenario offers the best return on investment (maximum NPV)"}
-                        </p>
-                      </div>
+                return (
+                  <div className="mt-2 p-3 bg-destructive/5 border border-destructive/20 rounded-lg flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-destructive">
+                        {language === "fr" ? "Aucun investissement recommandé" : "No investment recommended"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "fr" 
+                          ? "Toutes les configurations ont une VAN négative avec les hypothèses actuelles"
+                          : "All configurations have negative NPV under current assumptions"}
+                      </p>
                     </div>
-                  );
-                } else {
-                  return (
-                    <div className="mt-2 p-3 bg-destructive/5 border border-destructive/20 rounded-lg flex items-center gap-3">
-                      <span className="text-2xl">⚠️</span>
-                      <div>
-                        <p className="text-sm font-medium text-destructive">
-                          {language === "fr" ? "Aucun investissement recommandé" : "No investment recommended"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {language === "fr" 
-                            ? "Toutes les configurations ont une VAN négative avec les hypothèses actuelles. Considérez ajuster les paramètres (coûts, tarifs) ou explorer d'autres options."
-                            : "All configurations have negative NPV under current assumptions. Consider adjusting parameters (costs, tariffs) or exploring other options."}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                }
+                  </div>
+                );
               })()}
               
               {/* Strategic Benefits Section - Always visible, even if NPV negative */}
