@@ -1992,9 +1992,17 @@ export async function registerRoutes(
       // Start with site's saved assumptions (includes bifacial settings if user accepted)
       const siteAssumptions = (site?.analysisAssumptions || {}) as Partial<AnalysisAssumptions>;
       
+      // CRITICAL: Strip yieldSource from stored assumptions - it should be determined fresh each run
+      // based on whether Google Solar data is available
+      delete siteAssumptions.yieldSource;
+      
       // Merge: site assumptions (bifacial, etc.) + custom assumptions (from request body)
       // Custom assumptions take precedence over site assumptions
+      // NOTE: yieldSource will be set below based on Google data availability
       let mergedAssumptions = { ...siteAssumptions, ...customAssumptions };
+      
+      // Also strip yieldSource from merged - it will be determined by Google data check below
+      delete mergedAssumptions.yieldSource;
       
       if (site?.roofAreaAutoDetails) {
         const googleData = site.roofAreaAutoDetails as {
@@ -2038,6 +2046,10 @@ export async function registerRoutes(
         } else if (useManualYield) {
           mergedAssumptions.yieldSource = 'manual'; // Mark as manually entered
           console.log(`Using manual yield override: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
+        } else {
+          // No Google data available and not manual - use default
+          mergedAssumptions.yieldSource = 'default';
+          console.log(`No Google Solar data, using default yield: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
         }
         
         // Calculate orientation factor from roof segments if not manually overridden
@@ -2068,6 +2080,12 @@ export async function registerRoutes(
           const avgQuality = count > 0 ? totalQuality / count : 1.0;
           mergedAssumptions.orientationFactor = Math.max(0.6, Math.min(1.0, avgQuality));
         }
+      }
+      
+      // If no roofAreaAutoDetails at all, ensure yieldSource is set to default
+      if (!mergedAssumptions.yieldSource) {
+        mergedAssumptions.yieldSource = 'default';
+        console.log(`No yieldSource set, using default: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
       }
       
       // Log bifacial status for debugging
