@@ -51,8 +51,16 @@ import {
   generateSolarProductionProfile,
   recommendStandardKit,
   STANDARD_KITS,
+  resolveYieldStrategy,
+  runSolarBatterySimulation,
+  buildSimulationParams,
+  buildSystemParams,
+  QUEBEC_MONTHLY_TEMPS as UNIFIED_QUEBEC_TEMPS,
+  BASELINE_YIELD,
   type MonteCarloConfig,
   type PeakShavingConfig,
+  type YieldStrategy,
+  type SimulationParams,
 } from "./analysis";
 import { registerAIAssistantRoutes } from "./aiAssistant";
 
@@ -1992,117 +2000,51 @@ export async function registerRoutes(
       // Start with site's saved assumptions (includes bifacial settings if user accepted)
       const siteAssumptions = (site?.analysisAssumptions || {}) as Partial<AnalysisAssumptions>;
       
-      // CRITICAL: Strip yieldSource from stored assumptions - it should be determined fresh each run
-      // based on whether Google Solar data is available
-      delete siteAssumptions.yieldSource;
-      
       // Merge: site assumptions (bifacial, etc.) + custom assumptions (from request body)
       // Custom assumptions take precedence over site assumptions
-      // NOTE: yieldSource will be set below based on Google data availability
       let mergedAssumptions = { ...siteAssumptions, ...customAssumptions };
       
-      // Also strip yieldSource from merged - it will be determined by Google data check below
-      delete mergedAssumptions.yieldSource;
-      
-      if (site?.roofAreaAutoDetails) {
-        const googleData = site.roofAreaAutoDetails as {
-          maxSunshineHoursPerYear?: number;
-          bestOrientation?: { azimuth?: number; pitch?: number };
-          roofSegments?: Array<{ azimuth?: number; pitch?: number }>;
-          googleProductionEstimate?: {
-            panelsCount: number;
-            yearlyEnergyDcKwh: number;
-            yearlyEnergyAcKwh: number;
-            systemSizeKw: number;
-          };
+      // Use UNIFIED yield strategy resolver - single source of truth for yieldSource
+      const googleData = site?.roofAreaAutoDetails as {
+        maxSunshineHoursPerYear?: number;
+        roofSegments?: Array<{ azimuth?: number; pitch?: number }>;
+        googleProductionEstimate?: {
+          yearlyEnergyAcKwh: number;
+          systemSizeKw: number;
         };
-        
-        // Check if user explicitly wants to override Google data with manual yield
-        // useManualYield: true means ignore Google data and use the provided solarYieldKWhPerKWp
-        const useManualYield = customAssumptions?.useManualYield === true;
-        
-        // PRIORITY 1: Use Google Solar's actual production estimate if available
-        // This is the most accurate method - based on real roof configuration analysis
-        // Google data ALWAYS takes priority unless useManualYield is explicitly set to true
-        if (googleData.googleProductionEstimate && 
-            googleData.googleProductionEstimate.yearlyEnergyAcKwh > 0 && 
-            googleData.googleProductionEstimate.systemSizeKw > 0 &&
-            !useManualYield) {
-          // Calculate specific yield from Google's actual production / system size
-          // This gives us kWh/kWp/year based on real roof analysis
-          const googleSpecificYield = googleData.googleProductionEstimate.yearlyEnergyAcKwh / 
-                                       googleData.googleProductionEstimate.systemSizeKw;
-          mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleSpecificYield);
-          mergedAssumptions.yieldSource = 'google'; // Mark as Google-derived (weather-adjusted)
-          // CRITICAL: Also set skipTemperatureCorrection flag directly as backup
-          (mergedAssumptions as any).skipTemperatureCorrection = true;
-          console.log(`Using Google Solar production estimate: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year, yieldSource='${mergedAssumptions.yieldSource}', skipTempCorrection=true`);
-        }
-        // PRIORITY 2: Fall back to sunshine hours if no production estimate
-        else if (googleData.maxSunshineHoursPerYear && !useManualYield) {
-          // Convert sunshine hours to kWh/kWp (roughly 1:1 ratio for well-oriented panels)
-          // Google's maxSunshineHoursPerYear is the max possible, apply ~0.85 derating for realistic yield
-          mergedAssumptions.solarYieldKWhPerKWp = Math.round(googleData.maxSunshineHoursPerYear * 0.85);
-          mergedAssumptions.yieldSource = 'google'; // Mark as Google-derived (weather-adjusted)
-          // CRITICAL: Also set skipTemperatureCorrection flag directly as backup
-          (mergedAssumptions as any).skipTemperatureCorrection = true;
-          console.log(`Using Google Solar sunshine hours: ${mergedAssumptions.solarYieldKWhPerKWp} kWh/kWp/year, skipTempCorrection=true`);
-        } else if (useManualYield) {
-          mergedAssumptions.yieldSource = 'manual'; // Mark as manually entered
-          console.log(`Using manual yield override: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
-        } else {
-          // No Google data available and not manual - use default
-          mergedAssumptions.yieldSource = 'default';
-          console.log(`No Google Solar data, using default yield: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
-        }
-        
-        // Calculate orientation factor from roof segments if not manually overridden
-        if (googleData.roofSegments && googleData.roofSegments.length > 0 && !customAssumptions?.orientationFactor) {
-          // Best orientation for Quebec: South (180°) at ~30° pitch
-          // Calculate average orientation quality across segments
-          let totalQuality = 0;
-          let count = 0;
-          
-          for (const segment of googleData.roofSegments) {
-            const azimuth = segment.azimuth || 180; // Default south
-            const pitch = segment.pitch || 25; // Default 25°
-            
-            // Azimuth factor: South (180°) = 1.0, East/West (90°/270°) = 0.85, North (0°/360°) = 0.6
-            const azimuthNormalized = Math.abs(azimuth - 180) / 180; // 0 = south, 1 = north
-            const azimuthFactor = 1.0 - (azimuthNormalized * 0.4);
-            
-            // Pitch factor: 30° = 1.0, 0° = 0.85, 60° = 0.90
-            const pitchOptimal = 30;
-            const pitchDeviation = Math.abs(pitch - pitchOptimal) / pitchOptimal;
-            const pitchFactor = 1.0 - Math.min(0.15, pitchDeviation * 0.15);
-            
-            totalQuality += azimuthFactor * pitchFactor;
-            count++;
-          }
-          
-          // Clamp orientation factor to 0.6-1.0 range
-          const avgQuality = count > 0 ? totalQuality / count : 1.0;
-          mergedAssumptions.orientationFactor = Math.max(0.6, Math.min(1.0, avgQuality));
-        }
-      }
+      } | undefined;
       
-      // If no roofAreaAutoDetails at all, ensure yieldSource is set to default
-      if (!mergedAssumptions.yieldSource) {
-        mergedAssumptions.yieldSource = 'default';
-        console.log(`No yieldSource set, using default: ${mergedAssumptions.solarYieldKWhPerKWp || 1150} kWh/kWp/year`);
-      }
+      // Resolve yield strategy using unified module
+      const yieldStrategy = resolveYieldStrategy(mergedAssumptions, googleData);
       
-      // Log bifacial status for debugging
-      if (mergedAssumptions.bifacialEnabled) {
-        console.log(`Bifacial analysis enabled for site ${siteId}: factor=${mergedAssumptions.bifacialityFactor || 0.85}, albedo=${mergedAssumptions.roofAlbedo || 0.70}`);
+      // Apply resolved values to assumptions
+      mergedAssumptions.solarYieldKWhPerKWp = yieldStrategy.baseYield;
+      mergedAssumptions.yieldSource = yieldStrategy.yieldSource;
+      mergedAssumptions.orientationFactor = yieldStrategy.orientationFactor;
+      
+      // CRITICAL: Store skip flag directly for downstream code paths
+      (mergedAssumptions as any)._yieldStrategy = yieldStrategy;
+      
+      console.log(`[UNIFIED] Yield strategy resolved: source='${yieldStrategy.yieldSource}', baseYield=${yieldStrategy.baseYield}, bifacialBoost=${yieldStrategy.bifacialBoost.toFixed(2)}, skipTempCorrection=${yieldStrategy.skipTempCorrection}, effectiveYield=${yieldStrategy.effectiveYield.toFixed(0)}`);
+      
+      // Calculate orientation factor from roof segments if not already set
+      if (googleData?.roofSegments && googleData.roofSegments.length > 0 && !customAssumptions?.orientationFactor) {
+        let totalQuality = 0;
+        let count = 0;
+        for (const segment of googleData.roofSegments) {
+          const azimuth = segment.azimuth || 180;
+          const pitch = segment.pitch || 25;
+          const azimuthNormalized = Math.abs(azimuth - 180) / 180;
+          const azimuthFactor = 1.0 - (azimuthNormalized * 0.4);
+          const pitchOptimal = 30;
+          const pitchDeviation = Math.abs(pitch - pitchOptimal) / pitchOptimal;
+          const pitchFactor = 1.0 - Math.min(0.15, pitchDeviation * 0.15);
+          totalQuality += azimuthFactor * pitchFactor;
+          count++;
+        }
+        const avgQuality = count > 0 ? totalQuality / count : 1.0;
+        mergedAssumptions.orientationFactor = Math.max(0.6, Math.min(1.0, avgQuality));
       }
-
-      // CRITICAL DEBUG: Log yieldSource before passing to analysis engine
-      console.log('========================================');
-      console.log(`CRITICAL DEBUG: mergedAssumptions.yieldSource = '${mergedAssumptions.yieldSource}'`);
-      console.log(`CRITICAL DEBUG: mergedAssumptions.solarYieldKWhPerKWp = ${mergedAssumptions.solarYieldKWhPerKWp}`);
-      console.log(`CRITICAL DEBUG: mergedAssumptions.bifacialEnabled = ${mergedAssumptions.bifacialEnabled}`);
-      console.log('========================================');
       
       // Run the analysis with merged assumptions (Google Solar + custom)
       // Pass forced sizing and pre-calculated dataSpanDays from deduplication
@@ -8046,22 +7988,13 @@ function runPotentialAnalysis(
   // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)
   const yieldFactor = effectiveYield / 1150;
   
-  // Build Helioscope-inspired system modeling parameters
-  // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
-  // Apply temp correction for default (1150) and manual overrides
-  // Check both yieldSource AND the backup skipTemperatureCorrection flag
-  // CRITICAL FIX: Check yieldSource OR if solarYield differs from default (1150)
-  // This ensures ANY custom yield (Google or manual) skips redundant temperature correction
-  const isCustomYield = h.solarYieldKWhPerKWp !== undefined && h.solarYieldKWhPerKWp !== 1150;
-  const skipTempCorrection = h.yieldSource === 'google' || (h as any).skipTemperatureCorrection === true || isCustomYield;
+  // UNIFIED: Use yield strategy from caller if available, otherwise resolve here
+  const storedStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
+  const skipTempCorrection = storedStrategy 
+    ? storedStrategy.skipTempCorrection 
+    : (h.yieldSource === 'google' || h.yieldSource === 'manual');
   
-  // Add debug marker to assumptions for frontend verification
-  (h as any)._debugYieldSource = h.yieldSource;
-  (h as any)._debugSkipTempCorrection = skipTempCorrection;
-  (h as any)._debugIsCustomYield = isCustomYield;
-  (h as any)._debugSolarYield = h.solarYieldKWhPerKWp;
-  
-  console.log(`[runPotentialAnalysis] yieldSource='${h.yieldSource}', skipTempCorrection=${skipTempCorrection}, isCustomYield=${isCustomYield}, solarYield=${h.solarYieldKWhPerKWp}, effectiveYield=${effectiveYield.toFixed(1)}`);
+  console.log(`[runPotentialAnalysis] Using unified skipTempCorrection=${skipTempCorrection}, yieldSource='${h.yieldSource}', effectiveYield=${effectiveYield.toFixed(1)}`);
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
@@ -9291,9 +9224,12 @@ function runScenarioWithSizing(
   const yieldFactor = effectiveYield / 1150;
   const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
   
-  // Build Helioscope-inspired system modeling parameters
-  // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
-  const skipTempCorrection = h.yieldSource === 'google';
+  // UNIFIED: Skip temperature correction for Google or manual yield (both pre-adjusted)
+  // Only apply temp correction for default (1150) yield
+  const storedStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
+  const skipTempCorrection = storedStrategy 
+    ? storedStrategy.skipTempCorrection 
+    : (h.yieldSource === 'google' || h.yieldSource === 'manual');
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
