@@ -51,6 +51,7 @@ const PipelinePage = lazy(() => import("@/pages/pipeline"));
 const PartnershipsPage = lazy(() => import("@/pages/partnerships"));
 const SiteVisitFormPage = lazy(() => import("@/pages/site-visit-form"));
 const BatchImportPage = lazy(() => import("@/pages/batch-import"));
+const PresentationPage = lazy(() => import("@/pages/presentation"));
 
 function PageLoader() {
   return (
@@ -240,6 +241,15 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <SiteVisitFormPage />
+          </Suspense>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Presentation mode - full screen, no sidebar for projection */}
+      <Route path="/app/presentation/:id">
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <PresentationPage />
           </Suspense>
         </ProtectedRoute>
       </Route>

@@ -6149,6 +6149,13 @@ export default function SiteDetailPage() {
               {language === "fr" ? "Lancer analyse" : "Run Analysis"}
             </Button>
           )}
+          {/* Presentation Mode Button */}
+          <Link href={`/app/presentation/${site.id}`}>
+            <Button variant="outline" className="gap-2" data-testid="button-presentation-mode">
+              <Layers className="w-4 h-4" />
+              {language === "fr" ? "Présentation" : "Presentation"}
+            </Button>
+          </Link>
           {latestSimulation && (
             <>
               <DownloadReportButton 

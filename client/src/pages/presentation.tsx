@@ -68,6 +68,18 @@ export default function PresentationPage() {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip navigation if user is focused on interactive elements
+      const activeEl = document.activeElement;
+      if (activeEl && (
+        activeEl.tagName === 'INPUT' || 
+        activeEl.tagName === 'BUTTON' || 
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'A' ||
+        activeEl.tagName === 'SELECT'
+      )) {
+        return;
+      }
+      
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault();
         setCurrentSlide(prev => Math.min(prev + 1, SLIDES.length - 1));
@@ -174,19 +186,19 @@ export default function PresentationPage() {
           <HeroSlide site={site} language={language} />
         )}
         {slideContent === 'metrics' && (
-          <MetricsSlide site={site} simulation={bestSimulation} language={language} />
+          <MetricsSlide site={site} simulation={bestSimulation ?? null} language={language} />
         )}
         {slideContent === 'production' && (
-          <ProductionSlide site={site} simulation={bestSimulation} language={language} />
+          <ProductionSlide site={site} simulation={bestSimulation ?? null} language={language} />
         )}
         {slideContent === 'cashflow' && (
-          <CashflowSlide simulation={bestSimulation} language={language} />
+          <CashflowSlide simulation={bestSimulation ?? null} language={language} />
         )}
         {slideContent === 'savings' && (
-          <SavingsSlide simulation={bestSimulation} language={language} />
+          <SavingsSlide simulation={bestSimulation ?? null} language={language} />
         )}
         {slideContent === 'summary' && (
-          <SummarySlide site={site} simulation={bestSimulation} language={language} />
+          <SummarySlide site={site} simulation={bestSimulation ?? null} language={language} />
         )}
       </div>
 
@@ -369,7 +381,7 @@ function MetricsSlide({
     {
       icon: Zap,
       label: language === 'fr' ? 'Économies Annuelles' : 'Annual Savings',
-      value: simulation?.year1NetSavings ? formatCurrency(simulation.year1NetSavings) : '--',
+      value: simulation?.savingsYear1 ? formatCurrency(simulation.savingsYear1) : '--',
       sublabel: language === 'fr' ? 'Première année' : 'First year',
       color: 'from-purple-400 to-pink-500'
     }
@@ -442,7 +454,7 @@ function ProductionSlide({
   language: string 
 }) {
   // Generate monthly production data from annual estimate
-  const annualProductionKWh = simulation?.productionKWhYear1 || 0;
+  const annualProductionKWh = simulation?.totalProductionKWh || 0;
   
   // Typical Quebec solar distribution by month (normalized)
   const monthlyDistribution = [0.04, 0.05, 0.08, 0.10, 0.12, 0.12, 0.13, 0.11, 0.09, 0.07, 0.05, 0.04];
@@ -483,43 +495,54 @@ function ProductionSlide({
           </div>
         </div>
 
-        <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis 
-                dataKey="month" 
-                stroke="rgba(255,255,255,0.5)"
-                tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 14 }}
-              />
-              <YAxis 
-                stroke="rgba(255,255,255,0.5)"
-                tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 14 }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(0,0,0,0.8)', 
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: '8px'
-                }}
-                labelStyle={{ color: 'white' }}
-                formatter={(value: number) => [`${value.toLocaleString()} kWh`, language === 'fr' ? 'Production' : 'Production']}
-              />
-              <Bar 
-                dataKey="production" 
-                fill="url(#productionGradient)" 
-                radius={[4, 4, 0, 0]}
-              />
-              <defs>
-                <linearGradient id="productionGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#fbbf24" />
-                  <stop offset="100%" stopColor="#f59e0b" />
+        {annualProductionKWh > 0 ? (
+          <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis 
+                  dataKey="month" 
+                  stroke="rgba(255,255,255,0.5)"
+                  tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 14 }}
+                />
+                <YAxis 
+                  stroke="rgba(255,255,255,0.5)"
+                  tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 14 }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(0,0,0,0.8)', 
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '8px'
+                  }}
+                  labelStyle={{ color: 'white' }}
+                  formatter={(value: number) => [`${value.toLocaleString()} kWh`, language === 'fr' ? 'Production' : 'Production']}
+                />
+                <Bar 
+                  dataKey="production" 
+                  fill="url(#productionGradient)" 
+                  radius={[4, 4, 0, 0]}
+                />
+                <defs>
+                  <linearGradient id="productionGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fbbf24" />
+                    <stop offset="100%" stopColor="#f59e0b" />
                 </linearGradient>
               </defs>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+          </div>
+        ) : (
+          <div className="bg-white/5 rounded-2xl border border-white/10 p-12 text-center">
+            <Sun className="h-16 w-16 mx-auto mb-4 text-white/20" />
+            <p className="text-white/60 text-xl">
+              {language === 'fr' 
+                ? 'Aucune simulation disponible. Lancez une analyse pour voir les projections de production.'
+                : 'No simulation available. Run an analysis to see production projections.'}
+            </p>
+          </div>
+        )}
 
         {simulation?.pvSizeKW && (
           <div className="grid grid-cols-3 gap-6 mt-8">
@@ -559,11 +582,11 @@ function CashflowSlide({
   simulation: SimulationRun | null; 
   language: string 
 }) {
-  const cashflowData = simulation?.cashflow25 as CashflowEntry[] | undefined;
+  const cashflowData = simulation?.cashflows as CashflowEntry[] | undefined;
   
   const chartData = cashflowData?.map((entry, index) => ({
     year: entry.year || index + 1,
-    cumulative: entry.cumulativeCashflow,
+    cumulative: entry.cumulative,
     annual: entry.netCashflow
   })) || [];
 
@@ -670,7 +693,7 @@ function SavingsSlide({
   simulation: SimulationRun | null; 
   language: string 
 }) {
-  const year1Savings = simulation?.year1NetSavings || 0;
+  const year1Savings = simulation?.savingsYear1 || 0;
   const totalSavings25 = simulation?.npv25 || 0;
   const capexNet = simulation?.capexNet || 0;
 
