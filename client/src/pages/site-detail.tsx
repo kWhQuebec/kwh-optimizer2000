@@ -56,7 +56,8 @@ import {
   XCircle,
   Scale,
   Star,
-  Grid3X3
+  Grid3X3,
+  Pencil
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -115,7 +116,8 @@ import { DesignAgreementSection } from "@/components/design-agreement-section";
 import { ActivityFeed } from "@/components/activity-feed";
 import { MonteCarloAnalysis } from "@/components/monte-carlo-analysis";
 import { SolarMockup } from "@/components/SolarMockup";
-import type { Site, Client, MeterFile, SimulationRun } from "@shared/schema";
+import { RoofDrawingModal } from "@/components/RoofDrawingModal";
+import type { Site, Client, MeterFile, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
 
 interface SiteWithDetails extends Site {
   client: Client;
@@ -624,7 +626,9 @@ function AnalysisParametersEditor({
   disabled = false,
   site,
   onSiteRefresh,
-  showOnlyRoofSection = false
+  showOnlyRoofSection = false,
+  onOpenRoofDrawing,
+  roofPolygons = []
 }: { 
   value: Partial<AnalysisAssumptions>; 
   onChange: (value: Partial<AnalysisAssumptions>) => void;
@@ -632,6 +636,8 @@ function AnalysisParametersEditor({
   site?: Site;
   onSiteRefresh?: () => void;
   showOnlyRoofSection?: boolean;
+  onOpenRoofDrawing?: () => void;
+  roofPolygons?: RoofPolygon[];
 }) {
   const { language } = useI18n();
   const { token } = useAuth();
@@ -1507,23 +1513,44 @@ function AnalysisParametersEditor({
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">{language === "fr" ? "Surface de toit (pi²)" : "Roof Area (sq ft)"}</Label>
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <Label className="text-xs">{language === "fr" ? "Surface de toit (pi²)" : "Roof Area (sq ft)"}</Label>
+                      {roofPolygons.length > 0 && (
+                        <Badge variant="outline" className="text-[10px] h-4 gap-0.5">
+                          <Pencil className="w-2.5 h-2.5" />
+                          {roofPolygons.length} {language === "fr" ? "zones tracées" : "drawn areas"}
+                        </Badge>
+                      )}
+                    </div>
                     {site?.roofAreaAutoSqM && site.roofEstimateStatus === "success" && (
                       <span className="text-[10px] text-muted-foreground">
                         {language === "fr" ? `Satellite: ${Math.round(site.roofAreaAutoSqM * 10.764).toLocaleString()} pi²` : `Satellite: ${Math.round(site.roofAreaAutoSqM * 10.764).toLocaleString()} sqft`}
                       </span>
                     )}
                   </div>
-                  <Input
-                    type="number"
-                    step="100"
-                    value={merged.roofAreaSqFt}
-                    onChange={(e) => updateField("roofAreaSqFt", parseFloat(e.target.value) || 0)}
-                    disabled={disabled}
-                    className="h-8 text-sm font-mono"
-                    data-testid="input-roof-area"
-                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onOpenRoofDrawing}
+                      disabled={!site?.latitude || !site?.longitude || disabled}
+                      className="gap-1 h-8"
+                      data-testid="button-draw-roof"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      {language === "fr" ? "Tracer" : "Draw"}
+                    </Button>
+                    <Input
+                      type="number"
+                      step="100"
+                      value={merged.roofAreaSqFt}
+                      onChange={(e) => updateField("roofAreaSqFt", parseFloat(e.target.value) || 0)}
+                      disabled={disabled}
+                      className="h-8 text-sm font-mono flex-1"
+                      data-testid="input-roof-area"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">{language === "fr" ? "Taux d'utilisation (%)" : "Utilization Rate (%)"}</Label>
@@ -5853,6 +5880,7 @@ export default function SiteDetailPage() {
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
   const pendingNewSimulationIdRef = useRef<string | null>(null); // Track newly created simulation ID across data refresh
   const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
+  const [isRoofDrawingModalOpen, setIsRoofDrawingModalOpen] = useState(false);
   
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
   const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
@@ -5861,6 +5889,12 @@ export default function SiteDetailPage() {
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
     queryKey: ["/api/sites", id],
     enabled: !!id,
+  });
+
+  // Query to fetch existing roof polygons
+  const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
+    queryKey: ['/api/sites', id, 'roof-polygons'],
+    enabled: !!id
   });
 
   // Fetch design agreement status for the site
@@ -5966,6 +6000,31 @@ export default function SiteDetailPage() {
       setBifacialDialogOpen(false);
     },
   });
+
+  // Mutation to save roof polygons
+  const saveRoofPolygonsMutation = useMutation({
+    mutationFn: async (polygons: InsertRoofPolygon[]) => {
+      await apiRequest("DELETE", `/api/sites/${id}/roof-polygons`);
+      for (const polygon of polygons) {
+        await apiRequest("POST", `/api/sites/${id}/roof-polygons`, polygon);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'roof-polygons'] });
+      toast({ title: language === "fr" ? "Zones de toit sauvegardées" : "Roof areas saved" });
+    }
+  });
+
+  // Callback to handle saving roof polygons and updating the roof area
+  const handleSaveRoofPolygons = (polygons: InsertRoofPolygon[]) => {
+    saveRoofPolygonsMutation.mutate(polygons);
+    const totalAreaSqM = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
+    const totalAreaSqFt = Math.round(totalAreaSqM * 10.764);
+    if (totalAreaSqFt > 0) {
+      setCustomAssumptions(prev => ({ ...prev, roofAreaSqFt: totalAreaSqFt }));
+    }
+    setIsRoofDrawingModalOpen(false);
+  };
 
   // Show bifacial dialog when white membrane detected and not yet prompted
   useEffect(() => {
@@ -6352,6 +6411,8 @@ export default function SiteDetailPage() {
               site={site}
               onSiteRefresh={() => refetch()}
               showOnlyRoofSection={!site.meterFiles?.length}
+              onOpenRoofDrawing={() => setIsRoofDrawingModalOpen(true)}
+              roofPolygons={roofPolygons}
             />
           )}
 
@@ -6688,6 +6749,19 @@ export default function SiteDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Roof Drawing Modal */}
+      {site && site.latitude && site.longitude && (
+        <RoofDrawingModal
+          isOpen={isRoofDrawingModalOpen}
+          onClose={() => setIsRoofDrawingModalOpen(false)}
+          siteId={site.id}
+          latitude={site.latitude}
+          longitude={site.longitude}
+          existingPolygons={roofPolygons}
+          onSave={handleSaveRoofPolygons}
+        />
+      )}
     </div>
   );
 }

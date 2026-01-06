@@ -27,6 +27,7 @@ import {
   insertSiteVisitPhotoSchema,
   insertPartnershipSchema,
   insertCompetitorProposalAnalysisSchema,
+  insertRoofPolygonSchema,
   AnalysisAssumptions, 
   defaultAnalysisAssumptions, 
   CashflowEntry, 
@@ -7665,6 +7666,101 @@ ${fileContent}`
     } catch (error) {
       console.error("Error deleting competitor proposal analysis:", error);
       res.status(500).json({ error: "Failed to delete competitor proposal analysis" });
+    }
+  });
+
+  // ==================== ROOF POLYGONS ROUTES ====================
+  
+  // GET /api/sites/:siteId/roof-polygons - List all polygons for a site
+  app.get("/api/sites/:siteId/roof-polygons", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { siteId } = req.params;
+      const polygons = await storage.getRoofPolygons(siteId);
+      res.json(polygons);
+    } catch (error) {
+      console.error("Error fetching roof polygons:", error);
+      res.status(500).json({ error: "Failed to fetch roof polygons" });
+    }
+  });
+
+  // POST /api/sites/:siteId/roof-polygons - Create a new polygon
+  app.post("/api/sites/:siteId/roof-polygons", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { siteId } = req.params;
+      const validationResult = insertRoofPolygonSchema.safeParse({
+        ...req.body,
+        siteId,
+        createdBy: req.userId,
+      });
+
+      if (!validationResult.success) {
+        return res.status(400).json({ error: "Invalid polygon data", details: validationResult.error.errors });
+      }
+
+      const polygon = await storage.createRoofPolygon(validationResult.data);
+      res.status(201).json(polygon);
+    } catch (error) {
+      console.error("Error creating roof polygon:", error);
+      res.status(500).json({ error: "Failed to create roof polygon" });
+    }
+  });
+
+  // PUT /api/roof-polygons/:id - Update a polygon
+  // Only allow updating: label, coordinates, areaSqM, color
+  const updateRoofPolygonSchema = z.object({
+    label: z.string().nullable().optional(),
+    coordinates: z.array(z.array(z.number())).optional(),
+    areaSqM: z.number().positive().optional(),
+    color: z.string().optional(),
+  }).strict();
+
+  app.put("/api/roof-polygons/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getRoofPolygon(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Roof polygon not found" });
+      }
+
+      const validationResult = updateRoofPolygonSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ error: "Invalid update data", details: validationResult.error.errors });
+      }
+
+      const polygon = await storage.updateRoofPolygon(id, validationResult.data);
+      res.json(polygon);
+    } catch (error) {
+      console.error("Error updating roof polygon:", error);
+      res.status(500).json({ error: "Failed to update roof polygon" });
+    }
+  });
+
+  // DELETE /api/roof-polygons/:id - Delete a polygon
+  app.delete("/api/roof-polygons/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getRoofPolygon(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Roof polygon not found" });
+      }
+
+      await storage.deleteRoofPolygon(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting roof polygon:", error);
+      res.status(500).json({ error: "Failed to delete roof polygon" });
+    }
+  });
+
+  // DELETE /api/sites/:siteId/roof-polygons - Delete all polygons for a site
+  app.delete("/api/sites/:siteId/roof-polygons", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { siteId } = req.params;
+      const deletedCount = await storage.deleteRoofPolygonsBySite(siteId);
+      res.status(200).json({ success: true, deleted: deletedCount });
+    } catch (error) {
+      console.error("Error deleting roof polygons:", error);
+      res.status(500).json({ error: "Failed to delete roof polygons" });
     }
   });
 

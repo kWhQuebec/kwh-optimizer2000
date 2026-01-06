@@ -37,6 +37,7 @@ import type {
   Activity, InsertActivity,
   Partnership, InsertPartnership,
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
+  RoofPolygon, InsertRoofPolygon,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -345,6 +346,14 @@ export interface IStorage {
   createConstructionTask(task: InsertConstructionTask): Promise<ConstructionTask>;
   updateConstructionTask(id: string, task: Partial<ConstructionTask>): Promise<ConstructionTask | undefined>;
   deleteConstructionTask(id: string): Promise<boolean>;
+
+  // Roof Polygons (user-drawn roof areas)
+  getRoofPolygons(siteId: string): Promise<RoofPolygon[]>;
+  getRoofPolygon(id: string): Promise<RoofPolygon | undefined>;
+  createRoofPolygon(polygon: InsertRoofPolygon): Promise<RoofPolygon>;
+  updateRoofPolygon(id: string, polygon: Partial<RoofPolygon>): Promise<RoofPolygon | undefined>;
+  deleteRoofPolygon(id: string): Promise<boolean>;
+  deleteRoofPolygonsBySite(siteId: string): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -1851,6 +1860,14 @@ export class MemStorage implements IStorage {
   async createConstructionTask(task: InsertConstructionTask): Promise<ConstructionTask> { throw new Error("Not implemented"); }
   async updateConstructionTask(id: string, task: Partial<ConstructionTask>): Promise<ConstructionTask | undefined> { return undefined; }
   async deleteConstructionTask(id: string): Promise<boolean> { return false; }
+
+  // Roof Polygons (user-drawn roof areas)
+  async getRoofPolygons(siteId: string): Promise<RoofPolygon[]> { return []; }
+  async getRoofPolygon(id: string): Promise<RoofPolygon | undefined> { return undefined; }
+  async createRoofPolygon(polygon: InsertRoofPolygon): Promise<RoofPolygon> { throw new Error("Not implemented"); }
+  async updateRoofPolygon(id: string, polygon: Partial<RoofPolygon>): Promise<RoofPolygon | undefined> { return undefined; }
+  async deleteRoofPolygon(id: string): Promise<boolean> { return false; }
+  async deleteRoofPolygonsBySite(siteId: string): Promise<number> { return 0; }
 }
 
 import { DatabaseStorage } from "./dbStorage";

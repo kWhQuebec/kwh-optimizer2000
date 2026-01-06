@@ -6,7 +6,7 @@ import {
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
   competitors, battleCards, marketNotes, marketDocuments, competitorProposalAnalysis,
   constructionAgreements, constructionMilestones, constructionProjects, constructionTasks, omContracts, omVisits, omPerformanceSnapshots,
-  opportunities, activities, partnerships,
+  opportunities, activities, partnerships, roofPolygons,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -46,6 +46,7 @@ import type {
   Activity, InsertActivity,
   Partnership, InsertPartnership,
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
+  RoofPolygon, InsertRoofPolygon,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -1855,5 +1856,43 @@ export class DatabaseStorage implements IStorage {
   async deleteConstructionTask(id: string): Promise<boolean> {
     const result = await db.delete(constructionTasks).where(eq(constructionTasks.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Roof Polygons (user-drawn roof areas)
+  async getRoofPolygons(siteId: string): Promise<RoofPolygon[]> {
+    return db.select().from(roofPolygons)
+      .where(eq(roofPolygons.siteId, siteId))
+      .orderBy(desc(roofPolygons.createdAt));
+  }
+
+  async getRoofPolygon(id: string): Promise<RoofPolygon | undefined> {
+    const [result] = await db.select().from(roofPolygons).where(eq(roofPolygons.id, id)).limit(1);
+    return result;
+  }
+
+  async createRoofPolygon(polygon: InsertRoofPolygon): Promise<RoofPolygon> {
+    const [result] = await db.insert(roofPolygons).values(polygon).returning();
+    return result;
+  }
+
+  async updateRoofPolygon(id: string, polygon: Partial<RoofPolygon>): Promise<RoofPolygon | undefined> {
+    // Filter out protected fields that should never be updated
+    const { id: _id, siteId, createdBy, createdAt, ...allowedFields } = polygon;
+    
+    const [result] = await db.update(roofPolygons)
+      .set({ ...allowedFields, updatedAt: new Date() })
+      .where(eq(roofPolygons.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteRoofPolygon(id: string): Promise<boolean> {
+    const result = await db.delete(roofPolygons).where(eq(roofPolygons.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteRoofPolygonsBySite(siteId: string): Promise<number> {
+    const result = await db.delete(roofPolygons).where(eq(roofPolygons.siteId, siteId)).returning();
+    return result.length;
   }
 }

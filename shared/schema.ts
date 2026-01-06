@@ -1378,6 +1378,29 @@ export const partnerships = pgTable("partnerships", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// User-drawn roof polygons for manual roof area estimation
+export const roofPolygons = pgTable("roof_polygons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  
+  // Polygon name/label (e.g., "Main Building", "Warehouse Section A")
+  label: text("label"),
+  
+  // GeoJSON coordinates array: [[lng, lat], [lng, lat], ...] forming a closed polygon
+  coordinates: jsonb("coordinates").notNull(), // Array of [longitude, latitude] pairs
+  
+  // Calculated area in square meters
+  areaSqM: real("area_sq_m").notNull(),
+  
+  // Visual styling
+  color: text("color").default("#0d9488"), // Teal by default
+  
+  // Metadata
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -1603,6 +1626,12 @@ export const insertPartnershipSchema = createInsertSchema(partnerships).omit({
   updatedAt: true,
 });
 
+export const insertRoofPolygonSchema = createInsertSchema(roofPolygons).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -1709,6 +1738,9 @@ export type Activity = typeof activities.$inferSelect;
 
 export type InsertPartnership = z.infer<typeof insertPartnershipSchema>;
 export type Partnership = typeof partnerships.$inferSelect;
+
+export type InsertRoofPolygon = z.infer<typeof insertRoofPolygonSchema>;
+export type RoofPolygon = typeof roofPolygons.$inferSelect;
 
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };

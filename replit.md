@@ -23,7 +23,7 @@ The frontend uses React with functional components, organized into pages, shared
 The backend provides a RESTful API with JWT-based authentication. It includes a data processing and analysis engine for solar simulation, battery peak-shaving, financial calculations (NPV, IRR, LCOE), and sensitivity analysis, utilizing official Hydro-Québec tariffs and configurable parameters. Data access is abstracted through an `IStorage` interface, and Multer handles CSV file uploads. The system incorporates logic for meter reading deduplication and a priority-based solar production methodology.
 
 ### Database Schema
-A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `leads`, `clients`, `sites`, `meterFiles`, `meterReadings`, `simulationRuns`, `designs`, `bomItems`, `componentCatalog`, `portfolios`, `portfolioSites`, `designAgreements`, `constructionAgreements`, `constructionMilestones`, `omContracts`, `omVisits`, and `omPerformanceSnapshots`.
+A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `leads`, `clients`, `sites`, `meterFiles`, `meterReadings`, `simulationRuns`, `designs`, `bomItems`, `componentCatalog`, `portfolios`, `portfolioSites`, `designAgreements`, `constructionAgreements`, `constructionMilestones`, `omContracts`, `omVisits`, `omPerformanceSnapshots`, and `roofPolygons`.
 
 ### Key Features and Implementations
 -   **Data Processing & Analysis**: Processes Hydro-Québec consumption data, performs 8760-hour solar production simulations, battery peak-shaving, calculates Québec and Federal incentives and tax shields, and generates 25-year cashflows.
@@ -60,6 +60,15 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   Adjustable panel count slider
     -   PNG export for client presentations
     -   Integration with system sizing recommendations
+    -   Fallback algorithmic panel generation (teal panels) when Google data is limited (<10 panels)
+-   **Manual Roof Drawing Tool**: Interactive roof area tracing for commercial buildings where Google Solar API returns no data:
+    -   Google Maps satellite view with Drawing Manager
+    -   Polygon and rectangle drawing tools for roof outlines
+    -   Real-time area calculation using `google.maps.geometry.spherical.computeArea()`
+    -   Custom labels for each roof section (e.g., "Main Building", "Warehouse A")
+    -   GeoJSON coordinate storage for polygon persistence
+    -   Total combined area calculation automatically updates roof area parameter
+    -   Database schema: `roofPolygons` table with coordinates, areaSqM, color, and metadata
 -   **Advanced Analysis Modules**:
     -   **Monte Carlo Probabilistic ROI**: A 500-iteration simulation for financial calculations with variable ranges, returning P10/P50/P90 confidence intervals.
     -   **15-Minute Peak Shaving Calculator**: Analyzes granular consumption data for battery storage optimization and demand charge savings.
