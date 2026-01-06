@@ -8050,8 +8050,18 @@ function runPotentialAnalysis(
   // Skip temperature correction ONLY for Google Solar API yield (already weather-adjusted)
   // Apply temp correction for default (1150) and manual overrides
   // Check both yieldSource AND the backup skipTemperatureCorrection flag
-  const skipTempCorrection = h.yieldSource === 'google' || (h as any).skipTemperatureCorrection === true;
-  console.log(`[runPotentialAnalysis] yieldSource='${h.yieldSource}', skipTempCorrection=${skipTempCorrection}, backupFlag=${(h as any).skipTemperatureCorrection}, effectiveYield=${effectiveYield.toFixed(1)}`);
+  // CRITICAL FIX: Check yieldSource OR if solarYield differs from default (1150)
+  // This ensures ANY custom yield (Google or manual) skips redundant temperature correction
+  const isCustomYield = h.solarYieldKWhPerKWp !== undefined && h.solarYieldKWhPerKWp !== 1150;
+  const skipTempCorrection = h.yieldSource === 'google' || (h as any).skipTemperatureCorrection === true || isCustomYield;
+  
+  // Add debug marker to assumptions for frontend verification
+  (h as any)._debugYieldSource = h.yieldSource;
+  (h as any)._debugSkipTempCorrection = skipTempCorrection;
+  (h as any)._debugIsCustomYield = isCustomYield;
+  (h as any)._debugSolarYield = h.solarYieldKWhPerKWp;
+  
+  console.log(`[runPotentialAnalysis] yieldSource='${h.yieldSource}', skipTempCorrection=${skipTempCorrection}, isCustomYield=${isCustomYield}, solarYield=${h.solarYieldKWhPerKWp}, effectiveYield=${effectiveYield.toFixed(1)}`);
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
