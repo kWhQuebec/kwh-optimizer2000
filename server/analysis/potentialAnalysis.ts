@@ -114,8 +114,17 @@ export function resolveYieldStrategy(
   // Check if user explicitly wants manual override
   const useManualYield = (assumptions as any).useManualYield === true;
   
-  // PRIORITY 1: Google Solar production estimate (most accurate)
-  if (googleData?.googleProductionEstimate && 
+  // PRIORITY 0: If stored yieldSource is already 'google', respect it
+  // This prevents losing Google source when data isn't re-passed
+  if (assumptions.yieldSource === 'google' && !useManualYield) {
+    yieldSource = 'google';
+    // Use stored yield if available, otherwise keep default
+    if (assumptions.solarYieldKWhPerKWp) {
+      baseYield = assumptions.solarYieldKWhPerKWp;
+    }
+  }
+  // PRIORITY 1: Fresh Google Solar production estimate (most accurate)
+  else if (googleData?.googleProductionEstimate && 
       googleData.googleProductionEstimate.yearlyEnergyAcKwh > 0 && 
       googleData.googleProductionEstimate.systemSizeKw > 0 &&
       !useManualYield) {
@@ -130,8 +139,16 @@ export function resolveYieldStrategy(
     baseYield = Math.round(googleData.maxSunshineHoursPerYear * 0.85);
     yieldSource = 'google';
   }
-  // PRIORITY 3: Manual yield override
-  else if (useManualYield || (assumptions.solarYieldKWhPerKWp && assumptions.solarYieldKWhPerKWp !== BASELINE_YIELD)) {
+  // PRIORITY 3: Manual yield override (explicit flag OR custom yield value)
+  else if (useManualYield) {
+    yieldSource = 'manual';
+  }
+  // PRIORITY 4: Stored manual yieldSource
+  else if (assumptions.yieldSource === 'manual') {
+    yieldSource = 'manual';
+  }
+  // PRIORITY 5: Non-default yield value implies manual
+  else if (assumptions.solarYieldKWhPerKWp && assumptions.solarYieldKWhPerKWp !== BASELINE_YIELD) {
     yieldSource = 'manual';
   }
   // Default: use baseline
@@ -140,7 +157,9 @@ export function resolveYieldStrategy(
   }
   
   // Bifacial boost (fixed 15%)
-  const bifacialBoost = assumptions.bifacialEnabled ? BIFACIAL_BOOST : 1.0;
+  // DEBUG: Log raw value and type to diagnose incorrect bifacial boost
+  console.log(`[resolveYieldStrategy] assumptions.bifacialEnabled = ${assumptions.bifacialEnabled} (type: ${typeof assumptions.bifacialEnabled})`);
+  const bifacialBoost = assumptions.bifacialEnabled === true ? BIFACIAL_BOOST : 1.0;
   
   // Orientation factor - ONLY apply for default yield
   // Google yield already accounts for roof orientation and shading

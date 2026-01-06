@@ -2004,6 +2004,10 @@ export async function registerRoutes(
       // Custom assumptions take precedence over site assumptions
       let mergedAssumptions = { ...siteAssumptions, ...customAssumptions };
       
+      // CRITICAL: Delete any legacy _yieldStrategy from previous runs
+      // This ensures we always recompute yield with current bifacialEnabled setting
+      delete (mergedAssumptions as any)._yieldStrategy;
+      
       // Use UNIFIED yield strategy resolver - single source of truth for yieldSource
       // Google Solar API stores data in different places depending on the response structure
       // We need to normalize to a consistent format for resolveYieldStrategy
@@ -8005,28 +8009,29 @@ function runPotentialAnalysis(
   const maxPVFromRoof = usableRoofSqFt / 100; // ~100 sq ft per kW
   
   // SIMPLIFIED YIELD CALCULATION (Jan 2026)
-  // For Google yield: Use ONLY Google data × bifacial boost (if enabled) - no other adjustments!
-  // For non-Google: Use stored yield × orientation factor × bifacial
+  // PRIORITY 1: Use pre-resolved yieldStrategy from caller (already includes bifacial if applicable)
+  // PRIORITY 2: Manual calculation as fallback
   const storedYieldStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
   let effectiveYield: number;
   
-  if (h.yieldSource === 'google') {
-    // PURE GOOGLE: Base yield from Google API, only apply bifacial if enabled
-    const googleBaseYield = h.solarYieldKWhPerKWp || 1079;
-    const bifacialMultiplier = h.bifacialEnabled ? 1.15 : 1.0;
-    effectiveYield = googleBaseYield * bifacialMultiplier;
-    console.log(`[Google Yield] Base=${googleBaseYield}, bifacial=${h.bifacialEnabled ? 'ON (+15%)' : 'OFF'}, effectiveYield=${effectiveYield.toFixed(0)}`);
-  } else if (storedYieldStrategy) {
-    // Use pre-resolved yield strategy from caller
+  if (storedYieldStrategy) {
+    // Use pre-resolved yield strategy - this is the SINGLE source of truth
+    // effectiveYield already includes bifacial boost if bifacialEnabled was true
     effectiveYield = storedYieldStrategy.effectiveYield;
-    console.log(`[Stored Strategy] effectiveYield=${effectiveYield.toFixed(0)}, source=${storedYieldStrategy.yieldSource}`);
+    console.log(`[Stored Strategy] effectiveYield=${effectiveYield.toFixed(0)}, source=${storedYieldStrategy.yieldSource}, bifacialBoost=${storedYieldStrategy.bifacialBoost}`);
+  } else if (h.yieldSource === 'google') {
+    // Fallback for direct calls without strategy: Google yield with optional bifacial
+    const googleBaseYield = h.solarYieldKWhPerKWp || 1079;
+    const bifacialMultiplier = h.bifacialEnabled === true ? 1.15 : 1.0;
+    effectiveYield = googleBaseYield * bifacialMultiplier;
+    console.log(`[Google Fallback] Base=${googleBaseYield}, bifacial=${h.bifacialEnabled === true ? 'ON (+15%)' : 'OFF'}, effectiveYield=${effectiveYield.toFixed(0)}`);
   } else {
     // Fallback: Manual calculation for non-Google sources
     const baseYield = h.solarYieldKWhPerKWp || 1150;
     const orientationFactor = Math.max(0.6, Math.min(1.0, h.orientationFactor || 1.0));
-    const bifacialMultiplier = h.bifacialEnabled ? 1.15 : 1.0;
+    const bifacialMultiplier = h.bifacialEnabled === true ? 1.15 : 1.0;
     effectiveYield = baseYield * orientationFactor * bifacialMultiplier;
-    console.log(`[Manual] Base=${baseYield}, orientation=${orientationFactor.toFixed(2)}, bifacial=${h.bifacialEnabled}, effectiveYield=${effectiveYield.toFixed(0)}`);
+    console.log(`[Manual Fallback] Base=${baseYield}, orientation=${orientationFactor.toFixed(2)}, bifacial=${h.bifacialEnabled}, effectiveYield=${effectiveYield.toFixed(0)}`);
   }
   const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
   
@@ -8975,13 +8980,16 @@ function runHourlySimulation(
     const { hour, month, consumption, peak } = hourlyData[i];
     
     // Solar production: Gaussian curve centered at 1pm, with seasonal factor
-    // Base capacity factor 0.75 produces ~1150 kWh/kWp/year, adjusted by solarYieldFactor
+    // Base capacity factor 0.63 produces ~1150 kWh/kWp/year (Quebec baseline), adjusted by solarYieldFactor
+    // NOTE: Previously 0.75 which incorrectly produced ~1338 kWh/kWp - fixed Jan 2026
     const bell = Math.exp(-Math.pow(hour - 13, 2) / 8);
     const season = 1 - 0.4 * Math.cos((month - 6) * 2 * Math.PI / 12);
     const isDaytime = hour >= 5 && hour <= 20;
     
     // Apply solarYieldFactor to scale production (1.0 = baseline 1150 kWh/kWp/year)
-    let dcProduction = pvSizeKW * bell * season * 0.75 * solarYieldFactor * (isDaytime ? 1 : 0);
+    // BASELINE_CAPACITY_FACTOR calibrated so that solarYieldFactor=1.0 produces exactly 1150 kWh/kWp/year
+    const BASELINE_CAPACITY_FACTOR = 0.645;
+    let dcProduction = pvSizeKW * bell * season * BASELINE_CAPACITY_FACTOR * solarYieldFactor * (isDaytime ? 1 : 0);
     
     // Apply temperature correction ONLY when using default yield (not Google or manual)
     // BULLETPROOF CHECK: Use direct yieldSource parameter, ignore systemParams.skipTempCorrection legacy flag
