@@ -2093,6 +2093,13 @@ export async function registerRoutes(
         console.log(`Bifacial analysis enabled for site ${siteId}: factor=${mergedAssumptions.bifacialityFactor || 0.85}, albedo=${mergedAssumptions.roofAlbedo || 0.70}`);
       }
 
+      // CRITICAL DEBUG: Log yieldSource before passing to analysis engine
+      console.log('========================================');
+      console.log(`CRITICAL DEBUG: mergedAssumptions.yieldSource = '${mergedAssumptions.yieldSource}'`);
+      console.log(`CRITICAL DEBUG: mergedAssumptions.solarYieldKWhPerKWp = ${mergedAssumptions.solarYieldKWhPerKWp}`);
+      console.log(`CRITICAL DEBUG: mergedAssumptions.bifacialEnabled = ${mergedAssumptions.bifacialEnabled}`);
+      console.log('========================================');
+      
       // Run the analysis with merged assumptions (Google Solar + custom)
       // Pass forced sizing and pre-calculated dataSpanDays from deduplication
       const analysisResult = runPotentialAnalysis(readings, mergedAssumptions, {
@@ -7952,14 +7959,23 @@ function runPotentialAnalysis(
   options?: AnalysisOptions
 ): AnalysisResult {
   // DEBUG: Log incoming yieldSource BEFORE merge
+  console.log(`[runPotentialAnalysis] ======================================`);
   console.log(`[runPotentialAnalysis] INCOMING customAssumptions.yieldSource = '${customAssumptions?.yieldSource}'`);
   console.log(`[runPotentialAnalysis] defaultAnalysisAssumptions.yieldSource = '${defaultAnalysisAssumptions.yieldSource}'`);
   
   // Merge custom assumptions with defaults
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
   
+  // CRITICAL: If customAssumptions had yieldSource set, ensure it's preserved after merge
+  // This is a safeguard against any TypeScript/spread issues
+  if (customAssumptions?.yieldSource) {
+    h.yieldSource = customAssumptions.yieldSource;
+    console.log(`[runPotentialAnalysis] FORCED yieldSource from customAssumptions: '${h.yieldSource}'`);
+  }
+  
   // DEBUG: Log yieldSource AFTER merge
   console.log(`[runPotentialAnalysis] AFTER MERGE h.yieldSource = '${h.yieldSource}'`);
+  console.log(`[runPotentialAnalysis] ======================================`);
   
   // ========== STEP 1: Build 8760-hour simulation data ==========
   // Aggregate readings into hourly consumption and peak power (with interpolation for missing months)
