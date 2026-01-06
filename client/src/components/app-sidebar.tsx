@@ -326,7 +326,7 @@ export function AppSidebar() {
           <img 
             src={currentLogo} 
             alt="kWh Québec" 
-            className="h-12 w-auto"
+            className="h-[3.75rem] w-auto"
             data-testid="logo-sidebar"
           />
         </Link>
