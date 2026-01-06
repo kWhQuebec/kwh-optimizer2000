@@ -8595,6 +8595,44 @@ function runPotentialAnalysis(
       // Calculate annual savings
       const finalAnnualSavings = finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12;
       
+      // Build correct breakdown for final sizing (not the stale optBreakdown)
+      const finalCapexPV = finalPvSizeKW * 1000 * h.solarCostPerW;
+      const finalCapexBattery = finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost;
+      const finalCapexGross = finalCapexPV + finalCapexBattery;
+      const finalPotentialHQSolar = finalPvSizeKW * 1000;
+      const finalPotentialHQBattery = finalBattEnergyKWh * 150;
+      const finalCap40Percent = finalCapexGross * 0.40;
+      const finalIncentivesHQSolar = finalResult.incentivesHQSolar || 0;
+      const finalIncentivesHQBattery = finalResult.incentivesHQBattery || 0;
+      const finalIncentivesHQ = finalResult.incentivesHQ || 0;
+      const finalBatterySubY0 = finalIncentivesHQBattery * 0.5;
+      const finalBatterySubY1 = finalIncentivesHQBattery * 0.5;
+      const finalItcBasis = finalCapexGross - finalIncentivesHQ;
+      const finalIncentivesFederal = finalResult.incentivesFederal || 0;
+      const finalCapexNetAccounting = finalCapexGross - finalIncentivesHQ - finalIncentivesFederal;
+      const finalTaxShield = finalResult.taxShield || 0;
+      const finalEquityInitial = finalCapexGross - finalIncentivesHQSolar - finalBatterySubY0;
+      
+      const finalBreakdown: FinancialBreakdown = {
+        capexSolar: finalCapexPV,
+        capexBattery: finalCapexBattery,
+        capexGross: finalCapexGross,
+        potentialHQSolar: finalPotentialHQSolar,
+        potentialHQBattery: finalPotentialHQBattery,
+        cap40Percent: finalCap40Percent,
+        actualHQSolar: finalIncentivesHQSolar,
+        actualHQBattery: finalIncentivesHQBattery,
+        totalHQ: finalIncentivesHQ,
+        itcBasis: finalItcBasis,
+        itcAmount: finalIncentivesFederal,
+        depreciableBasis: finalCapexNetAccounting,
+        taxShield: finalTaxShield,
+        equityInitial: finalEquityInitial,
+        batterySubY0: finalBatterySubY0,
+        batterySubY1: finalBatterySubY1,
+        capexNet: trueOptCapexNet,
+      };
+      
       // Return the truly optimal result
       return {
         pvSizeKW: finalPvSizeKW,
@@ -8635,7 +8673,7 @@ function runPotentialAnalysis(
         co2AvoidedTonnesPerYear: finalCo2AvoidedTonnesPerYear,
         assumptions: h,
         cashflows: finalResult.cashflows || [],
-        breakdown: optBreakdown,
+        breakdown: finalBreakdown,
         hourlyProfile: finalSimResult.hourlyProfile,
         peakWeekData: finalSimResult.peakWeekData,
         sensitivity: finalSensitivity,
@@ -9578,6 +9616,7 @@ function runSensitivityAnalysis(
         capexNet: result.capexNet,
         npv25: result.npv25,
         isOptimal: false,
+        sweepSource: 'pvSweep', // PV varies, battery fixed
       });
     }
   }
@@ -9633,6 +9672,7 @@ function runSensitivityAnalysis(
         capexNet: result.capexNet,
         npv25: result.npv25,
         isOptimal: false,
+        sweepSource: 'battSweep', // Battery varies, PV fixed
       });
     }
   }

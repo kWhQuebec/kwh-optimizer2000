@@ -3423,6 +3423,25 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
   const assumptions = (simulation.assumptions as AnalysisAssumptions | null) || defaultAnalysisAssumptions;
   const interpolatedMonths = (simulation.interpolatedMonths as number[] | null) || [];
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
+  
+  // Validation: Detect breakdown/pvSizeKW mismatch (regression detection)
+  useEffect(() => {
+    if (breakdown && simulation.pvSizeKW && assumptions.solarCostPerW) {
+      const expectedCapexSolar = simulation.pvSizeKW * 1000 * assumptions.solarCostPerW;
+      const actualCapexSolar = breakdown.capexSolar || 0;
+      const mismatchRatio = Math.abs(expectedCapexSolar - actualCapexSolar) / Math.max(expectedCapexSolar, 1);
+      
+      if (mismatchRatio > 0.1) { // More than 10% mismatch
+        console.warn(
+          `[BREAKDOWN MISMATCH] Financial breakdown may be stale!\n` +
+          `  PV Size: ${simulation.pvSizeKW} kW\n` +
+          `  Expected CAPEX Solar: $${expectedCapexSolar.toFixed(0)}\n` +
+          `  Actual CAPEX Solar: $${actualCapexSolar.toFixed(0)}\n` +
+          `  Mismatch: ${(mismatchRatio * 100).toFixed(1)}%`
+        );
+      }
+    }
+  }, [breakdown, simulation.pvSizeKW, assumptions.solarCostPerW]);
 
   const usableRoofSqFt = assumptions.roofAreaSqFt * assumptions.roofUtilizationRatio;
   const maxPVFromRoof = usableRoofSqFt / 100;
@@ -4539,10 +4558,68 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
                         );
                       }}
                     />
-                    {/* Hybrid points */}
+                    {/* Hybrid points - PV sweep (varies PV at fixed battery) */}
+                    <Scatter
+                      name={language === "fr" ? "PV variable" : "PV sweep"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal && p.sweepSource === 'pvSweep')}
+                      fill="#22C55E"
+                      shape={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        const fillOpacity = payload.npv25 >= 0 ? 1 : 0.25;
+                        return (
+                          <circle 
+                            cx={cx} 
+                            cy={cy} 
+                            r={6} 
+                            fill="#22C55E" 
+                            fillOpacity={fillOpacity}
+                            style={{ cursor: isStaff ? 'pointer' : 'default' }}
+                            data-testid={`scatter-hybrid-pv-${payload.pvSizeKW}-${payload.battEnergyKWh}`}
+                            onClick={(e) => {
+                              if (isStaff) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleChartPointClick({ payload }, 0);
+                              }
+                            }}
+                          />
+                        );
+                      }}
+                    />
+                    {/* Hybrid points - Battery sweep (varies battery at fixed PV) */}
+                    <Scatter
+                      name={language === "fr" ? "Batterie variable" : "Battery sweep"}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal && p.sweepSource === 'battSweep')}
+                      fill="#10B981"
+                      shape={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        const fillOpacity = payload.npv25 >= 0 ? 1 : 0.25;
+                        return (
+                          <rect 
+                            x={cx - 5} 
+                            y={cy - 5} 
+                            width={10} 
+                            height={10} 
+                            fill="#10B981" 
+                            fillOpacity={fillOpacity}
+                            rx={2}
+                            style={{ cursor: isStaff ? 'pointer' : 'default' }}
+                            data-testid={`scatter-hybrid-batt-${payload.pvSizeKW}-${payload.battEnergyKWh}`}
+                            onClick={(e) => {
+                              if (isStaff) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleChartPointClick({ payload }, 0);
+                              }
+                            }}
+                          />
+                        );
+                      }}
+                    />
+                    {/* Legacy hybrid points without sweepSource (backwards compatibility) */}
                     <Scatter
                       name={language === "fr" ? "Hybride" : "Hybrid"}
-                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal)}
+                      data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal && !p.sweepSource)}
                       fill="#22C55E"
                       shape={(props: any) => {
                         const { cx, cy, payload } = props;
@@ -4602,6 +4679,20 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
               </div>
               {/* Legend clarification */}
               <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                {/* Only show PV sweep legend if there are PV sweep hybrid points */}
+                {(simulation.sensitivity as SensitivityAnalysis).frontier.some(p => p.sweepSource === 'pvSweep') && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22C55E' }}></div>
+                    <span>{language === "fr" ? "PV variable (batterie fixe)" : "PV sweep (fixed battery)"}</span>
+                  </div>
+                )}
+                {/* Only show Battery sweep legend if there are battery sweep hybrid points */}
+                {(simulation.sensitivity as SensitivityAnalysis).frontier.some(p => p.sweepSource === 'battSweep') && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#10B981' }}></div>
+                    <span>{language === "fr" ? "Batterie variable (PV fixe)" : "Battery sweep (fixed PV)"}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-0.5 bg-destructive" style={{ borderStyle: 'dashed' }}></div>
                   <span>{language === "fr" ? "Seuil de rentabilité (VAN = 0)" : "Profitability threshold (NPV = 0)"}</span>

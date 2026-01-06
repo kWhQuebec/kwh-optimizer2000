@@ -1962,6 +1962,10 @@ export interface FrontierPoint {
   npv25: number;         // Y-axis: Profit net (VAN $)
   isOptimal: boolean;
   
+  // Sweep source for hybrid points (for visual distinction)
+  // 'pvSweep' = varies PV at fixed battery, 'battSweep' = varies battery at fixed PV
+  sweepSource?: 'pvSweep' | 'battSweep';
+  
   // Extended KPI fields (populated only for optimal scenario)
   annualSavings?: number;
   irr25?: number;
