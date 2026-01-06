@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Download, Sun, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
+import { Download, Sun, AlertTriangle, ZoomIn, ZoomOut, Eye, EyeOff, Info } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface SolarMockupData {
@@ -52,6 +52,7 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
   const [panelCount, setPanelCount] = useState<number>(targetPanelCount || 0);
   const [zoom, setZoom] = useState<number>(1);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [showConstraints, setShowConstraints] = useState(false);
 
   // Fetch mockup data
   const { data: mockupData, isLoading, error } = useQuery<SolarMockupData>({
@@ -123,7 +124,36 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
         };
       };
 
-      // Draw panels (blue with transparency)
+      // FIRST: Draw constraint areas (orange) - so panels appear on top
+      if (showConstraints) {
+        ctx.fillStyle = 'rgba(249, 115, 22, 0.4)'; // Orange with transparency
+        ctx.strokeStyle = 'rgba(234, 88, 12, 0.7)';
+        ctx.lineWidth = 1;
+
+        mockupData.roofSegments.forEach(segment => {
+          // Mark as constraint only if:
+          // - Very steep (> 60 degrees) 
+          // - Very small area (< 5 m²)
+          const isConstraint = 
+            segment.pitchDegrees > 60 ||
+            segment.areaMeters2 < 5;
+
+          if (isConstraint && segment.boundingBox) {
+            const sw = geoToCanvas(segment.boundingBox.sw.latitude, segment.boundingBox.sw.longitude);
+            const ne = geoToCanvas(segment.boundingBox.ne.latitude, segment.boundingBox.ne.longitude);
+            
+            const width = Math.abs(ne.x - sw.x);
+            const height = Math.abs(ne.y - sw.y);
+            const x = Math.min(sw.x, ne.x);
+            const y = Math.min(sw.y, ne.y);
+            
+            ctx.fillRect(x, y, width, height);
+            ctx.strokeRect(x, y, width, height);
+          }
+        });
+      }
+
+      // SECOND: Draw panels (blue with transparency) - on top of constraints
       const panelsToShow = mockupData.panels.slice(0, panelCount);
       const panelWidth = mockupData.panelDimensions.widthMeters / metersPerPixel;
       const panelHeight = mockupData.panelDimensions.heightMeters / metersPerPixel;
@@ -142,51 +172,23 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
         ctx.strokeRect(x - w/2, y - h/2, w, h);
       });
 
-      // Draw constraint areas (orange) - unused roof segments
-      // Only show segments that are NOT south-facing (azimuth not between 135-225)
-      ctx.fillStyle = 'rgba(249, 115, 22, 0.5)'; // Orange with transparency
-      ctx.strokeStyle = 'rgba(234, 88, 12, 0.8)';
-      ctx.lineWidth = 2;
-
-      mockupData.roofSegments.forEach(segment => {
-        // Mark as constraint if:
-        // - Too steep (> 45 degrees)
-        // - North-facing (azimuth < 90 or > 270)
-        // - Very small area (< 10 m²)
-        const isConstraint = 
-          segment.pitchDegrees > 45 ||
-          segment.azimuthDegrees < 90 ||
-          segment.azimuthDegrees > 270 ||
-          segment.areaMeters2 < 10;
-
-        if (isConstraint && segment.boundingBox) {
-          const sw = geoToCanvas(segment.boundingBox.sw.latitude, segment.boundingBox.sw.longitude);
-          const ne = geoToCanvas(segment.boundingBox.ne.latitude, segment.boundingBox.ne.longitude);
-          
-          const width = Math.abs(ne.x - sw.x);
-          const height = Math.abs(ne.y - sw.y);
-          const x = Math.min(sw.x, ne.x);
-          const y = Math.min(sw.y, ne.y);
-          
-          ctx.fillRect(x, y, width, height);
-          ctx.strokeRect(x, y, width, height);
-        }
-      });
-
       // Add legend
+      const legendHeight = showConstraints ? 50 : 30;
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(10, displayHeight - 60, 180, 50);
+      ctx.fillRect(10, displayHeight - legendHeight - 10, 180, legendHeight);
       
       ctx.font = '12px sans-serif';
       ctx.fillStyle = 'rgba(30, 64, 175, 1)';
-      ctx.fillRect(20, displayHeight - 50, 15, 15);
+      ctx.fillRect(20, displayHeight - legendHeight, 15, 15);
       ctx.fillStyle = 'white';
-      ctx.fillText(language === 'fr' ? 'Panneaux solaires' : 'Solar panels', 42, displayHeight - 39);
+      ctx.fillText(language === 'fr' ? 'Panneaux solaires' : 'Solar panels', 42, displayHeight - legendHeight + 11);
       
-      ctx.fillStyle = 'rgba(249, 115, 22, 1)';
-      ctx.fillRect(20, displayHeight - 30, 15, 15);
-      ctx.fillStyle = 'white';
-      ctx.fillText(language === 'fr' ? 'Contraintes' : 'Constraints', 42, displayHeight - 19);
+      if (showConstraints) {
+        ctx.fillStyle = 'rgba(249, 115, 22, 1)';
+        ctx.fillRect(20, displayHeight - legendHeight + 20, 15, 15);
+        ctx.fillStyle = 'white';
+        ctx.fillText(language === 'fr' ? 'Contraintes' : 'Constraints', 42, displayHeight - legendHeight + 31);
+      }
     };
 
     img.onerror = () => {
@@ -195,7 +197,7 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
     };
 
     img.src = mockupData.satelliteImageUrl;
-  }, [mockupData, panelCount, zoom, language]);
+  }, [mockupData, panelCount, zoom, language, showConstraints]);
 
   // Export function
   const handleExport = () => {
@@ -293,6 +295,15 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
           
           <div className="flex items-center gap-2">
             <Button
+              size="sm"
+              variant={showConstraints ? "default" : "outline"}
+              onClick={() => setShowConstraints(!showConstraints)}
+              data-testid="button-toggle-constraints"
+            >
+              {showConstraints ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+              {language === 'fr' ? 'Contraintes' : 'Constraints'}
+            </Button>
+            <Button
               size="icon"
               variant="outline"
               onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
@@ -311,6 +322,18 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW }: SolarMoc
             </Button>
           </div>
         </div>
+
+        {/* Warning if limited panel data */}
+        {mockupData.maxPanelsCount < 50 && (
+          <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md text-sm">
+            <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <span className="text-amber-800 dark:text-amber-200">
+              {language === 'fr' 
+                ? `Google Solar API a des données limitées pour ce bâtiment (${mockupData.maxPanelsCount} panneaux max). La visualisation peut ne pas couvrir tout le toit.` 
+                : `Google Solar API has limited data for this building (${mockupData.maxPanelsCount} panels max). Visualization may not cover the entire roof.`}
+            </span>
+          </div>
+        )}
 
         <div className="relative border rounded-lg overflow-hidden bg-muted">
           <canvas
