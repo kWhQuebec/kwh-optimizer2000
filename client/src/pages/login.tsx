@@ -63,7 +63,7 @@ export default function LoginPage() {
               <img 
                 src={currentLogo} 
                 alt="kWh Québec" 
-                className="h-12 w-auto"
+                className="h-[3.75rem] w-auto"
                 data-testid="logo-login-header"
               />
             </a>
@@ -83,7 +83,7 @@ export default function LoginPage() {
             <img 
               src={currentLogo} 
               alt="kWh Québec" 
-              className="h-14 w-auto mx-auto mb-2"
+              className="h-[70px] w-auto mx-auto mb-2"
               data-testid="logo-login-card"
             />
             <CardTitle className="text-2xl">{t("login.title")}</CardTitle>

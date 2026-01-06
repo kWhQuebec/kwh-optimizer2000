@@ -232,7 +232,7 @@ export default function LandingPage() {
               <img 
                 src={currentLogo} 
                 alt="kWh Québec" 
-                className="h-10 sm:h-12 w-auto"
+                className="h-[50px] sm:h-[3.75rem] w-auto"
                 data-testid="logo-header"
               />
             </Link>
