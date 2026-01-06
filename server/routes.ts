@@ -9284,6 +9284,12 @@ function runScenarioWithSizing(
   incentivesFederal: number;
   taxShield: number;
   cashflows: Array<{ year: number; netCashflow: number }>;
+  // Extended KPI fields for optimal scenario Dashboard
+  annualSavings: number;
+  simplePaybackYears: number;
+  totalProductionKWh: number;
+  selfSufficiencyPercent: number;
+  co2AvoidedTonnesPerYear: number;
 } {
   const h = assumptions;
   
@@ -9351,7 +9357,12 @@ function runScenarioWithSizing(
       irr25: 0, irr10: 0, irr20: 0,
       incentivesHQ: 0, incentivesHQSolar: 0, incentivesHQBattery: 0, 
       incentivesFederal: 0, taxShield: 0, 
-      cashflows: [] 
+      cashflows: [],
+      annualSavings: 0,
+      simplePaybackYears: 0,
+      totalProductionKWh: 0,
+      selfSufficiencyPercent: 0,
+      co2AvoidedTonnesPerYear: 0,
     };
   }
   
@@ -9449,13 +9460,27 @@ function runScenarioWithSizing(
   // Build cashflows array for return
   const cashflows = cashflowValues.map((netCashflow, index) => ({ year: index, netCashflow }));
   
+  // Calculate additional KPI metrics for Dashboard
+  const totalProductionKWh = pvSizeKW * effectiveYield;
+  const simplePaybackYears = annualSavings > 0 ? capexNet / annualSavings : 0;
+  const selfSufficiencyPercent = annualConsumptionKWh > 0 
+    ? (selfConsumptionKWh / annualConsumptionKWh) * 100 
+    : 0;
+  // Quebec grid emission factor: ~0.5 g CO2/kWh (very low due to hydro)
+  const co2AvoidedTonnesPerYear = (selfConsumptionKWh * 0.0005) / 1000;
+  
   return { 
     npv25, npv10, npv20, 
     capexNet, 
     irr25, irr10, irr20,
     incentivesHQ, incentivesHQSolar, incentivesHQBattery, 
     incentivesFederal, taxShield, 
-    cashflows 
+    cashflows,
+    annualSavings,
+    simplePaybackYears,
+    totalProductionKWh,
+    selfSufficiencyPercent,
+    co2AvoidedTonnesPerYear,
   };
 }
 
@@ -9687,9 +9712,23 @@ function runSensitivityAnalysis(
     }
   }
   
-  // Mark optimal
+  // Mark optimal and populate extended KPI fields for optimal point
   for (const point of frontier) {
     point.isOptimal = point.id === optimalId;
+    
+    // For the optimal point, run full analysis to get extended KPIs for Dashboard
+    if (point.isOptimal) {
+      const optResult = runScenarioWithSizing(
+        hourlyData, point.pvSizeKW, point.battEnergyKWh, point.battPowerKW,
+        peakKW, annualConsumptionKWh, assumptions
+      );
+      point.annualSavings = optResult.annualSavings;
+      point.irr25 = optResult.irr25;
+      point.simplePaybackYears = optResult.simplePaybackYears;
+      point.totalProductionKWh = optResult.totalProductionKWh;
+      point.selfSufficiencyPercent = optResult.selfSufficiencyPercent;
+      point.co2AvoidedTonnesPerYear = optResult.co2AvoidedTonnesPerYear;
+    }
   }
   
   // Mark optimal point in solar sweep

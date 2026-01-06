@@ -54,7 +54,8 @@ import {
   Phone,
   ArrowRight,
   XCircle,
-  Scale
+  Scale,
+  Star
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -3488,24 +3489,68 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
     </div>
   );
 
+  // Get optimal scenario from sensitivity analysis for unified Dashboard display
+  const optimalScenario = simulation.sensitivity 
+    ? (simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal)
+    : null;
+
+  // Use optimal scenario KPIs if available (for unified "best NPV" display)
+  const dashboardPvSizeKW = optimalScenario?.pvSizeKW ?? simulation.pvSizeKW ?? 0;
+  const dashboardBattEnergyKWh = optimalScenario?.battEnergyKWh ?? 0;
+  const dashboardProductionMWh = optimalScenario?.totalProductionKWh 
+    ? optimalScenario.totalProductionKWh / 1000
+    : (dashboardPvSizeKW * (assumptions.solarYieldKWhPerKWp || 1150)) / 1000;
+  const dashboardCoveragePercent = optimalScenario?.selfSufficiencyPercent 
+    ?? simulation.selfSufficiencyPercent 
+    ?? ((simulation.selfConsumptionKWh && simulation.annualConsumptionKWh)
+      ? (simulation.selfConsumptionKWh / simulation.annualConsumptionKWh) * 100
+      : 0);
+  const dashboardPaybackYears = optimalScenario?.simplePaybackYears ?? simulation.simplePaybackYears ?? 0;
+  const dashboardAnnualSavings = optimalScenario?.annualSavings ?? simulation.annualSavings ?? 0;
+  const dashboardNpv25 = optimalScenario?.npv25 ?? simulation.npv25 ?? 0;
+  const dashboardIrr25 = optimalScenario?.irr25 ?? simulation.irr25 ?? 0;
+  const dashboardCo2Tonnes = optimalScenario?.co2AvoidedTonnesPerYear ?? simulation.co2AvoidedTonnesPerYear ?? 0;
+
   return (
     <div className="space-y-6">
-      {/* KPI Dashboard - Quick Overview */}
+      {/* Optimal System Recommendation Banner */}
+      {optimalScenario && (
+        <Card className="border-primary bg-gradient-to-r from-primary/10 to-primary/5">
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-primary/20">
+                  <Star className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "fr" ? "Système recommandé (meilleure VAN)" : "Recommended System (best NPV)"}
+                  </p>
+                  <p className="text-lg font-bold text-foreground" data-testid="text-recommended-system">
+                    {dashboardPvSizeKW > 0 && `${Math.round(dashboardPvSizeKW)} kWc PV`}
+                    {dashboardPvSizeKW > 0 && dashboardBattEnergyKWh > 0 && " + "}
+                    {dashboardBattEnergyKWh > 0 && `${Math.round(dashboardBattEnergyKWh)} kWh ${language === "fr" ? "stockage" : "storage"}`}
+                  </p>
+                </div>
+              </div>
+              <Badge variant="default" className="text-sm px-3 py-1">
+                {language === "fr" ? "VAN" : "NPV"}: ${(dashboardNpv25 / 1000).toFixed(0)}k
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* KPI Dashboard - Quick Overview (using optimal scenario data) */}
       <KPIDashboard
-        pvSizeKW={simulation.pvSizeKW || 0}
-        productionMWh={((simulation.pvSizeKW || 0) * (assumptions.solarYieldKWhPerKWp || 1150)) / 1000}
-        coveragePercent={
-          simulation.selfSufficiencyPercent 
-            ? simulation.selfSufficiencyPercent 
-            : (simulation.selfConsumptionKWh && simulation.annualConsumptionKWh)
-              ? (simulation.selfConsumptionKWh / simulation.annualConsumptionKWh) * 100
-              : 0
-        }
-        paybackYears={simulation.simplePaybackYears || 0}
-        annualSavings={simulation.annualSavings || 0}
-        npv25={simulation.npv25 || 0}
-        irr25={simulation.irr25 || 0}
-        co2Tonnes={simulation.co2AvoidedTonnesPerYear || 0}
+        pvSizeKW={dashboardPvSizeKW}
+        productionMWh={dashboardProductionMWh}
+        coveragePercent={dashboardCoveragePercent}
+        paybackYears={dashboardPaybackYears}
+        annualSavings={dashboardAnnualSavings}
+        npv25={dashboardNpv25}
+        irr25={dashboardIrr25}
+        co2Tonnes={dashboardCo2Tonnes}
       />
 
       {/* Satellite Hero Image */}

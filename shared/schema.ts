@@ -1961,6 +1961,14 @@ export interface FrontierPoint {
   capexNet: number;      // X-axis: Investment net ($)
   npv25: number;         // Y-axis: Profit net (VAN $)
   isOptimal: boolean;
+  
+  // Extended KPI fields (populated only for optimal scenario)
+  annualSavings?: number;
+  irr25?: number;
+  simplePaybackYears?: number;
+  totalProductionKWh?: number;
+  selfSufficiencyPercent?: number;
+  co2AvoidedTonnesPerYear?: number;
 }
 
 // Solar size sweep point
