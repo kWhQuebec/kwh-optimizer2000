@@ -57,6 +57,8 @@ import {
   runSolarBatterySimulation,
   buildSimulationParams,
   buildSystemParams,
+  getTieredSolarCostPerW,
+  getSolarPricingTierLabel,
   QUEBEC_MONTHLY_TEMPS as UNIFIED_QUEBEC_TEMPS,
   BASELINE_YIELD,
   type MonteCarloConfig,
@@ -8097,10 +8099,12 @@ function runPotentialAnalysis(
   const annualSurplusRevenue = totalExportedKWh * hqSurplusRate;
   
   // ========== STEP 5: Calculate CAPEX ==========
+  // Use tiered pricing based on system size (automatic, or override from assumptions)
+  const baseSolarCostPerW = h.solarCostPerW ?? getTieredSolarCostPerW(pvSizeKW);
   // Apply bifacial cost premium if enabled (typically 5-10 cents/W more)
   const effectiveSolarCostPerW = h.bifacialEnabled 
-    ? h.solarCostPerW + (h.bifacialCostPremium || 0.10)
-    : h.solarCostPerW;
+    ? baseSolarCostPerW + (h.bifacialCostPremium || 0.10)
+    : baseSolarCostPerW;
   const capexPV = pvSizeKW * 1000 * effectiveSolarCostPerW;
   const capexBattery = battEnergyKWh * h.batteryCapacityCost + battPowerKW * h.batteryPowerCost;
   const capexGross = capexPV + capexBattery;
@@ -8342,10 +8346,12 @@ function runPotentialAnalysis(
     const optAnnualCostAfter = annualCostBefore - optAnnualSavings;
     const optSavingsYear1 = optAnnualSavings;
     
+    // Use tiered pricing based on optimal system size (automatic, or override from assumptions)
+    const optBaseSolarCostPerW = h.solarCostPerW ?? getTieredSolarCostPerW(optPvSizeKW);
     // Apply bifacial cost premium if enabled (same as initial calculation)
     const optEffectiveSolarCostPerW = h.bifacialEnabled 
-      ? h.solarCostPerW + (h.bifacialCostPremium || 0.10)
-      : h.solarCostPerW;
+      ? optBaseSolarCostPerW + (h.bifacialCostPremium || 0.10)
+      : optBaseSolarCostPerW;
     const optCapexPV = optPvSizeKW * 1000 * optEffectiveSolarCostPerW;
     const optCapexBattery = optBattEnergyKWh * h.batteryCapacityCost + optBattPowerKW * h.batteryPowerCost;
     const optCapexGross = optCapexPV + optCapexBattery;
@@ -8586,7 +8592,9 @@ function runPotentialAnalysis(
         const degradationFactor = Math.pow(1 - degradationRate, y - 1);
         finalTotalProduction += finalPvSizeKW * finalEffectiveYield * degradationFactor;
       }
-      const finalOpexBase = (finalPvSizeKW * 1000 * h.solarCostPerW) * 0.01; // 1% of solar CAPEX
+      // Use tiered pricing based on final system size
+      const finalBaseCostPerW = h.solarCostPerW ?? getTieredSolarCostPerW(finalPvSizeKW);
+      const finalOpexBase = (finalPvSizeKW * 1000 * finalBaseCostPerW) * 0.01; // 1% of solar CAPEX
       const finalTotalLifetimeCost = trueOptCapexNet + (finalOpexBase * h.analysisYears);
       const finalLcoe = finalTotalProduction > 0 ? finalTotalLifetimeCost / finalTotalProduction : 0;
       
@@ -8598,7 +8606,7 @@ function runPotentialAnalysis(
       const finalAnnualSavings = finalSimResult.totalSelfConsumption * h.tariffEnergy + (peakKW - finalSimResult.peakAfter) * h.tariffPower * 12;
       
       // Build correct breakdown for final sizing (not the stale optBreakdown)
-      const finalCapexPV = finalPvSizeKW * 1000 * h.solarCostPerW;
+      const finalCapexPV = finalPvSizeKW * 1000 * finalBaseCostPerW;
       const finalCapexBattery = finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost;
       const finalCapexGross = finalCapexPV + finalCapexBattery;
       const finalPotentialHQSolar = finalPvSizeKW * 1000;
@@ -8654,8 +8662,8 @@ function runPotentialAnalysis(
         annualCostAfter: annualCostBefore - finalAnnualSavings,
         annualSavings: finalAnnualSavings,
         savingsYear1: finalAnnualSavings,
-        capexGross: (finalPvSizeKW * 1000 * h.solarCostPerW) + (finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost),
-        capexPV: finalPvSizeKW * 1000 * h.solarCostPerW,
+        capexGross: (finalPvSizeKW * 1000 * finalBaseCostPerW) + (finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost),
+        capexPV: finalPvSizeKW * 1000 * finalBaseCostPerW,
         capexBattery: finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost,
         incentivesHQ: finalResult.incentivesHQ || 0,
         incentivesHQSolar: finalResult.incentivesHQSolar || 0,
@@ -9382,10 +9390,12 @@ function runScenarioWithSizing(
   const scenarioHqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454;
   const annualSurplusRevenue = annualExportedKWh * scenarioHqSurplusRate;
   
-  // CAPEX - apply bifacial cost premium if enabled
+  // CAPEX - use tiered pricing based on system size (automatic, or override from assumptions)
+  const baseSolarCostPerW = h.solarCostPerW ?? getTieredSolarCostPerW(pvSizeKW);
+  // Apply bifacial cost premium if enabled
   const effectiveSolarCostPerW = h.bifacialEnabled 
-    ? h.solarCostPerW + (h.bifacialCostPremium || 0.10)
-    : h.solarCostPerW;
+    ? baseSolarCostPerW + (h.bifacialCostPremium || 0.10)
+    : baseSolarCostPerW;
   const capexPV = pvSizeKW * 1000 * effectiveSolarCostPerW;
   const capexBattery = battEnergyKWh * h.batteryCapacityCost + battPowerKW * h.batteryPowerCost;
   const capexGross = capexPV + capexBattery;

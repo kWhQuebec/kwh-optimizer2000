@@ -48,6 +48,12 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
 -   **O&M Contracts Management**: System for recurring O&M contracts with SLA tracking and billing.
 -   **Maintenance Visits Tracking**: Schedules and logs various types of maintenance visits.
 -   **O&M Performance Dashboard**: Real-time monitoring of installed solar systems with KPIs, charts, and alerts.
+-   **Automatic Tiered Pricing**: Solar cost per watt is automatically adjusted based on system size (economies of scale):
+    -   < 100 kW: $2.30/W (small commercial)
+    -   100-500 kW: $2.15/W (medium commercial)
+    -   500 kW - 1 MW: $2.00/W (large commercial)
+    -   1-3 MW: $1.85/W (industrial)
+    -   3 MW+: $1.70/W (utility-scale)
 -   **Advanced Analysis Modules**:
     -   **Monte Carlo Probabilistic ROI**: A 500-iteration simulation for financial calculations with variable ranges, returning P10/P50/P90 confidence intervals.
     -   **15-Minute Peak Shaving Calculator**: Analyzes granular consumption data for battery storage optimization and demand charge savings.

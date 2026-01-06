@@ -13,6 +13,42 @@
 
 import type { AnalysisAssumptions } from "@shared/schema";
 
+// ==================== TIERED PRICING ====================
+
+/**
+ * Calculate tiered solar cost per watt based on system size
+ * Larger systems get better pricing due to economies of scale
+ * 
+ * Pricing tiers (Quebec market, 2025):
+ * - < 100 kW:      $2.30/W (small commercial)
+ * - 100-500 kW:    $2.15/W (medium commercial)
+ * - 500 kW - 1 MW: $2.00/W (large commercial)
+ * - 1-3 MW:        $1.85/W (industrial)
+ * - 3 MW+:         $1.70/W (utility-scale)
+ */
+export function getTieredSolarCostPerW(pvSizeKW: number): number {
+  if (pvSizeKW >= 3000) return 1.70;      // 3 MW+
+  if (pvSizeKW >= 1000) return 1.85;      // 1-3 MW
+  if (pvSizeKW >= 500)  return 2.00;      // 500 kW - 1 MW
+  if (pvSizeKW >= 100)  return 2.15;      // 100-500 kW
+  return 2.30;                             // < 100 kW
+}
+
+/**
+ * Get tier label for display purposes
+ */
+export function getSolarPricingTierLabel(pvSizeKW: number, lang: 'fr' | 'en' = 'fr'): string {
+  const price = getTieredSolarCostPerW(pvSizeKW);
+  const tierLabels: Record<number, { fr: string; en: string }> = {
+    1.70: { fr: 'Tier 1 (3 MW+)', en: 'Tier 1 (3 MW+)' },
+    1.85: { fr: 'Tier 2 (1-3 MW)', en: 'Tier 2 (1-3 MW)' },
+    2.00: { fr: 'Tier 3 (500 kW-1 MW)', en: 'Tier 3 (500 kW-1 MW)' },
+    2.15: { fr: 'Tier 4 (100-500 kW)', en: 'Tier 4 (100-500 kW)' },
+    2.30: { fr: 'Tier 5 (<100 kW)', en: 'Tier 5 (<100 kW)' },
+  };
+  return tierLabels[price]?.[lang] || `$${price.toFixed(2)}/W`;
+}
+
 // ==================== TYPES ====================
 
 export interface AnalysisMeterReading {

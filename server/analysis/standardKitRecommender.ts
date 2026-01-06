@@ -203,7 +203,8 @@ function calculateCustomPrice(
   batteryKW: number,
   config: KitSelectionConfig
 ): number {
-  const solarCostPerW = config.customPricePerWatt || 2.25;
+  // Use tiered pricing based on system size, or custom override
+  const solarCostPerW = config.customPricePerWatt || getTieredPricing(pvKW);
   const batteryCapacityCost = config.customBatteryCapacityCost || 550;
   const batteryPowerCost = config.customBatteryPowerCost || 800;
   
@@ -211,6 +212,17 @@ function calculateCustomPrice(
   const batteryCost = (batteryKWh * batteryCapacityCost) + (batteryKW * batteryPowerCost);
   
   return solarCost + batteryCost;
+}
+
+/**
+ * Get tiered solar pricing based on system size
+ */
+function getTieredPricing(pvKW: number): number {
+  if (pvKW >= 3000) return 1.70;      // 3 MW+
+  if (pvKW >= 1000) return 1.85;      // 1-3 MW
+  if (pvKW >= 500)  return 2.00;      // 500 kW - 1 MW
+  if (pvKW >= 100)  return 2.15;      // 100-500 kW
+  return 2.30;                         // < 100 kW
 }
 
 export function recommendStandardKit(
