@@ -728,143 +728,207 @@ export default function PortfolioDetailPage() {
               <p>{language === "fr" ? "Aucun site dans ce portfolio" : "No sites in this portfolio"}</p>
               <p className="text-sm">{language === "fr" ? "Ajoutez des sites analysés pour voir le tableau récapitulatif." : "Add analyzed sites to see the summary table."}</p>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{language === "fr" ? "Site" : "Site"}</TableHead>
-                    <TableHead>{language === "fr" ? "Statut RFP" : "RFP Status"}</TableHead>
-                    <TableHead className="text-right">PV (kW)</TableHead>
-                    <TableHead className="text-right">{language === "fr" ? "Batt. (kWh)" : "Batt. (kWh)"}</TableHead>
-                    <TableHead className="text-right">CAPEX net</TableHead>
-                    <TableHead className="text-right">NPV</TableHead>
-                    <TableHead className="text-right">TRI</TableHead>
-                    <TableHead className="text-right">{language === "fr" ? "Écon./an" : "Savings/yr"}</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {portfolioSites.map((ps) => {
-                    const sim = ps.latestSimulation;
-                    // Check if portfolio site has override values
-                    const psAny = ps as any; // Access override fields
-                    return (
-                      <TableRow key={ps.siteId}>
+          ) : (() => {
+            // Separate sites into RFP eligible and Hors RFP categories
+            const rfpEligibleSites = portfolioSites.filter(ps => 
+              (ps.site as any)?.hqRfpStatus === "eligible"
+            );
+            const horsRfpSites = portfolioSites.filter(ps => 
+              (ps.site as any)?.hqRfpStatus !== "eligible"
+            );
+
+            const renderSiteRow = (ps: typeof portfolioSites[0]) => {
+              const sim = ps.latestSimulation;
+              const psAny = ps as any;
+              return (
+                <TableRow key={ps.siteId}>
+                  <TableCell>
+                    <Link href={`/app/sites/${ps.siteId}`}>
+                      <span className="font-medium hover:underline cursor-pointer" data-testid={`link-site-${ps.siteId}`}>
+                        {ps.site?.name || ps.siteId}
+                      </span>
+                    </Link>
+                    {ps.site?.city && (
+                      <span className="text-muted-foreground text-sm block">{ps.site.city}</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <HqRfpStatusBadge status={(ps.site as any)?.hqRfpStatus} language={language} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EditableCell
+                      value={sim?.pvSizeKW}
+                      overrideValue={psAny.overridePvSizeKW}
+                      portfolioSiteId={ps.id}
+                      field="overridePvSizeKW"
+                      type="number"
+                      formatFn={formatNumber}
+                      onSave={handleSaveOverride}
+                      isOverride={psAny.overridePvSizeKW != null}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EditableCell
+                      value={sim?.battEnergyKWh}
+                      overrideValue={psAny.overrideBatteryKWh}
+                      portfolioSiteId={ps.id}
+                      field="overrideBatteryKWh"
+                      type="number"
+                      formatFn={formatNumber}
+                      onSave={handleSaveOverride}
+                      isOverride={psAny.overrideBatteryKWh != null}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EditableCell
+                      value={sim?.capexNet}
+                      overrideValue={psAny.overrideCapexNet}
+                      portfolioSiteId={ps.id}
+                      field="overrideCapexNet"
+                      type="currency"
+                      formatFn={formatCurrency}
+                      onSave={handleSaveOverride}
+                      isOverride={psAny.overrideCapexNet != null}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EditableCell
+                      value={sim?.npv25}
+                      overrideValue={psAny.overrideNpv}
+                      portfolioSiteId={ps.id}
+                      field="overrideNpv"
+                      type="currency"
+                      formatFn={formatCurrency}
+                      onSave={handleSaveOverride}
+                      isOverride={psAny.overrideNpv != null}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EditableCell
+                      value={sim?.irr25}
+                      overrideValue={psAny.overrideIrr}
+                      portfolioSiteId={ps.id}
+                      field="overrideIrr"
+                      type="percent"
+                      formatFn={formatPercent}
+                      onSave={handleSaveOverride}
+                      isOverride={psAny.overrideIrr != null}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EditableCell
+                      value={sim?.annualSavings}
+                      overrideValue={psAny.overrideAnnualSavings}
+                      portfolioSiteId={ps.id}
+                      field="overrideAnnualSavings"
+                      type="currency"
+                      formatFn={formatCurrency}
+                      onSave={handleSaveOverride}
+                      isOverride={psAny.overrideAnnualSavings != null}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => removeSiteMutation.mutate(ps.siteId)}
+                      disabled={removeSiteMutation.isPending}
+                      data-testid={`button-remove-site-${ps.siteId}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            };
+
+            const tableHeader = (
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{language === "fr" ? "Site" : "Site"}</TableHead>
+                  <TableHead>{language === "fr" ? "Statut RFP" : "RFP Status"}</TableHead>
+                  <TableHead className="text-right">PV (kW)</TableHead>
+                  <TableHead className="text-right">{language === "fr" ? "Batt. (kWh)" : "Batt. (kWh)"}</TableHead>
+                  <TableHead className="text-right">CAPEX net</TableHead>
+                  <TableHead className="text-right">NPV</TableHead>
+                  <TableHead className="text-right">TRI</TableHead>
+                  <TableHead className="text-right">{language === "fr" ? "Écon./an" : "Savings/yr"}</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+            );
+
+            return (
+              <div className="space-y-6">
+                {/* RFP Eligible Sites Section */}
+                {rfpEligibleSites.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge variant="default" className="text-sm">
+                        {language === "fr" ? "Éligible RFP HQ" : "HQ RFP Eligible"}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        ({rfpEligibleSites.length} {language === "fr" ? "sites" : "sites"})
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto border rounded-lg">
+                      <Table>
+                        {tableHeader}
+                        <TableBody>
+                          {rfpEligibleSites.map(renderSiteRow)}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hors RFP Sites Section */}
+                {horsRfpSites.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge variant="secondary" className="text-sm">
+                        {language === "fr" ? "Hors RFP" : "Non-RFP"}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        ({horsRfpSites.length} {language === "fr" ? "sites" : "sites"})
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto border rounded-lg">
+                      <Table>
+                        {tableHeader}
+                        <TableBody>
+                          {horsRfpSites.map(renderSiteRow)}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Portfolio Total */}
+                <div className="overflow-x-auto border rounded-lg bg-muted/30">
+                  <Table>
+                    <TableBody>
+                      <TableRow className="font-bold">
+                        <TableCell>{language === "fr" ? "Total Portfolio" : "Portfolio Total"}</TableCell>
                         <TableCell>
-                          <Link href={`/app/sites/${ps.siteId}`}>
-                            <span className="font-medium hover:underline cursor-pointer" data-testid={`link-site-${ps.siteId}`}>
-                              {ps.site?.name || ps.siteId}
-                            </span>
-                          </Link>
-                          {ps.site?.city && (
-                            <span className="text-muted-foreground text-sm block">{ps.site.city}</span>
-                          )}
+                          <span className="text-sm text-muted-foreground">
+                            {portfolioSites.length} {language === "fr" ? "sites" : "sites"}
+                          </span>
                         </TableCell>
-                        <TableCell>
-                          <HqRfpStatusBadge status={(ps.site as any)?.hqRfpStatus} language={language} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <EditableCell
-                            value={sim?.pvSizeKW}
-                            overrideValue={psAny.overridePvSizeKW}
-                            portfolioSiteId={ps.id}
-                            field="overridePvSizeKW"
-                            type="number"
-                            formatFn={formatNumber}
-                            onSave={handleSaveOverride}
-                            isOverride={psAny.overridePvSizeKW != null}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <EditableCell
-                            value={sim?.battEnergyKWh}
-                            overrideValue={psAny.overrideBatteryKWh}
-                            portfolioSiteId={ps.id}
-                            field="overrideBatteryKWh"
-                            type="number"
-                            formatFn={formatNumber}
-                            onSave={handleSaveOverride}
-                            isOverride={psAny.overrideBatteryKWh != null}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <EditableCell
-                            value={sim?.capexNet}
-                            overrideValue={psAny.overrideCapexNet}
-                            portfolioSiteId={ps.id}
-                            field="overrideCapexNet"
-                            type="currency"
-                            formatFn={formatCurrency}
-                            onSave={handleSaveOverride}
-                            isOverride={psAny.overrideCapexNet != null}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <EditableCell
-                            value={sim?.npv25}
-                            overrideValue={psAny.overrideNpv}
-                            portfolioSiteId={ps.id}
-                            field="overrideNpv"
-                            type="currency"
-                            formatFn={formatCurrency}
-                            onSave={handleSaveOverride}
-                            isOverride={psAny.overrideNpv != null}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <EditableCell
-                            value={sim?.irr25}
-                            overrideValue={psAny.overrideIrr}
-                            portfolioSiteId={ps.id}
-                            field="overrideIrr"
-                            type="percent"
-                            formatFn={formatPercent}
-                            onSave={handleSaveOverride}
-                            isOverride={psAny.overrideIrr != null}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <EditableCell
-                            value={sim?.annualSavings}
-                            overrideValue={psAny.overrideAnnualSavings}
-                            portfolioSiteId={ps.id}
-                            field="overrideAnnualSavings"
-                            type="currency"
-                            formatFn={formatCurrency}
-                            onSave={handleSaveOverride}
-                            isOverride={psAny.overrideAnnualSavings != null}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => removeSiteMutation.mutate(ps.siteId)}
-                            disabled={removeSiteMutation.isPending}
-                            data-testid={`button-remove-site-${ps.siteId}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </TableCell>
+                        <TableCell className="text-right">{formatNumber(portfolio.totalPvSizeKW)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(portfolio.totalBatteryKWh)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(portfolio.totalCapexNet)}</TableCell>
+                        <TableCell className="text-right text-green-600 dark:text-green-400">{formatCurrency(portfolio.totalNpv25)}</TableCell>
+                        <TableCell className="text-right">{formatPercent(portfolio.weightedIrr25)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(portfolio.totalAnnualSavings)}</TableCell>
+                        <TableCell></TableCell>
                       </TableRow>
-                    );
-                  })}
-                  <TableRow className="bg-muted/50 font-bold">
-                    <TableCell>Total</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell className="text-right">{formatNumber(portfolio.totalPvSizeKW)}</TableCell>
-                    <TableCell className="text-right">{formatNumber(portfolio.totalBatteryKWh)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(portfolio.totalCapexNet)}</TableCell>
-                    <TableCell className="text-right text-green-600 dark:text-green-400">{formatCurrency(portfolio.totalNpv25)}</TableCell>
-                    <TableCell className="text-right">{formatPercent(portfolio.weightedIrr25)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(portfolio.totalAnnualSavings)}</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
