@@ -334,8 +334,9 @@ export function RoofVisualization({
   }, [selectedCapacityKW, allPanelPositions.length]);
 
   // Draw panels based on selected capacity
+  // Depends on isLoading to ensure map is ready before drawing
   useEffect(() => {
-    if (!mapRef.current || !window.google) return;
+    if (!mapRef.current || !window.google || isLoading) return;
 
     // Clear existing panels
     panelOverlaysRef.current.forEach((p) => {
@@ -346,6 +347,7 @@ export function RoofVisualization({
     // Draw only the number of panels needed for selected capacity
     for (let i = 0; i < panelsToShow; i++) {
       const pos = allPanelPositions[i];
+      if (!pos) continue; // Safety check
       const panelRect = new google.maps.Rectangle({
         bounds: {
           north: pos.lat + pos.heightDeg,
@@ -370,7 +372,7 @@ export function RoofVisualization({
       });
       panelOverlaysRef.current = [];
     };
-  }, [panelsToShow, allPanelPositions]);
+  }, [panelsToShow, allPanelPositions, isLoading]);
 
   const isConstraintPolygon = (p: RoofPolygon) => {
     if (p.color === "#f97316") return true;
