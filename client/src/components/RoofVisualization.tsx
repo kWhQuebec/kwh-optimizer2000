@@ -218,16 +218,16 @@ export function RoofVisualization({
   }, [roofPolygons]);
 
   // Calculate all valid panel positions with CNESST-compliant optimization
-  // - 2m edge setback (no harness required per CNESST regulations)
+  // - 2m edge setback from bounding box (CNESST "ligne d'avertissement" - no harness required)
   // - South-to-north filling (optimal for Quebec, northern hemisphere)
-  // - Inter-row spacing for winter sun angle (~20° at solstice)
+  // - Inter-row spacing for winter sun angle (~20° at solstice, 30° panel tilt)
   useEffect(() => {
-    if (!window.google || roofPolygons.length === 0) {
+    if (!window.google || !google.maps?.geometry || roofPolygons.length === 0) {
       setAllPanelPositions([]);
       return;
     }
 
-    // Panel dimensions
+    // Panel dimensions (standard commercial modules)
     const panelWidthM = 2.0;  // East-West dimension
     const panelHeightM = 1.0; // North-South dimension
     const gapBetweenPanelsM = 0.3; // Gap between panels in same row
@@ -296,6 +296,7 @@ export function RoofVisualization({
       for (let lat = minLat + edgeSetbackDeg; lat < maxLat - panelHeightDeg - edgeSetbackDeg; lat += rowSpacingDeg) {
         // Fill each row from west to east
         for (let lng = minLng + edgeSetbackLngDeg; lng < maxLng - panelWidthDeg - edgeSetbackLngDeg; lng += panelWidthDeg + gapLngDeg) {
+          // 9-point containment test: 4 corners + 4 edge midpoints + center
           const testPoints = [
             new google.maps.LatLng(lat, lng),
             new google.maps.LatLng(lat, lng + panelWidthDeg),
@@ -324,7 +325,7 @@ export function RoofVisualization({
     });
 
     setAllPanelPositions(positions);
-  }, [roofPolygons]);
+  }, [roofPolygons, isLoading]); // Re-run when map loads (isLoading becomes false)
 
   // Number of panels to display based on selected capacity
   const panelsToShow = useMemo(() => {
