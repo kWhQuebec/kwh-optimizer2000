@@ -118,9 +118,26 @@ export function RoofVisualization({
       });
     });
 
-    if (hasValidCoords) {
-      // Fit bounds to show the entire polygon area with padding
-      mapRef.current.fitBounds(bounds, 80);
+    if (hasValidCoords && mapRef.current) {
+      // Fit bounds with small padding for tight framing
+      mapRef.current.fitBounds(bounds, { top: 40, right: 40, bottom: 80, left: 40 });
+      
+      // After fitBounds, ensure we have appropriate zoom level
+      // Use idle event to wait for fitBounds to complete
+      const listener = google.maps.event.addListenerOnce(mapRef.current, "idle", () => {
+        if (!mapRef.current) return;
+        const currentZoom = mapRef.current.getZoom();
+        // Ensure minimum zoom of 17 for good detail, max of 19 to avoid over-zoom
+        if (currentZoom && currentZoom < 17) {
+          mapRef.current.setZoom(17);
+        } else if (currentZoom && currentZoom > 19) {
+          mapRef.current.setZoom(19);
+        }
+      });
+      
+      return () => {
+        google.maps.event.removeListener(listener);
+      };
     }
   }, [roofPolygons, mapReady]);
 
