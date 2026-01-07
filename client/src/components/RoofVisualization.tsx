@@ -32,6 +32,7 @@ export function RoofVisualization({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const polygonOverlaysRef = useRef<google.maps.Polygon[]>([]);
+  const panelOverlaysRef = useRef<google.maps.Rectangle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -184,6 +185,130 @@ export function RoofVisualization({
     };
   }, [roofPolygons]);
 
+  // Draw solar panels inside blue polygon areas
+  useEffect(() => {
+    if (!mapRef.current || !window.google || roofPolygons.length === 0) return;
+
+    // Clear existing panels
+    panelOverlaysRef.current.forEach((p) => {
+      try { p.setMap(null); } catch (e) {}
+    });
+    panelOverlaysRef.current = [];
+
+    // Panel dimensions in meters (standard commercial panel ~2m x 1m)
+    const panelWidthM = 2.0;
+    const panelHeightM = 1.0;
+    const gapM = 0.3;
+
+    // Get solar (non-constraint) polygons
+    const solarPolygons = roofPolygons.filter((p) => {
+      if (p.color === "#f97316") return false;
+      const label = p.label?.toLowerCase() || "";
+      return !label.includes("constraint") && !label.includes("contrainte") && 
+             !label.includes("hvac") && !label.includes("obstacle");
+    });
+
+    // Get constraint polygons for exclusion
+    const constraintPolygonPaths = roofPolygons
+      .filter((p) => {
+        if (p.color === "#f97316") return true;
+        const label = p.label?.toLowerCase() || "";
+        return label.includes("constraint") || label.includes("contrainte") || 
+               label.includes("hvac") || label.includes("obstacle");
+      })
+      .map((p) => {
+        const coords = p.coordinates as [number, number][];
+        return new google.maps.Polygon({
+          paths: coords.map(([lng, lat]) => ({ lat, lng }))
+        });
+      });
+
+    solarPolygons.forEach((polygon) => {
+      const coords = polygon.coordinates as [number, number][];
+      if (!coords || coords.length < 3) return;
+
+      // Calculate bounding box
+      let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+      coords.forEach(([lng, lat]) => {
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+        minLng = Math.min(minLng, lng);
+        maxLng = Math.max(maxLng, lng);
+      });
+
+      // Convert meters to degrees (approximate at this latitude)
+      const metersPerDegreeLat = 111320;
+      const metersPerDegreeLng = 111320 * Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+      
+      const panelWidthDeg = panelWidthM / metersPerDegreeLng;
+      const panelHeightDeg = panelHeightM / metersPerDegreeLat;
+      const gapLngDeg = gapM / metersPerDegreeLng;
+      const gapLatDeg = gapM / metersPerDegreeLat;
+
+      const solarPolygonPath = new google.maps.Polygon({
+        paths: coords.map(([lng, lat]) => ({ lat, lng }))
+      });
+
+      // Generate panel grid - check corners, edges, and center to ensure panel is fully inside
+      for (let lat = minLat + gapLatDeg; lat < maxLat - panelHeightDeg; lat += panelHeightDeg + gapLatDeg) {
+        for (let lng = minLng + gapLngDeg; lng < maxLng - panelWidthDeg; lng += panelWidthDeg + gapLngDeg) {
+          // Define test points: 4 corners + 4 edge midpoints + center = 9 points
+          const testPoints = [
+            // 4 corners
+            new google.maps.LatLng(lat, lng),                                    // SW
+            new google.maps.LatLng(lat, lng + panelWidthDeg),                    // SE
+            new google.maps.LatLng(lat + panelHeightDeg, lng),                   // NW
+            new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg),   // NE
+            // 4 edge midpoints
+            new google.maps.LatLng(lat, lng + panelWidthDeg / 2),                // S edge
+            new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg / 2), // N edge
+            new google.maps.LatLng(lat + panelHeightDeg / 2, lng),               // W edge
+            new google.maps.LatLng(lat + panelHeightDeg / 2, lng + panelWidthDeg), // E edge
+            // Center
+            new google.maps.LatLng(lat + panelHeightDeg / 2, lng + panelWidthDeg / 2),
+          ];
+
+          // Check if ALL test points are inside the solar polygon
+          const allPointsInSolar = testPoints.every((point) => 
+            google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
+          );
+          if (!allPointsInSolar) continue;
+
+          // Check if ANY test point is inside a constraint polygon
+          const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
+            testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
+          );
+          if (anyPointInConstraint) continue;
+
+          // Draw panel rectangle
+          const panelRect = new google.maps.Rectangle({
+            bounds: {
+              north: lat + panelHeightDeg,
+              south: lat,
+              east: lng + panelWidthDeg,
+              west: lng,
+            },
+            strokeColor: "#1e40af",
+            strokeOpacity: 0.8,
+            strokeWeight: 1,
+            fillColor: "#3b82f6",
+            fillOpacity: 0.7,
+            map: mapRef.current,
+          });
+
+          panelOverlaysRef.current.push(panelRect);
+        }
+      }
+    });
+
+    return () => {
+      panelOverlaysRef.current.forEach((p) => {
+        try { p.setMap(null); } catch (e) {}
+      });
+      panelOverlaysRef.current = [];
+    };
+  }, [roofPolygons]);
+
   const isConstraintPolygon = (p: RoofPolygon) => {
     if (p.color === "#f97316") return true;
     const label = p.label?.toLowerCase() || "";
@@ -294,8 +419,8 @@ export function RoofVisualization({
         {hasPolygons && (
           <div className="absolute top-3 left-3 z-20 flex flex-col gap-1">
             <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">
-              <div className="w-3 h-3 bg-blue-500/60 border border-blue-400 rounded-sm" />
-              <span>{language === "fr" ? "Zone solaire" : "Solar area"}</span>
+              <div className="w-3 h-3 bg-blue-500 border border-blue-300 rounded-sm" />
+              <span>{language === "fr" ? "Panneaux solaires" : "Solar panels"}</span>
             </div>
             {constraintArea > 0 && (
               <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">

@@ -3872,14 +3872,6 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
         />
       )}
 
-      {/* Solar Mockup - Visual representation with panels overlay */}
-      {site && site.latitude && site.longitude && (
-        <SolarMockup 
-          siteId={site.id} 
-          systemSizeKW={simulation.pvSizeKW || undefined}
-          roofAreaSqM={site.roofAreaAutoSqM || undefined}
-        />
-      )}
 
       {/* ========== SECTION 1: RECOMMENDED SYSTEM ========== */}
       <SectionDivider 
