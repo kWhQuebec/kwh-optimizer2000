@@ -7710,6 +7710,17 @@ ${fileContent}`
       }
 
       const polygon = await storage.createRoofPolygon(validationResult.data);
+      
+      // Automatically mark site as roof-validated when polygons are created
+      // Skip constraint polygons (they don't count as valid roof areas)
+      if (!req.body.label || !req.body.label.toLowerCase().includes('constraint')) {
+        await storage.updateSite(siteId, {
+          roofAreaValidated: true,
+          roofAreaValidatedAt: new Date(),
+          roofAreaValidatedBy: req.userId,
+        });
+      }
+      
       res.status(201).json(polygon);
     } catch (error) {
       console.error("Error creating roof polygon:", error);
