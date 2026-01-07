@@ -9628,9 +9628,10 @@ function runScenarioWithSizing(
   
   if (capexGross === 0) {
     return { 
-      npv25: 0, npv10: 0, npv20: 0, 
+      npv25: 0, npv10: 0, npv20: 0, npv30: 0,
       capexNet: 0, 
-      irr25: 0, irr10: 0, irr20: 0,
+      irr25: 0, irr10: 0, irr20: 0, irr30: 0,
+      lcoe: 0, lcoe30: 0,
       incentivesHQ: 0, incentivesHQSolar: 0, incentivesHQBattery: 0, 
       incentivesFederal: 0, taxShield: 0, 
       cashflows: [],
@@ -9681,8 +9682,9 @@ function runScenarioWithSizing(
   
   const cashflowValues: number[] = [-equityInitial];
   const degradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
+  const MAX_SCENARIO_YEARS = 30; // Extended horizon for 30-year analysis
   
-  for (let y = 1; y <= h.analysisYears; y++) {
+  for (let y = 1; y <= MAX_SCENARIO_YEARS; y++) {
     // Apply panel degradation (production decreases each year)
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     // Revenue = base savings * degradation * tariff inflation
@@ -9711,7 +9713,7 @@ function runScenarioWithSizing(
       incentives = incentivesFederal;
     }
     
-    // Battery replacement
+    // Battery replacement at configured year
     const replacementYear = h.batteryReplacementYear || 10;
     const replacementFactor = h.batteryReplacementCostFactor || 0.60;
     const priceDecline = h.batteryPriceDeclineRate || 0.05;
@@ -9720,7 +9722,13 @@ function runScenarioWithSizing(
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
-    if (y === 20 && h.analysisYears >= 25 && battEnergyKWh > 0) {
+    // Second replacement at year 20
+    if (y === 20 && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    // Third replacement at year 30 for extended analysis
+    if (y === 30 && battEnergyKWh > 0) {
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
@@ -9731,9 +9739,23 @@ function runScenarioWithSizing(
   const npv25 = calculateNPV(cashflowValues, h.discountRate, 25);
   const npv20 = calculateNPV(cashflowValues, h.discountRate, 20);
   const npv10 = calculateNPV(cashflowValues, h.discountRate, 10);
+  const npv30 = calculateNPV(cashflowValues, h.discountRate, 30);
   const irr25 = calculateIRR(cashflowValues.slice(0, 26));
   const irr20 = calculateIRR(cashflowValues.slice(0, 21));
   const irr10 = calculateIRR(cashflowValues.slice(0, 11));
+  const irr30 = calculateIRR(cashflowValues.slice(0, 31));
+  
+  // LCOE calculations (using already-calculated effectiveYield from earlier in function)
+  let totalProduction25Scenario = 0;
+  let totalProduction30Scenario = 0;
+  for (let y = 1; y <= 30; y++) {
+    const degFactor = Math.pow(1 - degradationRate, y - 1);
+    const yearProd = pvSizeKW * effectiveYield * degFactor;
+    if (y <= 25) totalProduction25Scenario += yearProd;
+    totalProduction30Scenario += yearProd;
+  }
+  const lcoe = totalProduction25Scenario > 0 ? capexNet / totalProduction25Scenario : 0;
+  const lcoe30 = totalProduction30Scenario > 0 ? capexNet / totalProduction30Scenario : 0;
   
   // Build cashflows array for return
   const cashflows = cashflowValues.map((netCashflow, index) => ({ year: index, netCashflow }));
@@ -9748,9 +9770,10 @@ function runScenarioWithSizing(
   const co2AvoidedTonnesPerYear = (selfConsumptionKWh * 0.0005) / 1000;
   
   return { 
-    npv25, npv10, npv20, 
+    npv25, npv10, npv20, npv30,
     capexNet, 
-    irr25, irr10, irr20,
+    irr25, irr10, irr20, irr30,
+    lcoe, lcoe30,
     incentivesHQ, incentivesHQSolar, incentivesHQBattery, 
     incentivesFederal, taxShield, 
     cashflows,

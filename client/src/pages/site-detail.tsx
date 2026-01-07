@@ -3673,6 +3673,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
   const [showIncentives, setShowIncentives] = useState(true);
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [variantPreset, setVariantPreset] = useState<VariantPreset | null>(null);
+  const [showExtendedLifeAnalysis, setShowExtendedLifeAnalysis] = useState(false);
   
   const handleChartPointClick = (data: any, _index: number, event?: React.MouseEvent) => {
     if (!isStaff) return;
@@ -4083,44 +4084,101 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
         );
       })()}
 
-      {/* Main Financial KPIs - 25 Year Focus (Industry Standard) */}
-      <div id="pdf-section-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "Profit net 25 ans" : "Net Profit 25 years"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono text-primary" data-testid="text-npv25">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
-          </CardContent>
-        </Card>
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 Year"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono text-primary" data-testid="text-irr25">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Calculator className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "LCOE (Coût moyen du solaire 25 ans)" : "LCOE (25 yr avg cost for solar)"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono" data-testid="text-lcoe25">${(simulation.lcoe || 0).toFixed(3)}<span className="text-sm font-normal text-muted-foreground">/kWh</span></p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Leaf className="w-4 h-4 text-green-500" />
-              <p className="text-sm text-muted-foreground">CO₂ {language === "fr" ? "évité" : "avoided"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono text-green-600" data-testid="text-co2-25">{((simulation.co2AvoidedTonnesPerYear || 0) * 25).toFixed(0)} <span className="text-sm font-normal">t/25 {language === "fr" ? "ans" : "yrs"}</span></p>
-          </CardContent>
-        </Card>
+      {/* Main Financial KPIs with 25/30 Year Toggle */}
+      <div className="space-y-4">
+        {/* Toggle for extended life analysis */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">
+              {language === "fr" ? "Horizon d'analyse financière" : "Financial Analysis Horizon"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {showExtendedLifeAnalysis 
+                ? (language === "fr" ? "30 ans - Durée de vie réelle des panneaux" : "30 years - Real panel lifetime")
+                : (language === "fr" ? "25 ans - Standard de l'industrie (bancable)" : "25 years - Industry standard (bankable)")}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm ${!showExtendedLifeAnalysis ? 'font-medium text-primary' : 'text-muted-foreground'}`}>25 {language === "fr" ? "ans" : "yrs"}</span>
+            <Switch 
+              checked={showExtendedLifeAnalysis} 
+              onCheckedChange={setShowExtendedLifeAnalysis}
+              data-testid="toggle-extended-life"
+            />
+            <span className={`text-sm ${showExtendedLifeAnalysis ? 'font-medium text-primary' : 'text-muted-foreground'}`}>30 {language === "fr" ? "ans" : "yrs"}</span>
+          </div>
+        </div>
+        
+        <div id="pdf-section-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="w-4 h-4 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? `Profit net ${showExtendedLifeAnalysis ? "30" : "25"} ans` 
+                    : `Net Profit ${showExtendedLifeAnalysis ? "30" : "25"} years`}
+                </p>
+              </div>
+              <p className="text-2xl font-bold font-mono text-primary" data-testid="text-npv">
+                ${((showExtendedLifeAnalysis ? (simulation.npv30 || simulation.npv25 || 0) : (simulation.npv25 || 0)) / 1000).toFixed(0)}k
+              </p>
+              {showExtendedLifeAnalysis && simulation.npv30 && simulation.npv25 && (
+                <p className="text-xs text-green-600 mt-1">
+                  +${(((simulation.npv30 || 0) - (simulation.npv25 || 0)) / 1000).toFixed(0)}k {language === "fr" ? "vs 25 ans" : "vs 25 yrs"}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? `TRI ${showExtendedLifeAnalysis ? "30" : "25"} ans` 
+                    : `IRR ${showExtendedLifeAnalysis ? "30" : "25"} Year`}
+                </p>
+              </div>
+              <p className="text-2xl font-bold font-mono text-primary" data-testid="text-irr">
+                {((showExtendedLifeAnalysis ? (simulation.irr30 || simulation.irr25 || 0) : (simulation.irr25 || 0)) * 100).toFixed(1)}%
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Calculator className="w-4 h-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr" 
+                    ? `LCOE (Coût moyen ${showExtendedLifeAnalysis ? "30" : "25"} ans)` 
+                    : `LCOE (${showExtendedLifeAnalysis ? "30" : "25"} yr avg cost)`}
+                </p>
+              </div>
+              <p className="text-2xl font-bold font-mono" data-testid="text-lcoe">
+                ${(showExtendedLifeAnalysis ? (simulation.lcoe30 || simulation.lcoe || 0) : (simulation.lcoe || 0)).toFixed(3)}
+                <span className="text-sm font-normal text-muted-foreground">/kWh</span>
+              </p>
+              {showExtendedLifeAnalysis && simulation.lcoe30 && simulation.lcoe && (
+                <p className="text-xs text-green-600 mt-1">
+                  -{((simulation.lcoe - simulation.lcoe30) * 100 / simulation.lcoe).toFixed(0)}% {language === "fr" ? "vs 25 ans" : "vs 25 yrs"}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Leaf className="w-4 h-4 text-green-500" />
+                <p className="text-sm text-muted-foreground">CO₂ {language === "fr" ? "évité" : "avoided"}</p>
+              </div>
+              <p className="text-2xl font-bold font-mono text-green-600" data-testid="text-co2">
+                {((simulation.co2AvoidedTonnesPerYear || 0) * (showExtendedLifeAnalysis ? 30 : 25)).toFixed(0)} 
+                <span className="text-sm font-normal"> t/{showExtendedLifeAnalysis ? "30" : "25"} {language === "fr" ? "ans" : "yrs"}</span>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* ========== SECTION 3: FINANCING OPTIONS ========== */}
