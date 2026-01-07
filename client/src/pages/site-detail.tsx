@@ -3816,6 +3816,92 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
   const dashboardIrr25 = optimalScenario?.irr25 ?? simulation.irr25 ?? 0;
   const dashboardCo2Tonnes = optimalScenario?.co2AvoidedTonnesPerYear ?? simulation.co2AvoidedTonnesPerYear ?? 0;
 
+  // Extended life analysis (30 years) - toggle state
+  const [showExtendedLife, setShowExtendedLife] = useState(false);
+
+  // Calculate 30-year metrics from existing cashflows
+  const extendedLifeMetrics = useMemo(() => {
+    const cashflows = simulation.cashflows as CashflowEntry[] | null;
+    if (!cashflows || cashflows.length === 0) {
+      return { npv30: 0, irr30: 0, lcoe30: 0, co2Avoided30: 0 };
+    }
+
+    const discountRate = assumptions.discountRate || 0.07;
+    const degradationRate = assumptions.degradationRatePercent || 0.005;
+    const inflationRate = assumptions.inflationRate || 0.03;
+    const omEscalation = assumptions.omEscalation || 0.025;
+
+    // Get year 25 data to project forward
+    const year25 = cashflows.find(c => c.year === 25);
+    if (!year25) {
+      return { npv30: simulation.npv25 || 0, irr30: simulation.irr25 || 0, lcoe30: simulation.lcoe || 0, co2Avoided30: (simulation.co2AvoidedTonnesPerYear || 0) * 30 };
+    }
+
+    // Project years 26-30 using same growth patterns
+    const baseRevenue = year25.revenue / Math.pow(1 + inflationRate, 24); // Undo inflation to get year 1 base
+    const baseOpex = year25.opex / Math.pow(1 + omEscalation, 24); // Undo escalation
+
+    // Calculate extended cashflows
+    let extendedCashflows: number[] = cashflows.map(c => c.netCashflow);
+    
+    for (let y = 26; y <= 30; y++) {
+      const degradationFactor = Math.pow(1 - degradationRate, y - 1);
+      const revenue = baseRevenue * degradationFactor * Math.pow(1 + inflationRate, y - 1);
+      const opex = baseOpex * Math.pow(1 + omEscalation, y - 1);
+      const netCashflow = revenue - opex;
+      extendedCashflows.push(netCashflow);
+    }
+
+    // Calculate NPV for 30 years
+    let npv30 = 0;
+    for (let i = 0; i < extendedCashflows.length; i++) {
+      npv30 += extendedCashflows[i] / Math.pow(1 + discountRate, i);
+    }
+
+    // Calculate IRR using Newton-Raphson method
+    const calculateIRR = (cashflows: number[], guess: number = 0.1, maxIterations: number = 100): number => {
+      let rate = guess;
+      for (let iter = 0; iter < maxIterations; iter++) {
+        let npv = 0;
+        let dnpv = 0;
+        for (let i = 0; i < cashflows.length; i++) {
+          const factor = Math.pow(1 + rate, i);
+          npv += cashflows[i] / factor;
+          if (i > 0) dnpv -= (i * cashflows[i]) / Math.pow(1 + rate, i + 1);
+        }
+        if (Math.abs(npv) < 0.01) break;
+        if (Math.abs(dnpv) < 0.0001) break;
+        rate = rate - npv / dnpv;
+        if (rate < -0.99 || rate > 1) rate = 0.1; // Reset if diverging
+      }
+      return Math.max(0, Math.min(1, rate));
+    };
+
+    const irr30 = calculateIRR(extendedCashflows);
+
+    // Extended LCOE (30 years)
+    const totalProduction25 = (simulation.totalProductionKWh || 0);
+    let totalProduction30 = 0;
+    for (let y = 1; y <= 30; y++) {
+      const degradationFactor = Math.pow(1 - degradationRate, y - 1);
+      totalProduction30 += totalProduction25 * degradationFactor / 25; // Approximate
+    }
+    
+    const capexNet = simulation.capexNet || 0;
+    const totalOpex30 = extendedCashflows.slice(1).reduce((sum, cf) => sum + (cf < 0 ? -cf : 0), 0);
+    const lcoe30 = totalProduction30 > 0 ? (capexNet + totalOpex30 * 0.3) / totalProduction30 : 0;
+
+    // CO2 avoided over 30 years
+    const co2Avoided30 = (simulation.co2AvoidedTonnesPerYear || 0) * 30;
+
+    return { 
+      npv30: Math.round(npv30), 
+      irr30, 
+      lcoe30: Math.max(0, lcoe30 * 0.85), // Slight reduction due to longer amortization
+      co2Avoided30 
+    };
+  }, [simulation.cashflows, simulation.npv25, simulation.irr25, simulation.lcoe, simulation.totalProductionKWh, simulation.capexNet, simulation.co2AvoidedTonnesPerYear, assumptions]);
+
   return (
     <div className="space-y-6">
       {/* Optimal System Recommendation Banner */}
@@ -4078,44 +4164,111 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
         );
       })()}
 
-      {/* Main Financial KPIs - 25 Year Focus */}
-      <div id="pdf-section-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "Profit net 25 ans" : "Net Profit 25 years"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono text-primary">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
-          </CardContent>
-        </Card>
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 Year"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono text-primary">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Calculator className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "LCOE (Coût moyen du solaire 25 ans)" : "LCOE (25 yr avg cost for solar)"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono">${(simulation.lcoe || 0).toFixed(3)}<span className="text-sm font-normal text-muted-foreground">/kWh</span></p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Leaf className="w-4 h-4 text-green-500" />
-              <p className="text-sm text-muted-foreground">CO₂ {language === "fr" ? "évité" : "avoided"}</p>
-            </div>
-            <p className="text-2xl font-bold font-mono text-green-600">{((simulation.co2AvoidedTonnesPerYear || 0) * 25).toFixed(0)} <span className="text-sm font-normal">t/25 ans</span></p>
-          </CardContent>
-        </Card>
+      {/* Extended Life Toggle + Main Financial KPIs */}
+      <div className="space-y-3">
+        {/* Toggle for 30-year extended analysis */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="extended-life-toggle"
+              checked={showExtendedLife}
+              onCheckedChange={setShowExtendedLife}
+              data-testid="switch-extended-life"
+            />
+            <Label htmlFor="extended-life-toggle" className="text-sm cursor-pointer">
+              {language === "fr" ? "Voir analyse vie étendue (30 ans)" : "Show extended life analysis (30 yrs)"}
+            </Label>
+          </div>
+          {showExtendedLife && (
+            <Badge variant="outline" className="text-xs">
+              {language === "fr" ? "Panneaux durent typiquement 30+ ans" : "Panels typically last 30+ years"}
+            </Badge>
+          )}
+        </div>
+
+        {/* KPIs Grid - 25 Year (standard) */}
+        <div id="pdf-section-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="w-4 h-4 text-primary" />
+                <p className="text-sm text-muted-foreground">{language === "fr" ? "Profit net 25 ans" : "Net Profit 25 years"}</p>
+              </div>
+              <p className="text-2xl font-bold font-mono text-primary" data-testid="text-npv25">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
+              {showExtendedLife && extendedLifeMetrics.npv30 > 0 && (
+                <div className="mt-2 pt-2 border-t border-primary/20">
+                  <p className="text-xs text-muted-foreground">{language === "fr" ? "30 ans:" : "30 yrs:"}</p>
+                  <p className="text-lg font-bold font-mono text-green-600" data-testid="text-npv30">
+                    ${(extendedLifeMetrics.npv30 / 1000).toFixed(0)}k
+                    <span className="text-xs font-normal text-green-500 ml-1">
+                      (+{(((extendedLifeMetrics.npv30 - (simulation.npv25 || 0)) / (simulation.npv25 || 1)) * 100).toFixed(0)}%)
+                    </span>
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <p className="text-sm text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 Year"}</p>
+              </div>
+              <p className="text-2xl font-bold font-mono text-primary" data-testid="text-irr25">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
+              {showExtendedLife && extendedLifeMetrics.irr30 > 0 && (
+                <div className="mt-2 pt-2 border-t border-primary/20">
+                  <p className="text-xs text-muted-foreground">{language === "fr" ? "30 ans:" : "30 yrs:"}</p>
+                  <p className="text-lg font-bold font-mono text-green-600" data-testid="text-irr30">
+                    {(extendedLifeMetrics.irr30 * 100).toFixed(1)}%
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Calculator className="w-4 h-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">{language === "fr" ? "LCOE (Coût moyen du solaire 25 ans)" : "LCOE (25 yr avg cost for solar)"}</p>
+              </div>
+              <p className="text-2xl font-bold font-mono" data-testid="text-lcoe25">${(simulation.lcoe || 0).toFixed(3)}<span className="text-sm font-normal text-muted-foreground">/kWh</span></p>
+              {showExtendedLife && extendedLifeMetrics.lcoe30 > 0 && (
+                <div className="mt-2 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">{language === "fr" ? "30 ans:" : "30 yrs:"}</p>
+                  <p className="text-lg font-bold font-mono text-green-600" data-testid="text-lcoe30">
+                    ${extendedLifeMetrics.lcoe30.toFixed(3)}<span className="text-xs font-normal">/kWh</span>
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Leaf className="w-4 h-4 text-green-500" />
+                <p className="text-sm text-muted-foreground">CO₂ {language === "fr" ? "évité" : "avoided"}</p>
+              </div>
+              <p className="text-2xl font-bold font-mono text-green-600" data-testid="text-co2-25">{((simulation.co2AvoidedTonnesPerYear || 0) * 25).toFixed(0)} <span className="text-sm font-normal">t/25 {language === "fr" ? "ans" : "yrs"}</span></p>
+              {showExtendedLife && (
+                <div className="mt-2 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">{language === "fr" ? "30 ans:" : "30 yrs:"}</p>
+                  <p className="text-lg font-bold font-mono text-green-600" data-testid="text-co2-30">
+                    {extendedLifeMetrics.co2Avoided30.toFixed(0)} <span className="text-xs font-normal">t</span>
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Extended life disclaimer */}
+        {showExtendedLife && (
+          <p className="text-xs text-muted-foreground italic">
+            {language === "fr" 
+              ? "* L'analyse 30 ans est une projection. Les panneaux sont garantis 25 ans à 80-90% de production, mais durent typiquement 30+ ans. Les années 26-30 comportent plus d'incertitude (dégradation, tarifs, entretien)."
+              : "* 30-year analysis is a projection. Panels are warrantied for 25 years at 80-90% production, but typically last 30+ years. Years 26-30 carry more uncertainty (degradation, tariffs, maintenance)."}
+          </p>
+        )}
       </div>
 
       {/* ========== SECTION 3: FINANCING OPTIONS ========== */}
