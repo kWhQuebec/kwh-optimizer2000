@@ -91,9 +91,9 @@ export function RoofVisualization({
     }
   }, [latitude, longitude, language]);
 
-  // Center map on solar (blue) polygons when they load
+  // Center map on solar (blue) polygons when they load - wait for map to be ready
   useEffect(() => {
-    if (!mapRef.current || !window.google || roofPolygons.length === 0) return;
+    if (!mapRef.current || !window.google || isLoading || roofPolygons.length === 0) return;
 
     const bounds = new google.maps.LatLngBounds();
     let hasValidCoords = false;
@@ -116,18 +116,10 @@ export function RoofVisualization({
     });
 
     if (hasValidCoords) {
-      // Calculate the center of the polygon bounds
-      const center = bounds.getCenter();
-      // First fit the bounds with equal padding
-      mapRef.current.fitBounds(bounds, 60);
-      // Then pan to center on the polygon center
-      setTimeout(() => {
-        if (mapRef.current) {
-          mapRef.current.panTo(center);
-        }
-      }, 100);
+      // Fit bounds to show the entire polygon area with padding
+      mapRef.current.fitBounds(bounds, 80);
     }
-  }, [roofPolygons]);
+  }, [roofPolygons, isLoading]);
 
   useEffect(() => {
     if (!apiKey) {
@@ -175,9 +167,9 @@ export function RoofVisualization({
     }
   }, [apiKey, initializeMap, language]);
 
-  // Draw roof polygons
+  // Draw roof polygons - wait for map to be ready
   useEffect(() => {
-    if (!mapRef.current || !window.google || roofPolygons.length === 0) return;
+    if (!mapRef.current || !window.google || isLoading || roofPolygons.length === 0) return;
 
     polygonOverlaysRef.current.forEach((p) => p.setMap(null));
     polygonOverlaysRef.current = [];
