@@ -326,46 +326,20 @@ export function RoofDrawingModal({
   };
 
   const handleClose = useCallback(() => {
-    // Clean up Google Maps objects (with safety checks) but DON'T touch the DOM
-    if (window.google) {
-      polygons.forEach((p) => {
-        if (p.googlePolygon) {
-          try {
-            google.maps.event.clearInstanceListeners(p.googlePolygon);
-            p.googlePolygon.setMap(null);
-          } catch (e) {
-            // Ignore cleanup errors
-          }
-        }
-      });
-      
-      if (drawingManagerRef.current) {
+    // Remove polygon overlays from the map but don't touch any other DOM elements
+    polygons.forEach((p) => {
+      if (p.googlePolygon) {
         try {
-          google.maps.event.clearInstanceListeners(drawingManagerRef.current);
-          drawingManagerRef.current.setMap(null);
+          p.googlePolygon.setMap(null);
         } catch (e) {
-          // Ignore cleanup errors  
+          // Ignore errors
         }
-        drawingManagerRef.current = null;
       }
-      
-      if (mapRef.current) {
-        try {
-          google.maps.event.clearInstanceListeners(mapRef.current);
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-        mapRef.current = null;
-      }
-    } else {
-      mapRef.current = null;
-      drawingManagerRef.current = null;
-    }
-    
-    // Don't clear innerHTML - let the DOM persist to avoid React conflicts
+    });
     
     setPolygons([]);
     setActiveDrawingMode(null);
+    // Just call onClose - keep map intact for reuse
     onClose();
   }, [polygons, onClose]);
 
@@ -382,49 +356,17 @@ export function RoofDrawingModal({
     }
   }, [isOpen, initializeMap]);
 
-  // Cleanup function for Google Maps objects - DON'T touch DOM, just clear refs
+  // Minimal cleanup - just remove polygon overlays, keep map intact
   const cleanupMap = useCallback(() => {
-    // Only cleanup if google is loaded
-    if (!window.google) {
-      mapRef.current = null;
-      drawingManagerRef.current = null;
-      return;
-    }
-    
-    // Remove all polygon overlays
     polygons.forEach((p) => {
       if (p.googlePolygon) {
         try {
-          google.maps.event.clearInstanceListeners(p.googlePolygon);
           p.googlePolygon.setMap(null);
         } catch (e) {
-          // Ignore cleanup errors
+          // Ignore errors
         }
       }
     });
-    
-    // Remove drawing manager
-    if (drawingManagerRef.current) {
-      try {
-        google.maps.event.clearInstanceListeners(drawingManagerRef.current);
-        drawingManagerRef.current.setMap(null);
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-      drawingManagerRef.current = null;
-    }
-    
-    // Clear map listeners but DON'T touch the DOM
-    if (mapRef.current) {
-      try {
-        google.maps.event.clearInstanceListeners(mapRef.current);
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-      mapRef.current = null;
-    }
-    
-    // Don't clear innerHTML - let the DOM persist to avoid React conflicts
   }, [polygons]);
 
   useEffect(() => {
@@ -494,18 +436,19 @@ export function RoofDrawingModal({
               </Button>
             </div>
 
-            <div
-              ref={mapContainerRef}
-              className="flex-1 min-h-[300px] rounded-lg border bg-muted relative"
-              data-testid="map-container"
-            >
+            {/* Outer wrapper for React - inner div for Google Maps */}
+            <div className="flex-1 min-h-[300px] rounded-lg border bg-muted relative" data-testid="map-container">
+              <div 
+                ref={mapContainerRef}
+                className="absolute inset-0"
+              />
               {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
                   <Skeleton className="h-full w-full" />
                 </div>
               )}
               {mapError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground">
+                <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground z-10">
                   {mapError}
                 </div>
               )}
