@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ interface SiteListItem {
   province: string | null;
   postalCode: string | null;
   analysisAvailable: boolean | null;
+  roofAreaValidated: boolean | null;
   createdAt: string | null;
   clientId: string;
   clientName: string;
@@ -97,6 +98,19 @@ function SiteCard({ site, onEdit, onDelete }: { site: SiteListItem; onEdit: () =
             )}
 
             <div className="flex items-center gap-2 pt-1 flex-wrap">
+              {/* Roof validation status */}
+              {site.roofAreaValidated ? (
+                <Badge variant="default" className="gap-1" data-testid={`badge-roof-validated-${site.id}`}>
+                  <Grid3X3 className="w-3 h-3" />
+                  {t("sites.roofValidated")}
+                </Badge>
+              ) : (
+                <Badge variant="destructive" className="gap-1" data-testid={`badge-roof-pending-${site.id}`}>
+                  <AlertTriangle className="w-3 h-3" />
+                  {t("sites.roofPending")}
+                </Badge>
+              )}
+              {/* Analysis status */}
               {site.analysisAvailable ? (
                 <Badge variant="default" className="gap-1">
                   <CheckCircle2 className="w-3 h-3" />

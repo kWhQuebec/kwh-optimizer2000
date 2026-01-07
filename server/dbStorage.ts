@@ -192,6 +192,7 @@ export class DatabaseStorage implements IStorage {
       province: string | null;
       postalCode: string | null;
       analysisAvailable: boolean | null;
+      roofAreaValidated: boolean | null;
       createdAt: Date | null;
       clientId: string;
       clientName: string;
@@ -211,6 +212,7 @@ export class DatabaseStorage implements IStorage {
       province: sites.province,
       postalCode: sites.postalCode,
       analysisAvailable: sites.analysisAvailable,
+      roofAreaValidated: sites.roofAreaValidated,
       createdAt: sites.createdAt,
       clientId: sites.clientId,
       clientName: clients.name,

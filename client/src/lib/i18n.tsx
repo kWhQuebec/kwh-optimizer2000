@@ -228,6 +228,8 @@ const translations: Translations = {
   "sites.status": { fr: "Statut", en: "Status" },
   "sites.analysisReady": { fr: "Analyse disponible", en: "Analysis ready" },
   "sites.pending": { fr: "En attente", en: "Pending" },
+  "sites.roofValidated": { fr: "Toit validé", en: "Roof validated" },
+  "sites.roofPending": { fr: "Toit à dessiner", en: "Roof pending" },
   "sites.empty": { fr: "Aucun site", en: "No sites" },
   "sites.emptyDescription": { fr: "Ajoutez un site pour commencer l'analyse.", en: "Add a site to start the analysis." },
   "sites.moreOptions": { fr: "Plus d'options", en: "More Options" },

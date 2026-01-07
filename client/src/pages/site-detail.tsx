@@ -5897,7 +5897,7 @@ export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, language } = useI18n();
   const { toast } = useToast();
-  const { isStaff, isClient } = useAuth();
+  const { isStaff, isClient, token } = useAuth();
   const [activeTab, setActiveTab] = useState("consumption");
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
   const assumptionsInitializedRef = useRef(false);
@@ -6040,12 +6040,29 @@ export default function SiteDetailPage() {
   });
 
   // Callback to handle saving roof polygons and updating the roof area
-  const handleSaveRoofPolygons = (polygons: InsertRoofPolygon[]) => {
+  const handleSaveRoofPolygons = async (polygons: InsertRoofPolygon[]) => {
     saveRoofPolygonsMutation.mutate(polygons);
     const totalAreaSqM = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
     const totalAreaSqFt = Math.round(totalAreaSqM * 10.764);
     if (totalAreaSqFt > 0) {
       setCustomAssumptions(prev => ({ ...prev, roofAreaSqFt: totalAreaSqFt }));
+    }
+    // Mark roof as validated after saving polygons
+    try {
+      await fetch(`/api/sites/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roofAreaValidated: true,
+          roofAreaValidatedAt: new Date().toISOString(),
+        }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
+    } catch (error) {
+      console.error("Error marking roof as validated:", error);
     }
     setIsRoofDrawingModalOpen(false);
   };
@@ -6262,7 +6279,7 @@ export default function SiteDetailPage() {
           {isStaff && (
             <Button 
               onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-              disabled={runAnalysisMutation.isPending}
+              disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
               className="gap-2"
               data-testid="button-run-analysis-header"
             >
@@ -6302,6 +6319,42 @@ export default function SiteDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Roof Validation Required Alert Banner */}
+      {site.roofAreaValidated !== true && (
+        <Card 
+          className="border-amber-500 bg-amber-50 dark:bg-amber-950/30"
+          data-testid="alert-roof-validation-required"
+        >
+          <CardContent className="py-4">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                <Grid3X3 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h4 className="font-semibold text-amber-800 dark:text-amber-200">
+                  {language === "fr" 
+                    ? "Étape requise: Dessiner les zones de toiture" 
+                    : "Required step: Draw roof areas"}
+                </h4>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  {language === "fr"
+                    ? "Avant de lancer l'analyse, vous devez délimiter manuellement les zones de toit exploitables."
+                    : "Before running the analysis, you must manually outline the usable roof areas."}
+                </p>
+              </div>
+              <Button 
+                onClick={() => setIsRoofDrawingModalOpen(true)}
+                className="shrink-0 gap-2"
+                data-testid="button-draw-roof-areas-banner"
+              >
+                <Pencil className="w-4 h-4" />
+                {language === "fr" ? "Dessiner les zones" : "Draw areas"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Process Tabs with progression indicators */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -6431,7 +6484,7 @@ export default function SiteDetailPage() {
             <AnalysisParametersEditor 
               value={customAssumptions}
               onChange={setCustomAssumptions}
-              disabled={runAnalysisMutation.isPending}
+              disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
               site={site}
               onSiteRefresh={() => refetch()}
               showOnlyRoofSection={!site.meterFiles?.length}
@@ -6522,7 +6575,7 @@ export default function SiteDetailPage() {
                       : `New consumption: ${(totalKWh / 1000).toFixed(0)} MWh/year. Re-run analysis to apply.`,
                   });
                 }}
-                disabled={runAnalysisMutation.isPending}
+                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
               />
             );
           })()}
@@ -6534,7 +6587,7 @@ export default function SiteDetailPage() {
               {isStaff && (
                 <Button 
                   onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                  disabled={!site.meterFiles?.length || runAnalysisMutation.isPending}
+                  disabled={!site.meterFiles?.length || runAnalysisMutation.isPending || !site.roofAreaValidated}
                   className="gap-2"
                   data-testid="button-run-analysis"
                 >
@@ -6679,7 +6732,7 @@ export default function SiteDetailPage() {
                 {isStaff && (
                   <Button 
                     onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                    disabled={!site.meterFiles?.length || runAnalysisMutation.isPending}
+                    disabled={!site.meterFiles?.length || runAnalysisMutation.isPending || !site.roofAreaValidated}
                     className="gap-2"
                   >
                     <Play className="w-4 h-4" />
