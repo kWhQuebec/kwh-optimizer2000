@@ -141,9 +141,30 @@ const VIEW_STORAGE_KEY = "pipeline-view-preference";
 
 const SOURCE_OPTIONS = ["web_form", "referral", "cold_call", "event", "other"] as const;
 
+interface RfpBreakdown {
+  eligibleSites: number;
+  eligibleCapex: number;
+  eligiblePvKW: number;
+  nonEligibleSites: number;
+  nonEligibleCapex: number;
+  nonEligiblePvKW: number;
+  totalSites: number;
+}
+
 interface OpportunityWithRelations extends Opportunity {
   owner?: UserType | null;
   client?: Client | null;
+  rfpBreakdown?: RfpBreakdown;
+}
+
+// Extended opportunity type for display (includes virtual split opportunities)
+interface DisplayOpportunity extends OpportunityWithRelations {
+  isVirtualSplit?: boolean;
+  splitType?: 'rfp' | 'non-rfp';
+  displayName?: string;
+  displayValue?: number;
+  displaySiteCount?: number;
+  parentOpportunityId?: string;
 }
 
 const opportunityFormSchema = z.object({
@@ -165,7 +186,7 @@ function OpportunityCard({
   onStageChange, 
   onClick 
 }: { 
-  opportunity: OpportunityWithRelations; 
+  opportunity: DisplayOpportunity; 
   onStageChange: (id: string, stage: Stage) => void;
   onClick: () => void;
 }) {
@@ -173,6 +194,18 @@ function OpportunityCard({
   const currentStageIndex = STAGES.indexOf(opportunity.stage as Stage);
   const canMoveForward = currentStageIndex < STAGES.length - 2;
   const canMoveBack = currentStageIndex > 0 && !isWonStage(opportunity.stage) && opportunity.stage !== "lost";
+  
+  // For virtual split opportunities, use display values; otherwise use original values
+  const displayName = opportunity.displayName || opportunity.name;
+  const displayValue = opportunity.displayValue ?? opportunity.estimatedValue;
+  const realOpportunityId = opportunity.parentOpportunityId || opportunity.id;
+  
+  // Visual indicator for RFP split type
+  const splitBadge = opportunity.isVirtualSplit && opportunity.splitType === 'rfp' 
+    ? { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-300", label: "RFP HQ" }
+    : opportunity.isVirtualSplit && opportunity.splitType === 'non-rfp'
+    ? { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-300", label: "Hors RFP" }
+    : null;
 
   return (
     <Card 
@@ -183,7 +216,7 @@ function OpportunityCard({
       <CardContent className="p-4">
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-2">
-            <h4 className="font-medium text-sm leading-tight line-clamp-2">{opportunity.name}</h4>
+            <h4 className="font-medium text-sm leading-tight line-clamp-2">{displayName}</h4>
             <Badge 
               className={`shrink-0 text-xs ${PRIORITY_COLORS[opportunity.priority || "medium"]}`}
               data-testid={`badge-priority-${opportunity.id}`}
@@ -192,6 +225,13 @@ function OpportunityCard({
             </Badge>
           </div>
 
+          {/* RFP Split Type Badge */}
+          {splitBadge && (
+            <Badge className={`text-xs ${splitBadge.bg} ${splitBadge.text}`}>
+              {splitBadge.label}
+            </Badge>
+          )}
+
           {opportunity.client && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Building2 className="w-3 h-3" />
@@ -199,10 +239,10 @@ function OpportunityCard({
             </div>
           )}
 
-          {opportunity.estimatedValue && (
+          {displayValue && displayValue > 0 && (
             <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
               <DollarSign className="w-3.5 h-3.5" />
-              <span>{formatCompactCurrency(opportunity.estimatedValue)}</span>
+              <span>{formatCompactCurrency(displayValue)}</span>
             </div>
           )}
 
@@ -227,7 +267,7 @@ function OpportunityCard({
                 variant="ghost" 
                 size="sm" 
                 className="h-7 px-2 text-xs"
-                onClick={() => onStageChange(opportunity.id, STAGES[currentStageIndex - 1])}
+                onClick={() => onStageChange(realOpportunityId, STAGES[currentStageIndex - 1])}
                 data-testid={`button-move-back-${opportunity.id}`}
               >
                 <ChevronRight className="w-3 h-3 rotate-180" />
@@ -238,7 +278,7 @@ function OpportunityCard({
                 variant="ghost" 
                 size="sm" 
                 className="h-7 px-2 text-xs flex-1"
-                onClick={() => onStageChange(opportunity.id, STAGES[currentStageIndex + 1])}
+                onClick={() => onStageChange(realOpportunityId, STAGES[currentStageIndex + 1])}
                 data-testid={`button-move-forward-${opportunity.id}`}
               >
                 {STAGE_LABELS[STAGES[currentStageIndex + 1]][language]}
@@ -251,7 +291,7 @@ function OpportunityCard({
                   variant="ghost" 
                   size="sm" 
                   className="h-7 px-2 text-xs text-green-600"
-                  onClick={() => onStageChange(opportunity.id, "won_to_be_delivered")}
+                  onClick={() => onStageChange(realOpportunityId, "won_to_be_delivered")}
                   data-testid={`button-mark-won-${opportunity.id}`}
                 >
                   <Trophy className="w-3 h-3" />
@@ -260,7 +300,7 @@ function OpportunityCard({
                   variant="ghost" 
                   size="sm" 
                   className="h-7 px-2 text-xs text-red-600"
-                  onClick={() => onStageChange(opportunity.id, "lost")}
+                  onClick={() => onStageChange(realOpportunityId, "lost")}
                   data-testid={`button-mark-lost-${opportunity.id}`}
                 >
                   <XCircle className="w-3 h-3" />
@@ -281,13 +321,14 @@ function StageColumn({
   onCardClick
 }: { 
   stage: Stage; 
-  opportunities: OpportunityWithRelations[];
+  opportunities: DisplayOpportunity[];
   onStageChange: (id: string, stage: Stage) => void;
-  onCardClick: (opp: OpportunityWithRelations) => void;
+  onCardClick: (opp: DisplayOpportunity) => void;
 }) {
   const { language } = useI18n();
   const stageOpps = opportunities.filter(o => o.stage === stage);
-  const stageValue = stageOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  // For pipeline value, use displayValue for split opportunities, otherwise estimatedValue
+  const stageValue = stageOpps.reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
   
   const stageColors: Record<Stage, string> = {
     prospect: "border-t-slate-400",
@@ -354,8 +395,8 @@ function OpportunityListView({
   opportunities,
   onRowClick,
 }: {
-  opportunities: OpportunityWithRelations[];
-  onRowClick: (opp: OpportunityWithRelations) => void;
+  opportunities: DisplayOpportunity[];
+  onRowClick: (opp: DisplayOpportunity) => void;
 }) {
   const { language } = useI18n();
 
@@ -385,57 +426,68 @@ function OpportunityListView({
     <>
       {/* Mobile: Stacked Cards View */}
       <div className="md:hidden space-y-3">
-        {opportunities.map((opp) => (
-          <Card 
-            key={opp.id}
-            className="hover-elevate cursor-pointer"
-            onClick={() => onRowClick(opp)}
-            data-testid={`card-opportunity-${opp.id}`}
-          >
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h4 className="font-medium text-sm truncate">{opp.name}</h4>
-                  {opp.client && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Building2 className="w-3 h-3" />
-                      <span className="truncate">{opp.client.name}</span>
-                    </p>
+        {opportunities.map((opp) => {
+          const displayName = opp.displayName || opp.name;
+          const displayValue = opp.displayValue ?? opp.estimatedValue;
+          return (
+            <Card 
+              key={opp.id}
+              className="hover-elevate cursor-pointer"
+              onClick={() => onRowClick(opp)}
+              data-testid={`card-opportunity-${opp.id}`}
+            >
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h4 className="font-medium text-sm truncate">{displayName}</h4>
+                    {opp.client && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Building2 className="w-3 h-3" />
+                        <span className="truncate">{opp.client.name}</span>
+                      </p>
+                    )}
+                  </div>
+                  <Badge className={`shrink-0 text-xs ${PRIORITY_COLORS[opp.priority || "medium"]}`}>
+                    {PRIORITY_LABELS[opp.priority || "medium"]?.[language] || opp.priority}
+                  </Badge>
+                </div>
+
+                {/* RFP Split Type Badge */}
+                {opp.isVirtualSplit && (
+                  <Badge className={`text-xs ${opp.splitType === 'rfp' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>
+                    {opp.splitType === 'rfp' ? 'RFP HQ' : 'Hors RFP'}
+                  </Badge>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className={`text-xs ${stageColors[opp.stage as Stage]}`}>
+                    {STAGE_LABELS[opp.stage]?.[language] || opp.stage}
+                  </Badge>
+                  {displayValue && displayValue > 0 && (
+                    <span className="text-sm font-medium font-mono text-primary">
+                      {formatCompactCurrency(displayValue)}
+                    </span>
                   )}
                 </div>
-                <Badge className={`shrink-0 text-xs ${PRIORITY_COLORS[opp.priority || "medium"]}`}>
-                  {PRIORITY_LABELS[opp.priority || "medium"]?.[language] || opp.priority}
-                </Badge>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className={`text-xs ${stageColors[opp.stage as Stage]}`}>
-                  {STAGE_LABELS[opp.stage]?.[language] || opp.stage}
-                </Badge>
-                {opp.estimatedValue && (
-                  <span className="text-sm font-medium font-mono text-primary">
-                    {formatCompactCurrency(opp.estimatedValue)}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                {opp.expectedCloseDate && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>{format(new Date(opp.expectedCloseDate), "MMM d, yyyy")}</span>
-                  </div>
-                )}
-                {opp.owner && (
-                  <div className="flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    <span className="truncate">{opp.owner.name || opp.owner.email}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  {opp.expectedCloseDate && (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      <span>{format(new Date(opp.expectedCloseDate), "MMM d, yyyy")}</span>
+                    </div>
+                  )}
+                  {opp.owner && (
+                    <div className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      <span className="truncate">{opp.owner.name || opp.owner.email}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Desktop: Table View */}
@@ -453,40 +505,53 @@ function OpportunityListView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {opportunities.map((opp) => (
-              <TableRow 
-                key={opp.id} 
-                className="cursor-pointer hover-elevate"
-                onClick={() => onRowClick(opp)}
-                data-testid={`row-opportunity-${opp.id}`}
-              >
-                <TableCell className="font-medium">{opp.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {opp.client?.name || "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge className={`text-xs ${stageColors[opp.stage as Stage]}`}>
-                    {STAGE_LABELS[opp.stage]?.[language] || opp.stage}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatCompactCurrency(opp.estimatedValue)}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {opp.expectedCloseDate 
-                    ? format(new Date(opp.expectedCloseDate), "MMM d, yyyy")
-                    : "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge className={`text-xs ${PRIORITY_COLORS[opp.priority || "medium"]}`}>
-                    {PRIORITY_LABELS[opp.priority || "medium"]?.[language] || opp.priority}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {opp.owner?.name || opp.owner?.email || "—"}
-                </TableCell>
-              </TableRow>
-            ))}
+            {opportunities.map((opp) => {
+              const displayName = opp.displayName || opp.name;
+              const displayValue = opp.displayValue ?? opp.estimatedValue;
+              return (
+                <TableRow 
+                  key={opp.id} 
+                  className="cursor-pointer hover-elevate"
+                  onClick={() => onRowClick(opp)}
+                  data-testid={`row-opportunity-${opp.id}`}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {displayName}
+                      {opp.isVirtualSplit && (
+                        <Badge className={`text-xs ${opp.splitType === 'rfp' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>
+                          {opp.splitType === 'rfp' ? 'RFP' : 'Hors RFP'}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {opp.client?.name || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={`text-xs ${stageColors[opp.stage as Stage]}`}>
+                      {STAGE_LABELS[opp.stage]?.[language] || opp.stage}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {formatCompactCurrency(displayValue)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {opp.expectedCloseDate 
+                      ? format(new Date(opp.expectedCloseDate), "MMM d, yyyy")
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={`text-xs ${PRIORITY_COLORS[opp.priority || "medium"]}`}>
+                      {PRIORITY_LABELS[opp.priority || "medium"]?.[language] || opp.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {opp.owner?.name || opp.owner?.email || "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Card>
@@ -612,25 +677,65 @@ export default function PipelinePage() {
     stageChangeMutation.mutate({ id, stage });
   };
 
-  const handleCardClick = (opp: OpportunityWithRelations) => {
-    setSelectedOpportunity(opp);
+  const handleCardClick = (opp: DisplayOpportunity) => {
+    // For virtual split opportunities, find and use the parent opportunity
+    const actualOpp = opp.isVirtualSplit && opp.parentOpportunityId
+      ? opportunities.find(o => o.id === opp.parentOpportunityId) || opp
+      : opp;
+    setSelectedOpportunity(actualOpp);
     editForm.reset({
-      name: opp.name,
-      description: opp.description || "",
-      stage: opp.stage,
-      estimatedValue: opp.estimatedValue || undefined,
-      pvSizeKW: opp.pvSizeKW || undefined,
-      expectedCloseDate: opp.expectedCloseDate 
-        ? format(new Date(opp.expectedCloseDate), "yyyy-MM-dd") 
+      name: actualOpp.name,
+      description: actualOpp.description || "",
+      stage: actualOpp.stage,
+      estimatedValue: actualOpp.estimatedValue || undefined,
+      pvSizeKW: actualOpp.pvSizeKW || undefined,
+      expectedCloseDate: actualOpp.expectedCloseDate 
+        ? format(new Date(actualOpp.expectedCloseDate), "yyyy-MM-dd") 
         : undefined,
-      priority: opp.priority || "medium",
-      source: opp.source || undefined,
-      clientId: opp.clientId || undefined,
+      priority: actualOpp.priority || "medium",
+      source: actualOpp.source || undefined,
+      clientId: actualOpp.clientId || undefined,
     });
     setIsDetailOpen(true);
   };
 
-  const filteredOpportunities = opportunities.filter((opp) => {
+  // Split portfolio opportunities with mixed RFP eligibility into two virtual cards
+  const splitOpportunities: DisplayOpportunity[] = opportunities.flatMap((opp): DisplayOpportunity[] => {
+    const breakdown = opp.rfpBreakdown;
+    
+    // Only split if opportunity has a portfolioId and both eligible and non-eligible sites
+    if (opp.portfolioId && breakdown && breakdown.eligibleSites > 0 && breakdown.nonEligibleSites > 0) {
+      // Create two virtual opportunities
+      const rfpOpp: DisplayOpportunity = {
+        ...opp,
+        id: `${opp.id}-rfp`,
+        isVirtualSplit: true,
+        splitType: 'rfp',
+        displayName: opp.name.replace(/\s*\([^)]*sites?\)$/i, '') + ` - RFP (${breakdown.eligibleSites} sites)`,
+        displayValue: breakdown.eligibleCapex,
+        displaySiteCount: breakdown.eligibleSites,
+        parentOpportunityId: opp.id,
+      };
+      
+      const nonRfpOpp: DisplayOpportunity = {
+        ...opp,
+        id: `${opp.id}-non-rfp`,
+        isVirtualSplit: true,
+        splitType: 'non-rfp',
+        displayName: opp.name.replace(/\s*\([^)]*sites?\)$/i, '') + ` - Hors RFP (${breakdown.nonEligibleSites} sites)`,
+        displayValue: breakdown.nonEligibleCapex,
+        displaySiteCount: breakdown.nonEligibleSites,
+        parentOpportunityId: opp.id,
+      };
+      
+      return [rfpOpp, nonRfpOpp];
+    }
+    
+    // Return as-is for non-portfolio or single-type portfolio opportunities
+    return [opp as DisplayOpportunity];
+  });
+
+  const filteredOpportunities = splitOpportunities.filter((opp) => {
     if (filterOwner !== "all" && opp.ownerId !== filterOwner) return false;
     if (filterPriority !== "all" && opp.priority !== filterPriority) return false;
     if (filterSource !== "all" && opp.source !== filterSource) return false;
@@ -638,12 +743,13 @@ export default function PipelinePage() {
   });
 
   const activeOpportunities = filteredOpportunities.filter(o => !isWonStage(o.stage) && o.stage !== "lost");
-  const totalPipelineValue = activeOpportunities.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  // Use displayValue for split opportunities, otherwise use estimatedValue
+  const totalPipelineValue = activeOpportunities.reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
   const weightedPipelineValue = activeOpportunities.reduce((sum, o) => {
     const prob = o.probability ?? STAGE_PROBABILITIES[o.stage as Stage] ?? 0;
-    return sum + ((o.estimatedValue || 0) * prob / 100);
+    return sum + ((o.displayValue ?? o.estimatedValue ?? 0) * prob / 100);
   }, 0);
-  const wonValue = filteredOpportunities.filter(o => isWonStage(o.stage)).reduce((sum, o) => sum + (o.estimatedValue || 0), 0);
+  const wonValue = filteredOpportunities.filter(o => isWonStage(o.stage)).reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
 
   const owners = users.filter(u => u.role === "admin" || u.role === "analyst");
 

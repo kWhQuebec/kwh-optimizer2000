@@ -42,6 +42,11 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
 -   **PDF Report Generation**: Generates professional PDF analysis reports.
 -   **Public Landing Page & Marketing Pages**: Serves as a bilingual lead generation tool with SEO infrastructure.
 -   **Portfolio Management**: Allows multi-building project management with volume pricing and aggregated KPIs.
+-   **Pipeline RFP Split Display**: Portfolio opportunities with mixed RFP eligibility are automatically split into two virtual cards in the pipeline view:
+    -   RFP HQ card (green badge) showing eligible sites count and CAPEX value
+    -   Hors RFP card (amber badge) showing non-eligible sites count and CAPEX value
+    -   Pipeline values correctly calculated from split display values
+    -   Stage changes and edits operate on parent opportunity for database integrity
 -   **HQ RFP Eligibility Tracking**: Tracks Hydro-Québec RFP eligibility for commercial sites including:
     -   RFP status (eligible/not_eligible/pending) with semantic color-coded badges
     -   Network upgrade cost breakdown (distribution, substation, protections, communications)

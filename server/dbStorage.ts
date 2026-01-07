@@ -1583,17 +1583,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Portfolio auto-sync helper - applies portfolio KPIs to linked opportunities
-  private async applyPortfolioAutoSync(opps: Opportunity[]): Promise<Opportunity[]> {
+  // Also calculates RFP eligibility breakdown for pipeline split display
+  private async applyPortfolioAutoSync(opps: Opportunity[]): Promise<(Opportunity & { rfpBreakdown?: { eligibleSites: number; eligibleCapex: number; eligiblePvKW: number; nonEligibleSites: number; nonEligibleCapex: number; nonEligiblePvKW: number; totalSites: number } })[]> {
     if (opps.length === 0) return opps;
     
     const portfolioIds = Array.from(new Set(opps.filter(o => o.portfolioId).map(o => o.portfolioId!)));
     if (portfolioIds.length === 0) return opps;
     
-    const portfolioKPIs = new Map<string, { totalCapex: number; totalPvKW: number }>();
+    const portfolioKPIs = new Map<string, { 
+      totalCapex: number; 
+      totalPvKW: number;
+      rfpBreakdown: {
+        eligibleSites: number;
+        eligibleCapex: number;
+        eligiblePvKW: number;
+        nonEligibleSites: number;
+        nonEligibleCapex: number;
+        nonEligiblePvKW: number;
+        totalSites: number;
+      };
+    }>();
     
     for (const portfolioId of portfolioIds) {
       const pSites = await db.select().from(portfolioSites).where(eq(portfolioSites.portfolioId, portfolioId));
       const siteIds = pSites.map(ps => ps.siteId);
+      
+      // Fetch site details to get RFP status
+      const siteDetails = new Map<string, typeof sites.$inferSelect>();
+      if (siteIds.length > 0) {
+        const sitesData = await db.select().from(sites).where(inArray(sites.id, siteIds));
+        for (const site of sitesData) {
+          siteDetails.set(site.id, site);
+        }
+      }
       
       const latestSims = new Map<string, typeof simulationRuns.$inferSelect>();
       if (siteIds.length > 0) {
@@ -1608,14 +1630,46 @@ export class DatabaseStorage implements IStorage {
       
       let totalCapex = 0;
       let totalPvKW = 0;
+      let eligibleSites = 0;
+      let eligibleCapex = 0;
+      let eligiblePvKW = 0;
+      let nonEligibleSites = 0;
+      let nonEligibleCapex = 0;
+      let nonEligiblePvKW = 0;
+      
       for (const ps of pSites) {
         const sim = latestSims.get(ps.siteId);
+        const site = siteDetails.get(ps.siteId);
         const capex = ps.overrideCapexNet ?? sim?.capexNet ?? 0;
         const pvKW = ps.overridePvSizeKW ?? sim?.pvSizeKW ?? 0;
         totalCapex += capex;
         totalPvKW += pvKW;
+        
+        // Classify by RFP status (hqRfpStatus field)
+        if (site?.hqRfpStatus === 'eligible') {
+          eligibleSites++;
+          eligibleCapex += capex;
+          eligiblePvKW += pvKW;
+        } else {
+          nonEligibleSites++;
+          nonEligibleCapex += capex;
+          nonEligiblePvKW += pvKW;
+        }
       }
-      portfolioKPIs.set(portfolioId, { totalCapex, totalPvKW });
+      
+      portfolioKPIs.set(portfolioId, { 
+        totalCapex, 
+        totalPvKW,
+        rfpBreakdown: {
+          eligibleSites,
+          eligibleCapex,
+          eligiblePvKW,
+          nonEligibleSites,
+          nonEligibleCapex,
+          nonEligiblePvKW,
+          totalSites: pSites.length,
+        }
+      });
     }
 
     return opps.map(o => {
@@ -1625,6 +1679,7 @@ export class DatabaseStorage implements IStorage {
           ...o,
           estimatedValue: kpis.totalCapex,
           pvSizeKW: kpis.totalPvKW,
+          rfpBreakdown: kpis.rfpBreakdown,
         };
       }
       return o;
