@@ -326,16 +326,52 @@ export function RoofDrawingModal({
     }
   };
 
-  const handleClose = () => {
-    polygons.forEach((p) => {
-      if (p.googlePolygon) {
-        p.googlePolygon.setMap(null);
+  const handleClose = useCallback(() => {
+    // Clean up Google Maps objects first (with safety checks)
+    if (window.google) {
+      polygons.forEach((p) => {
+        if (p.googlePolygon) {
+          try {
+            google.maps.event.clearInstanceListeners(p.googlePolygon);
+            p.googlePolygon.setMap(null);
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+        }
+      });
+      
+      if (drawingManagerRef.current) {
+        try {
+          google.maps.event.clearInstanceListeners(drawingManagerRef.current);
+          drawingManagerRef.current.setMap(null);
+        } catch (e) {
+          // Ignore cleanup errors  
+        }
+        drawingManagerRef.current = null;
       }
-    });
+      
+      if (mapRef.current) {
+        try {
+          google.maps.event.clearInstanceListeners(mapRef.current);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        mapRef.current = null;
+      }
+    } else {
+      mapRef.current = null;
+      drawingManagerRef.current = null;
+    }
+    
+    // Clear container to prevent DOM conflicts
+    if (mapContainerRef.current) {
+      mapContainerRef.current.innerHTML = '';
+    }
+    
     setPolygons([]);
     setActiveDrawingMode(null);
     onClose();
-  };
+  }, [polygons, onClose]);
 
   const totalArea = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
 
@@ -350,12 +386,64 @@ export function RoofDrawingModal({
     }
   }, [isOpen, initializeMap]);
 
-  useEffect(() => {
-    if (!isOpen) {
+  // Cleanup function for Google Maps objects
+  const cleanupMap = useCallback(() => {
+    // Only cleanup if google is loaded
+    if (!window.google) {
+      // Just clear refs and container
       mapRef.current = null;
       drawingManagerRef.current = null;
+      if (mapContainerRef.current) {
+        mapContainerRef.current.innerHTML = '';
+      }
+      return;
     }
-  }, [isOpen]);
+    
+    // Remove all polygon overlays
+    polygons.forEach((p) => {
+      if (p.googlePolygon) {
+        try {
+          google.maps.event.clearInstanceListeners(p.googlePolygon);
+          p.googlePolygon.setMap(null);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+    });
+    
+    // Remove drawing manager
+    if (drawingManagerRef.current) {
+      try {
+        google.maps.event.clearInstanceListeners(drawingManagerRef.current);
+        drawingManagerRef.current.setMap(null);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+      drawingManagerRef.current = null;
+    }
+    
+    // Clear map listeners and remove map
+    if (mapRef.current) {
+      try {
+        google.maps.event.clearInstanceListeners(mapRef.current);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+      mapRef.current = null;
+    }
+    
+    // Clear the container content to prevent React/DOM conflicts
+    if (mapContainerRef.current) {
+      mapContainerRef.current.innerHTML = '';
+    }
+  }, [polygons]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      cleanupMap();
+      setPolygons([]);
+    }
+  }, [isOpen, cleanupMap]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
