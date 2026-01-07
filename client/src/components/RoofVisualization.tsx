@@ -499,7 +499,7 @@ export function RoofVisualization({
             </div>
           </div>
           
-          <div className="relative pt-1 pb-6">
+          <div className="relative pt-1 pb-8">
             <Slider
               value={[selectedCapacityKW]}
               onValueChange={(values) => setSelectedCapacityKW(values[0])}
