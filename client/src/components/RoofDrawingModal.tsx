@@ -326,7 +326,10 @@ export function RoofDrawingModal({
     }
   };
 
-  const handleClose = useCallback(() => {
+  // Track closing state for two-phase close
+  const [isClosing, setIsClosing] = useState(false);
+  
+  const performCleanup = useCallback(() => {
     // Clean up Google Maps objects first (with safety checks)
     if (window.google) {
       polygons.forEach((p) => {
@@ -370,8 +373,21 @@ export function RoofDrawingModal({
     
     setPolygons([]);
     setActiveDrawingMode(null);
-    onClose();
-  }, [polygons, onClose]);
+  }, [polygons]);
+  
+  const handleClose = useCallback(() => {
+    // Phase 1: Start closing - hide content and cleanup
+    setIsClosing(true);
+    performCleanup();
+    
+    // Phase 2: After cleanup and a brief delay, actually close the dialog
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        setIsClosing(false);
+        onClose();
+      }, 50);
+    });
+  }, [performCleanup, onClose]);
 
   const totalArea = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
 
@@ -445,8 +461,15 @@ export function RoofDrawingModal({
     }
   }, [isOpen, cleanupMap]);
 
+  // Handle dialog open change - intercept close and use two-phase approach
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open && !isClosing) {
+      handleClose();
+    }
+  }, [handleClose, isClosing]);
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+    <Dialog open={isOpen && !isClosing} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
