@@ -93,6 +93,7 @@ import type {
 } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -3667,7 +3668,23 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   );
 }
 
-function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesignAgreement, isLoadingFullData = false }: { simulation: SimulationRun; site: SiteWithDetails; isStaff?: boolean; onNavigateToDesignAgreement?: () => void; isLoadingFullData?: boolean }) {
+function AnalysisResults({ 
+  simulation, 
+  site, 
+  isStaff = false, 
+  onNavigateToDesignAgreement, 
+  isLoadingFullData = false,
+  optimizationTarget = 'npv',
+  onOptimizationTargetChange
+}: { 
+  simulation: SimulationRun; 
+  site: SiteWithDetails; 
+  isStaff?: boolean; 
+  onNavigateToDesignAgreement?: () => void; 
+  isLoadingFullData?: boolean;
+  optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency' | 'payback';
+  onOptimizationTargetChange?: (target: 'npv' | 'irr' | 'selfSufficiency' | 'payback') => void;
+}) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [showIncentives, setShowIncentives] = useState(true);
@@ -3800,6 +3817,104 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
     ? (simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal)
     : null;
 
+  // Get all optimization target scenarios from sensitivity analysis
+  const optimizationScenarios = useMemo(() => {
+    if (!simulation.sensitivity) return null;
+    const sensitivity = simulation.sensitivity as SensitivityAnalysis;
+    const optScenarios = sensitivity.optimalScenarios;
+    if (!optScenarios) return null;
+    
+    return {
+      npv: optScenarios.bestNPV ? {
+        pvSizeKW: optScenarios.bestNPV.pvSizeKW,
+        battEnergyKWh: optScenarios.bestNPV.battEnergyKWh,
+        battPowerKW: optScenarios.bestNPV.battPowerKW,
+        npv25: optScenarios.bestNPV.npv25,
+        irr25: optScenarios.bestNPV.irr25,
+        selfSufficiencyPercent: optScenarios.bestNPV.selfSufficiencyPercent,
+        simplePaybackYears: optScenarios.bestNPV.simplePaybackYears,
+        capexNet: optScenarios.bestNPV.capexNet,
+        annualSavings: optScenarios.bestNPV.annualSavings,
+      } : null,
+      irr: optScenarios.bestIRR ? {
+        pvSizeKW: optScenarios.bestIRR.pvSizeKW,
+        battEnergyKWh: optScenarios.bestIRR.battEnergyKWh,
+        battPowerKW: optScenarios.bestIRR.battPowerKW,
+        npv25: optScenarios.bestIRR.npv25,
+        irr25: optScenarios.bestIRR.irr25,
+        selfSufficiencyPercent: optScenarios.bestIRR.selfSufficiencyPercent,
+        simplePaybackYears: optScenarios.bestIRR.simplePaybackYears,
+        capexNet: optScenarios.bestIRR.capexNet,
+        annualSavings: optScenarios.bestIRR.annualSavings,
+      } : null,
+      selfSufficiency: optScenarios.maxSelfSufficiency ? {
+        pvSizeKW: optScenarios.maxSelfSufficiency.pvSizeKW,
+        battEnergyKWh: optScenarios.maxSelfSufficiency.battEnergyKWh,
+        battPowerKW: optScenarios.maxSelfSufficiency.battPowerKW,
+        npv25: optScenarios.maxSelfSufficiency.npv25,
+        irr25: optScenarios.maxSelfSufficiency.irr25,
+        selfSufficiencyPercent: optScenarios.maxSelfSufficiency.selfSufficiencyPercent,
+        simplePaybackYears: optScenarios.maxSelfSufficiency.simplePaybackYears,
+        capexNet: optScenarios.maxSelfSufficiency.capexNet,
+        annualSavings: optScenarios.maxSelfSufficiency.annualSavings,
+      } : null,
+      payback: optScenarios.fastPayback ? {
+        pvSizeKW: optScenarios.fastPayback.pvSizeKW,
+        battEnergyKWh: optScenarios.fastPayback.battEnergyKWh,
+        battPowerKW: optScenarios.fastPayback.battPowerKW,
+        npv25: optScenarios.fastPayback.npv25,
+        irr25: optScenarios.fastPayback.irr25,
+        selfSufficiencyPercent: optScenarios.fastPayback.selfSufficiencyPercent,
+        simplePaybackYears: optScenarios.fastPayback.simplePaybackYears,
+        capexNet: optScenarios.fastPayback.capexNet,
+        annualSavings: optScenarios.fastPayback.annualSavings,
+      } : null,
+    };
+  }, [simulation.sensitivity]);
+
+  // Get displayed scenario based on optimization target
+  const displayedScenario = useMemo(() => {
+    if (!optimizationScenarios) {
+      // Fallback to simulation data if no optimization scenarios available
+      return {
+        pvSizeKW: simulation.pvSizeKW || 0,
+        battEnergyKWh: simulation.battEnergyKWh || 0,
+        battPowerKW: simulation.battPowerKW || 0,
+        npv25: simulation.npv25 || 0,
+        irr25: simulation.irr25 || 0,
+        selfSufficiencyPercent: simulation.selfSufficiencyPercent || 0,
+        simplePaybackYears: simulation.simplePaybackYears || 0,
+        capexNet: simulation.capexNet || 0,
+        annualSavings: simulation.annualSavings || 0,
+      };
+    }
+    
+    const selected = optimizationScenarios[optimizationTarget];
+    if (!selected) {
+      // Fallback to NPV if selected target not available
+      return optimizationScenarios.npv || {
+        pvSizeKW: simulation.pvSizeKW || 0,
+        battEnergyKWh: simulation.battEnergyKWh || 0,
+        battPowerKW: simulation.battPowerKW || 0,
+        npv25: simulation.npv25 || 0,
+        irr25: simulation.irr25 || 0,
+        selfSufficiencyPercent: simulation.selfSufficiencyPercent || 0,
+        simplePaybackYears: simulation.simplePaybackYears || 0,
+        capexNet: simulation.capexNet || 0,
+        annualSavings: simulation.annualSavings || 0,
+      };
+    }
+    return selected;
+  }, [optimizationScenarios, optimizationTarget, simulation]);
+
+  // Optimization target labels
+  const optimizationLabels = {
+    npv: { fr: "Meilleur VAN", en: "Best NPV", icon: DollarSign },
+    irr: { fr: "Meilleur TRI", en: "Best IRR", icon: TrendingUp },
+    selfSufficiency: { fr: "Autonomie max", en: "Max Independence", icon: Battery },
+    payback: { fr: "Retour rapide", en: "Fast Payback", icon: Clock },
+  };
+
   // Use optimal scenario KPIs if available (for unified "best NPV" display)
   const dashboardPvSizeKW = optimalScenario?.pvSizeKW ?? simulation.pvSizeKW ?? 0;
   const dashboardBattEnergyKWh = optimalScenario?.battEnergyKWh ?? 0;
@@ -3888,15 +4003,52 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
       {/* Recommended System with Roof Constraint - PROMINENT */}
       <Card id="pdf-section-system-config" className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader className="pb-2">
-          <CardTitle className="text-xl flex items-center gap-2">
-            <Zap className="w-6 h-6 text-primary" />
-            {language === "fr" ? "Configuration optimale" : "Optimal Configuration"}
-          </CardTitle>
-          <CardDescription>
-            {language === "fr" 
-              ? "Le système qui maximise votre retour sur investissement" 
-              : "The system that maximizes your return on investment"}
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Zap className="w-6 h-6 text-primary" />
+                {language === "fr" ? "Configuration optimale" : "Optimal Configuration"}
+              </CardTitle>
+              <CardDescription>
+                {language === "fr" 
+                  ? "Sélectionnez votre objectif d'optimisation" 
+                  : "Select your optimization objective"}
+              </CardDescription>
+            </div>
+            
+            {/* Optimization Target Toggle */}
+            {optimizationScenarios && (
+              <ToggleGroup 
+                type="single" 
+                value={optimizationTarget}
+                onValueChange={(value) => {
+                  if (value && onOptimizationTargetChange) {
+                    onOptimizationTargetChange(value as 'npv' | 'irr' | 'selfSufficiency' | 'payback');
+                  }
+                }}
+                className="flex-wrap justify-start sm:justify-end"
+                data-testid="toggle-optimization-target"
+              >
+                {(['npv', 'irr', 'selfSufficiency', 'payback'] as const).map((target) => {
+                  const label = optimizationLabels[target];
+                  const scenario = optimizationScenarios[target];
+                  if (!scenario) return null;
+                  const Icon = label.icon;
+                  return (
+                    <ToggleGroupItem 
+                      key={target}
+                      value={target} 
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                      data-testid={`toggle-${target}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{language === "fr" ? label.fr : label.en}</span>
+                    </ToggleGroupItem>
+                  );
+                })}
+              </ToggleGroup>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-4 gap-6">
@@ -3906,8 +4058,8 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Panneaux solaires" : "Solar Panels"}</p>
-                <p className="text-2xl font-bold font-mono text-primary">{(simulation.pvSizeKW || 0).toFixed(0)} <span className="text-sm font-normal">kWc</span></p>
-                {(simulation.pvSizeKW || 0) > 1000 && (
+                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-pv-size">{displayedScenario.pvSizeKW.toFixed(0)} <span className="text-sm font-normal">kWc</span></p>
+                {displayedScenario.pvSizeKW > 1000 && (
                   <Badge variant="destructive" className="mt-1 text-xs flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
                     {language === "fr" ? "Dépasse 1 MW (limite HQ)" : "Exceeds 1 MW (HQ limit)"}
@@ -3921,7 +4073,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Stockage énergie" : "Energy Storage"}</p>
-                <p className="text-2xl font-bold font-mono text-primary">{(simulation.battEnergyKWh || 0).toFixed(0)} <span className="text-sm font-normal">kWh</span></p>
+                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-battery-size">{displayedScenario.battEnergyKWh.toFixed(0)} <span className="text-sm font-normal">kWh</span></p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -3930,7 +4082,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Puissance batterie" : "Battery Power"}</p>
-                <p className="text-2xl font-bold font-mono text-primary">{(simulation.battPowerKW || 0).toFixed(0)} <span className="text-sm font-normal">kW</span></p>
+                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-battery-power">{displayedScenario.battPowerKW.toFixed(0)} <span className="text-sm font-normal">kW</span></p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -3949,13 +4101,41 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
             </div>
           </div>
           
+          {/* KPI Summary for selected scenario */}
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-3 bg-background rounded-lg border text-center">
+              <p className="text-xs text-muted-foreground mb-1">VAN (25 ans)</p>
+              <p className="text-lg font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-npv">
+                ${(displayedScenario.npv25 / 1000).toFixed(0)}k
+              </p>
+            </div>
+            <div className="p-3 bg-background rounded-lg border text-center">
+              <p className="text-xs text-muted-foreground mb-1">TRI</p>
+              <p className="text-lg font-bold font-mono" data-testid="text-irr">
+                {((displayedScenario.irr25 || 0) * 100).toFixed(1)}%
+              </p>
+            </div>
+            <div className="p-3 bg-background rounded-lg border text-center">
+              <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Retour" : "Payback"}</p>
+              <p className="text-lg font-bold font-mono" data-testid="text-payback">
+                {displayedScenario.simplePaybackYears.toFixed(1)} {language === "fr" ? "ans" : "yrs"}
+              </p>
+            </div>
+            <div className="p-3 bg-background rounded-lg border text-center">
+              <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Écon./an" : "Savings/yr"}</p>
+              <p className="text-lg font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-savings">
+                ${(displayedScenario.annualSavings / 1000).toFixed(0)}k
+              </p>
+            </div>
+          </div>
+          
           {/* Self-sufficiency bar */}
           <div className="mt-6 p-4 bg-background rounded-lg border">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium">{language === "fr" ? "Autonomie énergétique" : "Energy Independence"}</span>
-              <span className="text-xl font-bold font-mono text-primary">{(simulation.selfSufficiencyPercent || 0).toFixed(0)}%</span>
+              <span className="text-xl font-bold font-mono text-primary" data-testid="text-self-sufficiency">{displayedScenario.selfSufficiencyPercent.toFixed(0)}%</span>
             </div>
-            <Progress value={simulation.selfSufficiencyPercent || 0} className="h-3" />
+            <Progress value={displayedScenario.selfSufficiencyPercent} className="h-3" />
           </div>
           
           {/* Surplus Revenue Info (HQ Net Metering Dec 2024) */}
@@ -5905,6 +6085,7 @@ export default function SiteDetailPage() {
   const pendingNewSimulationIdRef = useRef<string | null>(null); // Track newly created simulation ID across data refresh
   const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
   const [isRoofDrawingModalOpen, setIsRoofDrawingModalOpen] = useState(false);
+  const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency' | 'payback'>('npv');
   
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
   const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
@@ -6710,6 +6891,8 @@ export default function SiteDetailPage() {
                 isStaff={isStaff} 
                 onNavigateToDesignAgreement={() => setActiveTab("design-agreement")}
                 isLoadingFullData={loadingFullSimulation === latestSimulation.id || !isFullDataLoaded(latestSimulation.id)}
+                optimizationTarget={optimizationTarget}
+                onOptimizationTargetChange={setOptimizationTarget}
               />
             </>
           ) : (
