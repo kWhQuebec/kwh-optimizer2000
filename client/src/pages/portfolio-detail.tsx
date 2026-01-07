@@ -47,6 +47,33 @@ function formatPercent(value: number | null | undefined): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+// HQ RFP status badge component - uses semantic Badge variants for design system compliance
+function HqRfpStatusBadge({ status, language }: { status: string | null | undefined; language: string }) {
+  if (!status) return <span className="text-muted-foreground text-sm">—</span>;
+  
+  const labels: Record<string, { fr: string; en: string }> = {
+    eligible: { fr: "Éligible RFP", en: "RFP Eligible" },
+    not_eligible: { fr: "Non éligible", en: "Not Eligible" },
+    pending: { fr: "En évaluation", en: "Pending" },
+  };
+  
+  // Use semantic Badge variants for design system compliance
+  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+    eligible: "default",        // Primary color for positive status
+    not_eligible: "destructive", // Red/destructive for negative status
+    pending: "secondary",        // Muted for pending/neutral status
+  };
+  
+  const label = labels[status]?.[language === "fr" ? "fr" : "en"] || status;
+  const variant = variants[status] || "outline";
+  
+  return (
+    <Badge variant={variant} className="text-xs" data-testid={`badge-hq-rfp-${status}`}>
+      {label}
+    </Badge>
+  );
+}
+
 // Inline editable cell component for override values
 function EditableCell({
   value,
@@ -707,6 +734,7 @@ export default function PortfolioDetailPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{language === "fr" ? "Site" : "Site"}</TableHead>
+                    <TableHead>{language === "fr" ? "Statut RFP" : "RFP Status"}</TableHead>
                     <TableHead className="text-right">PV (kW)</TableHead>
                     <TableHead className="text-right">{language === "fr" ? "Batt. (kWh)" : "Batt. (kWh)"}</TableHead>
                     <TableHead className="text-right">CAPEX net</TableHead>
@@ -732,6 +760,9 @@ export default function PortfolioDetailPage() {
                           {ps.site?.city && (
                             <span className="text-muted-foreground text-sm block">{ps.site.city}</span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <HqRfpStatusBadge status={(ps.site as any)?.hqRfpStatus} language={language} />
                         </TableCell>
                         <TableCell className="text-right">
                           <EditableCell
@@ -821,6 +852,7 @@ export default function PortfolioDetailPage() {
                   })}
                   <TableRow className="bg-muted/50 font-bold">
                     <TableCell>Total</TableCell>
+                    <TableCell></TableCell>
                     <TableCell className="text-right">{formatNumber(portfolio.totalPvSizeKW)}</TableCell>
                     <TableCell className="text-right">{formatNumber(portfolio.totalBatteryKWh)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(portfolio.totalCapexNet)}</TableCell>
