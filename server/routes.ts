@@ -1602,7 +1602,9 @@ export async function registerRoutes(
         // DOT and structural feasibility
         'dotCapacityStatus', 'structuralPassStatus', 'structuralCapacity', 'structuralBallastRemoval',
         // Building external ID
-        'externalBuildingId', 'yearBuilt'
+        'externalBuildingId', 'yearBuilt',
+        // Roof area validation
+        'roofAreaValidated', 'roofAreaValidatedAt', 'roofAreaValidatedBy'
       ];
       
       // Filter body to only include allowed fields

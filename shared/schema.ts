@@ -129,6 +129,11 @@ export const sites = pgTable("sites", {
   buildingSqFt: real("building_sqft"),
   yearBuilt: integer("year_built"),
   
+  // Roof area validation - requires manual drawing before analysis
+  roofAreaValidated: boolean("roof_area_validated").default(false), // Must be true before running simulation
+  roofAreaValidatedAt: timestamp("roof_area_validated_at"), // When manual drawing was completed
+  roofAreaValidatedBy: varchar("roof_area_validated_by"), // User ID who validated
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
