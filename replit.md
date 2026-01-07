@@ -68,7 +68,10 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   PNG export for client presentations
     -   Integration with system sizing recommendations
     -   Fallback algorithmic panel generation (teal panels) when Google data is limited (<10 panels)
--   **Manual Roof Drawing Tool**: Interactive roof area tracing for commercial buildings where Google Solar API returns no data:
+-   **Manual Roof Drawing Tool (MANDATORY)**: Interactive roof area tracing required before running analysis for commercial buildings:
+    -   **Mandatory Workflow**: Technicians must draw roof areas BEFORE running any solar analysis simulation
+    -   Prominent amber alert banner blocks analysis until roof is validated
+    -   Sites list shows validation status badges: "Roof validated" (green) or "Roof pending" (red)
     -   Google Maps satellite view with Drawing Manager
     -   Polygon and rectangle drawing tools for roof outlines
     -   Real-time area calculation using `google.maps.geometry.spherical.computeArea()`
@@ -76,6 +79,7 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   GeoJSON coordinate storage for polygon persistence
     -   Total combined area calculation automatically updates roof area parameter
     -   Database schema: `roofPolygons` table with coordinates, areaSqM, color, and metadata
+    -   Database fields: `roofAreaValidated`, `roofAreaValidatedAt`, `roofAreaValidatedBy` track validation state
 -   **Advanced Analysis Modules**:
     -   **Monte Carlo Probabilistic ROI**: A 500-iteration simulation for financial calculations with variable ranges, returning P10/P50/P90 confidence intervals.
     -   **15-Minute Peak Shaving Calculator**: Analyzes granular consumption data for battery storage optimization and demand charge savings.
