@@ -8069,7 +8069,7 @@ interface AnalysisResult {
   totalIncentives: number;
   capexNet: number;
   
-  // Financial metrics
+  // Financial metrics (25-year standard horizon)
   npv25: number;
   npv10: number;
   npv20: number;
@@ -8078,6 +8078,11 @@ interface AnalysisResult {
   irr20: number;
   simplePaybackYears: number;
   lcoe: number;
+  
+  // Extended 30-year horizon metrics (panel lifetime value)
+  npv30: number;
+  irr30: number;
+  lcoe30: number;
   
   // Environmental
   co2AvoidedTonnesPerYear: number;
@@ -8308,7 +8313,10 @@ function runPotentialAnalysis(
   const capexNet = capexGross - totalIncentives;
   const equityInitial = capexGross - incentivesHQSolar - batterySubY0;
   
-  // ========== STEP 10: Build 25-year cashflows ==========
+  // ========== STEP 10: Build 30-year cashflows (extended horizon) ==========
+  // Generate 30 years of cashflows for extended analysis
+  // Years 26-30: continue revenue with degradation, OPEX with escalation, no new incentives
+  const MAX_ANALYSIS_YEARS = 30;
   const cashflows: CashflowEntry[] = [];
   const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
   let cumulative = -equityInitial;
@@ -8326,11 +8334,11 @@ function runPotentialAnalysis(
     cumulative: cumulative,
   });
   
-  // Years 1-25
+  // Years 1-30 (extended from 25 to capture full panel lifetime value)
   const degradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
-  for (let y = 1; y <= h.analysisYears; y++) {
+  for (let y = 1; y <= MAX_ANALYSIS_YEARS; y++) {
     // Apply panel degradation (production decreases each year)
-    // Year 1 = 100%, Year 2 = 99.5%, Year 25 = ~88.6% for 0.5% degradation
+    // Year 1 = 100%, Year 2 = 99.5%, Year 30 = ~86.1% for 0.5% degradation
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     // Revenue = base savings * degradation * tariff inflation
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
@@ -8360,6 +8368,8 @@ function runPotentialAnalysis(
       incentives = incentivesFederal;
     }
     
+    // Note: Years 26-30 have no new incentives (depreciation exhausted, all credits received)
+    
     // Battery replacement at configured year (adjusted for inflation and price decline)
     const replacementYear = h.batteryReplacementYear || 10;
     const replacementFactor = h.batteryReplacementCostFactor || 0.60;
@@ -8372,8 +8382,14 @@ function runPotentialAnalysis(
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
     
-    // Second replacement at year 20 if analysis goes to 25 years
-    if (y === 20 && h.analysisYears >= 25 && battEnergyKWh > 0) {
+    // Second replacement at year 20
+    if (y === 20 && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    
+    // Third replacement at year 30 for extended 30-year analysis
+    if (y === 30 && battEnergyKWh > 0) {
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
@@ -8397,34 +8413,49 @@ function runPotentialAnalysis(
   // ========== STEP 11: Calculate financial metrics ==========
   const cashflowValues = cashflows.map(c => c.netCashflow);
   
-  // NPV calculations
+  // NPV calculations (25-year standard horizon)
   const npv25 = calculateNPV(cashflowValues, h.discountRate, 25);
   const npv20 = calculateNPV(cashflowValues, h.discountRate, 20);
   const npv10 = calculateNPV(cashflowValues, h.discountRate, 10);
   
-  // IRR calculations
+  // NPV 30-year extended horizon (captures full panel lifetime value)
+  const npv30 = calculateNPV(cashflowValues, h.discountRate, 30);
+  
+  // IRR calculations (25-year standard horizon)
   const irr25 = calculateIRR(cashflowValues.slice(0, 26));
   const irr20 = calculateIRR(cashflowValues.slice(0, 21));
   const irr10 = calculateIRR(cashflowValues.slice(0, 11));
   
-  // Simple payback
+  // IRR 30-year extended horizon
+  const irr30 = calculateIRR(cashflowValues.slice(0, 31));
+  
+  // Simple payback (unchanged - based on 25-year standard)
   let simplePaybackYears = h.analysisYears;
-  for (let i = 1; i < cashflows.length; i++) {
+  for (let i = 1; i < Math.min(cashflows.length, 26); i++) {
     if (cashflows[i].cumulative >= 0) {
       simplePaybackYears = i;
       break;
     }
   }
   
-  // LCOE (Levelized Cost of Energy) - with degradation
+  // LCOE (Levelized Cost of Energy) - 25-year standard
   // Sum production over lifetime: year 1 = 100%, year 2 = (1-deg), etc.
-  let totalProduction = 0;
-  for (let y = 1; y <= h.analysisYears; y++) {
+  let totalProduction25 = 0;
+  for (let y = 1; y <= 25; y++) {
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
-    totalProduction += pvSizeKW * effectiveYield * degradationFactor;
+    totalProduction25 += pvSizeKW * effectiveYield * degradationFactor;
   }
-  const totalLifetimeCost = capexNet + (opexBase * h.analysisYears);
-  const lcoe = totalProduction > 0 ? totalLifetimeCost / totalProduction : 0;
+  const totalLifetimeCost25 = capexNet + (opexBase * 25);
+  const lcoe = totalProduction25 > 0 ? totalLifetimeCost25 / totalProduction25 : 0;
+  
+  // LCOE 30-year extended horizon (panel lifetime value)
+  let totalProduction30 = 0;
+  for (let y = 1; y <= 30; y++) {
+    const degradationFactor = Math.pow(1 - degradationRate, y - 1);
+    totalProduction30 += pvSizeKW * effectiveYield * degradationFactor;
+  }
+  const totalLifetimeCost30 = capexNet + (opexBase * 30);
+  const lcoe30 = totalProduction30 > 0 ? totalLifetimeCost30 / totalProduction30 : 0;
   
   // ========== STEP 12: Environmental impact ==========
   const co2Factor = 0.002; // kg CO2/kWh for Quebec grid
@@ -8575,7 +8606,9 @@ function runPotentialAnalysis(
     const optHqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454;
     const optAnnualSurplusRevenue = optSimResult.totalExportedKWh * optHqSurplusRate;
     
-    for (let y = 1; y <= h.analysisYears; y++) {
+    // Build 30 years of cashflows for extended analysis
+    const OPT_MAX_ANALYSIS_YEARS = 30;
+    for (let y = 1; y <= OPT_MAX_ANALYSIS_YEARS; y++) {
       // Apply panel degradation (production decreases each year)
       const degradationFactor = Math.pow(1 - optDegradationRate, y - 1);
       
@@ -8608,6 +8641,8 @@ function runPotentialAnalysis(
         incentives = optIncentivesFederal;
       }
       
+      // Note: Years 26-30 have no new incentives (depreciation exhausted, all credits received)
+      
       const replacementYear = h.batteryReplacementYear || 10;
       const replacementFactor = h.batteryReplacementCostFactor || 0.60;
       const priceDecline = h.batteryPriceDeclineRate || 0.05;
@@ -8616,7 +8651,13 @@ function runPotentialAnalysis(
         const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
         investment = -optCapexBattery * replacementFactor * netPriceChange;
       }
-      if (y === 20 && h.analysisYears >= 25 && optBattEnergyKWh > 0) {
+      // Second replacement at year 20
+      if (y === 20 && optBattEnergyKWh > 0) {
+        const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+        investment = -optCapexBattery * replacementFactor * netPriceChange;
+      }
+      // Third replacement at year 30 for extended 30-year analysis
+      if (y === 30 && optBattEnergyKWh > 0) {
         const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
         investment = -optCapexBattery * replacementFactor * netPriceChange;
       }
@@ -8638,7 +8679,7 @@ function runPotentialAnalysis(
       optCashflowValues.push(ebitda + investment + dpa + incentives);
     }
     
-    // Calculate NPV and IRR for optimal
+    // Calculate NPV and IRR for optimal (25-year standard horizon)
     const optNpv25 = calculateNPV(optCashflowValues, h.discountRate, 25);
     const optNpv10 = calculateNPV(optCashflowValues, h.discountRate, 10);
     const optNpv20 = calculateNPV(optCashflowValues, h.discountRate, 20);
@@ -8646,16 +8687,20 @@ function runPotentialAnalysis(
     const optIrr10 = calculateIRR(optCashflowValues.slice(0, 11));
     const optIrr20 = calculateIRR(optCashflowValues.slice(0, 21));
     
-    // Simple payback
+    // 30-year extended horizon metrics
+    const optNpv30 = calculateNPV(optCashflowValues, h.discountRate, 30);
+    const optIrr30 = calculateIRR(optCashflowValues.slice(0, 31));
+    
+    // Simple payback (25-year standard)
     let optSimplePaybackYears = h.analysisYears;
     for (const cf of optCashflows) {
-      if (cf.cumulative >= 0 && cf.year > 0) {
+      if (cf.cumulative >= 0 && cf.year > 0 && cf.year <= 25) {
         optSimplePaybackYears = cf.year;
         break;
       }
     }
     
-    // LCOE - with degradation
+    // LCOE - with degradation (25-year standard)
     // SIMPLIFIED: For Google yield, use pure Google data × bifacial only
     let optEffectiveYield: number;
     if (h.yieldSource === 'google') {
@@ -8666,13 +8711,22 @@ function runPotentialAnalysis(
       const orientationFactor = Math.max(0.6, Math.min(1.0, h.orientationFactor || 1.0));
       optEffectiveYield = baseYield * orientationFactor * (h.bifacialEnabled ? 1.15 : 1.0);
     }
-    let optTotalProduction = 0;
-    for (let y = 1; y <= h.analysisYears; y++) {
+    let optTotalProduction25 = 0;
+    for (let y = 1; y <= 25; y++) {
       const degradationFactor = Math.pow(1 - optDegradationRate, y - 1);
-      optTotalProduction += optPvSizeKW * optEffectiveYield * degradationFactor;
+      optTotalProduction25 += optPvSizeKW * optEffectiveYield * degradationFactor;
     }
-    const optTotalLifetimeCost = optCapexNet + (optOpexBase * h.analysisYears);
-    const optLcoe = optTotalProduction > 0 ? optTotalLifetimeCost / optTotalProduction : 0;
+    const optTotalLifetimeCost25 = optCapexNet + (optOpexBase * 25);
+    const optLcoe = optTotalProduction25 > 0 ? optTotalLifetimeCost25 / optTotalProduction25 : 0;
+    
+    // LCOE 30-year extended horizon
+    let optTotalProduction30 = 0;
+    for (let y = 1; y <= 30; y++) {
+      const degradationFactor = Math.pow(1 - optDegradationRate, y - 1);
+      optTotalProduction30 += optPvSizeKW * optEffectiveYield * degradationFactor;
+    }
+    const optTotalLifetimeCost30 = optCapexNet + (optOpexBase * 30);
+    const optLcoe30 = optTotalProduction30 > 0 ? optTotalLifetimeCost30 / optTotalProduction30 : 0;
     
     // CO2
     const optCo2AvoidedTonnesPerYear = (optSelfConsumptionKWh * 0.002) / 1000;
@@ -8843,6 +8897,9 @@ function runPotentialAnalysis(
         irr20: finalResult.irr20 || 0,
         simplePaybackYears: finalAnnualSavings > 0 ? Math.ceil(trueOptCapexNet / finalAnnualSavings) : h.analysisYears,
         lcoe: finalLcoe,
+        npv30: optNpv30,
+        irr30: optIrr30,
+        lcoe30: optLcoe30,
         co2AvoidedTonnesPerYear: finalCo2AvoidedTonnesPerYear,
         assumptions: h,
         cashflows: finalResult.cashflows || [],
@@ -8892,6 +8949,9 @@ function runPotentialAnalysis(
       irr20: optIrr20,
       simplePaybackYears: optSimplePaybackYears,
       lcoe: optLcoe,
+      npv30: optNpv30,
+      irr30: optIrr30,
+      lcoe30: optLcoe30,
       co2AvoidedTonnesPerYear: optCo2AvoidedTonnesPerYear,
       assumptions: h,
       cashflows: optCashflows,
@@ -8940,6 +9000,9 @@ function runPotentialAnalysis(
     irr20,
     simplePaybackYears,
     lcoe,
+    npv30,
+    irr30,
+    lcoe30,
     co2AvoidedTonnesPerYear,
     assumptions: h,
     cashflows,

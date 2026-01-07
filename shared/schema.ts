@@ -172,7 +172,7 @@ export const simulationRuns = pgTable("simulation_runs", {
   totalIncentives: real("total_incentives"),
   capexNet: real("capex_net"),
   
-  // Financial metrics
+  // Financial metrics (25-year standard horizon)
   npv25: real("npv_25"),
   npv10: real("npv_10"),
   npv20: real("npv_20"),
@@ -181,6 +181,11 @@ export const simulationRuns = pgTable("simulation_runs", {
   irr20: real("irr_20"),
   simplePaybackYears: real("simple_payback_years"),
   lcoe: real("lcoe"),
+  
+  // Extended 30-year horizon metrics (panel lifetime value)
+  npv30: real("npv_30"),
+  irr30: real("irr_30"),
+  lcoe30: real("lcoe_30"),
   
   // Environmental
   co2AvoidedTonnesPerYear: real("co2_avoided_tonnes_per_year"),
