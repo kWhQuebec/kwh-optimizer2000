@@ -326,7 +326,7 @@ export function RoofDrawingModal({
   };
 
   const handleClose = useCallback(() => {
-    // Clean up Google Maps objects (with safety checks)
+    // Clean up Google Maps objects (with safety checks) but DON'T touch the DOM
     if (window.google) {
       polygons.forEach((p) => {
         if (p.googlePolygon) {
@@ -362,10 +362,7 @@ export function RoofDrawingModal({
       drawingManagerRef.current = null;
     }
     
-    // Clear container
-    if (mapContainerRef.current) {
-      mapContainerRef.current.innerHTML = '';
-    }
+    // Don't clear innerHTML - let the DOM persist to avoid React conflicts
     
     setPolygons([]);
     setActiveDrawingMode(null);
@@ -385,16 +382,12 @@ export function RoofDrawingModal({
     }
   }, [isOpen, initializeMap]);
 
-  // Cleanup function for Google Maps objects
+  // Cleanup function for Google Maps objects - DON'T touch DOM, just clear refs
   const cleanupMap = useCallback(() => {
     // Only cleanup if google is loaded
     if (!window.google) {
-      // Just clear refs and container
       mapRef.current = null;
       drawingManagerRef.current = null;
-      if (mapContainerRef.current) {
-        mapContainerRef.current.innerHTML = '';
-      }
       return;
     }
     
@@ -421,7 +414,7 @@ export function RoofDrawingModal({
       drawingManagerRef.current = null;
     }
     
-    // Clear map listeners and remove map
+    // Clear map listeners but DON'T touch the DOM
     if (mapRef.current) {
       try {
         google.maps.event.clearInstanceListeners(mapRef.current);
@@ -431,10 +424,7 @@ export function RoofDrawingModal({
       mapRef.current = null;
     }
     
-    // Clear the container content to prevent React/DOM conflicts
-    if (mapContainerRef.current) {
-      mapContainerRef.current.innerHTML = '';
-    }
+    // Don't clear innerHTML - let the DOM persist to avoid React conflicts
   }, [polygons]);
 
   useEffect(() => {
@@ -444,14 +434,10 @@ export function RoofDrawingModal({
     }
   }, [isOpen, cleanupMap]);
 
-  // Don't render if not open
-  if (!isOpen) {
-    return null;
-  }
-
+  // Keep mounted but hidden to avoid DOM cleanup issues with Google Maps
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className={`fixed inset-0 z-50 flex items-center justify-center ${isOpen ? '' : 'hidden pointer-events-none'}`}
       data-testid="roof-drawing-modal"
     >
       {/* Backdrop */}
