@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
 import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { RoofPolygon } from "@shared/schema";
@@ -17,6 +18,15 @@ interface RoofVisualizationProps {
   maxPVCapacityKW?: number;
   currentPVSizeKW?: number;
 }
+
+interface PanelPosition {
+  lat: number;
+  lng: number;
+  widthDeg: number;
+  heightDeg: number;
+}
+
+const PANEL_KW = 0.5; // Each 2m x 1m panel = ~500W
 
 export function RoofVisualization({
   siteId,
@@ -35,12 +45,28 @@ export function RoofVisualization({
   const panelOverlaysRef = useRef<google.maps.Rectangle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [allPanelPositions, setAllPanelPositions] = useState<PanelPosition[]>([]);
+  
+  // Selected capacity defaults to recommended system, or max if no recommendation
+  const defaultCapacity = currentPVSizeKW || maxPVCapacityKW || 100;
+  const [selectedCapacityKW, setSelectedCapacityKW] = useState<number>(defaultCapacity);
 
   const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
     queryKey: ["/api/sites", siteId, "roof-polygons"],
   });
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  // Calculate min/max for slider
+  const minCapacity = Math.max(100, Math.round((maxPVCapacityKW || 1000) * 0.1));
+  const maxCapacity = maxPVCapacityKW || 5000;
+
+  // Update default when props change
+  useEffect(() => {
+    if (currentPVSizeKW) {
+      setSelectedCapacityKW(currentPVSizeKW);
+    }
+  }, [currentPVSizeKW]);
 
   const initializeMap = useCallback(() => {
     if (!mapContainerRef.current || !window.google) return;
@@ -72,7 +98,6 @@ export function RoofVisualization({
     const bounds = new google.maps.LatLngBounds();
     let hasValidCoords = false;
 
-    // Only include solar areas (blue) in bounds calculation, not constraints
     const solarPolygons = roofPolygons.filter((p) => {
       if (p.color === "#f97316") return false;
       const label = p.label?.toLowerCase() || "";
@@ -102,7 +127,6 @@ export function RoofVisualization({
       return;
     }
 
-    // If Google Maps is already loaded, initialize immediately
     if (window.google && window.google.maps) {
       initializeMap();
       return;
@@ -128,7 +152,6 @@ export function RoofVisualization({
       }
     };
 
-    // Check if script is already loaded
     if (window.google && window.google.maps) {
       initializeMap();
     } else {
@@ -139,11 +162,11 @@ export function RoofVisualization({
         setMapError(language === "fr" ? "Erreur de chargement Google Maps" : "Failed to load Google Maps");
         setIsLoading(false);
       };
-      // Start polling in case script is loading
       checkAndInit();
     }
   }, [apiKey, initializeMap, language]);
 
+  // Draw roof polygons
   useEffect(() => {
     if (!mapRef.current || !window.google || roofPolygons.length === 0) return;
 
@@ -185,22 +208,17 @@ export function RoofVisualization({
     };
   }, [roofPolygons]);
 
-  // Draw solar panels inside blue polygon areas
+  // Calculate all valid panel positions (once when polygons change)
   useEffect(() => {
-    if (!mapRef.current || !window.google || roofPolygons.length === 0) return;
+    if (!window.google || roofPolygons.length === 0) {
+      setAllPanelPositions([]);
+      return;
+    }
 
-    // Clear existing panels
-    panelOverlaysRef.current.forEach((p) => {
-      try { p.setMap(null); } catch (e) {}
-    });
-    panelOverlaysRef.current = [];
-
-    // Panel dimensions in meters (standard commercial panel ~2m x 1m)
     const panelWidthM = 2.0;
     const panelHeightM = 1.0;
     const gapM = 0.3;
 
-    // Get solar (non-constraint) polygons
     const solarPolygons = roofPolygons.filter((p) => {
       if (p.color === "#f97316") return false;
       const label = p.label?.toLowerCase() || "";
@@ -208,7 +226,6 @@ export function RoofVisualization({
              !label.includes("hvac") && !label.includes("obstacle");
     });
 
-    // Get constraint polygons for exclusion
     const constraintPolygonPaths = roofPolygons
       .filter((p) => {
         if (p.color === "#f97316") return true;
@@ -223,11 +240,12 @@ export function RoofVisualization({
         });
       });
 
+    const positions: PanelPosition[] = [];
+
     solarPolygons.forEach((polygon) => {
       const coords = polygon.coordinates as [number, number][];
       if (!coords || coords.length < 3) return;
 
-      // Calculate bounding box
       let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
       coords.forEach(([lng, lat]) => {
         minLat = Math.min(minLat, lat);
@@ -236,7 +254,6 @@ export function RoofVisualization({
         maxLng = Math.max(maxLng, lng);
       });
 
-      // Convert meters to degrees (approximate at this latitude)
       const metersPerDegreeLat = 111320;
       const metersPerDegreeLng = 111320 * Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
       
@@ -249,57 +266,74 @@ export function RoofVisualization({
         paths: coords.map(([lng, lat]) => ({ lat, lng }))
       });
 
-      // Generate panel grid - check corners, edges, and center to ensure panel is fully inside
       for (let lat = minLat + gapLatDeg; lat < maxLat - panelHeightDeg; lat += panelHeightDeg + gapLatDeg) {
         for (let lng = minLng + gapLngDeg; lng < maxLng - panelWidthDeg; lng += panelWidthDeg + gapLngDeg) {
-          // Define test points: 4 corners + 4 edge midpoints + center = 9 points
           const testPoints = [
-            // 4 corners
-            new google.maps.LatLng(lat, lng),                                    // SW
-            new google.maps.LatLng(lat, lng + panelWidthDeg),                    // SE
-            new google.maps.LatLng(lat + panelHeightDeg, lng),                   // NW
-            new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg),   // NE
-            // 4 edge midpoints
-            new google.maps.LatLng(lat, lng + panelWidthDeg / 2),                // S edge
-            new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg / 2), // N edge
-            new google.maps.LatLng(lat + panelHeightDeg / 2, lng),               // W edge
-            new google.maps.LatLng(lat + panelHeightDeg / 2, lng + panelWidthDeg), // E edge
-            // Center
+            new google.maps.LatLng(lat, lng),
+            new google.maps.LatLng(lat, lng + panelWidthDeg),
+            new google.maps.LatLng(lat + panelHeightDeg, lng),
+            new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg),
+            new google.maps.LatLng(lat, lng + panelWidthDeg / 2),
+            new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg / 2),
+            new google.maps.LatLng(lat + panelHeightDeg / 2, lng),
+            new google.maps.LatLng(lat + panelHeightDeg / 2, lng + panelWidthDeg),
             new google.maps.LatLng(lat + panelHeightDeg / 2, lng + panelWidthDeg / 2),
           ];
 
-          // Check if ALL test points are inside the solar polygon
           const allPointsInSolar = testPoints.every((point) => 
             google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
           );
           if (!allPointsInSolar) continue;
 
-          // Check if ANY test point is inside a constraint polygon
           const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
             testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
           );
           if (anyPointInConstraint) continue;
 
-          // Draw panel rectangle
-          const panelRect = new google.maps.Rectangle({
-            bounds: {
-              north: lat + panelHeightDeg,
-              south: lat,
-              east: lng + panelWidthDeg,
-              west: lng,
-            },
-            strokeColor: "#1e40af",
-            strokeOpacity: 0.8,
-            strokeWeight: 1,
-            fillColor: "#3b82f6",
-            fillOpacity: 0.7,
-            map: mapRef.current,
-          });
-
-          panelOverlaysRef.current.push(panelRect);
+          positions.push({ lat, lng, widthDeg: panelWidthDeg, heightDeg: panelHeightDeg });
         }
       }
     });
+
+    setAllPanelPositions(positions);
+  }, [roofPolygons]);
+
+  // Number of panels to display based on selected capacity
+  const panelsToShow = useMemo(() => {
+    const targetPanels = Math.ceil(selectedCapacityKW / PANEL_KW);
+    return Math.min(targetPanels, allPanelPositions.length);
+  }, [selectedCapacityKW, allPanelPositions.length]);
+
+  // Draw panels based on selected capacity
+  useEffect(() => {
+    if (!mapRef.current || !window.google) return;
+
+    // Clear existing panels
+    panelOverlaysRef.current.forEach((p) => {
+      try { p.setMap(null); } catch (e) {}
+    });
+    panelOverlaysRef.current = [];
+
+    // Draw only the number of panels needed for selected capacity
+    for (let i = 0; i < panelsToShow; i++) {
+      const pos = allPanelPositions[i];
+      const panelRect = new google.maps.Rectangle({
+        bounds: {
+          north: pos.lat + pos.heightDeg,
+          south: pos.lat,
+          east: pos.lng + pos.widthDeg,
+          west: pos.lng,
+        },
+        strokeColor: "#1e40af",
+        strokeOpacity: 0.8,
+        strokeWeight: 1,
+        fillColor: "#3b82f6",
+        fillOpacity: 0.7,
+        map: mapRef.current,
+      });
+
+      panelOverlaysRef.current.push(panelRect);
+    }
 
     return () => {
       panelOverlaysRef.current.forEach((p) => {
@@ -307,7 +341,7 @@ export function RoofVisualization({
       });
       panelOverlaysRef.current = [];
     };
-  }, [roofPolygons]);
+  }, [panelsToShow, allPanelPositions]);
 
   const isConstraintPolygon = (p: RoofPolygon) => {
     if (p.color === "#f97316") return true;
@@ -324,7 +358,6 @@ export function RoofVisualization({
     .filter((p) => isConstraintPolygon(p))
     .reduce((sum, p) => sum + p.areaSqM, 0);
 
-  // Net usable = total solar areas minus constraint areas
   const netUsableArea = Math.max(0, totalUsableArea - constraintArea);
 
   const handleFullscreen = () => {
@@ -334,6 +367,20 @@ export function RoofVisualization({
   };
 
   const hasPolygons = roofPolygons.length > 0;
+
+  // Slider markers
+  const sliderMarkers = useMemo(() => {
+    const markers: { value: number; label: string }[] = [];
+    markers.push({ value: minCapacity, label: "Min" });
+    if (currentPVSizeKW && currentPVSizeKW > minCapacity && currentPVSizeKW < maxCapacity) {
+      markers.push({ value: currentPVSizeKW, label: language === "fr" ? "Recommandé" : "Recommended" });
+    }
+    markers.push({ value: maxCapacity, label: "Max" });
+    return markers;
+  }, [minCapacity, maxCapacity, currentPVSizeKW, language]);
+
+  // Calculate displayed capacity (actual kW based on panels shown)
+  const displayedCapacityKW = Math.round(panelsToShow * PANEL_KW);
 
   return (
     <div className="relative rounded-xl overflow-hidden" data-testid="roof-visualization">
@@ -431,6 +478,60 @@ export function RoofVisualization({
           </div>
         )}
       </div>
+
+      {/* Capacity Slider */}
+      {hasPolygons && allPanelPositions.length > 0 && (
+        <div className="bg-card border-t p-4" data-testid="capacity-slider-section">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sun className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">
+                {language === "fr" ? "Taille du système" : "System Size"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="font-mono" data-testid="panel-count-badge">
+                {panelsToShow.toLocaleString()} {language === "fr" ? "panneaux" : "panels"}
+              </Badge>
+              <Badge className="bg-primary text-primary-foreground font-mono" data-testid="capacity-badge">
+                {displayedCapacityKW.toLocaleString()} kWc
+              </Badge>
+            </div>
+          </div>
+          
+          <div className="relative pt-1 pb-6">
+            <Slider
+              value={[selectedCapacityKW]}
+              onValueChange={(values) => setSelectedCapacityKW(values[0])}
+              min={minCapacity}
+              max={maxCapacity}
+              step={10}
+              className="w-full"
+              data-testid="capacity-slider"
+            />
+            
+            {/* Slider markers */}
+            <div className="absolute left-0 right-0 bottom-0 flex justify-between text-xs text-muted-foreground">
+              {sliderMarkers.map((marker, idx) => {
+                const position = ((marker.value - minCapacity) / (maxCapacity - minCapacity)) * 100;
+                const isRecommended = marker.value === currentPVSizeKW;
+                return (
+                  <div 
+                    key={idx}
+                    className="absolute flex flex-col items-center"
+                    style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+                  >
+                    <div className={`h-1.5 w-0.5 ${isRecommended ? 'bg-primary' : 'bg-muted-foreground/50'}`} />
+                    <span className={`mt-0.5 whitespace-nowrap ${isRecommended ? 'text-primary font-medium' : ''}`}>
+                      {marker.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
