@@ -91,7 +91,7 @@ export function RoofVisualization({
     });
 
     if (hasValidCoords) {
-      mapRef.current.fitBounds(bounds, { top: 60, bottom: 80, left: 20, right: 20 });
+      mapRef.current.fitBounds(bounds, { top: 50, bottom: 100, left: 30, right: 30 });
     }
   }, [roofPolygons]);
 
@@ -337,7 +337,7 @@ export function RoofVisualization({
 
   return (
     <div className="relative rounded-xl overflow-hidden" data-testid="roof-visualization">
-      <div className="relative w-full h-56 md:h-72">
+      <div className="relative w-full h-72 md:h-96">
         <div ref={mapContainerRef} className="absolute inset-0" />
         
         {isLoading && (
