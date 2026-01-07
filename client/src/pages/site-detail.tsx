@@ -117,6 +117,7 @@ import { ActivityFeed } from "@/components/activity-feed";
 import { MonteCarloAnalysis } from "@/components/monte-carlo-analysis";
 import { SolarMockup } from "@/components/SolarMockup";
 import { RoofDrawingModal } from "@/components/RoofDrawingModal";
+import { RoofVisualization } from "@/components/RoofVisualization";
 import type { Site, Client, MeterFile, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
 
 interface SiteWithDetails extends Site {
@@ -3857,47 +3858,18 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
         co2Tonnes={dashboardCo2Tonnes}
       />
 
-      {/* Satellite Hero Image */}
+      {/* Interactive Roof Visualization with Drawn Polygons */}
       {site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-        <div className="relative rounded-xl overflow-hidden" data-testid="satellite-hero">
-          <iframe
-            className="w-full h-56 md:h-72"
-            style={{ border: 0 }}
-            loading="lazy"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-            src={`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&center=${site.latitude},${site.longitude}&zoom=19&maptype=satellite`}
-            title={language === "fr" ? "Vue satellite du site" : "Satellite view of site"}
-          />
-          {/* Dark gradient overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-          
-          {/* Building name and stats overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-white mb-1">{site.name}</h2>
-                <p className="text-sm text-white/80">{site.address}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
-                  <Home className="w-3 h-3 mr-1" />
-                  {assumptions.roofAreaSqFt.toLocaleString()} pi²
-                </Badge>
-                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
-                  <Sun className="w-3 h-3 mr-1" />
-                  {Math.round(maxPVFromRoof)} kWc max
-                </Badge>
-                {simulation.pvSizeKW && (
-                  <Badge variant="secondary" className="bg-primary/80 text-white border-primary backdrop-blur-sm">
-                    <Zap className="w-3 h-3 mr-1" />
-                    {Math.round(simulation.pvSizeKW)} kWc
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <RoofVisualization
+          siteId={site.id}
+          siteName={site.name}
+          address={site.address || ""}
+          latitude={site.latitude}
+          longitude={site.longitude}
+          roofAreaSqFt={assumptions.roofAreaSqFt}
+          maxPVCapacityKW={maxPVFromRoof}
+          currentPVSizeKW={simulation.pvSizeKW || undefined}
+        />
       )}
 
       {/* Solar Mockup - Visual representation with panels overlay */}

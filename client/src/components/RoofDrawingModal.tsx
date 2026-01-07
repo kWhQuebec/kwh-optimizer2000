@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Edit2, Check, X, Square, Pentagon, Loader2, MapPin } from 'lucide-react';
+import { Trash2, Edit2, Check, X, Square, Pentagon, Loader2, MapPin, AlertTriangle, Sun } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { RoofPolygon, InsertRoofPolygon } from '@shared/schema';
 
@@ -28,8 +28,11 @@ interface DrawnPolygon {
   googlePolygon: google.maps.Polygon | null;
 }
 
-const DEFAULT_COLOR = '#0d9488';
+const SOLAR_COLOR = '#3b82f6';      // Blue for solar areas
+const CONSTRAINT_COLOR = '#f97316'; // Orange for constraint areas
 const GOOGLE_MAPS_SCRIPT_ID = 'google-maps-script';
+
+type PolygonType = 'solar' | 'constraint';
 
 declare global {
   interface Window {
@@ -91,6 +94,8 @@ export function RoofDrawingModal({
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editingLabelValue, setEditingLabelValue] = useState('');
   const [activeDrawingMode, setActiveDrawingMode] = useState<'polygon' | 'rectangle' | null>(null);
+  const [currentPolygonType, setCurrentPolygonType] = useState<PolygonType>('solar');
+  const polygonTypeRef = useRef<PolygonType>('solar');
 
   const initializeMap = useCallback(async () => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -117,21 +122,23 @@ export function RoofDrawingModal({
 
       mapRef.current = map;
 
+      const currentColor = polygonTypeRef.current === 'constraint' ? CONSTRAINT_COLOR : SOLAR_COLOR;
+      
       const drawingManager = new google.maps.drawing.DrawingManager({
         drawingMode: null,
         drawingControl: false,
         polygonOptions: {
-          fillColor: DEFAULT_COLOR,
+          fillColor: currentColor,
           fillOpacity: 0.4,
-          strokeColor: DEFAULT_COLOR,
+          strokeColor: currentColor,
           strokeWeight: 2,
           editable: true,
           draggable: false,
         },
         rectangleOptions: {
-          fillColor: DEFAULT_COLOR,
+          fillColor: currentColor,
           fillOpacity: 0.4,
-          strokeColor: DEFAULT_COLOR,
+          strokeColor: currentColor,
           strokeWeight: 2,
           editable: true,
           draggable: false,
@@ -154,6 +161,7 @@ export function RoofDrawingModal({
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
 
+        const rectColor = polygonTypeRef.current === 'constraint' ? CONSTRAINT_COLOR : SOLAR_COLOR;
         const polygon = new google.maps.Polygon({
           paths: [
             { lat: ne.lat(), lng: ne.lng() },
@@ -161,9 +169,9 @@ export function RoofDrawingModal({
             { lat: sw.lat(), lng: sw.lng() },
             { lat: sw.lat(), lng: ne.lng() },
           ],
-          fillColor: DEFAULT_COLOR,
+          fillColor: rectColor,
           fillOpacity: 0.4,
-          strokeColor: DEFAULT_COLOR,
+          strokeColor: rectColor,
           strokeWeight: 2,
           editable: true,
           map: map,
@@ -184,9 +192,9 @@ export function RoofDrawingModal({
 
           const googlePolygon = new google.maps.Polygon({
             paths: coords,
-            fillColor: ep.color || DEFAULT_COLOR,
+            fillColor: ep.color || SOLAR_COLOR,
             fillOpacity: 0.4,
-            strokeColor: ep.color || DEFAULT_COLOR,
+            strokeColor: ep.color || SOLAR_COLOR,
             strokeWeight: 2,
             editable: true,
             map: map,
@@ -197,7 +205,7 @@ export function RoofDrawingModal({
             label: ep.label || '',
             coordinates: ep.coordinates as [number, number][],
             areaSqM: ep.areaSqM,
-            color: ep.color || DEFAULT_COLOR,
+            color: ep.color || SOLAR_COLOR,
             googlePolygon,
           };
 
@@ -227,13 +235,18 @@ export function RoofDrawingModal({
     }
 
     const areaSqM = google.maps.geometry.spherical.computeArea(path);
+    const isConstraint = polygonTypeRef.current === 'constraint';
+    const color = isConstraint ? CONSTRAINT_COLOR : SOLAR_COLOR;
+    const defaultLabel = isConstraint 
+      ? (language === 'fr' ? 'Contrainte' : 'Constraint')
+      : '';
 
     const newPolygon: DrawnPolygon = {
       id: generateId(),
-      label: '',
+      label: defaultLabel,
       coordinates,
       areaSqM,
-      color: DEFAULT_COLOR,
+      color,
       googlePolygon: polygon,
     };
 
@@ -415,6 +428,52 @@ export function RoofDrawingModal({
 
         <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
           <div className="flex-1 flex flex-col gap-3">
+            {/* Polygon Type Selector */}
+            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+              <span className="text-xs text-muted-foreground mr-1">
+                {language === 'fr' ? 'Type:' : 'Type:'}
+              </span>
+              <Button
+                size="sm"
+                variant={currentPolygonType === 'solar' ? 'default' : 'outline'}
+                className={currentPolygonType === 'solar' ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                onClick={() => {
+                  setCurrentPolygonType('solar');
+                  polygonTypeRef.current = 'solar';
+                  if (drawingManagerRef.current) {
+                    drawingManagerRef.current.setOptions({
+                      polygonOptions: { fillColor: SOLAR_COLOR, strokeColor: SOLAR_COLOR, fillOpacity: 0.4, strokeWeight: 2, editable: true },
+                      rectangleOptions: { fillColor: SOLAR_COLOR, strokeColor: SOLAR_COLOR, fillOpacity: 0.4, strokeWeight: 2, editable: true }
+                    });
+                  }
+                }}
+                data-testid="button-type-solar"
+              >
+                <Sun className="h-4 w-4 mr-1" />
+                {language === 'fr' ? 'Zone solaire' : 'Solar Area'}
+              </Button>
+              <Button
+                size="sm"
+                variant={currentPolygonType === 'constraint' ? 'default' : 'outline'}
+                className={currentPolygonType === 'constraint' ? 'bg-orange-500 hover:bg-orange-600' : ''}
+                onClick={() => {
+                  setCurrentPolygonType('constraint');
+                  polygonTypeRef.current = 'constraint';
+                  if (drawingManagerRef.current) {
+                    drawingManagerRef.current.setOptions({
+                      polygonOptions: { fillColor: CONSTRAINT_COLOR, strokeColor: CONSTRAINT_COLOR, fillOpacity: 0.4, strokeWeight: 2, editable: true },
+                      rectangleOptions: { fillColor: CONSTRAINT_COLOR, strokeColor: CONSTRAINT_COLOR, fillOpacity: 0.4, strokeWeight: 2, editable: true }
+                    });
+                  }
+                }}
+                data-testid="button-type-constraint"
+              >
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                {language === 'fr' ? 'Contrainte' : 'Constraint'}
+              </Button>
+            </div>
+
+            {/* Drawing Tools */}
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
@@ -475,12 +534,20 @@ export function RoofDrawingModal({
                   </p>
                 )}
 
-                {polygons.map((polygon, index) => (
+                {polygons.map((polygon, index) => {
+                  const isConstraintPolygon = polygon.color === CONSTRAINT_COLOR || 
+                    polygon.label?.toLowerCase().includes('constraint') ||
+                    polygon.label?.toLowerCase().includes('contrainte');
+                  
+                  return (
                   <div
                     key={polygon.id}
-                    className="p-3 rounded-lg border bg-card hover-elevate"
+                    className="p-3 rounded-lg border bg-card hover-elevate flex gap-2"
                     data-testid={`polygon-item-${index}`}
                   >
+                    <div 
+                      className={`w-1 rounded-full shrink-0 ${isConstraintPolygon ? 'bg-orange-500' : 'bg-blue-500'}`} 
+                    />
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         {editingLabelId === polygon.id ? (
@@ -547,7 +614,8 @@ export function RoofDrawingModal({
                       </Button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>
