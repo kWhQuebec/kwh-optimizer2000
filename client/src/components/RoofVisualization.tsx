@@ -161,6 +161,9 @@ export function RoofVisualization({
     .filter((p) => isConstraintPolygon(p))
     .reduce((sum, p) => sum + p.areaSqM, 0);
 
+  // Net usable = total solar areas minus constraint areas
+  const netUsableArea = Math.max(0, totalUsableArea - constraintArea);
+
   const handleFullscreen = () => {
     if (mapContainerRef.current?.parentElement) {
       mapContainerRef.current.parentElement.requestFullscreen?.();
@@ -210,7 +213,13 @@ export function RoofVisualization({
               <p className="text-sm text-white/80">{address}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {hasPolygons && totalUsableArea > 0 && (
+              {hasPolygons && constraintArea > 0 && totalUsableArea > 0 && (
+                <Badge variant="secondary" className="bg-green-500/80 text-white border-green-400/50 backdrop-blur-sm">
+                  <Layers className="w-3 h-3 mr-1" />
+                  {Math.round(netUsableArea).toLocaleString()} m² {language === "fr" ? "net utilisable" : "net usable"}
+                </Badge>
+              )}
+              {hasPolygons && totalUsableArea > 0 && constraintArea === 0 && (
                 <Badge variant="secondary" className="bg-blue-500/80 text-white border-blue-400/50 backdrop-blur-sm">
                   <Layers className="w-3 h-3 mr-1" />
                   {Math.round(totalUsableArea).toLocaleString()} m² {language === "fr" ? "utilisable" : "usable"}
@@ -219,7 +228,7 @@ export function RoofVisualization({
               {hasPolygons && constraintArea > 0 && (
                 <Badge variant="secondary" className="bg-orange-500/80 text-white border-orange-400/50 backdrop-blur-sm">
                   <AlertTriangle className="w-3 h-3 mr-1" />
-                  {Math.round(constraintArea).toLocaleString()} m² {language === "fr" ? "contraintes" : "constraints"}
+                  -{Math.round(constraintArea).toLocaleString()} m² {language === "fr" ? "contraintes" : "constraints"}
                 </Badge>
               )}
               {roofAreaSqFt && (
