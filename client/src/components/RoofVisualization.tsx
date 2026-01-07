@@ -64,6 +64,28 @@ export function RoofVisualization({
     }
   }, [latitude, longitude, language]);
 
+  // Center map on polygons when they load
+  useEffect(() => {
+    if (!mapRef.current || !window.google || roofPolygons.length === 0) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    let hasValidCoords = false;
+
+    roofPolygons.forEach((polygon) => {
+      const coords = polygon.coordinates as [number, number][];
+      if (!coords || coords.length < 3) return;
+      
+      coords.forEach(([lng, lat]) => {
+        bounds.extend({ lat, lng });
+        hasValidCoords = true;
+      });
+    });
+
+    if (hasValidCoords) {
+      mapRef.current.fitBounds(bounds, { top: 60, bottom: 80, left: 20, right: 20 });
+    }
+  }, [roofPolygons]);
+
   useEffect(() => {
     if (!apiKey) {
       setMapError(language === "fr" ? "Clé API Google Maps non configurée" : "Google Maps API key not configured");
