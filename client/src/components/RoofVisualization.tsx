@@ -24,6 +24,7 @@ interface PanelPosition {
   lng: number;
   widthDeg: number;
   heightDeg: number;
+  polygonId: string; // Track which polygon this panel belongs to (UUID)
 }
 
 const PANEL_KW = 0.5; // Each 2m x 1m panel = ~500W
@@ -268,12 +269,26 @@ export function RoofVisualization({
     // Total row spacing = panel height + shadow clearance + gap
     const rowSpacingM = panelHeightM + 1.4 + gapBetweenPanelsM; // ~2.7m between rows
 
-    const solarPolygons = roofPolygons.filter((p) => {
-      if (p.color === "#f97316") return false;
-      const label = p.label?.toLowerCase() || "";
-      return !label.includes("constraint") && !label.includes("contrainte") && 
-             !label.includes("hvac") && !label.includes("obstacle");
-    });
+    // Filter solar polygons and sort by creation date (oldest first)
+    // This ensures panels fill the original polygon before newer ones
+    const solarPolygons = roofPolygons
+      .filter((p) => {
+        if (p.color === "#f97316") return false;
+        const label = p.label?.toLowerCase() || "";
+        return !label.includes("constraint") && !label.includes("contrainte") && 
+               !label.includes("hvac") && !label.includes("obstacle");
+      })
+      .sort((a, b) => {
+        // Sort by createdAt ascending (oldest first)
+        // Fall back to id (UUID string) if createdAt is not available
+        if (a.createdAt && b.createdAt) {
+          const dateA = typeof a.createdAt === 'string' ? new Date(a.createdAt) : a.createdAt;
+          const dateB = typeof b.createdAt === 'string' ? new Date(b.createdAt) : b.createdAt;
+          return dateA.getTime() - dateB.getTime();
+        }
+        // UUIDs are not sortable by order, but at least consistent
+        return a.id.localeCompare(b.id);
+      });
 
     const constraintPolygonPaths = roofPolygons
       .filter((p) => {
@@ -345,11 +360,19 @@ export function RoofVisualization({
           );
           if (anyPointInConstraint) continue;
 
-          positions.push({ lat, lng, widthDeg: panelWidthDeg, heightDeg: panelHeightDeg });
+          positions.push({ 
+            lat, 
+            lng, 
+            widthDeg: panelWidthDeg, 
+            heightDeg: panelHeightDeg,
+            polygonId: polygon.id 
+          });
         }
       }
     });
 
+    // Positions are already in correct order because we sorted solarPolygons by createdAt
+    // Oldest polygon's panels come first, then newer polygons
     setAllPanelPositions(positions);
   }, [roofPolygons, mapReady]); // Re-run when map is ready
 
