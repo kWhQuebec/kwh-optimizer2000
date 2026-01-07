@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Edit2, Check, X, Square, Pentagon, Loader2, MapPin, AlertTriangle, Sun } from 'lucide-react';
+import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { RoofPolygon, InsertRoofPolygon } from '@shared/schema';
 
@@ -150,8 +150,10 @@ export function RoofDrawingModal({
 
       google.maps.event.addListener(drawingManager, 'polygoncomplete', (polygon: google.maps.Polygon) => {
         handlePolygonComplete(polygon);
-        drawingManager.setDrawingMode(null);
-        setActiveDrawingMode(null);
+        // Keep polygon mode active for continuous drawing
+        setTimeout(() => {
+          drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+        }, 100);
       });
 
       google.maps.event.addListener(drawingManager, 'rectanglecomplete', (rectangle: google.maps.Rectangle) => {
@@ -217,6 +219,10 @@ export function RoofDrawingModal({
         setPolygons(loadedPolygons);
       }
 
+      // Auto-activate polygon drawing mode
+      drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+      setActiveDrawingMode('polygon');
+      
       setIsLoading(false);
     } catch (err) {
       console.error('Error initializing Google Maps:', err);
@@ -305,19 +311,6 @@ export function RoofDrawingModal({
   const handleCancelEditLabel = () => {
     setEditingLabelId(null);
     setEditingLabelValue('');
-  };
-
-  const setDrawingMode = (mode: 'polygon' | 'rectangle' | null) => {
-    if (!drawingManagerRef.current) return;
-
-    if (mode === 'polygon') {
-      drawingManagerRef.current.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-    } else if (mode === 'rectangle') {
-      drawingManagerRef.current.setDrawingMode(google.maps.drawing.OverlayType.RECTANGLE);
-    } else {
-      drawingManagerRef.current.setDrawingMode(null);
-    }
-    setActiveDrawingMode(mode);
   };
 
   const handleSave = async () => {
@@ -473,26 +466,12 @@ export function RoofDrawingModal({
               </Button>
             </div>
 
-            {/* Drawing Tools */}
+            {/* Drawing Mode Indicator */}
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant={activeDrawingMode === 'polygon' ? 'default' : 'outline'}
-                onClick={() => setDrawingMode(activeDrawingMode === 'polygon' ? null : 'polygon')}
-                data-testid="button-draw-polygon"
-              >
-                <Pentagon className="h-4 w-4 mr-2" />
-                {language === 'fr' ? 'Polygone' : 'Polygon'}
-              </Button>
-              <Button
-                size="sm"
-                variant={activeDrawingMode === 'rectangle' ? 'default' : 'outline'}
-                onClick={() => setDrawingMode(activeDrawingMode === 'rectangle' ? null : 'rectangle')}
-                data-testid="button-draw-rectangle"
-              >
-                <Square className="h-4 w-4 mr-2" />
-                {language === 'fr' ? 'Rectangle' : 'Rectangle'}
-              </Button>
+              <Badge variant="secondary" className="flex items-center gap-1" data-testid="badge-draw-mode">
+                <Pentagon className="h-3 w-3" />
+                {language === 'fr' ? 'Mode tracé actif' : 'Drawing mode active'}
+              </Badge>
             </div>
 
             {/* Outer wrapper for React - inner div for Google Maps */}
