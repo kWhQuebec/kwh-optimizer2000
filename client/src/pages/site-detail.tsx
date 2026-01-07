@@ -4102,7 +4102,7 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Calculator className="w-4 h-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{language === "fr" ? "Coût énergie" : "Energy Cost"}</p>
+              <p className="text-sm text-muted-foreground">{language === "fr" ? "LCOE (Coût moyen du solaire 25 ans)" : "LCOE (25 yr avg cost for solar)"}</p>
             </div>
             <p className="text-2xl font-bold font-mono">${(simulation.lcoe || 0).toFixed(3)}<span className="text-sm font-normal text-muted-foreground">/kWh</span></p>
           </CardContent>

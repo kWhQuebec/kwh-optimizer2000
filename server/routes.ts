@@ -744,9 +744,10 @@ export async function registerRoutes(
       const grossCAPEX = systemSizeKW * solarCostPerKW;
       
       // HQ incentive: $1000/kW capped at 40% of gross CAPEX
-      // Note: At $1800/kW, 40% cap = $720/kW, which is less than $1000/kW
-      // So incentive = min($1000/kW, 40% of CAPEX) = 40% of CAPEX at these prices
-      const hqIncentive = Math.min(systemSizeKW * 1000, grossCAPEX * 0.40);
+      // Note: HQ Autoproduction program is limited to 1 MW - only first 1000 kW eligible
+      // At $1800/kW, 40% cap = $720/kW, which is less than $1000/kW
+      const eligibleKW = Math.min(systemSizeKW, 1000); // Pro-rata: only first 1 MW
+      const hqIncentive = Math.min(eligibleKW * 1000, grossCAPEX * 0.40);
       
       // Net CAPEX after incentive
       const netCAPEX = grossCAPEX - hqIncentive;
@@ -8267,9 +8268,11 @@ function runPotentialAnalysis(
   
   // ========== STEP 6: Calculate Quebec (HQ) incentives ==========
   // Hydro-Québec: $1000/kW for solar, capped at 40% of total CAPEX
+  // Note: HQ Autoproduction program is limited to 1 MW - only first 1000 kW eligible for $1000/kW
   // Battery: NO standalone $300/kW incentive (discontinued as of Dec 2024)
   // Battery can only receive HQ credit if paired with solar AND there's leftover room in the cap
-  const potentialHQSolar = pvSizeKW * 1000;
+  const eligibleSolarKW = Math.min(pvSizeKW, 1000); // Pro-rata: only first 1 MW
+  const potentialHQSolar = eligibleSolarKW * 1000;
   const potentialHQBattery = 0; // Discontinued - no standalone battery incentive
   const cap40Percent = capexGross * 0.40;
   
@@ -8514,8 +8517,10 @@ function runPotentialAnalysis(
     
     // HQ incentives for optimal sizing
     // $1000/kW for solar, capped at 40% of CAPEX
+    // Note: HQ Autoproduction program is limited to 1 MW - only first 1000 kW eligible
     // Battery: NO standalone incentive (discontinued Dec 2024), only gets overflow from solar cap
-    const optPotentialHQSolar = optPvSizeKW * 1000;
+    const optEligibleSolarKW = Math.min(optPvSizeKW, 1000); // Pro-rata: only first 1 MW
+    const optPotentialHQSolar = optEligibleSolarKW * 1000;
     const optPotentialHQBattery = 0; // Discontinued - no standalone battery incentive
     const optCap40Percent = optCapexGross * 0.40;
     
@@ -8765,7 +8770,9 @@ function runPotentialAnalysis(
       const finalCapexPV = finalPvSizeKW * 1000 * finalBaseCostPerW;
       const finalCapexBattery = finalBattEnergyKWh * h.batteryCapacityCost + finalBattPowerKW * h.batteryPowerCost;
       const finalCapexGross = finalCapexPV + finalCapexBattery;
-      const finalPotentialHQSolar = finalPvSizeKW * 1000;
+      // HQ Autoproduction program limited to 1 MW - only first 1000 kW eligible
+      const finalEligibleSolarKW = Math.min(finalPvSizeKW, 1000);
+      const finalPotentialHQSolar = finalEligibleSolarKW * 1000;
       const finalPotentialHQBattery = finalBattEnergyKWh * 150;
       const finalCap40Percent = finalCapexGross * 0.40;
       const finalIncentivesHQSolar = finalResult.incentivesHQSolar || 0;
@@ -9573,8 +9580,10 @@ function runScenarioWithSizing(
   }
   
   // HQ incentives: $1000/kW for solar, capped at 40% of CAPEX
+  // Note: HQ Autoproduction program is limited to 1 MW - only first 1000 kW eligible for $1000/kW
   // Battery: NO standalone incentive (discontinued Dec 2024), only gets overflow from solar cap when paired
-  const potentialHQSolar = pvSizeKW * 1000;
+  const eligibleSolarKW = Math.min(pvSizeKW, 1000); // Pro-rata: only first 1 MW
+  const potentialHQSolar = eligibleSolarKW * 1000;
   const potentialHQBattery = 0; // Discontinued - no standalone battery incentive
   const cap40Percent = capexGross * 0.40;
   
