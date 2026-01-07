@@ -225,7 +225,7 @@ export function RoofVisualization({
   // - South-to-north filling (optimal for Quebec, northern hemisphere)
   // - Inter-row spacing for winter sun angle (~20° at solstice, 30° panel tilt)
   useEffect(() => {
-    if (!window.google || !google.maps?.geometry || roofPolygons.length === 0) {
+    if (!mapReady || !window.google || !google.maps?.geometry || roofPolygons.length === 0) {
       setAllPanelPositions([]);
       return;
     }
@@ -328,7 +328,7 @@ export function RoofVisualization({
     });
 
     setAllPanelPositions(positions);
-  }, [roofPolygons, isLoading]); // Re-run when map loads (isLoading becomes false)
+  }, [roofPolygons, mapReady]); // Re-run when map is ready
 
   // Number of panels to display based on selected capacity
   const panelsToShow = useMemo(() => {
@@ -337,9 +337,9 @@ export function RoofVisualization({
   }, [selectedCapacityKW, allPanelPositions.length]);
 
   // Draw panels based on selected capacity
-  // Depends on isLoading to ensure map is ready before drawing
+  // Depends on mapReady to ensure map is ready before drawing
   useEffect(() => {
-    if (!mapRef.current || !window.google || isLoading) return;
+    if (!mapReady || !mapRef.current || !window.google) return;
 
     // Clear existing panels
     panelOverlaysRef.current.forEach((p) => {
@@ -364,6 +364,7 @@ export function RoofVisualization({
         fillColor: "#3b82f6",
         fillOpacity: 0.7,
         map: mapRef.current,
+        zIndex: 3, // Panels on top of polygons
       });
 
       panelOverlaysRef.current.push(panelRect);
@@ -375,7 +376,7 @@ export function RoofVisualization({
       });
       panelOverlaysRef.current = [];
     };
-  }, [panelsToShow, allPanelPositions, isLoading]);
+  }, [panelsToShow, allPanelPositions, mapReady]);
 
   const isConstraintPolygon = (p: RoofPolygon) => {
     if (p.color === "#f97316") return true;
