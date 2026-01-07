@@ -44,6 +44,7 @@ export function RoofVisualization({
   const polygonOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const panelOverlaysRef = useRef<google.maps.Rectangle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [allPanelPositions, setAllPanelPositions] = useState<PanelPosition[]>([]);
   
@@ -84,6 +85,8 @@ export function RoofVisualization({
 
       mapRef.current = map;
       setIsLoading(false);
+      // Use setTimeout to ensure map is fully rendered before setting ready
+      setTimeout(() => setMapReady(true), 100);
     } catch (error) {
       console.error("Failed to initialize map:", error);
       setMapError(language === "fr" ? "Erreur de chargement de la carte" : "Failed to load map");
@@ -93,7 +96,7 @@ export function RoofVisualization({
 
   // Center map on solar (blue) polygons when they load - wait for map to be ready
   useEffect(() => {
-    if (!mapRef.current || !window.google || isLoading || roofPolygons.length === 0) return;
+    if (!mapReady || !mapRef.current || !window.google || roofPolygons.length === 0) return;
 
     const bounds = new google.maps.LatLngBounds();
     let hasValidCoords = false;
@@ -119,7 +122,7 @@ export function RoofVisualization({
       // Fit bounds to show the entire polygon area with padding
       mapRef.current.fitBounds(bounds, 80);
     }
-  }, [roofPolygons, isLoading]);
+  }, [roofPolygons, mapReady]);
 
   useEffect(() => {
     if (!apiKey) {
@@ -169,14 +172,17 @@ export function RoofVisualization({
 
   // Draw roof polygons - wait for map to be ready
   useEffect(() => {
-    if (!mapRef.current || !window.google || isLoading || roofPolygons.length === 0) return;
+    if (!mapReady || !mapRef.current || !window.google || roofPolygons.length === 0) return;
 
-    polygonOverlaysRef.current.forEach((p) => p.setMap(null));
+    // Clear existing polygons first
+    polygonOverlaysRef.current.forEach((p) => {
+      try { p.setMap(null); } catch (e) {}
+    });
     polygonOverlaysRef.current = [];
 
     roofPolygons.forEach((polygon) => {
       const coords = polygon.coordinates as [number, number][];
-      if (!coords || coords.length < 3) return;
+      if (!coords || !Array.isArray(coords) || coords.length < 3) return;
 
       const path = coords.map(([lng, lat]) => ({ lat, lng }));
 
@@ -188,17 +194,22 @@ export function RoofVisualization({
 
       const color = isConstraint ? "#f97316" : (polygon.color || "#3b82f6");
 
-      const googlePolygon = new google.maps.Polygon({
-        paths: path,
-        strokeColor: color,
-        strokeOpacity: 0.9,
-        strokeWeight: 2,
-        fillColor: color,
-        fillOpacity: isConstraint ? 0.4 : 0.3,
-        map: mapRef.current,
-      });
+      try {
+        const googlePolygon = new google.maps.Polygon({
+          paths: path,
+          strokeColor: color,
+          strokeOpacity: 0.9,
+          strokeWeight: 2,
+          fillColor: color,
+          fillOpacity: isConstraint ? 0.4 : 0.3,
+          map: mapRef.current,
+          zIndex: isConstraint ? 2 : 1, // Constraints on top
+        });
 
-      polygonOverlaysRef.current.push(googlePolygon);
+        polygonOverlaysRef.current.push(googlePolygon);
+      } catch (e) {
+        console.error("Error creating polygon:", e);
+      }
     });
 
     return () => {
@@ -207,7 +218,7 @@ export function RoofVisualization({
       });
       polygonOverlaysRef.current = [];
     };
-  }, [roofPolygons, isLoading]); // Re-run when map loads
+  }, [roofPolygons, mapReady]); // Re-run when map is ready or polygons change
 
   // Calculate all valid panel positions with CNESST-compliant optimization
   // - 2m edge setback from bounding box (CNESST "ligne d'avertissement" - no harness required)
