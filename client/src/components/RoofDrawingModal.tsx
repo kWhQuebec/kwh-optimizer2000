@@ -1,6 +1,5 @@
 /// <reference types="google.maps" />
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -326,11 +325,8 @@ export function RoofDrawingModal({
     }
   };
 
-  // Track closing state for two-phase close
-  const [isClosing, setIsClosing] = useState(false);
-  
-  const performCleanup = useCallback(() => {
-    // Clean up Google Maps objects first (with safety checks)
+  const handleClose = useCallback(() => {
+    // Clean up Google Maps objects (with safety checks)
     if (window.google) {
       polygons.forEach((p) => {
         if (p.googlePolygon) {
@@ -366,28 +362,15 @@ export function RoofDrawingModal({
       drawingManagerRef.current = null;
     }
     
-    // Clear container to prevent DOM conflicts
+    // Clear container
     if (mapContainerRef.current) {
       mapContainerRef.current.innerHTML = '';
     }
     
     setPolygons([]);
     setActiveDrawingMode(null);
-  }, [polygons]);
-  
-  const handleClose = useCallback(() => {
-    // Phase 1: Start closing - hide content and cleanup
-    setIsClosing(true);
-    performCleanup();
-    
-    // Phase 2: After cleanup and a brief delay, actually close the dialog
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        setIsClosing(false);
-        onClose();
-      }, 50);
-    });
-  }, [performCleanup, onClose]);
+    onClose();
+  }, [polygons, onClose]);
 
   const totalArea = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
 
@@ -461,27 +444,46 @@ export function RoofDrawingModal({
     }
   }, [isOpen, cleanupMap]);
 
-  // Handle dialog open change - intercept close and use two-phase approach
-  const handleOpenChange = useCallback((open: boolean) => {
-    if (!open && !isClosing) {
-      handleClose();
-    }
-  }, [handleClose, isClosing]);
+  // Don't render if not open
+  if (!isOpen) {
+    return null;
+  }
 
   return (
-    <Dialog open={isOpen && !isClosing} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            {language === 'fr' ? 'Dessiner les zones de toit' : 'Draw Roof Areas'}
-          </DialogTitle>
-          <DialogDescription>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      data-testid="roof-drawing-modal"
+    >
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/80"
+        onClick={handleClose}
+      />
+      
+      {/* Modal Content */}
+      <div className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-background border rounded-lg shadow-lg p-6 m-4">
+        {/* Header */}
+        <div className="flex flex-col space-y-1.5 mb-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              {language === 'fr' ? 'Dessiner les zones de toit' : 'Draw Roof Areas'}
+            </h2>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleClose}
+              data-testid="button-close-modal"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
             {language === 'fr'
               ? 'Tracez les zones de toit utilisables pour les panneaux solaires. Utilisez les outils pour dessiner des polygones ou des rectangles.'
               : 'Trace usable roof areas for solar panels. Use the tools to draw polygons or rectangles.'}
-          </DialogDescription>
-        </DialogHeader>
+          </p>
+        </div>
 
         <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
           <div className="flex-1 flex flex-col gap-3">
@@ -622,7 +624,8 @@ export function RoofDrawingModal({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        {/* Footer */}
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4 gap-2 sm:gap-0">
           <Button variant="outline" onClick={handleClose} data-testid="button-cancel">
             {language === 'fr' ? 'Annuler' : 'Cancel'}
           </Button>
@@ -635,8 +638,8 @@ export function RoofDrawingModal({
             {language === 'fr' ? 'Enregistrer' : 'Save'}
             {polygons.length > 0 && ` (${polygons.length})`}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }
