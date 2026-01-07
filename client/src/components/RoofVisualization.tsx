@@ -71,6 +71,12 @@ export function RoofVisualization({
       return;
     }
 
+    // If Google Maps is already loaded, initialize immediately
+    if (window.google && window.google.maps) {
+      initializeMap();
+      return;
+    }
+
     const scriptId = "google-maps-script";
     let script = document.getElementById(scriptId) as HTMLScriptElement | null;
 
@@ -91,17 +97,19 @@ export function RoofVisualization({
       }
     };
 
-    if (script.getAttribute("data-loaded") === "true") {
-      checkAndInit();
+    // Check if script is already loaded
+    if (window.google && window.google.maps) {
+      initializeMap();
     } else {
       script.onload = () => {
-        script!.setAttribute("data-loaded", "true");
         checkAndInit();
       };
       script.onerror = () => {
         setMapError(language === "fr" ? "Erreur de chargement Google Maps" : "Failed to load Google Maps");
         setIsLoading(false);
       };
+      // Start polling in case script is loading
+      checkAndInit();
     }
   }, [apiKey, initializeMap, language]);
 
