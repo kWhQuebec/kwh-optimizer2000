@@ -116,7 +116,16 @@ export function RoofVisualization({
     });
 
     if (hasValidCoords) {
-      mapRef.current.fitBounds(bounds, { top: 80, bottom: 120, left: 50, right: 50 });
+      // Calculate the center of the polygon bounds
+      const center = bounds.getCenter();
+      // First fit the bounds with equal padding
+      mapRef.current.fitBounds(bounds, 60);
+      // Then pan to center on the polygon center
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.panTo(center);
+        }
+      }, 100);
     }
   }, [roofPolygons]);
 
