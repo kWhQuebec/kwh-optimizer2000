@@ -116,7 +116,7 @@ export function RoofVisualization({
     });
 
     if (hasValidCoords) {
-      mapRef.current.fitBounds(bounds, { top: 50, bottom: 100, left: 30, right: 30 });
+      mapRef.current.fitBounds(bounds, { top: 80, bottom: 120, left: 50, right: 50 });
     }
   }, [roofPolygons]);
 
@@ -481,7 +481,7 @@ export function RoofVisualization({
 
       {/* Capacity Slider */}
       {hasPolygons && allPanelPositions.length > 0 && (
-        <div className="bg-card border-t p-4" data-testid="capacity-slider-section">
+        <div className="bg-card border-t p-4 pb-6" data-testid="capacity-slider-section">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Sun className="w-4 h-4 text-primary" />
