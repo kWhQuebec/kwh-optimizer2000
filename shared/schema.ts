@@ -101,6 +101,34 @@ export const sites = pgTable("sites", {
   structuralNotes: text("structural_notes"),
   structuralConstraints: jsonb("structural_constraints"), // { maxPvLoadKpa, roofChangeRequired, engineeringReportRef, zones: [...] }
   
+  // Hydro-Québec RFP eligibility and network data
+  hqRfpStatus: text("hq_rfp_status"), // "eligible" | "not_eligible" | "pending"
+  hqSubstation: text("hq_substation"), // Name of HQ substation
+  hqLineId: text("hq_line_id"), // HQ line identification (e.g. "L23402")
+  hqTransformer: text("hq_transformer"), // HQ transformer ID
+  hqLineVoltage: text("hq_line_voltage"), // Line voltage (e.g. "347/600", "25KV")
+  hqDistributionUpgradeCost: real("hq_distribution_upgrade_cost"),
+  hqSubstationUpgradeCost: real("hq_substation_upgrade_cost"),
+  hqProtectionsCost: real("hq_protections_cost"),
+  hqCommunicationsCost: real("hq_communications_cost"),
+  hqTotalUpgradeCost: real("hq_total_upgrade_cost"),
+  hqLeadTimeMonths: integer("hq_lead_time_months"),
+  hqCompletionDate: timestamp("hq_completion_date"),
+  hqContractTargetDate: timestamp("hq_contract_target_date"),
+  
+  // DOT (Distribution Operator Technical) capacity status
+  dotCapacityStatus: text("dot_capacity_status"), // "yes" | "no" | "pending"
+  
+  // Structural feasibility status
+  structuralPassStatus: text("structural_pass_status"), // "yes" | "no" | "partial"
+  structuralCapacity: text("structural_capacity"), // e.g. "0.36", "0.25-0.36"
+  structuralBallastRemoval: text("structural_ballast_removal"), // "yes" | "no"
+  
+  // Building external ID (for client reference)
+  externalBuildingId: text("external_building_id"), // e.g. "MON7003", "21025"
+  buildingSqFt: real("building_sqft"),
+  yearBuilt: integer("year_built"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
