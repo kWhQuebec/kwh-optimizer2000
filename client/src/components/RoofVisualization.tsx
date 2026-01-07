@@ -217,16 +217,30 @@ export function RoofVisualization({
     };
   }, [roofPolygons]);
 
-  // Calculate all valid panel positions (once when polygons change)
+  // Calculate all valid panel positions with CNESST-compliant optimization
+  // - 2m edge setback (no harness required per CNESST regulations)
+  // - South-to-north filling (optimal for Quebec, northern hemisphere)
+  // - Inter-row spacing for winter sun angle (~20° at solstice)
   useEffect(() => {
     if (!window.google || roofPolygons.length === 0) {
       setAllPanelPositions([]);
       return;
     }
 
-    const panelWidthM = 2.0;
-    const panelHeightM = 1.0;
-    const gapM = 0.3;
+    // Panel dimensions
+    const panelWidthM = 2.0;  // East-West dimension
+    const panelHeightM = 1.0; // North-South dimension
+    const gapBetweenPanelsM = 0.3; // Gap between panels in same row
+    
+    // CNESST compliance: 2m setback from roof edge (no harness required)
+    const edgeSetbackM = 2.0;
+    
+    // Inter-row spacing for winter shading avoidance
+    // At Quebec latitude (~45°N), winter sun angle is ~20°
+    // Panel tilted at 30°, effective height = 1m * sin(30°) = 0.5m
+    // Shadow length = 0.5m / tan(20°) = 1.37m
+    // Total row spacing = panel height + shadow clearance + gap
+    const rowSpacingM = panelHeightM + 1.4 + gapBetweenPanelsM; // ~2.7m between rows
 
     const solarPolygons = roofPolygons.filter((p) => {
       if (p.color === "#f97316") return false;
@@ -268,15 +282,20 @@ export function RoofVisualization({
       
       const panelWidthDeg = panelWidthM / metersPerDegreeLng;
       const panelHeightDeg = panelHeightM / metersPerDegreeLat;
-      const gapLngDeg = gapM / metersPerDegreeLng;
-      const gapLatDeg = gapM / metersPerDegreeLat;
+      const gapLngDeg = gapBetweenPanelsM / metersPerDegreeLng;
+      const rowSpacingDeg = rowSpacingM / metersPerDegreeLat;
+      const edgeSetbackDeg = edgeSetbackM / metersPerDegreeLat;
+      const edgeSetbackLngDeg = edgeSetbackM / metersPerDegreeLng;
 
       const solarPolygonPath = new google.maps.Polygon({
         paths: coords.map(([lng, lat]) => ({ lat, lng }))
       });
 
-      for (let lat = minLat + gapLatDeg; lat < maxLat - panelHeightDeg; lat += panelHeightDeg + gapLatDeg) {
-        for (let lng = minLng + gapLngDeg; lng < maxLng - panelWidthDeg; lng += panelWidthDeg + gapLngDeg) {
+      // Fill from SOUTH to NORTH (lower lat to higher lat)
+      // This prioritizes south-facing positions which get more sun in Quebec
+      for (let lat = minLat + edgeSetbackDeg; lat < maxLat - panelHeightDeg - edgeSetbackDeg; lat += rowSpacingDeg) {
+        // Fill each row from west to east
+        for (let lng = minLng + edgeSetbackLngDeg; lng < maxLng - panelWidthDeg - edgeSetbackLngDeg; lng += panelWidthDeg + gapLngDeg) {
           const testPoints = [
             new google.maps.LatLng(lat, lng),
             new google.maps.LatLng(lat, lng + panelWidthDeg),
