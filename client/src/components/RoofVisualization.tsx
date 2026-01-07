@@ -48,9 +48,11 @@ export function RoofVisualization({
   const [mapError, setMapError] = useState<string | null>(null);
   const [allPanelPositions, setAllPanelPositions] = useState<PanelPosition[]>([]);
   
-  // Selected capacity defaults to recommended system, or max if no recommendation
-  const defaultCapacity = currentPVSizeKW || maxPVCapacityKW || 100;
+  // Selected capacity defaults to recommended system, or 70% of max if no recommendation
+  // 70% is a typical commercial utilization rate accounting for setbacks and equipment
+  const defaultCapacity = currentPVSizeKW || Math.round((maxPVCapacityKW || 100) * 0.7);
   const [selectedCapacityKW, setSelectedCapacityKW] = useState<number>(defaultCapacity);
+  const [hasUserAdjusted, setHasUserAdjusted] = useState(false);
 
   const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
     queryKey: ["/api/sites", siteId, "roof-polygons"],
@@ -62,12 +64,16 @@ export function RoofVisualization({
   const minCapacity = Math.max(100, Math.round((maxPVCapacityKW || 1000) * 0.1));
   const maxCapacity = maxPVCapacityKW || 5000;
 
-  // Update default when props change
+  // Update capacity when recommended size is provided or when max changes
   useEffect(() => {
     if (currentPVSizeKW) {
+      // Always update to recommended size when analysis provides one
       setSelectedCapacityKW(currentPVSizeKW);
+    } else if (!hasUserAdjusted && maxPVCapacityKW) {
+      // Only auto-update to 70% of max if user hasn't manually adjusted
+      setSelectedCapacityKW(Math.round(maxPVCapacityKW * 0.7));
     }
-  }, [currentPVSizeKW]);
+  }, [currentPVSizeKW, maxPVCapacityKW, hasUserAdjusted]);
 
   const initializeMap = useCallback(() => {
     if (!mapContainerRef.current || !window.google) return;
@@ -554,7 +560,10 @@ export function RoofVisualization({
           <div className="relative pt-1 pb-8">
             <Slider
               value={[selectedCapacityKW]}
-              onValueChange={(values) => setSelectedCapacityKW(values[0])}
+              onValueChange={(values) => {
+                setSelectedCapacityKW(values[0]);
+                setHasUserAdjusted(true);
+              }}
               min={minCapacity}
               max={maxCapacity}
               step={10}
