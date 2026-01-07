@@ -6032,39 +6032,38 @@ export default function SiteDetailPage() {
       for (const polygon of polygons) {
         await apiRequest("POST", `/api/sites/${id}/roof-polygons`, polygon);
       }
+      // Mark roof as validated after saving polygons
+      await apiRequest("PATCH", `/api/sites/${id}`, {
+        roofAreaValidated: true,
+        roofAreaValidatedAt: new Date().toISOString(),
+      });
+      return polygons;
     },
-    onSuccess: () => {
+    onSuccess: (polygons) => {
       queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'roof-polygons'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
       toast({ title: language === "fr" ? "Zones de toit sauvegardées" : "Roof areas saved" });
+      // Update local roof area state
+      const totalAreaSqM = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
+      const totalAreaSqFt = Math.round(totalAreaSqM * 10.764);
+      if (totalAreaSqFt > 0) {
+        setCustomAssumptions(prev => ({ ...prev, roofAreaSqFt: totalAreaSqFt }));
+      }
+      setIsRoofDrawingModalOpen(false);
+    },
+    onError: (error) => {
+      console.error("Error saving roof polygons:", error);
+      toast({ 
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr" ? "Impossible de sauvegarder les zones de toit" : "Failed to save roof areas",
+        variant: "destructive"
+      });
     }
   });
 
-  // Callback to handle saving roof polygons and updating the roof area
+  // Callback to handle saving roof polygons
   const handleSaveRoofPolygons = async (polygons: InsertRoofPolygon[]) => {
     saveRoofPolygonsMutation.mutate(polygons);
-    const totalAreaSqM = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
-    const totalAreaSqFt = Math.round(totalAreaSqM * 10.764);
-    if (totalAreaSqFt > 0) {
-      setCustomAssumptions(prev => ({ ...prev, roofAreaSqFt: totalAreaSqFt }));
-    }
-    // Mark roof as validated after saving polygons
-    try {
-      await fetch(`/api/sites/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          roofAreaValidated: true,
-          roofAreaValidatedAt: new Date().toISOString(),
-        }),
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
-    } catch (error) {
-      console.error("Error marking roof as validated:", error);
-    }
-    setIsRoofDrawingModalOpen(false);
   };
 
   // Show bifacial dialog when white membrane detected and not yet prompted
