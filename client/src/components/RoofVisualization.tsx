@@ -64,14 +64,22 @@ export function RoofVisualization({
     }
   }, [latitude, longitude, language]);
 
-  // Center map on polygons when they load
+  // Center map on solar (blue) polygons when they load
   useEffect(() => {
     if (!mapRef.current || !window.google || roofPolygons.length === 0) return;
 
     const bounds = new google.maps.LatLngBounds();
     let hasValidCoords = false;
 
-    roofPolygons.forEach((polygon) => {
+    // Only include solar areas (blue) in bounds calculation, not constraints
+    const solarPolygons = roofPolygons.filter((p) => {
+      if (p.color === "#f97316") return false;
+      const label = p.label?.toLowerCase() || "";
+      return !label.includes("constraint") && !label.includes("contrainte") && 
+             !label.includes("hvac") && !label.includes("obstacle");
+    });
+
+    solarPolygons.forEach((polygon) => {
       const coords = polygon.coordinates as [number, number][];
       if (!coords || coords.length < 3) return;
       
