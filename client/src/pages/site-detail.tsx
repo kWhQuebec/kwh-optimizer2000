@@ -3967,9 +3967,6 @@ function AnalysisResults({ simulation, site, isStaff = false, onNavigateToDesign
                       : `Your system will produce approximately ${Math.round(simulation.totalExportedKWh || 0).toLocaleString()} kWh/year of surplus exported to the grid. After 24 months, Hydro-Québec will compensate you approximately $${Math.round(simulation.annualSurplusRevenue || 0).toLocaleString()}/year.`
                     }
                   </p>
-                  <Badge variant="outline" className="mt-2 text-xs text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
-                    {language === "fr" ? "Nouveau programme déc. 2024" : "New program Dec. 2024"}
-                  </Badge>
                 </div>
               </div>
             </div>
