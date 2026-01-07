@@ -42,6 +42,13 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
 -   **PDF Report Generation**: Generates professional PDF analysis reports.
 -   **Public Landing Page & Marketing Pages**: Serves as a bilingual lead generation tool with SEO infrastructure.
 -   **Portfolio Management**: Allows multi-building project management with volume pricing and aggregated KPIs.
+-   **HQ RFP Eligibility Tracking**: Tracks Hydro-Québec RFP eligibility for commercial sites including:
+    -   RFP status (eligible/not_eligible/pending) with semantic color-coded badges
+    -   Network upgrade cost breakdown (distribution, substation, protections, communications)
+    -   DOT capacity status and lead times
+    -   Structural feasibility pass/fail status
+    -   Building metadata (external ID, square footage, year built)
+    -   Substation and transformer identifiers
 -   **Email Templates**: Bilingual email templates for notifications.
 -   **Hydro-Québec Procuration System**: A wizard for electronic signature and PDF generation of data access authorization forms.
 -   **Construction Agreements Module**: Manages construction contracts, payment scheduling, and Stripe integration.
