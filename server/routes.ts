@@ -1589,11 +1589,20 @@ export async function registerRoutes(
     try {
       // Whitelist of allowed fields for site PATCH updates
       const allowedFields = [
-        'name', 'address', 'latitude', 'longitude', 'buildingType', 'buildingSqFt',
-        'roofAreaSqFt', 'roofType', 'roofSlope', 'roofOrientation', 'notes',
-        'structuralNotes', 'structuralConstraints',
+        'name', 'address', 'city', 'province', 'postalCode', 'latitude', 'longitude', 
+        'buildingType', 'buildingSqFt', 'roofAreaSqM', 'roofAreaSqFt', 'roofType', 
+        'roofSlope', 'roofOrientation', 'notes', 'structuralNotes', 'structuralConstraints',
         'roofEstimateStatus', 'roofEstimateError', 'roofEstimatePendingAt',
-        'analysisAssumptions', 'googleSolarData'
+        'analysisAssumptions', 'googleSolarData',
+        // HQ RFP fields
+        'hqRfpStatus', 'hqSubstation', 'hqLineId', 'hqTransformer', 'hqLineVoltage',
+        'hqDistributionUpgradeCost', 'hqSubstationUpgradeCost', 'hqProtectionsCost',
+        'hqCommunicationsCost', 'hqTotalUpgradeCost', 'hqLeadTimeMonths',
+        'hqCompletionDate', 'hqContractTargetDate',
+        // DOT and structural feasibility
+        'dotCapacityStatus', 'structuralPassStatus', 'structuralCapacity', 'structuralBallastRemoval',
+        // Building external ID
+        'externalBuildingId', 'yearBuilt'
       ];
       
       // Filter body to only include allowed fields
