@@ -215,7 +215,7 @@ export function RoofVisualization({
       });
       polygonOverlaysRef.current = [];
     };
-  }, [roofPolygons]);
+  }, [roofPolygons, isLoading]); // Re-run when map loads
 
   // Calculate all valid panel positions with CNESST-compliant optimization
   // - 2m edge setback from bounding box (CNESST "ligne d'avertissement" - no harness required)
