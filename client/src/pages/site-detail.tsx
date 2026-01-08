@@ -3959,37 +3959,30 @@ function AnalysisResults({
 
   // Get displayed scenario based on optimization target
   const displayedScenario = useMemo(() => {
+    const fallbackScenario = {
+      pvSizeKW: simulation.pvSizeKW || 0,
+      battEnergyKWh: simulation.battEnergyKWh || 0,
+      battPowerKW: simulation.battPowerKW || 0,
+      npv25: simulation.npv25 || 0,
+      irr25: simulation.irr25 || 0,
+      selfSufficiencyPercent: simulation.selfSufficiencyPercent || 0,
+      simplePaybackYears: simulation.simplePaybackYears || 0,
+      capexNet: simulation.capexNet || 0,
+      annualSavings: simulation.annualSavings || 0,
+      totalProductionKWh: simulation.totalProductionKWh || 0,
+      co2AvoidedTonnesPerYear: simulation.co2AvoidedTonnesPerYear || 0,
+    };
+    
     if (!optimizationScenarios) {
-      // Fallback to simulation data if no optimization scenarios available
-      return {
-        pvSizeKW: simulation.pvSizeKW || 0,
-        battEnergyKWh: simulation.battEnergyKWh || 0,
-        battPowerKW: simulation.battPowerKW || 0,
-        npv25: simulation.npv25 || 0,
-        irr25: simulation.irr25 || 0,
-        selfSufficiencyPercent: simulation.selfSufficiencyPercent || 0,
-        simplePaybackYears: simulation.simplePaybackYears || 0,
-        capexNet: simulation.capexNet || 0,
-        annualSavings: simulation.annualSavings || 0,
-      };
+      return fallbackScenario;
     }
     
     const selected = optimizationScenarios[optimizationTarget];
     if (!selected) {
       // Fallback to NPV if selected target not available
-      return optimizationScenarios.npv || {
-        pvSizeKW: simulation.pvSizeKW || 0,
-        battEnergyKWh: simulation.battEnergyKWh || 0,
-        battPowerKW: simulation.battPowerKW || 0,
-        npv25: simulation.npv25 || 0,
-        irr25: simulation.irr25 || 0,
-        selfSufficiencyPercent: simulation.selfSufficiencyPercent || 0,
-        simplePaybackYears: simulation.simplePaybackYears || 0,
-        capexNet: simulation.capexNet || 0,
-        annualSavings: simulation.annualSavings || 0,
-      };
+      return { ...fallbackScenario, ...(optimizationScenarios.npv || {}) };
     }
-    return selected;
+    return { ...fallbackScenario, ...selected };
   }, [optimizationScenarios, optimizationTarget, simulation]);
 
   // Optimization target labels
@@ -4000,22 +3993,22 @@ function AnalysisResults({
     payback: { fr: "Retour rapide", en: "Fast Payback", icon: Clock },
   };
 
-  // Use optimal scenario KPIs if available (for unified "best NPV" display)
-  const dashboardPvSizeKW = optimalScenario?.pvSizeKW ?? simulation.pvSizeKW ?? 0;
-  const dashboardBattEnergyKWh = optimalScenario?.battEnergyKWh ?? 0;
-  const dashboardProductionMWh = optimalScenario?.totalProductionKWh 
-    ? optimalScenario.totalProductionKWh / 1000
+  // Use displayed scenario KPIs based on selected optimization target (updates all page data)
+  const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
+  const dashboardBattEnergyKWh = displayedScenario.battEnergyKWh ?? 0;
+  const dashboardProductionMWh = displayedScenario.totalProductionKWh 
+    ? displayedScenario.totalProductionKWh / 1000
     : (dashboardPvSizeKW * (assumptions.solarYieldKWhPerKWp || 1150)) / 1000;
-  const dashboardCoveragePercent = optimalScenario?.selfSufficiencyPercent 
+  const dashboardCoveragePercent = displayedScenario.selfSufficiencyPercent 
     ?? simulation.selfSufficiencyPercent 
     ?? ((simulation.selfConsumptionKWh && simulation.annualConsumptionKWh)
       ? (simulation.selfConsumptionKWh / simulation.annualConsumptionKWh) * 100
       : 0);
-  const dashboardPaybackYears = optimalScenario?.simplePaybackYears ?? simulation.simplePaybackYears ?? 0;
-  const dashboardAnnualSavings = optimalScenario?.annualSavings ?? simulation.annualSavings ?? 0;
-  const dashboardNpv25 = optimalScenario?.npv25 ?? simulation.npv25 ?? 0;
-  const dashboardIrr25 = optimalScenario?.irr25 ?? simulation.irr25 ?? 0;
-  const dashboardCo2Tonnes = optimalScenario?.co2AvoidedTonnesPerYear ?? simulation.co2AvoidedTonnesPerYear ?? 0;
+  const dashboardPaybackYears = displayedScenario.simplePaybackYears ?? simulation.simplePaybackYears ?? 0;
+  const dashboardAnnualSavings = displayedScenario.annualSavings ?? simulation.annualSavings ?? 0;
+  const dashboardNpv25 = displayedScenario.npv25 ?? simulation.npv25 ?? 0;
+  const dashboardIrr25 = displayedScenario.irr25 ?? simulation.irr25 ?? 0;
+  const dashboardCo2Tonnes = displayedScenario.co2AvoidedTonnesPerYear ?? simulation.co2AvoidedTonnesPerYear ?? 0;
 
   // NOTE: 30-year extended life analysis requires backend cashflow engine changes
   // to properly synchronize revenue, OPEX, debt, incentives, and replacements.
@@ -4024,8 +4017,8 @@ function AnalysisResults({
 
   return (
     <div className="space-y-6">
-      {/* Optimal System Recommendation Banner */}
-      {optimalScenario && (
+      {/* Optimal System Recommendation Banner - updates based on selected optimization target */}
+      {displayedScenario && (
         <Card className="border-primary bg-gradient-to-r from-primary/10 to-primary/5">
           <CardContent className="py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -4035,7 +4028,9 @@ function AnalysisResults({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {language === "fr" ? "Système recommandé (meilleure VAN)" : "Recommended System (best NPV)"}
+                    {language === "fr" 
+                      ? `Configuration sélectionnée (${optimizationLabels[optimizationTarget].fr.toLowerCase()})` 
+                      : `Selected Configuration (${optimizationLabels[optimizationTarget].en.toLowerCase()})`}
                   </p>
                   <p className="text-lg font-bold text-foreground" data-testid="text-recommended-system">
                     {dashboardPvSizeKW > 0 && `${Math.round(dashboardPvSizeKW)} kWc PV`}
@@ -4074,7 +4069,7 @@ function AnalysisResults({
           longitude={site.longitude}
           roofAreaSqFt={assumptions.roofAreaSqFt}
           maxPVCapacityKW={maxPVFromRoof}
-          currentPVSizeKW={simulation.pvSizeKW || undefined}
+          currentPVSizeKW={dashboardPvSizeKW || undefined}
         />
       )}
 
