@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle } from "lucide-react";
+import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, Download, Camera } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
 
 interface RoofVisualizationProps {
@@ -40,10 +41,12 @@ export function RoofVisualization({
   currentPVSizeKW,
 }: RoofVisualizationProps) {
   const { language } = useI18n();
+  const { toast } = useToast();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const polygonOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const panelOverlaysRef = useRef<google.maps.Rectangle[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -447,6 +450,113 @@ export function RoofVisualization({
     }
   };
 
+  // Export map as PNG image for presentations and PDF reports
+  const handleExportImage = useCallback(async () => {
+    if (!mapRef.current || !window.google) {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr" ? "La carte n'est pas prête" : "Map is not ready",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // Use Google Maps Static API for high-quality export
+      const center = mapRef.current.getCenter();
+      const zoom = mapRef.current.getZoom() || 18;
+      
+      if (!center) {
+        throw new Error("Map center not available");
+      }
+
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      const lat = center.lat();
+      const lng = center.lng();
+      
+      // Build paths for polygons (solar areas in blue, constraints in orange)
+      let pathParams = "";
+      
+      // Add solar polygons (blue)
+      const solarPolygons = roofPolygons.filter((p) => !isConstraintPolygon(p));
+      solarPolygons.forEach((polygon) => {
+        const coords = polygon.coordinates as [number, number][];
+        if (coords && coords.length >= 3) {
+          const pathCoords = coords.map(([pLng, pLat]) => `${pLat},${pLng}`).join("|");
+          pathParams += `&path=fillcolor:0x3b82f660|color:0x1e40af|weight:2|${pathCoords}`;
+        }
+      });
+      
+      // Add constraint polygons (orange)
+      const constraintPolygons = roofPolygons.filter((p) => isConstraintPolygon(p));
+      constraintPolygons.forEach((polygon) => {
+        const coords = polygon.coordinates as [number, number][];
+        if (coords && coords.length >= 3) {
+          const pathCoords = coords.map(([pLng, pLat]) => `${pLat},${pLng}`).join("|");
+          pathParams += `&path=fillcolor:0xf9731660|color:0xf97316|weight:2|${pathCoords}`;
+        }
+      });
+      
+      // Add panel positions as small blue rectangles (markers)
+      // Static Maps API has limits, so we'll add key positions
+      const panelsToExport = allPanelPositions.slice(0, panelsToShow);
+      
+      // For large panel counts, sample every Nth panel for markers
+      const maxMarkers = 50;
+      const step = Math.max(1, Math.floor(panelsToExport.length / maxMarkers));
+      const sampledPanels = panelsToExport.filter((_, idx) => idx % step === 0);
+      
+      let markerParams = "";
+      sampledPanels.forEach((pos) => {
+        const centerLat = pos.lat + pos.heightDeg / 2;
+        const centerLng = pos.lng + pos.widthDeg / 2;
+        markerParams += `&markers=size:tiny|color:0x1e40af|${centerLat},${centerLng}`;
+      });
+
+      // Build static map URL
+      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=800x600&scale=2&maptype=satellite${pathParams}${markerParams}&key=${apiKey}`;
+
+      // Fetch the image and convert to blob for download
+      const response = await fetch(staticMapUrl);
+      if (!response.ok) {
+        throw new Error("Failed to fetch static map");
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${siteName.replace(/\s+/g, "-")}-solar-layout.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: language === "fr" ? "Image exportée" : "Image Exported",
+        description: language === "fr" 
+          ? "L'image a été téléchargée avec succès" 
+          : "The image has been downloaded successfully",
+      });
+
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: language === "fr" ? "Erreur d'export" : "Export Error",
+        description: language === "fr" 
+          ? "Impossible d'exporter l'image. Veuillez réessayer." 
+          : "Unable to export image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [mapRef, roofPolygons, allPanelPositions, panelsToShow, siteName, language, toast]);
+
   const hasPolygons = roofPolygons.length > 0;
 
   // Slider markers
@@ -485,7 +595,22 @@ export function RoofVisualization({
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
         
-        <div className="absolute top-3 right-3 z-20">
+        <div className="absolute top-3 right-3 z-20 flex gap-2">
+          <Button
+            size="icon"
+            variant="secondary"
+            className="bg-white/20 text-white border-white/30 backdrop-blur-sm hover:bg-white/30"
+            onClick={handleExportImage}
+            disabled={isExporting || !hasPolygons}
+            data-testid="button-export-image"
+            title={language === "fr" ? "Exporter l'image" : "Export image"}
+          >
+            {isExporting ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-4 h-4" />
+            )}
+          </Button>
           <Button
             size="icon"
             variant="secondary"

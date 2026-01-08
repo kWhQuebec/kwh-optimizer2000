@@ -369,6 +369,58 @@ export function getSatelliteImageUrl(location: GeoLocation, options?: {
 }
 
 /**
+ * Generate satellite image URL with roof polygons drawn on it for PDF reports
+ * Uses Google Static Maps API with path parameters to overlay polygon shapes
+ */
+export function getRoofVisualizationUrl(
+  location: GeoLocation,
+  roofPolygons: Array<{ coordinates: [number, number][]; color: string; label?: string }>,
+  options?: {
+    width?: number;
+    height?: number;
+    zoom?: number;
+  }
+): string | null {
+  if (!GOOGLE_SOLAR_API_KEY) {
+    return null;
+  }
+  
+  const width = options?.width || 800;
+  const height = options?.height || 600;
+  const zoom = options?.zoom || 18;
+  
+  let url = `https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}&zoom=${zoom}&size=${width}x${height}&scale=2&maptype=satellite`;
+  
+  // Add roof polygons as path overlays
+  roofPolygons.forEach((polygon) => {
+    if (!polygon.coordinates || polygon.coordinates.length < 3) return;
+    
+    // Determine if this is a constraint (orange) or solar polygon (blue)
+    const isConstraint = polygon.color === "#f97316" ||
+      (polygon.label?.toLowerCase().includes("constraint") ||
+       polygon.label?.toLowerCase().includes("contrainte") ||
+       polygon.label?.toLowerCase().includes("hvac") ||
+       polygon.label?.toLowerCase().includes("obstacle"));
+    
+    // Convert hex color to static maps format (0xRRGGBBAA)
+    // Blue for solar areas, orange for constraints
+    const fillColor = isConstraint ? "0xf9731660" : "0x3b82f660";
+    const strokeColor = isConstraint ? "0xf97316" : "0x1e40af";
+    
+    // Build path coordinates (lat,lng pairs)
+    const pathCoords = polygon.coordinates
+      .map(([lng, lat]) => `${lat},${lng}`)
+      .join("|");
+    
+    url += `&path=fillcolor:${fillColor}|color:${strokeColor}|weight:2|${pathCoords}`;
+  });
+  
+  url += `&key=${GOOGLE_SOLAR_API_KEY}`;
+  
+  return url;
+}
+
+/**
  * Generate satellite image URL from an address
  */
 export async function getSatelliteImageFromAddress(address: string, options?: {

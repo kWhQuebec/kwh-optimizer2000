@@ -2482,6 +2482,40 @@ export async function registerRoutes(
       const allSimulations = await storage.getSimulationRuns();
       const siteSimulations = allSimulations.filter(s => s.siteId === simulation.siteId);
 
+      // Fetch roof polygons for the site
+      const roofPolygons = await storage.getRoofPolygonsBySite(simulation.siteId);
+      
+      // Fetch roof visualization image if polygons exist and site has coordinates
+      let roofVisualizationBuffer: Buffer | undefined;
+      if (roofPolygons.length > 0 && simulation.site.latitude && simulation.site.longitude) {
+        try {
+          const { getRoofVisualizationUrl } = await import("./googleSolarService");
+          const roofImageUrl = getRoofVisualizationUrl(
+            { latitude: simulation.site.latitude, longitude: simulation.site.longitude },
+            roofPolygons.map(p => ({
+              coordinates: p.coordinates as [number, number][],
+              color: p.color || "#3b82f6",
+              label: p.label || undefined
+            })),
+            { width: 640, height: 400, zoom: 18 }
+          );
+          
+          if (roofImageUrl) {
+            const https = await import("https");
+            roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
+              https.get(roofImageUrl, (response) => {
+                const chunks: Buffer[] = [];
+                response.on("data", (chunk: Buffer) => chunks.push(chunk));
+                response.on("end", () => resolve(Buffer.concat(chunks)));
+                response.on("error", reject);
+              }).on("error", reject);
+            });
+          }
+        } catch (imgError) {
+          console.error("Failed to fetch roof visualization for PDF:", imgError);
+        }
+      }
+
       const doc = new PDFDocument({ size: "LETTER", margin: 50 });
       
       res.setHeader("Content-Type", "application/pdf");
@@ -2489,13 +2523,101 @@ export async function registerRoutes(
       
       doc.pipe(res);
 
+      // Prepare simulation data with roof polygons and visualization
+      const simulationWithRoof = {
+        ...simulation,
+        roofPolygons: roofPolygons.map(p => ({
+          coordinates: p.coordinates as [number, number][],
+          color: p.color || "#3b82f6",
+          label: p.label || undefined,
+          areaSqM: p.areaSqM
+        })),
+        roofVisualizationBuffer
+      };
+
       // Use the professional PDF generator with all site simulations for comparison
       const { generateProfessionalPDF } = await import("./pdfGenerator");
-      generateProfessionalPDF(doc, simulation as any, lang, siteSimulations as any[]);
+      generateProfessionalPDF(doc, simulationWithRoof as any, lang, siteSimulations as any[]);
 
       doc.end();
     } catch (error) {
       console.error("PDF generation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // One-Page Executive Summary PDF - Compact single-page for email prospecting
+  app.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+      const simulation = await storage.getSimulationRun(req.params.id);
+      
+      if (!simulation) {
+        return res.status(404).json({ error: "Simulation not found" });
+      }
+      
+      // Client users can only download reports for their own sites
+      if (req.userRole === "client" && req.userClientId) {
+        const site = await storage.getSite(simulation.siteId);
+        if (!site || site.clientId !== req.userClientId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
+      // Fetch roof polygons for the site
+      const roofPolygons = await storage.getRoofPolygonsBySite(simulation.siteId);
+      
+      // Fetch roof visualization image if polygons exist and site has coordinates
+      let roofVisualizationBuffer: Buffer | undefined;
+      if (roofPolygons.length > 0 && simulation.site.latitude && simulation.site.longitude) {
+        try {
+          const { getRoofVisualizationUrl } = await import("./googleSolarService");
+          const roofImageUrl = getRoofVisualizationUrl(
+            { latitude: simulation.site.latitude, longitude: simulation.site.longitude },
+            roofPolygons.map(p => ({
+              coordinates: p.coordinates as [number, number][],
+              color: p.color || "#3b82f6",
+              label: p.label || undefined
+            })),
+            { width: 640, height: 400, zoom: 18 }
+          );
+          
+          if (roofImageUrl) {
+            const https = await import("https");
+            roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
+              https.get(roofImageUrl, (response) => {
+                const chunks: Buffer[] = [];
+                response.on("data", (chunk: Buffer) => chunks.push(chunk));
+                response.on("end", () => resolve(Buffer.concat(chunks)));
+                response.on("error", reject);
+              }).on("error", reject);
+            });
+          }
+        } catch (imgError) {
+          console.error("Failed to fetch roof visualization for executive summary:", imgError);
+        }
+      }
+
+      const doc = new PDFDocument({ size: "LETTER", margin: 40 });
+      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="resume-executif-${simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
+      
+      doc.pipe(res);
+
+      // Prepare simulation data with roof visualization
+      const simulationWithRoof = {
+        ...simulation,
+        roofVisualizationBuffer
+      };
+
+      // Use the executive summary PDF generator
+      const { generateExecutiveSummaryPDF } = await import("./pdfGenerator");
+      generateExecutiveSummaryPDF(doc, simulationWithRoof as any, lang);
+
+      doc.end();
+    } catch (error) {
+      console.error("Executive summary PDF generation error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
