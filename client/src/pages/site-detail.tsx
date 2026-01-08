@@ -4256,7 +4256,7 @@ function AnalysisResults({
         icon={DollarSign}
       />
 
-      {/* Hero Value Card - Annual Savings Focus */}
+      {/* Hero Value Card - Annual Savings Focus (uses displayedScenario with fallback to simulation) */}
       <Card id="pdf-section-value-proposition" className="border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent overflow-hidden">
         <CardContent className="p-6">
           <div className="grid md:grid-cols-2 gap-8 items-center">
@@ -4264,8 +4264,8 @@ function AnalysisResults({
               <p className="text-sm text-muted-foreground mb-1">
                 {language === "fr" ? "Économies annuelles estimées" : "Estimated Annual Savings"}
               </p>
-              <p className="text-5xl font-bold font-mono text-green-600 dark:text-green-400">
-                ${((simulation.annualSavings || 0) / 1000).toFixed(0)}k
+              <p className="text-5xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-annual-savings-hero">
+                ${(((displayedScenario.annualSavings ?? simulation.annualSavings) || 0) / 1000).toFixed(0)}k
               </p>
               <p className="text-sm text-muted-foreground mt-2">
                 {language === "fr" ? "par année, dès la première année" : "per year, starting year one"}
@@ -4274,12 +4274,12 @@ function AnalysisResults({
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-background rounded-xl border">
                 <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Investissement net" : "Net Investment"}</p>
-                <p className="text-2xl font-bold font-mono">${((simulation.capexNet || 0) / 1000).toFixed(0)}k</p>
+                <p className="text-2xl font-bold font-mono" data-testid="text-capex-net">${(((displayedScenario.capexNet ?? simulation.capexNet) || 0) / 1000).toFixed(0)}k</p>
                 <p className="text-xs text-green-600">{language === "fr" ? "après incitatifs" : "after incentives"}</p>
               </div>
               <div className="text-center p-4 bg-background rounded-xl border">
                 <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Retour" : "Payback"}</p>
-                <p className="text-2xl font-bold font-mono">{(simulation.simplePaybackYears || 0).toFixed(1)}</p>
+                <p className="text-2xl font-bold font-mono" data-testid="text-payback-years">{((displayedScenario.simplePaybackYears ?? simulation.simplePaybackYears) || 0).toFixed(1)}</p>
                 <p className="text-xs text-muted-foreground">{language === "fr" ? "années" : "years"}</p>
               </div>
             </div>
@@ -4287,11 +4287,11 @@ function AnalysisResults({
         </CardContent>
       </Card>
 
-      {/* Before/After HQ Bill Comparison - High Impact Visual */}
+      {/* Before/After HQ Bill Comparison - High Impact Visual (uses displayedScenario with fallback) */}
       {(() => {
-        // Calculate estimated annual bill from consumption data
+        // Calculate estimated annual bill from consumption data - use displayedScenario with fallback to simulation
         const estimatedAnnualBill = (simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06);
-        const annualSavings = simulation.annualSavings || 0;
+        const annualSavings = (displayedScenario.annualSavings ?? simulation.annualSavings) || 0;
         const estimatedBillAfter = Math.max(0, estimatedAnnualBill - annualSavings);
         const savingsPercent = estimatedAnnualBill > 0 ? Math.round((annualSavings / estimatedAnnualBill) * 100) : 0;
         
