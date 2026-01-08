@@ -58,7 +58,8 @@ import {
   Star,
   Grid3X3,
   Pencil,
-  Mail
+  Mail,
+  Presentation
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -1718,6 +1719,39 @@ function DownloadReportButton({
     }
   };
 
+  const handleDownloadPPTX = async () => {
+    setDownloading(true);
+    setDownloadType("full");
+    setDownloadPhase("generating");
+    try {
+      const response = await fetch(`/api/simulation-runs/${simulationId}/presentation-pptx?lang=${language}`, {
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to generate presentation");
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `proposition-${siteName.replace(/\s+/g, '-')}.pptx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({ title: language === "fr" ? "Présentation téléchargée" : "Presentation downloaded" });
+    } catch (error) {
+      console.error("PPTX generation error:", error);
+      toast({ title: language === "fr" ? "Erreur lors du téléchargement" : "Download error", variant: "destructive" });
+    } finally {
+      setDownloading(false);
+      setDownloadPhase("idle");
+    }
+  };
+
   if (downloading) {
     return (
       <Button 
@@ -1748,14 +1782,18 @@ function DownloadReportButton({
           <ChevronDown className="w-4 h-4 ml-1" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuItem onClick={handleDownloadFull} data-testid="menu-item-full-report">
           <FileText className="w-4 h-4 mr-2" />
-          {language === "fr" ? "Rapport complet" : "Full report"}
+          {language === "fr" ? "Rapport PDF complet" : "Full PDF report"}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleDownloadExecutive} data-testid="menu-item-executive-summary">
           <Mail className="w-4 h-4 mr-2" />
           {language === "fr" ? "Résumé exécutif (1 page)" : "Executive summary (1 page)"}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleDownloadPPTX} data-testid="menu-item-presentation">
+          <Presentation className="w-4 h-4 mr-2" />
+          {language === "fr" ? "Présentation PowerPoint" : "PowerPoint presentation"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
