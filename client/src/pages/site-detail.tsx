@@ -3065,7 +3065,21 @@ const FINANCING_COLORS = {
   ppa: { bg: "bg-rose-500", text: "text-rose-500", border: "border-rose-500", stroke: "#F43F5E", hsl: "hsl(347, 77%, 50%)" },
 };
 
-function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
+interface DisplayedScenarioType {
+  pvSizeKW: number;
+  battEnergyKWh: number;
+  battPowerKW: number;
+  npv25: number;
+  irr25: number;
+  selfSufficiencyPercent: number;
+  simplePaybackYears: number;
+  capexNet: number;
+  annualSavings: number;
+  totalProductionKWh?: number;
+  co2AvoidedTonnesPerYear?: number;
+}
+
+function FinancingCalculator({ simulation, displayedScenario }: { simulation: SimulationRun; displayedScenario: DisplayedScenarioType }) {
   const { t, language } = useI18n();
   const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease" | "ppa">("cash");
   const [loanTerm, setLoanTerm] = useState(10);
@@ -3081,22 +3095,47 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
   const assumptions = simulation.assumptions as AnalysisAssumptions | null;
-  const capexNet = simulation.capexNet || 0;
-  const capexGross = breakdown?.capexGross || capexNet;
-  const annualSavings = simulation.annualSavings || 0;
+  
+  // Use displayedScenario values to scale incentives proportionally
+  const baseCapexNet = simulation.capexNet || 0;
+  const baseCapexGross = breakdown?.capexGross || baseCapexNet;
+  
+  // Calculate scaling ratio: if displayed scenario has different system size, scale capex
+  const basePvKW = simulation.pvSizeKW || 1;
+  const baseBattKWh = simulation.battEnergyKWh || 0;
+  const displayedPvKW = displayedScenario.pvSizeKW || 0;
+  const displayedBattKWh = displayedScenario.battEnergyKWh || 0;
+  
+  // Scale CAPEX based on system size ratio (simplified linear scaling)
+  const pvRatio = basePvKW > 0 ? displayedPvKW / basePvKW : 1;
+  const battRatio = baseBattKWh > 0 ? displayedBattKWh / baseBattKWh : (displayedBattKWh > 0 ? 1 : 0);
+  
+  // Use displayedScenario capexNet directly (already calculated for that scenario)
+  const capexNet = displayedScenario.capexNet || 0;
+  // Scale capexGross proportionally
+  const capexGross = baseCapexGross > 0 && baseCapexNet > 0 
+    ? (baseCapexGross / baseCapexNet) * capexNet 
+    : capexNet;
+  const annualSavings = displayedScenario.annualSavings || simulation.annualSavings || 0;
   const selfConsumptionKWh = simulation.annualEnergySavingsKWh || 0;
   
   // Calculate total annual solar production = PV size × solar yield
   // This is what the system actually produces (different from self-consumption)
-  const pvSizeKW = simulation.pvSizeKW || 0;
+  const pvSizeKW = displayedPvKW; // Use displayed scenario PV size
   const solarYield = assumptions?.solarYieldKWhPerKWp || 1150; // kWh/kWp/year
   const totalAnnualProductionKWh = pvSizeKW * solarYield;
   
-  // Incentive breakdown with timing
-  const hqSolar = breakdown?.actualHQSolar || 0;
-  const hqBattery = breakdown?.actualHQBattery || 0;
-  const federalITC = breakdown?.itcAmount || 0;
-  const taxShield = breakdown?.taxShield || 0;
+  // Incentive breakdown with timing - scale proportionally to displayed scenario
+  const baseHqSolar = breakdown?.actualHQSolar || 0;
+  const baseHqBattery = breakdown?.actualHQBattery || 0;
+  const baseFederalITC = breakdown?.itcAmount || 0;
+  const baseTaxShield = breakdown?.taxShield || 0;
+  
+  // Scale incentives proportionally
+  const hqSolar = baseHqSolar * pvRatio;
+  const hqBattery = baseHqBattery * battRatio;
+  const federalITC = baseFederalITC * pvRatio; // Federal ITC is 30% of net CAPEX, scales with PV
+  const taxShield = baseTaxShield * pvRatio; // Tax shield scales similarly
   
   // Realistic cash flow timing for cash purchase:
   // Day 0: Pay Gross CAPEX, receive HQ Solar rebate immediately (often direct to installer)
@@ -3139,6 +3178,14 @@ function FinancingCalculator({ simulation }: { simulation: SimulationRun }) {
   const effectiveLeaseCost = leaseTotalPayments - leaseTotalIncentives;
   
   const formatCurrency = (value: number) => {
+    // For values >= 1M, show as "X,XM$" format
+    if (Math.abs(value) >= 1000000) {
+      const millions = value / 1000000;
+      if (language === "fr") {
+        return `${millions.toFixed(2).replace(".", ",")} M$`;
+      }
+      return `$${millions.toFixed(2)}M`;
+    }
     return new Intl.NumberFormat(language === "fr" ? "fr-CA" : "en-CA", {
       style: "currency",
       currency: "CAD",
@@ -4310,7 +4357,13 @@ function AnalysisResults({
                   <div className="grid grid-cols-3 gap-3">
                     <div className="text-center p-3 bg-background rounded-xl border">
                       <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Investissement net" : "Net Investment"}</p>
-                      <p className="text-xl font-bold font-mono" data-testid="text-capex-net">${(capexNetValue / 1000).toFixed(0)}k</p>
+                      <p className="text-xl font-bold font-mono" data-testid="text-capex-net">
+                        {capexNetValue >= 1000000 
+                          ? (language === "fr" 
+                              ? `${(capexNetValue / 1000000).toFixed(2).replace(".", ",")} M$` 
+                              : `$${(capexNetValue / 1000000).toFixed(2)}M`)
+                          : `$${(capexNetValue / 1000).toFixed(0)}k`}
+                      </p>
                       <p className="text-xs text-green-600">{language === "fr" ? "après incitatifs" : "after incentives"}</p>
                     </div>
                     <div className="text-center p-3 bg-background rounded-xl border">
@@ -4533,7 +4586,7 @@ function AnalysisResults({
       />
       
       {/* Financing Options Calculator */}
-      <FinancingCalculator simulation={simulation} />
+      <FinancingCalculator simulation={simulation} displayedScenario={displayedScenario} />
 
       {/* Mid-page CTA Banner */}
       <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-primary/5">
