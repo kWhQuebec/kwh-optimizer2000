@@ -4228,23 +4228,45 @@ function AnalysisResults({
             <Progress value={displayedScenario.selfSufficiencyPercent} className="h-3" />
           </div>
           
-          {/* Surplus Revenue Info (HQ Net Metering Dec 2024) */}
-          {(simulation.totalExportedKWh || 0) > 0 && (
-            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-start gap-3">
-                <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          {/* Surplus Revenue Info (HQ Net Metering Dec 2024) - More Prominent */}
+          {(simulation.totalExportedKWh || 0) > 0 && (simulation.annualSurplusRevenue || 0) > 0 && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/40 dark:to-cyan-950/40 rounded-lg border-2 border-blue-300 dark:border-blue-700">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 text-white" />
+                </div>
                 <div>
-                  <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                    {language === "fr" ? "Revenus de surplus (mesurage net HQ)" : "Surplus Revenue (HQ Net Metering)"}
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                    {language === "fr" ? "Revenus de surplus HQ" : "HQ Surplus Revenue"}
                   </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    {language === "fr" 
-                      ? `Votre système produira environ ${Math.round(simulation.totalExportedKWh || 0).toLocaleString()} kWh/an de surplus exporté au réseau. Après 24 mois, Hydro-Québec vous compensera environ $${Math.round(simulation.annualSurplusRevenue || 0).toLocaleString()}/an.`
-                      : `Your system will produce approximately ${Math.round(simulation.totalExportedKWh || 0).toLocaleString()} kWh/year of surplus exported to the grid. After 24 months, Hydro-Québec will compensate you approximately $${Math.round(simulation.annualSurplusRevenue || 0).toLocaleString()}/year.`
-                    }
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    {language === "fr" ? "Programme d'autoproduction (mesurage net)" : "Self-production program (net metering)"}
                   </p>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === "fr" ? "Surplus annuel exporté" : "Annual surplus exported"}
+                  </p>
+                  <p className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">
+                    {Math.round(simulation.totalExportedKWh || 0).toLocaleString()} kWh
+                  </p>
+                </div>
+                <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {language === "fr" ? "Revenu annuel (après 24 mois)" : "Annual revenue (after 24 months)"}
+                  </p>
+                  <p className="text-lg font-bold font-mono text-green-600 dark:text-green-400">
+                    ${Math.round(simulation.annualSurplusRevenue || 0).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-3">
+                {language === "fr" 
+                  ? "Tarif coût d'approvisionnement HQ: ~$0.06/kWh. Les premiers 24 mois créditent votre facture, ensuite HQ vous paie."
+                  : "HQ cost of supply rate: ~$0.06/kWh. First 24 months credit your bill, then HQ pays you."}
+              </p>
             </div>
           )}
         </CardContent>
