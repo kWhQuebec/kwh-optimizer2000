@@ -4326,8 +4326,8 @@ function AnalysisResults({
                   </div>
                 </div>
                 
-                {/* ROI Comparison vs GIC/Bonds */}
-                {irrValue > 0 && (
+                {/* ROI Comparison vs GIC/Bonds - Only show when solar outperforms */}
+                {irrValue > 0 && (irrValue * 100) > gicRate && (
                   <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
