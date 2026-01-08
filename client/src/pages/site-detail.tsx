@@ -4256,34 +4256,86 @@ function AnalysisResults({
         icon={DollarSign}
       />
 
-      {/* Hero Value Card - Annual Savings Focus (uses displayedScenario with fallback to simulation) */}
+      {/* Hero Value Card - Annual Savings + 25-Year Total (uses displayedScenario with fallback to simulation) */}
       <Card id="pdf-section-value-proposition" className="border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent overflow-hidden">
         <CardContent className="p-6">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="text-center md:text-left">
-              <p className="text-sm text-muted-foreground mb-1">
-                {language === "fr" ? "Économies annuelles estimées" : "Estimated Annual Savings"}
-              </p>
-              <p className="text-5xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-annual-savings-hero">
-                ${(((displayedScenario.annualSavings ?? simulation.annualSavings) || 0) / 1000).toFixed(0)}k
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {language === "fr" ? "par année, dès la première année" : "per year, starting year one"}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-background rounded-xl border">
-                <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Investissement net" : "Net Investment"}</p>
-                <p className="text-2xl font-bold font-mono" data-testid="text-capex-net">${(((displayedScenario.capexNet ?? simulation.capexNet) || 0) / 1000).toFixed(0)}k</p>
-                <p className="text-xs text-green-600">{language === "fr" ? "après incitatifs" : "after incentives"}</p>
-              </div>
-              <div className="text-center p-4 bg-background rounded-xl border">
-                <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Retour" : "Payback"}</p>
-                <p className="text-2xl font-bold font-mono" data-testid="text-payback-years">{((displayedScenario.simplePaybackYears ?? simulation.simplePaybackYears) || 0).toFixed(1)}</p>
-                <p className="text-xs text-muted-foreground">{language === "fr" ? "années" : "years"}</p>
-              </div>
-            </div>
-          </div>
+          {(() => {
+            const annualSavingsValue = (displayedScenario.annualSavings ?? simulation.annualSavings) || 0;
+            const capexNetValue = (displayedScenario.capexNet ?? simulation.capexNet) || 0;
+            const paybackYears = (displayedScenario.simplePaybackYears ?? simulation.simplePaybackYears) || 0;
+            const irrValue = (displayedScenario.irr25 ?? simulation.irr25) || 0;
+            const lifetimeSavings = annualSavingsValue * 25;
+            const gicRate = 4.5;
+            
+            return (
+              <>
+                <div className="grid md:grid-cols-2 gap-8 items-center">
+                  <div className="text-center md:text-left">
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {language === "fr" ? "Économies cumulées sur 25 ans" : "Cumulative Savings over 25 Years"}
+                    </p>
+                    <p className="text-5xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-lifetime-savings">
+                      ${lifetimeSavings >= 1000000 
+                        ? `${(lifetimeSavings / 1000000).toFixed(1)}M`
+                        : `${(lifetimeSavings / 1000).toFixed(0)}k`}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {language === "fr" 
+                        ? `soit $${(annualSavingsValue / 1000).toFixed(0)}k/an dès la 1ère année` 
+                        : `or $${(annualSavingsValue / 1000).toFixed(0)}k/year from year 1`}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center p-3 bg-background rounded-xl border">
+                      <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Investissement net" : "Net Investment"}</p>
+                      <p className="text-xl font-bold font-mono" data-testid="text-capex-net">${(capexNetValue / 1000).toFixed(0)}k</p>
+                      <p className="text-xs text-green-600">{language === "fr" ? "après incitatifs" : "after incentives"}</p>
+                    </div>
+                    <div className="text-center p-3 bg-background rounded-xl border">
+                      <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Retour" : "Payback"}</p>
+                      <p className="text-xl font-bold font-mono" data-testid="text-payback-years">{paybackYears.toFixed(1)}</p>
+                      <p className="text-xs text-muted-foreground">{language === "fr" ? "années" : "years"}</p>
+                    </div>
+                    <div className="text-center p-3 bg-background rounded-xl border">
+                      <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "Rendement" : "Return"}</p>
+                      <p className="text-xl font-bold font-mono text-primary" data-testid="text-irr-hero">{(irrValue * 100).toFixed(1)}%</p>
+                      <p className="text-xs text-muted-foreground">TRI/IRR</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* ROI Comparison vs GIC/Bonds */}
+                {irrValue > 0 && (
+                  <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium">
+                          {language === "fr" ? "Comparaison rendement" : "Return Comparison"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">{language === "fr" ? "CPG/Obligations:" : "GIC/Bonds:"}</span>
+                          <span className="font-mono font-medium">{gicRate}%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <ArrowRight className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">{language === "fr" ? "Solaire:" : "Solar:"}</span>
+                          <span className="font-mono font-bold text-primary">{(irrValue * 100).toFixed(1)}%</span>
+                        </div>
+                        <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                          +{((irrValue * 100) - gicRate).toFixed(1)}%
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 
