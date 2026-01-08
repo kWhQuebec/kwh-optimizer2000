@@ -4096,37 +4096,47 @@ function AnalysisResults({
               </CardDescription>
             </div>
             
-            {/* Optimization Target Toggle */}
+            {/* Optimization Target Toggle - Interactive selection */}
             {optimizationScenarios && (
-              <ToggleGroup 
-                type="single" 
-                value={optimizationTarget}
-                onValueChange={(value) => {
-                  if (value && onOptimizationTargetChange) {
-                    onOptimizationTargetChange(value as 'npv' | 'irr' | 'selfSufficiency' | 'payback');
-                  }
-                }}
-                className="flex-wrap justify-start sm:justify-end"
-                data-testid="toggle-optimization-target"
-              >
-                {(['npv', 'irr', 'selfSufficiency', 'payback'] as const).map((target) => {
-                  const label = optimizationLabels[target];
-                  const scenario = optimizationScenarios[target];
-                  if (!scenario) return null;
-                  const Icon = label.icon;
-                  return (
-                    <ToggleGroupItem 
-                      key={target}
-                      value={target} 
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                      data-testid={`toggle-${target}`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">{language === "fr" ? label.fr : label.en}</span>
-                    </ToggleGroupItem>
-                  );
-                })}
-              </ToggleGroup>
+              <div className="flex flex-col items-end gap-1">
+                <ToggleGroup 
+                  type="single" 
+                  value={optimizationTarget}
+                  onValueChange={(value) => {
+                    if (value && onOptimizationTargetChange) {
+                      onOptimizationTargetChange(value as 'npv' | 'irr' | 'selfSufficiency' | 'payback');
+                    }
+                  }}
+                  className="flex-wrap justify-start sm:justify-end border rounded-lg p-1 bg-muted/30"
+                  data-testid="toggle-optimization-target"
+                >
+                  {(['npv', 'irr', 'selfSufficiency', 'payback'] as const).map((target) => {
+                    const label = optimizationLabels[target];
+                    const scenario = optimizationScenarios[target];
+                    if (!scenario) return null;
+                    const Icon = label.icon;
+                    const isSelected = optimizationTarget === target;
+                    return (
+                      <ToggleGroupItem 
+                        key={target}
+                        value={target} 
+                        className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-all duration-200 
+                          data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-md
+                          data-[state=off]:hover:bg-muted/80
+                          ${isSelected ? 'ring-2 ring-primary/30 ring-offset-1' : ''}`}
+                        data-testid={`toggle-${target}`}
+                      >
+                        <Icon className={`w-4 h-4 ${isSelected ? '' : 'opacity-70'}`} />
+                        <span className="hidden sm:inline font-medium">{language === "fr" ? label.fr : label.en}</span>
+                      </ToggleGroupItem>
+                    );
+                  })}
+                </ToggleGroup>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  {language === "fr" ? "Cliquez pour changer les données" : "Click to change data"}
+                </p>
+              </div>
             )}
           </div>
         </CardHeader>
