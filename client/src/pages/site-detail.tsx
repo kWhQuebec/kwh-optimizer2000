@@ -5318,7 +5318,7 @@ function AnalysisResults({
                 );
               })()}
               
-              {/* Strategic Benefits Section - Always visible, even if NPV negative */}
+              {/* Strategic Benefits Section - Simplified: Resilience, Autonomy, Property Value */}
               {(() => {
                 const optimal = (simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal);
                 if (!optimal) return null;
@@ -5326,20 +5326,14 @@ function AnalysisResults({
                 const pvKW = optimal.pvSizeKW || 0;
                 const battKWh = optimal.battEnergyKWh || 0;
                 const battPowerKW = optimal.battPowerKW || 0;
-                const co2PerYear = simulation.co2AvoidedTonnesPerYear || 0;
                 
                 const avgLoadKW = battPowerKW > 0 ? battPowerKW * 0.5 : (simulation.peakDemandKW ? simulation.peakDemandKW * 0.3 : 0);
                 const backupHours = (battKWh > 0 && avgLoadKW > 0) ? (battKWh / avgLoadKW) : 0;
-                
-                const carsEquivalent = co2PerYear / 4.6;
-                const co2_25Years = co2PerYear * 25;
                 
                 const selfSufficiency = simulation.selfSufficiencyPercent 
                   ? simulation.selfSufficiencyPercent 
                   : (pvKW > 0 ? Math.min(40, pvKW / 10) : 0);
                 
-                const systemCost = (pvKW * 1.50 * 1000) + (battKWh * 400);
-                // Industry standard: ~$1,000 per kW of installed PV capacity (Lawrence Berkeley studies)
                 const propertyValueIncrease = pvKW * 1000;
                 
                 const hasSolar = pvKW > 0;
@@ -5359,7 +5353,7 @@ function AnalysisResults({
                       </span>
                     </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {/* Energy Resilience */}
                       {hasBattery && backupHours > 0 && (
                         <div className="p-3 bg-background rounded-lg border">
@@ -5378,56 +5372,20 @@ function AnalysisResults({
                         </div>
                       )}
                       
-                      {/* CO2 Reduction */}
-                      {hasSolar && co2PerYear > 0 && (
-                        <div className="p-3 bg-background rounded-lg border">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Leaf className="w-4 h-4 text-green-500" />
-                            <span className="text-xs font-medium">
-                              {language === "fr" ? "Impact carbone" : "Carbon Impact"}
-                            </span>
-                          </div>
-                          <p className="text-lg font-bold font-mono text-green-600">
-                            {co2_25Years.toFixed(0)}t
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {language === "fr" ? `CO₂ évité sur 25 ans` : `CO₂ avoided over 25 years`}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {/* Car Equivalent */}
-                      {hasSolar && carsEquivalent >= 0.1 && (
-                        <div className="p-3 bg-background rounded-lg border">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Car className="w-4 h-4 text-emerald-500" />
-                            <span className="text-xs font-medium">
-                              {language === "fr" ? "Équivalent" : "Equivalent"}
-                            </span>
-                          </div>
-                          <p className="text-lg font-bold font-mono text-emerald-600">
-                            {carsEquivalent >= 1 ? carsEquivalent.toFixed(1) : carsEquivalent.toFixed(2)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {language === "fr" ? "voitures retirées/an" : "cars removed/year"}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {/* ESG / Sustainability Image */}
+                      {/* ESG / Sustainability - Autonomy % */}
                       {hasSolar && (
                         <div className="p-3 bg-background rounded-lg border">
                           <div className="flex items-center gap-2 mb-1">
                             <Award className="w-4 h-4 text-amber-500" />
                             <span className="text-xs font-medium">
-                              {language === "fr" ? "Image ESG" : "ESG Image"}
+                              {language === "fr" ? "Autonomie énergétique" : "Energy Independence"}
                             </span>
                           </div>
                           <p className="text-lg font-bold font-mono text-amber-600">
                             {selfSufficiency.toFixed(0)}%
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {language === "fr" ? "énergie verte" : "green energy"}
+                            {language === "fr" ? "de vos besoins" : "of your needs"}
                           </p>
                         </div>
                       )}
