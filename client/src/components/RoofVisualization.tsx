@@ -28,7 +28,7 @@ interface PanelPosition {
   polygonId: string; // Track which polygon this panel belongs to (UUID)
 }
 
-const PANEL_KW = 0.5; // Each 2m x 1m panel = ~500W
+const PANEL_KW = 0.59; // Each 2.85m² panel = 590W (modern commercial panels)
 
 export function RoofVisualization({
   siteId,
