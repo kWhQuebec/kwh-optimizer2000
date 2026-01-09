@@ -320,10 +320,15 @@ export const siteVisits = pgTable("site_visits", {
   lightningRodPresent: boolean("lightning_rod_present"),
   pvReservedAreas: text("pv_reserved_areas"), // Areas designated for PV
   
+  // Solar Carport Section (from Electrical Site Visit Checklist)
+  solarCarportCandidate: boolean("solar_carport_candidate"), // Good candidate for Solar Carport?
+  solarCarportArea: real("solar_carport_area"), // Approximative eligible area for Solar Carport (m²)
+  
   // Accessibility Section
   roofAccessible: boolean("roof_accessible"),
   accessMethod: text("access_method"), // "ladder" | "trapdoor" | "stairs" | "other"
   accessNotes: text("access_notes"),
+  storageLocations: text("storage_locations"), // Potential material storage/staging locations
   
   // Obstacles/Shading Section
   hasObstacles: boolean("has_obstacles"),
@@ -365,6 +370,11 @@ export const siteVisits = pgTable("site_visits", {
   circuitBreakerModel: text("circuit_breaker_model"),
   disconnectSwitchManufacturer: text("disconnect_switch_manufacturer"),
   disconnectSwitchModel: text("disconnect_switch_model"),
+  distributionPanelManufacturer: text("distribution_panel_manufacturer"), // Switchboard manufacturer
+  distributionPanelModel: text("distribution_panel_model"), // Switchboard model
+  transformerInfo: text("transformer_info"), // Transformer manufacturer/model/serial #
+  nearestTransmissionLine: text("nearest_transmission_line"), // Nearest street transmission/distribution line location and distance
+  electricalRoomSpace: boolean("electrical_room_space"), // Space available for disconnect (Yes/No)
   
   // Secondary Electrical Equipment
   secondaryPanelManufacturer: text("secondary_panel_manufacturer"),

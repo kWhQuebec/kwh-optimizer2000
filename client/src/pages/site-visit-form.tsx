@@ -189,7 +189,7 @@ function SignatureCanvas({
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     if (value) {
-      const img = new Image();
+      const img = document.createElement('img');
       img.onload = () => {
         ctx.drawImage(img, 0, 0);
       };
