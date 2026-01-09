@@ -1,7 +1,7 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import logoFr from "@assets/solaire_fr-removebg-preview_1767985380511.png";
-import logoEn from "@assets/solaire_en-removebg-preview_1767985380510.png";
+import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
+import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 interface PDFGeneratorOptions {
   siteName: string;
