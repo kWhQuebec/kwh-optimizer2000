@@ -359,36 +359,56 @@ export function RoofVisualization({
       // Starting positions centered in the polygon
       const startLat = minLat + edgeSetbackDeg + latOffset;
       const startLng = minLng + edgeSetbackLngDeg + lngOffset;
+      
+      // DEBUG: Log grid calculation details
+      const boundingBoxHeightM = (maxLat - minLat) * metersPerDegreeLat;
+      const boundingBoxWidthM = (maxLng - minLng) * metersPerDegreeLng;
+      console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id}:`, {
+        boundingBoxHeightM: Math.round(boundingBoxHeightM),
+        boundingBoxWidthM: Math.round(boundingBoxWidthM),
+        numRows,
+        numCols,
+        expectedPanels: numRows * numCols,
+        rowSpacingM,
+        edgeSetbackM,
+      });
 
       // Fill grid using count-based iteration to ensure all positions are tried
       // South to North (row 0 = south), West to East (col 0 = west)
+      let acceptedCount = 0;
+      let rejectedBySolar = 0;
+      let rejectedByConstraint = 0;
+      
       for (let row = 0; row < numRows; row++) {
         const lat = startLat + row * rowSpacingDeg;
         for (let col = 0; col < numCols; col++) {
           const lng = startLng + col * colStep;
-          // 9-point containment test: 4 corners + 4 edge midpoints + center
+          // 4-corner containment test (simplified from 9-point for better fill rate)
+          // Checks only the 4 corners of each panel
           const testPoints = [
             new google.maps.LatLng(lat, lng),
             new google.maps.LatLng(lat, lng + panelWidthDeg),
             new google.maps.LatLng(lat + panelHeightDeg, lng),
             new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg),
-            new google.maps.LatLng(lat, lng + panelWidthDeg / 2),
-            new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg / 2),
-            new google.maps.LatLng(lat + panelHeightDeg / 2, lng),
-            new google.maps.LatLng(lat + panelHeightDeg / 2, lng + panelWidthDeg),
-            new google.maps.LatLng(lat + panelHeightDeg / 2, lng + panelWidthDeg / 2),
           ];
 
           const allPointsInSolar = testPoints.every((point) => 
             google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
           );
-          if (!allPointsInSolar) continue;
+          if (!allPointsInSolar) {
+            rejectedBySolar++;
+            continue;
+          }
 
           const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
             testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
           );
-          if (anyPointInConstraint) continue;
+          if (anyPointInConstraint) {
+            rejectedByConstraint++;
+            continue;
+          }
 
+          acceptedCount++;
           positions.push({ 
             lat, 
             lng, 
@@ -398,6 +418,15 @@ export function RoofVisualization({
           });
         }
       }
+      
+      // DEBUG: Log rejection stats
+      console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id} placement:`, {
+        attempted: numRows * numCols,
+        accepted: acceptedCount,
+        rejectedBySolar,
+        rejectedByConstraint,
+        acceptanceRate: `${Math.round(acceptedCount / (numRows * numCols) * 100)}%`
+      });
     });
 
     // Keep natural south-to-north, west-to-east order
