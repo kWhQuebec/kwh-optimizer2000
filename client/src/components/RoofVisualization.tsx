@@ -337,26 +337,30 @@ export function RoofVisualization({
       const usableLatSpan = (maxLat - minLat) - 2 * edgeSetbackDeg - panelHeightDeg;
       const usableLngSpan = (maxLng - minLng) - 2 * edgeSetbackLngDeg - panelWidthDeg;
       
+      // Skip if polygon too small for even one panel
+      if (usableLatSpan < 0 || usableLngSpan < 0) return;
+      
       // Calculate how many rows/columns fit
       const colStep = panelWidthDeg + gapLngDeg;
-      const numRows = Math.floor(usableLatSpan / rowSpacingDeg) + 1;
-      const numCols = Math.floor(usableLngSpan / colStep) + 1;
+      const numRows = Math.max(1, Math.floor(usableLatSpan / rowSpacingDeg) + 1);
+      const numCols = Math.max(1, Math.floor(usableLngSpan / colStep) + 1);
       
       // Calculate remainder and center the grid
       const latRemainder = usableLatSpan - (numRows - 1) * rowSpacingDeg;
       const lngRemainder = usableLngSpan - (numCols - 1) * colStep;
-      const latOffset = latRemainder / 2;
-      const lngOffset = lngRemainder / 2;
+      const latOffset = Math.max(0, latRemainder / 2);
+      const lngOffset = Math.max(0, lngRemainder / 2);
       
       // Starting positions centered in the polygon
       const startLat = minLat + edgeSetbackDeg + latOffset;
       const startLng = minLng + edgeSetbackLngDeg + lngOffset;
 
-      // Fill from SOUTH to NORTH (lower lat to higher lat)
-      // This prioritizes south-facing positions which get more sun in Quebec
-      for (let lat = startLat; lat < maxLat - panelHeightDeg - edgeSetbackDeg + 0.0000001; lat += rowSpacingDeg) {
-        // Fill each row from west to east
-        for (let lng = startLng; lng < maxLng - panelWidthDeg - edgeSetbackLngDeg + 0.0000001; lng += colStep) {
+      // Fill grid using count-based iteration to ensure all positions are tried
+      // South to North (row 0 = south), West to East (col 0 = west)
+      for (let row = 0; row < numRows; row++) {
+        const lat = startLat + row * rowSpacingDeg;
+        for (let col = 0; col < numCols; col++) {
+          const lng = startLng + col * colStep;
           // 9-point containment test: 4 corners + 4 edge midpoints + center
           const testPoints = [
             new google.maps.LatLng(lat, lng),
