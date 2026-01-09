@@ -333,11 +333,30 @@ export function RoofVisualization({
         paths: coords.map(([lng, lat]) => ({ lat, lng }))
       });
 
+      // Calculate usable spans after setbacks
+      const usableLatSpan = (maxLat - minLat) - 2 * edgeSetbackDeg - panelHeightDeg;
+      const usableLngSpan = (maxLng - minLng) - 2 * edgeSetbackLngDeg - panelWidthDeg;
+      
+      // Calculate how many rows/columns fit
+      const colStep = panelWidthDeg + gapLngDeg;
+      const numRows = Math.floor(usableLatSpan / rowSpacingDeg) + 1;
+      const numCols = Math.floor(usableLngSpan / colStep) + 1;
+      
+      // Calculate remainder and center the grid
+      const latRemainder = usableLatSpan - (numRows - 1) * rowSpacingDeg;
+      const lngRemainder = usableLngSpan - (numCols - 1) * colStep;
+      const latOffset = latRemainder / 2;
+      const lngOffset = lngRemainder / 2;
+      
+      // Starting positions centered in the polygon
+      const startLat = minLat + edgeSetbackDeg + latOffset;
+      const startLng = minLng + edgeSetbackLngDeg + lngOffset;
+
       // Fill from SOUTH to NORTH (lower lat to higher lat)
       // This prioritizes south-facing positions which get more sun in Quebec
-      for (let lat = minLat + edgeSetbackDeg; lat < maxLat - panelHeightDeg - edgeSetbackDeg; lat += rowSpacingDeg) {
+      for (let lat = startLat; lat < maxLat - panelHeightDeg - edgeSetbackDeg + 0.0000001; lat += rowSpacingDeg) {
         // Fill each row from west to east
-        for (let lng = minLng + edgeSetbackLngDeg; lng < maxLng - panelWidthDeg - edgeSetbackLngDeg; lng += panelWidthDeg + gapLngDeg) {
+        for (let lng = startLng; lng < maxLng - panelWidthDeg - edgeSetbackLngDeg + 0.0000001; lng += colStep) {
           // 9-point containment test: 4 corners + 4 edge midpoints + center
           const testPoints = [
             new google.maps.LatLng(lat, lng),
