@@ -1615,6 +1615,11 @@ export async function registerRoutes(
         }
       }
       
+      // Convert roofAreaValidatedAt from string to Date if present
+      if ('roofAreaValidatedAt' in filteredBody && filteredBody.roofAreaValidatedAt !== null) {
+        filteredBody.roofAreaValidatedAt = new Date(filteredBody.roofAreaValidatedAt as string);
+      }
+      
       // Basic validation for structural fields
       if ('structuralNotes' in filteredBody && filteredBody.structuralNotes !== null) {
         if (typeof filteredBody.structuralNotes !== 'string') {
@@ -1651,6 +1656,8 @@ export async function registerRoutes(
       }
       res.json(site);
     } catch (error) {
+      console.error("Error updating site:", error);
+      console.error("Request body:", JSON.stringify(filteredBody));
       res.status(500).json({ error: "Internal server error" });
     }
   });
