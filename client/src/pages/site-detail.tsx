@@ -7095,6 +7095,15 @@ export default function SiteDetailPage() {
         </Card>
       )}
 
+      {/* Solar Mockup Visualization - shown after quick potential is calculated */}
+      {quickPotential && (
+        <SolarMockup 
+          siteId={id!} 
+          targetPanelCount={quickPotential.systemSizing.numPanels}
+          roofAreaSqM={quickPotential.roofAnalysis.totalRoofAreaSqM}
+        />
+      )}
+
       {/* Process Tabs with progression indicators */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         {/* Custom process step navigation with chevrons and status indicators */}
