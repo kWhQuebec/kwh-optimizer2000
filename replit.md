@@ -73,6 +73,15 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   PNG export for client presentations
     -   Integration with system sizing recommendations
     -   Fallback algorithmic panel generation (teal panels) when Google data is limited (<10 panels)
+-   **IFC-Compliant Panel Placement**: All solar capacity calculations use consistent, industry-standard parameters:
+    -   **Panel specifications**: 590W bifacial, 2.0m × 1.0m physical dimensions
+    -   **Perimeter setback**: 1.2m (4 feet) IFC fire code standard
+    -   **Panel gap**: 0.1m for thermal expansion and maintenance
+    -   **Row spacing**: 0.5m additional (1.5m total pitch) for 10° ballast systems typical in Quebec
+    -   **Effective panel footprint**: 3.15 m² (2.1m × 1.5m grid cell)
+    -   **Utilization ratio**: 85% of roof area usable after perimeter setback
+    -   **Power density**: ~187 W/m² effective
+    -   Consistent parameters across: RoofVisualization, SolarMockup, quick-potential, quick-estimate endpoints
 -   **Manual Roof Drawing Tool (MANDATORY)**: Interactive roof area tracing required before running analysis for commercial buildings:
     -   **Mandatory Workflow**: Technicians must draw roof areas BEFORE running any solar analysis simulation
     -   Prominent amber alert banner blocks analysis until roof is validated
