@@ -7105,7 +7105,6 @@ export default function SiteDetailPage() {
           longitude={site.longitude}
           roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764} 
           maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
-          currentPVSizeKW={quickPotential.systemSizing.maxCapacityKW}
         />
       )}
 

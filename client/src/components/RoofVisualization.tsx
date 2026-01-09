@@ -449,6 +449,21 @@ export function RoofVisualization({
     const targetPanels = Math.ceil(selectedCapacityKW / PANEL_KW);
     return Math.min(targetPanels, allPanelPositions.length);
   }, [selectedCapacityKW, allPanelPositions.length]);
+  
+  // DEBUG: Log slider state
+  useEffect(() => {
+    if (allPanelPositions.length > 0) {
+      console.log('[RoofVisualization] Slider state:', {
+        geometryMaxKW,
+        maxCapacity,
+        selectedCapacityKW,
+        panelsToShow,
+        allPositionsCount: allPanelPositions.length,
+        maxPVCapacityKW,
+        currentPVSizeKW,
+      });
+    }
+  }, [geometryMaxKW, maxCapacity, selectedCapacityKW, panelsToShow, allPanelPositions.length, maxPVCapacityKW, currentPVSizeKW]);
 
   // Draw panels based on selected capacity
   // Depends on mapReady to ensure map is ready before drawing
