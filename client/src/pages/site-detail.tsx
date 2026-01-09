@@ -6297,6 +6297,9 @@ export default function SiteDetailPage() {
   }
   const [quickPotential, setQuickPotential] = useState<QuickPotentialResult | null>(null);
   
+  // Geometry-based capacity from RoofVisualization (more accurate than backend estimate)
+  const [geometryCapacity, setGeometryCapacity] = useState<{ maxCapacityKW: number; panelCount: number } | null>(null);
+  
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
   const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
   const [loadingFullSimulation, setLoadingFullSimulation] = useState<string | null>(null);
@@ -7005,7 +7008,7 @@ export default function SiteDetailPage() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setQuickPotential(null)}
+                onClick={() => { setQuickPotential(null); setGeometryCapacity(null); }}
                 data-testid="button-close-quick-potential"
               >
                 <XCircle className="w-4 h-4" />
@@ -7019,17 +7022,17 @@ export default function SiteDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Capacity */}
+              {/* Capacity - use geometry values when available (more accurate) */}
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Sun className="w-4 h-4" />
                   {language === "fr" ? "Capacité max" : "Max Capacity"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {quickPotential.systemSizing.maxCapacityKW.toLocaleString()} kW
+                  {(geometryCapacity?.maxCapacityKW ?? quickPotential.systemSizing.maxCapacityKW).toLocaleString()} kW
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {quickPotential.systemSizing.numPanels.toLocaleString()} {language === "fr" ? "panneaux" : "panels"}
+                  {(geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels).toLocaleString()} {language === "fr" ? "panneaux" : "panels"}
                 </div>
               </div>
               
@@ -7105,6 +7108,7 @@ export default function SiteDetailPage() {
           longitude={site.longitude}
           roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764} 
           maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
+          onGeometryCalculated={setGeometryCapacity}
         />
       )}
 

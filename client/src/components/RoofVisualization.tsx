@@ -18,6 +18,7 @@ interface RoofVisualizationProps {
   roofAreaSqFt?: number;
   maxPVCapacityKW?: number;
   currentPVSizeKW?: number;
+  onGeometryCalculated?: (data: { maxCapacityKW: number; panelCount: number }) => void;
 }
 
 interface PanelPosition {
@@ -39,6 +40,7 @@ export function RoofVisualization({
   roofAreaSqFt,
   maxPVCapacityKW,
   currentPVSizeKW,
+  onGeometryCalculated,
 }: RoofVisualizationProps) {
   const { language } = useI18n();
   const { toast } = useToast();
@@ -449,6 +451,16 @@ export function RoofVisualization({
     const targetPanels = Math.ceil(selectedCapacityKW / PANEL_KW);
     return Math.min(targetPanels, allPanelPositions.length);
   }, [selectedCapacityKW, allPanelPositions.length]);
+
+  // Notify parent component when geometry is calculated
+  useEffect(() => {
+    if (allPanelPositions.length > 0 && onGeometryCalculated) {
+      onGeometryCalculated({
+        maxCapacityKW: Math.round(allPanelPositions.length * PANEL_KW),
+        panelCount: allPanelPositions.length,
+      });
+    }
+  }, [allPanelPositions.length, onGeometryCalculated]);
 
   // Draw panels based on selected capacity
   // Depends on mapReady to ensure map is ready before drawing
