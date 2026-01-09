@@ -6298,7 +6298,12 @@ export default function SiteDetailPage() {
   const [quickPotential, setQuickPotential] = useState<QuickPotentialResult | null>(null);
   
   // Geometry-based capacity from RoofVisualization (more accurate than backend estimate)
-  const [geometryCapacity, setGeometryCapacity] = useState<{ maxCapacityKW: number; panelCount: number } | null>(null);
+  const [geometryCapacity, setGeometryCapacity] = useState<{ 
+    maxCapacityKW: number; 
+    panelCount: number; 
+    realisticCapacityKW: number; 
+    constraintAreaSqM: number;
+  } | null>(null);
   
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
   const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
@@ -7026,13 +7031,21 @@ export default function SiteDetailPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Sun className="w-4 h-4" />
-                  {language === "fr" ? "Capacité max" : "Max Capacity"}
+                  {language === "fr" ? "Capacité estimée" : "Estimated Capacity"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {(geometryCapacity?.maxCapacityKW ?? quickPotential.systemSizing.maxCapacityKW).toLocaleString()} kW
+                  {(geometryCapacity?.realisticCapacityKW ?? Math.round((quickPotential.systemSizing.maxCapacityKW) * 0.9)).toLocaleString()} kW
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {(geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels).toLocaleString()} {language === "fr" ? "panneaux" : "panels"}
+                  {language === "fr" ? "Max:" : "Max:"} {(geometryCapacity?.maxCapacityKW ?? quickPotential.systemSizing.maxCapacityKW).toLocaleString()} kW
+                  {geometryCapacity?.constraintAreaSqM && geometryCapacity.constraintAreaSqM > 0 && (
+                    <span className="ml-1 text-orange-500">
+                      (-{Math.round(geometryCapacity.constraintAreaSqM)} m² {language === "fr" ? "contraintes" : "constraints"})
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {(geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels).toLocaleString()} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
                 </div>
               </div>
               

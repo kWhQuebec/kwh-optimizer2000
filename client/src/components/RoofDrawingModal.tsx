@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun } from 'lucide-react';
+import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun, Maximize2, Minimize2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import type { RoofPolygon, InsertRoofPolygon } from '@shared/schema';
 
@@ -95,6 +95,7 @@ export function RoofDrawingModal({
   const [editingLabelValue, setEditingLabelValue] = useState('');
   const [activeDrawingMode, setActiveDrawingMode] = useState<'polygon' | 'rectangle' | null>(null);
   const [currentPolygonType, setCurrentPolygonType] = useState<PolygonType>('solar');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const polygonTypeRef = useRef<PolygonType>('solar');
 
   const initializeMap = useCallback(async () => {
@@ -349,7 +350,8 @@ export function RoofDrawingModal({
     onClose();
   }, [polygons, onClose]);
 
-  const totalArea = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
+  const totalAreaSqM = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
+  const totalAreaSqFt = totalAreaSqM * 10.764; // Convert m² to sq ft
 
   useEffect(() => {
     if (isOpen) {
@@ -395,7 +397,11 @@ export function RoofDrawingModal({
       />
       
       {/* Modal Content */}
-      <div className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-background border rounded-lg shadow-lg p-6 m-4">
+      <div className={`relative z-10 overflow-hidden flex flex-col bg-background border rounded-lg shadow-lg p-6 transition-all duration-300 ${
+        isFullscreen 
+          ? 'w-[98vw] h-[96vh] m-2' 
+          : 'w-full max-w-4xl max-h-[90vh] m-4'
+      }`}>
         {/* Header */}
         <div className="flex flex-col space-y-1.5 mb-4">
           <div className="flex items-center justify-between">
@@ -403,14 +409,25 @@ export function RoofDrawingModal({
               <MapPin className="h-5 w-5" />
               {language === 'fr' ? 'Dessiner les zones de toit' : 'Draw Roof Areas'}
             </h2>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleClose}
-              data-testid="button-close-modal"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                data-testid="button-toggle-fullscreen"
+                title={language === 'fr' ? (isFullscreen ? 'Réduire' : 'Plein écran') : (isFullscreen ? 'Exit fullscreen' : 'Fullscreen')}
+              >
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleClose}
+                data-testid="button-close-modal"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             {language === 'fr'
@@ -494,13 +511,22 @@ export function RoofDrawingModal({
           </div>
 
           <div className="w-full lg:w-72 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">
-                {language === 'fr' ? 'Zones tracées' : 'Drawn Areas'}
-              </h3>
-              <Badge variant="secondary" data-testid="badge-total-area">
-                {totalArea.toFixed(0)} m²
-              </Badge>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">
+                  {language === 'fr' ? 'Zones tracées' : 'Drawn Areas'}
+                </h3>
+              </div>
+              {totalAreaSqM > 0 && (
+                <div className="flex flex-wrap gap-1" data-testid="area-display">
+                  <Badge variant="default" className="bg-blue-500" data-testid="badge-total-area-sqft">
+                    {Math.round(totalAreaSqFt).toLocaleString()} pc
+                  </Badge>
+                  <Badge variant="secondary" data-testid="badge-total-area-sqm">
+                    {Math.round(totalAreaSqM).toLocaleString()} m²
+                  </Badge>
+                </div>
+              )}
             </div>
 
             <ScrollArea className="flex-1 max-h-[250px] lg:max-h-[400px]">

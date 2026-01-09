@@ -18,7 +18,7 @@ interface RoofVisualizationProps {
   roofAreaSqFt?: number;
   maxPVCapacityKW?: number;
   currentPVSizeKW?: number;
-  onGeometryCalculated?: (data: { maxCapacityKW: number; panelCount: number }) => void;
+  onGeometryCalculated?: (data: { maxCapacityKW: number; panelCount: number; realisticCapacityKW: number; constraintAreaSqM: number }) => void;
 }
 
 interface PanelPosition {
@@ -453,14 +453,32 @@ export function RoofVisualization({
   }, [selectedCapacityKW, allPanelPositions.length]);
 
   // Notify parent component when geometry is calculated
+  // Calculate constraint area for realistic estimate
+  const constraintAreaForCallback = useMemo(() => {
+    return roofPolygons
+      .filter((p) => {
+        if (p.color === "#f97316") return true;
+        const label = p.label?.toLowerCase() || "";
+        return label.includes("constraint") || label.includes("contrainte") || 
+               label.includes("hvac") || label.includes("obstacle");
+      })
+      .reduce((sum, p) => sum + p.areaSqM, 0);
+  }, [roofPolygons]);
+
   useEffect(() => {
     if (allPanelPositions.length > 0 && onGeometryCalculated) {
+      const maxCapacityKW = Math.round(allPanelPositions.length * PANEL_KW);
+      // Realistic estimate: subtract 10% for unseen obstacles (HVAC, skylights, access paths)
+      const realisticCapacityKW = Math.round(maxCapacityKW * 0.9);
+      
       onGeometryCalculated({
-        maxCapacityKW: Math.round(allPanelPositions.length * PANEL_KW),
+        maxCapacityKW,
         panelCount: allPanelPositions.length,
+        realisticCapacityKW,
+        constraintAreaSqM: constraintAreaForCallback,
       });
     }
-  }, [allPanelPositions.length, onGeometryCalculated]);
+  }, [allPanelPositions.length, onGeometryCalculated, constraintAreaForCallback]);
 
   // Draw panels based on selected capacity
   // Depends on mapReady to ensure map is ready before drawing
