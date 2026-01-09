@@ -6269,6 +6269,34 @@ export default function SiteDetailPage() {
   const [refreshPhase, setRefreshPhase] = useState<RefreshPhase>('idle');
   const [refreshError, setRefreshError] = useState<string | null>(null);
   
+  // Quick potential analysis state
+  interface QuickPotentialResult {
+    roofAnalysis: {
+      totalRoofAreaSqM: number;
+      usableRoofAreaSqM: number;
+      utilizationRatio: number;
+      polygonCount: number;
+    };
+    systemSizing: {
+      maxCapacityKW: number;
+      numPanels: number;
+      panelPowerW: number;
+    };
+    production: {
+      annualProductionKWh: number;
+      annualProductionMWh: number;
+      yieldKWhPerKWp: number;
+    };
+    financial: {
+      costPerW: number;
+      pricingTier: string;
+      estimatedCapex: number;
+      estimatedAnnualSavings: number;
+      simplePaybackYears: number;
+    };
+  }
+  const [quickPotential, setQuickPotential] = useState<QuickPotentialResult | null>(null);
+  
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
   const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
   const [loadingFullSimulation, setLoadingFullSimulation] = useState<string | null>(null);
@@ -6382,6 +6410,29 @@ export default function SiteDetailPage() {
     },
     onError: () => {
       toast({ title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis", variant: "destructive" });
+    },
+  });
+
+  // Quick potential analysis mutation (roof-only, no consumption data needed)
+  const quickPotentialMutation = useMutation({
+    mutationFn: async () => {
+      const result = await apiRequest<{ success: boolean } & QuickPotentialResult>("POST", `/api/sites/${id}/quick-potential`);
+      return result;
+    },
+    onSuccess: (data) => {
+      setQuickPotential(data);
+      toast({ 
+        title: language === "fr" ? "Analyse rapide terminée" : "Quick analysis complete",
+        description: language === "fr" 
+          ? `Potentiel: ${data.systemSizing.maxCapacityKW} kW / ${data.production.annualProductionMWh} MWh/an`
+          : `Potential: ${data.systemSizing.maxCapacityKW} kW / ${data.production.annualProductionMWh} MWh/year`
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: language === "fr" ? "Erreur lors de l'analyse rapide" : "Error during quick analysis", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -6744,6 +6795,21 @@ export default function SiteDetailPage() {
         <div className="flex items-center gap-2">
           {isStaff && (
             <>
+              {/* Quick Potential Button - available after roof validation, no consumption data needed */}
+              <Button 
+                variant="secondary"
+                onClick={() => quickPotentialMutation.mutate()}
+                disabled={quickPotentialMutation.isPending || !site.roofAreaValidated}
+                className="gap-2"
+                data-testid="button-quick-potential"
+              >
+                {quickPotentialMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Zap className="w-4 h-4" />
+                )}
+                {language === "fr" ? "Analyse rapide" : "Quick Analysis"}
+              </Button>
               <Button 
                 onClick={() => runAnalysisMutation.mutate(customAssumptions)}
                 disabled={runAnalysisMutation.isPending || !site.roofAreaValidated || refreshPhase !== 'idle'}
@@ -6922,6 +6988,108 @@ export default function SiteDetailPage() {
                   ? (language === "fr" ? "Localisation..." : "Locating...")
                   : (language === "fr" ? "Dessiner les zones" : "Draw areas")}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Potential Results Card */}
+      {quickPotential && (
+        <Card className="border-primary/30 bg-primary/5" data-testid="card-quick-potential">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Zap className="w-5 h-5 text-primary" />
+                {language === "fr" ? "Potentiel solaire estimé" : "Estimated Solar Potential"}
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setQuickPotential(null)}
+                data-testid="button-close-quick-potential"
+              >
+                <XCircle className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {language === "fr" 
+                ? "Analyse basée uniquement sur la surface de toit dessinée. L'analyse complète nécessite les données de consommation."
+                : "Analysis based only on drawn roof area. Full analysis requires consumption data."}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Capacity */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Sun className="w-4 h-4" />
+                  {language === "fr" ? "Capacité max" : "Max Capacity"}
+                </div>
+                <div className="text-2xl font-bold text-foreground">
+                  {quickPotential.systemSizing.maxCapacityKW.toLocaleString()} kW
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {quickPotential.systemSizing.numPanels.toLocaleString()} {language === "fr" ? "panneaux" : "panels"}
+                </div>
+              </div>
+              
+              {/* Production */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Zap className="w-4 h-4" />
+                  {language === "fr" ? "Production annuelle" : "Annual Production"}
+                </div>
+                <div className="text-2xl font-bold text-foreground">
+                  {quickPotential.production.annualProductionMWh.toLocaleString()} MWh
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {quickPotential.production.yieldKWhPerKWp} kWh/kWp
+                </div>
+              </div>
+              
+              {/* Investment */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <DollarSign className="w-4 h-4" />
+                  {language === "fr" ? "Investissement estimé" : "Estimated Investment"}
+                </div>
+                <div className="text-2xl font-bold text-foreground">
+                  ${(quickPotential.financial.estimatedCapex / 1000000).toFixed(2)}M
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ${quickPotential.financial.costPerW.toFixed(2)}/W
+                </div>
+              </div>
+              
+              {/* Payback */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <TrendingUp className="w-4 h-4" />
+                  {language === "fr" ? "Retour simple" : "Simple Payback"}
+                </div>
+                <div className="text-2xl font-bold text-foreground">
+                  {quickPotential.financial.simplePaybackYears} {language === "fr" ? "ans" : "years"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ~${(quickPotential.financial.estimatedAnnualSavings / 1000).toFixed(0)}k/{language === "fr" ? "an" : "year"}
+                </div>
+              </div>
+            </div>
+            
+            {/* Roof info */}
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Grid3X3 className="w-4 h-4" />
+                  {language === "fr" ? "Surface totale:" : "Total area:"} {quickPotential.roofAnalysis.totalRoofAreaSqM.toLocaleString()} m²
+                </span>
+                <span>
+                  {language === "fr" ? "Surface utilisable:" : "Usable area:"} {quickPotential.roofAnalysis.usableRoofAreaSqM.toLocaleString()} m² ({Math.round(quickPotential.roofAnalysis.utilizationRatio * 100)}%)
+                </span>
+                <span>
+                  {quickPotential.roofAnalysis.polygonCount} {language === "fr" ? "zone(s) de toit" : "roof zone(s)"}
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>

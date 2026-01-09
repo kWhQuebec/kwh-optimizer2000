@@ -2088,6 +2088,101 @@ export async function registerRoutes(
 
   // ==================== ANALYSIS ROUTES ====================
   
+  // Quick potential analysis - based only on roof area, no consumption data needed
+  app.post("/api/sites/:siteId/quick-potential", authMiddleware, requireStaff, async (req, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const site = await storage.getSite(siteId);
+      
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      // Get roof polygons to calculate total area
+      const roofPolygons = await storage.getRoofPolygons(siteId);
+      
+      if (roofPolygons.length === 0) {
+        return res.status(400).json({ error: "No roof polygons defined. Draw roof areas first." });
+      }
+      
+      // Calculate total roof area from polygons
+      const totalRoofAreaSqM = roofPolygons.reduce((sum, poly) => sum + (poly.areaSqM || 0), 0);
+      
+      if (totalRoofAreaSqM <= 0) {
+        return res.status(400).json({ error: "Roof area is zero or invalid" });
+      }
+      
+      // Constants for Quebec commercial solar
+      const UTILIZATION_RATIO = 0.70; // 70% of roof usable for panels (conservative)
+      const POWER_DENSITY_WM2 = 185; // W/m² for modern panels
+      const QUEBEC_YIELD_KWHPERKWP = 1200; // kWh/kWp average for Quebec
+      const PANEL_POWER_W = 590; // Modern panel wattage
+      const PANEL_AREA_M2 = 2.85; // ~2.85 m² per 590W panel
+      
+      // Calculate usable roof area
+      const usableRoofAreaSqM = totalRoofAreaSqM * UTILIZATION_RATIO;
+      
+      // Calculate number of panels first (this is the source of truth)
+      const numPanels = Math.floor(usableRoofAreaSqM / PANEL_AREA_M2);
+      
+      // Calculate max capacity from number of panels (ensures consistency)
+      const maxCapacityKW = (numPanels * PANEL_POWER_W) / 1000;
+      const maxCapacityKWRounded = Math.round(maxCapacityKW);
+      
+      // Calculate estimated annual production
+      const annualProductionKWh = maxCapacityKWRounded * QUEBEC_YIELD_KWHPERKWP;
+      const annualProductionMWh = annualProductionKWh / 1000;
+      
+      // Get tiered pricing
+      const { getTieredSolarCostPerW, getSolarPricingTierLabel } = await import("./analysis/potentialAnalysis");
+      const costPerW = getTieredSolarCostPerW(maxCapacityKWRounded);
+      const pricingTier = getSolarPricingTierLabel(maxCapacityKWRounded, 'fr');
+      
+      // Calculate estimated project value (CAPEX)
+      const estimatedCapex = maxCapacityKWRounded * 1000 * costPerW;
+      
+      // Calculate estimated annual savings (approximate)
+      // Using average commercial rate of ~$0.08/kWh for Quebec
+      const avgElectricityRate = 0.08;
+      const estimatedAnnualSavings = annualProductionKWh * avgElectricityRate;
+      
+      // Simple payback period
+      const simplePayback = estimatedCapex / estimatedAnnualSavings;
+      
+      res.json({
+        success: true,
+        siteId,
+        siteName: site.name,
+        roofAnalysis: {
+          totalRoofAreaSqM: Math.round(totalRoofAreaSqM),
+          usableRoofAreaSqM: Math.round(usableRoofAreaSqM),
+          utilizationRatio: UTILIZATION_RATIO,
+          polygonCount: roofPolygons.length,
+        },
+        systemSizing: {
+          maxCapacityKW: maxCapacityKWRounded,
+          numPanels,
+          panelPowerW: PANEL_POWER_W,
+        },
+        production: {
+          annualProductionKWh: Math.round(annualProductionKWh),
+          annualProductionMWh: Math.round(annualProductionMWh * 10) / 10,
+          yieldKWhPerKWp: QUEBEC_YIELD_KWHPERKWP,
+        },
+        financial: {
+          costPerW,
+          pricingTier,
+          estimatedCapex: Math.round(estimatedCapex),
+          estimatedAnnualSavings: Math.round(estimatedAnnualSavings),
+          simplePaybackYears: Math.round(simplePayback * 10) / 10,
+        },
+      });
+    } catch (error) {
+      console.error("Quick potential error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
   // Staff-only analysis (clients can only view results)
   app.post("/api/sites/:siteId/run-potential-analysis", authMiddleware, requireStaff, async (req, res) => {
     try {
