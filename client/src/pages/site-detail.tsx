@@ -6699,7 +6699,19 @@ export default function SiteDetailPage() {
                 </p>
               </div>
               <Button 
-                onClick={() => setIsRoofDrawingModalOpen(true)}
+                onClick={() => {
+                  if (!site.latitude || !site.longitude) {
+                    toast({
+                      variant: "destructive",
+                      title: language === "fr" ? "Coordonnées manquantes" : "Missing coordinates",
+                      description: language === "fr" 
+                        ? "Ce site n'a pas de coordonnées GPS. Veuillez d'abord ajouter l'adresse dans les paramètres du site."
+                        : "This site has no GPS coordinates. Please add the address in site settings first."
+                    });
+                    return;
+                  }
+                  setIsRoofDrawingModalOpen(true);
+                }}
                 className="shrink-0 gap-2"
                 data-testid="button-draw-roof-areas-banner"
               >
