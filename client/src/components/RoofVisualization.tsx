@@ -222,15 +222,13 @@ export function RoofVisualization({
       const color = isConstraint ? "#f97316" : (polygon.color || "#3b82f6");
 
       try {
-        // Solar polygons: outline only (no fill) so individual panels are visible
-        // Constraint polygons: orange fill to clearly show blocked areas
         const googlePolygon = new google.maps.Polygon({
           paths: path,
           strokeColor: color,
           strokeOpacity: 0.9,
-          strokeWeight: isConstraint ? 2 : 3, // Thicker border for solar zones
+          strokeWeight: 2,
           fillColor: color,
-          fillOpacity: isConstraint ? 0.4 : 0, // No fill for solar zones - panels will show
+          fillOpacity: isConstraint ? 0.4 : 0.3,
           map: mapRef.current,
           zIndex: isConstraint ? 2 : 1, // Constraints on top
         });
