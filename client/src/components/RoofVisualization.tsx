@@ -64,20 +64,25 @@ export function RoofVisualization({
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-  // Calculate min/max for slider
-  const minCapacity = Math.max(100, Math.round((maxPVCapacityKW || 1000) * 0.1));
-  const maxCapacity = maxPVCapacityKW || 5000;
+  // Calculate min/max for slider based on geometry, not backend estimate
+  // The geometry-derived maximum ensures slider goes up to actual placeable panels
+  const geometryMaxKW = Math.round(allPanelPositions.length * PANEL_KW);
+  const minCapacity = Math.max(100, Math.round((geometryMaxKW || maxPVCapacityKW || 1000) * 0.1));
+  const maxCapacity = geometryMaxKW > 0 ? geometryMaxKW : (maxPVCapacityKW || 5000);
 
-  // Update capacity when recommended size is provided or when max changes
+  // Update capacity when recommended size is provided or when geometry max is calculated
   useEffect(() => {
     if (currentPVSizeKW) {
       // Always update to recommended size when analysis provides one
       setSelectedCapacityKW(currentPVSizeKW);
+    } else if (!hasUserAdjusted && geometryMaxKW > 0) {
+      // Default to geometry max (all available space) when no recommendation
+      setSelectedCapacityKW(geometryMaxKW);
     } else if (!hasUserAdjusted && maxPVCapacityKW) {
-      // Only auto-update to 70% of max if user hasn't manually adjusted
-      setSelectedCapacityKW(Math.round(maxPVCapacityKW * 0.7));
+      // Fallback to backend estimate if geometry not yet calculated
+      setSelectedCapacityKW(maxPVCapacityKW);
     }
-  }, [currentPVSizeKW, maxPVCapacityKW, hasUserAdjusted]);
+  }, [currentPVSizeKW, maxPVCapacityKW, geometryMaxKW, hasUserAdjusted]);
 
   const initializeMap = useCallback(() => {
     if (!mapContainerRef.current || !window.google) return;
@@ -395,9 +400,19 @@ export function RoofVisualization({
       }
     });
 
-    // Positions are already in correct order because we sorted solarPolygons by createdAt
-    // Oldest polygon's panels come first, then newer polygons
-    setAllPanelPositions(positions);
+    // Keep natural south-to-north, west-to-east order
+    // This is optimal for Quebec (northern hemisphere - south-facing receives most sun)
+    // User controls capacity via slider which now reflects actual geometric maximum
+    const sortedPositions = [...positions].sort((a, b) => {
+      // Primary sort: south to north (lower lat first)
+      if (Math.abs(a.lat - b.lat) > 0.000001) {
+        return a.lat - b.lat;
+      }
+      // Secondary sort: west to east (lower lng first)
+      return a.lng - b.lng;
+    });
+    
+    setAllPanelPositions(sortedPositions);
   }, [roofPolygons, mapReady]); // Re-run when map is ready
 
   // Number of panels to display based on selected capacity
