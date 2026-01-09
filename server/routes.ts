@@ -1698,6 +1698,57 @@ export async function registerRoutes(
     }
   });
 
+  // Geocode site address and update coordinates
+  app.post("/api/sites/:id/geocode", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.id;
+      console.log(`[Geocode] Geocoding address for site ${siteId}`);
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      // Build full address from site fields
+      const fullAddress = [
+        site.address,
+        site.city,
+        site.province || "Québec",
+        site.postalCode,
+        "Canada"
+      ].filter(Boolean).join(", ");
+
+      if (!fullAddress || fullAddress === "Canada" || fullAddress === "Québec, Canada") {
+        return res.status(400).json({ error: "Site has no address to geocode" });
+      }
+
+      console.log(`[Geocode] Full address: ${fullAddress}`);
+      
+      const location = await googleSolar.geocodeAddress(fullAddress);
+      if (!location) {
+        return res.status(422).json({ error: "Could not geocode address. Please check the address is valid." });
+      }
+
+      console.log(`[Geocode] Success: lat=${location.latitude}, lng=${location.longitude}`);
+      
+      // Update site with coordinates
+      const updatedSite = await storage.updateSite(siteId, {
+        latitude: location.latitude,
+        longitude: location.longitude
+      });
+
+      res.json({ 
+        success: true, 
+        latitude: location.latitude,
+        longitude: location.longitude,
+        site: updatedSite 
+      });
+    } catch (error) {
+      console.error("Error geocoding site:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/sites/:id/roof-estimate", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const siteId = req.params.id;

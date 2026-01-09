@@ -6698,26 +6698,71 @@ export default function SiteDetailPage() {
                     : "Before running the analysis, you must manually outline the usable roof areas."}
                 </p>
               </div>
-              <Button 
-                onClick={() => {
-                  if (!site.latitude || !site.longitude) {
-                    toast({
-                      variant: "destructive",
-                      title: language === "fr" ? "Coordonnées manquantes" : "Missing coordinates",
-                      description: language === "fr" 
-                        ? "Ce site n'a pas de coordonnées GPS. Veuillez d'abord ajouter l'adresse dans les paramètres du site."
-                        : "This site has no GPS coordinates. Please add the address in site settings first."
-                    });
-                    return;
-                  }
-                  setIsRoofDrawingModalOpen(true);
-                }}
-                className="shrink-0 gap-2"
-                data-testid="button-draw-roof-areas-banner"
-              >
-                <Pencil className="w-4 h-4" />
-                {language === "fr" ? "Dessiner les zones" : "Draw areas"}
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                {/* Show geocode button if no coordinates */}
+                {(!site.latitude || !site.longitude) && site.address && (
+                  <Button 
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/sites/${site.id}/geocode`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          credentials: "include"
+                        });
+                        if (response.ok) {
+                          const data = await response.json();
+                          toast({
+                            title: language === "fr" ? "Coordonnées trouvées" : "Coordinates found",
+                            description: language === "fr" 
+                              ? `Lat: ${data.latitude.toFixed(4)}, Lng: ${data.longitude.toFixed(4)}`
+                              : `Lat: ${data.latitude.toFixed(4)}, Lng: ${data.longitude.toFixed(4)}`
+                          });
+                          queryClient.invalidateQueries({ queryKey: ["/api/sites", site.id] });
+                        } else {
+                          const error = await response.json();
+                          toast({
+                            variant: "destructive",
+                            title: language === "fr" ? "Erreur" : "Error",
+                            description: error.error || (language === "fr" ? "Impossible de géocoder l'adresse" : "Could not geocode address")
+                          });
+                        }
+                      } catch (error) {
+                        toast({
+                          variant: "destructive",
+                          title: language === "fr" ? "Erreur" : "Error",
+                          description: language === "fr" ? "Erreur de connexion" : "Connection error"
+                        });
+                      }
+                    }}
+                    className="gap-2"
+                    data-testid="button-geocode-address"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    {language === "fr" ? "Localiser l'adresse" : "Locate address"}
+                  </Button>
+                )}
+                <Button 
+                  onClick={() => {
+                    if (!site.latitude || !site.longitude) {
+                      toast({
+                        variant: "destructive",
+                        title: language === "fr" ? "Coordonnées manquantes" : "Missing coordinates",
+                        description: language === "fr" 
+                          ? "Ce site n'a pas de coordonnées GPS. Cliquez sur 'Localiser l'adresse' d'abord."
+                          : "This site has no GPS coordinates. Click 'Locate address' first."
+                      });
+                      return;
+                    }
+                    setIsRoofDrawingModalOpen(true);
+                  }}
+                  className="gap-2"
+                  data-testid="button-draw-roof-areas-banner"
+                >
+                  <Pencil className="w-4 h-4" />
+                  {language === "fr" ? "Dessiner les zones" : "Draw areas"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
