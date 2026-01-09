@@ -6264,6 +6264,11 @@ export default function SiteDetailPage() {
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
   const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency' | 'payback'>('npv');
   
+  // Smart "Refresh + Deliverables" state machine
+  type RefreshPhase = 'idle' | 'analyzing' | 'pdf' | 'pptx' | 'complete' | 'error';
+  const [refreshPhase, setRefreshPhase] = useState<RefreshPhase>('idle');
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
   const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
   const [loadingFullSimulation, setLoadingFullSimulation] = useState<string | null>(null);
@@ -6379,6 +6384,102 @@ export default function SiteDetailPage() {
       toast({ title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis", variant: "destructive" });
     },
   });
+
+  // Smart "Refresh + Deliverables" handler - chains analysis → PDF → PPTX
+  const handleRefreshAndDeliverables = async () => {
+    if (!site || !site.roofAreaValidated) return;
+    
+    setRefreshPhase('analyzing');
+    setRefreshError(null);
+    
+    try {
+      // Phase 1: Run analysis
+      const mergedAssumptions: AnalysisAssumptions = { 
+        ...defaultAnalysisAssumptions, 
+        ...customAssumptions 
+      };
+      delete (mergedAssumptions as any).yieldSource;
+      
+      const result = await apiRequest<{ id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions: mergedAssumptions });
+      const newSimId = result?.id;
+      
+      if (!newSimId) {
+        throw new Error("No simulation ID returned");
+      }
+      
+      // Refresh site data
+      await queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
+      
+      toast({ 
+        title: language === "fr" ? "Analyse terminée" : "Analysis complete",
+        description: language === "fr" ? "Génération des livrables..." : "Generating deliverables..."
+      });
+      
+      // Phase 2: Download PDF
+      setRefreshPhase('pdf');
+      const token = localStorage.getItem("token");
+      
+      const pdfResponse = await fetch(`/api/simulation-runs/${newSimId}/pdf?lang=${language}`, {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      
+      if (pdfResponse.ok) {
+        const pdfBlob = await pdfResponse.blob();
+        const pdfUrl = window.URL.createObjectURL(pdfBlob);
+        const pdfLink = document.createElement("a");
+        pdfLink.href = pdfUrl;
+        pdfLink.download = `rapport-${site?.name?.replace(/\s+/g, '-') || 'site'}.pdf`;
+        document.body.appendChild(pdfLink);
+        pdfLink.click();
+        document.body.removeChild(pdfLink);
+        window.URL.revokeObjectURL(pdfUrl);
+      } else {
+        console.warn("PDF generation failed:", pdfResponse.status);
+      }
+      
+      // Phase 3: Download PPTX
+      setRefreshPhase('pptx');
+      const pptxResponse = await fetch(`/api/simulation-runs/${newSimId}/presentation-pptx?lang=${language}`, {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      
+      if (pptxResponse.ok) {
+        const pptxBlob = await pptxResponse.blob();
+        const pptxUrl = window.URL.createObjectURL(pptxBlob);
+        const pptxLink = document.createElement("a");
+        pptxLink.href = pptxUrl;
+        pptxLink.download = `proposition-${site?.name?.replace(/\s+/g, '-') || 'site'}.pptx`;
+        document.body.appendChild(pptxLink);
+        pptxLink.click();
+        document.body.removeChild(pptxLink);
+        window.URL.revokeObjectURL(pptxUrl);
+      } else {
+        console.warn("PPTX generation failed:", pptxResponse.status);
+      }
+      
+      setRefreshPhase('complete');
+      toast({ 
+        title: language === "fr" ? "Livrables générés" : "Deliverables generated",
+        description: language === "fr" ? "PDF et PowerPoint téléchargés" : "PDF and PowerPoint downloaded"
+      });
+      
+      setActiveTab("analysis");
+      
+      // Reset phase after a short delay
+      setTimeout(() => setRefreshPhase('idle'), 2000);
+      
+    } catch (error) {
+      setRefreshPhase('error');
+      setRefreshError(error instanceof Error ? error.message : "Unknown error");
+      toast({ 
+        title: language === "fr" ? "Erreur" : "Error", 
+        variant: "destructive" 
+      });
+      setTimeout(() => setRefreshPhase('idle'), 3000);
+    }
+  };
 
   // Bifacial response mutation
   const bifacialResponseMutation = useMutation({
@@ -6642,19 +6743,55 @@ export default function SiteDetailPage() {
 
         <div className="flex items-center gap-2">
           {isStaff && (
-            <Button 
-              onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-              disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
-              className="gap-2"
-              data-testid="button-run-analysis-header"
-            >
-              {runAnalysisMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Play className="w-4 h-4" />
-              )}
-              {language === "fr" ? "Lancer analyse" : "Run Analysis"}
-            </Button>
+            <>
+              <Button 
+                onClick={() => runAnalysisMutation.mutate(customAssumptions)}
+                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated || refreshPhase !== 'idle'}
+                className="gap-2"
+                data-testid="button-run-analysis-header"
+              >
+                {runAnalysisMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                {language === "fr" ? "Lancer analyse" : "Run Analysis"}
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleRefreshAndDeliverables}
+                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated || refreshPhase !== 'idle'}
+                className="gap-2"
+                data-testid="button-refresh-deliverables"
+              >
+                {refreshPhase === 'analyzing' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {language === "fr" ? "Analyse..." : "Analyzing..."}
+                  </>
+                ) : refreshPhase === 'pdf' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    PDF...
+                  </>
+                ) : refreshPhase === 'pptx' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    PPTX...
+                  </>
+                ) : refreshPhase === 'complete' ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    {language === "fr" ? "Terminé" : "Done"}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    {language === "fr" ? "Analyse + Livrables" : "Analyze + Deliverables"}
+                  </>
+                )}
+              </Button>
+            </>
           )}
           {/* Presentation Mode Button */}
           <Link href={`/app/presentation/${site.id}`}>
@@ -6728,14 +6865,18 @@ export default function SiteDetailPage() {
                     setIsGeocodingAddress(true);
                     
                     try {
+                      const token = localStorage.getItem("token");
                       const response = await fetch(`/api/sites/${site.id}/geocode`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: { 
+                          "Content-Type": "application/json",
+                          ...(token ? { Authorization: `Bearer ${token}` } : {})
+                        },
                         credentials: "include"
                       });
-                      const data = await response.json();
                       
                       if (!response.ok) {
+                        const data = await response.json();
                         toast({
                           variant: "destructive",
                           title: language === "fr" ? "Erreur de géocodage" : "Geocoding error",

@@ -419,19 +419,30 @@ export default function PortfolioDetailPage() {
     },
   });
 
+  // Smart "Sync Latest" mutation - refreshes all site data and recalculates aggregates
   const recalculateMutation = useMutation({
     mutationFn: async () => {
+      // First, invalidate all portfolio site caches to ensure fresh data
+      for (const ps of portfolioSites) {
+        await queryClient.invalidateQueries({ queryKey: ["/api/sites", ps.siteId] });
+      }
+      
+      // Then recalculate portfolio aggregates from latest simulations
       return apiRequest("POST", `/api/portfolios/${id}/recalculate`);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolios", id, "full"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/portfolios", id, "full"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/portfolios", id, "full"] });
       toast({ 
-        title: language === "fr" ? "Portfolio recalculé" : "Portfolio recalculated" 
+        title: language === "fr" ? "Portfolio synchronisé" : "Portfolio synced",
+        description: language === "fr" 
+          ? "Les KPIs ont été mis à jour avec les dernières simulations."
+          : "KPIs have been updated with the latest simulations."
       });
     },
     onError: () => {
       toast({ 
-        title: language === "fr" ? "Erreur lors du recalcul" : "Error recalculating", 
+        title: language === "fr" ? "Erreur lors de la synchronisation" : "Error syncing", 
         variant: "destructive" 
       });
     },
@@ -532,14 +543,16 @@ export default function PortfolioDetailPage() {
             className="gap-2"
             onClick={() => recalculateMutation.mutate()}
             disabled={recalculateMutation.isPending}
-            data-testid="button-recalculate-portfolio"
+            data-testid="button-sync-portfolio"
           >
             {recalculateMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Calculator className="w-4 h-4" />
             )}
-            {language === "fr" ? "Recalculer" : "Recalculate"}
+            {recalculateMutation.isPending 
+              ? (language === "fr" ? "Synchronisation..." : "Syncing...")
+              : (language === "fr" ? "Synchroniser" : "Sync Latest")}
           </Button>
           {portfolio.clientId && (
             <AddSiteDialog 

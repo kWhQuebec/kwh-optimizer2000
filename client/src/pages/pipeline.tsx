@@ -575,6 +575,13 @@ export default function PipelinePage() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<OpportunityWithRelations | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  
+  // Stage advance modal state
+  const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
+  const [pendingStageChange, setPendingStageChange] = useState<{ id: string; stage: Stage; opp: OpportunityWithRelations | null } | null>(null);
+  const [advanceNotes, setAdvanceNotes] = useState("");
+  const [advanceExpectedCloseDate, setAdvanceExpectedCloseDate] = useState("");
+  const [isAdvancing, setIsAdvancing] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
@@ -673,8 +680,65 @@ export default function PipelinePage() {
     resolver: zodResolver(opportunityFormSchema),
   });
 
+  // Smart stage change handler - shows modal for advancing stages
   const handleStageChange = (id: string, stage: Stage) => {
-    stageChangeMutation.mutate({ id, stage });
+    const opp = opportunities.find(o => o.id === id) || null;
+    setPendingStageChange({ id, stage, opp });
+    setAdvanceNotes("");
+    setAdvanceExpectedCloseDate(
+      opp?.expectedCloseDate 
+        ? format(new Date(opp.expectedCloseDate), "yyyy-MM-dd") 
+        : ""
+    );
+    setIsAdvanceModalOpen(true);
+  };
+  
+  // Confirm stage advance with optional notes and close date
+  const confirmStageAdvance = async () => {
+    if (!pendingStageChange || isAdvancing) return;
+    
+    setIsAdvancing(true);
+    const { id, stage } = pendingStageChange;
+    const probability = STAGE_PROBABILITIES[stage];
+    
+    try {
+      // Update stage and notes/date atomically in one request if possible
+      const updatePayload: Record<string, unknown> = {
+        stage,
+        probability,
+      };
+      
+      if (advanceNotes) {
+        const existingDescription = pendingStageChange.opp?.description || "";
+        const timestamp = format(new Date(), "yyyy-MM-dd HH:mm");
+        updatePayload.description = existingDescription 
+          ? `${existingDescription}\n\n[${timestamp}] ${advanceNotes}`
+          : `[${timestamp}] ${advanceNotes}`;
+      }
+      if (advanceExpectedCloseDate) {
+        updatePayload.expectedCloseDate = new Date(advanceExpectedCloseDate).toISOString();
+      }
+      
+      // Use PATCH to update all fields atomically
+      await apiRequest("PATCH", `/api/opportunities/${id}`, updatePayload);
+      
+      await queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      toast({
+        title: language === "fr" ? "Étape avancée avec succès" : "Stage advanced successfully",
+      });
+      
+      setIsAdvanceModalOpen(false);
+      setPendingStageChange(null);
+      setAdvanceNotes("");
+      setAdvanceExpectedCloseDate("");
+    } catch {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAdvancing(false);
+    }
   };
 
   const handleCardClick = (opp: DisplayOpportunity) => {
@@ -1421,6 +1485,87 @@ export default function PipelinePage() {
               </form>
             </Form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Stage Advance Modal */}
+      <Dialog open={isAdvanceModalOpen} onOpenChange={setIsAdvanceModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {language === "fr" ? "Avancer l'opportunité" : "Advance Opportunity"}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {pendingStageChange && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg space-y-2">
+                <p className="text-sm font-medium">
+                  {pendingStageChange.opp?.name}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">
+                    {STAGE_LABELS[pendingStageChange.opp?.stage as Stage]?.[language] || pendingStageChange.opp?.stage}
+                  </Badge>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  <Badge>
+                    {STAGE_LABELS[pendingStageChange.stage]?.[language] || pendingStageChange.stage}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {language === "fr" ? "Probabilité:" : "Probability:"} {STAGE_PROBABILITIES[pendingStageChange.stage]}%
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {language === "fr" ? "Date de clôture prévue" : "Expected Close Date"}
+                </label>
+                <Input
+                  type="date"
+                  value={advanceExpectedCloseDate}
+                  onChange={(e) => setAdvanceExpectedCloseDate(e.target.value)}
+                  data-testid="input-advance-close-date"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {language === "fr" ? "Notes / Suivi" : "Notes / Follow-up"}
+                </label>
+                <Textarea
+                  value={advanceNotes}
+                  onChange={(e) => setAdvanceNotes(e.target.value)}
+                  placeholder={language === "fr" 
+                    ? "Ajouter une note sur cette progression..." 
+                    : "Add a note about this progression..."}
+                  className="min-h-[80px]"
+                  data-testid="input-advance-notes"
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setIsAdvanceModalOpen(false);
+              setPendingStageChange(null);
+              setAdvanceNotes("");
+              setAdvanceExpectedCloseDate("");
+            }} disabled={isAdvancing}>
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </Button>
+            <Button onClick={confirmStageAdvance} disabled={isAdvancing} data-testid="button-confirm-advance">
+              {isAdvancing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {language === "fr" ? "En cours..." : "Processing..."}
+                </>
+              ) : (
+                language === "fr" ? "Confirmer" : "Confirm"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

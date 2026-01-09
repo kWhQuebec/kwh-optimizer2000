@@ -746,18 +746,32 @@ export default function SiteVisitFormPage() {
         visitDate: data.visitDate ? new Date(data.visitDate) : null,
       };
       
+      // Save the visit
+      let result;
       if (existingVisit) {
-        return apiRequest("PATCH", `/api/site-visits/${existingVisit.id}`, payload);
+        result = await apiRequest("PATCH", `/api/site-visits/${existingVisit.id}`, payload);
       } else {
-        return apiRequest("POST", "/api/site-visits", payload);
+        result = await apiRequest("POST", "/api/site-visits", payload);
       }
+      
+      // Sync GPS coordinates to the site if captured
+      if (data.gpsLatitude && data.gpsLongitude) {
+        await apiRequest("PATCH", `/api/sites/${siteId}`, {
+          latitude: data.gpsLatitude,
+          longitude: data.gpsLongitude,
+        });
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "visits"] });
       toast({ 
-        title: language === 'fr' ? 'Visite complétée' : 'Visit completed',
-        description: language === 'fr' ? 'Le formulaire a été soumis avec succès.' : 'The form has been submitted successfully.'
+        title: language === 'fr' ? 'Visite complétée et archivée' : 'Visit completed and archived',
+        description: language === 'fr' 
+          ? 'Le formulaire a été soumis et les coordonnées GPS synchronisées.' 
+          : 'The form has been submitted and GPS coordinates synced.'
       });
       setLocation(`/app/sites/${siteId}`);
     },
@@ -774,8 +788,27 @@ export default function SiteVisitFormPage() {
     saveMutation.mutate(data);
   };
   
-  const handleComplete = () => {
+  // Smart "Complete & Archive" handler that auto-captures GPS and syncs to site
+  const handleComplete = async () => {
     const data = form.getValues();
+    
+    // Auto-capture GPS if not already captured
+    if (!data.gpsLatitude || !data.gpsLongitude) {
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          form.setValue('gpsLatitude', position.coords.latitude);
+          form.setValue('gpsLongitude', position.coords.longitude);
+          data.gpsLatitude = position.coords.latitude;
+          data.gpsLongitude = position.coords.longitude;
+        } catch {
+          // GPS capture failed, continue without it
+        }
+      }
+    }
+    
     completeMutation.mutate(data);
   };
   
@@ -1989,7 +2022,7 @@ export default function SiteVisitFormPage() {
           ) : (
             <CheckCircle2 className="w-4 h-4" />
           )}
-          {language === 'fr' ? 'Terminer' : 'Complete'}
+          {language === 'fr' ? 'Compléter et archiver' : 'Complete & Archive'}
         </Button>
       </div>
     </div>
