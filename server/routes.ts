@@ -268,9 +268,9 @@ export async function registerRoutes(
   
   // ==================== STATIC ASSETS (LOGOS) ====================
   
-  // Serve logo images for emails - publicly accessible
+  // Serve logo images for emails - publicly accessible (transparent background)
   app.get("/assets/logo-fr.png", (req, res) => {
-    const logoPath = path.resolve("attached_assets/kWh_Quebec_Logo-01_1764778562811.png");
+    const logoPath = path.resolve("attached_assets/solaire_fr-removebg-preview_1767985380511.png");
     if (fs.existsSync(logoPath)) {
       res.sendFile(logoPath);
     } else {
@@ -279,7 +279,7 @@ export async function registerRoutes(
   });
   
   app.get("/assets/logo-en.png", (req, res) => {
-    const logoPath = path.resolve("attached_assets/kWh_Quebec_Logo_Black_Eng-01_1764778562808.png");
+    const logoPath = path.resolve("attached_assets/solaire_en-removebg-preview_1767985380510.png");
     if (fs.existsSync(logoPath)) {
       res.sendFile(logoPath);
     } else {

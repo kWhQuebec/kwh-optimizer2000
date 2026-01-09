@@ -13,8 +13,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import logoFr from "@assets/solaire_fr-removebg-preview_1767985380511.png";
+import logoEn from "@assets/solaire_en-removebg-preview_1767985380510.png";
 
 const loginSchema = z.object({
   email: z.string().email("Courriel invalide"),

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import logoImage from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
+import logoImage from "@assets/solaire_fr-removebg-preview_1767985380511.png";
 
 interface StructuredData {
   "@context": string;

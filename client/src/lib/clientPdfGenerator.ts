@@ -1,7 +1,7 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import logoFr from "@assets/solaire_fr_1764778573075.png";
-import logoEn from "@assets/solaire_en_1764778591753.png";
+import logoFr from "@assets/solaire_fr-removebg-preview_1767985380511.png";
+import logoEn from "@assets/solaire_en-removebg-preview_1767985380510.png";
 
 interface PDFGeneratorOptions {
   siteName: string;

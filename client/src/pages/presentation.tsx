@@ -20,9 +20,9 @@ import {
   Calendar
 } from "lucide-react";
 
-// kWh Québec logo assets - bilingual
-import logoFr from "@assets/solaire_fr_1764778573075.png";
-import logoEn from "@assets/solaire_en_1764778591753.png";
+// kWh Québec logo assets - bilingual (transparent background)
+import logoFr from "@assets/solaire_fr-removebg-preview_1767985380511.png";
+import logoEn from "@assets/solaire_en-removebg-preview_1767985380510.png";
 
 // kWh Québec Brand Colors
 const BRAND_COLORS = {
