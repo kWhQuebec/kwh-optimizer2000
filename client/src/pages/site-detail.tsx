@@ -7037,14 +7037,6 @@ export default function SiteDetailPage() {
                   {(geometryCapacity?.realisticCapacityKW ?? Math.round((quickPotential.systemSizing.maxCapacityKW) * 0.9)).toLocaleString()} kW
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {language === "fr" ? "Max:" : "Max:"} {(geometryCapacity?.maxCapacityKW ?? quickPotential.systemSizing.maxCapacityKW).toLocaleString()} kW
-                  {geometryCapacity?.constraintAreaSqM && geometryCapacity.constraintAreaSqM > 0 && (
-                    <span className="ml-1 text-orange-500">
-                      (-{Math.round(geometryCapacity.constraintAreaSqM)} m² {language === "fr" ? "contraintes" : "constraints"})
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
                   {(geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels).toLocaleString()} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
                 </div>
               </div>
