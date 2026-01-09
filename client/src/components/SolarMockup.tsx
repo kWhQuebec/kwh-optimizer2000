@@ -48,11 +48,12 @@ interface SolarMockupProps {
   roofAreaSqM?: number;
 }
 
-// Panel dimensions in meters (standard 400W panel)
-const PANEL_WIDTH_M = 1.0;
-const PANEL_HEIGHT_M = 2.0;
-const PANEL_SPACING_M = 0.1;
-const PANEL_WATT = 400;
+// Panel dimensions in meters (590W commercial bifacial panel - IFC compliant)
+const PANEL_WIDTH_M = 2.0;  // East-West dimension
+const PANEL_HEIGHT_M = 1.0; // North-South dimension
+const PANEL_SPACING_M = 0.1; // Gap between panels
+const ROW_SPACING_M = 0.5;   // Additional spacing between rows (10° ballast systems)
+const PANEL_WATT = 590;      // Modern commercial panel wattage
 
 // Generate algorithmic panel positions in a grid pattern
 function generateAlgorithmicPanels(
@@ -68,12 +69,12 @@ function generateAlgorithmicPanels(
   // Calculate grid dimensions based on roof area
   // Assume square-ish roof for simplicity
   const roofSideM = Math.sqrt(roofAreaSqM);
-  const usableRatio = 0.7; // 70% usable for panels
+  const usableRatio = 0.85; // 85% usable after 1.2m IFC perimeter setback
   const usableSideM = roofSideM * usableRatio;
   
-  // Calculate how many panels fit
-  const panelWithSpacing = PANEL_WIDTH_M + PANEL_SPACING_M;
-  const panelHeightWithSpacing = PANEL_HEIGHT_M + PANEL_SPACING_M;
+  // Calculate how many panels fit (IFC-compliant spacing)
+  const panelWithSpacing = PANEL_WIDTH_M + PANEL_SPACING_M; // 2.1m E-W cell
+  const panelHeightWithSpacing = PANEL_HEIGHT_M + ROW_SPACING_M; // 1.5m N-S row pitch
   
   const cols = Math.floor(usableSideM / panelWithSpacing);
   const rows = Math.floor(usableSideM / panelHeightWithSpacing);
@@ -145,11 +146,12 @@ export function SolarMockup({ siteId, targetPanelCount, systemSizeKW, roofAreaSq
     return 1000; // Default 1000 m² if nothing available
   }, [mockupData, propRoofArea]);
 
-  // Calculate max panels for fallback mode
+  // Calculate max panels for fallback mode (IFC-compliant spacing)
   const fallbackMaxPanels = useMemo(() => {
-    const panelArea = PANEL_WIDTH_M * PANEL_HEIGHT_M;
+    // Effective panel footprint: (2.0 + 0.1) × (1.0 + 0.5) = 3.15 m² per panel
+    const effectivePanelArea = (PANEL_WIDTH_M + PANEL_SPACING_M) * (PANEL_HEIGHT_M + ROW_SPACING_M);
     const usableArea = effectiveRoofArea * (coveragePercent / 100);
-    return Math.floor(usableArea / (panelArea * 1.2)); // 1.2 factor for spacing
+    return Math.floor(usableArea / effectivePanelArea);
   }, [effectiveRoofArea, coveragePercent]);
 
   // Calculate panel count from system size if provided

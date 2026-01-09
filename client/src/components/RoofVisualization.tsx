@@ -28,7 +28,7 @@ interface PanelPosition {
   polygonId: string; // Track which polygon this panel belongs to (UUID)
 }
 
-const PANEL_KW = 0.59; // Each 2.85m² panel = 590W (modern commercial panels)
+const PANEL_KW = 0.59; // 590W modern bifacial panel (2.0m × 1.0m)
 
 export function RoofVisualization({
   siteId,
@@ -257,20 +257,18 @@ export function RoofVisualization({
       return;
     }
 
-    // Panel dimensions (standard commercial modules)
+    // Panel dimensions (standard commercial modules - 590W bifacial)
     const panelWidthM = 2.0;  // East-West dimension
     const panelHeightM = 1.0; // North-South dimension
-    const gapBetweenPanelsM = 0.3; // Gap between panels in same row
+    const gapBetweenPanelsM = 0.1; // Gap between panels (thermal expansion + maintenance access)
     
-    // CNESST compliance: 2m setback from roof edge (no harness required)
-    const edgeSetbackM = 2.0;
+    // IFC compliant perimeter setback for fire access (4 feet = 1.2m)
+    const edgeSetbackM = 1.2;
     
-    // Inter-row spacing for winter shading avoidance
-    // At Quebec latitude (~45°N), winter sun angle is ~20°
-    // Panel tilted at 30°, effective height = 1m * sin(30°) = 0.5m
-    // Shadow length = 0.5m / tan(20°) = 1.37m
-    // Total row spacing = panel height + shadow clearance + gap
-    const rowSpacingM = panelHeightM + 1.4 + gapBetweenPanelsM; // ~2.7m between rows
+    // Inter-row spacing for Quebec ballast systems (10° tilt typical)
+    // At 10° tilt, minimal winter shading - primarily for maintenance access
+    // Row spacing = panel height + clearance for ballast/maintenance
+    const rowSpacingM = panelHeightM + 0.5; // 1.5m total row pitch
 
     // Filter solar polygons and sort by creation date (oldest first)
     // This ensures panels fill the original polygon before newer ones

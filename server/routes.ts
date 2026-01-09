@@ -719,8 +719,8 @@ export async function registerRoutes(
       if (roofData?.success && roofData.maxArrayAreaSqM > 0) {
         hasRoofData = true;
         roofAreaSqM = roofData.maxArrayAreaSqM;
-        // ~185 W/m² panel density, 70% utilization
-        roofBasedKW = Math.round((roofAreaSqM * 0.70 * 185) / 1000);
+        // IFC-compliant: 85% utilization (1.2m setback), 590W/3.15m² = 187 W/m²
+        roofBasedKW = Math.round((roofAreaSqM * 0.85 * 187) / 1000);
       }
       
       // Final system size: minimum of consumption-based and roof-based (min 10 kW for commercial)
@@ -2105,24 +2105,35 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No roof polygons defined. Draw roof areas first." });
       }
       
-      // Calculate total roof area from polygons
-      const totalRoofAreaSqM = roofPolygons.reduce((sum, poly) => sum + (poly.areaSqM || 0), 0);
+      // Filter to solar polygons only (exclude constraints/obstacles)
+      const solarPolygons = roofPolygons.filter((p) => {
+        if (p.color === "#f97316") return false; // Orange = constraint
+        const label = (p.label || "").toLowerCase();
+        return !label.includes("constraint") && !label.includes("contrainte") && 
+               !label.includes("hvac") && !label.includes("obstacle");
+      });
+      
+      // Calculate total solar roof area from solar polygons only
+      const totalRoofAreaSqM = solarPolygons.reduce((sum, poly) => sum + (poly.areaSqM || 0), 0);
       
       if (totalRoofAreaSqM <= 0) {
         return res.status(400).json({ error: "Roof area is zero or invalid" });
       }
       
-      // Constants for Quebec commercial solar
-      const UTILIZATION_RATIO = 0.70; // 70% of roof usable for panels (conservative)
-      const POWER_DENSITY_WM2 = 185; // W/m² for modern panels
+      // IFC-compliant parameters for Quebec commercial solar (matching RoofVisualization)
+      // Panel: 2.0m × 1.0m = 2.0 m² physical
+      // Gap between panels: 0.1m
+      // Row spacing: 0.5m (10° ballast systems)
+      // Effective panel footprint: (2.0 + 0.1) × (1.0 + 0.5) = 2.1 × 1.5 = 3.15 m²
+      const UTILIZATION_RATIO = 0.85; // 85% usable after 1.2m perimeter setback + edge losses
       const QUEBEC_YIELD_KWHPERKWP = 1200; // kWh/kWp average for Quebec
-      const PANEL_POWER_W = 590; // Modern panel wattage
-      const PANEL_AREA_M2 = 2.85; // ~2.85 m² per 590W panel
+      const PANEL_POWER_W = 590; // Modern 590W bifacial panel
+      const PANEL_AREA_M2 = 3.15; // Effective area per panel (2.1m × 1.5m grid cell)
       
-      // Calculate usable roof area
+      // Calculate usable roof area (after perimeter setback)
       const usableRoofAreaSqM = totalRoofAreaSqM * UTILIZATION_RATIO;
       
-      // Calculate number of panels first (this is the source of truth)
+      // Calculate number of panels (matching RoofVisualization algorithm)
       const numPanels = Math.floor(usableRoofAreaSqM / PANEL_AREA_M2);
       
       // Calculate max capacity from number of panels (ensures consistency)
@@ -2157,7 +2168,7 @@ export async function registerRoutes(
           totalRoofAreaSqM: Math.round(totalRoofAreaSqM),
           usableRoofAreaSqM: Math.round(usableRoofAreaSqM),
           utilizationRatio: UTILIZATION_RATIO,
-          polygonCount: roofPolygons.length,
+          polygonCount: solarPolygons.length,
         },
         systemSizing: {
           maxCapacityKW: maxCapacityKWRounded,
