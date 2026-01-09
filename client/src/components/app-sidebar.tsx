@@ -46,8 +46,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import sidebarLogoFr from "@assets/solaire_fr_1764778573075.png";
-import sidebarLogoEn from "@assets/solaire_en_1764778591753.png";
+import sidebarLogoFr from "@assets/solaire_fr-removebg-preview_1767985380511.png";
+import sidebarLogoEn from "@assets/solaire_en-removebg-preview_1767985380510.png";
 
 export function AppSidebar() {
   const { t, language } = useI18n();
