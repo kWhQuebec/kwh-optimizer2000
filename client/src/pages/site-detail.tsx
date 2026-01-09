@@ -7095,12 +7095,17 @@ export default function SiteDetailPage() {
         </Card>
       )}
 
-      {/* Solar Mockup Visualization - shown after quick potential is calculated */}
-      {quickPotential && (
-        <SolarMockup 
-          siteId={id!} 
-          targetPanelCount={quickPotential.systemSizing.numPanels}
-          roofAreaSqM={quickPotential.roofAnalysis.totalRoofAreaSqM}
+      {/* Roof Visualization with Panels - shown after quick potential is calculated */}
+      {quickPotential && site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+        <RoofVisualization
+          siteId={id!}
+          siteName={site.name}
+          address={site.address || ""}
+          latitude={site.latitude}
+          longitude={site.longitude}
+          roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764} 
+          maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
+          currentPVSizeKW={quickPotential.systemSizing.maxCapacityKW}
         />
       )}
 
