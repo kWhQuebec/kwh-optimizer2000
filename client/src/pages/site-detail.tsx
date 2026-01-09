@@ -6260,6 +6260,8 @@ export default function SiteDetailPage() {
   const pendingNewSimulationIdRef = useRef<string | null>(null); // Track newly created simulation ID across data refresh
   const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
   const [isRoofDrawingModalOpen, setIsRoofDrawingModalOpen] = useState(false);
+  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+  const [pendingModalOpen, setPendingModalOpen] = useState(false);
   const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency' | 'payback'>('npv');
   
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
@@ -6288,6 +6290,14 @@ export default function SiteDetailPage() {
     },
     enabled: !!id && isStaff,
   });
+
+  // Effect to open roof drawing modal after site data is refreshed with coordinates
+  useEffect(() => {
+    if (pendingModalOpen && site?.latitude && site?.longitude) {
+      setPendingModalOpen(false);
+      setIsRoofDrawingModalOpen(true);
+    }
+  }, [pendingModalOpen, site?.latitude, site?.longitude]);
 
   // Initialize assumptions from site data when loaded (only once per page load)
   useEffect(() => {
@@ -6698,71 +6708,79 @@ export default function SiteDetailPage() {
                     : "Before running the analysis, you must manually outline the usable roof areas."}
                 </p>
               </div>
-              <div className="flex gap-2 shrink-0">
-                {/* Show geocode button if no coordinates */}
-                {(!site.latitude || !site.longitude) && site.address && (
-                  <Button 
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(`/api/sites/${site.id}/geocode`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          credentials: "include"
-                        });
-                        if (response.ok) {
-                          const data = await response.json();
-                          toast({
-                            title: language === "fr" ? "Coordonnées trouvées" : "Coordinates found",
-                            description: language === "fr" 
-                              ? `Lat: ${data.latitude.toFixed(4)}, Lng: ${data.longitude.toFixed(4)}`
-                              : `Lat: ${data.latitude.toFixed(4)}, Lng: ${data.longitude.toFixed(4)}`
-                          });
-                          queryClient.invalidateQueries({ queryKey: ["/api/sites", site.id] });
-                        } else {
-                          const error = await response.json();
-                          toast({
-                            variant: "destructive",
-                            title: language === "fr" ? "Erreur" : "Error",
-                            description: error.error || (language === "fr" ? "Impossible de géocoder l'adresse" : "Could not geocode address")
-                          });
-                        }
-                      } catch (error) {
-                        toast({
-                          variant: "destructive",
-                          title: language === "fr" ? "Erreur" : "Error",
-                          description: language === "fr" ? "Erreur de connexion" : "Connection error"
-                        });
-                      }
-                    }}
-                    className="gap-2"
-                    data-testid="button-geocode-address"
-                  >
-                    <MapPin className="w-4 h-4" />
-                    {language === "fr" ? "Localiser l'adresse" : "Locate address"}
-                  </Button>
-                )}
-                <Button 
-                  onClick={() => {
-                    if (!site.latitude || !site.longitude) {
+              <Button 
+                disabled={isGeocodingAddress}
+                onClick={async () => {
+                  const hasCoordinates = site.latitude && site.longitude;
+                  
+                  if (!hasCoordinates) {
+                    if (!site.address) {
                       toast({
                         variant: "destructive",
-                        title: language === "fr" ? "Coordonnées manquantes" : "Missing coordinates",
+                        title: language === "fr" ? "Adresse manquante" : "Missing address",
                         description: language === "fr" 
-                          ? "Ce site n'a pas de coordonnées GPS. Cliquez sur 'Localiser l'adresse' d'abord."
-                          : "This site has no GPS coordinates. Click 'Locate address' first."
+                          ? "Veuillez d'abord ajouter une adresse dans les paramètres du site."
+                          : "Please add an address in site settings first."
                       });
                       return;
                     }
+                    
+                    setIsGeocodingAddress(true);
+                    
+                    try {
+                      const response = await fetch(`/api/sites/${site.id}/geocode`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include"
+                      });
+                      const data = await response.json();
+                      
+                      if (!response.ok) {
+                        toast({
+                          variant: "destructive",
+                          title: language === "fr" ? "Erreur de géocodage" : "Geocoding error",
+                          description: data.error || (language === "fr" 
+                            ? "Impossible de localiser l'adresse. Vérifiez qu'elle est valide."
+                            : "Could not locate address. Please verify it is valid.")
+                        });
+                        setIsGeocodingAddress(false);
+                        return;
+                      }
+                      
+                      toast({
+                        title: language === "fr" ? "Coordonnées trouvées" : "Coordinates found",
+                        description: language === "fr" 
+                          ? "Ouverture de l'outil de dessin..."
+                          : "Opening drawing tool..."
+                      });
+                      
+                      await refetch();
+                      setIsGeocodingAddress(false);
+                      setPendingModalOpen(true);
+                    } catch (error) {
+                      toast({
+                        variant: "destructive",
+                        title: language === "fr" ? "Erreur" : "Error",
+                        description: language === "fr" ? "Erreur de connexion" : "Connection error"
+                      });
+                      setIsGeocodingAddress(false);
+                    }
+                  } else {
                     setIsRoofDrawingModalOpen(true);
-                  }}
-                  className="gap-2"
-                  data-testid="button-draw-roof-areas-banner"
-                >
+                  }
+                }}
+                className="gap-2"
+                data-testid="button-draw-roof-areas-banner"
+              >
+                {isGeocodingAddress ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
                   <Pencil className="w-4 h-4" />
-                  {language === "fr" ? "Dessiner les zones" : "Draw areas"}
-                </Button>
-              </div>
+                )}
+                {isGeocodingAddress 
+                  ? (language === "fr" ? "Localisation..." : "Locating...")
+                  : (language === "fr" ? "Dessiner les zones" : "Draw areas")}
+              </Button>
             </div>
           </CardContent>
         </Card>
