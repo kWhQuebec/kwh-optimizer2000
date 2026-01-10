@@ -649,88 +649,22 @@ export function RoofVisualization({
     });
     
     // =========================================================
-    // POST-PROCESSING: Clean up staircase edges for commercial look
+    // POST-PROCESSING: Organize panels by quadrant for visualization
     // =========================================================
-    // Use adaptive density-based filtering per quadrant
-    // This preserves all clusters while removing only truly sparse outliers
+    // The central access pathways already create 4 sub-arrays
+    // Edge cleaning has been disabled to preserve accurate capacity counts
+    // (Future enhancement: connected-component based cleanup for cleaner edges)
     
-    const quadrants = ['EN', 'ES', 'WN', 'WS'];
-    let cleanedPositions: typeof positions = [];
-    let removedForCleaning = 0;
+    const rectangularizedPositions = positions;
     
-    quadrants.forEach(quadrant => {
-      const quadrantPanels = positions.filter(p => p.quadrant === quadrant);
-      if (quadrantPanels.length === 0) return;
-      
-      // For small quadrants (<=10 panels), keep all - no cleaning needed
-      if (quadrantPanels.length <= 10) {
-        cleanedPositions.push(...quadrantPanels);
-        return;
-      }
-      
-      // Count panels per column
-      const colCounts = new Map<number, number>();
-      quadrantPanels.forEach(p => {
-        colCounts.set(p.gridCol!, (colCounts.get(p.gridCol!) || 0) + 1);
-      });
-      
-      // Find the maximum column count
-      const maxColCount = Math.max(...Array.from(colCounts.values()));
-      
-      // Adaptive threshold: only trim if we have substantial data
-      // No hard floor - use pure percentage (20% of max)
-      // This preserves single-column strips
-      const minColThreshold = maxColCount >= 5 ? Math.ceil(maxColCount * 0.2) : 1;
-      
-      // Also count panels per row to identify sparse rows
-      const rowCounts = new Map<number, number>();
-      quadrantPanels.forEach(p => {
-        rowCounts.set(p.gridRow!, (rowCounts.get(p.gridRow!) || 0) + 1);
-      });
-      
-      const maxRowCount = Math.max(...Array.from(rowCounts.values()));
-      const minRowThreshold = maxRowCount >= 5 ? Math.ceil(maxRowCount * 0.2) : 1;
-      
-      // Keep panels if column OR row has sufficient density (less aggressive)
-      // This prevents eliminating narrow strips entirely
-      let quadrantKept = 0;
-      let quadrantRemoved = 0;
-      
-      quadrantPanels.forEach(p => {
-        const colCount = colCounts.get(p.gridCol!) || 0;
-        const rowCount = rowCounts.get(p.gridRow!) || 0;
-        
-        // Keep if EITHER dimension has sufficient density (more permissive)
-        if (colCount >= minColThreshold || rowCount >= minRowThreshold) {
-          cleanedPositions.push(p);
-          quadrantKept++;
-        } else {
-          removedForCleaning++;
-          quadrantRemoved++;
-        }
-      });
-      
-      // Per-quadrant fallback: if we removed >70% of a quadrant, restore it
-      if (quadrantKept < quadrantPanels.length * 0.3) {
-        // Remove the partially cleaned panels we just added
-        cleanedPositions = cleanedPositions.filter(p => p.quadrant !== quadrant);
-        // Restore the original quadrant panels
-        cleanedPositions.push(...quadrantPanels);
-        removedForCleaning -= quadrantRemoved;
+    // Log quadrant distribution for debugging
+    const quadrantCounts = { EN: 0, ES: 0, WN: 0, WS: 0 };
+    positions.forEach(p => {
+      if (p.quadrant && p.quadrant in quadrantCounts) {
+        quadrantCounts[p.quadrant as keyof typeof quadrantCounts]++;
       }
     });
-    
-    // Global safety fallback
-    const cleaningRatio = positions.length > 0 ? cleanedPositions.length / positions.length : 1;
-    let rectangularizedPositions = cleanedPositions;
-    
-    if (cleaningRatio < 0.5) {
-      console.log(`[RoofVisualization] Cleaning removed too many panels (${Math.round((1-cleaningRatio)*100)}%), reverting to original`);
-      rectangularizedPositions = positions;
-      removedForCleaning = 0;
-    }
-    
-    console.log(`[RoofVisualization] Edge cleaning: removed ${removedForCleaning} sparse edge panels for cleaner sub-arrays`);
+    console.log(`[RoofVisualization] Panel distribution by quadrant:`, quadrantCounts);
 
     // Sort by latitude (south to north) for optimal solar filling in Quebec
     // Use rectangularized positions for clean commercial sub-arrays
