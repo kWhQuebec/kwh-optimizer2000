@@ -501,15 +501,15 @@ export function RoofVisualization({
       const scanStartY = -scanRadius;
       
       // =========================================================
-      // IFC FIRE CODE COMPLIANCE: Central access pathways
+      // IFC FIRE CODE: Central pathways DISABLED for maximum capacity
       // =========================================================
-      // Industry standard: 4-foot (1.2m) pathways along both centerline axes
-      // This divides the roof into 4 quadrants (sub-arrays)
-      const accessPathwayWidth = 1.2; // meters (IFC 4-foot requirement)
-      const halfPathway = accessPathwayWidth / 2;
+      // Commercial clients prioritize maximum capacity over IFC pathway recommendations
+      // The 1.2m edge setback still provides perimeter access for maintenance
+      // Central pathways can be added later as a configuration option if needed
+      const roofWidthM = bbox.maxX - bbox.minX;
+      const roofHeightM = bbox.maxY - bbox.minY;
       
-      // Create Google Maps polygon for containment testing (original polygon)
-      // Setback is enforced via bounding box in rotated space
+      // Create Google Maps polygon for containment testing
       const solarPolygonPath = new google.maps.Polygon({
         paths: coords.map(([lng, lat]) => ({ lat, lng }))
       });
@@ -520,14 +520,13 @@ export function RoofVisualization({
         numRows,
         numCols,
         maxPossiblePanels: numRows * numCols,
-        bboxWidthM: Math.round(bbox.maxX - bbox.minX),
-        bboxHeightM: Math.round(bbox.maxY - bbox.minY),
+        bboxWidthM: Math.round(roofWidthM),
+        bboxHeightM: Math.round(roofHeightM),
       });
 
       let acceptedCount = 0;
       let rejectedBySolar = 0;
       let rejectedByConstraint = 0;
-      let rejectedByPathway = 0;
       
       // 7. SCANLINE: Iterate through full scan area (centered on centroid)
       for (let row = 0; row < numRows; row++) {
@@ -543,45 +542,27 @@ export function RoofVisualization({
             { x: rotX, y: rotY + panelHeightM },
           ];
           
-          // Create expanded test points for setback testing (panel + setback margin)
-          // Includes corners + edge midpoints + center = 9 points total for reliable detection
           const panelCenterX = rotX + panelWidthM / 2;
           const panelCenterY = rotY + panelHeightM / 2;
           
           // =========================================================
-          // IFC FIRE CODE: Check if panel is in central access pathway
+          // IFC SETBACK TEST: Test expanded panel footprint
           // =========================================================
-          // Pathways are centered at origin (0,0) in rotated space
-          // North-South pathway: |x| < halfPathway (vertical strip through center)
-          // East-West pathway: |y| < halfPathway (horizontal strip through center)
-          const inNorthSouthPathway = Math.abs(panelCenterX) < halfPathway + panelWidthM / 2;
-          const inEastWestPathway = Math.abs(panelCenterY) < halfPathway + panelHeightM / 2;
-          
-          if (inNorthSouthPathway || inEastWestPathway) {
-            rejectedByPathway++;
-            continue;
-          }
-          
-          const expandedPoints: Point2D[] = [
-            // 4 expanded corners
+          // Create test points at panel corners + edgeSetbackM outward
+          // If all expanded points are inside the polygon, then the panel
+          // is at least edgeSetbackM from the boundary (IFC compliance)
+          const expandedCorners: Point2D[] = [
             { x: rotX - edgeSetbackM, y: rotY - edgeSetbackM },
             { x: rotX + panelWidthM + edgeSetbackM, y: rotY - edgeSetbackM },
             { x: rotX + panelWidthM + edgeSetbackM, y: rotY + panelHeightM + edgeSetbackM },
             { x: rotX - edgeSetbackM, y: rotY + panelHeightM + edgeSetbackM },
-            // 4 edge midpoints (with setback)
-            { x: panelCenterX, y: rotY - edgeSetbackM },
-            { x: rotX + panelWidthM + edgeSetbackM, y: panelCenterY },
-            { x: panelCenterX, y: rotY + panelHeightM + edgeSetbackM },
-            { x: rotX - edgeSetbackM, y: panelCenterY },
-            // Panel center (for constraint detection)
-            { x: panelCenterX, y: panelCenterY },
           ];
           
-          // 8. Rotate corners back to local ENU meter coordinates
+          // 8. Rotate panel corners back to local ENU meter coordinates
           const meterGeoCorners = rotatedCorners.map(p => 
             rotatePoint(p, meterCentroid, axisAngle)
           );
-          const meterExpandedPoints = expandedPoints.map(p => 
+          const meterExpandedCorners = expandedCorners.map(p => 
             rotatePoint(p, meterCentroid, axisAngle)
           );
           
@@ -590,21 +571,24 @@ export function RoofVisualization({
             x: p.x / metersPerDegreeLng + centroid.x,  // lng
             y: p.y / metersPerDegreeLat + centroid.y   // lat
           }));
-          const geoExpandedPoints = meterExpandedPoints.map(p => ({
+          const geoExpandedCorners = meterExpandedCorners.map(p => ({
             x: p.x / metersPerDegreeLng + centroid.x,
             y: p.y / metersPerDegreeLat + centroid.y
           }));
           
-          // 10. Test ALL 9 expanded points are within solar polygon (enforces IFC setback)
-          const testPoints = geoExpandedPoints.map(c => new google.maps.LatLng(c.y, c.x));
+          // 10. Test ALL 4 expanded corners are within solar polygon (enforces setback)
+          const expandedTestPoints = geoExpandedCorners.map(c => new google.maps.LatLng(c.y, c.x));
           
-          const allPointsInSolar = testPoints.every((point) => 
+          const allExpandedInPolygon = expandedTestPoints.every((point) => 
             google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
           );
-          if (!allPointsInSolar) {
+          if (!allExpandedInPolygon) {
             rejectedBySolar++;
             continue;
           }
+          
+          // Also need actual corners for constraint checking and display
+          const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
 
           // 11. Test no corners are in constraint polygons
           const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
@@ -615,7 +599,7 @@ export function RoofVisualization({
             continue;
           }
 
-          // 12. Accept panel - store position with grid indices and quadrant for rectangularization
+          // 12. Accept panel - store position with grid indices and quadrant
           acceptedCount++;
           const bottomLeft = geoCorners[0];
           
@@ -629,7 +613,6 @@ export function RoofVisualization({
             heightDeg: panelHeightDeg,
             polygonId: polygon.id,
             corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
-            // Store grid indices for rectangularization post-processing
             gridRow: row,
             gridCol: col,
             quadrant: quadrant,
@@ -643,7 +626,6 @@ export function RoofVisualization({
         accepted: acceptedCount,
         rejectedBySolar,
         rejectedByConstraint,
-        rejectedByPathway,
         acceptanceRate: `${Math.round(acceptedCount / (numRows * numCols) * 100)}%`
       });
     });
