@@ -445,10 +445,13 @@ export function RoofVisualization({
       const edgeSetbackDegY = edgeSetbackM / metersPerDegreeLat;
 
       // =========================================================
-      // METER-BASED COORDINATE SYSTEM (Local ENU)
+      // SCANLINE APPROACH - Test every grid cell using polygon containment
       // =========================================================
-      // Convert all coordinates to meters, do rotation/grid in meters, convert back
-      // This avoids distortion issues from lat/lng degree differences
+      // 1. Convert polygon to meters (local ENU centered on centroid)
+      // 2. Rotate polygon to align with principal axis
+      // 3. Shrink/inset polygon by edge setback
+      // 4. Scan full bounding box and test each panel center against inset polygon
+      // 5. Convert accepted panels back to geo coordinates
       
       // 1. Compute centroid in geographic coordinates
       const centroid = computeCentroid(coords);
@@ -463,36 +466,38 @@ export function RoofVisualization({
       const axisAngle = computePrincipalAxisAngle(meterCoords);
       const meterCentroid = { x: 0, y: 0 }; // Centroid is origin in local system
       
-      // 4. Rotate polygon to axis-aligned space
-      const rotatedPolygon = rotatePolygonCoords(meterCoords, meterCentroid, -axisAngle);
+      // 4. Rotate polygon to axis-aligned space for easier grid scanning
+      const rotatedPolygonPoints = rotatePolygonCoords(meterCoords, meterCentroid, -axisAngle);
       
-      // 5. Get bounding box in meters
-      const bbox = getBoundingBox(rotatedPolygon);
+      // 5. Get bounding box of rotated polygon in meters
+      const bbox = getBoundingBox(rotatedPolygonPoints);
       
-      // 6. Apply setbacks in meters
-      const usableMinX = bbox.minX + edgeSetbackM;
-      const usableMaxX = bbox.maxX - edgeSetbackM;
-      const usableMinY = bbox.minY + edgeSetbackM;
-      const usableMaxY = bbox.maxY - edgeSetbackM;
+      // Also get bounding box of original (non-rotated) polygon to ensure coverage
+      const origBbox = getBoundingBox(meterCoords.map(([x, y]) => ({ x, y })));
       
-      const usableWidth = usableMaxX - usableMinX - panelWidthM;
-      const usableHeight = usableMaxY - usableMinY - panelHeightM;
+      // Use the larger of the two bounding boxes to ensure full coverage
+      const maxDim = Math.max(
+        bbox.maxX - bbox.minX,
+        bbox.maxY - bbox.minY,
+        origBbox.maxX - origBbox.minX,
+        origBbox.maxY - origBbox.minY
+      );
       
-      // Skip if polygon too small for even one panel
-      if (usableWidth < 0 || usableHeight < 0) return;
+      // 6. Calculate grid parameters - scan a square region centered on origin
+      const colStep = panelWidthM + gapBetweenPanelsM;  // 2.1m horizontal step
+      const rowStep = rowSpacingM;                      // 1.5m vertical step
       
-      // 7. Calculate grid dimensions in meters
-      const colStep = panelWidthM + gapBetweenPanelsM;
-      const numCols = Math.max(1, Math.floor(usableWidth / colStep) + 1);
-      const numRows = Math.max(1, Math.floor(usableHeight / rowSpacingM) + 1);
+      // Use half the max dimension + margin for scanning
+      const scanRadius = maxDim / 2 + edgeSetbackM + Math.max(panelWidthM, panelHeightM);
       
-      // Center the grid within usable area
-      const xRemainder = usableWidth - (numCols - 1) * colStep;
-      const yRemainder = usableHeight - (numRows - 1) * rowSpacingM;
-      const startX = usableMinX + Math.max(0, xRemainder / 2);
-      const startY = usableMinY + Math.max(0, yRemainder / 2);
+      // Calculate number of rows and columns to scan the full area
+      const numCols = Math.ceil((scanRadius * 2) / colStep) + 1;
+      const numRows = Math.ceil((scanRadius * 2) / rowStep) + 1;
+      const scanStartX = -scanRadius;
+      const scanStartY = -scanRadius;
       
-      // Create Google Maps polygon for containment testing (original coordinates)
+      // Create Google Maps polygon for containment testing (original polygon)
+      // Setback is enforced via bounding box in rotated space
       const solarPolygonPath = new google.maps.Polygon({
         paths: coords.map(([lng, lat]) => ({ lat, lng }))
       });
@@ -502,7 +507,7 @@ export function RoofVisualization({
         axisAngleDeg: Math.round(axisAngle * 180 / Math.PI),
         numRows,
         numCols,
-        expectedPanels: numRows * numCols,
+        maxPossiblePanels: numRows * numCols,
         bboxWidthM: Math.round(bbox.maxX - bbox.minX),
         bboxHeightM: Math.round(bbox.maxY - bbox.minY),
       });
@@ -511,13 +516,13 @@ export function RoofVisualization({
       let rejectedBySolar = 0;
       let rejectedByConstraint = 0;
       
-      // 8. Iterate through grid in rotated meter space
+      // 7. SCANLINE: Iterate through full scan area (centered on centroid)
       for (let row = 0; row < numRows; row++) {
-        const rotY = startY + row * rowSpacingM;
+        const rotY = scanStartY + row * rowStep;
         for (let col = 0; col < numCols; col++) {
-          const rotX = startX + col * colStep;
+          const rotX = scanStartX + col * colStep;
           
-          // Panel corners in rotated meter space
+          // Panel corners in rotated meter space (axis-aligned grid)
           const rotatedCorners: Point2D[] = [
             { x: rotX, y: rotY },
             { x: rotX + panelWidthM, y: rotY },
@@ -525,19 +530,45 @@ export function RoofVisualization({
             { x: rotX, y: rotY + panelHeightM },
           ];
           
-          // 9. Rotate corners back to local ENU meter coordinates
+          // Create expanded test points for setback testing (panel + setback margin)
+          // Includes corners + edge midpoints + center = 9 points total for reliable detection
+          const panelCenterX = rotX + panelWidthM / 2;
+          const panelCenterY = rotY + panelHeightM / 2;
+          const expandedPoints: Point2D[] = [
+            // 4 expanded corners
+            { x: rotX - edgeSetbackM, y: rotY - edgeSetbackM },
+            { x: rotX + panelWidthM + edgeSetbackM, y: rotY - edgeSetbackM },
+            { x: rotX + panelWidthM + edgeSetbackM, y: rotY + panelHeightM + edgeSetbackM },
+            { x: rotX - edgeSetbackM, y: rotY + panelHeightM + edgeSetbackM },
+            // 4 edge midpoints (with setback)
+            { x: panelCenterX, y: rotY - edgeSetbackM },
+            { x: rotX + panelWidthM + edgeSetbackM, y: panelCenterY },
+            { x: panelCenterX, y: rotY + panelHeightM + edgeSetbackM },
+            { x: rotX - edgeSetbackM, y: panelCenterY },
+            // Panel center (for constraint detection)
+            { x: panelCenterX, y: panelCenterY },
+          ];
+          
+          // 8. Rotate corners back to local ENU meter coordinates
           const meterGeoCorners = rotatedCorners.map(p => 
             rotatePoint(p, meterCentroid, axisAngle)
           );
+          const meterExpandedPoints = expandedPoints.map(p => 
+            rotatePoint(p, meterCentroid, axisAngle)
+          );
           
-          // 10. Convert meters back to geographic coordinates
+          // 9. Convert meters back to geographic coordinates
           const geoCorners = meterGeoCorners.map(p => ({
             x: p.x / metersPerDegreeLng + centroid.x,  // lng
             y: p.y / metersPerDegreeLat + centroid.y   // lat
           }));
+          const geoExpandedPoints = meterExpandedPoints.map(p => ({
+            x: p.x / metersPerDegreeLng + centroid.x,
+            y: p.y / metersPerDegreeLat + centroid.y
+          }));
           
-          // 11. Test all corners are within solar polygon
-          const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+          // 10. Test ALL 9 expanded points are within solar polygon (enforces IFC setback)
+          const testPoints = geoExpandedPoints.map(c => new google.maps.LatLng(c.y, c.x));
           
           const allPointsInSolar = testPoints.every((point) => 
             google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
@@ -547,7 +578,7 @@ export function RoofVisualization({
             continue;
           }
 
-          // 12. Test no corners are in constraint polygons
+          // 11. Test no corners are in constraint polygons
           const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
             testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
           );
@@ -556,7 +587,7 @@ export function RoofVisualization({
             continue;
           }
 
-          // 13. Accept panel - store all 4 corners in geographic coords for rotated rendering
+          // 12. Accept panel - store all 4 corners in geographic coords for rotated rendering
           acceptedCount++;
           const bottomLeft = geoCorners[0];
           positions.push({ 
