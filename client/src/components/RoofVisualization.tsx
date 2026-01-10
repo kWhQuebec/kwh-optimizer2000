@@ -445,42 +445,63 @@ export function RoofVisualization({
       const edgeSetbackDegY = edgeSetbackM / metersPerDegreeLat;
 
       // =========================================================
-      // ROTATED COORDINATE SYSTEM APPROACH
+      // NORMALIZED ROTATED COORDINATE SYSTEM APPROACH
       // =========================================================
-      // 1. Compute centroid and principal axis angle
+      // Key insight: 1° longitude ≠ 1° latitude due to Earth's curvature
+      // We must normalize coordinates to meters before rotation, then convert back
+      
+      const aspectRatio = metersPerDegreeLng / metersPerDegreeLat; // ~0.7 at 45°N
+      
+      // 1. Compute centroid
       const centroid = computeCentroid(coords);
-      const axisAngle = computePrincipalAxisAngle(coords);
       
-      // 2. Rotate polygon to axis-aligned space (negate angle to align)
-      const rotatedPolygon = rotatePolygonCoords(coords, centroid, -axisAngle);
+      // 2. Normalize coordinates to equal aspect ratio (scale lng to match lat)
+      const normalizedCoords: [number, number][] = coords.map(([lng, lat]) => [
+        (lng - centroid.x) / aspectRatio + centroid.x,
+        lat
+      ]);
       
-      // 3. Get bounding box in rotated space
+      // 3. Compute principal axis angle in normalized space
+      const axisAngle = computePrincipalAxisAngle(normalizedCoords);
+      const normalizedCentroid = computeCentroid(normalizedCoords);
+      
+      // 4. Rotate normalized polygon to axis-aligned space
+      const rotatedPolygon = rotatePolygonCoords(normalizedCoords, normalizedCentroid, -axisAngle);
+      
+      // 5. Get bounding box in rotated normalized space
       const bbox = getBoundingBox(rotatedPolygon);
       
-      // 4. Apply setbacks to bounding box
-      const usableMinX = bbox.minX + edgeSetbackDegX;
-      const usableMaxX = bbox.maxX - edgeSetbackDegX;
-      const usableMinY = bbox.minY + edgeSetbackDegY;
-      const usableMaxY = bbox.maxY - edgeSetbackDegY;
+      // Convert panel dimensions to normalized degrees
+      const panelWidthNorm = panelWidthM / metersPerDegreeLat; // Use lat scale for both
+      const panelHeightNorm = panelHeightM / metersPerDegreeLat;
+      const gapNorm = gapBetweenPanelsM / metersPerDegreeLat;
+      const rowSpacingNorm = rowSpacingM / metersPerDegreeLat;
+      const edgeSetbackNorm = edgeSetbackM / metersPerDegreeLat;
       
-      const usableWidth = usableMaxX - usableMinX - panelWidthDeg;
-      const usableHeight = usableMaxY - usableMinY - panelHeightDeg;
+      // 6. Apply setbacks to bounding box
+      const usableMinX = bbox.minX + edgeSetbackNorm;
+      const usableMaxX = bbox.maxX - edgeSetbackNorm;
+      const usableMinY = bbox.minY + edgeSetbackNorm;
+      const usableMaxY = bbox.maxY - edgeSetbackNorm;
+      
+      const usableWidth = usableMaxX - usableMinX - panelWidthNorm;
+      const usableHeight = usableMaxY - usableMinY - panelHeightNorm;
       
       // Skip if polygon too small for even one panel
       if (usableWidth < 0 || usableHeight < 0) return;
       
-      // 5. Calculate grid dimensions
-      const colStep = panelWidthDeg + gapDeg;
+      // 7. Calculate grid dimensions
+      const colStep = panelWidthNorm + gapNorm;
       const numCols = Math.max(1, Math.floor(usableWidth / colStep) + 1);
-      const numRows = Math.max(1, Math.floor(usableHeight / rowSpacingDeg) + 1);
+      const numRows = Math.max(1, Math.floor(usableHeight / rowSpacingNorm) + 1);
       
       // Center the grid within usable area
       const xRemainder = usableWidth - (numCols - 1) * colStep;
-      const yRemainder = usableHeight - (numRows - 1) * rowSpacingDeg;
+      const yRemainder = usableHeight - (numRows - 1) * rowSpacingNorm;
       const startX = usableMinX + Math.max(0, xRemainder / 2);
       const startY = usableMinY + Math.max(0, yRemainder / 2);
       
-      // Create Google Maps polygon for containment testing
+      // Create Google Maps polygon for containment testing (original coordinates)
       const solarPolygonPath = new google.maps.Polygon({
         paths: coords.map(([lng, lat]) => ({ lat, lng }))
       });
@@ -488,35 +509,44 @@ export function RoofVisualization({
       // DEBUG: Log grid calculation details
       console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id}:`, {
         axisAngleDeg: Math.round(axisAngle * 180 / Math.PI),
+        aspectRatio: aspectRatio.toFixed(3),
         numRows,
         numCols,
         expectedPanels: numRows * numCols,
-        bboxWidth: Math.round((bbox.maxX - bbox.minX) * metersPerDegreeLng),
-        bboxHeight: Math.round((bbox.maxY - bbox.minY) * metersPerDegreeLat),
+        bboxWidthM: Math.round((bbox.maxX - bbox.minX) * metersPerDegreeLat),
+        bboxHeightM: Math.round((bbox.maxY - bbox.minY) * metersPerDegreeLat),
       });
 
       let acceptedCount = 0;
       let rejectedBySolar = 0;
       let rejectedByConstraint = 0;
       
-      // 6. Iterate through grid in rotated space
+      // 8. Iterate through grid in rotated normalized space
       for (let row = 0; row < numRows; row++) {
-        const rotY = startY + row * rowSpacingDeg;
+        const rotY = startY + row * rowSpacingNorm;
         for (let col = 0; col < numCols; col++) {
           const rotX = startX + col * colStep;
           
-          // Panel corners in rotated space
+          // Panel corners in rotated normalized space
           const rotatedCorners: Point2D[] = [
             { x: rotX, y: rotY },
-            { x: rotX + panelWidthDeg, y: rotY },
-            { x: rotX + panelWidthDeg, y: rotY + panelHeightDeg },
-            { x: rotX, y: rotY + panelHeightDeg },
+            { x: rotX + panelWidthNorm, y: rotY },
+            { x: rotX + panelWidthNorm, y: rotY + panelHeightNorm },
+            { x: rotX, y: rotY + panelHeightNorm },
           ];
           
-          // 7. Rotate corners back to geographic coordinates
-          const geoCorners = rotatedCorners.map(p => rotatePoint(p, centroid, axisAngle));
+          // 9. Rotate corners back to normalized geographic coordinates
+          const normalizedGeoCorners = rotatedCorners.map(p => 
+            rotatePoint(p, normalizedCentroid, axisAngle)
+          );
           
-          // 8. Test all corners are within solar polygon
+          // 10. Denormalize to actual geographic coordinates (reverse the aspect ratio scaling)
+          const geoCorners = normalizedGeoCorners.map(p => ({
+            x: (p.x - centroid.x) * aspectRatio + centroid.x, // Denormalize lng
+            y: p.y // lat stays the same
+          }));
+          
+          // 11. Test all corners are within solar polygon
           const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
           
           const allPointsInSolar = testPoints.every((point) => 
@@ -527,7 +557,7 @@ export function RoofVisualization({
             continue;
           }
 
-          // 9. Test no corners are in constraint polygons
+          // 12. Test no corners are in constraint polygons
           const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
             testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
           );
@@ -536,7 +566,7 @@ export function RoofVisualization({
             continue;
           }
 
-          // 10. Accept panel - store all 4 corners in geographic coords for rotated rendering
+          // 13. Accept panel - store all 4 corners in geographic coords for rotated rendering
           acceptedCount++;
           const bottomLeft = geoCorners[0];
           positions.push({ 
@@ -875,7 +905,7 @@ export function RoofVisualization({
               {hasPolygons && totalUsableArea > 0 && constraintArea === 0 && (
                 <Badge variant="secondary" className="bg-blue-500/80 text-white border-blue-400/50 backdrop-blur-sm">
                   <Layers className="w-3 h-3 mr-1" />
-                  {formatNumber(Math.round(totalUsableArea), language)} m² {language === "fr" ? "utilisable" : "usable"}
+                  {formatNumber(Math.round(totalUsableArea * 0.85), language)} m² {language === "fr" ? "utilisable (85%)" : "usable (85%)"}
                 </Badge>
               )}
               {hasPolygons && constraintArea > 0 && (
