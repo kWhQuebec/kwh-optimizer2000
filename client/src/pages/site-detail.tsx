@@ -4227,8 +4227,8 @@ function AnalysisResults({
                 <Home className="w-6 h-6 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{language === "fr" ? "Capacité toit" : "Roof Capacity"}</p>
-                <p className="text-lg font-bold font-mono">{Math.round(maxPVFromRoof)} <span className="text-sm font-normal">kWc max</span></p>
+                <p className="text-sm text-muted-foreground">{language === "fr" ? "Capacité toit estimée" : "Est. Roof Capacity"}</p>
+                <p className="text-lg font-bold font-mono">{Math.round(maxPVFromRoof * 0.9)} <span className="text-sm font-normal">kWc</span></p>
                 {isRoofLimited && (
                   <Badge variant="secondary" className="mt-1 text-xs">
                     {language === "fr" ? "Limité par le toit" : "Roof limited"}

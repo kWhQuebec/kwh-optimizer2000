@@ -751,7 +751,7 @@ export function RoofVisualization({
               {maxPVCapacityKW && (
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
                   <Sun className="w-3 h-3 mr-1" />
-                  {maxCapacity.toLocaleString()} kWc max
+                  {Math.round(maxCapacity * 0.9).toLocaleString()} kWc {language === "fr" ? "estimé" : "estimated"}
                 </Badge>
               )}
               {currentPVSizeKW && (
@@ -808,7 +808,7 @@ export function RoofVisualization({
                 setHasUserAdjusted(true);
               }}
               min={minCapacity}
-              max={maxCapacity}
+              max={Math.round(maxCapacity * 0.9)}
               step={10}
               className="w-full"
               data-testid="capacity-slider"
@@ -816,8 +816,9 @@ export function RoofVisualization({
             
             {/* Slider markers */}
             <div className="absolute left-0 right-0 bottom-0 flex justify-between text-xs text-muted-foreground">
-              {sliderMarkers.map((marker, idx) => {
-                const position = ((marker.value - minCapacity) / (maxCapacity - minCapacity)) * 100;
+              {sliderMarkers.filter(m => m.value <= Math.round(maxCapacity * 0.9)).map((marker, idx) => {
+                const estimatedMax = Math.round(maxCapacity * 0.9);
+                const position = ((marker.value - minCapacity) / (estimatedMax - minCapacity)) * 100;
                 const isRecommended = marker.value === currentPVSizeKW;
                 return (
                   <div 
