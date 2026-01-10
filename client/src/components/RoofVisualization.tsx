@@ -27,9 +27,112 @@ interface PanelPosition {
   widthDeg: number;
   heightDeg: number;
   polygonId: string; // Track which polygon this panel belongs to (UUID)
+  // For rotated panels, store all 4 corners (optional for backward compatibility)
+  corners?: { lat: number; lng: number }[];
 }
 
 const PANEL_KW = 0.59; // 590W modern bifacial panel (2.0m × 1.0m)
+
+// ============================================================================
+// GEOMETRY HELPERS for rotated polygon panel placement
+// These functions enable placing panels aligned to the polygon's natural orientation
+// rather than axis-aligned lat/lng, which fixes coverage on angled/rotated roofs
+// ============================================================================
+
+interface Point2D {
+  x: number;
+  y: number;
+}
+
+// Calculate the centroid (center of mass) of a polygon
+function computeCentroid(coords: [number, number][]): Point2D {
+  let sumX = 0, sumY = 0;
+  for (const [lng, lat] of coords) {
+    sumX += lng;
+    sumY += lat;
+  }
+  return { x: sumX / coords.length, y: sumY / coords.length };
+}
+
+// Find the principal axis angle of a polygon (orientation of longest edge)
+// Returns angle in radians where 0 = east, PI/2 = north
+function computePrincipalAxisAngle(coords: [number, number][]): number {
+  if (coords.length < 2) return 0;
+  
+  // Find the longest edge and use its angle as the principal axis
+  let maxLen = 0;
+  let bestAngle = 0;
+  
+  for (let i = 0; i < coords.length; i++) {
+    const [lng1, lat1] = coords[i];
+    const [lng2, lat2] = coords[(i + 1) % coords.length];
+    
+    const dx = lng2 - lng1;
+    const dy = lat2 - lat1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    
+    if (len > maxLen) {
+      maxLen = len;
+      bestAngle = Math.atan2(dy, dx);
+    }
+  }
+  
+  // Normalize to [0, PI) since we want rows parallel to this edge
+  // (panels can face either direction along the edge)
+  while (bestAngle < 0) bestAngle += Math.PI;
+  while (bestAngle >= Math.PI) bestAngle -= Math.PI;
+  
+  return bestAngle;
+}
+
+// Rotate a point around a center by the given angle (radians)
+function rotatePoint(p: Point2D, center: Point2D, angle: number): Point2D {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const dx = p.x - center.x;
+  const dy = p.y - center.y;
+  return {
+    x: center.x + dx * cos - dy * sin,
+    y: center.y + dx * sin + dy * cos,
+  };
+}
+
+// Rotate polygon coordinates by angle around centroid
+function rotatePolygonCoords(coords: [number, number][], centroid: Point2D, angle: number): Point2D[] {
+  return coords.map(([lng, lat]) => rotatePoint({ x: lng, y: lat }, centroid, angle));
+}
+
+// Get axis-aligned bounding box of rotated polygon
+function getBoundingBox(points: Point2D[]): { minX: number; maxX: number; minY: number; maxY: number } {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const p of points) {
+    minX = Math.min(minX, p.x);
+    maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y);
+    maxY = Math.max(maxY, p.y);
+  }
+  return { minX, maxX, minY, maxY };
+}
+
+// Check if a point is inside a polygon using ray casting algorithm
+function pointInPolygon(point: Point2D, polygon: Point2D[]): boolean {
+  let inside = false;
+  const n = polygon.length;
+  
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    
+    if (((yi > point.y) !== (yj > point.y)) &&
+        (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  
+  return inside;
+}
+
+// ============================================================================
 
 // Format numbers with proper locale separators
 // French: space for thousands, comma for decimals (e.g., 3 294,5)
@@ -269,9 +372,10 @@ export function RoofVisualization({
   }, [roofPolygons, mapReady]); // Re-run when map is ready or polygons change
 
   // Calculate all valid panel positions with CNESST-compliant optimization
-  // - 2m edge setback from bounding box (CNESST "ligne d'avertissement" - no harness required)
-  // - South-to-north filling (optimal for Quebec, northern hemisphere)
-  // - Inter-row spacing for winter sun angle (~20° at solstice, 30° panel tilt)
+  // Uses ROTATED COORDINATE SYSTEM to properly fill angled/irregular polygons
+  // - IFC 1.2m edge setback for fire access
+  // - Grid aligned to polygon's principal axis (longest edge)
+  // - South-to-north filling priority for optimal Quebec solar exposure
   useEffect(() => {
     if (!mapReady || !window.google || !google.maps?.geometry || roofPolygons.length === 0) {
       setAllPanelPositions([]);
@@ -279,20 +383,17 @@ export function RoofVisualization({
     }
 
     // Panel dimensions (standard commercial modules - 590W bifacial)
-    const panelWidthM = 2.0;  // East-West dimension
-    const panelHeightM = 1.0; // North-South dimension
+    const panelWidthM = 2.0;  // Along principal axis
+    const panelHeightM = 1.0; // Perpendicular to principal axis
     const gapBetweenPanelsM = 0.1; // Gap between panels (thermal expansion + maintenance access)
     
     // IFC compliant perimeter setback for fire access (4 feet = 1.2m)
     const edgeSetbackM = 1.2;
     
     // Inter-row spacing for Quebec ballast systems (10° tilt typical)
-    // At 10° tilt, minimal winter shading - primarily for maintenance access
-    // Row spacing = panel height + clearance for ballast/maintenance
     const rowSpacingM = panelHeightM + 0.5; // 1.5m total row pitch
 
     // Filter solar polygons and sort by creation date (oldest first)
-    // This ensures panels fill the original polygon before newer ones
     const solarPolygons = roofPolygons
       .filter((p) => {
         if (p.color === "#f97316") return false;
@@ -301,17 +402,15 @@ export function RoofVisualization({
                !label.includes("hvac") && !label.includes("obstacle");
       })
       .sort((a, b) => {
-        // Sort by createdAt ascending (oldest first)
-        // Fall back to id (UUID string) if createdAt is not available
         if (a.createdAt && b.createdAt) {
           const dateA = typeof a.createdAt === 'string' ? new Date(a.createdAt) : a.createdAt;
           const dateB = typeof b.createdAt === 'string' ? new Date(b.createdAt) : b.createdAt;
           return dateA.getTime() - dateB.getTime();
         }
-        // UUIDs are not sortable by order, but at least consistent
         return a.id.localeCompare(b.id);
       });
 
+    // Create constraint polygon paths for containment testing
     const constraintPolygonPaths = roofPolygons
       .filter((p) => {
         if (p.color === "#f97316") return true;
@@ -332,82 +431,94 @@ export function RoofVisualization({
       const coords = polygon.coordinates as [number, number][];
       if (!coords || coords.length < 3) return;
 
-      let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-      coords.forEach(([lng, lat]) => {
-        minLat = Math.min(minLat, lat);
-        maxLat = Math.max(maxLat, lat);
-        minLng = Math.min(minLng, lng);
-        maxLng = Math.max(maxLng, lng);
-      });
-
+      // Calculate average latitude for meter-to-degree conversion
+      const avgLat = coords.reduce((sum, [, lat]) => sum + lat, 0) / coords.length;
       const metersPerDegreeLat = 111320;
-      const metersPerDegreeLng = 111320 * Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+      const metersPerDegreeLng = 111320 * Math.cos(avgLat * Math.PI / 180);
       
+      // Convert dimensions to degrees
       const panelWidthDeg = panelWidthM / metersPerDegreeLng;
       const panelHeightDeg = panelHeightM / metersPerDegreeLat;
-      const gapLngDeg = gapBetweenPanelsM / metersPerDegreeLng;
+      const gapDeg = gapBetweenPanelsM / metersPerDegreeLng;
       const rowSpacingDeg = rowSpacingM / metersPerDegreeLat;
-      const edgeSetbackDeg = edgeSetbackM / metersPerDegreeLat;
-      const edgeSetbackLngDeg = edgeSetbackM / metersPerDegreeLng;
+      const edgeSetbackDegX = edgeSetbackM / metersPerDegreeLng;
+      const edgeSetbackDegY = edgeSetbackM / metersPerDegreeLat;
 
+      // =========================================================
+      // ROTATED COORDINATE SYSTEM APPROACH
+      // =========================================================
+      // 1. Compute centroid and principal axis angle
+      const centroid = computeCentroid(coords);
+      const axisAngle = computePrincipalAxisAngle(coords);
+      
+      // 2. Rotate polygon to axis-aligned space (negate angle to align)
+      const rotatedPolygon = rotatePolygonCoords(coords, centroid, -axisAngle);
+      
+      // 3. Get bounding box in rotated space
+      const bbox = getBoundingBox(rotatedPolygon);
+      
+      // 4. Apply setbacks to bounding box
+      const usableMinX = bbox.minX + edgeSetbackDegX;
+      const usableMaxX = bbox.maxX - edgeSetbackDegX;
+      const usableMinY = bbox.minY + edgeSetbackDegY;
+      const usableMaxY = bbox.maxY - edgeSetbackDegY;
+      
+      const usableWidth = usableMaxX - usableMinX - panelWidthDeg;
+      const usableHeight = usableMaxY - usableMinY - panelHeightDeg;
+      
+      // Skip if polygon too small for even one panel
+      if (usableWidth < 0 || usableHeight < 0) return;
+      
+      // 5. Calculate grid dimensions
+      const colStep = panelWidthDeg + gapDeg;
+      const numCols = Math.max(1, Math.floor(usableWidth / colStep) + 1);
+      const numRows = Math.max(1, Math.floor(usableHeight / rowSpacingDeg) + 1);
+      
+      // Center the grid within usable area
+      const xRemainder = usableWidth - (numCols - 1) * colStep;
+      const yRemainder = usableHeight - (numRows - 1) * rowSpacingDeg;
+      const startX = usableMinX + Math.max(0, xRemainder / 2);
+      const startY = usableMinY + Math.max(0, yRemainder / 2);
+      
+      // Create Google Maps polygon for containment testing
       const solarPolygonPath = new google.maps.Polygon({
         paths: coords.map(([lng, lat]) => ({ lat, lng }))
       });
-
-      // Calculate usable spans after setbacks
-      const usableLatSpan = (maxLat - minLat) - 2 * edgeSetbackDeg - panelHeightDeg;
-      const usableLngSpan = (maxLng - minLng) - 2 * edgeSetbackLngDeg - panelWidthDeg;
-      
-      // Skip if polygon too small for even one panel
-      if (usableLatSpan < 0 || usableLngSpan < 0) return;
-      
-      // Calculate how many rows/columns fit
-      const colStep = panelWidthDeg + gapLngDeg;
-      const numRows = Math.max(1, Math.floor(usableLatSpan / rowSpacingDeg) + 1);
-      const numCols = Math.max(1, Math.floor(usableLngSpan / colStep) + 1);
-      
-      // Calculate remainder and center the grid
-      const latRemainder = usableLatSpan - (numRows - 1) * rowSpacingDeg;
-      const lngRemainder = usableLngSpan - (numCols - 1) * colStep;
-      const latOffset = Math.max(0, latRemainder / 2);
-      const lngOffset = Math.max(0, lngRemainder / 2);
-      
-      // Starting positions centered in the polygon
-      const startLat = minLat + edgeSetbackDeg + latOffset;
-      const startLng = minLng + edgeSetbackLngDeg + lngOffset;
       
       // DEBUG: Log grid calculation details
-      const boundingBoxHeightM = (maxLat - minLat) * metersPerDegreeLat;
-      const boundingBoxWidthM = (maxLng - minLng) * metersPerDegreeLng;
       console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id}:`, {
-        boundingBoxHeightM: Math.round(boundingBoxHeightM),
-        boundingBoxWidthM: Math.round(boundingBoxWidthM),
+        axisAngleDeg: Math.round(axisAngle * 180 / Math.PI),
         numRows,
         numCols,
         expectedPanels: numRows * numCols,
-        rowSpacingM,
-        edgeSetbackM,
+        bboxWidth: Math.round((bbox.maxX - bbox.minX) * metersPerDegreeLng),
+        bboxHeight: Math.round((bbox.maxY - bbox.minY) * metersPerDegreeLat),
       });
 
-      // Fill grid using count-based iteration to ensure all positions are tried
-      // South to North (row 0 = south), West to East (col 0 = west)
       let acceptedCount = 0;
       let rejectedBySolar = 0;
       let rejectedByConstraint = 0;
       
+      // 6. Iterate through grid in rotated space
       for (let row = 0; row < numRows; row++) {
-        const lat = startLat + row * rowSpacingDeg;
+        const rotY = startY + row * rowSpacingDeg;
         for (let col = 0; col < numCols; col++) {
-          const lng = startLng + col * colStep;
-          // 4-corner containment test (simplified from 9-point for better fill rate)
-          // Checks only the 4 corners of each panel
-          const testPoints = [
-            new google.maps.LatLng(lat, lng),
-            new google.maps.LatLng(lat, lng + panelWidthDeg),
-            new google.maps.LatLng(lat + panelHeightDeg, lng),
-            new google.maps.LatLng(lat + panelHeightDeg, lng + panelWidthDeg),
+          const rotX = startX + col * colStep;
+          
+          // Panel corners in rotated space
+          const rotatedCorners: Point2D[] = [
+            { x: rotX, y: rotY },
+            { x: rotX + panelWidthDeg, y: rotY },
+            { x: rotX + panelWidthDeg, y: rotY + panelHeightDeg },
+            { x: rotX, y: rotY + panelHeightDeg },
           ];
-
+          
+          // 7. Rotate corners back to geographic coordinates
+          const geoCorners = rotatedCorners.map(p => rotatePoint(p, centroid, axisAngle));
+          
+          // 8. Test all corners are within solar polygon
+          const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+          
           const allPointsInSolar = testPoints.every((point) => 
             google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
           );
@@ -416,6 +527,7 @@ export function RoofVisualization({
             continue;
           }
 
+          // 9. Test no corners are in constraint polygons
           const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
             testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
           );
@@ -424,13 +536,16 @@ export function RoofVisualization({
             continue;
           }
 
+          // 10. Accept panel - store all 4 corners in geographic coords for rotated rendering
           acceptedCount++;
+          const bottomLeft = geoCorners[0];
           positions.push({ 
-            lat, 
-            lng, 
+            lat: bottomLeft.y, 
+            lng: bottomLeft.x, 
             widthDeg: panelWidthDeg, 
             heightDeg: panelHeightDeg,
-            polygonId: polygon.id 
+            polygonId: polygon.id,
+            corners: geoCorners.map(c => ({ lat: c.y, lng: c.x }))
           });
         }
       }
@@ -445,20 +560,16 @@ export function RoofVisualization({
       });
     });
 
-    // Keep natural south-to-north, west-to-east order
-    // This is optimal for Quebec (northern hemisphere - south-facing receives most sun)
-    // User controls capacity via slider which now reflects actual geometric maximum
+    // Sort by latitude (south to north) for optimal solar filling in Quebec
     const sortedPositions = [...positions].sort((a, b) => {
-      // Primary sort: south to north (lower lat first)
       if (Math.abs(a.lat - b.lat) > 0.000001) {
         return a.lat - b.lat;
       }
-      // Secondary sort: west to east (lower lng first)
       return a.lng - b.lng;
     });
     
     setAllPanelPositions(sortedPositions);
-  }, [roofPolygons, mapReady]); // Re-run when map is ready
+  }, [roofPolygons, mapReady]);
 
   // Number of panels to display based on selected capacity
   const panelsToShow = useMemo(() => {
@@ -495,7 +606,7 @@ export function RoofVisualization({
   }, [allPanelPositions.length, onGeometryCalculated, constraintAreaForCallback]);
 
   // Draw panels based on selected capacity
-  // Depends on mapReady to ensure map is ready before drawing
+  // Supports both axis-aligned (Rectangle) and rotated (Polygon) panels
   useEffect(() => {
     if (!mapReady || !mapRef.current || !window.google) return;
 
@@ -509,23 +620,40 @@ export function RoofVisualization({
     for (let i = 0; i < panelsToShow; i++) {
       const pos = allPanelPositions[i];
       if (!pos) continue; // Safety check
-      const panelRect = new google.maps.Rectangle({
-        bounds: {
-          north: pos.lat + pos.heightDeg,
-          south: pos.lat,
-          east: pos.lng + pos.widthDeg,
-          west: pos.lng,
-        },
-        strokeColor: "#1e40af",
-        strokeOpacity: 0.8,
-        strokeWeight: 1,
-        fillColor: "#3b82f6",
-        fillOpacity: 0.7,
-        map: mapRef.current,
-        zIndex: 3, // Panels on top of polygons
-      });
-
-      panelOverlaysRef.current.push(panelRect);
+      
+      // Use Polygon for rotated panels (with corners), Rectangle for axis-aligned
+      if (pos.corners && pos.corners.length === 4) {
+        // Rotated panel - render as polygon
+        const panelPoly = new google.maps.Polygon({
+          paths: pos.corners,
+          strokeColor: "#1e40af",
+          strokeOpacity: 0.8,
+          strokeWeight: 1,
+          fillColor: "#3b82f6",
+          fillOpacity: 0.7,
+          map: mapRef.current,
+          zIndex: 3,
+        });
+        panelOverlaysRef.current.push(panelPoly as unknown as google.maps.Rectangle);
+      } else {
+        // Axis-aligned panel - render as rectangle (backward compatibility)
+        const panelRect = new google.maps.Rectangle({
+          bounds: {
+            north: pos.lat + pos.heightDeg,
+            south: pos.lat,
+            east: pos.lng + pos.widthDeg,
+            west: pos.lng,
+          },
+          strokeColor: "#1e40af",
+          strokeOpacity: 0.8,
+          strokeWeight: 1,
+          fillColor: "#3b82f6",
+          fillOpacity: 0.7,
+          map: mapRef.current,
+          zIndex: 3,
+        });
+        panelOverlaysRef.current.push(panelRect);
+      }
     }
 
     return () => {
