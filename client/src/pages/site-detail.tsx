@@ -605,6 +605,17 @@ function StructuralConstraintsEditor({
   );
 }
 
+// Format numbers with proper locale separators
+// French: space for thousands, comma for decimals (e.g., 3 294,5)
+// English: comma for thousands, period for decimals (e.g., 3,294.5)
+function formatNumber(value: number, lang: string, decimals?: number): string {
+  const locale = lang === "fr" ? "fr-CA" : "en-CA";
+  const options: Intl.NumberFormatOptions = decimals !== undefined 
+    ? { minimumFractionDigits: decimals, maximumFractionDigits: decimals }
+    : {};
+  return new Intl.NumberFormat(locale, options).format(value);
+}
+
 // HQ Tariff rates (April 2025) - Weighted average rates for simplified analysis
 // Source: Hydro-Québec official rate schedule April 1, 2025
 function getTariffRates(code: string): { energyRate: number; demandRate: number } {
@@ -6429,11 +6440,13 @@ export default function SiteDetailPage() {
     },
     onSuccess: (data) => {
       setQuickPotential(data);
+      // Use estimated capacity (90% of max) for consistency with UI display
+      const estimatedCapacity = Math.round(data.systemSizing.maxCapacityKW * 0.9);
       toast({ 
         title: language === "fr" ? "Analyse rapide terminée" : "Quick analysis complete",
         description: language === "fr" 
-          ? `Potentiel: ${data.systemSizing.maxCapacityKW} kW / ${data.production.annualProductionMWh} MWh/an`
-          : `Potential: ${data.systemSizing.maxCapacityKW} kW / ${data.production.annualProductionMWh} MWh/year`
+          ? `Potentiel: ${formatNumber(estimatedCapacity, language)} kWc / ${formatNumber(data.production.annualProductionMWh, language)} MWh/an`
+          : `Potential: ${formatNumber(estimatedCapacity, language)} kWc / ${formatNumber(data.production.annualProductionMWh, language)} MWh/year`
       });
     },
     onError: () => {
@@ -7034,10 +7047,10 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Capacité estimée" : "Estimated Capacity"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {(geometryCapacity?.realisticCapacityKW ?? Math.round((quickPotential.systemSizing.maxCapacityKW) * 0.9)).toLocaleString()} kW
+                  {formatNumber(geometryCapacity?.realisticCapacityKW ?? Math.round((quickPotential.systemSizing.maxCapacityKW) * 0.9), language)} kWc
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {(geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels).toLocaleString()} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
+                  {formatNumber(geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels, language)} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
                 </div>
               </div>
               
@@ -7048,10 +7061,10 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Production annuelle" : "Annual Production"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {quickPotential.production.annualProductionMWh.toLocaleString()} MWh
+                  {formatNumber(quickPotential.production.annualProductionMWh, language, 1)} MWh
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {quickPotential.production.yieldKWhPerKWp} kWh/kWp
+                  {formatNumber(quickPotential.production.yieldKWhPerKWp, language)} kWh/kWc
                 </div>
               </div>
               
@@ -7089,10 +7102,10 @@ export default function SiteDetailPage() {
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Grid3X3 className="w-4 h-4" />
-                  {language === "fr" ? "Surface totale:" : "Total area:"} {quickPotential.roofAnalysis.totalRoofAreaSqM.toLocaleString()} m²
+                  {language === "fr" ? "Surface totale:" : "Total area:"} {formatNumber(quickPotential.roofAnalysis.totalRoofAreaSqM, language)} m²
                 </span>
                 <span>
-                  {language === "fr" ? "Surface utilisable:" : "Usable area:"} {quickPotential.roofAnalysis.usableRoofAreaSqM.toLocaleString()} m² ({Math.round(quickPotential.roofAnalysis.utilizationRatio * 100)}%)
+                  {language === "fr" ? "Surface utilisable:" : "Usable area:"} {formatNumber(quickPotential.roofAnalysis.usableRoofAreaSqM, language)} m² ({Math.round(quickPotential.roofAnalysis.utilizationRatio * 100)}%)
                 </span>
                 <span>
                   {quickPotential.roofAnalysis.polygonCount} {language === "fr" ? "zone(s) de toit" : "roof zone(s)"}

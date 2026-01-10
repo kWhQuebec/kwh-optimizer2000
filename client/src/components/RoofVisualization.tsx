@@ -31,6 +31,17 @@ interface PanelPosition {
 
 const PANEL_KW = 0.59; // 590W modern bifacial panel (2.0m × 1.0m)
 
+// Format numbers with proper locale separators
+// French: space for thousands, comma for decimals (e.g., 3 294,5)
+// English: comma for thousands, period for decimals (e.g., 3,294.5)
+function formatNumber(value: number, lang: string, decimals?: number): string {
+  const locale = lang === "fr" ? "fr-CA" : "en-CA";
+  const options: Intl.NumberFormatOptions = decimals !== undefined 
+    ? { minimumFractionDigits: decimals, maximumFractionDigits: decimals }
+    : {};
+  return new Intl.NumberFormat(locale, options).format(value);
+}
+
 export function RoofVisualization({
   siteId,
   siteName,
@@ -730,37 +741,37 @@ export function RoofVisualization({
               {hasPolygons && constraintArea > 0 && totalUsableArea > 0 && (
                 <Badge variant="secondary" className="bg-green-500/80 text-white border-green-400/50 backdrop-blur-sm">
                   <Layers className="w-3 h-3 mr-1" />
-                  {Math.round(netUsableArea).toLocaleString()} m² {language === "fr" ? "net utilisable" : "net usable"}
+                  {formatNumber(Math.round(netUsableArea), language)} m² {language === "fr" ? "net utilisable" : "net usable"}
                 </Badge>
               )}
               {hasPolygons && totalUsableArea > 0 && constraintArea === 0 && (
                 <Badge variant="secondary" className="bg-blue-500/80 text-white border-blue-400/50 backdrop-blur-sm">
                   <Layers className="w-3 h-3 mr-1" />
-                  {Math.round(totalUsableArea).toLocaleString()} m² {language === "fr" ? "utilisable" : "usable"}
+                  {formatNumber(Math.round(totalUsableArea), language)} m² {language === "fr" ? "utilisable" : "usable"}
                 </Badge>
               )}
               {hasPolygons && constraintArea > 0 && (
                 <Badge variant="secondary" className="bg-orange-500/80 text-white border-orange-400/50 backdrop-blur-sm">
                   <AlertTriangle className="w-3 h-3 mr-1" />
-                  -{Math.round(constraintArea).toLocaleString()} m² {language === "fr" ? "contraintes" : "constraints"}
+                  -{formatNumber(Math.round(constraintArea), language)} m² {language === "fr" ? "contraintes" : "constraints"}
                 </Badge>
               )}
               {roofAreaSqFt && (
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
                   <Home className="w-3 h-3 mr-1" />
-                  {roofAreaSqFt.toLocaleString()} pi²
+                  {formatNumber(roofAreaSqFt, language)} pi²
                 </Badge>
               )}
               {maxPVCapacityKW && (
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
                   <Sun className="w-3 h-3 mr-1" />
-                  {Math.round(maxCapacity * 0.9).toLocaleString()} kWc {language === "fr" ? "estimé" : "estimated"}
+                  {formatNumber(Math.round(maxCapacity * 0.9), language)} kWc {language === "fr" ? "estimé" : "estimated"}
                 </Badge>
               )}
               {currentPVSizeKW && (
                 <Badge variant="secondary" className="bg-primary/80 text-white border-primary backdrop-blur-sm">
                   <Zap className="w-3 h-3 mr-1" />
-                  {Math.round(currentPVSizeKW)} kWc
+                  {formatNumber(Math.round(currentPVSizeKW), language)} kWc
                 </Badge>
               )}
             </div>
@@ -795,10 +806,10 @@ export function RoofVisualization({
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="font-mono" data-testid="panel-count-badge">
-                {panelsToShow.toLocaleString()} {language === "fr" ? "panneaux" : "panels"}
+                {formatNumber(panelsToShow, language)} {language === "fr" ? "panneaux" : "panels"}
               </Badge>
               <Badge className="bg-primary text-primary-foreground font-mono" data-testid="capacity-badge">
-                {displayedCapacityKW.toLocaleString()} kWc
+                {formatNumber(displayedCapacityKW, language)} kWc
               </Badge>
             </div>
           </div>
