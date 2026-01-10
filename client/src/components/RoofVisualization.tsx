@@ -29,6 +29,10 @@ interface PanelPosition {
   polygonId: string; // Track which polygon this panel belongs to (UUID)
   // For rotated panels, store all 4 corners (optional for backward compatibility)
   corners?: { lat: number; lng: number }[];
+  // Grid indices for rectangularization post-processing
+  gridRow?: number;
+  gridCol?: number;
+  quadrant?: string; // 'EN', 'ES', 'WN', 'WS' (East/West + North/South)
 }
 
 const PANEL_KW = 0.59; // 590W modern bifacial panel (2.0m × 1.0m)
@@ -496,6 +500,14 @@ export function RoofVisualization({
       const scanStartX = -scanRadius;
       const scanStartY = -scanRadius;
       
+      // =========================================================
+      // IFC FIRE CODE COMPLIANCE: Central access pathways
+      // =========================================================
+      // Industry standard: 4-foot (1.2m) pathways along both centerline axes
+      // This divides the roof into 4 quadrants (sub-arrays)
+      const accessPathwayWidth = 1.2; // meters (IFC 4-foot requirement)
+      const halfPathway = accessPathwayWidth / 2;
+      
       // Create Google Maps polygon for containment testing (original polygon)
       // Setback is enforced via bounding box in rotated space
       const solarPolygonPath = new google.maps.Polygon({
@@ -515,6 +527,7 @@ export function RoofVisualization({
       let acceptedCount = 0;
       let rejectedBySolar = 0;
       let rejectedByConstraint = 0;
+      let rejectedByPathway = 0;
       
       // 7. SCANLINE: Iterate through full scan area (centered on centroid)
       for (let row = 0; row < numRows; row++) {
@@ -534,6 +547,21 @@ export function RoofVisualization({
           // Includes corners + edge midpoints + center = 9 points total for reliable detection
           const panelCenterX = rotX + panelWidthM / 2;
           const panelCenterY = rotY + panelHeightM / 2;
+          
+          // =========================================================
+          // IFC FIRE CODE: Check if panel is in central access pathway
+          // =========================================================
+          // Pathways are centered at origin (0,0) in rotated space
+          // North-South pathway: |x| < halfPathway (vertical strip through center)
+          // East-West pathway: |y| < halfPathway (horizontal strip through center)
+          const inNorthSouthPathway = Math.abs(panelCenterX) < halfPathway + panelWidthM / 2;
+          const inEastWestPathway = Math.abs(panelCenterY) < halfPathway + panelHeightM / 2;
+          
+          if (inNorthSouthPathway || inEastWestPathway) {
+            rejectedByPathway++;
+            continue;
+          }
+          
           const expandedPoints: Point2D[] = [
             // 4 expanded corners
             { x: rotX - edgeSetbackM, y: rotY - edgeSetbackM },
@@ -587,16 +615,24 @@ export function RoofVisualization({
             continue;
           }
 
-          // 12. Accept panel - store all 4 corners in geographic coords for rotated rendering
+          // 12. Accept panel - store position with grid indices and quadrant for rectangularization
           acceptedCount++;
           const bottomLeft = geoCorners[0];
+          
+          // Determine quadrant based on rotated position (NE, NW, SE, SW)
+          const quadrant = (panelCenterX >= 0 ? 'E' : 'W') + (panelCenterY >= 0 ? 'N' : 'S');
+          
           positions.push({ 
             lat: bottomLeft.y, 
             lng: bottomLeft.x, 
             widthDeg: panelWidthDeg, 
             heightDeg: panelHeightDeg,
             polygonId: polygon.id,
-            corners: geoCorners.map(c => ({ lat: c.y, lng: c.x }))
+            corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
+            // Store grid indices for rectangularization post-processing
+            gridRow: row,
+            gridCol: col,
+            quadrant: quadrant,
           });
         }
       }
@@ -607,12 +643,98 @@ export function RoofVisualization({
         accepted: acceptedCount,
         rejectedBySolar,
         rejectedByConstraint,
+        rejectedByPathway,
         acceptanceRate: `${Math.round(acceptedCount / (numRows * numCols) * 100)}%`
       });
     });
+    
+    // =========================================================
+    // POST-PROCESSING: Clean up staircase edges for commercial look
+    // =========================================================
+    // Use adaptive density-based filtering per quadrant
+    // This preserves all clusters while removing only truly sparse outliers
+    
+    const quadrants = ['EN', 'ES', 'WN', 'WS'];
+    let cleanedPositions: typeof positions = [];
+    let removedForCleaning = 0;
+    
+    quadrants.forEach(quadrant => {
+      const quadrantPanels = positions.filter(p => p.quadrant === quadrant);
+      if (quadrantPanels.length === 0) return;
+      
+      // For small quadrants (<=10 panels), keep all - no cleaning needed
+      if (quadrantPanels.length <= 10) {
+        cleanedPositions.push(...quadrantPanels);
+        return;
+      }
+      
+      // Count panels per column
+      const colCounts = new Map<number, number>();
+      quadrantPanels.forEach(p => {
+        colCounts.set(p.gridCol!, (colCounts.get(p.gridCol!) || 0) + 1);
+      });
+      
+      // Find the maximum column count
+      const maxColCount = Math.max(...Array.from(colCounts.values()));
+      
+      // Adaptive threshold: only trim if we have substantial data
+      // No hard floor - use pure percentage (20% of max)
+      // This preserves single-column strips
+      const minColThreshold = maxColCount >= 5 ? Math.ceil(maxColCount * 0.2) : 1;
+      
+      // Also count panels per row to identify sparse rows
+      const rowCounts = new Map<number, number>();
+      quadrantPanels.forEach(p => {
+        rowCounts.set(p.gridRow!, (rowCounts.get(p.gridRow!) || 0) + 1);
+      });
+      
+      const maxRowCount = Math.max(...Array.from(rowCounts.values()));
+      const minRowThreshold = maxRowCount >= 5 ? Math.ceil(maxRowCount * 0.2) : 1;
+      
+      // Keep panels if column OR row has sufficient density (less aggressive)
+      // This prevents eliminating narrow strips entirely
+      let quadrantKept = 0;
+      let quadrantRemoved = 0;
+      
+      quadrantPanels.forEach(p => {
+        const colCount = colCounts.get(p.gridCol!) || 0;
+        const rowCount = rowCounts.get(p.gridRow!) || 0;
+        
+        // Keep if EITHER dimension has sufficient density (more permissive)
+        if (colCount >= minColThreshold || rowCount >= minRowThreshold) {
+          cleanedPositions.push(p);
+          quadrantKept++;
+        } else {
+          removedForCleaning++;
+          quadrantRemoved++;
+        }
+      });
+      
+      // Per-quadrant fallback: if we removed >70% of a quadrant, restore it
+      if (quadrantKept < quadrantPanels.length * 0.3) {
+        // Remove the partially cleaned panels we just added
+        cleanedPositions = cleanedPositions.filter(p => p.quadrant !== quadrant);
+        // Restore the original quadrant panels
+        cleanedPositions.push(...quadrantPanels);
+        removedForCleaning -= quadrantRemoved;
+      }
+    });
+    
+    // Global safety fallback
+    const cleaningRatio = positions.length > 0 ? cleanedPositions.length / positions.length : 1;
+    let rectangularizedPositions = cleanedPositions;
+    
+    if (cleaningRatio < 0.5) {
+      console.log(`[RoofVisualization] Cleaning removed too many panels (${Math.round((1-cleaningRatio)*100)}%), reverting to original`);
+      rectangularizedPositions = positions;
+      removedForCleaning = 0;
+    }
+    
+    console.log(`[RoofVisualization] Edge cleaning: removed ${removedForCleaning} sparse edge panels for cleaner sub-arrays`);
 
     // Sort by latitude (south to north) for optimal solar filling in Quebec
-    const sortedPositions = [...positions].sort((a, b) => {
+    // Use rectangularized positions for clean commercial sub-arrays
+    const sortedPositions = [...rectangularizedPositions].sort((a, b) => {
       if (Math.abs(a.lat - b.lat) > 0.000001) {
         return a.lat - b.lat;
       }
