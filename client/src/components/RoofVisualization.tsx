@@ -54,9 +54,9 @@ export function RoofVisualization({
   const [mapError, setMapError] = useState<string | null>(null);
   const [allPanelPositions, setAllPanelPositions] = useState<PanelPosition[]>([]);
   
-  // Selected capacity defaults to recommended system, or 70% of max if no recommendation
-  // 70% is a typical commercial utilization rate accounting for setbacks and equipment
-  const defaultCapacity = currentPVSizeKW || Math.round((maxPVCapacityKW || 100) * 0.7);
+  // Selected capacity defaults to recommended system, or 90% of max if no recommendation
+  // 90% accounts for unseen obstacles (HVAC, skylights, access paths)
+  const defaultCapacity = currentPVSizeKW || Math.round((maxPVCapacityKW || 100) * 0.9);
   const [selectedCapacityKW, setSelectedCapacityKW] = useState<number>(defaultCapacity);
   const [hasUserAdjusted, setHasUserAdjusted] = useState(false);
 
@@ -72,17 +72,20 @@ export function RoofVisualization({
   const minCapacity = Math.max(100, Math.round((geometryMaxKW || maxPVCapacityKW || 1000) * 0.1));
   const maxCapacity = geometryMaxKW > 0 ? geometryMaxKW : (maxPVCapacityKW || 5000);
 
+  // Realistic capacity estimate: 90% of geometry max to account for unseen obstacles
+  const estimatedMaxKW = Math.round(geometryMaxKW * 0.9);
+  
   // Update capacity when recommended size is provided or when geometry max is calculated
   useEffect(() => {
     if (currentPVSizeKW) {
       // Always update to recommended size when analysis provides one
       setSelectedCapacityKW(currentPVSizeKW);
     } else if (!hasUserAdjusted && geometryMaxKW > 0) {
-      // Default to geometry max (all available space) when no recommendation
-      setSelectedCapacityKW(geometryMaxKW);
+      // Default to estimated max (90% of geometry) when no recommendation
+      setSelectedCapacityKW(Math.round(geometryMaxKW * 0.9));
     } else if (!hasUserAdjusted && maxPVCapacityKW) {
-      // Fallback to backend estimate if geometry not yet calculated
-      setSelectedCapacityKW(maxPVCapacityKW);
+      // Fallback to 90% of backend estimate if geometry not yet calculated
+      setSelectedCapacityKW(Math.round(maxPVCapacityKW * 0.9));
     }
   }, [currentPVSizeKW, maxPVCapacityKW, geometryMaxKW, hasUserAdjusted]);
 
