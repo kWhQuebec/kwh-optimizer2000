@@ -445,59 +445,50 @@ export function RoofVisualization({
       const edgeSetbackDegY = edgeSetbackM / metersPerDegreeLat;
 
       // =========================================================
-      // NORMALIZED ROTATED COORDINATE SYSTEM APPROACH
+      // METER-BASED COORDINATE SYSTEM (Local ENU)
       // =========================================================
-      // Key insight: 1° longitude ≠ 1° latitude due to Earth's curvature
-      // We must normalize coordinates to meters before rotation, then convert back
+      // Convert all coordinates to meters, do rotation/grid in meters, convert back
+      // This avoids distortion issues from lat/lng degree differences
       
-      const aspectRatio = metersPerDegreeLng / metersPerDegreeLat; // ~0.7 at 45°N
-      
-      // 1. Compute centroid
+      // 1. Compute centroid in geographic coordinates
       const centroid = computeCentroid(coords);
       
-      // 2. Normalize coordinates to equal aspect ratio (scale lng to match lat)
-      const normalizedCoords: [number, number][] = coords.map(([lng, lat]) => [
-        (lng - centroid.x) / aspectRatio + centroid.x,
-        lat
+      // 2. Convert polygon to meters (local ENU - East-North centered on centroid)
+      const meterCoords: [number, number][] = coords.map(([lng, lat]) => [
+        (lng - centroid.x) * metersPerDegreeLng,  // East (meters)
+        (lat - centroid.y) * metersPerDegreeLat   // North (meters)
       ]);
       
-      // 3. Compute principal axis angle in normalized space
-      const axisAngle = computePrincipalAxisAngle(normalizedCoords);
-      const normalizedCentroid = computeCentroid(normalizedCoords);
+      // 3. Compute principal axis angle in meter space (no distortion)
+      const axisAngle = computePrincipalAxisAngle(meterCoords);
+      const meterCentroid = { x: 0, y: 0 }; // Centroid is origin in local system
       
-      // 4. Rotate normalized polygon to axis-aligned space
-      const rotatedPolygon = rotatePolygonCoords(normalizedCoords, normalizedCentroid, -axisAngle);
+      // 4. Rotate polygon to axis-aligned space
+      const rotatedPolygon = rotatePolygonCoords(meterCoords, meterCentroid, -axisAngle);
       
-      // 5. Get bounding box in rotated normalized space
+      // 5. Get bounding box in meters
       const bbox = getBoundingBox(rotatedPolygon);
       
-      // Convert panel dimensions to normalized degrees
-      const panelWidthNorm = panelWidthM / metersPerDegreeLat; // Use lat scale for both
-      const panelHeightNorm = panelHeightM / metersPerDegreeLat;
-      const gapNorm = gapBetweenPanelsM / metersPerDegreeLat;
-      const rowSpacingNorm = rowSpacingM / metersPerDegreeLat;
-      const edgeSetbackNorm = edgeSetbackM / metersPerDegreeLat;
+      // 6. Apply setbacks in meters
+      const usableMinX = bbox.minX + edgeSetbackM;
+      const usableMaxX = bbox.maxX - edgeSetbackM;
+      const usableMinY = bbox.minY + edgeSetbackM;
+      const usableMaxY = bbox.maxY - edgeSetbackM;
       
-      // 6. Apply setbacks to bounding box
-      const usableMinX = bbox.minX + edgeSetbackNorm;
-      const usableMaxX = bbox.maxX - edgeSetbackNorm;
-      const usableMinY = bbox.minY + edgeSetbackNorm;
-      const usableMaxY = bbox.maxY - edgeSetbackNorm;
-      
-      const usableWidth = usableMaxX - usableMinX - panelWidthNorm;
-      const usableHeight = usableMaxY - usableMinY - panelHeightNorm;
+      const usableWidth = usableMaxX - usableMinX - panelWidthM;
+      const usableHeight = usableMaxY - usableMinY - panelHeightM;
       
       // Skip if polygon too small for even one panel
       if (usableWidth < 0 || usableHeight < 0) return;
       
-      // 7. Calculate grid dimensions
-      const colStep = panelWidthNorm + gapNorm;
+      // 7. Calculate grid dimensions in meters
+      const colStep = panelWidthM + gapBetweenPanelsM;
       const numCols = Math.max(1, Math.floor(usableWidth / colStep) + 1);
-      const numRows = Math.max(1, Math.floor(usableHeight / rowSpacingNorm) + 1);
+      const numRows = Math.max(1, Math.floor(usableHeight / rowSpacingM) + 1);
       
       // Center the grid within usable area
       const xRemainder = usableWidth - (numCols - 1) * colStep;
-      const yRemainder = usableHeight - (numRows - 1) * rowSpacingNorm;
+      const yRemainder = usableHeight - (numRows - 1) * rowSpacingM;
       const startX = usableMinX + Math.max(0, xRemainder / 2);
       const startY = usableMinY + Math.max(0, yRemainder / 2);
       
@@ -509,41 +500,40 @@ export function RoofVisualization({
       // DEBUG: Log grid calculation details
       console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id}:`, {
         axisAngleDeg: Math.round(axisAngle * 180 / Math.PI),
-        aspectRatio: aspectRatio.toFixed(3),
         numRows,
         numCols,
         expectedPanels: numRows * numCols,
-        bboxWidthM: Math.round((bbox.maxX - bbox.minX) * metersPerDegreeLat),
-        bboxHeightM: Math.round((bbox.maxY - bbox.minY) * metersPerDegreeLat),
+        bboxWidthM: Math.round(bbox.maxX - bbox.minX),
+        bboxHeightM: Math.round(bbox.maxY - bbox.minY),
       });
 
       let acceptedCount = 0;
       let rejectedBySolar = 0;
       let rejectedByConstraint = 0;
       
-      // 8. Iterate through grid in rotated normalized space
+      // 8. Iterate through grid in rotated meter space
       for (let row = 0; row < numRows; row++) {
-        const rotY = startY + row * rowSpacingNorm;
+        const rotY = startY + row * rowSpacingM;
         for (let col = 0; col < numCols; col++) {
           const rotX = startX + col * colStep;
           
-          // Panel corners in rotated normalized space
+          // Panel corners in rotated meter space
           const rotatedCorners: Point2D[] = [
             { x: rotX, y: rotY },
-            { x: rotX + panelWidthNorm, y: rotY },
-            { x: rotX + panelWidthNorm, y: rotY + panelHeightNorm },
-            { x: rotX, y: rotY + panelHeightNorm },
+            { x: rotX + panelWidthM, y: rotY },
+            { x: rotX + panelWidthM, y: rotY + panelHeightM },
+            { x: rotX, y: rotY + panelHeightM },
           ];
           
-          // 9. Rotate corners back to normalized geographic coordinates
-          const normalizedGeoCorners = rotatedCorners.map(p => 
-            rotatePoint(p, normalizedCentroid, axisAngle)
+          // 9. Rotate corners back to local ENU meter coordinates
+          const meterGeoCorners = rotatedCorners.map(p => 
+            rotatePoint(p, meterCentroid, axisAngle)
           );
           
-          // 10. Denormalize to actual geographic coordinates (reverse the aspect ratio scaling)
-          const geoCorners = normalizedGeoCorners.map(p => ({
-            x: (p.x - centroid.x) * aspectRatio + centroid.x, // Denormalize lng
-            y: p.y // lat stays the same
+          // 10. Convert meters back to geographic coordinates
+          const geoCorners = meterGeoCorners.map(p => ({
+            x: p.x / metersPerDegreeLng + centroid.x,  // lng
+            y: p.y / metersPerDegreeLat + centroid.y   // lat
           }));
           
           // 11. Test all corners are within solar polygon
