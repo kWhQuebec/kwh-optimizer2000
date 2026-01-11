@@ -183,6 +183,326 @@ function getRowSpans(intersections: number[], setback: number): Array<{minX: num
 }
 
 // ============================================================================
+// CONCAVE POLYGON DECOMPOSITION
+// For L/U/T shaped roofs, decompose into rectangular sub-regions
+// Industry practice: Helioscope/Aurora model complex roofs as multiple faces
+// ============================================================================
+
+// Calculate signed area of polygon (positive = CCW, negative = CW)
+function signedPolygonArea(polygon: Point2D[]): number {
+  let area = 0;
+  const n = polygon.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += polygon[i].x * polygon[j].y;
+    area -= polygon[j].x * polygon[i].y;
+  }
+  return area / 2;
+}
+
+// Calculate cross product of vectors (p1->p2) and (p2->p3)
+// Positive = left turn, Negative = right turn, Zero = collinear
+function crossProduct(p1: Point2D, p2: Point2D, p3: Point2D): number {
+  return (p2.x - p1.x) * (p3.y - p2.y) - (p2.y - p1.y) * (p3.x - p2.x);
+}
+
+// Find reflex (concave) vertices in a polygon
+// A vertex is reflex if its interior angle > 180° (convex hull would skip it)
+function findReflexVertices(polygon: Point2D[]): number[] {
+  const reflexIndices: number[] = [];
+  const n = polygon.length;
+  const area = signedPolygonArea(polygon);
+  const isCCW = area > 0;
+  
+  for (let i = 0; i < n; i++) {
+    const prev = polygon[(i - 1 + n) % n];
+    const curr = polygon[i];
+    const next = polygon[(i + 1) % n];
+    
+    const cross = crossProduct(prev, curr, next);
+    // For CCW polygon, reflex vertices have negative cross product
+    // For CW polygon, reflex vertices have positive cross product
+    const isReflex = isCCW ? cross < -1e-10 : cross > 1e-10;
+    
+    if (isReflex) {
+      reflexIndices.push(i);
+    }
+  }
+  
+  return reflexIndices;
+}
+
+// Check if polygon is concave (has any reflex vertices)
+function isPolygonConcave(polygon: Point2D[]): boolean {
+  return findReflexVertices(polygon).length > 0;
+}
+
+// Decompose a concave polygon into convex/rectangular sub-polygons
+// Uses axis-aligned cuts through reflex vertices for L/U/T shaped roofs
+function decomposePolygon(polygon: Point2D[]): Point2D[][] {
+  if (polygon.length < 3) return [polygon];
+  
+  const reflexIndices = findReflexVertices(polygon);
+  
+  // If polygon is already convex, return as-is
+  if (reflexIndices.length === 0) {
+    return [polygon];
+  }
+  
+  // For each reflex vertex, try to find a valid cut
+  // We use horizontal or vertical cuts for rectangular sub-regions
+  for (const reflexIdx of reflexIndices) {
+    const reflexPoint = polygon[reflexIdx];
+    
+    // Try horizontal cut first (more common for L-shapes)
+    const horizontalCut = tryHorizontalCut(polygon, reflexIdx, reflexPoint.y);
+    if (horizontalCut) {
+      // Recursively decompose the resulting sub-polygons
+      const [poly1, poly2] = horizontalCut;
+      return [...decomposePolygon(poly1), ...decomposePolygon(poly2)];
+    }
+    
+    // Try vertical cut
+    const verticalCut = tryVerticalCut(polygon, reflexIdx, reflexPoint.x);
+    if (verticalCut) {
+      const [poly1, poly2] = verticalCut;
+      return [...decomposePolygon(poly1), ...decomposePolygon(poly2)];
+    }
+  }
+  
+  // If no valid cuts found, return original polygon
+  // (Algorithm falls back to existing row-wise fill with final containment check)
+  return [polygon];
+}
+
+// Try to cut polygon with a horizontal line at y-coordinate
+function tryHorizontalCut(polygon: Point2D[], reflexIdx: number, cutY: number): [Point2D[], Point2D[]] | null {
+  const n = polygon.length;
+  
+  // Find all edges that cross the cut line
+  const crossings: { x: number; edgeIdx: number; entering: boolean }[] = [];
+  
+  for (let i = 0; i < n; i++) {
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % n];
+    
+    // Check if edge crosses the cut Y
+    if ((p1.y < cutY && p2.y > cutY) || (p1.y > cutY && p2.y < cutY)) {
+      // Calculate X intersection
+      const t = (cutY - p1.y) / (p2.y - p1.y);
+      const x = p1.x + t * (p2.x - p1.x);
+      const entering = p2.y > p1.y; // entering upper region
+      crossings.push({ x, edgeIdx: i, entering });
+    }
+  }
+  
+  // Sort crossings by X
+  crossings.sort((a, b) => a.x - b.x);
+  
+  // Need at least 2 crossings for a valid cut
+  if (crossings.length < 2) return null;
+  
+  // Find the crossing pair that creates a valid cut through the reflex vertex
+  // For L-shaped roofs, we want the cut that separates the two rectangular regions
+  const reflexPoint = polygon[reflexIdx];
+  
+  // Find crossings on either side of the reflex point
+  let leftCrossing: typeof crossings[0] | null = null;
+  let rightCrossing: typeof crossings[0] | null = null;
+  
+  for (const crossing of crossings) {
+    if (crossing.x < reflexPoint.x) {
+      leftCrossing = crossing;
+    } else if (crossing.x > reflexPoint.x && !rightCrossing) {
+      rightCrossing = crossing;
+    }
+  }
+  
+  if (!leftCrossing || !rightCrossing) return null;
+  
+  // Build two sub-polygons from the cut
+  return buildSubPolygonsFromHorizontalCut(polygon, cutY, leftCrossing, rightCrossing);
+}
+
+// Try to cut polygon with a vertical line at x-coordinate
+function tryVerticalCut(polygon: Point2D[], reflexIdx: number, cutX: number): [Point2D[], Point2D[]] | null {
+  const n = polygon.length;
+  
+  // Find all edges that cross the cut line
+  const crossings: { y: number; edgeIdx: number; entering: boolean }[] = [];
+  
+  for (let i = 0; i < n; i++) {
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % n];
+    
+    // Check if edge crosses the cut X
+    if ((p1.x < cutX && p2.x > cutX) || (p1.x > cutX && p2.x < cutX)) {
+      // Calculate Y intersection
+      const t = (cutX - p1.x) / (p2.x - p1.x);
+      const y = p1.y + t * (p2.y - p1.y);
+      const entering = p2.x > p1.x; // entering right region
+      crossings.push({ y, edgeIdx: i, entering });
+    }
+  }
+  
+  // Sort crossings by Y
+  crossings.sort((a, b) => a.y - b.y);
+  
+  // Need at least 2 crossings for a valid cut
+  if (crossings.length < 2) return null;
+  
+  // Find the crossing pair that creates a valid cut through the reflex vertex
+  const reflexPoint = polygon[reflexIdx];
+  
+  // Find crossings on either side of the reflex point
+  let bottomCrossing: typeof crossings[0] | null = null;
+  let topCrossing: typeof crossings[0] | null = null;
+  
+  for (const crossing of crossings) {
+    if (crossing.y < reflexPoint.y) {
+      bottomCrossing = crossing;
+    } else if (crossing.y > reflexPoint.y && !topCrossing) {
+      topCrossing = crossing;
+    }
+  }
+  
+  if (!bottomCrossing || !topCrossing) return null;
+  
+  // Build two sub-polygons from the cut
+  return buildSubPolygonsFromVerticalCut(polygon, cutX, bottomCrossing, topCrossing);
+}
+
+// Build sub-polygons from a horizontal cut
+function buildSubPolygonsFromHorizontalCut(
+  polygon: Point2D[], 
+  cutY: number,
+  leftCrossing: { x: number; edgeIdx: number },
+  rightCrossing: { x: number; edgeIdx: number }
+): [Point2D[], Point2D[]] {
+  const n = polygon.length;
+  const upperPoly: Point2D[] = [];
+  const lowerPoly: Point2D[] = [];
+  
+  // Create cut points
+  const leftCutPoint: Point2D = { x: leftCrossing.x, y: cutY };
+  const rightCutPoint: Point2D = { x: rightCrossing.x, y: cutY };
+  
+  // Walk around polygon, assigning vertices to upper or lower
+  for (let i = 0; i < n; i++) {
+    const p = polygon[i];
+    if (p.y >= cutY - 1e-10) {
+      upperPoly.push(p);
+    }
+    if (p.y <= cutY + 1e-10) {
+      lowerPoly.push(p);
+    }
+    
+    // Add cut points at edge crossings
+    const nextIdx = (i + 1) % n;
+    const nextP = polygon[nextIdx];
+    
+    // Check if this edge crosses the cut
+    if ((p.y < cutY && nextP.y > cutY) || (p.y > cutY && nextP.y < cutY)) {
+      const t = (cutY - p.y) / (nextP.y - p.y);
+      const cutPoint: Point2D = {
+        x: p.x + t * (nextP.x - p.x),
+        y: cutY
+      };
+      upperPoly.push(cutPoint);
+      lowerPoly.push(cutPoint);
+    }
+  }
+  
+  // Remove duplicates and ensure valid polygons
+  const cleanUpper = removeDuplicatePoints(upperPoly);
+  const cleanLower = removeDuplicatePoints(lowerPoly);
+  
+  if (cleanUpper.length < 3 || cleanLower.length < 3) {
+    // Invalid cut, return original as single polygon
+    return [polygon, []];
+  }
+  
+  return [cleanUpper, cleanLower];
+}
+
+// Build sub-polygons from a vertical cut
+function buildSubPolygonsFromVerticalCut(
+  polygon: Point2D[], 
+  cutX: number,
+  bottomCrossing: { y: number; edgeIdx: number },
+  topCrossing: { y: number; edgeIdx: number }
+): [Point2D[], Point2D[]] {
+  const n = polygon.length;
+  const leftPoly: Point2D[] = [];
+  const rightPoly: Point2D[] = [];
+  
+  // Walk around polygon, assigning vertices to left or right
+  for (let i = 0; i < n; i++) {
+    const p = polygon[i];
+    if (p.x <= cutX + 1e-10) {
+      leftPoly.push(p);
+    }
+    if (p.x >= cutX - 1e-10) {
+      rightPoly.push(p);
+    }
+    
+    // Add cut points at edge crossings
+    const nextIdx = (i + 1) % n;
+    const nextP = polygon[nextIdx];
+    
+    // Check if this edge crosses the cut
+    if ((p.x < cutX && nextP.x > cutX) || (p.x > cutX && nextP.x < cutX)) {
+      const t = (cutX - p.x) / (nextP.x - p.x);
+      const cutPoint: Point2D = {
+        x: cutX,
+        y: p.y + t * (nextP.y - p.y)
+      };
+      leftPoly.push(cutPoint);
+      rightPoly.push(cutPoint);
+    }
+  }
+  
+  // Remove duplicates and ensure valid polygons
+  const cleanLeft = removeDuplicatePoints(leftPoly);
+  const cleanRight = removeDuplicatePoints(rightPoly);
+  
+  if (cleanLeft.length < 3 || cleanRight.length < 3) {
+    // Invalid cut, return original as single polygon
+    return [polygon, []];
+  }
+  
+  return [cleanLeft, cleanRight];
+}
+
+// Remove duplicate consecutive points from polygon
+function removeDuplicatePoints(polygon: Point2D[]): Point2D[] {
+  if (polygon.length === 0) return [];
+  
+  const result: Point2D[] = [polygon[0]];
+  const epsilon = 1e-10;
+  
+  for (let i = 1; i < polygon.length; i++) {
+    const prev = result[result.length - 1];
+    const curr = polygon[i];
+    
+    if (Math.abs(curr.x - prev.x) > epsilon || Math.abs(curr.y - prev.y) > epsilon) {
+      result.push(curr);
+    }
+  }
+  
+  // Check if last point equals first
+  if (result.length > 1) {
+    const first = result[0];
+    const last = result[result.length - 1];
+    if (Math.abs(last.x - first.x) < epsilon && Math.abs(last.y - first.y) < epsilon) {
+      result.pop();
+    }
+  }
+  
+  return result;
+}
+
+// ============================================================================
 
 // Format numbers with proper locale separators
 // French: space for thousands, comma for decimals (e.g., 3 294,5)
@@ -520,6 +840,23 @@ export function RoofVisualization({
       // 4. Rotate polygon to axis-aligned space for easier grid scanning
       const rotatedPolygonPoints = rotatePolygonCoords(meterCoords, meterCentroid, -axisAngle);
       
+      // Check if polygon is concave (L/U/T shaped)
+      const isConcave = isPolygonConcave(rotatedPolygonPoints);
+      
+      if (isConcave) {
+        console.log(`[RoofVisualization] Concave polygon ${polygon.label || polygon.id} detected - using permissive fill with containment check`);
+      }
+      
+      // Create Google Maps polygon for final containment verification
+      // This is the PRIMARY filter for concave polygons
+      const solarPolygonPath = new google.maps.Polygon({
+        paths: coords.map(([lng, lat]) => ({ lat, lng }))
+      });
+
+      let acceptedCount = 0;
+      let rejectedByConstraint = 0;
+      let rejectedByContainment = 0;
+        
       // 5. Get bounding box of rotated polygon in meters
       const bbox = getBoundingBox(rotatedPolygonPoints);
       
@@ -542,12 +879,6 @@ export function RoofVisualization({
       const maxRowY = bbox.maxY - edgeSetbackM - panelHeightM / 2;
       const numRows = Math.floor((maxRowY - minRowY) / rowStep) + 1;
       
-      // Create Google Maps polygon for final containment verification
-      // This catches panels that may have been placed in concave notches
-      const solarPolygonPath = new google.maps.Polygon({
-        paths: coords.map(([lng, lat]) => ({ lat, lng }))
-      });
-      
       // DEBUG: Log grid calculation details
       console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id}:`, {
         axisAngleDeg: Math.round(axisAngle * 180 / Math.PI),
@@ -555,10 +886,8 @@ export function RoofVisualization({
         bboxWidthM: Math.round(roofWidthM),
         bboxHeightM: Math.round(roofHeightM),
         needsPathways: needsNorthSouthPathway || needsEastWestPathway,
+        isConcave,
       });
-
-      let acceptedCount = 0;
-      let rejectedByConstraint = 0;
       
       // 6. ROW-WISE FILL: For each row, find polygon intersections and fill continuously
       for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
@@ -580,20 +909,48 @@ export function RoofVisualization({
         const intersectionsBottom = getPolygonRowIntersections(rotatedPolygonPoints, rowBottomY);
         
         // Get spans with setback applied (horizontal setback from polygon edges)
-        // Only use edgeSetbackM - panel width is accounted for separately
         const spansTop = getRowSpans(intersectionsTop, edgeSetbackM);
         const spansBottom = getRowSpans(intersectionsBottom, edgeSetbackM);
         
-        // Compute intersection of top and bottom spans for concave polygon safety
-        // A panel is only valid if BOTH its top and bottom edges are in the polygon
+        // =========================================================
+        // SPAN CALCULATION: UNION for concave, INTERSECTION for convex
+        // =========================================================
+        // For concave polygons (L/U/T shapes), use UNION of spans and rely on
+        // final containment check. This ensures all usable areas are considered.
+        // For convex polygons, use INTERSECTION which is more efficient.
         const rowSpans: Array<{minX: number, maxX: number}> = [];
-        for (const spanB of spansBottom) {
-          for (const spanT of spansTop) {
-            // Find overlap between top and bottom spans
-            const overlapMin = Math.max(spanB.minX, spanT.minX);
-            const overlapMax = Math.min(spanB.maxX, spanT.maxX);
-            if (overlapMax > overlapMin) {
-              rowSpans.push({ minX: overlapMin, maxX: overlapMax });
+        
+        if (isConcave) {
+          // CONCAVE POLYGON: Use UNION of all spans (permissive approach)
+          // The final containment check will reject panels outside the polygon
+          const allSpans = [...spansTop, ...spansBottom];
+          
+          // Merge overlapping spans
+          if (allSpans.length > 0) {
+            allSpans.sort((a, b) => a.minX - b.minX);
+            let current = { ...allSpans[0] };
+            for (let i = 1; i < allSpans.length; i++) {
+              if (allSpans[i].minX <= current.maxX + gapBetweenPanelsM) {
+                // Overlapping or adjacent - extend current
+                current.maxX = Math.max(current.maxX, allSpans[i].maxX);
+              } else {
+                // Gap - save current and start new
+                rowSpans.push(current);
+                current = { ...allSpans[i] };
+              }
+            }
+            rowSpans.push(current);
+          }
+        } else {
+          // CONVEX POLYGON: Use INTERSECTION of top and bottom spans (efficient)
+          for (const spanB of spansBottom) {
+            for (const spanT of spansTop) {
+              // Find overlap between top and bottom spans
+              const overlapMin = Math.max(spanB.minX, spanT.minX);
+              const overlapMax = Math.min(spanB.maxX, spanT.maxX);
+              if (overlapMax > overlapMin) {
+                rowSpans.push({ minX: overlapMin, maxX: overlapMax });
+              }
             }
           }
         }
@@ -650,6 +1007,7 @@ export function RoofVisualization({
               google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
             );
             if (!allCornersInPolygon) {
+              rejectedByContainment++;
               continue; // Panel extends outside polygon boundary
             }
             
@@ -682,13 +1040,15 @@ export function RoofVisualization({
             });
           }
         }
-      }
+      } // end row loop
       
       // DEBUG: Log placement stats
       console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id} placement:`, {
         accepted: acceptedCount,
+        rejectedByContainment,
         rejectedByConstraint,
         estimatedCapacityKW: Math.round(acceptedCount * 0.59),
+        isConcave,
       });
     });
     
