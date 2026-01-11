@@ -1050,11 +1050,11 @@ export function RoofVisualization({
       
       if (isConcave) {
         // =========================================================
-        // SCANLINE MULTI-ORIENTATION APPROACH for concave polygons (L/U/T shapes)
+        // DIRECT GRID SAMPLING for concave polygons (L/U/T shapes with diagonals)
         // =========================================================
-        // For L-shaped roofs with DIAGONAL sections: use row intersections 
-        // (like convex approach) but with each dominant orientation.
-        // This ensures panels are placed ONLY within valid spans.
+        // Simple, robust approach: scan entire bounding box for each orientation
+        // and check containment for each panel position. No span intersection needed.
+        // Orientation gating assigns each panel to exactly ONE orientation.
         
         // Convert meter coords to Point2D for edge analysis
         const polygonPoints = meterCoords.map(([x, y]) => ({ x, y }));
@@ -1066,19 +1066,17 @@ export function RoofVisualization({
         console.log(`[RoofVisualization] Concave polygon: ${dominantOrientations.length} orientation(s) detected: ${dominantOrientations.map(a => Math.round(a * 180 / Math.PI) + '°').join(', ')}`);
         
         // Track placed panel centers for deduplication across orientations
-        // Use 0.3m resolution (tighter than 0.5m) to avoid any overlaps
         const placedCenters = new Set<string>();
         
-        // Place panels using EACH dominant orientation with SCANLINE approach
-        // Each panel is assigned to exactly ONE orientation via getBestOrientationForPoint
+        // Place panels using EACH dominant orientation with DIRECT GRID SAMPLING
         for (let orientIdx = 0; orientIdx < dominantOrientations.length; orientIdx++) {
           const gridAxisAngle = dominantOrientations[orientIdx];
           
-          // Rotate polygon to this orientation for scanline processing
+          // Rotate polygon to this orientation for grid sampling
           const rotatedPolygon = polygonPoints.map(p => rotatePoint(p, meterCentroid, -gridAxisAngle));
           const gridBbox = getBoundingBox(rotatedPolygon);
           
-          // Calculate grid dimensions for pathway checks
+          // Calculate grid dimensions
           const gridWidthM = gridBbox.maxX - gridBbox.minX;
           const gridHeightM = gridBbox.maxY - gridBbox.minY;
           const gridNeedsNSPathway = gridWidthM > 40;
@@ -1086,17 +1084,21 @@ export function RoofVisualization({
           const gridCenterX = (gridBbox.minX + gridBbox.maxX) / 2;
           const gridCenterY = (gridBbox.minY + gridBbox.maxY) / 2;
           
-          // Row range with setbacks
+          // Grid bounds with setbacks
           const gridMinRowY = gridBbox.minY + edgeSetbackM + panelHeightM / 2;
           const gridMaxRowY = gridBbox.maxY - edgeSetbackM - panelHeightM / 2;
           const gridNumRows = Math.floor((gridMaxRowY - gridMinRowY) / rowStep) + 1;
           
+          const gridMinColX = gridBbox.minX + edgeSetbackM + panelWidthM / 2;
+          const gridMaxColX = gridBbox.maxX - edgeSetbackM - panelWidthM / 2;
+          const gridNumCols = Math.floor((gridMaxColX - gridMinColX) / colStep) + 1;
+          
           let orientAccepted = 0;
           let skippedByOrientation = 0;
           
-          console.log(`[RoofVisualization] Orientation ${orientIdx + 1} (${Math.round(gridAxisAngle * 180 / Math.PI)}°): ${gridNumRows} rows, dimensions ${gridWidthM.toFixed(1)}×${gridHeightM.toFixed(1)}m`);
+          console.log(`[RoofVisualization] Orientation ${orientIdx + 1} (${Math.round(gridAxisAngle * 180 / Math.PI)}°): ${gridNumRows}×${gridNumCols} grid, dimensions ${gridWidthM.toFixed(1)}×${gridHeightM.toFixed(1)}m`);
           
-          // SCANLINE: Process each row using polygon intersections
+          // DIRECT GRID: Scan entire bounding box row by row
           for (let rowIdx = 0; rowIdx < gridNumRows; rowIdx++) {
             const rowCenterY = gridMinRowY + rowIdx * rowStep;
             
@@ -1106,139 +1108,102 @@ export function RoofVisualization({
               continue;
             }
             
-            // Get intersections at both top and bottom of panel row
-            const rowTopY = rowCenterY + panelHeightM / 2;
-            const rowBottomY = rowCenterY - panelHeightM / 2;
-            
-            const intersectionsTop = getPolygonRowIntersections(rotatedPolygon, rowTopY);
-            const intersectionsBottom = getPolygonRowIntersections(rotatedPolygon, rowBottomY);
-            
-            // Get spans with setback applied
-            const spansTop = getRowSpans(intersectionsTop, edgeSetbackM);
-            const spansBottom = getRowSpans(intersectionsBottom, edgeSetbackM);
-            
-            // For CONCAVE polygons: Use INTERSECTION of spans (conservative)
-            // This ensures panels fit entirely within both top and bottom bounds
-            const rowSpans: Array<{minX: number, maxX: number}> = [];
-            for (const spanB of spansBottom) {
-              for (const spanT of spansTop) {
-                const overlapMin = Math.max(spanB.minX, spanT.minX);
-                const overlapMax = Math.min(spanB.maxX, spanT.maxX);
-                if (overlapMax > overlapMin) {
-                  rowSpans.push({ minX: overlapMin, maxX: overlapMax });
-                }
+            for (let colIdx = 0; colIdx < gridNumCols; colIdx++) {
+              const colCenterX = gridMinColX + colIdx * colStep;
+              
+              // Check pathway RELATIVE TO GRID CENTER
+              const colRelativeToCenter = colCenterX - gridCenterX;
+              if (gridNeedsNSPathway && Math.abs(colRelativeToCenter) < halfPathway + panelWidthM / 2) {
+                continue;
               }
-            }
-            
-            // Fill each span with panels
-            for (const span of rowSpans) {
-              const spanWidth = span.maxX - span.minX;
-              const numPanelsInSpan = Math.floor((spanWidth + gapBetweenPanelsM) / colStep);
               
-              if (numPanelsInSpan <= 0) continue;
+              // Panel corners in rotated space
+              const rotX = colCenterX - panelWidthM / 2;
+              const rotY = rowCenterY - panelHeightM / 2;
               
-              // Center the panels within the span
-              const totalPanelWidth = numPanelsInSpan * colStep - gapBetweenPanelsM;
-              const startX = span.minX + (spanWidth - totalPanelWidth) / 2;
+              const rotatedCorners: Point2D[] = [
+                { x: rotX, y: rotY },
+                { x: rotX + panelWidthM, y: rotY },
+                { x: rotX + panelWidthM, y: rotY + panelHeightM },
+                { x: rotX, y: rotY + panelHeightM },
+              ];
               
-              for (let panelIdx = 0; panelIdx < numPanelsInSpan; panelIdx++) {
-                const rotX = startX + panelIdx * colStep;
-                const rotY = rowCenterY - panelHeightM / 2;
-                const panelCenterX = rotX + panelWidthM / 2;
-                
-                // Skip panel if it falls in the north-south central pathway
-                const colRelativeToCenter = panelCenterX - gridCenterX;
-                if (gridNeedsNSPathway && Math.abs(colRelativeToCenter) < halfPathway + panelWidthM / 2) {
-                  continue;
-                }
-                
-                // Panel corners in rotated space
-                const rotatedCorners: Point2D[] = [
-                  { x: rotX, y: rotY },
-                  { x: rotX + panelWidthM, y: rotY },
-                  { x: rotX + panelWidthM, y: rotY + panelHeightM },
-                  { x: rotX, y: rotY + panelHeightM },
-                ];
-                
-                // Rotate back to unrotated meter space
-                const meterCorners = rotatedCorners.map(p => 
-                  rotatePoint(p, meterCentroid, gridAxisAngle)
-                );
-                
-                // Calculate panel center in unrotated meter space
-                const panelCenterM = {
-                  x: (meterCorners[0].x + meterCorners[2].x) / 2,
-                  y: (meterCorners[0].y + meterCorners[2].y) / 2
-                };
-                
-                // ORIENTATION GATING: Only place if this orientation owns this location
-                // This prevents overlapping panels from different orientations
-                const bestOrientIdx = getBestOrientationForPoint(panelCenterM, edges, dominantOrientations);
-                if (bestOrientIdx !== orientIdx) {
-                  skippedByOrientation++;
-                  continue;
-                }
-                
-                // Deduplication: check if panel center already placed
-                // Use 0.3m grid for tight deduplication
-                const centerKey = `${Math.round(panelCenterM.x * 3)}:${Math.round(panelCenterM.y * 3)}`;
-                if (placedCenters.has(centerKey)) {
-                  continue;
-                }
-                
-                // Convert to geographic coordinates
-                const geoCorners = meterCorners.map(p => ({
-                  x: p.x / metersPerDegreeLng + centroid.x,
-                  y: p.y / metersPerDegreeLat + centroid.y
-                }));
-                
-                // CONTAINMENT CHECK: At least 3 of 4 corners must be inside polygon
-                const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
-                const cornersInsideCount = testPoints.filter((point) => 
-                  google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
-                ).length;
-                
-                if (cornersInsideCount < 3) {
-                  rejectedByContainment++;
-                  continue;
-                }
-                
-                // Test no corners are in constraint polygons
-                const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
-                  testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
-                );
-                if (anyPointInConstraint) {
-                  rejectedByConstraint++;
-                  continue;
-                }
-                
-                // Accept panel
-                placedCenters.add(centerKey);
-                acceptedCount++;
-                orientAccepted++;
-                const bottomLeft = geoCorners[0];
-                
-                const quadrant = (panelCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
-                
-                positions.push({ 
-                  lat: bottomLeft.y, 
-                  lng: bottomLeft.x, 
-                  widthDeg: panelWidthDeg, 
-                  heightDeg: panelHeightDeg,
-                  polygonId: polygon.id,
-                  corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
-                  gridRow: rowIdx,
-                  gridCol: panelIdx,
-                  quadrant: quadrant,
-                });
+              // Rotate back to unrotated meter space
+              const meterCorners = rotatedCorners.map(p => 
+                rotatePoint(p, meterCentroid, gridAxisAngle)
+              );
+              
+              // Calculate panel center in unrotated meter space
+              const panelCenterM = {
+                x: (meterCorners[0].x + meterCorners[2].x) / 2,
+                y: (meterCorners[0].y + meterCorners[2].y) / 2
+              };
+              
+              // ORIENTATION GATING: Only place if this orientation owns this location
+              const bestOrientIdx = getBestOrientationForPoint(panelCenterM, edges, dominantOrientations);
+              if (bestOrientIdx !== orientIdx) {
+                skippedByOrientation++;
+                continue;
               }
+              
+              // Deduplication: check if panel center already placed
+              const centerKey = `${Math.round(panelCenterM.x * 3)}:${Math.round(panelCenterM.y * 3)}`;
+              if (placedCenters.has(centerKey)) {
+                continue;
+              }
+              
+              // Convert to geographic coordinates
+              const geoCorners = meterCorners.map(p => ({
+                x: p.x / metersPerDegreeLng + centroid.x,
+                y: p.y / metersPerDegreeLat + centroid.y
+              }));
+              
+              // CONTAINMENT CHECK: At least 3 of 4 corners must be inside polygon
+              const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+              const cornersInsideCount = testPoints.filter((point) => 
+                google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
+              ).length;
+              
+              if (cornersInsideCount < 3) {
+                rejectedByContainment++;
+                continue;
+              }
+              
+              // Test no corners are in constraint polygons
+              const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
+                testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
+              );
+              if (anyPointInConstraint) {
+                rejectedByConstraint++;
+                continue;
+              }
+              
+              // Accept panel
+              placedCenters.add(centerKey);
+              acceptedCount++;
+              orientAccepted++;
+              const bottomLeft = geoCorners[0];
+              
+              const quadrant = (colCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
+              
+              positions.push({ 
+                lat: bottomLeft.y, 
+                lng: bottomLeft.x, 
+                widthDeg: panelWidthDeg, 
+                heightDeg: panelHeightDeg,
+                polygonId: polygon.id,
+                corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
+                gridRow: rowIdx,
+                gridCol: colIdx,
+                quadrant: quadrant,
+              });
             }
           }
           
           console.log(`[RoofVisualization] Orientation ${orientIdx + 1}: ${orientAccepted} panels placed, ${skippedByOrientation} skipped (wrong orientation)`);
         }
         
-        console.log(`[RoofVisualization] Scanline multi-orientation total: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
+        console.log(`[RoofVisualization] Direct grid total: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
       } else {
         // ROW-WISE APPROACH for convex polygons (more efficient)
         for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
