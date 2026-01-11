@@ -1050,77 +1050,65 @@ export function RoofVisualization({
       
       if (isConcave) {
         // =========================================================
-        // POLYGON DECOMPOSITION APPROACH for concave polygons (L/U/T shapes)
+        // MULTI-ORIENTATION GRID APPROACH for concave polygons (L/U/T shapes)
         // =========================================================
-        // Industry best practice (Aurora/Helioscope): Decompose L-shaped roofs
-        // into convex sub-faces, then place panels on each face with its own
-        // orientation. This ensures ALL sections get proper coverage.
+        // For L-shaped roofs with DIAGONAL sections, axis-aligned decomposition
+        // doesn't work. Instead, we detect multiple dominant edge orientations
+        // and place panels with EACH orientation, using deduplication.
         
-        // Convert meter coords to Point2D for decomposition
+        // Convert meter coords to Point2D for edge analysis
         const polygonPoints = meterCoords.map(([x, y]) => ({ x, y }));
         
-        // Decompose into convex sub-polygons
-        const subFaces = decomposePolygon(polygonPoints);
-        console.log(`[RoofVisualization] Concave polygon decomposed into ${subFaces.length} sub-face(s)`);
+        // Analyze edge orientations to find distinct axis directions
+        const edges = analyzeEdgeBearings(polygonPoints);
+        const dominantOrientations = findDominantOrientations(edges);
         
-        // Track placed panel centers for deduplication across sub-faces
+        console.log(`[RoofVisualization] Concave polygon: ${dominantOrientations.length} orientation(s) detected: ${dominantOrientations.map(a => Math.round(a * 180 / Math.PI) + '°').join(', ')}`);
+        
+        // Track placed panel centers for deduplication across orientations
         const placedCenters = new Set<string>();
         
-        // Place panels on each sub-face independently
-        for (let faceIdx = 0; faceIdx < subFaces.length; faceIdx++) {
-          const subFace = subFaces[faceIdx];
-          if (subFace.length < 3) continue;
+        // Place panels using EACH dominant orientation
+        for (let orientIdx = 0; orientIdx < dominantOrientations.length; orientIdx++) {
+          const gridAxisAngle = dominantOrientations[orientIdx];
           
-          // Convert sub-face to [lng, lat] format for axis calculation
-          const subFaceCoords: [number, number][] = subFace.map(p => [
-            p.x / metersPerDegreeLng + centroid.x,  // Convert back to lng
-            p.y / metersPerDegreeLat + centroid.y   // Convert back to lat
-          ]);
+          // Rotate polygon to this orientation for grid scanning
+          const rotatedForGrid = polygonPoints.map(p => rotatePoint(p, meterCentroid, -gridAxisAngle));
+          const gridBbox = getBoundingBox(rotatedForGrid);
           
-          // Calculate this sub-face's principal axis
-          const subAxisAngle = computePrincipalAxisAngle(subFaceCoords);
+          // Calculate grid dimensions for this orientation
+          const gridWidthM = gridBbox.maxX - gridBbox.minX;
+          const gridHeightM = gridBbox.maxY - gridBbox.minY;
+          const gridNeedsNSPathway = gridWidthM > 40;
+          const gridNeedsEWPathway = gridHeightM > 40;
           
-          // Rotate sub-face to align with its principal axis
-          const subCentroid = { 
-            x: subFace.reduce((s, p) => s + p.x, 0) / subFace.length,
-            y: subFace.reduce((s, p) => s + p.y, 0) / subFace.length
-          };
-          const rotatedSubFace = subFace.map(p => rotatePoint(p, subCentroid, -subAxisAngle));
-          const subBbox = getBoundingBox(rotatedSubFace);
+          const gridMinRowY = gridBbox.minY + edgeSetbackM + panelHeightM / 2;
+          const gridMaxRowY = gridBbox.maxY - edgeSetbackM - panelHeightM / 2;
+          const gridNumRows = Math.floor((gridMaxRowY - gridMinRowY) / rowStep) + 1;
           
-          // Calculate grid dimensions for this sub-face
-          const subWidthM = subBbox.maxX - subBbox.minX;
-          const subHeightM = subBbox.maxY - subBbox.minY;
-          const subNeedsNSPathway = subWidthM > 40;
-          const subNeedsEWPathway = subHeightM > 40;
+          const gridMinColX = gridBbox.minX + edgeSetbackM + panelWidthM / 2;
+          const gridMaxColX = gridBbox.maxX - edgeSetbackM - panelWidthM / 2;
+          const gridNumCols = Math.floor((gridMaxColX - gridMinColX) / colStep) + 1;
           
-          const subMinRowY = subBbox.minY + edgeSetbackM + panelHeightM / 2;
-          const subMaxRowY = subBbox.maxY - edgeSetbackM - panelHeightM / 2;
-          const subNumRows = Math.floor((subMaxRowY - subMinRowY) / rowStep) + 1;
+          let orientAccepted = 0;
           
-          const subMinColX = subBbox.minX + edgeSetbackM + panelWidthM / 2;
-          const subMaxColX = subBbox.maxX - edgeSetbackM - panelWidthM / 2;
-          const subNumCols = Math.floor((subMaxColX - subMinColX) / colStep) + 1;
+          console.log(`[RoofVisualization] Orientation ${orientIdx + 1} (${Math.round(gridAxisAngle * 180 / Math.PI)}°): ${gridNumRows}×${gridNumCols} grid`);
           
-          let subAccepted = 0;
-          
-          console.log(`[RoofVisualization] Sub-face ${faceIdx + 1}: ${subNumRows}×${subNumCols} grid (axis: ${Math.round(subAxisAngle * 180 / Math.PI)}°)`);
-          
-          for (let rowIdx = 0; rowIdx < subNumRows; rowIdx++) {
-            const rowCenterY = subMinRowY + rowIdx * rowStep;
+          for (let rowIdx = 0; rowIdx < gridNumRows; rowIdx++) {
+            const rowCenterY = gridMinRowY + rowIdx * rowStep;
             
-            if (subNeedsEWPathway && Math.abs(rowCenterY - subCentroid.y) < halfPathway + panelHeightM / 2) {
+            if (gridNeedsEWPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
               continue;
             }
             
-            for (let colIdx = 0; colIdx < subNumCols; colIdx++) {
-              const colCenterX = subMinColX + colIdx * colStep;
+            for (let colIdx = 0; colIdx < gridNumCols; colIdx++) {
+              const colCenterX = gridMinColX + colIdx * colStep;
               
-              if (subNeedsNSPathway && Math.abs(colCenterX - subCentroid.x) < halfPathway + panelWidthM / 2) {
+              if (gridNeedsNSPathway && Math.abs(colCenterX) < halfPathway + panelWidthM / 2) {
                 continue;
               }
               
-              // Panel corners in rotated sub-face space
+              // Panel corners in rotated grid space
               const panelX = colCenterX - panelWidthM / 2;
               const panelY = rowCenterY - panelHeightM / 2;
               
@@ -1131,17 +1119,17 @@ export function RoofVisualization({
                 { x: panelX, y: panelY + panelHeightM },
               ];
               
-              // Rotate back to unrotated meter space using sub-face angle
+              // Rotate back to unrotated meter space
               const meterCorners = rotatedCorners.map(p => 
-                rotatePoint(p, subCentroid, subAxisAngle)
+                rotatePoint(p, meterCentroid, gridAxisAngle)
               );
               
-              // Deduplication: check if panel center already placed
+              // Deduplication: check if panel center already placed by another orientation
               const panelCenterM = {
                 x: (meterCorners[0].x + meterCorners[2].x) / 2,
                 y: (meterCorners[0].y + meterCorners[2].y) / 2
               };
-              // Use 0.5m grid for deduplication (half panel width)
+              // Use 0.5m grid for deduplication (prevents overlapping panels)
               const centerKey = `${Math.round(panelCenterM.x * 2)}:${Math.round(panelCenterM.y * 2)}`;
               if (placedCenters.has(centerKey)) {
                 continue;
@@ -1176,7 +1164,7 @@ export function RoofVisualization({
               // Accept panel
               placedCenters.add(centerKey);
               acceptedCount++;
-              subAccepted++;
+              orientAccepted++;
               const bottomLeft = geoCorners[0];
               
               const quadrant = (colCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
@@ -1195,10 +1183,10 @@ export function RoofVisualization({
             }
           }
           
-          console.log(`[RoofVisualization] Sub-face ${faceIdx + 1}: ${subAccepted} panels placed`);
+          console.log(`[RoofVisualization] Orientation ${orientIdx + 1}: ${orientAccepted} panels placed`);
         }
         
-        console.log(`[RoofVisualization] Concave decomposition total: ${acceptedCount} panels, ${rejectedByContainment} rejected`);
+        console.log(`[RoofVisualization] Multi-orientation total: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
       } else {
         // ROW-WISE APPROACH for convex polygons (more efficient)
         for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
