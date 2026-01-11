@@ -1070,6 +1070,7 @@ export function RoofVisualization({
         const placedCenters = new Set<string>();
         
         // Place panels using EACH dominant orientation with SCANLINE approach
+        // Each panel is assigned to exactly ONE orientation via getBestOrientationForPoint
         for (let orientIdx = 0; orientIdx < dominantOrientations.length; orientIdx++) {
           const gridAxisAngle = dominantOrientations[orientIdx];
           
@@ -1091,6 +1092,7 @@ export function RoofVisualization({
           const gridNumRows = Math.floor((gridMaxRowY - gridMinRowY) / rowStep) + 1;
           
           let orientAccepted = 0;
+          let skippedByOrientation = 0;
           
           console.log(`[RoofVisualization] Orientation ${orientIdx + 1} (${Math.round(gridAxisAngle * 180 / Math.PI)}°): ${gridNumRows} rows, dimensions ${gridWidthM.toFixed(1)}×${gridHeightM.toFixed(1)}m`);
           
@@ -1115,33 +1117,21 @@ export function RoofVisualization({
             const spansTop = getRowSpans(intersectionsTop, edgeSetbackM);
             const spansBottom = getRowSpans(intersectionsBottom, edgeSetbackM);
             
-            // For CONCAVE polygons: Use UNION of spans (fill all valid areas)
-            // Then filter by containment check
-            const allSpans: Array<{minX: number, maxX: number}> = [];
-            
-            // Merge top and bottom spans - take union for concave polygons
-            for (const spanT of spansTop) {
-              allSpans.push({ minX: spanT.minX, maxX: spanT.maxX });
-            }
+            // For CONCAVE polygons: Use INTERSECTION of spans (conservative)
+            // This ensures panels fit entirely within both top and bottom bounds
+            const rowSpans: Array<{minX: number, maxX: number}> = [];
             for (const spanB of spansBottom) {
-              // Add bottom spans that don't overlap with existing
-              let overlaps = false;
-              for (const existing of allSpans) {
-                if (spanB.minX < existing.maxX && spanB.maxX > existing.minX) {
-                  // Expand existing span to include this one
-                  existing.minX = Math.min(existing.minX, spanB.minX);
-                  existing.maxX = Math.max(existing.maxX, spanB.maxX);
-                  overlaps = true;
-                  break;
+              for (const spanT of spansTop) {
+                const overlapMin = Math.max(spanB.minX, spanT.minX);
+                const overlapMax = Math.min(spanB.maxX, spanT.maxX);
+                if (overlapMax > overlapMin) {
+                  rowSpans.push({ minX: overlapMin, maxX: overlapMax });
                 }
-              }
-              if (!overlaps) {
-                allSpans.push({ minX: spanB.minX, maxX: spanB.maxX });
               }
             }
             
             // Fill each span with panels
-            for (const span of allSpans) {
+            for (const span of rowSpans) {
               const spanWidth = span.maxX - span.minX;
               const numPanelsInSpan = Math.floor((spanWidth + gapBetweenPanelsM) / colStep);
               
@@ -1175,11 +1165,21 @@ export function RoofVisualization({
                   rotatePoint(p, meterCentroid, gridAxisAngle)
                 );
                 
-                // Deduplication: check if panel center already placed
+                // Calculate panel center in unrotated meter space
                 const panelCenterM = {
                   x: (meterCorners[0].x + meterCorners[2].x) / 2,
                   y: (meterCorners[0].y + meterCorners[2].y) / 2
                 };
+                
+                // ORIENTATION GATING: Only place if this orientation owns this location
+                // This prevents overlapping panels from different orientations
+                const bestOrientIdx = getBestOrientationForPoint(panelCenterM, edges, dominantOrientations);
+                if (bestOrientIdx !== orientIdx) {
+                  skippedByOrientation++;
+                  continue;
+                }
+                
+                // Deduplication: check if panel center already placed
                 // Use 0.3m grid for tight deduplication
                 const centerKey = `${Math.round(panelCenterM.x * 3)}:${Math.round(panelCenterM.y * 3)}`;
                 if (placedCenters.has(centerKey)) {
@@ -1235,7 +1235,7 @@ export function RoofVisualization({
             }
           }
           
-          console.log(`[RoofVisualization] Orientation ${orientIdx + 1}: ${orientAccepted} panels placed`);
+          console.log(`[RoofVisualization] Orientation ${orientIdx + 1}: ${orientAccepted} panels placed, ${skippedByOrientation} skipped (wrong orientation)`);
         }
         
         console.log(`[RoofVisualization] Scanline multi-orientation total: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
