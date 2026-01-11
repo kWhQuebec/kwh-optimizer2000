@@ -1050,146 +1050,99 @@ export function RoofVisualization({
       
       if (isConcave) {
         // =========================================================
-        // DUAL-PASS APPROACH for concave polygons (L/U/T shapes)
+        // SINGLE-PASS GRID APPROACH for concave polygons (L/U/T shapes)
         // =========================================================
-        // For L-shaped roofs with diagonal sections, run the standard
-        // rotated grid algorithm TWICE with different orientations:
-        // - Pass 1: Primary axis (longest edge) - fills main body
-        // - Pass 2: Secondary axis (if detected) - fills diagonal wing
-        // Then merge results with spatial deduplication.
+        // Industry best practice: Use primary axis (longest edge) for 
+        // uniform grid alignment across all sections. The 3-of-4 corners
+        // containment check allows panels to partially extend into 
+        // diagonal sections while maintaining professional appearance.
+        //
+        // This avoids overlapping grids from multiple orientations.
         
-        // Analyze polygon edges to find dominant orientations
-        const polygonPoints = meterCoords.map(([x, y]) => ({ x, y }));
-        const edgeInfos = analyzeEdgeBearings(polygonPoints);
-        const dominantOrientations = findDominantOrientations(edgeInfos);
+        console.log(`[RoofVisualization] Concave polygon: single-pass grid placement (axis: ${Math.round(axisAngle * 180 / Math.PI)}°)`);
         
-        console.log(`[RoofVisualization] Dual-pass approach: ${dominantOrientations.length} orientation(s) detected`);
+        // Scan the rotated bounding box with standard grid
+        const minColX = bbox.minX + edgeSetbackM + panelWidthM / 2;
+        const maxColX = bbox.maxX - edgeSetbackM - panelWidthM / 2;
+        const numCols = Math.floor((maxColX - minColX) / colStep) + 1;
         
-        // Track placed panels by spatial key for deduplication across passes
-        const placedPanelKeys = new Set<string>();
-        
-        // Helper function to run one pass with a specific orientation
-        const runOrientedPass = (passAngle: number, passName: string) => {
-          // Rotate polygon to this pass's orientation
-          const passRotatedPoints = rotatePolygonCoords(meterCoords, meterCentroid, -passAngle);
-          const passBbox = getBoundingBox(passRotatedPoints);
+        for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
+          const rowCenterY = minRowY + rowIdx * rowStep;
           
-          const passWidthM = passBbox.maxX - passBbox.minX;
-          const passHeightM = passBbox.maxY - passBbox.minY;
-          const passNeedsNSPathway = passWidthM > 40;
-          const passNeedsEWPathway = passHeightM > 40;
+          if (needsEastWestPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
+            continue;
+          }
           
-          const passMinRowY = passBbox.minY + edgeSetbackM + panelHeightM / 2;
-          const passMaxRowY = passBbox.maxY - edgeSetbackM - panelHeightM / 2;
-          const passNumRows = Math.floor((passMaxRowY - passMinRowY) / rowStep) + 1;
-          
-          const passMinColX = passBbox.minX + edgeSetbackM + panelWidthM / 2;
-          const passMaxColX = passBbox.maxX - edgeSetbackM - panelWidthM / 2;
-          const passNumCols = Math.floor((passMaxColX - passMinColX) / colStep) + 1;
-          
-          let passAccepted = 0;
-          
-          for (let rowIdx = 0; rowIdx < passNumRows; rowIdx++) {
-            const rowCenterY = passMinRowY + rowIdx * rowStep;
+          for (let colIdx = 0; colIdx < numCols; colIdx++) {
+            const colCenterX = minColX + colIdx * colStep;
             
-            if (passNeedsEWPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
+            if (needsNorthSouthPathway && Math.abs(colCenterX) < halfPathway + panelWidthM / 2) {
               continue;
             }
             
-            for (let colIdx = 0; colIdx < passNumCols; colIdx++) {
-              const colCenterX = passMinColX + colIdx * colStep;
-              
-              if (passNeedsNSPathway && Math.abs(colCenterX) < halfPathway + panelWidthM / 2) {
-                continue;
-              }
-              
-              // Panel corners in pass-rotated space
-              const panelX = colCenterX - panelWidthM / 2;
-              const panelY = rowCenterY - panelHeightM / 2;
-              
-              const rotatedCorners: Point2D[] = [
-                { x: panelX, y: panelY },
-                { x: panelX + panelWidthM, y: panelY },
-                { x: panelX + panelWidthM, y: panelY + panelHeightM },
-                { x: panelX, y: panelY + panelHeightM },
-              ];
-              
-              // Rotate back to unrotated meter space
-              const meterCorners = rotatedCorners.map(p => 
-                rotatePoint(p, meterCentroid, passAngle)
-              );
-              
-              // Convert to geographic coordinates
-              const geoCorners = meterCorners.map(p => ({
-                x: p.x / metersPerDegreeLng + centroid.x,
-                y: p.y / metersPerDegreeLat + centroid.y
-              }));
-              
-              // Spatial deduplication: check if a panel is already placed nearby
-              // Use 0.5m grid for deduplication key (half the panel size)
-              const centerX = (meterCorners[0].x + meterCorners[2].x) / 2;
-              const centerY = (meterCorners[0].y + meterCorners[2].y) / 2;
-              const spatialKey = `${Math.round(centerX * 2)}:${Math.round(centerY * 2)}`;
-              
-              if (placedPanelKeys.has(spatialKey)) {
-                continue;
-              }
-              
-              // CONTAINMENT CHECK: At least 3 of 4 corners must be inside
-              const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
-              const cornersInsideCount = testPoints.filter((point) => 
-                google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
-              ).length;
-              
-              if (cornersInsideCount < 3) {
-                rejectedByContainment++;
-                continue;
-              }
-              
-              // Test no corners are in constraint polygons
-              const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
-                testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
-              );
-              if (anyPointInConstraint) {
-                rejectedByConstraint++;
-                continue;
-              }
-              
-              // Accept panel
-              placedPanelKeys.add(spatialKey);
-              acceptedCount++;
-              passAccepted++;
-              const bottomLeft = geoCorners[0];
-              
-              const quadrant = (colCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
-              
-              positions.push({ 
-                lat: bottomLeft.y, 
-                lng: bottomLeft.x, 
-                widthDeg: panelWidthDeg, 
-                heightDeg: panelHeightDeg,
-                polygonId: polygon.id,
-                corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
-                gridRow: rowIdx,
-                gridCol: colIdx,
-                quadrant: quadrant,
-              });
+            // Panel corners in rotated space
+            const panelX = colCenterX - panelWidthM / 2;
+            const panelY = rowCenterY - panelHeightM / 2;
+            
+            const rotatedCorners: Point2D[] = [
+              { x: panelX, y: panelY },
+              { x: panelX + panelWidthM, y: panelY },
+              { x: panelX + panelWidthM, y: panelY + panelHeightM },
+              { x: panelX, y: panelY + panelHeightM },
+            ];
+            
+            // Rotate back to unrotated meter space
+            const meterCorners = rotatedCorners.map(p => 
+              rotatePoint(p, meterCentroid, axisAngle)
+            );
+            
+            // Convert to geographic coordinates
+            const geoCorners = meterCorners.map(p => ({
+              x: p.x / metersPerDegreeLng + centroid.x,
+              y: p.y / metersPerDegreeLat + centroid.y
+            }));
+            
+            // CONTAINMENT CHECK: At least 3 of 4 corners must be inside polygon
+            const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+            const cornersInsideCount = testPoints.filter((point) => 
+              google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
+            ).length;
+            
+            if (cornersInsideCount < 3) {
+              rejectedByContainment++;
+              continue;
             }
+            
+            // Test no corners are in constraint polygons
+            const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
+              testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
+            );
+            if (anyPointInConstraint) {
+              rejectedByConstraint++;
+              continue;
+            }
+            
+            // Accept panel
+            acceptedCount++;
+            const bottomLeft = geoCorners[0];
+            
+            const quadrant = (colCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
+            
+            positions.push({ 
+              lat: bottomLeft.y, 
+              lng: bottomLeft.x, 
+              widthDeg: panelWidthDeg, 
+              heightDeg: panelHeightDeg,
+              polygonId: polygon.id,
+              corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
+              gridRow: rowIdx,
+              gridCol: colIdx,
+              quadrant: quadrant,
+            });
           }
-          
-          console.log(`[RoofVisualization] ${passName}: ${passAccepted} panels placed (angle: ${Math.round(passAngle * 180 / Math.PI)}°)`);
-        };
-        
-        // Run pass 1 with primary orientation (longest edge)
-        runOrientedPass(axisAngle, 'Pass 1 (primary axis)');
-        
-        // Run pass 2 with secondary orientation if significantly different
-        if (dominantOrientations.length > 1) {
-          const secondaryAngle = dominantOrientations[1];
-          runOrientedPass(secondaryAngle, 'Pass 2 (secondary axis)');
         }
         
-        console.log(`[RoofVisualization] Dual-pass total: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
+        console.log(`[RoofVisualization] Concave placement: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
       } else {
         // ROW-WISE APPROACH for convex polygons (more efficient)
         for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
