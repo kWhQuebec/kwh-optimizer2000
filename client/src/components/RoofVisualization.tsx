@@ -463,7 +463,7 @@ function isPolygonConcave(polygon: Point2D[]): boolean {
 }
 
 // Decompose a concave polygon into convex/rectangular sub-polygons
-// Uses axis-aligned cuts through reflex vertices for L/U/T shaped roofs
+// Uses diagonal cuts through reflex vertices for L/U/T shaped roofs with diagonal wings
 function decomposePolygon(polygon: Point2D[]): Point2D[][] {
   if (polygon.length < 3) return [polygon];
   
@@ -474,16 +474,26 @@ function decomposePolygon(polygon: Point2D[]): Point2D[][] {
     return [polygon];
   }
   
+  console.log(`[decomposePolygon] Found ${reflexIndices.length} reflex vertices at indices: ${reflexIndices.join(', ')}`);
+  
   // For each reflex vertex, try to find a valid cut
-  // We use horizontal or vertical cuts for rectangular sub-regions
   for (const reflexIdx of reflexIndices) {
     const reflexPoint = polygon[reflexIdx];
     
-    // Try horizontal cut first (more common for L-shapes)
+    // Try DIAGONAL cut first (following edge direction from reflex vertex)
+    // This handles L-shapes with diagonal wings
+    const diagonalCut = tryDiagonalCut(polygon, reflexIdx);
+    if (diagonalCut) {
+      const [poly1, poly2] = diagonalCut;
+      console.log(`[decomposePolygon] Diagonal cut at vertex ${reflexIdx}: created ${poly1.length}-gon and ${poly2.length}-gon`);
+      return [...decomposePolygon(poly1), ...decomposePolygon(poly2)];
+    }
+    
+    // Try horizontal cut
     const horizontalCut = tryHorizontalCut(polygon, reflexIdx, reflexPoint.y);
     if (horizontalCut) {
-      // Recursively decompose the resulting sub-polygons
       const [poly1, poly2] = horizontalCut;
+      console.log(`[decomposePolygon] Horizontal cut at y=${reflexPoint.y.toFixed(1)}: created ${poly1.length}-gon and ${poly2.length}-gon`);
       return [...decomposePolygon(poly1), ...decomposePolygon(poly2)];
     }
     
@@ -491,13 +501,139 @@ function decomposePolygon(polygon: Point2D[]): Point2D[][] {
     const verticalCut = tryVerticalCut(polygon, reflexIdx, reflexPoint.x);
     if (verticalCut) {
       const [poly1, poly2] = verticalCut;
+      console.log(`[decomposePolygon] Vertical cut at x=${reflexPoint.x.toFixed(1)}: created ${poly1.length}-gon and ${poly2.length}-gon`);
       return [...decomposePolygon(poly1), ...decomposePolygon(poly2)];
     }
   }
   
+  console.log(`[decomposePolygon] No valid cuts found, returning original polygon`);
   // If no valid cuts found, return original polygon
-  // (Algorithm falls back to existing row-wise fill with final containment check)
   return [polygon];
+}
+
+// Try to cut polygon with a diagonal line from reflex vertex
+// This handles L-shapes with diagonal wings by cutting along the reflex vertex's bisector
+function tryDiagonalCut(polygon: Point2D[], reflexIdx: number): [Point2D[], Point2D[]] | null {
+  const n = polygon.length;
+  const reflex = polygon[reflexIdx];
+  const prev = polygon[(reflexIdx - 1 + n) % n];
+  const next = polygon[(reflexIdx + 1) % n];
+  
+  // Calculate the bisector direction at the reflex vertex
+  // The bisector points "into" the polygon
+  const toPrev = normalize({ x: prev.x - reflex.x, y: prev.y - reflex.y });
+  const toNext = normalize({ x: next.x - reflex.x, y: next.y - reflex.y });
+  const bisector = normalize({ x: toPrev.x + toNext.x, y: toPrev.y + toNext.y });
+  
+  // For reflex vertex, the bisector points OUT of the polygon
+  // We need to flip it to point INTO the polygon
+  const inwardBisector = { x: -bisector.x, y: -bisector.y };
+  
+  // Find the edge that the bisector intersects
+  let bestIntersection: { point: Point2D; edgeIdx: number; t: number } | null = null;
+  let bestDist = Infinity;
+  
+  for (let i = 0; i < n; i++) {
+    // Skip edges adjacent to the reflex vertex
+    if (i === reflexIdx || i === (reflexIdx - 1 + n) % n) continue;
+    
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % n];
+    
+    // Find intersection of ray from reflex in bisector direction with edge p1-p2
+    const intersection = rayEdgeIntersection(reflex, inwardBisector, p1, p2);
+    if (intersection && intersection.t > 0.01) { // t > 0 means in front of reflex
+      const dist = Math.sqrt(
+        (intersection.point.x - reflex.x) ** 2 + 
+        (intersection.point.y - reflex.y) ** 2
+      );
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIntersection = { ...intersection, edgeIdx: i };
+      }
+    }
+  }
+  
+  if (!bestIntersection) return null;
+  
+  // Build two sub-polygons from the diagonal cut
+  return buildSubPolygonsFromDiagonalCut(polygon, reflexIdx, bestIntersection.point, bestIntersection.edgeIdx);
+}
+
+// Helper: normalize a vector
+function normalize(v: Point2D): Point2D {
+  const len = Math.sqrt(v.x * v.x + v.y * v.y);
+  if (len < 1e-10) return { x: 0, y: 0 };
+  return { x: v.x / len, y: v.y / len };
+}
+
+// Helper: ray-edge intersection
+function rayEdgeIntersection(
+  rayOrigin: Point2D, 
+  rayDir: Point2D, 
+  edgeP1: Point2D, 
+  edgeP2: Point2D
+): { point: Point2D; t: number; u: number } | null {
+  const edgeDir = { x: edgeP2.x - edgeP1.x, y: edgeP2.y - edgeP1.y };
+  const cross = rayDir.x * edgeDir.y - rayDir.y * edgeDir.x;
+  
+  if (Math.abs(cross) < 1e-10) return null; // Parallel
+  
+  const dx = edgeP1.x - rayOrigin.x;
+  const dy = edgeP1.y - rayOrigin.y;
+  
+  const t = (dx * edgeDir.y - dy * edgeDir.x) / cross;
+  const u = (dx * rayDir.y - dy * rayDir.x) / cross;
+  
+  // t is distance along ray, u is position along edge (0-1)
+  if (u < 0 || u > 1) return null; // Intersection not on edge
+  
+  return {
+    point: { x: rayOrigin.x + t * rayDir.x, y: rayOrigin.y + t * rayDir.y },
+    t,
+    u
+  };
+}
+
+// Build sub-polygons from a diagonal cut
+function buildSubPolygonsFromDiagonalCut(
+  polygon: Point2D[],
+  reflexIdx: number,
+  cutPoint: Point2D,
+  cutEdgeIdx: number
+): [Point2D[], Point2D[]] {
+  const n = polygon.length;
+  
+  // Polygon 1: from reflex vertex forward to cut edge, then cut point back to reflex
+  const poly1: Point2D[] = [];
+  let i = reflexIdx;
+  while (true) {
+    poly1.push(polygon[i]);
+    if (i === cutEdgeIdx) break;
+    i = (i + 1) % n;
+    if (i === reflexIdx) break; // Safety: prevent infinite loop
+  }
+  poly1.push(cutPoint);
+  
+  // Polygon 2: from cut point forward to reflex vertex
+  const poly2: Point2D[] = [cutPoint];
+  i = (cutEdgeIdx + 1) % n;
+  while (i !== reflexIdx) {
+    poly2.push(polygon[i]);
+    i = (i + 1) % n;
+  }
+  poly2.push(polygon[reflexIdx]);
+  
+  // Validate polygons
+  if (poly1.length < 3 || poly2.length < 3) return null as any;
+  
+  // Clean up duplicates
+  const clean1 = removeDuplicatePoints(poly1);
+  const clean2 = removeDuplicatePoints(poly2);
+  
+  if (clean1.length < 3 || clean2.length < 3) return null as any;
+  
+  return [clean1, clean2];
 }
 
 // Try to cut polygon with a horizontal line at y-coordinate
@@ -1138,83 +1274,82 @@ export function RoofVisualization({
       
       if (isConcave) {
         // =========================================================
-        // DIRECT GRID SAMPLING for concave polygons (L/U/T shapes with diagonals)
+        // FACE-WISE CONVEX PARTITION FILL for concave polygons
         // =========================================================
-        // Simple, robust approach: scan entire bounding box for each orientation
-        // and check containment for each panel position. No span intersection needed.
-        // Orientation gating assigns each panel to exactly ONE orientation.
-        // KEY FIX: Use INSET POLYGON for setback, not bounding box margins
+        // Split concave polygon into convex sub-faces, then fill each independently.
+        // This handles L-shapes with diagonal wings by giving each face its own axis.
         
-        // Convert meter coords to Point2D for edge analysis
+        // Convert meter coords to Point2D for decomposition
         const polygonPoints = meterCoords.map(([x, y]) => ({ x, y }));
         
-        // Create INSET polygon for setback checking (1.2m from all edges)
-        // This properly handles diagonal edges unlike bounding box margin
-        const insetPolygonPoints = insetPolygon(polygonPoints, edgeSetbackM);
-        const hasValidInset = insetPolygonPoints.length >= 3;
+        // DECOMPOSE into convex sub-polygons
+        const subPolygons = decomposePolygon(polygonPoints);
+        console.log(`[RoofVisualization] Decomposed concave polygon into ${subPolygons.length} face(s)`);
         
-        console.log(`[RoofVisualization] Inset polygon: ${hasValidInset ? insetPolygonPoints.length + ' vertices' : 'INVALID (too small)'}`);
-        
-        // Analyze edge orientations to find distinct axis directions
-        const edges = analyzeEdgeBearings(polygonPoints);
-        const dominantOrientations = findDominantOrientations(edges);
-        
-        console.log(`[RoofVisualization] Concave polygon: ${dominantOrientations.length} orientation(s) detected: ${dominantOrientations.map(a => Math.round(a * 180 / Math.PI) + '°').join(', ')}`);
-        
-        // Track placed panel centers for deduplication across orientations
+        // Track placed panel centers for deduplication across faces
         const placedCenters = new Set<string>();
         
-        // Place panels using EACH dominant orientation with DIRECT GRID SAMPLING
-        for (let orientIdx = 0; orientIdx < dominantOrientations.length; orientIdx++) {
-          const gridAxisAngle = dominantOrientations[orientIdx];
+        // Fill EACH face independently with its own orientation
+        for (let faceIdx = 0; faceIdx < subPolygons.length; faceIdx++) {
+          const face = subPolygons[faceIdx];
           
-          // Rotate polygon to this orientation for grid sampling
-          const rotatedPolygon = polygonPoints.map(p => rotatePoint(p, meterCentroid, -gridAxisAngle));
-          const gridBbox = getBoundingBox(rotatedPolygon);
+          // Skip tiny faces
+          const faceArea = Math.abs(signedPolygonArea(face));
+          if (faceArea < 10) {
+            console.log(`[RoofVisualization] Face ${faceIdx + 1}: skipped (area ${faceArea.toFixed(1)} m² too small)`);
+            continue;
+          }
+          
+          // Find dominant axis for THIS face (longest edge direction)
+          const faceCoords = face.map(p => [p.x, p.y] as [number, number]);
+          const faceCentroid = computeCentroid(faceCoords);
+          const faceAxisAngle = computePrincipalAxisAngle(faceCoords);
+          
+          // Rotate face to align with its axis
+          const rotatedFace = face.map(p => rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, -faceAxisAngle));
+          const faceBbox = getBoundingBox(rotatedFace);
           
           // Calculate grid dimensions
-          const gridWidthM = gridBbox.maxX - gridBbox.minX;
-          const gridHeightM = gridBbox.maxY - gridBbox.minY;
-          const gridNeedsNSPathway = gridWidthM > 40;
-          const gridNeedsEWPathway = gridHeightM > 40;
-          const gridCenterX = (gridBbox.minX + gridBbox.maxX) / 2;
-          const gridCenterY = (gridBbox.minY + gridBbox.maxY) / 2;
+          const faceWidthM = faceBbox.maxX - faceBbox.minX;
+          const faceHeightM = faceBbox.maxY - faceBbox.minY;
+          const faceNeedsNSPathway = faceWidthM > 40;
+          const faceNeedsEWPathway = faceHeightM > 40;
+          const faceCenterX = (faceBbox.minX + faceBbox.maxX) / 2;
+          const faceCenterY = (faceBbox.minY + faceBbox.maxY) / 2;
           
-          // Grid bounds WITHOUT setback (setback is handled via inset polygon check)
-          // Only add half panel size to avoid panels crossing bounding box
-          const gridMinRowY = gridBbox.minY + panelHeightM / 2;
-          const gridMaxRowY = gridBbox.maxY - panelHeightM / 2;
-          const gridNumRows = Math.floor((gridMaxRowY - gridMinRowY) / rowStep) + 1;
+          // Grid bounds with setback
+          const faceMinRowY = faceBbox.minY + edgeSetbackM + panelHeightM / 2;
+          const faceMaxRowY = faceBbox.maxY - edgeSetbackM - panelHeightM / 2;
+          const faceNumRows = Math.floor((faceMaxRowY - faceMinRowY) / rowStep) + 1;
           
-          const gridMinColX = gridBbox.minX + panelWidthM / 2;
-          const gridMaxColX = gridBbox.maxX - panelWidthM / 2;
-          const gridNumCols = Math.floor((gridMaxColX - gridMinColX) / colStep) + 1;
+          const faceMinColX = faceBbox.minX + edgeSetbackM + panelWidthM / 2;
+          const faceMaxColX = faceBbox.maxX - edgeSetbackM - panelWidthM / 2;
+          const faceNumCols = Math.floor((faceMaxColX - faceMinColX) / colStep) + 1;
           
-          let orientAccepted = 0;
-          let skippedByOrientation = 0;
+          let faceAccepted = 0;
           
-          console.log(`[RoofVisualization] Orientation ${orientIdx + 1} (${Math.round(gridAxisAngle * 180 / Math.PI)}°): ${gridNumRows}×${gridNumCols} grid, dimensions ${gridWidthM.toFixed(1)}×${gridHeightM.toFixed(1)}m`);
+          console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${Math.round(faceAxisAngle * 180 / Math.PI)}° axis, ${faceNumRows}×${faceNumCols} grid, ${faceWidthM.toFixed(1)}×${faceHeightM.toFixed(1)}m, area ${faceArea.toFixed(1)}m²`);
           
-          // DIRECT GRID: Scan entire bounding box row by row
-          for (let rowIdx = 0; rowIdx < gridNumRows; rowIdx++) {
-            const rowCenterY = gridMinRowY + rowIdx * rowStep;
+          // GRID FILL for this face
+          for (let rowIdx = 0; rowIdx < faceNumRows; rowIdx++) {
+            const rowCenterY = faceMinRowY + rowIdx * rowStep;
             
-            // Check pathway RELATIVE TO GRID CENTER
-            const rowRelativeToCenter = rowCenterY - gridCenterY;
-            if (gridNeedsEWPathway && Math.abs(rowRelativeToCenter) < halfPathway + panelHeightM / 2) {
+            // Check pathway RELATIVE TO FACE CENTER
+            const rowRelativeToCenter = rowCenterY - faceCenterY;
+            if (faceNeedsEWPathway && Math.abs(rowRelativeToCenter) < halfPathway + panelHeightM / 2) {
               continue;
             }
             
-            for (let colIdx = 0; colIdx < gridNumCols; colIdx++) {
-              const colCenterX = gridMinColX + colIdx * colStep;
+            for (let colIdx = 0; colIdx < faceNumCols; colIdx++) {
+              const colCenterX = faceMinColX + colIdx * colStep;
               
-              // Check pathway RELATIVE TO GRID CENTER
-              const colRelativeToCenter = colCenterX - gridCenterX;
-              if (gridNeedsNSPathway && Math.abs(colRelativeToCenter) < halfPathway + panelWidthM / 2) {
+              // Check pathway RELATIVE TO FACE CENTER
+              const colRelativeToCenter = colCenterX - faceCenterX;
+              if (faceNeedsNSPathway && Math.abs(colRelativeToCenter) < halfPathway + panelWidthM / 2) {
                 continue;
               }
               
-              // Panel corners in rotated space
+              // Panel corners in face-rotated space
               const rotX = colCenterX - panelWidthM / 2;
               const rotY = rowCenterY - panelHeightM / 2;
               
@@ -1225,9 +1360,9 @@ export function RoofVisualization({
                 { x: rotX, y: rotY + panelHeightM },
               ];
               
-              // Rotate back to unrotated meter space
+              // Rotate back to unrotated meter space using FACE centroid and axis
               const meterCorners = rotatedCorners.map(p => 
-                rotatePoint(p, meterCentroid, gridAxisAngle)
+                rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, faceAxisAngle)
               );
               
               // Calculate panel center in unrotated meter space
@@ -1236,27 +1371,10 @@ export function RoofVisualization({
                 y: (meterCorners[0].y + meterCorners[2].y) / 2
               };
               
-              // ORIENTATION GATING: Only place if this orientation owns this location
-              const bestOrientIdx = getBestOrientationForPoint(panelCenterM, edges, dominantOrientations);
-              if (bestOrientIdx !== orientIdx) {
-                skippedByOrientation++;
-                continue;
-              }
-              
-              // Deduplication: check if panel center already placed
+              // Deduplication: check if panel center already placed (across all faces)
               const centerKey = `${Math.round(panelCenterM.x * 3)}:${Math.round(panelCenterM.y * 3)}`;
               if (placedCenters.has(centerKey)) {
                 continue;
-              }
-              
-              // SETBACK CHECK: Panel center must be inside INSET polygon (1.2m from edges)
-              // This properly handles diagonal edges unlike bounding box margin
-              if (hasValidInset) {
-                const centerInInset = pointInPolygon(panelCenterM, insetPolygonPoints);
-                if (!centerInInset) {
-                  rejectedByContainment++;
-                  continue;
-                }
               }
               
               // Convert to geographic coordinates
@@ -1265,7 +1383,7 @@ export function RoofVisualization({
                 y: p.y / metersPerDegreeLat + centroid.y
               }));
               
-              // CONTAINMENT CHECK: At least 3 of 4 corners must be inside original polygon
+              // CONTAINMENT CHECK: At least 3 of 4 corners must be inside ORIGINAL polygon
               const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
               const cornersInsideCount = testPoints.filter((point) => 
                 google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
@@ -1288,7 +1406,7 @@ export function RoofVisualization({
               // Accept panel
               placedCenters.add(centerKey);
               acceptedCount++;
-              orientAccepted++;
+              faceAccepted++;
               const bottomLeft = geoCorners[0];
               
               const quadrant = (colCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
@@ -1307,10 +1425,10 @@ export function RoofVisualization({
             }
           }
           
-          console.log(`[RoofVisualization] Orientation ${orientIdx + 1}: ${orientAccepted} panels placed, ${skippedByOrientation} skipped (wrong orientation)`);
+          console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${faceAccepted} panels placed`);
         }
         
-        console.log(`[RoofVisualization] Direct grid total: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
+        console.log(`[RoofVisualization] Face-wise fill total: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
       } else {
         // ROW-WISE APPROACH for convex polygons (more efficient)
         for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
