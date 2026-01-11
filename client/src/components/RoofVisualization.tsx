@@ -48,6 +48,16 @@ interface Point2D {
   y: number;
 }
 
+// Constraint polygon with optional metadata for distance-based fallback checking
+interface ConstraintPolygonPath {
+  polygon: google.maps.Polygon;
+  failed: boolean;
+  meterCoords?: Point2D[];
+  centroid?: Point2D;
+  metersPerDegreeLat?: number;
+  metersPerDegreeLng?: number;
+}
+
 // Calculate the centroid (center of mass) of a polygon
 function computeCentroid(coords: [number, number][]): Point2D {
   let sumX = 0, sumY = 0;
@@ -152,12 +162,13 @@ function getBoundingBox(points: Point2D[]): { minX: number; maxX: number; minY: 
 
 // Inset a polygon by moving each edge inward by the specified distance
 // This creates a smaller polygon suitable for setback checking
+// IMPROVED: Validates inset vertices to handle narrow triangular protrusions
 function insetPolygon(polygon: Point2D[], insetDistance: number): Point2D[] {
   const n = polygon.length;
   if (n < 3) return polygon;
   
   // For each edge, compute the inward-facing normal and offset the edge
-  const offsetEdges: Array<{ p1: Point2D; p2: Point2D; normal: Point2D }> = [];
+  const offsetEdges: Array<{ p1: Point2D; p2: Point2D; normal: Point2D; originalIdx: number }> = [];
   
   for (let i = 0; i < n; i++) {
     const p1 = polygon[i];
@@ -179,14 +190,15 @@ function insetPolygon(polygon: Point2D[], insetDistance: number): Point2D[] {
     offsetEdges.push({
       p1: { x: p1.x + nx * insetDistance, y: p1.y + ny * insetDistance },
       p2: { x: p2.x + nx * insetDistance, y: p2.y + ny * insetDistance },
-      normal: { x: nx, y: ny }
+      normal: { x: nx, y: ny },
+      originalIdx: i
     });
   }
   
   if (offsetEdges.length < 3) return polygon;
   
   // Find intersections of consecutive offset edges to form inset polygon
-  const insetPoints: Point2D[] = [];
+  const rawInsetPoints: Array<{ point: Point2D; originalIdx: number }> = [];
   
   for (let i = 0; i < offsetEdges.length; i++) {
     const edge1 = offsetEdges[i];
@@ -194,16 +206,46 @@ function insetPolygon(polygon: Point2D[], insetDistance: number): Point2D[] {
     
     const intersection = lineLineIntersection(edge1.p1, edge1.p2, edge2.p1, edge2.p2);
     if (intersection) {
-      insetPoints.push(intersection);
+      rawInsetPoints.push({ point: intersection, originalIdx: edge1.originalIdx });
     }
   }
   
   // If inset failed (polygon too small), return empty array
-  if (insetPoints.length < 3) return [];
+  if (rawInsetPoints.length < 3) return [];
+  
+  // CRITICAL FIX: Filter out vertices that are OUTSIDE the original polygon
+  // This happens at narrow protrusions (like triangular tips) where offset edges cross over
+  // For inset (positive distance): vertices must be inside original polygon
+  // For expansion (negative distance): original vertices must be inside result
+  const validInsetPoints: Point2D[] = [];
+  
+  if (insetDistance > 0) {
+    // Shrinking: each inset vertex must be inside (or very close to) the original polygon
+    for (const { point } of rawInsetPoints) {
+      if (pointInPolygon(point, polygon)) {
+        validInsetPoints.push(point);
+      } else {
+        // Check if point is very close to boundary (tolerance for floating point)
+        const distToEdge = distanceToPolygonEdges(point, polygon);
+        if (distToEdge < 0.5) { // Within 0.5m of boundary, accept it
+          validInsetPoints.push(point);
+        }
+        // Otherwise skip this vertex - it's from a collapsed narrow section
+      }
+    }
+  } else {
+    // Expanding: all raw points should be valid for expansion
+    for (const { point } of rawInsetPoints) {
+      validInsetPoints.push(point);
+    }
+  }
+  
+  // If too many vertices were filtered out, inset failed
+  if (validInsetPoints.length < 3) return [];
   
   // Verify the inset polygon is valid (reasonable area based on direction)
   const originalArea = Math.abs(signedPolygonArea(polygon));
-  const resultArea = Math.abs(signedPolygonArea(insetPoints));
+  const resultArea = Math.abs(signedPolygonArea(validInsetPoints));
   
   // For positive inset (shrinking): result should be smaller but not collapsed
   // For negative inset (expansion): result should be larger but not unreasonably so
@@ -219,7 +261,7 @@ function insetPolygon(polygon: Point2D[], insetDistance: number): Point2D[] {
     }
   }
   
-  return insetPoints;
+  return validInsetPoints;
 }
 
 // Find intersection point of two lines (each defined by two points)
@@ -1233,7 +1275,7 @@ export function RoofVisualization({
 
     // Create EXPANDED constraint polygon paths for containment testing
     // Constraints are expanded by edgeSetbackM (1.2m) so panels don't sit too close to obstacles
-    const constraintPolygonPaths = roofPolygons
+    const constraintPolygonPaths: ConstraintPolygonPath[] = roofPolygons
       .filter((p) => {
         if (p.color === "#f97316") return true;
         const label = p.label?.toLowerCase() || "";
@@ -1416,23 +1458,41 @@ export function RoofVisualization({
       const normalizedPolygonM = normalizeToCCW(polygonPointsM);
       const insetPolygonM = insetPolygon(normalizedPolygonM, edgeSetbackM);
       
+      // Also create ORIGINAL polygon path for fallback distance-based checking
+      // This is used when inset collapses narrow sections (like triangular protrusions)
+      const originalGeoCoords = normalizedPolygonM.map(p => ({
+        lat: p.y / metersPerDegreeLat + centroid.y,
+        lng: p.x / metersPerDegreeLng + centroid.x
+      }));
+      const originalPolygonPath = new google.maps.Polygon({ paths: originalGeoCoords });
+      
       // Convert inset polygon to geographic coordinates for containment checks
       let insetPolygonPath: google.maps.Polygon | null = null;
+      let insetCollapseDetected = false;
+      
       if (insetPolygonM.length >= 3) {
         const insetGeoCoords = insetPolygonM.map(p => ({
           lat: p.y / metersPerDegreeLat + centroid.y,
           lng: p.x / metersPerDegreeLng + centroid.x
         }));
         insetPolygonPath = new google.maps.Polygon({ paths: insetGeoCoords });
+        
+        // Check if inset polygon is significantly smaller than expected
+        // This indicates some sections may have collapsed
+        const insetArea = Math.abs(signedPolygonArea(insetPolygonM));
+        const expectedInsetArea = Math.abs(signedPolygonArea(normalizedPolygonM)) * 0.7; // Rough estimate
+        if (insetArea < expectedInsetArea * 0.5) {
+          insetCollapseDetected = true;
+          console.warn(`[RoofVisualization] Inset polygon may have collapsed sections (area ${Math.round(insetArea)}m² vs expected ${Math.round(expectedInsetArea)}m²)`);
+        }
         console.log(`[RoofVisualization] Inset polygon created with ${insetPolygonM.length} vertices`);
       } else {
-        // CRITICAL: If inset fails, polygon is too narrow for panels with setback
-        // Skip this polygon entirely rather than placing panels without proper setback
-        console.warn(`[RoofVisualization] Inset failed for polygon ${polygon.label || polygon.id} - too narrow for panels with 1.2m setback, skipping`);
-        return; // Skip this polygon entirely
+        // CRITICAL: If inset fails completely, use distance-based checking only
+        insetCollapseDetected = true;
+        console.warn(`[RoofVisualization] Inset failed for polygon ${polygon.label || polygon.id} - will use distance-based fallback`);
       }
       
-      // Use inset polygon for containment - no fallback to original
+      // Use inset polygon for primary containment, with fallback to distance checking
       const containmentPolygon = insetPolygonPath;
       
       // Calculate grid bounds from rotated bounding box
@@ -1496,14 +1556,49 @@ export function RoofVisualization({
             y: p.y / metersPerDegreeLat + centroid.y
           }));
           
-          // CONTAINMENT CHECK: ALL 4 corners must be inside INSET polygon
-          // This enforces proper 1.2m setback from ALL edges (including concave)
+          // CONTAINMENT CHECK with HYBRID FALLBACK
+          // Primary: ALL 4 corners must be inside INSET polygon
+          // Fallback: ALL 4 corners inside ORIGINAL polygon AND all corners >= 1.2m from edges
+          // This handles narrow sections (like triangular tips) where inset collapses
           const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
-          const allCornersInside = testPoints.every(point => 
-            google.maps.geometry.poly.containsLocation(point, containmentPolygon)
-          );
           
-          if (!allCornersInside) {
+          let passesContainment = false;
+          
+          // Primary check: inset polygon containment (if available)
+          if (containmentPolygon) {
+            const allCornersInInset = testPoints.every(point => 
+              google.maps.geometry.poly.containsLocation(point, containmentPolygon)
+            );
+            if (allCornersInInset) {
+              passesContainment = true;
+            }
+          }
+          
+          // Fallback check: original polygon + distance-based setback
+          // Only used if primary check failed and inset may have collapsed
+          if (!passesContainment) {
+            const allCornersInOriginal = testPoints.every(point => 
+              google.maps.geometry.poly.containsLocation(point, originalPolygonPath)
+            );
+            
+            if (allCornersInOriginal) {
+              // Verify all panel corners are at least edgeSetbackM from original polygon edges
+              let allCornersHaveSetback = true;
+              for (const corner of meterCorners) {
+                const distToEdge = distanceToPolygonEdges(corner, normalizedPolygonM);
+                if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
+                  allCornersHaveSetback = false;
+                  break;
+                }
+              }
+              
+              if (allCornersHaveSetback) {
+                passesContainment = true;
+              }
+            }
+          }
+          
+          if (!passesContainment) {
             rejectedByContainment++;
             continue;
           }
