@@ -961,11 +961,14 @@ export function RoofVisualization({
             // Create test points for all 4 panel corners
             const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
             
-            // CONTAINMENT CHECK: All 4 corners must be inside polygon
-            const allCornersInPolygon = testPoints.every((point) => 
+            // HYBRID CONTAINMENT CHECK: At least 3 of 4 corners must be inside polygon
+            // This allows panels along angled edges (1 corner may slightly overhang)
+            // while preventing major protrusions (2+ corners outside = rejected)
+            // Maximum overhang is limited to one panel corner (~1m diagonal)
+            const cornersInsideCount = testPoints.filter((point) => 
               google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
-            );
-            if (!allCornersInPolygon) {
+            ).length;
+            if (cornersInsideCount < 3) {
               rejectedByContainment++;
               continue;
             }
@@ -1080,15 +1083,15 @@ export function RoofVisualization({
             // 9. Create test points for all 4 panel corners
             const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
             
-            // 10. FINAL CONTAINMENT CHECK: Verify all 4 corners are inside polygon
-            // This catches panels placed in concave notches that row-wise logic may miss
-            // Note: The 1.2m perimeter setback is enforced by the row-wise span calculation
-            const allCornersInPolygon = testPoints.every((point) => 
+            // 10. HYBRID CONTAINMENT CHECK: At least 3 of 4 corners must be inside polygon
+            // This allows panels along angled edges (1 corner may slightly overhang)
+            // while preventing major protrusions (2+ corners outside = rejected)
+            const cornersInsideCount = testPoints.filter((point) => 
               google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
-            );
-            if (!allCornersInPolygon) {
+            ).length;
+            if (cornersInsideCount < 3) {
               rejectedByContainment++;
-              continue; // Panel extends outside polygon boundary
+              continue; // Too many corners outside polygon boundary
             }
             
             // 11. Test no corners are in constraint polygons
