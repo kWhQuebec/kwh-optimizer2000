@@ -82,6 +82,12 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   **Utilization ratio**: 85% of roof area usable after perimeter setback
     -   **Power density**: ~187 W/m² effective
     -   Consistent parameters across: RoofVisualization, SolarMockup, quick-potential, quick-estimate endpoints
+    -   **Face-wise Convex Partition Fill**: For L-shaped and complex roof geometries:
+        -   Decomposes concave polygons at reflex vertices into convex sub-faces
+        -   Each face filled independently with its own principal axis orientation
+        -   Handles diagonal roof sections (e.g., triangular wings) with proper panel alignment
+        -   Global deduplication prevents overlapping panels at shared edges
+        -   Matches industry tools (Aurora/Helioscope) for professional-looking layouts
 -   **Manual Roof Drawing Tool (MANDATORY)**: Interactive roof area tracing required before running analysis for commercial buildings:
     -   **Mandatory Workflow**: Technicians must draw roof areas BEFORE running any solar analysis simulation
     -   Prominent amber alert banner blocks analysis until roof is validated
