@@ -1,0 +1,19 @@
+Suspense
+    at main
+    at div
+    at div
+    at div
+    at Provider (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=71164270:38:15)
+    at TooltipProvider (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=71164270:64:5)
+    at SidebarProvider (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/src/components/ui/sidebar.tsx:59:3)
+    at AppLayout (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/src/App.tsx?v=8uVUbcRDLlksKP-FKb3nm:147:22)
+    at ProtectedRoute (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/src/App.tsx?v=8uVUbcRDLlksKP-FKb3nm:107:27)
+    at Route (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=71164270:323:16)
+    at Switch (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=71164270:379:17)
+    at AppRoutes
+    at Provider (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=71164270:38:15)
+    at TooltipProvider (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=71164270:64:5)
+    at AuthProvider (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/src/lib/auth.tsx:20:32)
+    at I18nProvider (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/src/lib/i18n.tsx:869:32)
+    at QueryClientProvider (https://98171095-0c64-47b4-ac8c-e8c0ca853566-00-1dllkmg8vut2l.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=71164270:2805:3)
+    at App

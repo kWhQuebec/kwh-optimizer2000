@@ -58,35 +58,67 @@ function computeCentroid(coords: [number, number][]): Point2D {
   return { x: sumX / coords.length, y: sumY / coords.length };
 }
 
-// Find the principal axis angle of a polygon (orientation of longest edge)
+// Find the principal axis angle of a polygon using PCA (covariance-based)
+// This correctly handles triangular faces where the longest edge may not align with spread direction
 // Returns angle in radians where 0 = east, PI/2 = north
 function computePrincipalAxisAngle(coords: [number, number][]): number {
   if (coords.length < 2) return 0;
   
-  // Find the longest edge and use its angle as the principal axis
-  let maxLen = 0;
-  let bestAngle = 0;
+  // Compute centroid
+  let cx = 0, cy = 0;
+  for (const [x, y] of coords) {
+    cx += x;
+    cy += y;
+  }
+  cx /= coords.length;
+  cy /= coords.length;
   
-  for (let i = 0; i < coords.length; i++) {
-    const [lng1, lat1] = coords[i];
-    const [lng2, lat2] = coords[(i + 1) % coords.length];
-    
-    const dx = lng2 - lng1;
-    const dy = lat2 - lat1;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    
-    if (len > maxLen) {
-      maxLen = len;
-      bestAngle = Math.atan2(dy, dx);
-    }
+  // Build 2x2 covariance matrix of vertex offsets from centroid
+  // Cov = [[Sxx, Sxy], [Sxy, Syy]]
+  let Sxx = 0, Syy = 0, Sxy = 0;
+  for (const [x, y] of coords) {
+    const dx = x - cx;
+    const dy = y - cy;
+    Sxx += dx * dx;
+    Syy += dy * dy;
+    Sxy += dx * dy;
   }
   
-  // Normalize to [0, PI) since we want rows parallel to this edge
-  // (panels can face either direction along the edge)
-  while (bestAngle < 0) bestAngle += Math.PI;
-  while (bestAngle >= Math.PI) bestAngle -= Math.PI;
+  // Find principal axis from leading eigenvector of covariance matrix
+  // For 2x2 symmetric matrix, use closed-form solution
+  const diff = Sxx - Syy;
+  const discriminant = Math.sqrt(diff * diff + 4 * Sxy * Sxy);
   
-  return bestAngle;
+  // If variance is nearly isotropic (circular shape), fall back to longest edge
+  if (discriminant < 1e-9) {
+    let maxLen = 0;
+    let bestAngle = 0;
+    for (let i = 0; i < coords.length; i++) {
+      const [x1, y1] = coords[i];
+      const [x2, y2] = coords[(i + 1) % coords.length];
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > maxLen) {
+        maxLen = len;
+        bestAngle = Math.atan2(dy, dx);
+      }
+    }
+    // Normalize to [0, PI)
+    while (bestAngle < 0) bestAngle += Math.PI;
+    while (bestAngle >= Math.PI) bestAngle -= Math.PI;
+    return bestAngle;
+  }
+  
+  // Principal axis angle from eigenvector: atan2(2*Sxy, Sxx - Syy) / 2
+  // This gives the angle of maximum variance (principal axis)
+  let angle = 0.5 * Math.atan2(2 * Sxy, diff);
+  
+  // Normalize to [0, PI) since we want rows parallel to this axis
+  while (angle < 0) angle += Math.PI;
+  while (angle >= Math.PI) angle -= Math.PI;
+  
+  return angle;
 }
 
 // Rotate a point around a center by the given angle (radians)
