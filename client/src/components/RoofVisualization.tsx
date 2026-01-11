@@ -912,66 +912,84 @@ export function RoofVisualization({
       // =========================================================
       
       if (isConcave) {
-        // GRID-BASED APPROACH for concave polygons
-        // Scan all positions in bounding box and check containment
-        const minX = bbox.minX + edgeSetbackM + panelWidthM / 2;
-        const maxX = bbox.maxX - edgeSetbackM - panelWidthM / 2;
-        const numCols = Math.floor((maxX - minX) / colStep) + 1;
+        // =========================================================
+        // UNROTATED GRID APPROACH for concave polygons (L/U/T shapes)
+        // =========================================================
+        // Key insight: Rotating the grid to align with the building axis can miss
+        // diagonal sections of L-shaped roofs. Instead, we scan in UNROTATED 
+        // (cardinal-aligned) space which guarantees coverage of all roof sections.
+        // Panels will align to N-S/E-W directions rather than the building axis,
+        // which is acceptable for complex shapes with no single "correct" alignment.
         
-        console.log(`[RoofVisualization] Grid scan for concave polygon: ${numRows} rows × ${numCols} cols = ${numRows * numCols} candidates`);
+        // Use UNROTATED bounding box (in meter space centered on centroid)
+        const unrotatedBbox = getBoundingBox(meterCoords.map(([x, y]) => ({ x, y })));
         
-        for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
-          const rowCenterY = minRowY + rowIdx * rowStep;
+        const unrotatedMinX = unrotatedBbox.minX + edgeSetbackM + panelWidthM / 2;
+        const unrotatedMaxX = unrotatedBbox.maxX - edgeSetbackM - panelWidthM / 2;
+        const unrotatedMinY = unrotatedBbox.minY + edgeSetbackM + panelHeightM / 2;
+        const unrotatedMaxY = unrotatedBbox.maxY - edgeSetbackM - panelHeightM / 2;
+        
+        const unrotatedNumCols = Math.floor((unrotatedMaxX - unrotatedMinX) / colStep) + 1;
+        const unrotatedNumRows = Math.floor((unrotatedMaxY - unrotatedMinY) / rowStep) + 1;
+        
+        const unrotatedWidthM = unrotatedBbox.maxX - unrotatedBbox.minX;
+        const unrotatedHeightM = unrotatedBbox.maxY - unrotatedBbox.minY;
+        const unrotatedNeedsNSPathway = unrotatedWidthM > 40;
+        const unrotatedNeedsEWPathway = unrotatedHeightM > 40;
+        
+        console.log(`[RoofVisualization] UNROTATED grid scan for concave polygon: ${unrotatedNumRows} rows × ${unrotatedNumCols} cols = ${unrotatedNumRows * unrotatedNumCols} candidates`);
+        console.log(`[RoofVisualization] Unrotated bbox: X[${Math.round(unrotatedBbox.minX)} to ${Math.round(unrotatedBbox.maxX)}], Y[${Math.round(unrotatedBbox.minY)} to ${Math.round(unrotatedBbox.maxY)}]`);
+        
+        for (let rowIdx = 0; rowIdx < unrotatedNumRows; rowIdx++) {
+          const rowCenterY = unrotatedMinY + rowIdx * rowStep;
           
           // Skip row if it falls in the east-west central pathway
-          if (needsEastWestPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
+          if (unrotatedNeedsEWPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
             continue;
           }
           
-          for (let colIdx = 0; colIdx < numCols; colIdx++) {
-            const colCenterX = minX + colIdx * colStep;
+          for (let colIdx = 0; colIdx < unrotatedNumCols; colIdx++) {
+            const colCenterX = unrotatedMinX + colIdx * colStep;
             
             // Skip panel if it falls in the north-south central pathway
-            if (needsNorthSouthPathway && Math.abs(colCenterX) < halfPathway + panelWidthM / 2) {
+            if (unrotatedNeedsNSPathway && Math.abs(colCenterX) < halfPathway + panelWidthM / 2) {
               continue;
             }
             
-            const rotX = colCenterX - panelWidthM / 2;
-            const rotY = rowCenterY - panelHeightM / 2;
+            // Panel corners in UNROTATED meter space (no rotation needed!)
+            const panelX = colCenterX - panelWidthM / 2;
+            const panelY = rowCenterY - panelHeightM / 2;
             
-            // Panel corners in rotated meter space
-            const rotatedCorners: Point2D[] = [
-              { x: rotX, y: rotY },
-              { x: rotX + panelWidthM, y: rotY },
-              { x: rotX + panelWidthM, y: rotY + panelHeightM },
-              { x: rotX, y: rotY + panelHeightM },
+            const meterCorners: Point2D[] = [
+              { x: panelX, y: panelY },
+              { x: panelX + panelWidthM, y: panelY },
+              { x: panelX + panelWidthM, y: panelY + panelHeightM },
+              { x: panelX, y: panelY + panelHeightM },
             ];
             
-            // Rotate panel corners back to local ENU meter coordinates
-            const meterGeoCorners = rotatedCorners.map(p => 
-              rotatePoint(p, meterCentroid, axisAngle)
-            );
-            
-            // Convert meters back to geographic coordinates
-            const geoCorners = meterGeoCorners.map(p => ({
+            // Convert meters DIRECTLY to geographic coordinates (no rotation!)
+            const geoCorners = meterCorners.map(p => ({
               x: p.x / metersPerDegreeLng + centroid.x,  // lng
               y: p.y / metersPerDegreeLat + centroid.y   // lat
             }));
             
-            // Create test points for all 4 panel corners
-            const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+            // Create test points for panel center
+            const panelCenterGeo = {
+              lat: (geoCorners[0].y + geoCorners[2].y) / 2,
+              lng: (geoCorners[0].x + geoCorners[2].x) / 2
+            };
+            const centerPoint = new google.maps.LatLng(panelCenterGeo.lat, panelCenterGeo.lng);
             
-            // HYBRID CONTAINMENT CHECK: At least 3 of 4 corners must be inside polygon
-            // This allows panels along angled edges (1 corner may slightly overhang)
-            // while preventing major protrusions (2+ corners outside = rejected)
-            // Maximum overhang is limited to one panel corner (~1m diagonal)
-            const cornersInsideCount = testPoints.filter((point) => 
-              google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
-            ).length;
-            if (cornersInsideCount < 3) {
+            // CONTAINMENT CHECK: Panel center must be inside polygon
+            // For concave polygons with diagonal sections, center-point check ensures
+            // all usable areas are filled. Slight edge overhang is acceptable for visualization.
+            if (!google.maps.geometry.poly.containsLocation(centerPoint, solarPolygonPath)) {
               rejectedByContainment++;
               continue;
             }
+            
+            // Also create test points for constraint checking
+            const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
             
             // Test no corners are in constraint polygons
             const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
@@ -985,10 +1003,9 @@ export function RoofVisualization({
             // Accept panel
             acceptedCount++;
             const bottomLeft = geoCorners[0];
-            const panelCenterX = colCenterX;
             
-            // Determine quadrant based on rotated position
-            const quadrant = (panelCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
+            // Determine quadrant based on unrotated position
+            const quadrant = (colCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
             
             positions.push({ 
               lat: bottomLeft.y, 
