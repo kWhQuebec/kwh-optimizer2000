@@ -93,7 +93,7 @@ import type {
   OptimalScenario,
   OptimalScenarios
 } from "@shared/schema";
-import { defaultAnalysisAssumptions } from "@shared/schema";
+import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -985,9 +985,13 @@ function AnalysisParametersEditor({
               {(() => {
                 const baseYield = merged.solarYieldKWhPerKWp || 1150;
                 const orientationFactor = merged.orientationFactor || 1.0;
-                const bifacialBoost = merged.bifacialEnabled ? 1.15 : 1.0;
+                // Use roof color-based bifacial config instead of fixed 15%
+                const bifacialConfig = getBifacialConfigFromRoofColor(site?.roofColorType);
+                const bifacialBoost = merged.bifacialEnabled ? bifacialConfig.boost : 1.0;
                 const grossYield = Math.round(baseYield * orientationFactor * bifacialBoost);
-                const bifacialLabel = merged.bifacialEnabled ? " (+15% bifacial)" : "";
+                const bifacialLabel = merged.bifacialEnabled && bifacialConfig.boostPercent > 0
+                  ? ` (+${bifacialConfig.boostPercent}% bifacial)`
+                  : "";
                 return (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -1057,37 +1061,45 @@ function AnalysisParametersEditor({
                   : "Advanced modeling: Typical ILR 1.1-1.5, degradation 0.5%/yr"}
               </p>
               
-              {/* Bifacial PV Section - Simplified */}
-              <div className="pt-3 border-t border-dashed space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-primary" />
-                    {language === "fr" ? "Panneaux bifaciaux" : "Bifacial Panels"}
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={merged.bifacialEnabled || false}
-                      onCheckedChange={(checked) => onChange({ ...value, bifacialEnabled: checked })}
-                      disabled={disabled}
-                      data-testid="switch-bifacial-enabled"
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {merged.bifacialEnabled 
-                        ? (language === "fr" ? "Activé (+15%)" : "Enabled (+15%)")
-                        : (language === "fr" ? "Désactivé" : "Disabled")}
-                    </span>
+              {/* Bifacial PV Section - Roof color-based recommendation */}
+              {(() => {
+                const bifacialConfig = getBifacialConfigFromRoofColor(site?.roofColorType);
+                return (
+                  <div className="pt-3 border-t border-dashed space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-primary" />
+                        {language === "fr" ? "Panneaux bifaciaux" : "Bifacial Panels"}
+                        {bifacialConfig.recommended && (
+                          <Badge variant="secondary" className="text-xs">
+                            {language === "fr" ? "Recommandé" : "Recommended"}
+                          </Badge>
+                        )}
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={merged.bifacialEnabled || false}
+                          onCheckedChange={(checked) => onChange({ ...value, bifacialEnabled: checked })}
+                          disabled={disabled}
+                          data-testid="switch-bifacial-enabled"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {merged.bifacialEnabled 
+                            ? (language === "fr" 
+                                ? `Activé (+${bifacialConfig.boostPercent}%)` 
+                                : `Enabled (+${bifacialConfig.boostPercent}%)`)
+                            : (language === "fr" ? "Désactivé" : "Disabled")}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      {language === "fr" ? bifacialConfig.reason.fr : bifacialConfig.reason.en}
+                    </p>
                   </div>
-                </div>
-                
-                {merged.bifacialEnabled && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    {language === "fr"
-                      ? "Les panneaux bifaciaux captent la lumière des deux côtés. Gain estimé: +15% rendement (typique pour toits commerciaux)."
-                      : "Bifacial panels capture light from both sides. Estimated gain: +15% yield (typical for commercial roofs)."}
-                  </p>
-                )}
-              </div>
+                );
+              })()}
             </div>
 
             {/* Financial Assumptions Section */}
@@ -5813,7 +5825,9 @@ function AnalysisResults({
             {(() => {
               const baseYield = assumptions.solarYieldKWhPerKWp || 1150;
               const orientationFactor = assumptions.orientationFactor || 1.0;
-              const bifacialBoost = assumptions.bifacialEnabled ? 1.15 : 1.0;
+              // Use roof color-based bifacial config
+              const bifacialConfig = getBifacialConfigFromRoofColor(site?.roofColorType);
+              const bifacialBoost = assumptions.bifacialEnabled ? bifacialConfig.boost : 1.0;
               const grossYield = Math.round(baseYield * orientationFactor * bifacialBoost);
               
               // Calculate net yield from actual simulation data
@@ -5830,7 +5844,9 @@ function AnalysisResults({
                   <div>
                     <p className="text-muted-foreground">
                       {language === "fr" ? "Rendement brut" : "Gross yield"}
-                      {assumptions.bifacialEnabled && <span className="text-primary ml-1">(+15%)</span>}
+                      {assumptions.bifacialEnabled && bifacialConfig.boostPercent > 0 && (
+                        <span className="text-primary ml-1">(+{bifacialConfig.boostPercent}%)</span>
+                      )}
                     </p>
                     <p className="font-mono">{grossYield} kWh/kWc</p>
                   </div>

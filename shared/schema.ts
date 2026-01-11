@@ -2101,3 +2101,86 @@ export interface SensitivityAnalysis {
   optimalScenarioId: string | null;  // ID of the optimal scenario
   optimalScenarios?: OptimalScenarios; // Multi-objective optimization results
 }
+
+// ==================== BIFACIAL CONFIGURATION BY ROOF COLOR ====================
+
+/**
+ * Roof color types for bifacial panel recommendations
+ * White/light roofs reflect more sunlight = higher boost from bifacial panels
+ */
+export type RoofColorType = 'white_membrane' | 'light' | 'dark' | 'gravel' | 'unknown';
+
+export interface BifacialConfig {
+  boost: number;           // Multiplier (1.0 = no boost, 1.15 = 15% boost)
+  albedo: number;          // Roof reflectivity (0-1)
+  recommended: boolean;    // Whether bifacial panels are recommended
+  boostPercent: number;    // Human-readable boost percentage (0, 5, 10, 15)
+  reason: { fr: string; en: string };
+}
+
+/**
+ * Get bifacial configuration based on roof color type
+ * Only recommends bifacial for light-colored roofs with high albedo
+ * 
+ * This is a shared utility used by both frontend and backend
+ */
+export function getBifacialConfigFromRoofColor(roofColorType: RoofColorType | string | null | undefined): BifacialConfig {
+  switch (roofColorType) {
+    case 'white_membrane':
+      return {
+        boost: 1.15,
+        boostPercent: 15,
+        albedo: 0.70,
+        recommended: true,
+        reason: {
+          fr: 'Membrane blanche détectée (albédo ~70%) - Bifacial recommandé (+15%)',
+          en: 'White membrane detected (albedo ~70%) - Bifacial recommended (+15%)'
+        }
+      };
+    case 'light':
+      return {
+        boost: 1.10,
+        boostPercent: 10,
+        albedo: 0.50,
+        recommended: true,
+        reason: {
+          fr: 'Toiture claire détectée (albédo ~50%) - Bifacial recommandé (+10%)',
+          en: 'Light roof detected (albedo ~50%) - Bifacial recommended (+10%)'
+        }
+      };
+    case 'gravel':
+      return {
+        boost: 1.05,
+        boostPercent: 5,
+        albedo: 0.30,
+        recommended: false,
+        reason: {
+          fr: 'Gravier détecté (albédo ~30%) - Bifacial optionnel (+5%)',
+          en: 'Gravel detected (albedo ~30%) - Bifacial optional (+5%)'
+        }
+      };
+    case 'dark':
+      return {
+        boost: 1.00,
+        boostPercent: 0,
+        albedo: 0.15,
+        recommended: false,
+        reason: {
+          fr: 'Toiture foncée détectée (albédo ~15%) - Panneaux standards recommandés',
+          en: 'Dark roof detected (albedo ~15%) - Standard panels recommended'
+        }
+      };
+    case 'unknown':
+    default:
+      return {
+        boost: 1.00,
+        boostPercent: 0,
+        albedo: 0.20,
+        recommended: false,
+        reason: {
+          fr: 'Couleur de toiture non analysée - Inspecter le site pour recommandation',
+          en: 'Roof color not analyzed - Site inspection needed for recommendation'
+        }
+      };
+  }
+}

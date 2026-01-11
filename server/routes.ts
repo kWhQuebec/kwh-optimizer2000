@@ -2300,7 +2300,9 @@ export async function registerRoutes(
       console.log(`[GoogleData] Final: hasMaxSunshineHours=${!!googleData.maxSunshineHoursPerYear}, hasProductionEstimate=${!!googleData.googleProductionEstimate}, hasRoofSegments=${!!googleData.roofSegments?.length}`);
       
       // Resolve yield strategy using unified module
-      const yieldStrategy = resolveYieldStrategy(mergedAssumptions, googleData);
+      // Pass site's roofColorType for automatic bifacial recommendation
+      const roofColorType = site?.roofColorType as 'white_membrane' | 'light' | 'dark' | 'gravel' | 'unknown' | null;
+      const yieldStrategy = resolveYieldStrategy(mergedAssumptions, googleData, roofColorType);
       
       // Apply resolved values to assumptions
       mergedAssumptions.solarYieldKWhPerKWp = yieldStrategy.baseYield;
@@ -2310,7 +2312,7 @@ export async function registerRoutes(
       // CRITICAL: Store skip flag directly for downstream code paths
       (mergedAssumptions as any)._yieldStrategy = yieldStrategy;
       
-      console.log(`[UNIFIED] Yield strategy resolved: source='${yieldStrategy.yieldSource}', baseYield=${yieldStrategy.baseYield}, bifacialBoost=${yieldStrategy.bifacialBoost.toFixed(2)}, skipTempCorrection=${yieldStrategy.skipTempCorrection}, effectiveYield=${yieldStrategy.effectiveYield.toFixed(0)}`);
+      console.log(`[UNIFIED] Yield strategy resolved: source='${yieldStrategy.yieldSource}', baseYield=${yieldStrategy.baseYield}, bifacialBoost=${yieldStrategy.bifacialBoost.toFixed(2)} (${yieldStrategy.bifacialConfig.reason.en}), skipTempCorrection=${yieldStrategy.skipTempCorrection}, effectiveYield=${yieldStrategy.effectiveYield.toFixed(0)}`);
       
       // Calculate orientation factor from roof segments if not already set
       if (googleData?.roofSegments && googleData.roofSegments.length > 0 && !customAssumptions?.orientationFactor) {

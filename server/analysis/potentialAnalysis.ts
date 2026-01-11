@@ -11,7 +11,8 @@
  * 4. Financial calculations use consistent assumptions throughout
  */
 
-import type { AnalysisAssumptions } from "@shared/schema";
+import type { AnalysisAssumptions, BifacialConfig } from "@shared/schema";
+import { getBifacialConfigFromRoofColor, type RoofColorType } from "@shared/schema";
 
 // ==================== TIERED PRICING ====================
 
@@ -71,8 +72,9 @@ export interface YieldStrategy {
   skipTempCorrection: boolean;   // ALWAYS derived from yieldSource
   baseYield: number;             // Base yield before adjustments
   bifacialBoost: number;         // Multiplier (1.0 = no boost, 1.15 = 15% boost)
+  bifacialConfig: BifacialConfig; // Full bifacial configuration with reason
   orientationFactor: number;
-  yieldFactor: number;           // Relative to baseline 1150 kWh/kWp
+  yieldFactor: number;           // Relative to baseline 1150 kWp
 }
 
 export interface SimulationParams {
@@ -125,14 +127,21 @@ export const QUEBEC_MONTHLY_TEMPS = [
 // Baseline yield for normalization (kWh/kWp/year)
 export const BASELINE_YIELD = 1150;
 
-// Fixed bifacial boost (15%)
+// Legacy constant for backward compatibility
 export const BIFACIAL_BOOST = 1.15;
+
+// Re-export from shared for backward compatibility
+export { getBifacialConfigFromRoofColor, type RoofColorType, type BifacialConfig } from "@shared/schema";
 
 // ==================== YIELD STRATEGY RESOLVER ====================
 
 /**
  * Resolves the yield strategy based on assumptions and Google data
  * This is the SINGLE source of truth for yieldSource and skipTempCorrection
+ * 
+ * @param assumptions - Analysis assumptions including bifacialEnabled override
+ * @param googleData - Optional Google Solar API data
+ * @param roofColorType - Optional roof color type for automatic bifacial recommendation
  */
 export function resolveYieldStrategy(
   assumptions: Partial<AnalysisAssumptions>,
@@ -142,7 +151,8 @@ export function resolveYieldStrategy(
       systemSizeKw: number;
     };
     maxSunshineHoursPerYear?: number;
-  }
+  },
+  roofColorType?: RoofColorType | null
 ): YieldStrategy {
   let baseYield = assumptions.solarYieldKWhPerKWp || BASELINE_YIELD;
   let yieldSource: 'google' | 'manual' | 'default' = 'default';
@@ -192,10 +202,42 @@ export function resolveYieldStrategy(
     yieldSource = 'default';
   }
   
-  // Bifacial boost (fixed 15%)
-  // DEBUG: Log raw value and type to diagnose incorrect bifacial boost
-  console.log(`[resolveYieldStrategy] assumptions.bifacialEnabled = ${assumptions.bifacialEnabled} (type: ${typeof assumptions.bifacialEnabled})`);
-  const bifacialBoost = assumptions.bifacialEnabled === true ? BIFACIAL_BOOST : 1.0;
+  // Bifacial boost - based on roof color analysis
+  // Priority 1: Manual override via bifacialEnabled
+  // Priority 2: Automatic recommendation based on roof color
+  let bifacialConfig: BifacialConfig;
+  
+  if (assumptions.bifacialEnabled === true) {
+    // User explicitly enabled bifacial - use maximum boost
+    bifacialConfig = {
+      boost: BIFACIAL_BOOST,
+      boostPercent: 15,
+      albedo: 0.70,
+      recommended: true,
+      reason: {
+        fr: 'Bifacial activé manuellement (+15%)',
+        en: 'Bifacial manually enabled (+15%)'
+      }
+    };
+  } else if (assumptions.bifacialEnabled === false) {
+    // User explicitly disabled bifacial
+    bifacialConfig = {
+      boost: 1.0,
+      boostPercent: 0,
+      albedo: 0.20,
+      recommended: false,
+      reason: {
+        fr: 'Bifacial désactivé manuellement',
+        en: 'Bifacial manually disabled'
+      }
+    };
+  } else {
+    // Automatic: determine based on roof color
+    bifacialConfig = getBifacialConfigFromRoofColor(roofColorType);
+  }
+  
+  const bifacialBoost = bifacialConfig.boost;
+  console.log(`[resolveYieldStrategy] roofColorType=${roofColorType}, bifacialBoost=${bifacialBoost}, reason=${bifacialConfig.reason.en}`);
   
   // Orientation factor - ONLY apply for default yield
   // Google yield already accounts for roof orientation and shading
@@ -223,6 +265,7 @@ export function resolveYieldStrategy(
     skipTempCorrection,
     baseYield,
     bifacialBoost,
+    bifacialConfig,
     orientationFactor,
     yieldFactor,
   };
