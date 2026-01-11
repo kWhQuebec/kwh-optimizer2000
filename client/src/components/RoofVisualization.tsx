@@ -1282,9 +1282,11 @@ export function RoofVisualization({
         // Convert meter coords to Point2D for decomposition
         const polygonPoints = meterCoords.map(([x, y]) => ({ x, y }));
         
+        console.log(`[RoofVisualization] Starting decomposition of ${polygonPoints.length}-vertex concave polygon`);
+        
         // DECOMPOSE into convex sub-polygons
         const subPolygons = decomposePolygon(polygonPoints);
-        console.log(`[RoofVisualization] Decomposed concave polygon into ${subPolygons.length} face(s)`);
+        console.log(`[RoofVisualization] Decomposed into ${subPolygons.length} face(s): ${subPolygons.map(p => p.length + '-gon').join(', ')}`);
         
         // Track placed panel centers for deduplication across faces
         const placedCenters = new Set<string>();
@@ -1304,6 +1306,19 @@ export function RoofVisualization({
           const faceCoords = face.map(p => [p.x, p.y] as [number, number]);
           const faceCentroid = computeCentroid(faceCoords);
           const faceAxisAngle = computePrincipalAxisAngle(faceCoords);
+          
+          // DEBUG: Log face edges to see which edge is being selected
+          const faceEdgeLengths: string[] = [];
+          for (let i = 0; i < face.length; i++) {
+            const p1 = face[i];
+            const p2 = face[(i + 1) % face.length];
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            faceEdgeLengths.push(`${len.toFixed(0)}m@${Math.round(angle)}°`);
+          }
+          console.log(`[RoofVisualization] Face ${faceIdx + 1} edges: ${faceEdgeLengths.join(', ')}`);
           
           // Rotate face to align with its axis
           const rotatedFace = face.map(p => rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, -faceAxisAngle));
