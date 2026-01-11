@@ -1082,6 +1082,10 @@ export function RoofVisualization({
           const gridNeedsNSPathway = gridWidthM > 40;
           const gridNeedsEWPathway = gridHeightM > 40;
           
+          // Compute grid centroid for proper pathway positioning
+          const gridCenterX = (gridBbox.minX + gridBbox.maxX) / 2;
+          const gridCenterY = (gridBbox.minY + gridBbox.maxY) / 2;
+          
           const gridMinRowY = gridBbox.minY + edgeSetbackM + panelHeightM / 2;
           const gridMaxRowY = gridBbox.maxY - edgeSetbackM - panelHeightM / 2;
           const gridNumRows = Math.floor((gridMaxRowY - gridMinRowY) / rowStep) + 1;
@@ -1092,19 +1096,23 @@ export function RoofVisualization({
           
           let orientAccepted = 0;
           
-          console.log(`[RoofVisualization] Orientation ${orientIdx + 1} (${Math.round(gridAxisAngle * 180 / Math.PI)}°): ${gridNumRows}×${gridNumCols} grid`);
+          console.log(`[RoofVisualization] Orientation ${orientIdx + 1} (${Math.round(gridAxisAngle * 180 / Math.PI)}°): ${gridNumRows}×${gridNumCols} grid, bbox center: (${gridCenterX.toFixed(1)}, ${gridCenterY.toFixed(1)})`);
           
           for (let rowIdx = 0; rowIdx < gridNumRows; rowIdx++) {
             const rowCenterY = gridMinRowY + rowIdx * rowStep;
             
-            if (gridNeedsEWPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
+            // Check pathway RELATIVE TO GRID CENTER, not origin
+            const rowRelativeToCenter = rowCenterY - gridCenterY;
+            if (gridNeedsEWPathway && Math.abs(rowRelativeToCenter) < halfPathway + panelHeightM / 2) {
               continue;
             }
             
             for (let colIdx = 0; colIdx < gridNumCols; colIdx++) {
               const colCenterX = gridMinColX + colIdx * colStep;
               
-              if (gridNeedsNSPathway && Math.abs(colCenterX) < halfPathway + panelWidthM / 2) {
+              // Check pathway RELATIVE TO GRID CENTER, not origin
+              const colRelativeToCenter = colCenterX - gridCenterX;
+              if (gridNeedsNSPathway && Math.abs(colRelativeToCenter) < halfPathway + panelWidthM / 2) {
                 continue;
               }
               
