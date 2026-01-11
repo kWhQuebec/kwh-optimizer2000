@@ -844,7 +844,7 @@ export function RoofVisualization({
       const isConcave = isPolygonConcave(rotatedPolygonPoints);
       
       if (isConcave) {
-        console.log(`[RoofVisualization] Concave polygon ${polygon.label || polygon.id} detected - using permissive fill with containment check`);
+        console.log(`[RoofVisualization] Concave polygon ${polygon.label || polygon.id} detected - using grid-based fill with containment check`);
       }
       
       // Create Google Maps polygon for final containment verification
@@ -857,8 +857,18 @@ export function RoofVisualization({
       let rejectedByConstraint = 0;
       let rejectedByContainment = 0;
         
-      // 5. Get bounding box of rotated polygon in meters
-      const bbox = getBoundingBox(rotatedPolygonPoints);
+      // 5. Get bounding box - for concave polygons, use UNROTATED bbox to ensure full coverage
+      // The issue: rotation can cause the bounding box to not cover all parts of L-shaped roofs
+      const bboxRotated = getBoundingBox(rotatedPolygonPoints);
+      const bboxUnrotated = getBoundingBox(meterCoords.map(([x, y]) => ({ x, y })));
+      
+      // For concave polygons, use the larger of the two bounding boxes
+      const bbox = isConcave ? {
+        minX: Math.min(bboxRotated.minX, bboxUnrotated.minX),
+        maxX: Math.max(bboxRotated.maxX, bboxUnrotated.maxX),
+        minY: Math.min(bboxRotated.minY, bboxUnrotated.minY),
+        maxY: Math.max(bboxRotated.maxY, bboxUnrotated.maxY),
+      } : bboxRotated;
       
       // Calculate grid parameters
       const colStep = panelWidthM + gapBetweenPanelsM;  // 2.1m horizontal step
@@ -889,63 +899,134 @@ export function RoofVisualization({
         isConcave,
       });
       
-      // 6. ROW-WISE FILL: For each row, find polygon intersections and fill continuously
-      for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
-        // Row center Y position (in rotated meter space)
-        const rowCenterY = minRowY + rowIdx * rowStep;
+      // 6. PANEL PLACEMENT: Different strategies for convex vs concave polygons
+      // =========================================================
+      // CONCAVE (L/U/T shapes): Grid-based scan with containment check
+      // - Scans entire bounding box
+      // - Checks each panel position against Google Maps containsLocation
+      // - Guaranteed to fill all usable areas
+      //
+      // CONVEX (simple rectangles): Row-wise intersection (more efficient)
+      // - Uses polygon edge intersections for precise span calculation
+      // - Only considers positions within calculated spans
+      // =========================================================
+      
+      if (isConcave) {
+        // GRID-BASED APPROACH for concave polygons
+        // Scan all positions in bounding box and check containment
+        const minX = bbox.minX + edgeSetbackM + panelWidthM / 2;
+        const maxX = bbox.maxX - edgeSetbackM - panelWidthM / 2;
+        const numCols = Math.floor((maxX - minX) / colStep) + 1;
         
-        // Skip row if it falls in the east-west central pathway
-        if (needsEastWestPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
-          continue;
-        }
+        console.log(`[RoofVisualization] Grid scan for concave polygon: ${numRows} rows × ${numCols} cols = ${numRows * numCols} candidates`);
         
-        // Calculate polygon intersection points for this row
-        // We check at the top and bottom of the panel to be safe
-        const rowTopY = rowCenterY + panelHeightM / 2;
-        const rowBottomY = rowCenterY - panelHeightM / 2;
-        
-        // Get intersections at both top and bottom of panel row
-        const intersectionsTop = getPolygonRowIntersections(rotatedPolygonPoints, rowTopY);
-        const intersectionsBottom = getPolygonRowIntersections(rotatedPolygonPoints, rowBottomY);
-        
-        // Get spans with setback applied (horizontal setback from polygon edges)
-        const spansTop = getRowSpans(intersectionsTop, edgeSetbackM);
-        const spansBottom = getRowSpans(intersectionsBottom, edgeSetbackM);
-        
-        // =========================================================
-        // SPAN CALCULATION: UNION for concave, INTERSECTION for convex
-        // =========================================================
-        // For concave polygons (L/U/T shapes), use UNION of spans and rely on
-        // final containment check. This ensures all usable areas are considered.
-        // For convex polygons, use INTERSECTION which is more efficient.
-        const rowSpans: Array<{minX: number, maxX: number}> = [];
-        
-        if (isConcave) {
-          // CONCAVE POLYGON: Use UNION of all spans (permissive approach)
-          // The final containment check will reject panels outside the polygon
-          const allSpans = [...spansTop, ...spansBottom];
+        for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
+          const rowCenterY = minRowY + rowIdx * rowStep;
           
-          // Merge overlapping spans
-          if (allSpans.length > 0) {
-            allSpans.sort((a, b) => a.minX - b.minX);
-            let current = { ...allSpans[0] };
-            for (let i = 1; i < allSpans.length; i++) {
-              if (allSpans[i].minX <= current.maxX + gapBetweenPanelsM) {
-                // Overlapping or adjacent - extend current
-                current.maxX = Math.max(current.maxX, allSpans[i].maxX);
-              } else {
-                // Gap - save current and start new
-                rowSpans.push(current);
-                current = { ...allSpans[i] };
-              }
-            }
-            rowSpans.push(current);
+          // Skip row if it falls in the east-west central pathway
+          if (needsEastWestPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
+            continue;
           }
-        } else {
-          // CONVEX POLYGON: Use INTERSECTION of top and bottom spans (efficient)
+          
+          for (let colIdx = 0; colIdx < numCols; colIdx++) {
+            const colCenterX = minX + colIdx * colStep;
+            
+            // Skip panel if it falls in the north-south central pathway
+            if (needsNorthSouthPathway && Math.abs(colCenterX) < halfPathway + panelWidthM / 2) {
+              continue;
+            }
+            
+            const rotX = colCenterX - panelWidthM / 2;
+            const rotY = rowCenterY - panelHeightM / 2;
+            
+            // Panel corners in rotated meter space
+            const rotatedCorners: Point2D[] = [
+              { x: rotX, y: rotY },
+              { x: rotX + panelWidthM, y: rotY },
+              { x: rotX + panelWidthM, y: rotY + panelHeightM },
+              { x: rotX, y: rotY + panelHeightM },
+            ];
+            
+            // Rotate panel corners back to local ENU meter coordinates
+            const meterGeoCorners = rotatedCorners.map(p => 
+              rotatePoint(p, meterCentroid, axisAngle)
+            );
+            
+            // Convert meters back to geographic coordinates
+            const geoCorners = meterGeoCorners.map(p => ({
+              x: p.x / metersPerDegreeLng + centroid.x,  // lng
+              y: p.y / metersPerDegreeLat + centroid.y   // lat
+            }));
+            
+            // Create test points for all 4 panel corners
+            const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+            
+            // CONTAINMENT CHECK: All 4 corners must be inside polygon
+            const allCornersInPolygon = testPoints.every((point) => 
+              google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
+            );
+            if (!allCornersInPolygon) {
+              rejectedByContainment++;
+              continue;
+            }
+            
+            // Test no corners are in constraint polygons
+            const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
+              testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
+            );
+            if (anyPointInConstraint) {
+              rejectedByConstraint++;
+              continue;
+            }
+
+            // Accept panel
+            acceptedCount++;
+            const bottomLeft = geoCorners[0];
+            const panelCenterX = colCenterX;
+            
+            // Determine quadrant based on rotated position
+            const quadrant = (panelCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
+            
+            positions.push({ 
+              lat: bottomLeft.y, 
+              lng: bottomLeft.x, 
+              widthDeg: panelWidthDeg, 
+              heightDeg: panelHeightDeg,
+              polygonId: polygon.id,
+              corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
+              gridRow: rowIdx,
+              gridCol: colIdx,
+              quadrant: quadrant,
+            });
+          }
+        }
+      } else {
+        // ROW-WISE APPROACH for convex polygons (more efficient)
+        for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
+          // Row center Y position (in rotated meter space)
+          const rowCenterY = minRowY + rowIdx * rowStep;
+          
+          // Skip row if it falls in the east-west central pathway
+          if (needsEastWestPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
+            continue;
+          }
+          
+          // Calculate polygon intersection points for this row
+          const rowTopY = rowCenterY + panelHeightM / 2;
+          const rowBottomY = rowCenterY - panelHeightM / 2;
+          
+          // Get intersections at both top and bottom of panel row
+          const intersectionsTop = getPolygonRowIntersections(rotatedPolygonPoints, rowTopY);
+          const intersectionsBottom = getPolygonRowIntersections(rotatedPolygonPoints, rowBottomY);
+          
+          // Get spans with setback applied
+          const spansTop = getRowSpans(intersectionsTop, edgeSetbackM);
+          const spansBottom = getRowSpans(intersectionsBottom, edgeSetbackM);
+          
+          // CONVEX POLYGON: Use INTERSECTION of top and bottom spans
+          const rowSpans: Array<{minX: number, maxX: number}> = [];
           for (const spanB of spansBottom) {
             for (const spanT of spansTop) {
-              // Find overlap between top and bottom spans
               const overlapMin = Math.max(spanB.minX, spanT.minX);
               const overlapMax = Math.min(spanB.maxX, spanT.maxX);
               if (overlapMax > overlapMin) {
@@ -953,10 +1034,9 @@ export function RoofVisualization({
               }
             }
           }
-        }
-        
-        // Fill each span with panels
-        for (const span of rowSpans) {
+          
+          // Fill each span with panels
+          for (const span of rowSpans) {
           // Calculate how many panels fit in this span
           const spanWidth = span.maxX - span.minX;
           const numPanelsInSpan = Math.floor((spanWidth + gapBetweenPanelsM) / colStep);
@@ -1040,7 +1120,8 @@ export function RoofVisualization({
             });
           }
         }
-      } // end row loop
+        } // end row loop
+      } // end else (convex polygon)
       
       // DEBUG: Log placement stats
       console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id} placement:`, {
