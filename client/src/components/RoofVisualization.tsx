@@ -1326,7 +1326,12 @@ export function RoofVisualization({
         // Pathway is enforced in GLOBAL meter space (origin at polygon centroid)
         console.log(`[RoofVisualization] Global pathways: N/S=${needsNorthSouthPathway}, E/W=${needsEastWestPathway} (${Math.round(roofWidthM)}×${Math.round(roofHeightM)}m)`);
         
-        // Fill each face with its own scanline fill
+        // Use GLOBAL axis angle for ALL faces - ensures uniform panel orientation for optimal solar production
+        // The global axisAngle was computed from the full polygon's PCA (principal axis)
+        const globalOrigin = { x: 0, y: 0 }; // Origin is at polygon centroid in meter space
+        console.log(`[RoofVisualization] Using UNIFIED orientation: ${Math.round(axisAngle * 180 / Math.PI)}° for all ${subPolygons.length} faces`);
+        
+        // Fill each face using the GLOBAL axis orientation
         for (let faceIdx = 0; faceIdx < subPolygons.length; faceIdx++) {
           const face = subPolygons[faceIdx];
           
@@ -1334,14 +1339,10 @@ export function RoofVisualization({
           const faceArea = Math.abs(signedPolygonArea(face));
           if (faceArea < 10) continue;
           
-          // Convert face to coordinate arrays for our helper functions
-          const faceCoords = face.map(p => [p.x, p.y] as [number, number]);
-          const faceCentroid = computeCentroid(faceCoords);
-          const faceAxisAngle = computePrincipalAxisAngle(faceCoords);
-          
-          // Rotate face to its own axis-aligned space
+          // Rotate face to GLOBAL axis-aligned space (using polygon centroid as origin)
+          // This ensures all faces share the same rotated coordinate system
           const rotatedFace = face.map(p => 
-            rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, -faceAxisAngle)
+            rotatePoint(p, globalOrigin, -axisAngle)
           );
           const faceBbox = getBoundingBox(rotatedFace);
           
@@ -1356,7 +1357,7 @@ export function RoofVisualization({
           
           let faceAccepted = 0;
           
-          console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${Math.round(faceAxisAngle * 180 / Math.PI)}° axis, ${faceNumRows} rows, ${faceWidthM.toFixed(0)}×${faceHeightM.toFixed(0)}m`);
+          console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${faceNumRows} rows, ${faceWidthM.toFixed(0)}×${faceHeightM.toFixed(0)}m (using global ${Math.round(axisAngle * 180 / Math.PI)}° axis)`);
           
           // SCANLINE FILL for this face
           for (let rowIdx = 0; rowIdx < faceNumRows; rowIdx++) {
@@ -1396,7 +1397,7 @@ export function RoofVisualization({
               for (let panelIdx = 0; panelIdx < numPanelsInSpan; panelIdx++) {
                 const rotX = startX + panelIdx * colStep;
                 const rotY = rowCenterY - panelHeightM / 2;
-                // Panel corners in face-rotated space
+                // Panel corners in GLOBAL axis-aligned space
                 const rotatedCorners: Point2D[] = [
                   { x: rotX, y: rotY },
                   { x: rotX + panelWidthM, y: rotY },
@@ -1404,9 +1405,9 @@ export function RoofVisualization({
                   { x: rotX, y: rotY + panelHeightM },
                 ];
                 
-                // Rotate back to original METER space using FACE's centroid and axis
+                // Rotate back to original METER space using GLOBAL origin and axis
                 const meterCorners = rotatedCorners.map(p => 
-                  rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, faceAxisAngle)
+                  rotatePoint(p, globalOrigin, axisAngle)
                 );
                 
                 // Panel center in GLOBAL meter space (origin at polygon centroid)
