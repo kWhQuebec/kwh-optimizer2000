@@ -1306,176 +1306,196 @@ export function RoofVisualization({
       
       if (isConcave) {
         // =========================================================
-        // FACE-WISE CONVEX PARTITION FILL for concave polygons
+        // FACE-WISE SCANLINE FILL for concave polygons
         // =========================================================
-        // Split concave polygon into convex sub-faces, then fill each independently.
-        // This handles L-shapes with diagonal wings by giving each face its own axis.
+        // Decompose into convex sub-faces, fill each independently with scanline.
+        // This handles L-shapes with diagonal wings correctly since each face
+        // gets its own PCA orientation and row intersections stay simple.
+        // IMPORTANT: Fire pathways are computed GLOBALLY (full polygon) to ensure
+        // continuous corridor across all faces.
         
-        // Convert meter coords to Point2D for decomposition
         const polygonPoints = meterCoords.map(([x, y]) => ({ x, y }));
-        
-        console.log(`[RoofVisualization] Starting decomposition of ${polygonPoints.length}-vertex concave polygon`);
-        
-        // DECOMPOSE into convex sub-polygons
         const subPolygons = decomposePolygon(polygonPoints);
-        console.log(`[RoofVisualization] Decomposed into ${subPolygons.length} face(s): ${subPolygons.map(p => p.length + '-gon').join(', ')}`);
+        console.log(`[RoofVisualization] Decomposed ${meterCoords.length}-vertex concave polygon into ${subPolygons.length} faces`);
         
-        // Track placed panel centers for deduplication across faces
+        // Track placed panel centers for deduplication across faces (high precision)
         const placedCenters = new Set<string>();
         
-        // Fill EACH face independently with its own orientation
+        // GLOBAL fire pathway decision based on full polygon dimensions
+        // (needsNorthSouthPathway and needsEastWestPathway already computed above from roofWidthM/roofHeightM)
+        // Pathway is enforced in GLOBAL meter space (origin at polygon centroid)
+        console.log(`[RoofVisualization] Global pathways: N/S=${needsNorthSouthPathway}, E/W=${needsEastWestPathway} (${Math.round(roofWidthM)}×${Math.round(roofHeightM)}m)`);
+        
+        // Fill each face with its own scanline fill
         for (let faceIdx = 0; faceIdx < subPolygons.length; faceIdx++) {
           const face = subPolygons[faceIdx];
           
-          // Skip tiny faces
+          // Skip tiny faces (less than ~2 panels area)
           const faceArea = Math.abs(signedPolygonArea(face));
-          if (faceArea < 10) {
-            console.log(`[RoofVisualization] Face ${faceIdx + 1}: skipped (area ${faceArea.toFixed(1)} m² too small)`);
-            continue;
-          }
+          if (faceArea < 10) continue;
           
-          // Find dominant axis for THIS face (longest edge direction)
+          // Convert face to coordinate arrays for our helper functions
           const faceCoords = face.map(p => [p.x, p.y] as [number, number]);
           const faceCentroid = computeCentroid(faceCoords);
           const faceAxisAngle = computePrincipalAxisAngle(faceCoords);
           
-          // DEBUG: Log face edges to see which edge is being selected
-          const faceEdgeLengths: string[] = [];
-          for (let i = 0; i < face.length; i++) {
-            const p1 = face[i];
-            const p2 = face[(i + 1) % face.length];
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const len = Math.sqrt(dx * dx + dy * dy);
-            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            faceEdgeLengths.push(`${len.toFixed(0)}m@${Math.round(angle)}°`);
-          }
-          console.log(`[RoofVisualization] Face ${faceIdx + 1} edges: ${faceEdgeLengths.join(', ')}`);
-          
-          // Rotate face to align with its axis
-          const rotatedFace = face.map(p => rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, -faceAxisAngle));
+          // Rotate face to its own axis-aligned space
+          const rotatedFace = face.map(p => 
+            rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, -faceAxisAngle)
+          );
           const faceBbox = getBoundingBox(rotatedFace);
           
-          // Calculate grid dimensions
+          // Face dimensions for logging
           const faceWidthM = faceBbox.maxX - faceBbox.minX;
           const faceHeightM = faceBbox.maxY - faceBbox.minY;
-          const faceNeedsNSPathway = faceWidthM > 40;
-          const faceNeedsEWPathway = faceHeightM > 40;
-          const faceCenterX = (faceBbox.minX + faceBbox.maxX) / 2;
-          const faceCenterY = (faceBbox.minY + faceBbox.maxY) / 2;
           
-          // Grid bounds with setback
+          // Row range with setback
           const faceMinRowY = faceBbox.minY + edgeSetbackM + panelHeightM / 2;
           const faceMaxRowY = faceBbox.maxY - edgeSetbackM - panelHeightM / 2;
           const faceNumRows = Math.floor((faceMaxRowY - faceMinRowY) / rowStep) + 1;
           
-          const faceMinColX = faceBbox.minX + edgeSetbackM + panelWidthM / 2;
-          const faceMaxColX = faceBbox.maxX - edgeSetbackM - panelWidthM / 2;
-          const faceNumCols = Math.floor((faceMaxColX - faceMinColX) / colStep) + 1;
-          
           let faceAccepted = 0;
           
-          console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${Math.round(faceAxisAngle * 180 / Math.PI)}° axis, ${faceNumRows}×${faceNumCols} grid, ${faceWidthM.toFixed(1)}×${faceHeightM.toFixed(1)}m, area ${faceArea.toFixed(1)}m²`);
+          console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${Math.round(faceAxisAngle * 180 / Math.PI)}° axis, ${faceNumRows} rows, ${faceWidthM.toFixed(0)}×${faceHeightM.toFixed(0)}m`);
           
-          // GRID FILL for this face
+          // SCANLINE FILL for this face
           for (let rowIdx = 0; rowIdx < faceNumRows; rowIdx++) {
             const rowCenterY = faceMinRowY + rowIdx * rowStep;
             
-            // Check pathway RELATIVE TO FACE CENTER
-            const rowRelativeToCenter = rowCenterY - faceCenterY;
-            if (faceNeedsEWPathway && Math.abs(rowRelativeToCenter) < halfPathway + panelHeightM / 2) {
-              continue;
+            // Get row intersections with THIS FACE's rotated boundary
+            const rowTopY = rowCenterY + panelHeightM / 2;
+            const rowBottomY = rowCenterY - panelHeightM / 2;
+            
+            const intersectionsTop = getPolygonRowIntersections(rotatedFace, rowTopY);
+            const intersectionsBottom = getPolygonRowIntersections(rotatedFace, rowBottomY);
+            
+            const spansTop = getRowSpans(intersectionsTop, edgeSetbackM);
+            const spansBottom = getRowSpans(intersectionsBottom, edgeSetbackM);
+            
+            // Compute valid spans as intersection of top and bottom
+            const rowSpans: Array<{minX: number, maxX: number}> = [];
+            for (const spanB of spansBottom) {
+              for (const spanT of spansTop) {
+                const overlapMin = Math.max(spanB.minX, spanT.minX);
+                const overlapMax = Math.min(spanB.maxX, spanT.maxX);
+                if (overlapMax > overlapMin) {
+                  rowSpans.push({ minX: overlapMin, maxX: overlapMax });
+                }
+              }
             }
             
-            for (let colIdx = 0; colIdx < faceNumCols; colIdx++) {
-              const colCenterX = faceMinColX + colIdx * colStep;
+            // Fill each span
+            for (const span of rowSpans) {
+              const spanWidth = span.maxX - span.minX;
+              const numPanelsInSpan = Math.floor((spanWidth + gapBetweenPanelsM) / colStep);
+              if (numPanelsInSpan <= 0) continue;
               
-              // Check pathway RELATIVE TO FACE CENTER
-              const colRelativeToCenter = colCenterX - faceCenterX;
-              if (faceNeedsNSPathway && Math.abs(colRelativeToCenter) < halfPathway + panelWidthM / 2) {
-                continue;
+              const totalPanelWidth = numPanelsInSpan * colStep - gapBetweenPanelsM;
+              const startX = span.minX + (spanWidth - totalPanelWidth) / 2;
+              
+              for (let panelIdx = 0; panelIdx < numPanelsInSpan; panelIdx++) {
+                const rotX = startX + panelIdx * colStep;
+                const rotY = rowCenterY - panelHeightM / 2;
+                // Panel corners in face-rotated space
+                const rotatedCorners: Point2D[] = [
+                  { x: rotX, y: rotY },
+                  { x: rotX + panelWidthM, y: rotY },
+                  { x: rotX + panelWidthM, y: rotY + panelHeightM },
+                  { x: rotX, y: rotY + panelHeightM },
+                ];
+                
+                // Rotate back to original METER space using FACE's centroid and axis
+                const meterCorners = rotatedCorners.map(p => 
+                  rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, faceAxisAngle)
+                );
+                
+                // Panel center in GLOBAL meter space (origin at polygon centroid)
+                const panelCenterM = {
+                  x: (meterCorners[0].x + meterCorners[2].x) / 2,
+                  y: (meterCorners[0].y + meterCorners[2].y) / 2
+                };
+                
+                // GLOBAL FIRE PATHWAY CHECK - uses panel FOOTPRINT bounds (not just center)
+                // Corridor is at origin (polygon centroid), panel footprint must NOT intrude
+                // For N-S pathway (vertical corridor at X=0), check panel's X extent
+                if (needsNorthSouthPathway) {
+                  const panelMinX = Math.min(meterCorners[0].x, meterCorners[1].x, meterCorners[2].x, meterCorners[3].x);
+                  const panelMaxX = Math.max(meterCorners[0].x, meterCorners[1].x, meterCorners[2].x, meterCorners[3].x);
+                  // Panel intrudes if any X coordinate is within [-halfPathway, halfPathway]
+                  if (!(panelMinX >= halfPathway || panelMaxX <= -halfPathway)) {
+                    continue;
+                  }
+                }
+                // For E-W pathway (horizontal corridor at Y=0), check panel's Y extent
+                if (needsEastWestPathway) {
+                  const panelMinY = Math.min(meterCorners[0].y, meterCorners[1].y, meterCorners[2].y, meterCorners[3].y);
+                  const panelMaxY = Math.max(meterCorners[0].y, meterCorners[1].y, meterCorners[2].y, meterCorners[3].y);
+                  // Panel intrudes if any Y coordinate is within [-halfPathway, halfPathway]
+                  if (!(panelMinY >= halfPathway || panelMaxY <= -halfPathway)) {
+                    continue;
+                  }
+                }
+                
+                // HIGH PRECISION deduplication (0.1m grid = ~10cm)
+                const centerKey = `${Math.round(panelCenterM.x * 10)}:${Math.round(panelCenterM.y * 10)}`;
+                if (placedCenters.has(centerKey)) {
+                  continue;
+                }
+                
+                // Convert to geographic coordinates
+                const geoCorners = meterCorners.map(p => ({
+                  x: p.x / metersPerDegreeLng + centroid.x,
+                  y: p.y / metersPerDegreeLat + centroid.y
+                }));
+                
+                // Containment check against ORIGINAL polygon (3 of 4 corners)
+                const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+                const cornersInsideCount = testPoints.filter(point => 
+                  google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
+                ).length;
+                
+                if (cornersInsideCount < 3) {
+                  rejectedByContainment++;
+                  continue;
+                }
+                
+                // Constraint polygon check
+                const anyPointInConstraint = constraintPolygonPaths.some(cp => 
+                  testPoints.some(point => google.maps.geometry.poly.containsLocation(point, cp))
+                );
+                if (anyPointInConstraint) {
+                  rejectedByConstraint++;
+                  continue;
+                }
+                
+                // Accept panel
+                placedCenters.add(centerKey);
+                acceptedCount++;
+                faceAccepted++;
+                const bottomLeft = geoCorners[0];
+                
+                // Quadrant relative to global origin
+                const quadrant = (panelCenterM.x >= 0 ? 'E' : 'W') + (panelCenterM.y >= 0 ? 'N' : 'S');
+                
+                positions.push({ 
+                  lat: bottomLeft.y, 
+                  lng: bottomLeft.x, 
+                  widthDeg: panelWidthDeg, 
+                  heightDeg: panelHeightDeg,
+                  polygonId: polygon.id,
+                  corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
+                  gridRow: rowIdx,
+                  gridCol: panelIdx,
+                  quadrant: quadrant,
+                });
               }
-              
-              // Panel corners in face-rotated space
-              const rotX = colCenterX - panelWidthM / 2;
-              const rotY = rowCenterY - panelHeightM / 2;
-              
-              const rotatedCorners: Point2D[] = [
-                { x: rotX, y: rotY },
-                { x: rotX + panelWidthM, y: rotY },
-                { x: rotX + panelWidthM, y: rotY + panelHeightM },
-                { x: rotX, y: rotY + panelHeightM },
-              ];
-              
-              // Rotate back to unrotated meter space using FACE centroid and axis
-              const meterCorners = rotatedCorners.map(p => 
-                rotatePoint(p, { x: faceCentroid.x, y: faceCentroid.y }, faceAxisAngle)
-              );
-              
-              // Calculate panel center in unrotated meter space
-              const panelCenterM = {
-                x: (meterCorners[0].x + meterCorners[2].x) / 2,
-                y: (meterCorners[0].y + meterCorners[2].y) / 2
-              };
-              
-              // Deduplication: check if panel center already placed (across all faces)
-              const centerKey = `${Math.round(panelCenterM.x * 3)}:${Math.round(panelCenterM.y * 3)}`;
-              if (placedCenters.has(centerKey)) {
-                continue;
-              }
-              
-              // Convert to geographic coordinates
-              const geoCorners = meterCorners.map(p => ({
-                x: p.x / metersPerDegreeLng + centroid.x,
-                y: p.y / metersPerDegreeLat + centroid.y
-              }));
-              
-              // CONTAINMENT CHECK: At least 3 of 4 corners must be inside ORIGINAL polygon
-              const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
-              const cornersInsideCount = testPoints.filter((point) => 
-                google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
-              ).length;
-              
-              if (cornersInsideCount < 3) {
-                rejectedByContainment++;
-                continue;
-              }
-              
-              // Test no corners are in constraint polygons
-              const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
-                testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
-              );
-              if (anyPointInConstraint) {
-                rejectedByConstraint++;
-                continue;
-              }
-              
-              // Accept panel
-              placedCenters.add(centerKey);
-              acceptedCount++;
-              faceAccepted++;
-              const bottomLeft = geoCorners[0];
-              
-              const quadrant = (colCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
-              
-              positions.push({ 
-                lat: bottomLeft.y, 
-                lng: bottomLeft.x, 
-                widthDeg: panelWidthDeg, 
-                heightDeg: panelHeightDeg,
-                polygonId: polygon.id,
-                corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
-                gridRow: rowIdx,
-                gridCol: colIdx,
-                quadrant: quadrant,
-              });
             }
           }
           
           console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${faceAccepted} panels placed`);
         }
         
-        console.log(`[RoofVisualization] Face-wise fill total: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
+        console.log(`[RoofVisualization] Face-wise scanline fill: ${acceptedCount} panels, ${rejectedByContainment} rejected`);
       } else {
         // ROW-WISE APPROACH for convex polygons (more efficient)
         for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
