@@ -136,6 +136,52 @@ function pointInPolygon(point: Point2D, polygon: Point2D[]): boolean {
   return inside;
 }
 
+// Calculate X intersections of a horizontal scanline with polygon edges
+// Returns array of X values where the scanline crosses polygon edges
+function getPolygonRowIntersections(polygon: Point2D[], y: number): number[] {
+  const intersections: number[] = [];
+  const n = polygon.length;
+  
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const yi = polygon[i].y, yj = polygon[j].y;
+    const xi = polygon[i].x, xj = polygon[j].x;
+    
+    // Check if this edge crosses the scanline Y
+    if ((yi <= y && yj > y) || (yj <= y && yi > y)) {
+      // Calculate X intersection using linear interpolation
+      const t = (y - yi) / (yj - yi);
+      const xIntersect = xi + t * (xj - xi);
+      intersections.push(xIntersect);
+    }
+  }
+  
+  // Sort intersections left to right
+  return intersections.sort((a, b) => a - b);
+}
+
+// Get contiguous X spans from intersection pairs
+// For a simple polygon, intersections come in pairs (entry/exit)
+function getRowSpans(intersections: number[], setback: number): Array<{minX: number, maxX: number}> {
+  const spans: Array<{minX: number, maxX: number}> = [];
+  
+  // Process intersections in pairs (entry, exit)
+  for (let i = 0; i < intersections.length - 1; i += 2) {
+    const rawMinX = intersections[i];
+    const rawMaxX = intersections[i + 1];
+    
+    // Apply setback to shrink the span from both ends
+    const minX = rawMinX + setback;
+    const maxX = rawMaxX - setback;
+    
+    // Only add span if it has positive width after setback
+    if (maxX > minX) {
+      spans.push({ minX, maxX });
+    }
+  }
+  
+  return spans;
+}
+
 // ============================================================================
 
 // Format numbers with proper locale separators
@@ -449,12 +495,13 @@ export function RoofVisualization({
       const edgeSetbackDegY = edgeSetbackM / metersPerDegreeLat;
 
       // =========================================================
-      // SCANLINE APPROACH - Test every grid cell using polygon containment
+      // ROW-WISE POLYGON INTERSECTION ALGORITHM
       // =========================================================
+      // This algorithm produces clean, contiguous rows of panels instead of clumps:
       // 1. Convert polygon to meters (local ENU centered on centroid)
       // 2. Rotate polygon to align with principal axis
-      // 3. Shrink/inset polygon by edge setback
-      // 4. Scan full bounding box and test each panel center against inset polygon
+      // 3. For each row Y, calculate actual polygon intersections
+      // 4. Place panels continuously within each row span (with setback)
       // 5. Convert accepted panels back to geo coordinates
       
       // 1. Compute centroid in geographic coordinates
@@ -476,40 +523,27 @@ export function RoofVisualization({
       // 5. Get bounding box of rotated polygon in meters
       const bbox = getBoundingBox(rotatedPolygonPoints);
       
-      // Also get bounding box of original (non-rotated) polygon to ensure coverage
-      const origBbox = getBoundingBox(meterCoords.map(([x, y]) => ({ x, y })));
-      
-      // Use the larger of the two bounding boxes to ensure full coverage
-      const maxDim = Math.max(
-        bbox.maxX - bbox.minX,
-        bbox.maxY - bbox.minY,
-        origBbox.maxX - origBbox.minX,
-        origBbox.maxY - origBbox.minY
-      );
-      
-      // 6. Calculate grid parameters - scan a square region centered on origin
+      // Calculate grid parameters
       const colStep = panelWidthM + gapBetweenPanelsM;  // 2.1m horizontal step
       const rowStep = rowSpacingM;                      // 1.5m vertical step
       
-      // Use half the max dimension + margin for scanning
-      const scanRadius = maxDim / 2 + edgeSetbackM + Math.max(panelWidthM, panelHeightM);
-      
-      // Calculate number of rows and columns to scan the full area
-      const numCols = Math.ceil((scanRadius * 2) / colStep) + 1;
-      const numRows = Math.ceil((scanRadius * 2) / rowStep) + 1;
-      const scanStartX = -scanRadius;
-      const scanStartY = -scanRadius;
-      
-      // =========================================================
-      // IFC FIRE CODE: Central pathways DISABLED for maximum capacity
-      // =========================================================
-      // Commercial clients prioritize maximum capacity over IFC pathway recommendations
-      // The 1.2m edge setback still provides perimeter access for maintenance
-      // Central pathways can be added later as a configuration option if needed
       const roofWidthM = bbox.maxX - bbox.minX;
       const roofHeightM = bbox.maxY - bbox.minY;
       
-      // Create Google Maps polygon for containment testing
+      // =========================================================
+      // IFC FIRE CODE: Central pathways for large roofs (> 40m)
+      // =========================================================
+      const needsNorthSouthPathway = roofWidthM > 40;
+      const needsEastWestPathway = roofHeightM > 40;
+      const halfPathway = 0.6; // 1.2m total pathway width
+      
+      // Calculate row range with vertical setback
+      const minRowY = bbox.minY + edgeSetbackM + panelHeightM / 2;
+      const maxRowY = bbox.maxY - edgeSetbackM - panelHeightM / 2;
+      const numRows = Math.floor((maxRowY - minRowY) / rowStep) + 1;
+      
+      // Create Google Maps polygon for final containment verification
+      // This catches panels that may have been placed in concave notches
       const solarPolygonPath = new google.maps.Polygon({
         paths: coords.map(([lng, lat]) => ({ lat, lng }))
       });
@@ -518,115 +552,143 @@ export function RoofVisualization({
       console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id}:`, {
         axisAngleDeg: Math.round(axisAngle * 180 / Math.PI),
         numRows,
-        numCols,
-        maxPossiblePanels: numRows * numCols,
         bboxWidthM: Math.round(roofWidthM),
         bboxHeightM: Math.round(roofHeightM),
+        needsPathways: needsNorthSouthPathway || needsEastWestPathway,
       });
 
       let acceptedCount = 0;
-      let rejectedBySolar = 0;
       let rejectedByConstraint = 0;
       
-      // 7. SCANLINE: Iterate through full scan area (centered on centroid)
-      for (let row = 0; row < numRows; row++) {
-        const rotY = scanStartY + row * rowStep;
-        for (let col = 0; col < numCols; col++) {
-          const rotX = scanStartX + col * colStep;
-          
-          // Panel corners in rotated meter space (axis-aligned grid)
-          const rotatedCorners: Point2D[] = [
-            { x: rotX, y: rotY },
-            { x: rotX + panelWidthM, y: rotY },
-            { x: rotX + panelWidthM, y: rotY + panelHeightM },
-            { x: rotX, y: rotY + panelHeightM },
-          ];
-          
-          const panelCenterX = rotX + panelWidthM / 2;
-          const panelCenterY = rotY + panelHeightM / 2;
-          
-          // =========================================================
-          // IFC SETBACK TEST: Test expanded panel footprint
-          // =========================================================
-          // Create test points at panel corners + edgeSetbackM outward
-          // If all expanded points are inside the polygon, then the panel
-          // is at least edgeSetbackM from the boundary (IFC compliance)
-          const expandedCorners: Point2D[] = [
-            { x: rotX - edgeSetbackM, y: rotY - edgeSetbackM },
-            { x: rotX + panelWidthM + edgeSetbackM, y: rotY - edgeSetbackM },
-            { x: rotX + panelWidthM + edgeSetbackM, y: rotY + panelHeightM + edgeSetbackM },
-            { x: rotX - edgeSetbackM, y: rotY + panelHeightM + edgeSetbackM },
-          ];
-          
-          // 8. Rotate panel corners back to local ENU meter coordinates
-          const meterGeoCorners = rotatedCorners.map(p => 
-            rotatePoint(p, meterCentroid, axisAngle)
-          );
-          const meterExpandedCorners = expandedCorners.map(p => 
-            rotatePoint(p, meterCentroid, axisAngle)
-          );
-          
-          // 9. Convert meters back to geographic coordinates
-          const geoCorners = meterGeoCorners.map(p => ({
-            x: p.x / metersPerDegreeLng + centroid.x,  // lng
-            y: p.y / metersPerDegreeLat + centroid.y   // lat
-          }));
-          const geoExpandedCorners = meterExpandedCorners.map(p => ({
-            x: p.x / metersPerDegreeLng + centroid.x,
-            y: p.y / metersPerDegreeLat + centroid.y
-          }));
-          
-          // 10. Test ALL 4 expanded corners are within solar polygon (enforces setback)
-          const expandedTestPoints = geoExpandedCorners.map(c => new google.maps.LatLng(c.y, c.x));
-          
-          const allExpandedInPolygon = expandedTestPoints.every((point) => 
-            google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
-          );
-          if (!allExpandedInPolygon) {
-            rejectedBySolar++;
-            continue;
+      // 6. ROW-WISE FILL: For each row, find polygon intersections and fill continuously
+      for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
+        // Row center Y position (in rotated meter space)
+        const rowCenterY = minRowY + rowIdx * rowStep;
+        
+        // Skip row if it falls in the east-west central pathway
+        if (needsEastWestPathway && Math.abs(rowCenterY) < halfPathway + panelHeightM / 2) {
+          continue;
+        }
+        
+        // Calculate polygon intersection points for this row
+        // We check at the top and bottom of the panel to be safe
+        const rowTopY = rowCenterY + panelHeightM / 2;
+        const rowBottomY = rowCenterY - panelHeightM / 2;
+        
+        // Get intersections at both top and bottom of panel row
+        const intersectionsTop = getPolygonRowIntersections(rotatedPolygonPoints, rowTopY);
+        const intersectionsBottom = getPolygonRowIntersections(rotatedPolygonPoints, rowBottomY);
+        
+        // Get spans with setback applied (horizontal setback from polygon edges)
+        // Only use edgeSetbackM - panel width is accounted for separately
+        const spansTop = getRowSpans(intersectionsTop, edgeSetbackM);
+        const spansBottom = getRowSpans(intersectionsBottom, edgeSetbackM);
+        
+        // Compute intersection of top and bottom spans for concave polygon safety
+        // A panel is only valid if BOTH its top and bottom edges are in the polygon
+        const rowSpans: Array<{minX: number, maxX: number}> = [];
+        for (const spanB of spansBottom) {
+          for (const spanT of spansTop) {
+            // Find overlap between top and bottom spans
+            const overlapMin = Math.max(spanB.minX, spanT.minX);
+            const overlapMax = Math.min(spanB.maxX, spanT.maxX);
+            if (overlapMax > overlapMin) {
+              rowSpans.push({ minX: overlapMin, maxX: overlapMax });
+            }
           }
+        }
+        
+        // Fill each span with panels
+        for (const span of rowSpans) {
+          // Calculate how many panels fit in this span
+          const spanWidth = span.maxX - span.minX;
+          const numPanelsInSpan = Math.floor((spanWidth + gapBetweenPanelsM) / colStep);
           
-          // Also need actual corners for constraint checking and display
-          const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+          if (numPanelsInSpan <= 0) continue;
+          
+          // Center the panels within the span
+          const totalPanelWidth = numPanelsInSpan * colStep - gapBetweenPanelsM;
+          const startX = span.minX + (spanWidth - totalPanelWidth) / 2;
+          
+          for (let panelIdx = 0; panelIdx < numPanelsInSpan; panelIdx++) {
+            const rotX = startX + panelIdx * colStep;
+            const rotY = rowCenterY - panelHeightM / 2;
+            
+            const panelCenterX = rotX + panelWidthM / 2;
+            
+            // Skip panel if it falls in the north-south central pathway
+            if (needsNorthSouthPathway && Math.abs(panelCenterX) < halfPathway + panelWidthM / 2) {
+              continue;
+            }
+            
+            // Panel corners in rotated meter space
+            const rotatedCorners: Point2D[] = [
+              { x: rotX, y: rotY },
+              { x: rotX + panelWidthM, y: rotY },
+              { x: rotX + panelWidthM, y: rotY + panelHeightM },
+              { x: rotX, y: rotY + panelHeightM },
+            ];
+            
+            // 7. Rotate panel corners back to local ENU meter coordinates
+            const meterGeoCorners = rotatedCorners.map(p => 
+              rotatePoint(p, meterCentroid, axisAngle)
+            );
+            
+            // 8. Convert meters back to geographic coordinates
+            const geoCorners = meterGeoCorners.map(p => ({
+              x: p.x / metersPerDegreeLng + centroid.x,  // lng
+              y: p.y / metersPerDegreeLat + centroid.y   // lat
+            }));
+            
+            // 9. Create test points for all 4 panel corners
+            const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+            
+            // 10. FINAL CONTAINMENT CHECK: Verify all 4 corners are inside polygon
+            // This catches panels placed in concave notches that row-wise logic may miss
+            // Note: The 1.2m perimeter setback is enforced by the row-wise span calculation
+            const allCornersInPolygon = testPoints.every((point) => 
+              google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
+            );
+            if (!allCornersInPolygon) {
+              continue; // Panel extends outside polygon boundary
+            }
+            
+            // 11. Test no corners are in constraint polygons
+            const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
+              testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
+            );
+            if (anyPointInConstraint) {
+              rejectedByConstraint++;
+              continue;
+            }
 
-          // 11. Test no corners are in constraint polygons
-          const anyPointInConstraint = constraintPolygonPaths.some((cp) => 
-            testPoints.some((point) => google.maps.geometry.poly.containsLocation(point, cp))
-          );
-          if (anyPointInConstraint) {
-            rejectedByConstraint++;
-            continue;
+            // 12. Accept panel
+            acceptedCount++;
+            const bottomLeft = geoCorners[0];
+            
+            // Determine quadrant based on rotated position
+            const quadrant = (panelCenterX >= 0 ? 'E' : 'W') + (rowCenterY >= 0 ? 'N' : 'S');
+            
+            positions.push({ 
+              lat: bottomLeft.y, 
+              lng: bottomLeft.x, 
+              widthDeg: panelWidthDeg, 
+              heightDeg: panelHeightDeg,
+              polygonId: polygon.id,
+              corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
+              gridRow: rowIdx,
+              gridCol: panelIdx,
+              quadrant: quadrant,
+            });
           }
-
-          // 12. Accept panel - store position with grid indices and quadrant
-          acceptedCount++;
-          const bottomLeft = geoCorners[0];
-          
-          // Determine quadrant based on rotated position (NE, NW, SE, SW)
-          const quadrant = (panelCenterX >= 0 ? 'E' : 'W') + (panelCenterY >= 0 ? 'N' : 'S');
-          
-          positions.push({ 
-            lat: bottomLeft.y, 
-            lng: bottomLeft.x, 
-            widthDeg: panelWidthDeg, 
-            heightDeg: panelHeightDeg,
-            polygonId: polygon.id,
-            corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
-            gridRow: row,
-            gridCol: col,
-            quadrant: quadrant,
-          });
         }
       }
       
-      // DEBUG: Log rejection stats
+      // DEBUG: Log placement stats
       console.log(`[RoofVisualization] Polygon ${polygon.label || polygon.id} placement:`, {
-        attempted: numRows * numCols,
         accepted: acceptedCount,
-        rejectedBySolar,
         rejectedByConstraint,
-        acceptanceRate: `${Math.round(acceptedCount / (numRows * numCols) * 100)}%`
+        estimatedCapacityKW: Math.round(acceptedCount * 0.59),
       });
     });
     

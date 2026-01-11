@@ -6440,13 +6440,13 @@ export default function SiteDetailPage() {
     },
     onSuccess: (data) => {
       setQuickPotential(data);
-      // Use estimated capacity (90% of max) for consistency with UI display
-      const estimatedCapacity = Math.round(data.systemSizing.maxCapacityKW * 0.9);
+      // Don't show capacity numbers in toast - they will be calculated more accurately
+      // by the geometry engine and displayed in the KPI cards
       toast({ 
         title: language === "fr" ? "Analyse rapide terminée" : "Quick analysis complete",
         description: language === "fr" 
-          ? `Potentiel: ${formatNumber(estimatedCapacity, language)} kWc / ${formatNumber(data.production.annualProductionMWh, language)} MWh/an`
-          : `Potential: ${formatNumber(estimatedCapacity, language)} kWc / ${formatNumber(data.production.annualProductionMWh, language)} MWh/year`
+          ? "Visualisation du potentiel solaire en cours..."
+          : "Loading solar potential visualization..."
       });
     },
     onError: () => {
