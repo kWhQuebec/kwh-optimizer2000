@@ -201,13 +201,22 @@ function insetPolygon(polygon: Point2D[], insetDistance: number): Point2D[] {
   // If inset failed (polygon too small), return empty array
   if (insetPoints.length < 3) return [];
   
-  // Verify the inset polygon is valid (same winding order, reasonable area)
+  // Verify the inset polygon is valid (reasonable area based on direction)
   const originalArea = Math.abs(signedPolygonArea(polygon));
-  const insetArea = Math.abs(signedPolygonArea(insetPoints));
+  const resultArea = Math.abs(signedPolygonArea(insetPoints));
   
-  if (insetArea < originalArea * 0.01 || insetArea > originalArea) {
-    // Inset polygon is invalid (collapsed or expanded)
-    return [];
+  // For positive inset (shrinking): result should be smaller but not collapsed
+  // For negative inset (expansion): result should be larger but not unreasonably so
+  if (insetDistance > 0) {
+    // Shrinking: result must be smaller and at least 1% of original
+    if (resultArea < originalArea * 0.01 || resultArea > originalArea) {
+      return [];
+    }
+  } else {
+    // Expanding: result must be larger but no more than 10x original (safety limit)
+    if (resultArea < originalArea || resultArea > originalArea * 10) {
+      return [];
+    }
   }
   
   return insetPoints;
@@ -254,6 +263,44 @@ function pointInPolygon(point: Point2D, polygon: Point2D[]): boolean {
   }
   
   return inside;
+}
+
+// Calculate the minimum distance from a point to any edge of a polygon
+// Returns the shortest distance to any polygon edge or vertex
+function distanceToPolygonEdges(point: Point2D, polygon: Point2D[]): number {
+  let minDist = Infinity;
+  const n = polygon.length;
+  
+  for (let i = 0; i < n; i++) {
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % n];
+    
+    // Calculate distance from point to line segment (p1, p2)
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const lenSq = dx * dx + dy * dy;
+    
+    if (lenSq < 1e-10) {
+      // Degenerate edge (point), just use distance to vertex
+      const dist = Math.sqrt((point.x - p1.x) ** 2 + (point.y - p1.y) ** 2);
+      minDist = Math.min(minDist, dist);
+      continue;
+    }
+    
+    // Parameter t for closest point on the line segment
+    let t = ((point.x - p1.x) * dx + (point.y - p1.y) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t)); // Clamp to [0, 1] for segment
+    
+    // Closest point on the segment
+    const closestX = p1.x + t * dx;
+    const closestY = p1.y + t * dy;
+    
+    // Distance to closest point
+    const dist = Math.sqrt((point.x - closestX) ** 2 + (point.y - closestY) ** 2);
+    minDist = Math.min(minDist, dist);
+  }
+  
+  return minDist;
 }
 
 // Calculate X intersections of a horizontal scanline with polygon edges
@@ -455,6 +502,17 @@ function signedPolygonArea(polygon: Point2D[]): number {
     area -= polygon[j].x * polygon[i].y;
   }
   return area / 2;
+}
+
+// Normalize polygon winding to CCW (counter-clockwise)
+// insetPolygon requires CCW winding for correct inward normal direction
+function normalizeToCCW(polygon: Point2D[]): Point2D[] {
+  const area = signedPolygonArea(polygon);
+  if (area < 0) {
+    // CW winding, reverse to make CCW
+    return [...polygon].reverse();
+  }
+  return polygon;
 }
 
 // Calculate cross product of vectors (p1->p2) and (p2->p3)
@@ -1173,7 +1231,8 @@ export function RoofVisualization({
         return a.id.localeCompare(b.id);
       });
 
-    // Create constraint polygon paths for containment testing
+    // Create EXPANDED constraint polygon paths for containment testing
+    // Constraints are expanded by edgeSetbackM (1.2m) so panels don't sit too close to obstacles
     const constraintPolygonPaths = roofPolygons
       .filter((p) => {
         if (p.color === "#f97316") return true;
@@ -1181,11 +1240,52 @@ export function RoofVisualization({
         return label.includes("constraint") || label.includes("contrainte") || 
                label.includes("hvac") || label.includes("obstacle");
       })
-      .map((p) => {
+      .flatMap((p) => {
         const coords = p.coordinates as [number, number][];
-        return new google.maps.Polygon({
-          paths: coords.map(([lng, lat]) => ({ lat, lng }))
-        });
+        if (!coords || coords.length < 3) return [];
+        
+        // Calculate meter conversion at constraint location
+        const avgLat = coords.reduce((sum, [, lat]) => sum + lat, 0) / coords.length;
+        const metersPerDegreeLat = 111320;
+        const metersPerDegreeLng = 111320 * Math.cos(avgLat * Math.PI / 180);
+        
+        // Compute centroid
+        const centroid = computeCentroid(coords);
+        
+        // Convert to meter space
+        const meterCoords: Point2D[] = coords.map(([lng, lat]) => ({
+          x: (lng - centroid.x) * metersPerDegreeLng,
+          y: (lat - centroid.y) * metersPerDegreeLat
+        }));
+        
+        // Normalize to CCW winding - required for correct outward normal direction
+        const normalizedMeterCoords = normalizeToCCW(meterCoords);
+        
+        // EXPAND constraint by setback (negative inset = expansion)
+        // This ensures panels stay edgeSetbackM away from obstacles
+        const expandedPolygonM = insetPolygon(normalizedMeterCoords, -edgeSetbackM);
+        
+        if (expandedPolygonM.length >= 3) {
+          // Convert back to geographic coordinates
+          const expandedGeoCoords = expandedPolygonM.map(pt => ({
+            lat: pt.y / metersPerDegreeLat + centroid.y,
+            lng: pt.x / metersPerDegreeLng + centroid.x
+          }));
+          console.log(`[RoofVisualization] Expanded constraint ${p.label || p.id} by ${edgeSetbackM}m`);
+          return [{ polygon: new google.maps.Polygon({ paths: expandedGeoCoords }), failed: false }];
+        } else {
+          // Expansion failed - mark this constraint as problematic
+          // Panels near this constraint will need distance-based validation
+          console.warn(`[RoofVisualization] Constraint ${p.label || p.id} expansion failed, using original + distance check`);
+          return [{ 
+            polygon: new google.maps.Polygon({ paths: coords.map(([lng, lat]) => ({ lat, lng })) }),
+            failed: true, // Flag for additional distance checking
+            meterCoords: normalizedMeterCoords,
+            centroid,
+            metersPerDegreeLat,
+            metersPerDegreeLng
+          }];
+        }
       });
 
     const positions: PanelPosition[] = [];
@@ -1292,212 +1392,186 @@ export function RoofVisualization({
         isConcave,
       });
       
-      // 6. PANEL PLACEMENT: Different strategies for convex vs concave polygons
       // =========================================================
-      // CONCAVE (L/U/T shapes): Grid-based scan with containment check
-      // - Scans entire bounding box
-      // - Checks each panel position against Google Maps containsLocation
-      // - Guaranteed to fill all usable areas
-      //
-      // CONVEX (simple rectangles): Row-wise intersection (more efficient)
-      // - Uses polygon edge intersections for precise span calculation
-      // - Only considers positions within calculated spans
+      // SIMPLE GRID-BASED PANEL PLACEMENT (C&I Best Practice)
+      // =========================================================
+      // 1. Align to building's principal axis (from PCA)
+      // 2. Inset polygon by 1.2m for fire code setbacks
+      // 3. Create uniform grid over rotated bounding box
+      // 4. Accept panels with ALL 4 corners inside INSET polygon
+      // 5. Skip panels overlapping constraints
+      // 6. Enforce fire corridors for large roofs
       // =========================================================
       
-      if (isConcave) {
-        // =========================================================
-        // FACE-WISE SCANLINE FILL for concave polygons
-        // =========================================================
-        // Decompose into convex sub-faces, fill each independently with scanline.
-        // This handles L-shapes with diagonal wings correctly since each face
-        // gets its own PCA orientation and row intersections stay simple.
-        // IMPORTANT: Fire pathways are computed GLOBALLY (full polygon) to ensure
-        // continuous corridor across all faces.
+      console.log(`[RoofVisualization] Simple grid fill: ${Math.round(roofWidthM)}×${Math.round(roofHeightM)}m, axis=${Math.round(axisAngle * 180 / Math.PI)}°`);
+      console.log(`[RoofVisualization] Fire pathways: N/S=${needsNorthSouthPathway}, E/W=${needsEastWestPathway}`);
+      
+      // Grid origin is at (0,0) = polygon centroid in meter space
+      const gridOrigin = { x: 0, y: 0 };
+      
+      // Create INSET polygon for proper edge setbacks (1.2m from all edges)
+      // This handles concave edges correctly, not just bounding box
+      const polygonPointsM = meterCoords.map(([x, y]) => ({ x, y }));
+      // Normalize to CCW winding - required for correct inward normal direction
+      const normalizedPolygonM = normalizeToCCW(polygonPointsM);
+      const insetPolygonM = insetPolygon(normalizedPolygonM, edgeSetbackM);
+      
+      // Convert inset polygon to geographic coordinates for containment checks
+      let insetPolygonPath: google.maps.Polygon | null = null;
+      if (insetPolygonM.length >= 3) {
+        const insetGeoCoords = insetPolygonM.map(p => ({
+          lat: p.y / metersPerDegreeLat + centroid.y,
+          lng: p.x / metersPerDegreeLng + centroid.x
+        }));
+        insetPolygonPath = new google.maps.Polygon({ paths: insetGeoCoords });
+        console.log(`[RoofVisualization] Inset polygon created with ${insetPolygonM.length} vertices`);
+      } else {
+        // CRITICAL: If inset fails, polygon is too narrow for panels with setback
+        // Skip this polygon entirely rather than placing panels without proper setback
+        console.warn(`[RoofVisualization] Inset failed for polygon ${polygon.label || polygon.id} - too narrow for panels with 1.2m setback, skipping`);
+        return; // Skip this polygon entirely
+      }
+      
+      // Use inset polygon for containment - no fallback to original
+      const containmentPolygon = insetPolygonPath;
+      
+      // Calculate grid bounds from rotated bounding box
+      const gridMinX = bbox.minX;
+      const gridMaxX = bbox.maxX;
+      const gridMinY = bbox.minY;
+      const gridMaxY = bbox.maxY;
+      
+      // Calculate number of columns and rows
+      const numCols = Math.floor((gridMaxX - gridMinX) / colStep) + 1;
+      const gridNumRows = Math.floor((gridMaxY - gridMinY) / rowStep) + 1;
+      
+      console.log(`[RoofVisualization] Grid: ${numCols} cols × ${gridNumRows} rows`);
+      
+      // Iterate over grid positions
+      for (let rowIdx = 0; rowIdx < gridNumRows; rowIdx++) {
+        const rotY = gridMinY + rowIdx * rowStep;
         
-        const polygonPoints = meterCoords.map(([x, y]) => ({ x, y }));
-        const subPolygons = decomposePolygon(polygonPoints);
-        console.log(`[RoofVisualization] Decomposed ${meterCoords.length}-vertex concave polygon into ${subPolygons.length} faces`);
-        
-        // Track placed panel centers for deduplication across faces (high precision)
-        const placedCenters = new Set<string>();
-        
-        // GLOBAL fire pathway decision based on full polygon dimensions
-        // (needsNorthSouthPathway and needsEastWestPathway already computed above from roofWidthM/roofHeightM)
-        // Pathway is enforced in GLOBAL meter space (origin at polygon centroid)
-        console.log(`[RoofVisualization] Global pathways: N/S=${needsNorthSouthPathway}, E/W=${needsEastWestPathway} (${Math.round(roofWidthM)}×${Math.round(roofHeightM)}m)`);
-        
-        // Use GLOBAL axis angle for ALL faces - ensures uniform panel orientation for optimal solar production
-        // The global axisAngle was computed from the full polygon's PCA (principal axis)
-        const globalOrigin = { x: 0, y: 0 }; // Origin is at polygon centroid in meter space
-        console.log(`[RoofVisualization] Using UNIFIED orientation: ${Math.round(axisAngle * 180 / Math.PI)}° for all ${subPolygons.length} faces`);
-        
-        // Fill each face using the GLOBAL axis orientation
-        for (let faceIdx = 0; faceIdx < subPolygons.length; faceIdx++) {
-          const face = subPolygons[faceIdx];
+        for (let colIdx = 0; colIdx < numCols; colIdx++) {
+          const rotX = gridMinX + colIdx * colStep;
           
-          // Skip tiny faces (less than ~2 panels area)
-          const faceArea = Math.abs(signedPolygonArea(face));
-          if (faceArea < 10) continue;
+          // Panel corners in rotated (axis-aligned) space
+          const rotatedCorners: Point2D[] = [
+            { x: rotX, y: rotY },
+            { x: rotX + panelWidthM, y: rotY },
+            { x: rotX + panelWidthM, y: rotY + panelHeightM },
+            { x: rotX, y: rotY + panelHeightM },
+          ];
           
-          // Rotate face to GLOBAL axis-aligned space (using polygon centroid as origin)
-          // This ensures all faces share the same rotated coordinate system
-          const rotatedFace = face.map(p => 
-            rotatePoint(p, globalOrigin, -axisAngle)
+          // Rotate back to original meter space
+          const meterCorners = rotatedCorners.map(p => 
+            rotatePoint(p, gridOrigin, axisAngle)
           );
-          const faceBbox = getBoundingBox(rotatedFace);
           
-          // Face dimensions for logging
-          const faceWidthM = faceBbox.maxX - faceBbox.minX;
-          const faceHeightM = faceBbox.maxY - faceBbox.minY;
+          // Panel center in meter space
+          const panelCenterM = {
+            x: (meterCorners[0].x + meterCorners[2].x) / 2,
+            y: (meterCorners[0].y + meterCorners[2].y) / 2
+          };
           
-          // Row range with setback
-          const faceMinRowY = faceBbox.minY + edgeSetbackM + panelHeightM / 2;
-          const faceMaxRowY = faceBbox.maxY - edgeSetbackM - panelHeightM / 2;
-          const faceNumRows = Math.floor((faceMaxRowY - faceMinRowY) / rowStep) + 1;
+          // FIRE PATHWAY CHECK (in rotated space - simpler)
+          const rotCenterX = rotX + panelWidthM / 2;
+          const rotCenterY = rotY + panelHeightM / 2;
           
-          let faceAccepted = 0;
-          
-          console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${faceNumRows} rows, ${faceWidthM.toFixed(0)}×${faceHeightM.toFixed(0)}m (using global ${Math.round(axisAngle * 180 / Math.PI)}° axis)`);
-          
-          // SCANLINE FILL for this face
-          for (let rowIdx = 0; rowIdx < faceNumRows; rowIdx++) {
-            const rowCenterY = faceMinRowY + rowIdx * rowStep;
-            
-            // Get row intersections with THIS FACE's rotated boundary
-            const rowTopY = rowCenterY + panelHeightM / 2;
-            const rowBottomY = rowCenterY - panelHeightM / 2;
-            
-            const intersectionsTop = getPolygonRowIntersections(rotatedFace, rowTopY);
-            const intersectionsBottom = getPolygonRowIntersections(rotatedFace, rowBottomY);
-            
-            const spansTop = getRowSpans(intersectionsTop, edgeSetbackM);
-            const spansBottom = getRowSpans(intersectionsBottom, edgeSetbackM);
-            
-            // Compute valid spans as intersection of top and bottom
-            const rowSpans: Array<{minX: number, maxX: number}> = [];
-            for (const spanB of spansBottom) {
-              for (const spanT of spansTop) {
-                const overlapMin = Math.max(spanB.minX, spanT.minX);
-                const overlapMax = Math.min(spanB.maxX, spanT.maxX);
-                if (overlapMax > overlapMin) {
-                  rowSpans.push({ minX: overlapMin, maxX: overlapMax });
-                }
-              }
+          // N-S pathway: vertical corridor at X=0 in rotated space
+          if (needsNorthSouthPathway) {
+            if (Math.abs(rotCenterX) < halfPathway + panelWidthM / 2) {
+              continue;
             }
-            
-            // Fill each span
-            for (const span of rowSpans) {
-              const spanWidth = span.maxX - span.minX;
-              const numPanelsInSpan = Math.floor((spanWidth + gapBetweenPanelsM) / colStep);
-              if (numPanelsInSpan <= 0) continue;
-              
-              const totalPanelWidth = numPanelsInSpan * colStep - gapBetweenPanelsM;
-              const startX = span.minX + (spanWidth - totalPanelWidth) / 2;
-              
-              for (let panelIdx = 0; panelIdx < numPanelsInSpan; panelIdx++) {
-                const rotX = startX + panelIdx * colStep;
-                const rotY = rowCenterY - panelHeightM / 2;
-                // Panel corners in GLOBAL axis-aligned space
-                const rotatedCorners: Point2D[] = [
-                  { x: rotX, y: rotY },
-                  { x: rotX + panelWidthM, y: rotY },
-                  { x: rotX + panelWidthM, y: rotY + panelHeightM },
-                  { x: rotX, y: rotY + panelHeightM },
-                ];
-                
-                // Rotate back to original METER space using GLOBAL origin and axis
-                const meterCorners = rotatedCorners.map(p => 
-                  rotatePoint(p, globalOrigin, axisAngle)
-                );
-                
-                // Panel center in GLOBAL meter space (origin at polygon centroid)
-                const panelCenterM = {
-                  x: (meterCorners[0].x + meterCorners[2].x) / 2,
-                  y: (meterCorners[0].y + meterCorners[2].y) / 2
-                };
-                
-                // GLOBAL FIRE PATHWAY CHECK - uses panel FOOTPRINT bounds (not just center)
-                // Corridor is at origin (polygon centroid), panel footprint must NOT intrude
-                // For N-S pathway (vertical corridor at X=0), check panel's X extent
-                if (needsNorthSouthPathway) {
-                  const panelMinX = Math.min(meterCorners[0].x, meterCorners[1].x, meterCorners[2].x, meterCorners[3].x);
-                  const panelMaxX = Math.max(meterCorners[0].x, meterCorners[1].x, meterCorners[2].x, meterCorners[3].x);
-                  // Panel intrudes if any X coordinate is within [-halfPathway, halfPathway]
-                  if (!(panelMinX >= halfPathway || panelMaxX <= -halfPathway)) {
-                    continue;
-                  }
-                }
-                // For E-W pathway (horizontal corridor at Y=0), check panel's Y extent
-                if (needsEastWestPathway) {
-                  const panelMinY = Math.min(meterCorners[0].y, meterCorners[1].y, meterCorners[2].y, meterCorners[3].y);
-                  const panelMaxY = Math.max(meterCorners[0].y, meterCorners[1].y, meterCorners[2].y, meterCorners[3].y);
-                  // Panel intrudes if any Y coordinate is within [-halfPathway, halfPathway]
-                  if (!(panelMinY >= halfPathway || panelMaxY <= -halfPathway)) {
-                    continue;
-                  }
-                }
-                
-                // HIGH PRECISION deduplication (0.1m grid = ~10cm)
-                const centerKey = `${Math.round(panelCenterM.x * 10)}:${Math.round(panelCenterM.y * 10)}`;
-                if (placedCenters.has(centerKey)) {
-                  continue;
-                }
-                
-                // Convert to geographic coordinates
-                const geoCorners = meterCorners.map(p => ({
-                  x: p.x / metersPerDegreeLng + centroid.x,
-                  y: p.y / metersPerDegreeLat + centroid.y
-                }));
-                
-                // Containment check against ORIGINAL polygon (3 of 4 corners)
-                const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
-                const cornersInsideCount = testPoints.filter(point => 
-                  google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
-                ).length;
-                
-                if (cornersInsideCount < 3) {
-                  rejectedByContainment++;
-                  continue;
-                }
-                
-                // Constraint polygon check
-                const anyPointInConstraint = constraintPolygonPaths.some(cp => 
-                  testPoints.some(point => google.maps.geometry.poly.containsLocation(point, cp))
-                );
-                if (anyPointInConstraint) {
-                  rejectedByConstraint++;
-                  continue;
-                }
-                
-                // Accept panel
-                placedCenters.add(centerKey);
-                acceptedCount++;
-                faceAccepted++;
-                const bottomLeft = geoCorners[0];
-                
-                // Quadrant relative to global origin
-                const quadrant = (panelCenterM.x >= 0 ? 'E' : 'W') + (panelCenterM.y >= 0 ? 'N' : 'S');
-                
-                positions.push({ 
-                  lat: bottomLeft.y, 
-                  lng: bottomLeft.x, 
-                  widthDeg: panelWidthDeg, 
-                  heightDeg: panelHeightDeg,
-                  polygonId: polygon.id,
-                  corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
-                  gridRow: rowIdx,
-                  gridCol: panelIdx,
-                  quadrant: quadrant,
-                });
-              }
+          }
+          // E-W pathway: horizontal corridor at Y=0 in rotated space
+          if (needsEastWestPathway) {
+            if (Math.abs(rotCenterY) < halfPathway + panelHeightM / 2) {
+              continue;
             }
           }
           
-          console.log(`[RoofVisualization] Face ${faceIdx + 1}: ${faceAccepted} panels placed`);
+          // Convert to geographic coordinates
+          const geoCorners = meterCorners.map(p => ({
+            x: p.x / metersPerDegreeLng + centroid.x,
+            y: p.y / metersPerDegreeLat + centroid.y
+          }));
+          
+          // CONTAINMENT CHECK: ALL 4 corners must be inside INSET polygon
+          // This enforces proper 1.2m setback from ALL edges (including concave)
+          const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+          const allCornersInside = testPoints.every(point => 
+            google.maps.geometry.poly.containsLocation(point, containmentPolygon)
+          );
+          
+          if (!allCornersInside) {
+            rejectedByContainment++;
+            continue;
+          }
+          
+          // CONSTRAINT CHECK: No corners in constraint polygons (with distance fallback)
+          let violatesConstraint = false;
+          
+          for (const cp of constraintPolygonPaths) {
+            // First check: containment in the (expanded) constraint polygon
+            const anyCornerInConstraint = testPoints.some(point => 
+              google.maps.geometry.poly.containsLocation(point, cp.polygon)
+            );
+            
+            if (anyCornerInConstraint) {
+              violatesConstraint = true;
+              break;
+            }
+            
+            // Second check: for failed expansions, verify distance-based setback
+            if (cp.failed && cp.meterCoords && cp.centroid) {
+              // Convert panel corners to this constraint's meter space
+              for (const geoCorner of geoCorners) {
+                const cornerInConstraintSpace: Point2D = {
+                  x: (geoCorner.x - cp.centroid.x) * cp.metersPerDegreeLng,
+                  y: (geoCorner.y - cp.centroid.y) * cp.metersPerDegreeLat
+                };
+                
+                // Check distance from panel corner to constraint edges
+                const distToConstraint = distanceToPolygonEdges(cornerInConstraintSpace, cp.meterCoords);
+                
+                if (distToConstraint < edgeSetbackM) {
+                  violatesConstraint = true;
+                  break;
+                }
+              }
+              
+              if (violatesConstraint) break;
+            }
+          }
+          
+          if (violatesConstraint) {
+            rejectedByConstraint++;
+            continue;
+          }
+          
+          // Accept panel
+          acceptedCount++;
+          const bottomLeft = geoCorners[0];
+          const quadrant = (panelCenterM.x >= 0 ? 'E' : 'W') + (panelCenterM.y >= 0 ? 'N' : 'S');
+          
+          positions.push({ 
+            lat: bottomLeft.y, 
+            lng: bottomLeft.x, 
+            widthDeg: panelWidthDeg, 
+            heightDeg: panelHeightDeg,
+            polygonId: polygon.id,
+            corners: geoCorners.map(c => ({ lat: c.y, lng: c.x })),
+            gridRow: rowIdx,
+            gridCol: colIdx,
+            quadrant: quadrant,
+          });
         }
-        
-        console.log(`[RoofVisualization] Face-wise scanline fill: ${acceptedCount} panels, ${rejectedByContainment} rejected`);
-      } else {
+      }
+      
+      console.log(`[RoofVisualization] Grid fill complete: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
+      
+      // SKIP THE OLD CONVEX-ONLY CODE PATH - unified approach handles all shapes
+      if (false) {
         // ROW-WISE APPROACH for convex polygons (more efficient)
         for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
           // Row center Y position (in rotated meter space)

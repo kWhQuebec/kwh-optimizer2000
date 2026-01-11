@@ -75,18 +75,22 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   Fallback algorithmic panel generation (teal panels) when Google data is limited (<10 panels)
 -   **IFC-Compliant Panel Placement**: All solar capacity calculations use consistent, industry-standard parameters:
     -   **Panel specifications**: 590W bifacial, 2.0m × 1.0m physical dimensions
-    -   **Perimeter setback**: 1.2m (4 feet) IFC fire code standard
+    -   **Perimeter setback**: 1.2m (4 feet) IFC fire code standard - properly enforced via polygon inset
+    -   **Obstacle setback**: 1.2m from HVAC/constraints - enforced via polygon expansion + distance validation
     -   **Panel gap**: 0.1m for thermal expansion and maintenance
     -   **Row spacing**: 0.5m additional (1.5m total pitch) for 10° ballast systems typical in Quebec
     -   **Effective panel footprint**: 3.15 m² (2.1m × 1.5m grid cell)
     -   **Utilization ratio**: 85% of roof area usable after perimeter setback
     -   **Power density**: ~187 W/m² effective
     -   Consistent parameters across: RoofVisualization, SolarMockup, quick-potential, quick-estimate endpoints
-    -   **Face-wise Convex Partition Fill**: For L-shaped and complex roof geometries:
-        -   Decomposes concave polygons at reflex vertices into convex sub-faces
-        -   Each face filled independently with its own principal axis orientation
-        -   Handles diagonal roof sections (e.g., triangular wings) with proper panel alignment
-        -   Global deduplication prevents overlapping panels at shared edges
+    -   **Simple Grid-Based Fill Algorithm**: For all roof geometries including L/U/T-shaped:
+        -   Uses global PCA axis for uniform panel orientation across entire roof
+        -   CCW polygon winding normalization ensures correct inset/expansion operations
+        -   Roof polygon inset by 1.2m creates containment boundary - panels must have ALL 4 corners inside
+        -   Constraint polygons expanded by 1.2m for obstacle clearance
+        -   Distance-based fallback validation when polygon expansion fails (tiny/degenerate obstacles)
+        -   Fire corridors (1.2m width) enforced for roofs > 40m in either dimension
+        -   Handles concave/convex polygons uniformly without face decomposition
         -   Matches industry tools (Aurora/Helioscope) for professional-looking layouts
 -   **Manual Roof Drawing Tool (MANDATORY)**: Interactive roof area tracing required before running analysis for commercial buildings:
     -   **Mandatory Workflow**: Technicians must draw roof areas BEFORE running any solar analysis simulation
