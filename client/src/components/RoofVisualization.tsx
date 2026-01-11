@@ -118,6 +118,94 @@ function getBoundingBox(points: Point2D[]): { minX: number; maxX: number; minY: 
   return { minX, maxX, minY, maxY };
 }
 
+// Inset a polygon by moving each edge inward by the specified distance
+// This creates a smaller polygon suitable for setback checking
+function insetPolygon(polygon: Point2D[], insetDistance: number): Point2D[] {
+  const n = polygon.length;
+  if (n < 3) return polygon;
+  
+  // For each edge, compute the inward-facing normal and offset the edge
+  const offsetEdges: Array<{ p1: Point2D; p2: Point2D; normal: Point2D }> = [];
+  
+  for (let i = 0; i < n; i++) {
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % n];
+    
+    // Edge direction
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    
+    if (len < 1e-10) continue;
+    
+    // Inward normal (perpendicular to edge, pointing into polygon)
+    // For CCW polygon, inward normal is (-dy, dx) / len
+    const nx = -dy / len;
+    const ny = dx / len;
+    
+    // Offset edge by insetDistance along normal
+    offsetEdges.push({
+      p1: { x: p1.x + nx * insetDistance, y: p1.y + ny * insetDistance },
+      p2: { x: p2.x + nx * insetDistance, y: p2.y + ny * insetDistance },
+      normal: { x: nx, y: ny }
+    });
+  }
+  
+  if (offsetEdges.length < 3) return polygon;
+  
+  // Find intersections of consecutive offset edges to form inset polygon
+  const insetPoints: Point2D[] = [];
+  
+  for (let i = 0; i < offsetEdges.length; i++) {
+    const edge1 = offsetEdges[i];
+    const edge2 = offsetEdges[(i + 1) % offsetEdges.length];
+    
+    const intersection = lineLineIntersection(edge1.p1, edge1.p2, edge2.p1, edge2.p2);
+    if (intersection) {
+      insetPoints.push(intersection);
+    }
+  }
+  
+  // If inset failed (polygon too small), return empty array
+  if (insetPoints.length < 3) return [];
+  
+  // Verify the inset polygon is valid (same winding order, reasonable area)
+  const originalArea = Math.abs(signedPolygonArea(polygon));
+  const insetArea = Math.abs(signedPolygonArea(insetPoints));
+  
+  if (insetArea < originalArea * 0.01 || insetArea > originalArea) {
+    // Inset polygon is invalid (collapsed or expanded)
+    return [];
+  }
+  
+  return insetPoints;
+}
+
+// Find intersection point of two lines (each defined by two points)
+function lineLineIntersection(p1: Point2D, p2: Point2D, p3: Point2D, p4: Point2D): Point2D | null {
+  const d1x = p2.x - p1.x;
+  const d1y = p2.y - p1.y;
+  const d2x = p4.x - p3.x;
+  const d2y = p4.y - p3.y;
+  
+  const cross = d1x * d2y - d1y * d2x;
+  
+  if (Math.abs(cross) < 1e-10) {
+    // Lines are parallel
+    return null;
+  }
+  
+  const dx = p3.x - p1.x;
+  const dy = p3.y - p1.y;
+  
+  const t = (dx * d2y - dy * d2x) / cross;
+  
+  return {
+    x: p1.x + t * d1x,
+    y: p1.y + t * d1y
+  };
+}
+
 // Check if a point is inside a polygon using ray casting algorithm
 function pointInPolygon(point: Point2D, polygon: Point2D[]): boolean {
   let inside = false;
@@ -1055,9 +1143,17 @@ export function RoofVisualization({
         // Simple, robust approach: scan entire bounding box for each orientation
         // and check containment for each panel position. No span intersection needed.
         // Orientation gating assigns each panel to exactly ONE orientation.
+        // KEY FIX: Use INSET POLYGON for setback, not bounding box margins
         
         // Convert meter coords to Point2D for edge analysis
         const polygonPoints = meterCoords.map(([x, y]) => ({ x, y }));
+        
+        // Create INSET polygon for setback checking (1.2m from all edges)
+        // This properly handles diagonal edges unlike bounding box margin
+        const insetPolygonPoints = insetPolygon(polygonPoints, edgeSetbackM);
+        const hasValidInset = insetPolygonPoints.length >= 3;
+        
+        console.log(`[RoofVisualization] Inset polygon: ${hasValidInset ? insetPolygonPoints.length + ' vertices' : 'INVALID (too small)'}`);
         
         // Analyze edge orientations to find distinct axis directions
         const edges = analyzeEdgeBearings(polygonPoints);
@@ -1084,13 +1180,14 @@ export function RoofVisualization({
           const gridCenterX = (gridBbox.minX + gridBbox.maxX) / 2;
           const gridCenterY = (gridBbox.minY + gridBbox.maxY) / 2;
           
-          // Grid bounds with setbacks
-          const gridMinRowY = gridBbox.minY + edgeSetbackM + panelHeightM / 2;
-          const gridMaxRowY = gridBbox.maxY - edgeSetbackM - panelHeightM / 2;
+          // Grid bounds WITHOUT setback (setback is handled via inset polygon check)
+          // Only add half panel size to avoid panels crossing bounding box
+          const gridMinRowY = gridBbox.minY + panelHeightM / 2;
+          const gridMaxRowY = gridBbox.maxY - panelHeightM / 2;
           const gridNumRows = Math.floor((gridMaxRowY - gridMinRowY) / rowStep) + 1;
           
-          const gridMinColX = gridBbox.minX + edgeSetbackM + panelWidthM / 2;
-          const gridMaxColX = gridBbox.maxX - edgeSetbackM - panelWidthM / 2;
+          const gridMinColX = gridBbox.minX + panelWidthM / 2;
+          const gridMaxColX = gridBbox.maxX - panelWidthM / 2;
           const gridNumCols = Math.floor((gridMaxColX - gridMinColX) / colStep) + 1;
           
           let orientAccepted = 0;
@@ -1152,13 +1249,23 @@ export function RoofVisualization({
                 continue;
               }
               
+              // SETBACK CHECK: Panel center must be inside INSET polygon (1.2m from edges)
+              // This properly handles diagonal edges unlike bounding box margin
+              if (hasValidInset) {
+                const centerInInset = pointInPolygon(panelCenterM, insetPolygonPoints);
+                if (!centerInInset) {
+                  rejectedByContainment++;
+                  continue;
+                }
+              }
+              
               // Convert to geographic coordinates
               const geoCorners = meterCorners.map(p => ({
                 x: p.x / metersPerDegreeLng + centroid.x,
                 y: p.y / metersPerDegreeLat + centroid.y
               }));
               
-              // CONTAINMENT CHECK: At least 3 of 4 corners must be inside polygon
+              // CONTAINMENT CHECK: At least 3 of 4 corners must be inside original polygon
               const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
               const cornersInsideCount = testPoints.filter((point) => 
                 google.maps.geometry.poly.containsLocation(point, solarPolygonPath)
