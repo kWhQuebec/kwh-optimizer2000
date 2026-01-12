@@ -249,14 +249,17 @@ function insetPolygon(polygon: Point2D[], insetDistance: number): Point2D[] {
   
   // For positive inset (shrinking): result should be smaller but not collapsed
   // For negative inset (expansion): result should be larger but not unreasonably so
+  // Added tolerance for floating-point precision issues
+  const areaTolerance = 1.05; // 5% tolerance for floating-point noise
+  
   if (insetDistance > 0) {
-    // Shrinking: result must be smaller and at least 1% of original
-    if (resultArea < originalArea * 0.01 || resultArea > originalArea) {
+    // Shrinking: result must be smaller (with tolerance) and at least 1% of original
+    if (resultArea < originalArea * 0.01 || resultArea > originalArea * areaTolerance) {
       return [];
     }
   } else {
-    // Expanding: result must be larger but no more than 10x original (safety limit)
-    if (resultArea < originalArea || resultArea > originalArea * 10) {
+    // Expanding: result must be larger (with tolerance) but no more than 10x original
+    if (resultArea < originalArea / areaTolerance || resultArea > originalArea * 10) {
       return [];
     }
   }
@@ -1460,10 +1463,8 @@ export function RoofVisualization({
       
       // Also create ORIGINAL polygon path for fallback distance-based checking
       // This is used when inset collapses narrow sections (like triangular protrusions)
-      const originalGeoCoords = normalizedPolygonM.map(p => ({
-        lat: p.y / metersPerDegreeLat + centroid.y,
-        lng: p.x / metersPerDegreeLng + centroid.x
-      }));
+      // Use the original coords directly (already in geographic format)
+      const originalGeoCoords = coords.map(([lng, lat]) => ({ lat, lng }));
       const originalPolygonPath = new google.maps.Polygon({ paths: originalGeoCoords });
       
       // Convert inset polygon to geographic coordinates for containment checks
