@@ -1608,17 +1608,22 @@ export function RoofVisualization({
           }));
           
           // CONTAINMENT CHECK with HYBRID FALLBACK
-          // Primary: ALL 4 corners must be inside INSET polygon
+          // Primary: ALL 4 corners must be inside INSET polygon (in METER space)
           // Fallback: ALL 4 corners inside ORIGINAL polygon AND all corners >= 1.2m from edges
           // This handles narrow sections (like triangular tips) where inset collapses
+          // 
+          // CRITICAL FIX: Use METER-SPACE containment check to avoid coordinate conversion drift
+          // The grid operates in rotated space, corners are rotated back to meter space.
+          // Previously, converting to geographic coordinates introduced ~1m drift at parallelogram edges.
           const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
           
           let passesContainment = false;
           
-          // Primary check: inset polygon containment (if available)
-          if (containmentPolygon) {
-            const allCornersInInset = testPoints.every(point => 
-              google.maps.geometry.poly.containsLocation(point, containmentPolygon)
+          // Primary check: METER-SPACE inset polygon containment
+          // This eliminates drift from geographic coordinate conversion
+          if (insetPolygonM.length >= 3) {
+            const allCornersInInset = meterCorners.every(corner => 
+              pointInPolygon(corner, insetPolygonM)
             );
             if (allCornersInInset) {
               passesContainment = true;
