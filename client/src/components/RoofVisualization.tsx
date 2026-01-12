@@ -1397,26 +1397,23 @@ export function RoofVisualization({
       let rejectedByConstraint = 0;
       let rejectedByContainment = 0;
         
-      // 5. Get bounding box - ALWAYS use maximum of rotated and unrotated bounds
-      // This ensures full coverage for parallelograms and other skewed shapes, not just concave polygons
-      const bboxRotated = getBoundingBox(rotatedPolygonPoints);
-      const bboxUnrotated = getBoundingBox(meterCoords.map(([x, y]) => ({ x, y })));
+      // 5. Get bounding box in ROTATED space only
+      // The grid operates in rotated coordinates, so bbox must also be in rotated coordinates
+      const bbox = getBoundingBox(rotatedPolygonPoints);
       
-      // ALWAYS use the larger of the two bounding boxes to ensure full coverage
-      // Parallelograms and other skewed shapes can have areas missed by rotated-only bounds
-      const bbox = {
-        minX: Math.min(bboxRotated.minX, bboxUnrotated.minX),
-        maxX: Math.max(bboxRotated.maxX, bboxUnrotated.maxX),
-        minY: Math.min(bboxRotated.minY, bboxUnrotated.minY),
-        maxY: Math.max(bboxRotated.maxY, bboxUnrotated.maxY),
-      };
-      
-      // DEBUG: Log bounding box comparison to identify coverage issues
-      console.log(`[RoofVisualization] Bounding box comparison for ${polygon.label || polygon.id}:`, {
-        rotated: { w: Math.round(bboxRotated.maxX - bboxRotated.minX), h: Math.round(bboxRotated.maxY - bboxRotated.minY) },
-        unrotated: { w: Math.round(bboxUnrotated.maxX - bboxUnrotated.minX), h: Math.round(bboxUnrotated.maxY - bboxUnrotated.minY) },
-        merged: { w: Math.round(bbox.maxX - bbox.minX), h: Math.round(bbox.maxY - bbox.minY) },
+      // DEBUG: Log bounding box and polygon vertices to understand coverage
+      console.log(`[RoofVisualization] Bounding box for ${polygon.label || polygon.id}:`, {
+        minX: Math.round(bbox.minX), maxX: Math.round(bbox.maxX),
+        minY: Math.round(bbox.minY), maxY: Math.round(bbox.maxY),
+        width: Math.round(bbox.maxX - bbox.minX),
+        height: Math.round(bbox.maxY - bbox.minY),
       });
+      
+      // Log original polygon vertices for comparison
+      console.log(`[RoofVisualization] Original polygon vertices (meter space):`, 
+        meterCoords.slice(0, 6).map(([x, y]) => `(${Math.round(x)},${Math.round(y)})`).join(', ') + 
+        (meterCoords.length > 6 ? `... (${meterCoords.length} total)` : '')
+      );
       
       // Calculate grid parameters
       const colStep = panelWidthM + gapBetweenPanelsM;  // 2.1m horizontal step
@@ -1597,6 +1594,7 @@ export function RoofVisualization({
           // Fallback check: original polygon + distance-based setback
           // Only used if primary check failed (inset may have collapsed in narrow sections)
           // Uses GEOGRAPHIC containsLocation for reliability, then meter-space distance check
+          let rejectionReason = '';
           if (!passesContainment) {
             // Check if ALL 4 corners are inside the ORIGINAL polygon using Google Maps
             // This uses the geographic originalPolygonPath which is guaranteed to match the drawn polygon
@@ -1608,11 +1606,14 @@ export function RoofVisualization({
               // Verify all panel corners are at least edgeSetbackM from original polygon edges
               // Use meter-space distance calculation for accuracy
               let allCornersHaveSetback = true;
+              let minDistToEdge = Infinity;
               
               for (const corner of meterCorners) {
                 const distToEdge = distanceToPolygonEdges(corner, normalizedPolygonM);
+                minDistToEdge = Math.min(minDistToEdge, distToEdge);
                 if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
                   allCornersHaveSetback = false;
+                  rejectionReason = `distance=${distToEdge.toFixed(1)}m < ${edgeSetbackM}m`;
                   break;
                 }
               }
@@ -1621,11 +1622,17 @@ export function RoofVisualization({
                 passesContainment = true;
                 acceptedByFallback++;
               }
+            } else {
+              rejectionReason = 'outside original polygon';
             }
           }
           
           if (!passesContainment) {
             rejectedByContainment++;
+            // Log sample of rejected panels to understand the pattern
+            if (rejectedByContainment <= 5 || rejectedByContainment % 1000 === 0) {
+              console.log(`[RoofVisualization] Rejected panel at meter(${Math.round(panelCenterM.x)},${Math.round(panelCenterM.y)}), reason: ${rejectionReason || 'failed inset check'}`);
+            }
             continue;
           }
           
