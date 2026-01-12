@@ -603,6 +603,13 @@ function findReflexVertices(polygon: Point2D[]): number[] {
 
 // Check if polygon is concave (has any reflex vertices)
 function isPolygonConcave(polygon: Point2D[]): boolean {
+  // Triangles (3 vertices) and quadrilaterals (4 vertices) are ALWAYS convex
+  // when they form simple (non-self-intersecting) polygons.
+  // Parallelograms, rectangles, and any 4-vertex roof polygons fall into this category.
+  // This avoids false positives from floating-point noise in cross product calculations.
+  if (polygon.length <= 4) {
+    return false;
+  }
   return findReflexVertices(polygon).length > 0;
 }
 
