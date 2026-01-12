@@ -1493,6 +1493,23 @@ export function RoofVisualization({
       
       const insetPolygonM = insetPolygon(normalizedPolygonM, edgeSetbackM);
       
+      // =========================================================
+      // CRITICAL FIX: Create ROTATED inset polygon for containment checks
+      // =========================================================
+      // The grid operates in ROTATED space (axis-aligned).
+      // Previously, we checked rotated corners against ORIGINAL-space inset polygon,
+      // requiring rotation back which introduced numerical drift (~1m at edges).
+      // 
+      // NEW APPROACH: Create inset polygon directly in ROTATED space.
+      // Containment check uses rotated corners against rotated inset polygon.
+      // No coordinate conversion = no numerical drift.
+      // =========================================================
+      // rotatedPolygonPoints is already Point2D[] (objects with x, y)
+      const normalizedRotatedPolygon = normalizeToCCW(rotatedPolygonPoints);
+      const rotatedInsetPolygonM = insetPolygon(normalizedRotatedPolygon, edgeSetbackM);
+      
+      console.log(`[RoofVisualization] Rotated inset polygon: ${rotatedInsetPolygonM.length} vertices for containment in rotated space`);
+      
       // DEBUG: Log inset polygon vertices 
       if (insetPolygonM.length > 0) {
         console.log(`[RoofVisualization] Inset polygon vertices (m):`, insetPolygonM.map(p => `(${p.x.toFixed(0)},${p.y.toFixed(0)})`).join(', '));
@@ -1608,48 +1625,50 @@ export function RoofVisualization({
           }));
           
           // CONTAINMENT CHECK with HYBRID FALLBACK
-          // Primary: ALL 4 corners must be inside INSET polygon (in METER space)
-          // Fallback: ALL 4 corners inside ORIGINAL polygon AND all corners >= 1.2m from edges
-          // This handles narrow sections (like triangular tips) where inset collapses
-          // 
-          // CRITICAL FIX: Use METER-SPACE containment check to avoid coordinate conversion drift
-          // The grid operates in rotated space, corners are rotated back to meter space.
-          // Previously, converting to geographic coordinates introduced ~1m drift at parallelogram edges.
+          // =========================================================
+          // CRITICAL FIX: Check rotated corners against ROTATED inset polygon
+          // =========================================================
+          // Both the grid and the inset polygon are in the SAME ROTATED space.
+          // This eliminates ALL coordinate conversions for containment,
+          // preventing numerical drift that caused panels to be rejected
+          // in the top-left section of parallelogram roofs.
+          // =========================================================
           const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
           
           let passesContainment = false;
           
-          // Primary check: METER-SPACE inset polygon containment
-          // This eliminates drift from geographic coordinate conversion
-          if (insetPolygonM.length >= 3) {
-            const allCornersInInset = meterCorners.every(corner => 
-              pointInPolygon(corner, insetPolygonM)
+          // Primary check: ROTATED-SPACE inset polygon containment
+          // rotatedCorners are already in rotated space (no conversion needed)
+          // rotatedInsetPolygonM is the inset polygon in rotated space
+          if (rotatedInsetPolygonM.length >= 3) {
+            const allCornersInRotatedInset = rotatedCorners.every(corner => 
+              pointInPolygon(corner, rotatedInsetPolygonM)
             );
-            if (allCornersInInset) {
+            if (allCornersInRotatedInset) {
               passesContainment = true;
               acceptedByPrimary++;
             }
           }
           
-          // Fallback check: original polygon + distance-based setback
+          // Fallback check: rotated polygon + distance-based setback (all in ROTATED space)
           // Only used if primary check failed (inset may have collapsed in narrow sections)
-          // Uses GEOGRAPHIC containsLocation for reliability, then meter-space distance check
+          // Uses ROTATED space for consistency - no coordinate conversion drift
           let rejectionReason = '';
           if (!passesContainment) {
-            // Check if ALL 4 corners are inside the ORIGINAL polygon using Google Maps
-            // This uses the geographic originalPolygonPath which is guaranteed to match the drawn polygon
-            const allCornersInOriginalGeo = testPoints.every(point => 
-              google.maps.geometry.poly.containsLocation(point, originalPolygonPath)
+            // Check if ALL 4 corners are inside the ROTATED (non-inset) polygon
+            // Using pointInPolygon in rotated space for consistency
+            const allCornersInRotatedPolygon = rotatedCorners.every(corner => 
+              pointInPolygon(corner, normalizedRotatedPolygon)
             );
             
-            if (allCornersInOriginalGeo) {
-              // Verify all panel corners are at least edgeSetbackM from original polygon edges
-              // Use meter-space distance calculation for accuracy
+            if (allCornersInRotatedPolygon) {
+              // Verify all panel corners are at least edgeSetbackM from rotated polygon edges
+              // Use rotated space distance calculation for accuracy
               let allCornersHaveSetback = true;
               let minDistToEdge = Infinity;
               
-              for (const corner of meterCorners) {
-                const distToEdge = distanceToPolygonEdges(corner, normalizedPolygonM);
+              for (const corner of rotatedCorners) {
+                const distToEdge = distanceToPolygonEdges(corner, normalizedRotatedPolygon);
                 minDistToEdge = Math.min(minDistToEdge, distToEdge);
                 if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
                   allCornersHaveSetback = false;
@@ -1663,7 +1682,7 @@ export function RoofVisualization({
                 acceptedByFallback++;
               }
             } else {
-              rejectionReason = 'outside original polygon';
+              rejectionReason = 'outside rotated polygon';
             }
           }
           
