@@ -92,6 +92,7 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
         -   Fire corridors (1.2m width) enforced for roofs > 40m in either dimension
         -   Handles concave/convex polygons uniformly without face decomposition
         -   Matches industry tools (Aurora/Helioscope) for professional-looking layouts
+        -   **Triangular Section Handling**: Fallback containment check uses meter-space pointInPolygon when inset polygon collapses in narrow sections, ensuring panels appear in triangular protrusions
 -   **Manual Roof Drawing Tool (MANDATORY)**: Interactive roof area tracing required before running analysis for commercial buildings:
     -   **Mandatory Workflow**: Technicians must draw roof areas BEFORE running any solar analysis simulation
     -   Prominent amber alert banner blocks analysis until roof is validated
