@@ -1481,12 +1481,18 @@ export function RoofVisualization({
         // Check if inset polygon is significantly smaller than expected
         // This indicates some sections may have collapsed
         const insetArea = Math.abs(signedPolygonArea(insetPolygonM));
-        const expectedInsetArea = Math.abs(signedPolygonArea(normalizedPolygonM)) * 0.7; // Rough estimate
+        const originalPolygonArea = Math.abs(signedPolygonArea(normalizedPolygonM));
+        const expectedInsetArea = originalPolygonArea * 0.7; // Rough estimate
         if (insetArea < expectedInsetArea * 0.5) {
           insetCollapseDetected = true;
           console.warn(`[RoofVisualization] Inset polygon may have collapsed sections (area ${Math.round(insetArea)}m² vs expected ${Math.round(expectedInsetArea)}m²)`);
         }
-        console.log(`[RoofVisualization] Inset polygon created with ${insetPolygonM.length} vertices`);
+        console.log(`[RoofVisualization] Inset polygon: ${insetPolygonM.length} vertices (original: ${normalizedPolygonM.length}), area: ${Math.round(insetArea)}m² (original: ${Math.round(originalPolygonArea)}m²)`);
+        
+        // DEBUG: Log vertex coordinates to understand what was lost
+        if (normalizedPolygonM.length > insetPolygonM.length) {
+          console.warn(`[RoofVisualization] LOST ${normalizedPolygonM.length - insetPolygonM.length} vertices during inset - triangular sections may have collapsed!`);
+        }
       } else {
         // CRITICAL: If inset fails completely, use distance-based checking only
         insetCollapseDetected = true;
@@ -1576,15 +1582,23 @@ export function RoofVisualization({
           }
           
           // Fallback check: original polygon + distance-based setback
-          // Only used if primary check failed and inset may have collapsed
+          // Only used if primary check failed (inset may have collapsed in narrow sections)
+          // Uses meter-space coordinates for consistency - meterCorners is rotated back 
+          // to the same coordinate frame as normalizedPolygonM using axisAngle
           if (!passesContainment) {
-            const allCornersInOriginal = testPoints.every(point => 
-              google.maps.geometry.poly.containsLocation(point, originalPolygonPath)
+            // Check if ALL 4 corners are inside the ORIGINAL polygon (meter space)
+            // Note: meterCorners = rotatePoint(rotatedCorners, gridOrigin, axisAngle)
+            // normalizedPolygonM = CCW-normalized original polygon in meter space
+            // Both are in the same coordinate frame (ENU meters centered on centroid)
+            const allCornersInOriginal = meterCorners.every(corner => 
+              pointInPolygon(corner, normalizedPolygonM)
             );
             
             if (allCornersInOriginal) {
               // Verify all panel corners are at least edgeSetbackM from original polygon edges
+              // This ensures fire code setbacks are honored even when inset collapses
               let allCornersHaveSetback = true;
+              
               for (const corner of meterCorners) {
                 const distToEdge = distanceToPolygonEdges(corner, normalizedPolygonM);
                 if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
