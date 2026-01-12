@@ -219,15 +219,24 @@ function insetPolygon(polygon: Point2D[], insetDistance: number): Point2D[] {
   // For expansion (negative distance): original vertices must be inside result
   const validInsetPoints: Point2D[] = [];
   
+  // Check if original polygon is convex - convex polygons don't need vertex filtering
+  // since all inset vertices will be inside by mathematical necessity
+  const isConvex = !isPolygonConcave(polygon.map(p => ({ x: p.x, y: p.y })));
+  
   if (insetDistance > 0) {
     // Shrinking: each inset vertex must be inside (or very close to) the original polygon
     for (const { point } of rawInsetPoints) {
-      if (pointInPolygon(point, polygon)) {
+      // For CONVEX polygons (like parallelograms), skip the strict containment check
+      // The inset vertices are mathematically guaranteed to be inside for convex shapes
+      // This fixes false rejections at acute angles due to floating-point precision
+      if (isConvex) {
+        validInsetPoints.push(point);
+      } else if (pointInPolygon(point, polygon)) {
         validInsetPoints.push(point);
       } else {
         // Check if point is very close to boundary (tolerance for floating point)
         const distToEdge = distanceToPolygonEdges(point, polygon);
-        if (distToEdge < 0.5) { // Within 0.5m of boundary, accept it
+        if (distToEdge < 2.0) { // Increased tolerance to 2m for concave polygons
           validInsetPoints.push(point);
         }
         // Otherwise skip this vertex - it's from a collapsed narrow section
@@ -1464,9 +1473,28 @@ export function RoofVisualization({
       // Create INSET polygon for proper edge setbacks (1.2m from all edges)
       // This handles concave edges correctly, not just bounding box
       const polygonPointsM = meterCoords.map(([x, y]) => ({ x, y }));
+      
+      // DEBUG: Log winding direction before and after normalization
+      const preNormArea = signedPolygonArea(polygonPointsM);
+      console.log(`[RoofVisualization] Pre-normalization: signedArea=${Math.round(preNormArea)}m², winding=${preNormArea > 0 ? 'CCW' : 'CW'}`);
+      
       // Normalize to CCW winding - required for correct inward normal direction
       const normalizedPolygonM = normalizeToCCW(polygonPointsM);
+      
+      const postNormArea = signedPolygonArea(normalizedPolygonM);
+      console.log(`[RoofVisualization] Post-normalization: signedArea=${Math.round(postNormArea)}m², winding=${postNormArea > 0 ? 'CCW' : 'CW'}`);
+      
       const insetPolygonM = insetPolygon(normalizedPolygonM, edgeSetbackM);
+      
+      // DEBUG: Log inset polygon vertices 
+      if (insetPolygonM.length > 0) {
+        console.log(`[RoofVisualization] Inset polygon vertices (m):`, insetPolygonM.map(p => `(${p.x.toFixed(0)},${p.y.toFixed(0)})`).join(', '));
+        // Check if inset polygon looks reasonable
+        const insetBbox = getBoundingBox(insetPolygonM);
+        const origBbox = getBoundingBox(normalizedPolygonM);
+        console.log(`[RoofVisualization] Original bbox: X[${origBbox.minX.toFixed(0)},${origBbox.maxX.toFixed(0)}] Y[${origBbox.minY.toFixed(0)},${origBbox.maxY.toFixed(0)}]`);
+        console.log(`[RoofVisualization] Inset bbox: X[${insetBbox.minX.toFixed(0)},${insetBbox.maxX.toFixed(0)}] Y[${insetBbox.minY.toFixed(0)},${insetBbox.maxY.toFixed(0)}]`);
+      }
       
       // Also create ORIGINAL polygon path for fallback distance-based checking
       // This is used when inset collapses narrow sections (like triangular protrusions)
