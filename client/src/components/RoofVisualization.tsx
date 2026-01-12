@@ -1392,6 +1392,8 @@ export function RoofVisualization({
       });
 
       let acceptedCount = 0;
+      let acceptedByPrimary = 0;
+      let acceptedByFallback = 0;
       let rejectedByConstraint = 0;
       let rejectedByContainment = 0;
         
@@ -1512,7 +1514,9 @@ export function RoofVisualization({
       const numCols = Math.floor((gridMaxX - gridMinX) / colStep) + 1;
       const gridNumRows = Math.floor((gridMaxY - gridMinY) / rowStep) + 1;
       
-      console.log(`[RoofVisualization] Grid: ${numCols} cols × ${gridNumRows} rows`);
+      console.log(`[RoofVisualization] Grid: ${numCols} cols × ${gridNumRows} rows, bounds: X[${gridMinX.toFixed(0)},${gridMaxX.toFixed(0)}] Y[${gridMinY.toFixed(0)},${gridMaxY.toFixed(0)}]`);
+      console.log(`[RoofVisualization] Original polygon vertices (m):`, normalizedPolygonM.map(p => `(${p.x.toFixed(0)},${p.y.toFixed(0)})`).join(', '));
+      console.log(`[RoofVisualization] Axis angle: ${(axisAngle * 180 / Math.PI).toFixed(1)}°`);
       
       // Iterate over grid positions
       for (let rowIdx = 0; rowIdx < gridNumRows; rowIdx++) {
@@ -1578,25 +1582,23 @@ export function RoofVisualization({
             );
             if (allCornersInInset) {
               passesContainment = true;
+              acceptedByPrimary++;
             }
           }
           
           // Fallback check: original polygon + distance-based setback
           // Only used if primary check failed (inset may have collapsed in narrow sections)
-          // Uses meter-space coordinates for consistency - meterCorners is rotated back 
-          // to the same coordinate frame as normalizedPolygonM using axisAngle
+          // Uses GEOGRAPHIC containsLocation for reliability, then meter-space distance check
           if (!passesContainment) {
-            // Check if ALL 4 corners are inside the ORIGINAL polygon (meter space)
-            // Note: meterCorners = rotatePoint(rotatedCorners, gridOrigin, axisAngle)
-            // normalizedPolygonM = CCW-normalized original polygon in meter space
-            // Both are in the same coordinate frame (ENU meters centered on centroid)
-            const allCornersInOriginal = meterCorners.every(corner => 
-              pointInPolygon(corner, normalizedPolygonM)
+            // Check if ALL 4 corners are inside the ORIGINAL polygon using Google Maps
+            // This uses the geographic originalPolygonPath which is guaranteed to match the drawn polygon
+            const allCornersInOriginalGeo = testPoints.every(point => 
+              google.maps.geometry.poly.containsLocation(point, originalPolygonPath)
             );
             
-            if (allCornersInOriginal) {
+            if (allCornersInOriginalGeo) {
               // Verify all panel corners are at least edgeSetbackM from original polygon edges
-              // This ensures fire code setbacks are honored even when inset collapses
+              // Use meter-space distance calculation for accuracy
               let allCornersHaveSetback = true;
               
               for (const corner of meterCorners) {
@@ -1609,6 +1611,7 @@ export function RoofVisualization({
               
               if (allCornersHaveSetback) {
                 passesContainment = true;
+                acceptedByFallback++;
               }
             }
           }
@@ -1678,7 +1681,7 @@ export function RoofVisualization({
         }
       }
       
-      console.log(`[RoofVisualization] Grid fill complete: ${acceptedCount} panels, ${rejectedByContainment} rejected by containment`);
+      console.log(`[RoofVisualization] Grid fill complete: ${acceptedCount} panels (${acceptedByPrimary} primary, ${acceptedByFallback} fallback), ${rejectedByContainment} rejected by containment`);
       
       // SKIP THE OLD CONVEX-ONLY CODE PATH - unified approach handles all shapes
       if (false) {
