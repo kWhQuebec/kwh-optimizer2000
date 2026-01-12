@@ -1397,18 +1397,26 @@ export function RoofVisualization({
       let rejectedByConstraint = 0;
       let rejectedByContainment = 0;
         
-      // 5. Get bounding box - for concave polygons, use UNROTATED bbox to ensure full coverage
-      // The issue: rotation can cause the bounding box to not cover all parts of L-shaped roofs
+      // 5. Get bounding box - ALWAYS use maximum of rotated and unrotated bounds
+      // This ensures full coverage for parallelograms and other skewed shapes, not just concave polygons
       const bboxRotated = getBoundingBox(rotatedPolygonPoints);
       const bboxUnrotated = getBoundingBox(meterCoords.map(([x, y]) => ({ x, y })));
       
-      // For concave polygons, use the larger of the two bounding boxes
-      const bbox = isConcave ? {
+      // ALWAYS use the larger of the two bounding boxes to ensure full coverage
+      // Parallelograms and other skewed shapes can have areas missed by rotated-only bounds
+      const bbox = {
         minX: Math.min(bboxRotated.minX, bboxUnrotated.minX),
         maxX: Math.max(bboxRotated.maxX, bboxUnrotated.maxX),
         minY: Math.min(bboxRotated.minY, bboxUnrotated.minY),
         maxY: Math.max(bboxRotated.maxY, bboxUnrotated.maxY),
-      } : bboxRotated;
+      };
+      
+      // DEBUG: Log bounding box comparison to identify coverage issues
+      console.log(`[RoofVisualization] Bounding box comparison for ${polygon.label || polygon.id}:`, {
+        rotated: { w: Math.round(bboxRotated.maxX - bboxRotated.minX), h: Math.round(bboxRotated.maxY - bboxRotated.minY) },
+        unrotated: { w: Math.round(bboxUnrotated.maxX - bboxUnrotated.minX), h: Math.round(bboxUnrotated.maxY - bboxUnrotated.minY) },
+        merged: { w: Math.round(bbox.maxX - bbox.minX), h: Math.round(bbox.maxY - bbox.minY) },
+      });
       
       // Calculate grid parameters
       const colStep = panelWidthM + gapBetweenPanelsM;  // 2.1m horizontal step
