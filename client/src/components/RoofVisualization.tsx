@@ -1579,20 +1579,27 @@ export function RoofVisualization({
       // each starting from the pathway edge and going outward.
       // This guarantees exactly 1.2m corridor width.
       
+      // FIRE PATHWAY GRID ALIGNMENT
+      // ============================
+      // For a 1.2m corridor, panel EDGES must be at ±0.6m from center
+      // Since we place panels by their left/bottom CORNER, we need:
+      //   - Right side: left edge at +0.6m → corner at +0.6m
+      //   - Left side: right edge at -0.6m → corner at -0.6m - panelWidth
+      
       const pathwayEdge = halfPathway; // 0.6m = edge of 1.2m corridor
       
       // Build list of X positions (columns) - symmetric around X=0
-      // Right side: starts at +pathwayEdge, goes to bbox.maxX
-      // Left side: ends at -pathwayEdge, starts from bbox.minX
       const xPositions: number[] = [];
       
       if (needsNorthSouthPathway) {
-        // RIGHT SIDE: panels start at +0.6m (left edge at pathway)
+        // RIGHT SIDE: panel's LEFT edge at +0.6m (touching pathway)
+        // First panel corner at +0.6m, subsequent at +0.6m + n*colStep
         for (let x = pathwayEdge; x <= bbox.maxX; x += colStep) {
           xPositions.push(x);
         }
-        // LEFT SIDE: panels end at -0.6m (right edge at pathway)
-        // Panel left edge = -0.6 - panelWidthM, then go left by colStep
+        // LEFT SIDE: panel's RIGHT edge at -0.6m (touching pathway)
+        // Panel extends from corner to corner+panelWidth
+        // So corner = -0.6m - panelWidthM = -2.6m for first panel
         for (let x = -pathwayEdge - panelWidthM; x >= bbox.minX; x -= colStep) {
           xPositions.push(x);
         }
@@ -1607,11 +1614,12 @@ export function RoofVisualization({
       const yPositions: number[] = [];
       
       if (needsEastWestPathway) {
-        // TOP SIDE: panels start at +0.6m (bottom edge at pathway)
+        // TOP SIDE: panel's BOTTOM edge at +0.6m (touching pathway)
         for (let y = pathwayEdge; y <= bbox.maxY; y += rowStep) {
           yPositions.push(y);
         }
-        // BOTTOM SIDE: panels end at -0.6m (top edge at pathway)
+        // BOTTOM SIDE: panel's TOP edge at -0.6m (touching pathway)
+        // Corner = -0.6m - panelHeightM
         for (let y = -pathwayEdge - panelHeightM; y >= bbox.minY; y -= rowStep) {
           yPositions.push(y);
         }
@@ -1624,6 +1632,24 @@ export function RoofVisualization({
       
       const numCols = xPositions.length;
       const gridNumRows = yPositions.length;
+      
+      // Calculate actual corridor width from X positions
+      const rightX = xPositions.filter(x => x > 0).sort((a, b) => a - b);
+      const leftX = xPositions.filter(x => x < 0).sort((a, b) => b - a);
+      const firstRightCorner = rightX.length > 0 ? rightX[0] : null;
+      const firstLeftCorner = leftX.length > 0 ? leftX[0] : null;
+      const firstRightEdge = firstRightCorner; // Left edge of right panel = corner X
+      const firstLeftEdge = firstLeftCorner !== null ? firstLeftCorner + panelWidthM : null; // Right edge of left panel
+      const actualCorridorWidth = firstRightEdge !== null && firstLeftEdge !== null 
+        ? firstRightEdge - firstLeftEdge 
+        : null;
+      
+      console.log(`[RoofVisualization] *** FIRE PATHWAY DEBUG ***`);
+      console.log(`[RoofVisualization] halfPathway=${halfPathway}m, panelWidthM=${panelWidthM}m`);
+      console.log(`[RoofVisualization] First right panel: corner at X=${firstRightCorner?.toFixed(2)}m`);
+      console.log(`[RoofVisualization] First left panel: corner at X=${firstLeftCorner?.toFixed(2)}m`);
+      console.log(`[RoofVisualization] Inner edges: right panel left edge at X=${firstRightEdge?.toFixed(2)}m, left panel right edge at X=${firstLeftEdge?.toFixed(2)}m`);
+      console.log(`[RoofVisualization] ACTUAL CORRIDOR WIDTH: ${actualCorridorWidth?.toFixed(2)}m (target: 1.2m)`);
       
       console.log(`[RoofVisualization] Symmetric grid: ${numCols} cols × ${gridNumRows} rows`);
       console.log(`[RoofVisualization] X positions sample: [${xPositions.slice(0, 5).map(x => x.toFixed(1)).join(', ')}...${xPositions.slice(-3).map(x => x.toFixed(1)).join(', ')}]`);
