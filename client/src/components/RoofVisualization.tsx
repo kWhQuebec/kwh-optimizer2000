@@ -1532,12 +1532,6 @@ export function RoofVisualization({
         console.log(`[RoofVisualization] Inset bbox: X[${insetBbox.minX.toFixed(0)},${insetBbox.maxX.toFixed(0)}] Y[${insetBbox.minY.toFixed(0)},${insetBbox.maxY.toFixed(0)}]`);
       }
       
-      // Also create ORIGINAL polygon path for fallback distance-based checking
-      // This is used when inset collapses narrow sections (like triangular protrusions)
-      // Use the original coords directly (already in geographic format)
-      const originalGeoCoords = coords.map(([lng, lat]) => ({ lat, lng }));
-      const originalPolygonPath = new google.maps.Polygon({ paths: originalGeoCoords });
-      
       // Convert inset polygon to geographic coordinates for containment checks
       let insetPolygonPath: google.maps.Polygon | null = null;
       let insetCollapseDetected = false;
@@ -1718,12 +1712,6 @@ export function RoofVisualization({
           let passesContainment = false;
           let rejectionReason = '';
           
-          // Panel center in geographic coordinates
-          const panelCenterGeo = new google.maps.LatLng(
-            (geoCorners[0].y + geoCorners[2].y) / 2,
-            (geoCorners[0].x + geoCorners[2].x) / 2
-          );
-          
           // CONTAINMENT CHECK: Center in polygon + ALL corners at least 1.2m from edges
           // =========================================================
           // SIMPLIFIED APPROACH: If all corners are at least 1.2m from polygon edges,
@@ -1733,18 +1721,18 @@ export function RoofVisualization({
           // =========================================================
           
           // Step 1: Check if panel CENTER is inside the polygon
-          let centerInPolygon: boolean;
-          
-          if (google.maps.geometry?.poly?.containsLocation) {
-            // Primary path: use Google Maps API (most accurate for geographic polygon)
-            centerInPolygon = google.maps.geometry.poly.containsLocation(
-              panelCenterGeo, 
-              originalPolygonPath
-            );
-          } else {
-            // Fallback: use meter-space polygon check
-            centerInPolygon = pointInPolygon(panelCenterM, normalizedPolygonM);
-          }
+          // =========================================================
+          // CRITICAL FIX: Always use meter-space polygon check with normalizedPolygonM
+          // 
+          // Previous bug: google.maps.containsLocation used originalPolygonPath which
+          // was built from raw coords (CW order for some polygons), but panel positions
+          // are computed through normalizedPolygonM (CCW order). This coordinate mismatch
+          // caused panels in valid regions to be rejected as "outside".
+          //
+          // Solution: Use consistent meter-space pointInPolygon with normalizedPolygonM
+          // which matches the grid generation coordinate system.
+          // =========================================================
+          const centerInPolygon = pointInPolygon(panelCenterM, normalizedPolygonM);
           
           if (centerInPolygon) {
             // Step 2: Verify ALL 4 corners are at least edgeSetbackM from polygon edges
