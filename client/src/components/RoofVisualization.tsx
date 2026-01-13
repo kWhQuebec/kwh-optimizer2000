@@ -1503,12 +1503,30 @@ export function RoofVisualization({
       // NEW APPROACH: Create inset polygon directly in ROTATED space.
       // Containment check uses rotated corners against rotated inset polygon.
       // No coordinate conversion = no numerical drift.
+      //
+      // CRITICAL: We must rotate the NORMALIZED polygon (CCW), not raw meterCoords.
+      // Otherwise, if meterCoords was CW, the rotated polygon would also be CW,
+      // and normalizeToCCW would flip it, reversing the inset direction.
+      // By rotating the already-normalized polygon, we preserve the CCW winding.
       // =========================================================
-      // rotatedPolygonPoints is already Point2D[] (objects with x, y)
-      const normalizedRotatedPolygon = normalizeToCCW(rotatedPolygonPoints);
+      
+      // Convert normalized polygon back to tuple format for rotation
+      const normalizedMeterCoords: [number, number][] = normalizedPolygonM.map(p => [p.x, p.y]);
+      
+      // Rotate the NORMALIZED (CCW) polygon - winding is preserved by rotation
+      const rotatedNormalizedPoints = rotatePolygonCoords(normalizedMeterCoords, meterCentroid, -axisAngle);
+      
+      // DEBUG: Verify winding direction of rotated normalized polygon
+      const rotatedNormArea = signedPolygonArea(rotatedNormalizedPoints);
+      console.log(`[RoofVisualization] Rotated normalized polygon: signedArea=${Math.round(rotatedNormArea)}m², winding=${rotatedNormArea > 0 ? 'CCW' : 'CW'}`);
+      
+      // Use rotated normalized polygon directly - it's already CCW
+      const normalizedRotatedPolygon = rotatedNormalizedPoints;
       const rotatedInsetPolygonM = insetPolygon(normalizedRotatedPolygon, edgeSetbackM);
       
-      console.log(`[RoofVisualization] Rotated inset polygon: ${rotatedInsetPolygonM.length} vertices for containment in rotated space`);
+      // DEBUG: Verify rotated inset polygon
+      const rotatedInsetArea = signedPolygonArea(rotatedInsetPolygonM);
+      console.log(`[RoofVisualization] Rotated inset polygon: ${rotatedInsetPolygonM.length} vertices, area=${Math.round(Math.abs(rotatedInsetArea))}m² for containment in rotated space`);
       
       // DEBUG: Log inset polygon vertices 
       if (insetPolygonM.length > 0) {
