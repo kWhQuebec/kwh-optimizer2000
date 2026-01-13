@@ -1670,21 +1670,21 @@ export function RoofVisualization({
             { x: rotX, y: rotY + panelHeightM },
           ];
           
-          // Rotate back to original meter space
+          // Panel center in ROTATED space (for containment check)
+          const rotatedCenterX = rotX + panelWidthM / 2;
+          const rotatedCenterY = rotY + panelHeightM / 2;
+          const rotatedCenter: Point2D = { x: rotatedCenterX, y: rotatedCenterY };
+          
+          // Rotate back to original meter space (for geographic conversion)
           const meterCorners = rotatedCorners.map(p => 
             rotatePoint(p, gridOrigin, axisAngle)
           );
           
-          // Panel center in meter space
+          // Panel center in meter space (for logging only)
           const panelCenterM = {
             x: (meterCorners[0].x + meterCorners[2].x) / 2,
             y: (meterCorners[0].y + meterCorners[2].y) / 2
           };
-          
-          // FIRE PATHWAY CHECK - REMOVED (now handled by symmetric grid generation)
-          // The xPositions and yPositions arrays already exclude the pathway zone,
-          // so panels are guaranteed to be at least 0.6m from the center.
-          // No additional check needed here.
           
           // Convert to geographic coordinates
           const geoCorners = meterCorners.map(p => ({
@@ -1692,58 +1692,34 @@ export function RoofVisualization({
             y: p.y / metersPerDegreeLat + centroid.y
           }));
           
-          // CONTAINMENT CHECK - GEOGRAPHIC POLYGON APPROACH
+          // CONTAINMENT CHECK - ALL IN ROTATED SPACE
           // =========================================================
-          // CRITICAL FIX: Use ORIGINAL geographic polygon (Google Maps API)
-          // =========================================================
-          // The rotated polygon approach fails because the transformed coordinates
-          // don't match the visualized polygon boundaries precisely.
+          // CRITICAL FIX: Do all containment checks in ROTATED space
           // 
-          // Instead, we:
-          // 1. Check if panel center is inside the ORIGINAL geographic polygon
-          //    using Google Maps containsLocation (same polygon that's visualized)
-          // 2. Verify ALL 4 corners are at least 1.2m from polygon edges
-          //    using meter-space distance calculation
-          // 
-          // This ensures panels are placed exactly within the visible turquoise area.
+          // Previous bug: Tested panelCenterM (original space) against normalizedPolygonM,
+          // but the rotation transformation was introducing coordinate drift that caused
+          // panels in valid regions to be rejected.
+          //
+          // Solution: Test rotatedCenter against rotatedNormalizedPoints (same space as grid)
+          // and check edge distances in rotated space too. This eliminates transformation errors.
           // =========================================================
           const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
           
           let passesContainment = false;
           let rejectionReason = '';
           
-          // CONTAINMENT CHECK: Center in polygon + ALL corners at least 1.2m from edges
-          // =========================================================
-          // SIMPLIFIED APPROACH: If all corners are at least 1.2m from polygon edges,
-          // they are GUARANTEED to be inside the polygon (since setback is measured 
-          // from edges inward). This eliminates corner-in-polygon false negatives
-          // caused by floating-point precision issues on oblique edges.
-          // =========================================================
-          
-          // Step 1: Check if panel CENTER is inside the polygon
-          // =========================================================
-          // CRITICAL FIX: Always use meter-space polygon check with normalizedPolygonM
-          // 
-          // Previous bug: google.maps.containsLocation used originalPolygonPath which
-          // was built from raw coords (CW order for some polygons), but panel positions
-          // are computed through normalizedPolygonM (CCW order). This coordinate mismatch
-          // caused panels in valid regions to be rejected as "outside".
-          //
-          // Solution: Use consistent meter-space pointInPolygon with normalizedPolygonM
-          // which matches the grid generation coordinate system.
-          // =========================================================
-          const centerInPolygon = pointInPolygon(panelCenterM, normalizedPolygonM);
+          // Step 1: Check if panel CENTER is inside the ROTATED polygon
+          // Both are in the same coordinate system (rotated/axis-aligned)
+          const centerInPolygon = pointInPolygon(rotatedCenter, rotatedNormalizedPoints);
           
           if (centerInPolygon) {
-            // Step 2: Verify ALL 4 corners are at least edgeSetbackM from polygon edges
-            // This is the primary constraint - if satisfied, corners are inside polygon
+            // Step 2: Verify ALL 4 corners are at least edgeSetbackM from ROTATED polygon edges
+            // This keeps everything in the same coordinate system
             let allCornersHaveSetback = true;
             let minDistToEdge = Infinity;
             
-            // meterCorners are in the original (non-rotated) meter space
-            // normalizedPolygonM is the original polygon in meter space
-            for (const corner of meterCorners) {
-              const distToEdge = distanceToPolygonEdges(corner, normalizedPolygonM);
+            for (const corner of rotatedCorners) {
+              const distToEdge = distanceToPolygonEdges(corner, rotatedNormalizedPoints);
               minDistToEdge = Math.min(minDistToEdge, distToEdge);
               if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
                 allCornersHaveSetback = false;
@@ -1757,7 +1733,7 @@ export function RoofVisualization({
               acceptedByPrimary++;
             }
           } else {
-            rejectionReason = 'center outside original polygon';
+            rejectionReason = 'center outside rotated polygon';
           }
           
           if (!passesContainment) {
