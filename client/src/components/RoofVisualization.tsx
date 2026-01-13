@@ -1391,8 +1391,26 @@ export function RoofVisualization({
       const axisAngle = computePrincipalAxisAngle(meterCoords);
       const meterCentroid = { x: 0, y: 0 }; // Centroid is origin in local system
       
-      // 4. Rotate polygon to axis-aligned space for easier grid scanning
-      const rotatedPolygonPoints = rotatePolygonCoords(meterCoords, meterCentroid, -axisAngle);
+      // 4. NORMALIZE polygon to CCW winding BEFORE rotation
+      // This ensures consistent winding direction for all downstream operations
+      const polygonPointsM = meterCoords.map(([x, y]) => ({ x, y }));
+      const preNormArea = signedPolygonArea(polygonPointsM);
+      console.log(`[RoofVisualization] Pre-normalization: signedArea=${Math.round(preNormArea)}m², winding=${preNormArea > 0 ? 'CCW' : 'CW'}`);
+      
+      const normalizedPolygonM = normalizeToCCW(polygonPointsM);
+      const postNormArea = signedPolygonArea(normalizedPolygonM);
+      console.log(`[RoofVisualization] Post-normalization: signedArea=${Math.round(postNormArea)}m², winding=${postNormArea > 0 ? 'CCW' : 'CW'}`);
+      
+      // 5. Rotate the NORMALIZED polygon - winding is preserved by rotation
+      const normalizedMeterCoords: [number, number][] = normalizedPolygonM.map(p => [p.x, p.y]);
+      const rotatedNormalizedPoints = rotatePolygonCoords(normalizedMeterCoords, meterCentroid, -axisAngle);
+      
+      // DEBUG: Verify winding direction of rotated normalized polygon
+      const rotatedNormArea = signedPolygonArea(rotatedNormalizedPoints);
+      console.log(`[RoofVisualization] Rotated normalized polygon: signedArea=${Math.round(rotatedNormArea)}m², winding=${rotatedNormArea > 0 ? 'CCW' : 'CW'}`);
+      
+      // Legacy: also create rotatedPolygonPoints for concave check (same result as rotatedNormalizedPoints for convex)
+      const rotatedPolygonPoints = rotatedNormalizedPoints;
       
       // Check if polygon is concave (L/U/T shaped)
       const isConcave = isPolygonConcave(rotatedPolygonPoints);
@@ -1414,8 +1432,10 @@ export function RoofVisualization({
       let rejectedByContainment = 0;
         
       // 5. Get bounding box in ROTATED space only
-      // The grid operates in rotated coordinates, so bbox must also be in rotated coordinates
-      const bbox = getBoundingBox(rotatedPolygonPoints);
+      // CRITICAL: Use the SAME rotated polygon as containment check (rotatedNormalizedPoints)
+      // Previously used rotatedPolygonPoints which was from raw meterCoords (possibly different winding)
+      // This caused a mismatch where grid was based on different vertices than containment polygon
+      const bbox = getBoundingBox(rotatedNormalizedPoints);
       
       // DEBUG: Log bounding box and polygon vertices to understand coverage
       console.log(`[RoofVisualization] Bounding box for ${polygon.label || polygon.id}:`, {
@@ -1477,50 +1497,11 @@ export function RoofVisualization({
       // Grid origin is at (0,0) = polygon centroid in meter space
       const gridOrigin = { x: 0, y: 0 };
       
-      // Create INSET polygon for proper edge setbacks (1.2m from all edges)
-      // This handles concave edges correctly, not just bounding box
-      const polygonPointsM = meterCoords.map(([x, y]) => ({ x, y }));
-      
-      // DEBUG: Log winding direction before and after normalization
-      const preNormArea = signedPolygonArea(polygonPointsM);
-      console.log(`[RoofVisualization] Pre-normalization: signedArea=${Math.round(preNormArea)}m², winding=${preNormArea > 0 ? 'CCW' : 'CW'}`);
-      
-      // Normalize to CCW winding - required for correct inward normal direction
-      const normalizedPolygonM = normalizeToCCW(polygonPointsM);
-      
-      const postNormArea = signedPolygonArea(normalizedPolygonM);
-      console.log(`[RoofVisualization] Post-normalization: signedArea=${Math.round(postNormArea)}m², winding=${postNormArea > 0 ? 'CCW' : 'CW'}`);
-      
+      // Create INSET polygons for edge setbacks (1.2m from all edges)
+      // normalizedPolygonM and rotatedNormalizedPoints were already created above
       const insetPolygonM = insetPolygon(normalizedPolygonM, edgeSetbackM);
       
-      // =========================================================
-      // CRITICAL FIX: Create ROTATED inset polygon for containment checks
-      // =========================================================
-      // The grid operates in ROTATED space (axis-aligned).
-      // Previously, we checked rotated corners against ORIGINAL-space inset polygon,
-      // requiring rotation back which introduced numerical drift (~1m at edges).
-      // 
-      // NEW APPROACH: Create inset polygon directly in ROTATED space.
-      // Containment check uses rotated corners against rotated inset polygon.
-      // No coordinate conversion = no numerical drift.
-      //
-      // CRITICAL: We must rotate the NORMALIZED polygon (CCW), not raw meterCoords.
-      // Otherwise, if meterCoords was CW, the rotated polygon would also be CW,
-      // and normalizeToCCW would flip it, reversing the inset direction.
-      // By rotating the already-normalized polygon, we preserve the CCW winding.
-      // =========================================================
-      
-      // Convert normalized polygon back to tuple format for rotation
-      const normalizedMeterCoords: [number, number][] = normalizedPolygonM.map(p => [p.x, p.y]);
-      
-      // Rotate the NORMALIZED (CCW) polygon - winding is preserved by rotation
-      const rotatedNormalizedPoints = rotatePolygonCoords(normalizedMeterCoords, meterCentroid, -axisAngle);
-      
-      // DEBUG: Verify winding direction of rotated normalized polygon
-      const rotatedNormArea = signedPolygonArea(rotatedNormalizedPoints);
-      console.log(`[RoofVisualization] Rotated normalized polygon: signedArea=${Math.round(rotatedNormArea)}m², winding=${rotatedNormArea > 0 ? 'CCW' : 'CW'}`);
-      
-      // Use rotated normalized polygon directly - it's already CCW
+      // Create ROTATED inset polygon for containment checks in rotated space
       const normalizedRotatedPolygon = rotatedNormalizedPoints;
       const rotatedInsetPolygonM = insetPolygon(normalizedRotatedPolygon, edgeSetbackM);
       
