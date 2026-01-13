@@ -1953,14 +1953,51 @@ export function RoofVisualization({
     });
     console.log(`[RoofVisualization] Panel distribution by quadrant:`, quadrantCounts);
 
-    // Sort by latitude (south to north) for optimal solar filling in Quebec
-    // Use rectangularized positions for clean commercial sub-arrays
-    const sortedPositions = [...rectangularizedPositions].sort((a, b) => {
-      if (Math.abs(a.lat - b.lat) > 0.000001) {
-        return a.lat - b.lat;
+    // CRITICAL FIX: Interleave panels from all quadrants so that reducing capacity
+    // removes panels uniformly across the roof instead of removing entire sections.
+    // Previously, sorting south→north caused all northern panels (WN, EN) to be
+    // at the end of the list and not displayed when capacity < 100%.
+    const quadrantArrays: { [key: string]: PanelPosition[] } = {
+      WN: [], EN: [], WS: [], ES: [], other: []
+    };
+    rectangularizedPositions.forEach(p => {
+      const q = p.quadrant;
+      if (q && q in quadrantArrays) {
+        quadrantArrays[q].push(p);
+      } else {
+        quadrantArrays.other.push(p);
       }
-      return a.lng - b.lng;
     });
+    
+    // Sort each quadrant internally by position for consistent ordering
+    Object.values(quadrantArrays).forEach(arr => {
+      arr.sort((a, b) => {
+        if (Math.abs(a.lat - b.lat) > 0.000001) return a.lat - b.lat;
+        return a.lng - b.lng;
+      });
+    });
+    
+    // Interleave: take one panel from each quadrant in round-robin fashion
+    // This ensures all quadrants are represented even at low capacity settings
+    const sortedPositions: PanelPosition[] = [];
+    const quadrantKeys = ['WN', 'EN', 'WS', 'ES', 'other'];
+    const indices = { WN: 0, EN: 0, WS: 0, ES: 0, other: 0 };
+    let added = true;
+    while (added) {
+      added = false;
+      for (const key of quadrantKeys) {
+        const arr = quadrantArrays[key];
+        const idx = indices[key as keyof typeof indices];
+        if (idx < arr.length) {
+          sortedPositions.push(arr[idx]);
+          indices[key as keyof typeof indices]++;
+          added = true;
+        }
+      }
+    }
+    
+    console.log(`[RoofVisualization] Interleaved panels: ${sortedPositions.length} total, first 20 quadrants:`, 
+      sortedPositions.slice(0, 20).map(p => p.quadrant));
     
     setAllPanelPositions(sortedPositions);
   }, [roofPolygons, mapReady]);
