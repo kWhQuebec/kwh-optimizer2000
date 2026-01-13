@@ -1574,14 +1574,45 @@ export function RoofVisualization({
       const containmentPolygon = insetPolygonPath;
       
       // Calculate grid bounds from rotated bounding box
-      const gridMinX = bbox.minX;
+      // CRITICAL FIX: Center the grid on X=0 and Y=0 to align with fire pathways
+      // This ensures panels are placed symmetrically around the central corridors,
+      // minimizing the visible gap (1.2m pathway instead of up to 4m due to grid misalignment)
+      
+      const pathwayEdge = halfPathway; // 0.6m = edge of 1.2m corridor
+      
+      // Calculate offset to center the grid on the pathway
+      // We want panel edges to align with ±pathwayEdge
+      // Right side panels: left edge at +pathwayEdge → rotX = +pathwayEdge
+      // Left side panels: right edge at -pathwayEdge → rotX = -pathwayEdge - panelWidthM
+      
+      // Calculate how far the default grid is from optimal alignment
+      // Default grid: rotX = gridMinX + i * colStep
+      // We want a rotX near +pathwayEdge to equal exactly +pathwayEdge
+      const defaultGridStart = bbox.minX;
+      
+      // Find the grid position closest to +pathwayEdge with default grid
+      const stepsToPathway = Math.ceil((pathwayEdge - defaultGridStart) / colStep);
+      const defaultPosNearPathway = defaultGridStart + stepsToPathway * colStep;
+      
+      // Offset needed to align this position with +pathwayEdge
+      const xOffset = pathwayEdge - defaultPosNearPathway;
+      
+      // Similarly for Y
+      const stepsToPathwayY = Math.ceil((pathwayEdge - bbox.minY) / rowStep);
+      const defaultPosNearPathwayY = bbox.minY + stepsToPathwayY * rowStep;
+      const yOffset = pathwayEdge - defaultPosNearPathwayY;
+      
+      // Apply offsets to grid bounds
+      const gridMinX = bbox.minX + xOffset;
       const gridMaxX = bbox.maxX;
-      const gridMinY = bbox.minY;
+      const gridMinY = bbox.minY + yOffset;
       const gridMaxY = bbox.maxY;
       
-      // Calculate number of columns and rows
+      // Calculate number of columns and rows with offset grid
       const numCols = Math.floor((gridMaxX - gridMinX) / colStep) + 1;
       const gridNumRows = Math.floor((gridMaxY - gridMinY) / rowStep) + 1;
+      
+      console.log(`[RoofVisualization] Grid alignment: xOffset=${xOffset.toFixed(2)}m, yOffset=${yOffset.toFixed(2)}m`);
       
       console.log(`[RoofVisualization] Grid: ${numCols} cols × ${gridNumRows} rows, bounds: X[${gridMinX.toFixed(0)},${gridMaxX.toFixed(0)}] Y[${gridMinY.toFixed(0)},${gridMaxY.toFixed(0)}]`);
       console.log(`[RoofVisualization] Original polygon vertices (m):`, normalizedPolygonM.map(p => `(${p.x.toFixed(0)},${p.y.toFixed(0)})`).join(', '));
