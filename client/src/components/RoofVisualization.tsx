@@ -1656,22 +1656,10 @@ export function RoofVisualization({
             y: (meterCorners[0].y + meterCorners[2].y) / 2
           };
           
-          // FIRE PATHWAY CHECK (in rotated space - simpler)
-          const rotCenterX = rotX + panelWidthM / 2;
-          const rotCenterY = rotY + panelHeightM / 2;
-          
-          // N-S pathway: vertical corridor at X=0 in rotated space
-          if (needsNorthSouthPathway) {
-            if (Math.abs(rotCenterX) < halfPathway + panelWidthM / 2) {
-              continue;
-            }
-          }
-          // E-W pathway: horizontal corridor at Y=0 in rotated space
-          if (needsEastWestPathway) {
-            if (Math.abs(rotCenterY) < halfPathway + panelHeightM / 2) {
-              continue;
-            }
-          }
+          // FIRE PATHWAY CHECK - REMOVED (now handled by symmetric grid generation)
+          // The xPositions and yPositions arrays already exclude the pathway zone,
+          // so panels are guaranteed to be at least 0.6m from the center.
+          // No additional check needed here.
           
           // Convert to geographic coordinates
           const geoCorners = meterCorners.map(p => ({
