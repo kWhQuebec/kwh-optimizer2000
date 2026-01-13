@@ -1769,6 +1769,17 @@ export function RoofVisualization({
       
       console.log(`[RoofVisualization] Grid fill complete: ${acceptedCount} panels (${acceptedByPrimary} primary, ${acceptedByFallback} fallback), ${rejectedByContainment} rejected by containment`);
       
+      // DEBUG: Log sample panels from each quadrant to verify rendering positions
+      const sampleWS = positions.filter(p => p.quadrant === 'WS').slice(0, 3);
+      const sampleWN = positions.filter(p => p.quadrant === 'WN').slice(0, 3);
+      const sampleEN = positions.filter(p => p.quadrant === 'EN').slice(0, 3);
+      const sampleES = positions.filter(p => p.quadrant === 'ES').slice(0, 3);
+      console.log(`[RoofVisualization] Sample WS panels (should be visual NW):`, sampleWS.map(p => `lat=${p.lat.toFixed(5)},lng=${p.lng.toFixed(5)},row=${p.gridRow},col=${p.gridCol}`));
+      console.log(`[RoofVisualization] Sample WN panels:`, sampleWN.map(p => `lat=${p.lat.toFixed(5)},lng=${p.lng.toFixed(5)},row=${p.gridRow},col=${p.gridCol}`));
+      console.log(`[RoofVisualization] Sample EN panels (should be visual NE):`, sampleEN.map(p => `lat=${p.lat.toFixed(5)},lng=${p.lng.toFixed(5)},row=${p.gridRow},col=${p.gridCol}`));
+      console.log(`[RoofVisualization] Sample ES panels:`, sampleES.map(p => `lat=${p.lat.toFixed(5)},lng=${p.lng.toFixed(5)},row=${p.gridRow},col=${p.gridCol}`));
+      console.log(`[RoofVisualization] Centroid: lat=${centroid.y.toFixed(5)}, lng=${centroid.x.toFixed(5)}`);
+      
       // SKIP THE OLD CONVEX-ONLY CODE PATH - unified approach handles all shapes
       if (false) {
         // ROW-WISE APPROACH for convex polygons (more efficient)
