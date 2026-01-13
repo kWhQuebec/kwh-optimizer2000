@@ -1574,56 +1574,68 @@ export function RoofVisualization({
       const containmentPolygon = insetPolygonPath;
       
       // Calculate grid bounds from rotated bounding box
-      // CRITICAL FIX: Center the grid on X=0 and Y=0 to align with fire pathways
-      // This ensures panels are placed symmetrically around the central corridors,
-      // minimizing the visible gap (1.2m pathway instead of up to 4m due to grid misalignment)
+      // CRITICAL FIX: Use SYMMETRIC HALF-GRIDS for fire pathways
+      // Instead of offsetting a single grid, we generate panels in 4 quadrants,
+      // each starting from the pathway edge and going outward.
+      // This guarantees exactly 1.2m corridor width.
       
       const pathwayEdge = halfPathway; // 0.6m = edge of 1.2m corridor
       
-      // Calculate offset to center the grid on the pathway
-      // We want panel edges to align with ±pathwayEdge
-      // Right side panels: left edge at +pathwayEdge → rotX = +pathwayEdge
-      // Left side panels: right edge at -pathwayEdge → rotX = -pathwayEdge - panelWidthM
+      // Build list of X positions (columns) - symmetric around X=0
+      // Right side: starts at +pathwayEdge, goes to bbox.maxX
+      // Left side: ends at -pathwayEdge, starts from bbox.minX
+      const xPositions: number[] = [];
       
-      // Calculate how far the default grid is from optimal alignment
-      // Default grid: rotX = gridMinX + i * colStep
-      // We want a rotX near +pathwayEdge to equal exactly +pathwayEdge
-      const defaultGridStart = bbox.minX;
+      if (needsNorthSouthPathway) {
+        // RIGHT SIDE: panels start at +0.6m (left edge at pathway)
+        for (let x = pathwayEdge; x <= bbox.maxX; x += colStep) {
+          xPositions.push(x);
+        }
+        // LEFT SIDE: panels end at -0.6m (right edge at pathway)
+        // Panel left edge = -0.6 - panelWidthM, then go left by colStep
+        for (let x = -pathwayEdge - panelWidthM; x >= bbox.minX; x -= colStep) {
+          xPositions.push(x);
+        }
+      } else {
+        // No N-S pathway: use standard grid from minX to maxX
+        for (let x = bbox.minX; x <= bbox.maxX; x += colStep) {
+          xPositions.push(x);
+        }
+      }
       
-      // Find the grid position closest to +pathwayEdge with default grid
-      const stepsToPathway = Math.ceil((pathwayEdge - defaultGridStart) / colStep);
-      const defaultPosNearPathway = defaultGridStart + stepsToPathway * colStep;
+      // Build list of Y positions (rows) - symmetric around Y=0
+      const yPositions: number[] = [];
       
-      // Offset needed to align this position with +pathwayEdge
-      const xOffset = pathwayEdge - defaultPosNearPathway;
+      if (needsEastWestPathway) {
+        // TOP SIDE: panels start at +0.6m (bottom edge at pathway)
+        for (let y = pathwayEdge; y <= bbox.maxY; y += rowStep) {
+          yPositions.push(y);
+        }
+        // BOTTOM SIDE: panels end at -0.6m (top edge at pathway)
+        for (let y = -pathwayEdge - panelHeightM; y >= bbox.minY; y -= rowStep) {
+          yPositions.push(y);
+        }
+      } else {
+        // No E-W pathway: use standard grid from minY to maxY
+        for (let y = bbox.minY; y <= bbox.maxY; y += rowStep) {
+          yPositions.push(y);
+        }
+      }
       
-      // Similarly for Y
-      const stepsToPathwayY = Math.ceil((pathwayEdge - bbox.minY) / rowStep);
-      const defaultPosNearPathwayY = bbox.minY + stepsToPathwayY * rowStep;
-      const yOffset = pathwayEdge - defaultPosNearPathwayY;
+      const numCols = xPositions.length;
+      const gridNumRows = yPositions.length;
       
-      // Apply offsets to grid bounds
-      const gridMinX = bbox.minX + xOffset;
-      const gridMaxX = bbox.maxX;
-      const gridMinY = bbox.minY + yOffset;
-      const gridMaxY = bbox.maxY;
-      
-      // Calculate number of columns and rows with offset grid
-      const numCols = Math.floor((gridMaxX - gridMinX) / colStep) + 1;
-      const gridNumRows = Math.floor((gridMaxY - gridMinY) / rowStep) + 1;
-      
-      console.log(`[RoofVisualization] Grid alignment: xOffset=${xOffset.toFixed(2)}m, yOffset=${yOffset.toFixed(2)}m`);
-      
-      console.log(`[RoofVisualization] Grid: ${numCols} cols × ${gridNumRows} rows, bounds: X[${gridMinX.toFixed(0)},${gridMaxX.toFixed(0)}] Y[${gridMinY.toFixed(0)},${gridMaxY.toFixed(0)}]`);
+      console.log(`[RoofVisualization] Symmetric grid: ${numCols} cols × ${gridNumRows} rows`);
+      console.log(`[RoofVisualization] X positions sample: [${xPositions.slice(0, 5).map(x => x.toFixed(1)).join(', ')}...${xPositions.slice(-3).map(x => x.toFixed(1)).join(', ')}]`);
+      console.log(`[RoofVisualization] Y positions sample: [${yPositions.slice(0, 5).map(y => y.toFixed(1)).join(', ')}...${yPositions.slice(-3).map(y => y.toFixed(1)).join(', ')}]`);
       console.log(`[RoofVisualization] Original polygon vertices (m):`, normalizedPolygonM.map(p => `(${p.x.toFixed(0)},${p.y.toFixed(0)})`).join(', '));
       console.log(`[RoofVisualization] Axis angle: ${(axisAngle * 180 / Math.PI).toFixed(1)}°`);
       
-      // Iterate over grid positions
-      for (let rowIdx = 0; rowIdx < gridNumRows; rowIdx++) {
-        const rotY = gridMinY + rowIdx * rowStep;
-        
-        for (let colIdx = 0; colIdx < numCols; colIdx++) {
-          const rotX = gridMinX + colIdx * colStep;
+      // Iterate over symmetric grid positions
+      for (let rowIdx = 0; rowIdx < yPositions.length; rowIdx++) {
+        const rotY = yPositions[rowIdx];
+        for (let colIdx = 0; colIdx < xPositions.length; colIdx++) {
+          const rotX = xPositions[colIdx];
           
           // Panel corners in rotated (axis-aligned) space
           const rotatedCorners: Point2D[] = [
