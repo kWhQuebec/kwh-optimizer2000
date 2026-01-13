@@ -1528,6 +1528,19 @@ export function RoofVisualization({
       const rotatedInsetArea = signedPolygonArea(rotatedInsetPolygonM);
       console.log(`[RoofVisualization] Rotated inset polygon: ${rotatedInsetPolygonM.length} vertices, area=${Math.round(Math.abs(rotatedInsetArea))}m² for containment in rotated space`);
       
+      // DEBUG: Compare bounding boxes to verify inset direction
+      const rotatedOrigBbox = getBoundingBox(rotatedNormalizedPoints);
+      const rotatedInsetBbox = getBoundingBox(rotatedInsetPolygonM);
+      console.log(`[RoofVisualization] ROTATED SPACE COMPARISON:`);
+      console.log(`  Original rotated bbox: X[${rotatedOrigBbox.minX.toFixed(1)}, ${rotatedOrigBbox.maxX.toFixed(1)}] Y[${rotatedOrigBbox.minY.toFixed(1)}, ${rotatedOrigBbox.maxY.toFixed(1)}]`);
+      console.log(`  Inset rotated bbox:    X[${rotatedInsetBbox.minX.toFixed(1)}, ${rotatedInsetBbox.maxX.toFixed(1)}] Y[${rotatedInsetBbox.minY.toFixed(1)}, ${rotatedInsetBbox.maxY.toFixed(1)}]`);
+      console.log(`  Inset delta: minX=${(rotatedInsetBbox.minX - rotatedOrigBbox.minX).toFixed(1)}m, maxX=${(rotatedInsetBbox.maxX - rotatedOrigBbox.maxX).toFixed(1)}m, minY=${(rotatedInsetBbox.minY - rotatedOrigBbox.minY).toFixed(1)}m, maxY=${(rotatedInsetBbox.maxY - rotatedOrigBbox.maxY).toFixed(1)}m`);
+      console.log(`  Expected: all deltas should be ~1.2m (positive for min, negative for max)`);
+      
+      // DEBUG: Log rotated polygon vertices to see if they match the grid's bbox
+      console.log(`[RoofVisualization] Rotated normalized vertices: ${rotatedNormalizedPoints.map(p => `(${p.x.toFixed(0)},${p.y.toFixed(0)})`).join(', ')}`);
+      console.log(`[RoofVisualization] Rotated inset vertices: ${rotatedInsetPolygonM.map(p => `(${p.x.toFixed(0)},${p.y.toFixed(0)})`).join(', ')}`);
+      
       // DEBUG: Log inset polygon vertices 
       if (insetPolygonM.length > 0) {
         console.log(`[RoofVisualization] Inset polygon vertices (m):`, insetPolygonM.map(p => `(${p.x.toFixed(0)},${p.y.toFixed(0)})`).join(', '));
