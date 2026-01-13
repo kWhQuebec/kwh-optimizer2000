@@ -1644,7 +1644,13 @@ export function RoofVisualization({
         ? firstRightEdge - firstLeftEdge 
         : null;
       
+      // Calculate bounding box center for reference
+      const bboxCenterX = (bbox.minX + bbox.maxX) / 2;
+      const bboxCenterY = (bbox.minY + bbox.maxY) / 2;
+      
       console.log(`[RoofVisualization] *** FIRE PATHWAY DEBUG ***`);
+      console.log(`[RoofVisualization] Bounding box: X[${bbox.minX.toFixed(1)}, ${bbox.maxX.toFixed(1)}] Y[${bbox.minY.toFixed(1)}, ${bbox.maxY.toFixed(1)}]`);
+      console.log(`[RoofVisualization] Bbox center: (${bboxCenterX.toFixed(1)}, ${bboxCenterY.toFixed(1)}) - corridor centered at origin (0, 0)`);
       console.log(`[RoofVisualization] halfPathway=${halfPathway}m, panelWidthM=${panelWidthM}m`);
       console.log(`[RoofVisualization] First right panel: corner at X=${firstRightCorner?.toFixed(2)}m`);
       console.log(`[RoofVisualization] First left panel: corner at X=${firstLeftCorner?.toFixed(2)}m`);
