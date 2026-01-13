@@ -1751,7 +1751,16 @@ export function RoofVisualization({
           // Accept panel
           acceptedCount++;
           const bottomLeft = geoCorners[0];
-          const quadrant = (panelCenterM.x >= 0 ? 'E' : 'W') + (panelCenterM.y >= 0 ? 'N' : 'S');
+          
+          // Calculate panel center in GEOGRAPHIC coordinates (not meter space)
+          // This ensures quadrant classification matches visual position on map
+          const geoCenterLat = (geoCorners[0].y + geoCorners[2].y) / 2;
+          const geoCenterLng = (geoCorners[0].x + geoCorners[2].x) / 2;
+          
+          // Quadrant based on geographic position relative to centroid
+          // East = lng > centroid.x, West = lng < centroid.x
+          // North = lat > centroid.y, South = lat < centroid.y
+          const quadrant = (geoCenterLng >= centroid.x ? 'E' : 'W') + (geoCenterLat >= centroid.y ? 'N' : 'S');
           
           positions.push({ 
             lat: bottomLeft.y, 
