@@ -1692,34 +1692,40 @@ export function RoofVisualization({
             y: p.y / metersPerDegreeLat + centroid.y
           }));
           
-          // CONTAINMENT CHECK - ALL IN ROTATED SPACE
+          // CONTAINMENT CHECK - USE GOOGLE MAPS POLYGON DIRECTLY
           // =========================================================
-          // CRITICAL FIX: Do all containment checks in ROTATED space
+          // CRITICAL FIX: Use the SAME polygon that is VISUALIZED on the map
           // 
-          // Previous bug: Tested panelCenterM (original space) against normalizedPolygonM,
-          // but the rotation transformation was introducing coordinate drift that caused
-          // panels in valid regions to be rejected.
+          // Previous bugs: 
+          // - Rotated-space checks didn't match the visual polygon
+          // - Meter-space pointInPolygon had coordinate drift issues
           //
-          // Solution: Test rotatedCenter against rotatedNormalizedPoints (same space as grid)
-          // and check edge distances in rotated space too. This eliminates transformation errors.
+          // Solution: Use google.maps.geometry.poly.containsLocation with
+          // solarPolygonPath (the actual rendered polygon) for the center check.
+          // Then verify edge setback in meter space for IFC compliance.
           // =========================================================
           const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
+          
+          // Geographic center of the panel for containment check
+          const panelGeoCenterLat = (geoCorners[0].y + geoCorners[2].y) / 2;
+          const panelGeoCenterLng = (geoCorners[0].x + geoCorners[2].x) / 2;
+          const geoCenter = new google.maps.LatLng(panelGeoCenterLat, panelGeoCenterLng);
           
           let passesContainment = false;
           let rejectionReason = '';
           
-          // Step 1: Check if panel CENTER is inside the ROTATED polygon
-          // Both are in the same coordinate system (rotated/axis-aligned)
-          const centerInPolygon = pointInPolygon(rotatedCenter, rotatedNormalizedPoints);
+          // Step 1: Check if panel CENTER is inside the ACTUAL VISUALIZED polygon
+          // This uses the same Google Maps polygon that the user sees on the map
+          const centerInPolygon = google.maps.geometry.poly.containsLocation(geoCenter, solarPolygonPath);
           
           if (centerInPolygon) {
-            // Step 2: Verify ALL 4 corners are at least edgeSetbackM from ROTATED polygon edges
-            // This keeps everything in the same coordinate system
+            // Step 2: Verify ALL 4 corners are at least edgeSetbackM from polygon edges
+            // Use original meter-space polygon for distance calculation
             let allCornersHaveSetback = true;
             let minDistToEdge = Infinity;
             
-            for (const corner of rotatedCorners) {
-              const distToEdge = distanceToPolygonEdges(corner, rotatedNormalizedPoints);
+            for (const corner of meterCorners) {
+              const distToEdge = distanceToPolygonEdges(corner, normalizedPolygonM);
               minDistToEdge = Math.min(minDistToEdge, distToEdge);
               if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
                 allCornersHaveSetback = false;
@@ -1733,7 +1739,7 @@ export function RoofVisualization({
               acceptedByPrimary++;
             }
           } else {
-            rejectionReason = 'center outside rotated polygon';
+            rejectionReason = 'center outside visualized polygon';
           }
           
           if (!passesContainment) {
