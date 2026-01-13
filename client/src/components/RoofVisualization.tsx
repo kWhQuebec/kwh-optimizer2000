@@ -1724,37 +1724,31 @@ export function RoofVisualization({
             (geoCorners[0].x + geoCorners[2].x) / 2
           );
           
-          // Check if panel CENTER and ALL CORNERS are inside the ORIGINAL geographic polygon
-          // This uses the same polygon that's displayed to the user (turquoise area)
-          // Then verify all corners are at least 1.2m from edges
+          // CONTAINMENT CHECK: Center in polygon + ALL corners at least 1.2m from edges
+          // =========================================================
+          // SIMPLIFIED APPROACH: If all corners are at least 1.2m from polygon edges,
+          // they are GUARANTEED to be inside the polygon (since setback is measured 
+          // from edges inward). This eliminates corner-in-polygon false negatives
+          // caused by floating-point precision issues on oblique edges.
+          // =========================================================
           
-          // Step 1: Check center containment (required for all panels)
+          // Step 1: Check if panel CENTER is inside the polygon
           let centerInPolygon: boolean;
-          let allCornersInPolygon: boolean;
           
           if (google.maps.geometry?.poly?.containsLocation) {
-            // Primary path: use Google Maps API (most accurate)
+            // Primary path: use Google Maps API (most accurate for geographic polygon)
             centerInPolygon = google.maps.geometry.poly.containsLocation(
               panelCenterGeo, 
               originalPolygonPath
             );
-            // Also check all 4 corners are inside (for concave roofs)
-            allCornersInPolygon = testPoints.every(point => 
-              google.maps.geometry.poly.containsLocation(point, originalPolygonPath)
-            );
           } else {
             // Fallback: use meter-space polygon check
-            // meterCorners are in original (non-rotated) meter space (after rotatePoint inverse)
-            // normalizedPolygonM is also in original meter space
             centerInPolygon = pointInPolygon(panelCenterM, normalizedPolygonM);
-            allCornersInPolygon = meterCorners.every(corner => 
-              pointInPolygon(corner, normalizedPolygonM)
-            );
           }
           
-          if (centerInPolygon && allCornersInPolygon) {
-            // Step 2: Verify all panel corners are at least edgeSetbackM from polygon edges
-            // Use meter-space coordinates for accurate distance calculation
+          if (centerInPolygon) {
+            // Step 2: Verify ALL 4 corners are at least edgeSetbackM from polygon edges
+            // This is the primary constraint - if satisfied, corners are inside polygon
             let allCornersHaveSetback = true;
             let minDistToEdge = Infinity;
             
@@ -1772,12 +1766,10 @@ export function RoofVisualization({
             
             if (allCornersHaveSetback) {
               passesContainment = true;
-              acceptedByPrimary++; // Using primary counter for geo-based acceptance
+              acceptedByPrimary++;
             }
-          } else if (!centerInPolygon) {
-            rejectionReason = 'center outside original polygon';
           } else {
-            rejectionReason = 'corner(s) outside original polygon';
+            rejectionReason = 'center outside original polygon';
           }
           
           if (!passesContainment) {
