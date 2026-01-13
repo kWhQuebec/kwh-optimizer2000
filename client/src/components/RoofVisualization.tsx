@@ -9,6 +9,38 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
 
+function loadGoogleMapsScript(apiKey: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.google?.maps) {
+      resolve();
+      return;
+    }
+
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve());
+      existingScript.addEventListener('error', () => reject(new Error('Google Maps script failed to load')));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=drawing,geometry&callback=initGoogleMaps`;
+    script.async = true;
+    script.defer = true;
+
+    (window as any).initGoogleMaps = () => {
+      delete (window as any).initGoogleMaps;
+      resolve();
+    };
+
+    script.onerror = () => {
+      reject(new Error('Google Maps script failed to load'));
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
 interface RoofVisualizationProps {
   siteId: string;
   siteName: string;
@@ -376,16 +408,28 @@ export function RoofVisualization({
   }, []);
 
   useEffect(() => {
-    if (!mapContainerRef.current || !window.google) {
-      if (!window.google) {
-        setMapError(language === "fr" ? "Google Maps non disponible" : "Google Maps not available");
-      }
+    if (!mapContainerRef.current) {
+      setIsLoading(false);
+      return;
+    }
+
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      setMapError(language === "fr" ? "Clé API Google Maps manquante" : "Google Maps API key missing");
       setIsLoading(false);
       return;
     }
 
     const initMap = async () => {
       try {
+        await loadGoogleMapsScript(apiKey);
+
+        if (!mapContainerRef.current || !window.google) {
+          setMapError(language === "fr" ? "Google Maps non disponible" : "Google Maps not available");
+          setIsLoading(false);
+          return;
+        }
+
         const map = new google.maps.Map(mapContainerRef.current!, {
           center: { lat: latitude, lng: longitude },
           zoom: 18,
