@@ -1698,66 +1698,56 @@ export function RoofVisualization({
             y: p.y / metersPerDegreeLat + centroid.y
           }));
           
-          // CONTAINMENT CHECK with HYBRID FALLBACK
+          // CONTAINMENT CHECK - DISTANCE-BASED APPROACH
           // =========================================================
-          // CRITICAL FIX: Check rotated corners against ROTATED inset polygon
+          // CRITICAL FIX: Use distance-based setback instead of inset polygon
           // =========================================================
-          // Both the grid and the inset polygon are in the SAME ROTATED space.
-          // This eliminates ALL coordinate conversions for containment,
-          // preventing numerical drift that caused panels to be rejected
-          // in the top-left section of parallelogram roofs.
+          // The inset polygon approach fails for parallelograms and other
+          // non-rectangular roofs where the polygon inset algorithm causes
+          // disproportionate shrinkage near oblique edges.
+          // 
+          // Instead, we:
+          // 1. Check if panel center is inside the rotated (non-inset) polygon
+          // 2. Verify ALL 4 corners are at least 1.2m from polygon edges
+          // 
+          // This is more robust and produces consistent results for all shapes.
           // =========================================================
           const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
           
           let passesContainment = false;
-          
-          // Primary check: ROTATED-SPACE inset polygon containment
-          // rotatedCorners are already in rotated space (no conversion needed)
-          // rotatedInsetPolygonM is the inset polygon in rotated space
-          if (rotatedInsetPolygonM.length >= 3) {
-            const allCornersInRotatedInset = rotatedCorners.every(corner => 
-              pointInPolygon(corner, rotatedInsetPolygonM)
-            );
-            if (allCornersInRotatedInset) {
-              passesContainment = true;
-              acceptedByPrimary++;
-            }
-          }
-          
-          // Fallback check: rotated polygon + distance-based setback (all in ROTATED space)
-          // Only used if primary check failed (inset may have collapsed in narrow sections)
-          // Uses ROTATED space for consistency - no coordinate conversion drift
           let rejectionReason = '';
-          if (!passesContainment) {
-            // Check if ALL 4 corners are inside the ROTATED (non-inset) polygon
-            // Using pointInPolygon in rotated space for consistency
-            const allCornersInRotatedPolygon = rotatedCorners.every(corner => 
-              pointInPolygon(corner, normalizedRotatedPolygon)
-            );
+          
+          // Panel center in rotated space
+          const panelCenterRotated = {
+            x: rotX + panelWidthM / 2,
+            y: rotY + panelHeightM / 2
+          };
+          
+          // Check if panel CENTER is inside the rotated polygon
+          const centerInRotatedPolygon = pointInPolygon(panelCenterRotated, normalizedRotatedPolygon);
+          
+          if (centerInRotatedPolygon) {
+            // Verify all panel corners are at least edgeSetbackM from rotated polygon edges
+            // This ensures IFC-compliant 1.2m perimeter setback
+            let allCornersHaveSetback = true;
+            let minDistToEdge = Infinity;
             
-            if (allCornersInRotatedPolygon) {
-              // Verify all panel corners are at least edgeSetbackM from rotated polygon edges
-              // Use rotated space distance calculation for accuracy
-              let allCornersHaveSetback = true;
-              let minDistToEdge = Infinity;
-              
-              for (const corner of rotatedCorners) {
-                const distToEdge = distanceToPolygonEdges(corner, normalizedRotatedPolygon);
-                minDistToEdge = Math.min(minDistToEdge, distToEdge);
-                if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
-                  allCornersHaveSetback = false;
-                  rejectionReason = `distance=${distToEdge.toFixed(1)}m < ${edgeSetbackM}m`;
-                  break;
-                }
+            for (const corner of rotatedCorners) {
+              const distToEdge = distanceToPolygonEdges(corner, normalizedRotatedPolygon);
+              minDistToEdge = Math.min(minDistToEdge, distToEdge);
+              if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
+                allCornersHaveSetback = false;
+                rejectionReason = `edge distance=${distToEdge.toFixed(1)}m < ${edgeSetbackM}m`;
+                break;
               }
-              
-              if (allCornersHaveSetback) {
-                passesContainment = true;
-                acceptedByFallback++;
-              }
-            } else {
-              rejectionReason = 'outside rotated polygon';
             }
+            
+            if (allCornersHaveSetback) {
+              passesContainment = true;
+              acceptedByPrimary++; // Using primary counter for distance-based acceptance
+            }
+          } else {
+            rejectionReason = 'center outside polygon';
           }
           
           if (!passesContainment) {
