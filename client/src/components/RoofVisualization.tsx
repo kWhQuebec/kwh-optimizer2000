@@ -1698,42 +1698,49 @@ export function RoofVisualization({
             y: p.y / metersPerDegreeLat + centroid.y
           }));
           
-          // CONTAINMENT CHECK - DISTANCE-BASED APPROACH
+          // CONTAINMENT CHECK - GEOGRAPHIC POLYGON APPROACH
           // =========================================================
-          // CRITICAL FIX: Use distance-based setback instead of inset polygon
+          // CRITICAL FIX: Use ORIGINAL geographic polygon (Google Maps API)
           // =========================================================
-          // The inset polygon approach fails for parallelograms and other
-          // non-rectangular roofs where the polygon inset algorithm causes
-          // disproportionate shrinkage near oblique edges.
+          // The rotated polygon approach fails because the transformed coordinates
+          // don't match the visualized polygon boundaries precisely.
           // 
           // Instead, we:
-          // 1. Check if panel center is inside the rotated (non-inset) polygon
+          // 1. Check if panel center is inside the ORIGINAL geographic polygon
+          //    using Google Maps containsLocation (same polygon that's visualized)
           // 2. Verify ALL 4 corners are at least 1.2m from polygon edges
+          //    using meter-space distance calculation
           // 
-          // This is more robust and produces consistent results for all shapes.
+          // This ensures panels are placed exactly within the visible turquoise area.
           // =========================================================
           const testPoints = geoCorners.map(c => new google.maps.LatLng(c.y, c.x));
           
           let passesContainment = false;
           let rejectionReason = '';
           
-          // Panel center in rotated space
-          const panelCenterRotated = {
-            x: rotX + panelWidthM / 2,
-            y: rotY + panelHeightM / 2
-          };
+          // Panel center in geographic coordinates
+          const panelCenterGeo = new google.maps.LatLng(
+            (geoCorners[0].y + geoCorners[2].y) / 2,
+            (geoCorners[0].x + geoCorners[2].x) / 2
+          );
           
-          // Check if panel CENTER is inside the rotated polygon
-          const centerInRotatedPolygon = pointInPolygon(panelCenterRotated, normalizedRotatedPolygon);
+          // Check if panel CENTER is inside the ORIGINAL geographic polygon
+          // This uses the same polygon that's displayed to the user (turquoise area)
+          const centerInOriginalPolygon = google.maps.geometry.poly.containsLocation(
+            panelCenterGeo, 
+            originalPolygonPath
+          );
           
-          if (centerInRotatedPolygon) {
-            // Verify all panel corners are at least edgeSetbackM from rotated polygon edges
-            // This ensures IFC-compliant 1.2m perimeter setback
+          if (centerInOriginalPolygon) {
+            // Verify all panel corners are at least edgeSetbackM from polygon edges
+            // Use meter-space coordinates for accurate distance calculation
             let allCornersHaveSetback = true;
             let minDistToEdge = Infinity;
             
-            for (const corner of rotatedCorners) {
-              const distToEdge = distanceToPolygonEdges(corner, normalizedRotatedPolygon);
+            // meterCorners are in the original (non-rotated) meter space
+            // normalizedPolygonM is the original polygon in meter space
+            for (const corner of meterCorners) {
+              const distToEdge = distanceToPolygonEdges(corner, normalizedPolygonM);
               minDistToEdge = Math.min(minDistToEdge, distToEdge);
               if (distToEdge < edgeSetbackM - 0.1) { // 0.1m tolerance for floating point
                 allCornersHaveSetback = false;
@@ -1744,10 +1751,10 @@ export function RoofVisualization({
             
             if (allCornersHaveSetback) {
               passesContainment = true;
-              acceptedByPrimary++; // Using primary counter for distance-based acceptance
+              acceptedByPrimary++; // Using primary counter for geo-based acceptance
             }
           } else {
-            rejectionReason = 'center outside polygon';
+            rejectionReason = 'center outside original polygon';
           }
           
           if (!passesContainment) {
