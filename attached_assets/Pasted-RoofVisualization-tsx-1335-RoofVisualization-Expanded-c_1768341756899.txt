@@ -1,0 +1,95 @@
+RoofVisualization.tsx:1335 [RoofVisualization] Expanded constraint Constraint by 1.2m
+RoofVisualization.tsx:1335 [RoofVisualization] Expanded constraint Constraint by 1.2m
+RoofVisualization.tsx:1335 [RoofVisualization] Expanded constraint Constraint by 1.2m
+RoofVisualization.tsx:1335 [RoofVisualization] Expanded constraint Constraint by 1.2m
+RoofVisualization.tsx:1335 [RoofVisualization] Expanded constraint Constraint by 1.2m
+RoofVisualization.tsx:1335 [RoofVisualization] Expanded constraint Constraint by 1.2m
+RoofVisualization.tsx:1335 [RoofVisualization] Expanded constraint Constraint by 1.2m
+RoofVisualization.tsx:1398 [RoofVisualization] Pre-normalization: signedArea=-49541m², winding=CW
+RoofVisualization.tsx:1402 [RoofVisualization] Post-normalization: signedArea=49541m², winding=CCW
+RoofVisualization.tsx:1410 [RoofVisualization] Rotated normalized polygon: signedArea=49541m², winding=CCW
+RoofVisualization.tsx:1441 [RoofVisualization] Bounding box for 67f34591-b082-4fce-96e2-abb65541dbe3: Object
+RoofVisualization.tsx:1449 [RoofVisualization] Original polygon vertices (meter space): (-174,-17), (69,148), (171,22), (-66,-153)
+RoofVisualization.tsx:1474 [RoofVisualization] Polygon 67f34591-b082-4fce-96e2-abb65541dbe3: Object
+RoofVisualization.tsx:1494 [RoofVisualization] Simple grid fill: 308×176m, axis=34°
+RoofVisualization.tsx:1495 [RoofVisualization] Fire pathways: N/S=true, E/W=true
+RoofVisualization.tsx:1510 [RoofVisualization] Rotated inset polygon: 4 vertices, area=48435m² for containment in rotated space
+RoofVisualization.tsx:1515 [RoofVisualization] ROTATED SPACE COMPARISON:
+RoofVisualization.tsx:1516   Original rotated bbox: X[-154.2, 154.2] Y[-91.0, 85.0]
+RoofVisualization.tsx:1517   Inset rotated bbox:    X[-152.9, 152.9] Y[-89.8, 83.8]
+RoofVisualization.tsx:1518   Inset delta: minX=1.3m, maxX=-1.3m, minY=1.3m, maxY=-1.2m
+RoofVisualization.tsx:1519   Expected: all deltas should be ~1.2m (positive for min, negative for max)
+RoofVisualization.tsx:1522 [RoofVisualization] Rotated normalized vertices: (-140,-91), (154,-77), (140,85), (-154,83)
+RoofVisualization.tsx:1523 [RoofVisualization] Rotated inset vertices: (153,-76), (139,84), (-153,82), (-139,-90)
+RoofVisualization.tsx:1527 [RoofVisualization] Inset polygon vertices (m): (169,22), (69,147), (-173,-17), (-66,-152)
+RoofVisualization.tsx:1531 [RoofVisualization] Original bbox: X[-174,171] Y[-153,148]
+RoofVisualization.tsx:1532 [RoofVisualization] Inset bbox: X[-173,169] Y[-152,147]
+RoofVisualization.tsx:1555 [RoofVisualization] Inset polygon: 4 vertices (original: 4), area: 48435m² (original: 49541m²)
+RoofVisualization.tsx:1644 [RoofVisualization] *** FIRE PATHWAY DEBUG ***
+RoofVisualization.tsx:1645 [RoofVisualization] Bounding box: X[-154.2, 154.2] Y[-91.0, 85.0]
+RoofVisualization.tsx:1646 [RoofVisualization] Corridors centered at bbox center: (0.0, -3.0)
+RoofVisualization.tsx:1647 [RoofVisualization] halfPathway=0.6m, panelWidthM=2m
+RoofVisualization.tsx:1648 [RoofVisualization] First right panel: corner at X=0.60m
+RoofVisualization.tsx:1649 [RoofVisualization] First left panel: corner at X=-2.60m
+RoofVisualization.tsx:1650 [RoofVisualization] Inner edges: right panel left edge at X=0.60m, left panel right edge at X=-0.60m
+RoofVisualization.tsx:1651 [RoofVisualization] ACTUAL CORRIDOR WIDTH: 1.20m (target: 1.2m)
+RoofVisualization.tsx:1653 [RoofVisualization] Symmetric grid: 147 cols × 117 rows
+RoofVisualization.tsx:1654 [RoofVisualization] X positions sample: [0.6, 2.7, 4.8, 6.9, 9.0...-149.6, -151.7, -153.8]
+RoofVisualization.tsx:1655 [RoofVisualization] Y positions sample: [-2.4, -0.9, 0.6, 2.1, 3.6...-87.1, -88.6, -90.1]
+RoofVisualization.tsx:1656 [RoofVisualization] Original polygon vertices (m): (-66,-153), (171,22), (69,148), (-174,-17)
+RoofVisualization.tsx:1657 [RoofVisualization] Axis angle: 33.7°
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(123,80), reason: edge distance=0.2m < 1.2m
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(125,81), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(126,82), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(128,83), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(130,84), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(143,65), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(83,-53), reason: center outside rotated polygon
+RoofVisualization.tsx:1817 [RoofVisualization] Grid fill complete: 12234 panels (15071 primary, 0 fallback), 2128 rejected by containment
+RoofVisualization.tsx:1830 [RoofVisualization] Polygon 67f34591-b082-4fce-96e2-abb65541dbe3 quadrants: WN=1378, EN=4057, WS=4566, ES=2233
+RoofVisualization.tsx:1839 [RoofVisualization] Polygon 67f34591 WN: 1378 panels, lat[45.70288,45.70376] lng[-73.72787,-73.72603]
+RoofVisualization.tsx:1967 [RoofVisualization] Polygon 67f34591-b082-4fce-96e2-abb65541dbe3 placement: Object
+RoofVisualization.tsx:1398 [RoofVisualization] Pre-normalization: signedArea=-1524m², winding=CW
+RoofVisualization.tsx:1402 [RoofVisualization] Post-normalization: signedArea=1524m², winding=CCW
+RoofVisualization.tsx:1410 [RoofVisualization] Rotated normalized polygon: signedArea=1524m², winding=CCW
+RoofVisualization.tsx:1441 [RoofVisualization] Bounding box for d70eeb5c-aa5e-4faf-ac0b-c750e1b965a9: Object
+RoofVisualization.tsx:1449 [RoofVisualization] Original polygon vertices (meter space): (-28,2), (6,27), (28,-3), (-6,-27)
+RoofVisualization.tsx:1474 [RoofVisualization] Polygon d70eeb5c-aa5e-4faf-ac0b-c750e1b965a9: Object
+RoofVisualization.tsx:1494 [RoofVisualization] Simple grid fill: 44×38m, axis=34°
+RoofVisualization.tsx:1495 [RoofVisualization] Fire pathways: N/S=true, E/W=false
+RoofVisualization.tsx:1510 [RoofVisualization] Rotated inset polygon: 4 vertices, area=1342m² for containment in rotated space
+RoofVisualization.tsx:1515 [RoofVisualization] ROTATED SPACE COMPARISON:
+RoofVisualization.tsx:1516   Original rotated bbox: X[-22.3, 21.5] Y[-18.9, 19.2]
+RoofVisualization.tsx:1517   Inset rotated bbox:    X[-21.0, 20.3] Y[-17.6, 18.0]
+RoofVisualization.tsx:1518   Inset delta: minX=1.3m, maxX=-1.2m, minY=1.2m, maxY=-1.3m
+RoofVisualization.tsx:1519   Expected: all deltas should be ~1.2m (positive for min, negative for max)
+RoofVisualization.tsx:1522 [RoofVisualization] Rotated normalized vertices: (-20,-19), (22,-17), (20,19), (-22,17)
+RoofVisualization.tsx:1523 [RoofVisualization] Rotated inset vertices: (20,-16), (19,18), (-21,16), (-18,-18)
+RoofVisualization.tsx:1527 [RoofVisualization] Inset polygon vertices (m): (26,-2), (6,26), (-26,2), (-6,-25)
+RoofVisualization.tsx:1531 [RoofVisualization] Original bbox: X[-28,28] Y[-27,27]
+RoofVisualization.tsx:1532 [RoofVisualization] Inset bbox: X[-26,26] Y[-25,26]
+RoofVisualization.tsx:1555 [RoofVisualization] Inset polygon: 4 vertices (original: 4), area: 1342m² (original: 1524m²)
+RoofVisualization.tsx:1644 [RoofVisualization] *** FIRE PATHWAY DEBUG ***
+RoofVisualization.tsx:1645 [RoofVisualization] Bounding box: X[-22.3, 21.5] Y[-18.9, 19.2]
+RoofVisualization.tsx:1646 [RoofVisualization] Corridors centered at bbox center: (-0.4, 0.2)
+RoofVisualization.tsx:1647 [RoofVisualization] halfPathway=0.6m, panelWidthM=2m
+RoofVisualization.tsx:1648 [RoofVisualization] First right panel: corner at X=0.22m
+RoofVisualization.tsx:1649 [RoofVisualization] First left panel: corner at X=-2.98m
+RoofVisualization.tsx:1650 [RoofVisualization] Inner edges: right panel left edge at X=0.22m, left panel right edge at X=-0.98m
+RoofVisualization.tsx:1651 [RoofVisualization] ACTUAL CORRIDOR WIDTH: 1.20m (target: 1.2m)
+RoofVisualization.tsx:1653 [RoofVisualization] Symmetric grid: 21 cols × 26 rows
+RoofVisualization.tsx:1654 [RoofVisualization] X positions sample: [0.2, 2.3, 4.4, 6.5, 8.6...-17.7, -19.8, -21.9]
+RoofVisualization.tsx:1655 [RoofVisualization] Y positions sample: [-18.9, -17.4, -15.9, -14.4, -12.9...15.6, 17.1, 18.6]
+RoofVisualization.tsx:1656 [RoofVisualization] Original polygon vertices (m): (-6,-27), (28,-3), (6,27), (-28,2)
+RoofVisualization.tsx:1657 [RoofVisualization] Axis angle: 33.8°
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(11,-15), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(13,-13), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(15,-12), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(16,-11), reason: center outside rotated polygon
+RoofVisualization.tsx:1743 [RoofVisualization] Rejected panel at meter(18,-10), reason: center outside rotated polygon
+RoofVisualization.tsx:1817 [RoofVisualization] Grid fill complete: 385 panels (385 primary, 0 fallback), 161 rejected by containment
+RoofVisualization.tsx:1830 [RoofVisualization] Polygon d70eeb5c-aa5e-4faf-ac0b-c750e1b965a9 quadrants: WN=86, EN=110, WS=107, ES=82
+RoofVisualization.tsx:1839 [RoofVisualization] Polygon d70eeb5c WN: 86 panels, lat[45.70331,45.70348] lng[-73.72406,-73.72376]
+RoofVisualization.tsx:1967 [RoofVisualization] Polygon d70eeb5c-aa5e-4faf-ac0b-c750e1b965a9 placement: Object
+RoofVisualization.tsx:1992 [RoofVisualization] Panel distribution by quadrant: Object
+RoofVisualization.tsx:2037 [RoofVisualization] Interleaved panels: 12619 total, first 20 quadrants: Array(20)
