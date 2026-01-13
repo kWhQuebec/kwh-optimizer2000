@@ -1783,34 +1783,22 @@ export function RoofVisualization({
       const sampleWN = positions.filter(p => p.quadrant === 'WN').slice(0, 3);
       const sampleEN = positions.filter(p => p.quadrant === 'EN').slice(0, 3);
       const sampleES = positions.filter(p => p.quadrant === 'ES').slice(0, 3);
-      // Find lat/lng extremes for WN panels to see if they're actually in the NW
-      const wnPanels = positions.filter(p => p.quadrant === 'WN');
+      // Log quadrant distribution FOR THIS POLYGON ONLY
+      const thisPolygonPanels = positions.filter(p => p.polygonId === polygon.id);
+      const wnCount = thisPolygonPanels.filter(p => p.quadrant === 'WN').length;
+      const enCount = thisPolygonPanels.filter(p => p.quadrant === 'EN').length;
+      const wsCount = thisPolygonPanels.filter(p => p.quadrant === 'WS').length;
+      const esCount = thisPolygonPanels.filter(p => p.quadrant === 'ES').length;
+      console.log(`[RoofVisualization] Polygon ${polygon.id} quadrants: WN=${wnCount}, EN=${enCount}, WS=${wsCount}, ES=${esCount}`);
+      
+      // For the main polygon, verify lat/lng extremes for WN panels
+      const wnPanels = thisPolygonPanels.filter(p => p.quadrant === 'WN');
       if (wnPanels.length > 0) {
         const wnLatMin = Math.min(...wnPanels.map(p => p.lat));
         const wnLatMax = Math.max(...wnPanels.map(p => p.lat));
         const wnLngMin = Math.min(...wnPanels.map(p => p.lng));
         const wnLngMax = Math.max(...wnPanels.map(p => p.lng));
-        console.log(`[RoofVisualization] WN quadrant (${wnPanels.length} panels) geo bounds: lat[${wnLatMin.toFixed(5)},${wnLatMax.toFixed(5)}] lng[${wnLngMin.toFixed(5)},${wnLngMax.toFixed(5)}]`);
-        console.log(`[RoofVisualization] Centroid: lat=${centroid.y.toFixed(5)}, lng=${centroid.x.toFixed(5)}`);
-        console.log(`[RoofVisualization] WN relative to centroid: lat_delta=[${(wnLatMin-centroid.y).toFixed(5)},${(wnLatMax-centroid.y).toFixed(5)}] lng_delta=[${(wnLngMin-centroid.x).toFixed(5)},${(wnLngMax-centroid.x).toFixed(5)}]`);
-        // WN should have: lat > centroid.y (north) and lng < centroid.x (west)
-        const isActuallyNorth = wnLatMin > centroid.y;
-        const isActuallyWest = wnLngMax < centroid.x;
-        console.log(`[RoofVisualization] WN is actually: North=${isActuallyNorth}, West=${isActuallyWest} (should both be true)`);
-      }
-      
-      // Same for EN
-      const enPanels = positions.filter(p => p.quadrant === 'EN');
-      if (enPanels.length > 0) {
-        const enLatMin = Math.min(...enPanels.map(p => p.lat));
-        const enLatMax = Math.max(...enPanels.map(p => p.lat));
-        const enLngMin = Math.min(...enPanels.map(p => p.lng));
-        const enLngMax = Math.max(...enPanels.map(p => p.lng));
-        console.log(`[RoofVisualization] EN quadrant (${enPanels.length} panels) geo bounds: lat[${enLatMin.toFixed(5)},${enLatMax.toFixed(5)}] lng[${enLngMin.toFixed(5)},${enLngMax.toFixed(5)}]`);
-        // EN should have: lat > centroid.y (north) and lng > centroid.x (east)
-        const isActuallyNorth = enLatMin > centroid.y;
-        const isActuallyEast = enLngMin > centroid.x;
-        console.log(`[RoofVisualization] EN is actually: North=${isActuallyNorth}, East=${isActuallyEast} (should both be true)`);
+        console.log(`[RoofVisualization] Polygon ${polygon.id.substring(0,8)} WN: ${wnPanels.length} panels, lat[${wnLatMin.toFixed(5)},${wnLatMax.toFixed(5)}] lng[${wnLngMin.toFixed(5)},${wnLngMax.toFixed(5)}]`);
       }
       
       // SKIP THE OLD CONVEX-ONLY CODE PATH - unified approach handles all shapes
