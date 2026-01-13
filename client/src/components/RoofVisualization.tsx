@@ -1574,33 +1574,35 @@ export function RoofVisualization({
       const containmentPolygon = insetPolygonPath;
       
       // Calculate grid bounds from rotated bounding box
-      // CRITICAL FIX: Use SYMMETRIC HALF-GRIDS for fire pathways
-      // Instead of offsetting a single grid, we generate panels in 4 quadrants,
-      // each starting from the pathway edge and going outward.
-      // This guarantees exactly 1.2m corridor width.
+      // CRITICAL FIX: Center fire corridors on BBOX CENTER, not origin (0,0)
+      // This ensures symmetric panel coverage for off-center polygons
+      
+      // Calculate bounding box center - corridors will be centered here
+      const bboxCenterX = (bbox.minX + bbox.maxX) / 2;
+      const bboxCenterY = (bbox.minY + bbox.maxY) / 2;
       
       // FIRE PATHWAY GRID ALIGNMENT
       // ============================
-      // For a 1.2m corridor, panel EDGES must be at ±0.6m from center
+      // For a 1.2m corridor, panel EDGES must be at ±0.6m from corridor center
       // Since we place panels by their left/bottom CORNER, we need:
-      //   - Right side: left edge at +0.6m → corner at +0.6m
-      //   - Left side: right edge at -0.6m → corner at -0.6m - panelWidth
+      //   - Right side: left edge at center+0.6m → corner at center+0.6m
+      //   - Left side: right edge at center-0.6m → corner at center-0.6m - panelWidth
       
-      const pathwayEdge = halfPathway; // 0.6m = edge of 1.2m corridor
+      const pathwayEdge = halfPathway; // 0.6m = half of 1.2m corridor
       
-      // Build list of X positions (columns) - symmetric around X=0
+      // Build list of X positions (columns) - symmetric around BBOX CENTER X
       const xPositions: number[] = [];
       
       if (needsNorthSouthPathway) {
-        // RIGHT SIDE: panel's LEFT edge at +0.6m (touching pathway)
-        // First panel corner at +0.6m, subsequent at +0.6m + n*colStep
-        for (let x = pathwayEdge; x <= bbox.maxX; x += colStep) {
+        // RIGHT SIDE: panel's LEFT edge at bboxCenterX + 0.6m (touching pathway)
+        const rightStartX = bboxCenterX + pathwayEdge;
+        for (let x = rightStartX; x <= bbox.maxX; x += colStep) {
           xPositions.push(x);
         }
-        // LEFT SIDE: panel's RIGHT edge at -0.6m (touching pathway)
+        // LEFT SIDE: panel's RIGHT edge at bboxCenterX - 0.6m (touching pathway)
         // Panel extends from corner to corner+panelWidth
-        // So corner = -0.6m - panelWidthM = -2.6m for first panel
-        for (let x = -pathwayEdge - panelWidthM; x >= bbox.minX; x -= colStep) {
+        const leftStartX = bboxCenterX - pathwayEdge - panelWidthM;
+        for (let x = leftStartX; x >= bbox.minX; x -= colStep) {
           xPositions.push(x);
         }
       } else {
@@ -1610,17 +1612,18 @@ export function RoofVisualization({
         }
       }
       
-      // Build list of Y positions (rows) - symmetric around Y=0
+      // Build list of Y positions (rows) - symmetric around BBOX CENTER Y
       const yPositions: number[] = [];
       
       if (needsEastWestPathway) {
-        // TOP SIDE: panel's BOTTOM edge at +0.6m (touching pathway)
-        for (let y = pathwayEdge; y <= bbox.maxY; y += rowStep) {
+        // TOP SIDE: panel's BOTTOM edge at bboxCenterY + 0.6m (touching pathway)
+        const topStartY = bboxCenterY + pathwayEdge;
+        for (let y = topStartY; y <= bbox.maxY; y += rowStep) {
           yPositions.push(y);
         }
-        // BOTTOM SIDE: panel's TOP edge at -0.6m (touching pathway)
-        // Corner = -0.6m - panelHeightM
-        for (let y = -pathwayEdge - panelHeightM; y >= bbox.minY; y -= rowStep) {
+        // BOTTOM SIDE: panel's TOP edge at bboxCenterY - 0.6m (touching pathway)
+        const bottomStartY = bboxCenterY - pathwayEdge - panelHeightM;
+        for (let y = bottomStartY; y >= bbox.minY; y -= rowStep) {
           yPositions.push(y);
         }
       } else {
@@ -1633,9 +1636,9 @@ export function RoofVisualization({
       const numCols = xPositions.length;
       const gridNumRows = yPositions.length;
       
-      // Calculate actual corridor width from X positions
-      const rightX = xPositions.filter(x => x > 0).sort((a, b) => a - b);
-      const leftX = xPositions.filter(x => x < 0).sort((a, b) => b - a);
+      // Calculate actual corridor width from X positions relative to bbox center
+      const rightX = xPositions.filter(x => x > bboxCenterX).sort((a, b) => a - b);
+      const leftX = xPositions.filter(x => x < bboxCenterX).sort((a, b) => b - a);
       const firstRightCorner = rightX.length > 0 ? rightX[0] : null;
       const firstLeftCorner = leftX.length > 0 ? leftX[0] : null;
       const firstRightEdge = firstRightCorner; // Left edge of right panel = corner X
@@ -1644,13 +1647,9 @@ export function RoofVisualization({
         ? firstRightEdge - firstLeftEdge 
         : null;
       
-      // Calculate bounding box center for reference
-      const bboxCenterX = (bbox.minX + bbox.maxX) / 2;
-      const bboxCenterY = (bbox.minY + bbox.maxY) / 2;
-      
       console.log(`[RoofVisualization] *** FIRE PATHWAY DEBUG ***`);
       console.log(`[RoofVisualization] Bounding box: X[${bbox.minX.toFixed(1)}, ${bbox.maxX.toFixed(1)}] Y[${bbox.minY.toFixed(1)}, ${bbox.maxY.toFixed(1)}]`);
-      console.log(`[RoofVisualization] Bbox center: (${bboxCenterX.toFixed(1)}, ${bboxCenterY.toFixed(1)}) - corridor centered at origin (0, 0)`);
+      console.log(`[RoofVisualization] Corridors centered at bbox center: (${bboxCenterX.toFixed(1)}, ${bboxCenterY.toFixed(1)})`);
       console.log(`[RoofVisualization] halfPathway=${halfPathway}m, panelWidthM=${panelWidthM}m`);
       console.log(`[RoofVisualization] First right panel: corner at X=${firstRightCorner?.toFixed(2)}m`);
       console.log(`[RoofVisualization] First left panel: corner at X=${firstLeftCorner?.toFixed(2)}m`);
