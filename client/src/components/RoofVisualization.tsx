@@ -259,6 +259,54 @@ function insetPolygonCoords(
   ] as [number, number]);
 }
 
+// Calculate minimum distance from a point to any edge of a polygon (in meters)
+function pointToPolygonDistance(
+  pointLat: number,
+  pointLng: number,
+  coords: [number, number][],
+  centroidLat: number
+): number {
+  const metersPerDegreeLat = 111320;
+  const metersPerDegreeLng = 111320 * Math.cos(centroidLat * Math.PI / 180);
+  
+  const px = pointLng * metersPerDegreeLng;
+  const py = pointLat * metersPerDegreeLat;
+  
+  let minDistance = Infinity;
+  const n = coords.length;
+  
+  for (let i = 0; i < n; i++) {
+    const [lng1, lat1] = coords[i];
+    const [lng2, lat2] = coords[(i + 1) % n];
+    
+    const x1 = lng1 * metersPerDegreeLng;
+    const y1 = lat1 * metersPerDegreeLat;
+    const x2 = lng2 * metersPerDegreeLng;
+    const y2 = lat2 * metersPerDegreeLat;
+    
+    // Distance from point to line segment
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const segmentLenSq = dx * dx + dy * dy;
+    
+    let distance: number;
+    if (segmentLenSq < 0.0001) {
+      // Degenerate segment (essentially a point)
+      distance = Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+    } else {
+      // Project point onto line and clamp to segment
+      const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / segmentLenSq));
+      const closestX = x1 + t * dx;
+      const closestY = y1 + t * dy;
+      distance = Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+    }
+    
+    minDistance = Math.min(minDistance, distance);
+  }
+  
+  return minDistance;
+}
+
 function expandPolygonCoords(
   coords: [number, number][],
   offsetMeters: number,
@@ -439,22 +487,16 @@ export function RoofVisualization({
     let totalRejectedByConstraint = 0;
     
     for (const { polygon, id, coords } of solarPolygonData) {
-      // Use THIS polygon's centroid for inset calculation (more accurate than global)
+      // Use THIS polygon's centroid for distance calculations
       const localCentroid = computeCentroid(coords);
       
-      // Create inset polygon for this polygon using LOCAL centroid
-      const insetCoords = insetPolygonCoords(coords, PERIMETER_SETBACK_M, localCentroid.lat);
-      let validationPolygon: google.maps.Polygon;
-      if (insetCoords) {
-        const insetPath = insetCoords.map(([lng, lat]) => ({ lat, lng }));
-        validationPolygon = new google.maps.Polygon({ paths: insetPath });
-        console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: inset succeeded, ${insetPath.length} vertices`);
-      } else {
-        // Fallback: use original polygon path directly
-        const originalPath = coords.map(([lng, lat]) => ({ lat, lng }));
-        validationPolygon = new google.maps.Polygon({ paths: originalPath });
-        console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: inset FAILED, using original polygon`);
-      }
+      // NEW: Use distance-based validation instead of inset polygon
+      // This works correctly for L-shaped and concave polygons where inset fails
+      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: using distance-based validation (1.2m setback)`);
+      
+      // The original polygon for containment check
+      const originalPath = coords.map(([lng, lat]) => ({ lat, lng }));
+      const originalPolygon = new google.maps.Polygon({ paths: originalPath });
       
       // Compute THIS polygon's bounding box in unified rotated space
       let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
@@ -530,8 +572,16 @@ export function RoofVisualization({
           const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
           const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
           
-          // Check if panel is inside THIS polygon's inset
-          if (!google.maps.geometry.poly.containsLocation(panelCenter, validationPolygon)) {
+          // NEW: Distance-based validation (works for L-shapes, concave polygons)
+          // Step 1: Check if panel center is inside the ORIGINAL polygon
+          if (!google.maps.geometry.poly.containsLocation(panelCenter, originalPolygon)) {
+            rejectedByRoof++;
+            continue;
+          }
+          
+          // Step 2: Check if panel center is at least 1.2m from the polygon boundary
+          const distanceToBoundary = pointToPolygonDistance(panelCenterLat, panelCenterLng, coords, localCentroid.lat);
+          if (distanceToBoundary < PERIMETER_SETBACK_M) {
             rejectedByRoof++;
             continue;
           }
