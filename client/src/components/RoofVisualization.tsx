@@ -328,26 +328,43 @@ export function RoofVisualization({
     const metersPerDegreeLat = 111320;
     const metersPerDegreeLng = 111320 * Math.cos(centroid.lat * Math.PI / 180);
     
+    // Create inset polygon for 1.2m perimeter setback
     const insetCoords = insetPolygonCoords(coords, PERIMETER_SETBACK_M, centroid.lat);
     
     let validationPolygon: google.maps.Polygon;
     if (insetCoords) {
       const insetPath = insetCoords.map(([lng, lat]) => ({ lat, lng }));
       validationPolygon = new google.maps.Polygon({ paths: insetPath });
-      console.log(`[RoofVisualization] Using inset polygon for setback validation`);
     } else {
       validationPolygon = solarPolygon;
-      console.log(`[RoofVisualization] Inset failed, using original polygon with center-based validation`);
     }
     
-    // Calculate bounding box in ROTATED space (aligned with principal axis)
-    // Then add generous margin to ensure parallelogram corners are covered
-    let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
+    // ===== HYBRID APPROACH: Geographic bbox → Rotated grid =====
+    // Step 1: Get GEOGRAPHIC bounding box corners (guaranteed full coverage)
+    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
     for (const [lng, lat] of coords) {
-      const x = (lng - centroid.lng) * metersPerDegreeLng;
-      const y = (lat - centroid.lat) * metersPerDegreeLat;
-      const cos = Math.cos(-axisAngle);
-      const sin = Math.sin(-axisAngle);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+    }
+    
+    // Step 2: Convert geographic bbox corners to ROTATED meter space
+    // This gives us a rotated bounding box that covers the entire geographic extent
+    const geoBboxCorners = [
+      { lat: minLat, lng: minLng },
+      { lat: minLat, lng: maxLng },
+      { lat: maxLat, lng: maxLng },
+      { lat: maxLat, lng: minLng }
+    ];
+    
+    const cos = Math.cos(-axisAngle);
+    const sin = Math.sin(-axisAngle);
+    
+    let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
+    for (const corner of geoBboxCorners) {
+      const x = (corner.lng - centroid.lng) * metersPerDegreeLng;
+      const y = (corner.lat - centroid.lat) * metersPerDegreeLat;
       const rx = x * cos - y * sin;
       const ry = x * sin + y * cos;
       minXRot = Math.min(minXRot, rx);
@@ -356,48 +373,45 @@ export function RoofVisualization({
       maxYRot = Math.max(maxYRot, ry);
     }
     
-    // Add 100% margin to capture all parallelogram corners
-    // The large margin ensures even heavily skewed polygons are fully covered
-    const bboxWidthRaw = maxXRot - minXRot;
-    const bboxHeightRaw = maxYRot - minYRot;
-    const marginX = bboxWidthRaw * 1.0; // 100% margin on each side
-    const marginY = bboxHeightRaw * 1.0;
-    const minX = minXRot - marginX;
-    const maxX = maxXRot + marginX;
-    const minY = minYRot - marginY;
-    const maxY = maxYRot + marginY;
-    
-    const bboxWidth = maxX - minX;
-    const bboxHeight = maxY - minY;
+    const bboxWidth = maxXRot - minXRot;
+    const bboxHeight = maxYRot - minYRot;
     
     if (bboxWidth < PANEL_WIDTH_M || bboxHeight < PANEL_HEIGHT_M) {
       console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)} too small for panels`);
       return panels;
     }
     
+    // Step 3: Generate grid in ROTATED space (correct spacing)
     const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
     const panelPitchY = PANEL_HEIGHT_M + ROW_SPACING_M;
     
     const xPositions: number[] = [];
     const yPositions: number[] = [];
     
-    for (let x = minX; x + PANEL_WIDTH_M <= maxX; x += panelPitchX) {
+    for (let x = minXRot; x + PANEL_WIDTH_M <= maxXRot; x += panelPitchX) {
       xPositions.push(x);
     }
-    
-    for (let y = minY; y + PANEL_HEIGHT_M <= maxY; y += panelPitchY) {
+    for (let y = minYRot; y + PANEL_HEIGHT_M <= maxYRot; y += panelPitchY) {
       yPositions.push(y);
     }
     
-    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: bbox=${Math.round(bboxWidth)}×${Math.round(bboxHeight)}m, axis=${(axisAngle * 180 / Math.PI).toFixed(1)}°`);
+    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: rotated bbox=${Math.round(bboxWidth)}×${Math.round(bboxHeight)}m, axis=${(axisAngle * 180 / Math.PI).toFixed(1)}°`);
     console.log(`[RoofVisualization] Grid: ${xPositions.length} cols × ${yPositions.length} rows = ${xPositions.length * yPositions.length} potential positions`);
     
     let accepted = 0;
     let rejectedByRoof = 0;
     let rejectedByConstraint = 0;
     
-    for (const gridX of xPositions) {
-      for (const gridY of yPositions) {
+    const cosPos = Math.cos(axisAngle);
+    const sinPos = Math.sin(axisAngle);
+    
+    // Step 4: For each grid position, create panel and validate
+    for (let colIdx = 0; colIdx < xPositions.length; colIdx++) {
+      for (let rowIdx = 0; rowIdx < yPositions.length; rowIdx++) {
+        const gridX = xPositions[colIdx];
+        const gridY = yPositions[rowIdx];
+        
+        // Panel corners in rotated space
         const panelCornersRotated = [
           { x: gridX, y: gridY },
           { x: gridX + PANEL_WIDTH_M, y: gridY },
@@ -405,17 +419,17 @@ export function RoofVisualization({
           { x: gridX, y: gridY + PANEL_HEIGHT_M }
         ];
         
+        // Convert back to geographic coordinates
         const panelCornersGeo = panelCornersRotated.map(corner => {
-          const cos = Math.cos(axisAngle);
-          const sin = Math.sin(axisAngle);
-          const unrotatedX = corner.x * cos - corner.y * sin;
-          const unrotatedY = corner.x * sin + corner.y * cos;
+          const unrotatedX = corner.x * cosPos - corner.y * sinPos;
+          const unrotatedY = corner.x * sinPos + corner.y * cosPos;
           return {
             lat: centroid.lat + unrotatedY / metersPerDegreeLat,
             lng: centroid.lng + unrotatedX / metersPerDegreeLng
           };
         });
         
+        // Panel center for validation
         const panelCenterLat = (panelCornersGeo[0].lat + panelCornersGeo[2].lat) / 2;
         const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
         const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
@@ -425,6 +439,7 @@ export function RoofVisualization({
           continue;
         }
         
+        // Check constraints
         let inConstraint = false;
         for (const constraint of constraintPolygons) {
           if (google.maps.geometry.poly.containsLocation(panelCenter, constraint)) {
@@ -438,26 +453,16 @@ export function RoofVisualization({
           continue;
         }
         
-        // Store row and column indices for straight-row layout
-        const rowIndex = yPositions.indexOf(gridY);
-        const colIndex = xPositions.indexOf(gridX);
+        // Priority: center rows first (for slider behavior)
+        const centerRowIdx = (yPositions.length - 1) / 2;
+        const centerColIdx = (xPositions.length - 1) / 2;
+        const maxRowDist = Math.max(centerRowIdx, yPositions.length - 1 - centerRowIdx) || 1;
+        const maxColDist = Math.max(centerColIdx, xPositions.length - 1 - centerColIdx) || 1;
         
-        // Priority: center rows first, then fill outward
-        // Normalize to 0-1 range so all polygons are comparable regardless of size
-        const centerRowIndex = (yPositions.length - 1) / 2;
-        const maxRowDist = Math.max(centerRowIndex, yPositions.length - 1 - centerRowIndex) || 1;
-        const rowDistFromCenter = Math.abs(rowIndex - centerRowIndex);
-        const normalizedRowDist = rowDistFromCenter / maxRowDist; // 0 = center, 1 = edge
+        const rowDistNorm = Math.abs(rowIdx - centerRowIdx) / maxRowDist;
+        const colDistNorm = Math.abs(colIdx - centerColIdx) / maxColDist;
         
-        const centerColIndex = (xPositions.length - 1) / 2;
-        const maxColDist = Math.max(centerColIndex, xPositions.length - 1 - centerColIndex) || 1;
-        const colDistFromCenter = Math.abs(colIndex - centerColIndex);
-        const normalizedColDist = colDistFromCenter / maxColDist; // 0 = center, 1 = edge
-        
-        // Priority: row distance weighted more heavily (racking runs along rows)
-        // Score 0-1000000 with row being primary factor, column secondary
-        // Higher = closer to center
-        const priority = Math.round((1 - normalizedRowDist) * 1000000 + (1 - normalizedColDist) * 1000);
+        const priority = Math.round((1 - rowDistNorm) * 1000000 + (1 - colDistNorm) * 1000);
         
         panels.push({
           lat: panelCornersGeo[0].lat,
@@ -466,8 +471,8 @@ export function RoofVisualization({
           heightDeg: metersToDegreesLat(PANEL_HEIGHT_M),
           polygonId,
           corners: panelCornersGeo,
-          rowIndex,
-          colIndex,
+          rowIndex: rowIdx,
+          colIndex: colIdx,
           priority
         });
         
@@ -475,14 +480,7 @@ export function RoofVisualization({
       }
     }
     
-    // Count rows for logging
-    const rowCounts: Record<number, number> = {};
-    for (const p of panels) {
-      const row = p.rowIndex ?? 0;
-      rowCounts[row] = (rowCounts[row] || 0) + 1;
-    }
     console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: ${accepted} panels accepted, ${rejectedByRoof} outside roof, ${rejectedByConstraint} in constraints`);
-    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: ${Object.keys(rowCounts).length} rows with panels`);
     
     return panels;
   }, []);
