@@ -339,32 +339,15 @@ export function RoofVisualization({
       validationPolygon = solarPolygon;
     }
     
-    // ===== HYBRID APPROACH: Geographic bbox → Rotated grid =====
-    // Step 1: Get GEOGRAPHIC bounding box corners (guaranteed full coverage)
-    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-    for (const [lng, lat] of coords) {
-      minLng = Math.min(minLng, lng);
-      maxLng = Math.max(maxLng, lng);
-      minLat = Math.min(minLat, lat);
-      maxLat = Math.max(maxLat, lat);
-    }
-    
-    // Step 2: Convert geographic bbox corners to ROTATED meter space
-    // This gives us a rotated bounding box that covers the entire geographic extent
-    const geoBboxCorners = [
-      { lat: minLat, lng: minLng },
-      { lat: minLat, lng: maxLng },
-      { lat: maxLat, lng: maxLng },
-      { lat: maxLat, lng: minLng }
-    ];
-    
+    // ===== ROBUST APPROACH: Polygon vertices → Rotated bbox + fixed margin =====
+    // Step 1: Convert ALL polygon vertices to rotated meter space
     const cos = Math.cos(-axisAngle);
     const sin = Math.sin(-axisAngle);
     
     let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
-    for (const corner of geoBboxCorners) {
-      const x = (corner.lng - centroid.lng) * metersPerDegreeLng;
-      const y = (corner.lat - centroid.lat) * metersPerDegreeLat;
+    for (const [lng, lat] of coords) {
+      const x = (lng - centroid.lng) * metersPerDegreeLng;
+      const y = (lat - centroid.lat) * metersPerDegreeLat;
       const rx = x * cos - y * sin;
       const ry = x * sin + y * cos;
       minXRot = Math.min(minXRot, rx);
@@ -372,6 +355,14 @@ export function RoofVisualization({
       minYRot = Math.min(minYRot, ry);
       maxYRot = Math.max(maxYRot, ry);
     }
+    
+    // Step 2: Add FIXED margin (100m) to guarantee all corners are covered
+    // This works regardless of polygon shape or rotation angle
+    const FIXED_MARGIN_M = 100;
+    minXRot -= FIXED_MARGIN_M;
+    maxXRot += FIXED_MARGIN_M;
+    minYRot -= FIXED_MARGIN_M;
+    maxYRot += FIXED_MARGIN_M;
     
     const bboxWidth = maxXRot - minXRot;
     const bboxHeight = maxYRot - minYRot;
