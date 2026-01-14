@@ -354,6 +354,16 @@ export function RoofVisualization({
       maxY = Math.max(maxY, ry);
     }
     
+    // Add margin to capture parallelogram corners that extend beyond rotated bbox
+    // The margin accounts for the skew of non-rectangular polygons
+    const bboxWidthRaw = maxX - minX;
+    const bboxHeightRaw = maxY - minY;
+    const margin = Math.max(bboxWidthRaw, bboxHeightRaw) * 0.3; // 30% margin
+    minX -= margin;
+    maxX += margin;
+    minY -= margin;
+    maxY += margin;
+    
     const bboxWidth = maxX - minX;
     const bboxHeight = maxY - minY;
     
