@@ -465,7 +465,9 @@ export function RoofVisualization({
 
   useEffect(() => {
     if (!hasUserAdjusted && maxCapacity > 0) {
-      const defaultCapacity = currentPVSizeKW || Math.round(maxCapacity * 0.7);
+      // If currentPVSizeKW is provided (detailed analysis), use it
+      // If NOT provided (quick potential mode), show 100% of max capacity
+      const defaultCapacity = currentPVSizeKW || maxCapacity;
       setSelectedCapacityKW(Math.min(defaultCapacity, maxCapacity));
     }
   }, [maxCapacity, currentPVSizeKW, hasUserAdjusted]);
