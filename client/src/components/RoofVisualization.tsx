@@ -284,6 +284,8 @@ export function RoofVisualization({
   const [totalUsableArea, setTotalUsableArea] = useState(0);
   const [constraintArea, setConstraintArea] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [panelsPerZone, setPanelsPerZone] = useState<Record<string, { count: number; label: string }>>({});
+  const [zoneCount, setZoneCount] = useState(0);
 
   const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
     queryKey: ["/api/sites", siteId, "roof-polygons"],
@@ -314,6 +316,181 @@ export function RoofVisualization({
     }
   }, [maxCapacity, currentPVSizeKW, hasUserAdjusted]);
 
+  // NEW: Generate panels with UNIFIED axis but PER-POLYGON iteration for performance
+  // This calculates a shared axis from all polygons but iterates each polygon's bbox separately
+  const generateUnifiedPanelPositions = useCallback((
+    solarPolygonData: { polygon: google.maps.Polygon; id: string; coords: [number, number][] }[],
+    constraintPolygons: google.maps.Polygon[]
+  ): PanelPosition[] => {
+    if (solarPolygonData.length === 0) return [];
+    
+    // Step 1: Combine ALL vertices from all solar polygons for UNIFIED AXIS calculation only
+    const allCoords: [number, number][] = [];
+    for (const { coords } of solarPolygonData) {
+      allCoords.push(...coords);
+    }
+    
+    const globalCentroid = computeCentroid(allCoords);
+    const unifiedAxisAngle = computePrincipalAxisAngle(allCoords);
+    
+    console.log(`[RoofVisualization] UNIFIED AXIS: ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° from ${solarPolygonData.length} polygon(s), ${allCoords.length} vertices`);
+    
+    const metersPerDegreeLat = 111320;
+    const metersPerDegreeLng = 111320 * Math.cos(globalCentroid.lat * Math.PI / 180);
+    
+    const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
+    const panelPitchY = PANEL_HEIGHT_M + ROW_SPACING_M;
+    
+    const cos = Math.cos(-unifiedAxisAngle);
+    const sin = Math.sin(-unifiedAxisAngle);
+    const cosPos = Math.cos(unifiedAxisAngle);
+    const sinPos = Math.sin(unifiedAxisAngle);
+    
+    // Step 2: Process each polygon separately with its own bbox but unified axis
+    const allPanels: PanelPosition[] = [];
+    let totalAccepted = 0;
+    let totalRejectedByRoof = 0;
+    let totalRejectedByConstraint = 0;
+    
+    for (const { polygon, id, coords } of solarPolygonData) {
+      // Create inset polygon for this polygon
+      const insetCoords = insetPolygonCoords(coords, PERIMETER_SETBACK_M, globalCentroid.lat);
+      let validationPolygon: google.maps.Polygon;
+      if (insetCoords) {
+        const insetPath = insetCoords.map(([lng, lat]) => ({ lat, lng }));
+        validationPolygon = new google.maps.Polygon({ paths: insetPath });
+      } else {
+        validationPolygon = polygon;
+      }
+      
+      // Compute THIS polygon's bounding box in unified rotated space
+      let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
+      for (const [lng, lat] of coords) {
+        const x = (lng - globalCentroid.lng) * metersPerDegreeLng;
+        const y = (lat - globalCentroid.lat) * metersPerDegreeLat;
+        const rx = x * cos - y * sin;
+        const ry = x * sin + y * cos;
+        minXRot = Math.min(minXRot, rx);
+        maxXRot = Math.max(maxXRot, rx);
+        minYRot = Math.min(minYRot, ry);
+        maxYRot = Math.max(maxYRot, ry);
+      }
+      
+      // Add proportional margin for this polygon only
+      const rawWidth = maxXRot - minXRot;
+      const rawHeight = maxYRot - minYRot;
+      const maxDimension = Math.max(rawWidth, rawHeight);
+      const MARGIN_M = Math.max(50, maxDimension * 0.3);
+      
+      minXRot -= MARGIN_M;
+      maxXRot += MARGIN_M;
+      minYRot -= MARGIN_M;
+      maxYRot += MARGIN_M;
+      
+      // Snap grid origin to global alignment so panels align across polygons
+      const gridOriginX = Math.floor(minXRot / panelPitchX) * panelPitchX;
+      const gridOriginY = Math.floor(minYRot / panelPitchY) * panelPitchY;
+      
+      // Generate grid positions for this polygon
+      const xPositions: number[] = [];
+      const yPositions: number[] = [];
+      
+      for (let x = gridOriginX; x + PANEL_WIDTH_M <= maxXRot; x += panelPitchX) {
+        if (x >= minXRot - panelPitchX) xPositions.push(x);
+      }
+      for (let y = gridOriginY; y + PANEL_HEIGHT_M <= maxYRot; y += panelPitchY) {
+        if (y >= minYRot - panelPitchY) yPositions.push(y);
+      }
+      
+      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: bbox=${Math.round(rawWidth)}×${Math.round(rawHeight)}m, grid=${xPositions.length}×${yPositions.length}`);
+      
+      let accepted = 0;
+      let rejectedByRoof = 0;
+      let rejectedByConstraint = 0;
+      
+      // Iterate this polygon's grid
+      for (let colIdx = 0; colIdx < xPositions.length; colIdx++) {
+        for (let rowIdx = 0; rowIdx < yPositions.length; rowIdx++) {
+          const gridX = xPositions[colIdx];
+          const gridY = yPositions[rowIdx];
+          
+          // Panel corners in rotated space
+          const panelCornersRotated = [
+            { x: gridX, y: gridY },
+            { x: gridX + PANEL_WIDTH_M, y: gridY },
+            { x: gridX + PANEL_WIDTH_M, y: gridY + PANEL_HEIGHT_M },
+            { x: gridX, y: gridY + PANEL_HEIGHT_M }
+          ];
+          
+          // Convert back to geographic coordinates using GLOBAL centroid
+          const panelCornersGeo = panelCornersRotated.map(corner => {
+            const unrotatedX = corner.x * cosPos - corner.y * sinPos;
+            const unrotatedY = corner.x * sinPos + corner.y * cosPos;
+            return {
+              lat: globalCentroid.lat + unrotatedY / metersPerDegreeLat,
+              lng: globalCentroid.lng + unrotatedX / metersPerDegreeLng
+            };
+          });
+          
+          // Panel center for validation
+          const panelCenterLat = (panelCornersGeo[0].lat + panelCornersGeo[2].lat) / 2;
+          const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
+          const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
+          
+          // Check if panel is inside THIS polygon's inset
+          if (!google.maps.geometry.poly.containsLocation(panelCenter, validationPolygon)) {
+            rejectedByRoof++;
+            continue;
+          }
+          
+          // Check constraints
+          let inConstraint = false;
+          for (const constraint of constraintPolygons) {
+            if (google.maps.geometry.poly.containsLocation(panelCenter, constraint)) {
+              inConstraint = true;
+              break;
+            }
+          }
+          
+          if (inConstraint) {
+            rejectedByConstraint++;
+            continue;
+          }
+          
+          // Priority based on global grid position (for consistent slider behavior)
+          const globalRowIdx = Math.round(gridY / panelPitchY);
+          const globalColIdx = Math.round(gridX / panelPitchX);
+          const priority = 1000000 - Math.abs(globalRowIdx) * 1000 - Math.abs(globalColIdx);
+          
+          allPanels.push({
+            lat: panelCornersGeo[0].lat,
+            lng: panelCornersGeo[0].lng,
+            widthDeg: metersToDegreesLng(PANEL_WIDTH_M, globalCentroid.lat),
+            heightDeg: metersToDegreesLat(PANEL_HEIGHT_M),
+            polygonId: id,
+            corners: panelCornersGeo,
+            rowIndex: globalRowIdx,
+            colIndex: globalColIdx,
+            priority
+          });
+          
+          accepted++;
+        }
+      }
+      
+      totalAccepted += accepted;
+      totalRejectedByRoof += rejectedByRoof;
+      totalRejectedByConstraint += rejectedByConstraint;
+      
+      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: ${accepted} panels accepted, ${rejectedByRoof} outside, ${rejectedByConstraint} constraints`);
+    }
+    
+    console.log(`[RoofVisualization] UNIFIED TOTAL: ${totalAccepted} panels, ${totalRejectedByRoof} outside roof, ${totalRejectedByConstraint} in constraints`);
+    
+    return allPanels;
+  }, []);
+
+  // LEGACY: Single polygon version (kept for backward compatibility)
   const generatePanelPositions = useCallback((
     solarPolygon: google.maps.Polygon,
     constraintPolygons: google.maps.Polygon[],
@@ -581,8 +758,9 @@ export function RoofVisualization({
           roofPolygonObjectsRef.current.push(googlePolygon);
         }
 
-        const allPanels: PanelPosition[] = [];
-
+        // Create Google polygon objects for all solar polygons
+        const solarPolygonDataForUnified: { polygon: google.maps.Polygon; id: string; coords: [number, number][] }[] = [];
+        
         for (const polygon of solarPolygons) {
           const coords = polygon.coordinates as [number, number][];
           const path = coords.map(([lng, lat]) => ({ lat, lng }));
@@ -598,21 +776,38 @@ export function RoofVisualization({
           });
           
           roofPolygonObjectsRef.current.push(solarGooglePolygon);
-
-          const panels = generatePanelPositions(
-            solarGooglePolygon,
-            constraintGooglePolygons,
-            polygon.id,
+          solarPolygonDataForUnified.push({
+            polygon: solarGooglePolygon,
+            id: polygon.id,
             coords
-          );
-          
-          allPanels.push(...panels);
+          });
         }
+
+        // Generate panels using UNIFIED approach (single axis/grid across all polygons)
+        const allPanels = generateUnifiedPanelPositions(
+          solarPolygonDataForUnified,
+          constraintGooglePolygons
+        );
 
         const sortedPanels = sortPanelsByRowPriority(allPanels);
         setAllPanelPositions(sortedPanels);
+        
+        // Track panels per zone for legend display
+        const zoneStats: Record<string, { count: number; label: string }> = {};
+        for (const panel of sortedPanels) {
+          if (!zoneStats[panel.polygonId]) {
+            const polygon = solarPolygons.find(p => p.id === panel.polygonId);
+            zoneStats[panel.polygonId] = { 
+              count: 0, 
+              label: polygon?.label || `Zone ${Object.keys(zoneStats).length + 1}` 
+            };
+          }
+          zoneStats[panel.polygonId].count++;
+        }
+        setPanelsPerZone(zoneStats);
+        setZoneCount(Object.keys(zoneStats).length);
 
-        console.log(`[RoofVisualization] Total panels generated: ${sortedPanels.length}, capacity: ${Math.round(sortedPanels.length * PANEL_KW)} kWc`);
+        console.log(`[RoofVisualization] Total panels generated: ${sortedPanels.length}, capacity: ${Math.round(sortedPanels.length * PANEL_KW)} kWc, zones: ${Object.keys(zoneStats).length}`);
 
         if (onGeometryCalculated && sortedPanels.length > 0) {
           onGeometryCalculated({
@@ -643,7 +838,7 @@ export function RoofVisualization({
     };
 
     initMap();
-  }, [latitude, longitude, roofPolygons, language, generatePanelPositions, sortPanelsByRowPriority, onGeometryCalculated]);
+  }, [latitude, longitude, roofPolygons, language, generateUnifiedPanelPositions, sortPanelsByRowPriority, onGeometryCalculated]);
 
   useEffect(() => {
     if (!mapRef.current || allPanelPositions.length === 0) return;
@@ -895,6 +1090,12 @@ export function RoofVisualization({
               <div className="w-3 h-3 bg-blue-500 border border-blue-300 rounded-sm" />
               <span>{language === "fr" ? "Panneaux solaires" : "Solar panels"}</span>
             </div>
+            {zoneCount > 1 && (
+              <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">
+                <div className="w-3 h-3 bg-teal-500/60 border border-teal-400 rounded-sm" />
+                <span>{zoneCount} {language === "fr" ? "zones unifiées" : "unified zones"}</span>
+              </div>
+            )}
             {constraintArea > 0 && (
               <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">
                 <div className="w-3 h-3 bg-orange-500/60 border border-orange-400 rounded-sm" />
