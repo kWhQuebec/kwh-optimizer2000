@@ -74,6 +74,10 @@ const PERIMETER_SETBACK_M = 1.2;
 const PANEL_TILT_DEG = 10.0;
 const SUN_ALTITUDE_WINTER_SOLSTICE_DEG = 21.5;
 
+// Maintenance corridor constants (IFC fire code compliance)
+const MAINTENANCE_CORRIDOR_WIDTH_M = 1.2; // 4 feet minimum for firefighter access
+const MAINTENANCE_CORRIDOR_SPACING_M = 40; // Maximum array section before corridor required
+
 // Quebec solar yield constants (based on RNCan data for ~45-48° latitude)
 // South-facing at latitude tilt: ~1150-1200 kWh/kWp/year
 // 10° tilt loses ~5-8% vs latitude tilt
@@ -495,6 +499,13 @@ export function RoofVisualization({
   const [zoneCount, setZoneCount] = useState(0);
   const [panelOrientationAngle, setPanelOrientationAngle] = useState(0); // Radians
   const [orientationSource, setOrientationSource] = useState<string>("default");
+  
+  // Dual orientation comparison state
+  const [buildingAlignedPanels, setBuildingAlignedPanels] = useState<PanelPosition[]>([]);
+  const [trueSouthPanels, setTrueSouthPanels] = useState<PanelPosition[]>([]);
+  const [buildingAlignedAngle, setBuildingAlignedAngle] = useState(0);
+  const [trueSouthAngle, setTrueSouthAngle] = useState(0);
+  const [selectedOrientation, setSelectedOrientation] = useState<"building" | "south">("building");
 
   const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
     queryKey: ["/api/sites", siteId, "roof-polygons"],
@@ -529,10 +540,12 @@ export function RoofVisualization({
 
   // NEW: Generate panels with UNIFIED axis but PER-POLYGON iteration for performance
   // This calculates a shared axis from all polygons but iterates each polygon's bbox separately
+  // forceOrientationAngle: if provided, use this angle instead of calculating from building edges
   const generateUnifiedPanelPositions = useCallback((
     solarPolygonData: { polygon: google.maps.Polygon; id: string; coords: [number, number][] }[],
     constraintPolygons: google.maps.Polygon[],
-    constraintCoordsData: [number, number][][]
+    constraintCoordsData: [number, number][][],
+    forceOrientationAngle?: number // Optional: force specific orientation (radians)
   ): { panels: PanelPosition[]; orientationAngle: number; orientationSource: string } => {
     if (solarPolygonData.length === 0) return { panels: [], orientationAngle: 0, orientationSource: "default" };
     
@@ -548,11 +561,21 @@ export function RoofVisualization({
     
     const globalCentroid = computeCentroid(allCoords);
     
-    // NEW: Use per-polygon edge detection to find the longest TRUE edge
-    const orientationResult = computeHybridPanelOrientationFromPolygons(polygonCoordsList);
-    const unifiedAxisAngle = orientationResult.angle;
+    // Use forced orientation if provided, otherwise calculate from building edges
+    let unifiedAxisAngle: number;
+    let orientationSourceLabel: string;
     
-    console.log(`[RoofVisualization] UNIFIED AXIS: ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° (${orientationResult.source}) from ${solarPolygonData.length} polygon(s)`);
+    if (forceOrientationAngle !== undefined) {
+      unifiedAxisAngle = forceOrientationAngle;
+      orientationSourceLabel = "true south";
+      console.log(`[RoofVisualization] FORCED AXIS: ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° (true south)`);
+    } else {
+      // NEW: Use per-polygon edge detection to find the longest TRUE edge
+      const orientationResult = computeHybridPanelOrientationFromPolygons(polygonCoordsList);
+      unifiedAxisAngle = orientationResult.angle;
+      orientationSourceLabel = orientationResult.source;
+      console.log(`[RoofVisualization] UNIFIED AXIS: ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° (${orientationResult.source}) from ${solarPolygonData.length} polygon(s)`);
+    }
     
     // Step 1.5: Expand constraint polygons for obstacle clearance (1.2m setback)
     const expandedConstraintPolygons: google.maps.Polygon[] = [];
@@ -707,6 +730,40 @@ export function RoofVisualization({
             continue;
           }
           
+          // Maintenance corridor check (IFC fire code for large roofs)
+          // Create corridors every 40m for firefighter access and maintenance
+          if (rawWidth > MAINTENANCE_CORRIDOR_SPACING_M || rawHeight > MAINTENANCE_CORRIDOR_SPACING_M) {
+            // Check if panel falls in a maintenance corridor
+            const panelCenterX = gridX + PANEL_WIDTH_M / 2;
+            const panelCenterY = gridY + PANEL_HEIGHT_M / 2;
+            
+            // Corridors run perpendicular to row direction, spaced every 40m
+            // Calculate distance from corridor center lines
+            const corridorSpacingWithGap = MAINTENANCE_CORRIDOR_SPACING_M + MAINTENANCE_CORRIDOR_WIDTH_M;
+            
+            // X-axis corridors (if width > 40m)
+            if (rawWidth > MAINTENANCE_CORRIDOR_SPACING_M) {
+              const distFromCorridorX = Math.abs(((panelCenterX - minXRot + MARGIN_M) % corridorSpacingWithGap) - corridorSpacingWithGap / 2);
+              if (distFromCorridorX < MAINTENANCE_CORRIDOR_WIDTH_M / 2 && 
+                  panelCenterX > minXRot + MARGIN_M + 20 && 
+                  panelCenterX < maxXRot - MARGIN_M - 20) {
+                rejectedByConstraint++;
+                continue;
+              }
+            }
+            
+            // Y-axis corridors (if height > 40m)
+            if (rawHeight > MAINTENANCE_CORRIDOR_SPACING_M) {
+              const distFromCorridorY = Math.abs(((panelCenterY - minYRot + MARGIN_M) % corridorSpacingWithGap) - corridorSpacingWithGap / 2);
+              if (distFromCorridorY < MAINTENANCE_CORRIDOR_WIDTH_M / 2 &&
+                  panelCenterY > minYRot + MARGIN_M + 20 &&
+                  panelCenterY < maxYRot - MARGIN_M - 20) {
+                rejectedByConstraint++;
+                continue;
+              }
+            }
+          }
+          
           // Priority based on global grid position (for consistent slider behavior)
           const globalRowIdx = Math.round(gridY / panelPitchY);
           const globalColIdx = Math.round(gridX / panelPitchX);
@@ -742,7 +799,7 @@ export function RoofVisualization({
     
     console.log(`[RoofVisualization] UNIFIED TOTAL: ${totalAccepted} panels, ${totalRejectedByRoof} outside roof, ${totalRejectedByConstraint} in constraints`);
     
-    return { panels: allPanels, orientationAngle: unifiedAxisAngle, orientationSource: orientationResult.source };
+    return { panels: allPanels, orientationAngle: unifiedAxisAngle, orientationSource: orientationSourceLabel };
   }, []);
 
   // LEGACY: Single polygon version (kept for backward compatibility)
@@ -1041,17 +1098,38 @@ export function RoofVisualization({
           });
         }
 
-        // Generate panels using UNIFIED approach (single axis/grid across all polygons)
-        const panelResult = generateUnifiedPanelPositions(
+        // Generate panels using UNIFIED approach - DUAL ORIENTATION (building + true south)
+        // 1. Building-aligned orientation (default)
+        const buildingResult = generateUnifiedPanelPositions(
           solarPolygonDataForUnified,
           constraintGooglePolygons,
           constraintCoordsArray
         );
-
-        const sortedPanels = sortPanelsByRowPriority(panelResult.panels);
+        
+        // 2. True south orientation (0 radians = east-west rows, panels face south)
+        const trueSouthResult = generateUnifiedPanelPositions(
+          solarPolygonDataForUnified,
+          constraintGooglePolygons,
+          constraintCoordsArray,
+          0 // Force 0° = east-west rows = panels facing true south
+        );
+        
+        const sortedBuildingPanels = sortPanelsByRowPriority(buildingResult.panels);
+        const sortedSouthPanels = sortPanelsByRowPriority(trueSouthResult.panels);
+        
+        // Store both layouts
+        setBuildingAlignedPanels(sortedBuildingPanels);
+        setTrueSouthPanels(sortedSouthPanels);
+        setBuildingAlignedAngle(buildingResult.orientationAngle);
+        setTrueSouthAngle(0);
+        
+        // Default to building-aligned view
+        const sortedPanels = sortedBuildingPanels;
         setAllPanelPositions(sortedPanels);
-        setPanelOrientationAngle(panelResult.orientationAngle);
-        setOrientationSource(panelResult.orientationSource);
+        setPanelOrientationAngle(buildingResult.orientationAngle);
+        setOrientationSource(buildingResult.orientationSource);
+        
+        console.log(`[RoofVisualization] Dual layouts generated: Building=${sortedBuildingPanels.length} panels, TrueSouth=${sortedSouthPanels.length} panels`);
         
         // Track panels per zone for legend display
         const zoneStats: Record<string, { count: number; label: string }> = {};
@@ -1136,6 +1214,21 @@ export function RoofVisualization({
       panelPolygonsRef.current.push(panelPolygon);
     }
   }, [allPanelPositions, panelsToShow]);
+
+  // Effect to switch panel layout when orientation selection changes
+  useEffect(() => {
+    if (buildingAlignedPanels.length === 0 && trueSouthPanels.length === 0) return;
+    
+    if (selectedOrientation === "building" && buildingAlignedPanels.length > 0) {
+      setAllPanelPositions(buildingAlignedPanels);
+      setPanelOrientationAngle(buildingAlignedAngle);
+      setOrientationSource("building edge");
+    } else if (selectedOrientation === "south" && trueSouthPanels.length > 0) {
+      setAllPanelPositions(trueSouthPanels);
+      setPanelOrientationAngle(trueSouthAngle);
+      setOrientationSource("true south");
+    }
+  }, [selectedOrientation, buildingAlignedPanels, trueSouthPanels, buildingAlignedAngle, trueSouthAngle]);
 
   const handleFullscreen = useCallback(() => {
     if (mapContainerRef.current) {
@@ -1471,6 +1564,108 @@ export function RoofVisualization({
                 </span>
               )}
             </div>
+            
+            {/* Orientation Comparison Panel */}
+            {buildingAlignedPanels.length > 0 && trueSouthPanels.length > 0 && (
+              <div className="mt-3 p-3 bg-muted/50 rounded-lg border" data-testid="orientation-comparison">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">
+                    {language === "fr" ? "Comparaison d'orientation" : "Orientation Comparison"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Building-aligned option */}
+                  <button
+                    onClick={() => setSelectedOrientation("building")}
+                    className={`p-2 rounded-md border text-left transition-all ${
+                      selectedOrientation === "building" 
+                        ? "border-primary bg-primary/10 ring-1 ring-primary" 
+                        : "border-muted-foreground/30 hover:border-muted-foreground/50"
+                    }`}
+                    data-testid="btn-orientation-building"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Home className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {language === "fr" ? "Aligné bâtiment" : "Building-aligned"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-0.5">
+                      <div>{buildingAlignedPanels.length} {language === "fr" ? "panneaux" : "panels"} • {Math.round(buildingAlignedPanels.length * PANEL_KW)} kWc</div>
+                      <div className="flex items-center gap-1">
+                        <Zap className="w-3 h-3" />
+                        {calculateEstimatedYield(buildingAlignedAngle, PANEL_TILT_DEG)} kWh/kWp
+                        {(() => {
+                          const { deviationDeg } = calculateOrientationYieldFactor(buildingAlignedAngle);
+                          const loss = Math.round(deviationDeg * 0.35);
+                          return loss > 0 ? <span className="text-amber-600">(-{loss}%)</span> : null;
+                        })()}
+                      </div>
+                    </div>
+                  </button>
+                  
+                  {/* True south option */}
+                  <button
+                    onClick={() => setSelectedOrientation("south")}
+                    className={`p-2 rounded-md border text-left transition-all ${
+                      selectedOrientation === "south" 
+                        ? "border-green-500 bg-green-500/10 ring-1 ring-green-500" 
+                        : "border-muted-foreground/30 hover:border-muted-foreground/50"
+                    }`}
+                    data-testid="btn-orientation-south"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Sun className="w-4 h-4 text-amber-500" />
+                      <span className="text-sm font-medium">
+                        {language === "fr" ? "Plein sud" : "True South"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-0.5">
+                      <div>{trueSouthPanels.length} {language === "fr" ? "panneaux" : "panels"} • {Math.round(trueSouthPanels.length * PANEL_KW)} kWc</div>
+                      <div className="flex items-center gap-1">
+                        <Zap className="w-3 h-3" />
+                        {calculateEstimatedYield(0, PANEL_TILT_DEG)} kWh/kWp
+                        <span className="text-green-600">(optimal)</span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+                
+                {/* Production difference summary */}
+                {(() => {
+                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, PANEL_TILT_DEG);
+                  const southYield = calculateEstimatedYield(0, PANEL_TILT_DEG);
+                  const buildingProduction = buildingAlignedPanels.length * PANEL_KW * buildingYield;
+                  const southProduction = trueSouthPanels.length * PANEL_KW * southYield;
+                  const difference = southProduction - buildingProduction;
+                  const percentDiff = buildingProduction > 0 ? ((difference / buildingProduction) * 100) : 0;
+                  
+                  return (
+                    <div className="mt-2 pt-2 border-t text-xs">
+                      {difference > 0 ? (
+                        <span className="text-green-700">
+                          {language === "fr" 
+                            ? `Plein sud produirait +${formatNumber(Math.round(difference), language)} kWh/an (+${percentDiff.toFixed(1)}%)`
+                            : `True south would produce +${formatNumber(Math.round(difference), language)} kWh/yr (+${percentDiff.toFixed(1)}%)`
+                          }
+                        </span>
+                      ) : difference < 0 ? (
+                        <span className="text-amber-700">
+                          {language === "fr"
+                            ? `Aligné bâtiment produit ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/an de plus grâce à ${buildingAlignedPanels.length - trueSouthPanels.length} panneaux additionnels`
+                            : `Building-aligned produces ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/yr more due to ${buildingAlignedPanels.length - trueSouthPanels.length} additional panels`
+                          }
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {language === "fr" ? "Production équivalente" : "Equivalent production"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
           
           <div className="relative pt-1 pb-8">
