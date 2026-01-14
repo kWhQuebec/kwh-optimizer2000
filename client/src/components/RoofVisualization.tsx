@@ -67,8 +67,20 @@ const PANEL_KW = 0.59;
 const PANEL_WIDTH_M = 2.0;
 const PANEL_HEIGHT_M = 1.0;
 const PANEL_GAP_M = 0.1;
-const ROW_SPACING_M = 0.5;
 const PERIMETER_SETBACK_M = 1.2;
+
+const PANEL_TILT_DEG = 10.0;
+const SUN_ALTITUDE_WINTER_SOLSTICE_DEG = 21.5;
+
+function calculateAntiShadingRowSpacing(panelHeightM: number, tiltDeg: number, sunAltitudeDeg: number): number {
+  const tiltRad = tiltDeg * Math.PI / 180;
+  const sunAltRad = sunAltitudeDeg * Math.PI / 180;
+  const panelVerticalHeight = panelHeightM * Math.sin(tiltRad);
+  const shadowLength = panelVerticalHeight / Math.tan(sunAltRad);
+  return Math.max(0.3, shadowLength);
+}
+
+const ROW_SPACING_M = calculateAntiShadingRowSpacing(PANEL_HEIGHT_M, PANEL_TILT_DEG, SUN_ALTITUDE_WINTER_SOLSTICE_DEG);
 
 function formatNumber(num: number, language: string): string {
   return num.toLocaleString(language === "fr" ? "fr-CA" : "en-CA");
@@ -888,20 +900,40 @@ export function RoofVisualization({
 
       {hasPolygons && allPanelPositions.length > 0 && (
         <div className="bg-card border-t p-4 pb-6" data-testid="capacity-slider-section">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sun className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">
-                {language === "fr" ? "Taille du système" : "System Size"}
-              </span>
+          <div className="flex flex-col gap-2 mb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sun className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">
+                  {language === "fr" ? "Taille du système" : "System Size"}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="font-mono" data-testid="panel-count-badge">
+                  {formatNumber(panelsToShow, language)} {language === "fr" ? "panneaux" : "panels"}
+                </Badge>
+                <Badge className="bg-primary text-primary-foreground font-mono" data-testid="capacity-badge">
+                  {formatNumber(displayedCapacityKW, language)} kWc
+                </Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="font-mono" data-testid="panel-count-badge">
-                {formatNumber(panelsToShow, language)} {language === "fr" ? "panneaux" : "panels"}
-              </Badge>
-              <Badge className="bg-primary text-primary-foreground font-mono" data-testid="capacity-badge">
-                {formatNumber(displayedCapacityKW, language)} kWc
-              </Badge>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                {PANEL_WIDTH_M}×{PANEL_HEIGHT_M}m @ {PANEL_KW * 1000}W
+              </span>
+              <span>•</span>
+              <span>{language === "fr" ? "Inclinaison" : "Tilt"}: {PANEL_TILT_DEG}°</span>
+              <span>•</span>
+              <span>{language === "fr" ? "Espacement rangées" : "Row spacing"}: {ROW_SPACING_M.toFixed(2)}m</span>
+              <span>•</span>
+              <span>{language === "fr" ? "Marge périmètre" : "Perimeter setback"}: {PERIMETER_SETBACK_M}m</span>
+              {allPanelPositions.length > 0 && (
+                <>
+                  <span>•</span>
+                  <span>{language === "fr" ? "Utilisation" : "Utilization"}: {((panelsToShow / allPanelPositions.length) * 100).toFixed(0)}%</span>
+                </>
+              )}
             </div>
           </div>
           
