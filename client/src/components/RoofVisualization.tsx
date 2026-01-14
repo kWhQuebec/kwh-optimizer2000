@@ -69,8 +69,6 @@ const PANEL_HEIGHT_M = 1.0;
 const PANEL_GAP_M = 0.1;
 const ROW_SPACING_M = 0.5;
 const PERIMETER_SETBACK_M = 1.2;
-const FIRE_PATHWAY_WIDTH_M = 1.2;
-const FIRE_PATHWAY_THRESHOLD_M = 40;
 
 function formatNumber(num: number, language: string): string {
   return num.toLocaleString(language === "fr" ? "fr-CA" : "en-CA");
@@ -263,43 +261,22 @@ export function RoofVisualization({
       return panels;
     }
     
-    const needsNSPathway = bboxHeight > FIRE_PATHWAY_THRESHOLD_M;
-    const needsEWPathway = bboxWidth > FIRE_PATHWAY_THRESHOLD_M;
-    
     const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
     const panelPitchY = PANEL_HEIGHT_M + ROW_SPACING_M;
-    
-    const centerX = (effectiveMinX + effectiveMaxX) / 2;
-    const centerY = (effectiveMinY + effectiveMaxY) / 2;
-    
-    const halfPathway = FIRE_PATHWAY_WIDTH_M / 2;
     
     const xPositions: number[] = [];
     const yPositions: number[] = [];
     
     for (let x = effectiveMinX; x + PANEL_WIDTH_M <= effectiveMaxX; x += panelPitchX) {
-      if (needsEWPathway) {
-        const panelCenterX = x + PANEL_WIDTH_M / 2;
-        if (panelCenterX > centerX - halfPathway && panelCenterX < centerX + halfPathway) {
-          continue;
-        }
-      }
       xPositions.push(x);
     }
     
     for (let y = effectiveMinY; y + PANEL_HEIGHT_M <= effectiveMaxY; y += panelPitchY) {
-      if (needsNSPathway) {
-        const panelCenterY = y + PANEL_HEIGHT_M / 2;
-        if (panelCenterY > centerY - halfPathway && panelCenterY < centerY + halfPathway) {
-          continue;
-        }
-      }
       yPositions.push(y);
     }
     
     console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: bbox=${Math.round(bboxWidth)}×${Math.round(bboxHeight)}m, axis=${(axisAngle * 180 / Math.PI).toFixed(1)}°`);
     console.log(`[RoofVisualization] Grid: ${xPositions.length} cols × ${yPositions.length} rows = ${xPositions.length * yPositions.length} potential positions`);
-    console.log(`[RoofVisualization] Fire pathways: N/S=${needsNSPathway}, E/W=${needsEWPathway}`);
     
     let accepted = 0;
     let rejectedByRoof = 0;
