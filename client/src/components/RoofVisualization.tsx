@@ -60,8 +60,9 @@ interface PanelPosition {
   heightDeg: number;
   polygonId: string;
   corners?: { lat: number; lng: number }[];
-  quadrant?: string;
-  priority?: number; // Higher = more central, should be kept when reducing
+  rowIndex?: number;  // Row position for straight-row layout
+  colIndex?: number;  // Column position within row
+  priority?: number;  // Higher = more central, should be kept when reducing
 }
 
 const PANEL_KW = 0.59;
@@ -424,18 +425,26 @@ export function RoofVisualization({
           continue;
         }
         
-        const quadrant = 
-          (panelCenterLng >= centroid.lng ? "E" : "W") +
-          (panelCenterLat >= centroid.lat ? "N" : "S");
+        // Store row and column indices for straight-row layout
+        const rowIndex = yPositions.indexOf(gridY);
+        const colIndex = xPositions.indexOf(gridX);
         
-        // Calculate priority based on distance to centroid (higher = more central)
-        // Normalize by polygon diagonal to ensure positive scores on large roofs
-        const distToCenterM = Math.sqrt(
-          Math.pow((panelCenterLat - centroid.lat) * metersPerDegreeLat, 2) +
-          Math.pow((panelCenterLng - centroid.lng) * metersPerDegreeLng, 2)
-        );
-        const diagonalM = Math.sqrt(bboxWidth * bboxWidth + bboxHeight * bboxHeight);
-        const normalizedPriority = 1 - (distToCenterM / (diagonalM || 1)); // 0-1 range
+        // Priority: center rows first, then fill outward
+        // Normalize to 0-1 range so all polygons are comparable regardless of size
+        const centerRowIndex = (yPositions.length - 1) / 2;
+        const maxRowDist = Math.max(centerRowIndex, yPositions.length - 1 - centerRowIndex) || 1;
+        const rowDistFromCenter = Math.abs(rowIndex - centerRowIndex);
+        const normalizedRowDist = rowDistFromCenter / maxRowDist; // 0 = center, 1 = edge
+        
+        const centerColIndex = (xPositions.length - 1) / 2;
+        const maxColDist = Math.max(centerColIndex, xPositions.length - 1 - centerColIndex) || 1;
+        const colDistFromCenter = Math.abs(colIndex - centerColIndex);
+        const normalizedColDist = colDistFromCenter / maxColDist; // 0 = center, 1 = edge
+        
+        // Priority: row distance weighted more heavily (racking runs along rows)
+        // Score 0-1000000 with row being primary factor, column secondary
+        // Higher = closer to center
+        const priority = Math.round((1 - normalizedRowDist) * 1000000 + (1 - normalizedColDist) * 1000);
         
         panels.push({
           lat: panelCornersGeo[0].lat,
@@ -444,65 +453,39 @@ export function RoofVisualization({
           heightDeg: metersToDegreesLat(PANEL_HEIGHT_M),
           polygonId,
           corners: panelCornersGeo,
-          quadrant,
-          priority: normalizedPriority // 0-1 range, higher = closer to center
+          rowIndex,
+          colIndex,
+          priority
         });
         
         accepted++;
       }
     }
     
-    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: ${accepted} panels accepted, ${rejectedByRoof} outside roof, ${rejectedByConstraint} in constraints`);
-    
-    const quadrantCounts = { EN: 0, ES: 0, WN: 0, WS: 0 };
+    // Count rows for logging
+    const rowCounts: Record<number, number> = {};
     for (const p of panels) {
-      if (p.quadrant) quadrantCounts[p.quadrant as keyof typeof quadrantCounts]++;
+      const row = p.rowIndex ?? 0;
+      rowCounts[row] = (rowCounts[row] || 0) + 1;
     }
-    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)} quadrants: EN=${quadrantCounts.EN}, ES=${quadrantCounts.ES}, WN=${quadrantCounts.WN}, WS=${quadrantCounts.WS}`);
+    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: ${accepted} panels accepted, ${rejectedByRoof} outside roof, ${rejectedByConstraint} in constraints`);
+    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: ${Object.keys(rowCounts).length} rows with panels`);
     
     return panels;
   }, []);
 
-  const interleavePanelsByPolygonAndQuadrant = useCallback((panels: PanelPosition[]): PanelPosition[] => {
-    const polygonBuckets: Record<string, Record<string, PanelPosition[]>> = {};
+  // Sort panels by priority (center rows first, then center columns)
+  // This creates straight parallel rows instead of circular quadrant-based layout
+  const sortPanelsByRowPriority = useCallback((panels: PanelPosition[]): PanelPosition[] => {
+    // Global sort by priority - highest first (center rows/columns)
+    // This ensures all polygons fill uniformly based on their panel positions
+    const sorted = [...panels].sort((a, b) => (b.priority || 0) - (a.priority || 0));
     
-    for (const panel of panels) {
-      const polyId = panel.polygonId;
-      const q = panel.quadrant || "EN";
-      if (!polygonBuckets[polyId]) {
-        polygonBuckets[polyId] = { EN: [], ES: [], WN: [], WS: [] };
-      }
-      polygonBuckets[polyId][q].push(panel);
-    }
+    // Count polygons for logging
+    const polygonIds = new Set(panels.map(p => p.polygonId));
+    console.log(`[RoofVisualization] Sorted ${sorted.length} panels by row priority across ${polygonIds.size} polygon(s)`);
     
-    // Sort each bucket by priority (highest first = most central)
-    for (const polyId of Object.keys(polygonBuckets)) {
-      for (const q of ["EN", "ES", "WN", "WS"]) {
-        polygonBuckets[polyId][q].sort((a, b) => (b.priority || 0) - (a.priority || 0));
-      }
-    }
-    
-    const polygonIds = Object.keys(polygonBuckets);
-    const interleaved: PanelPosition[] = [];
-    const quadrantOrder = ["WN", "EN", "WS", "ES"];
-    
-    let added = true;
-    while (added) {
-      added = false;
-      for (const polyId of polygonIds) {
-        for (const q of quadrantOrder) {
-          const bucket = polygonBuckets[polyId][q];
-          if (bucket && bucket.length > 0) {
-            interleaved.push(bucket.shift()!);
-            added = true;
-          }
-        }
-      }
-    }
-    
-    console.log(`[RoofVisualization] Interleaved ${interleaved.length} panels across ${polygonIds.length} polygon(s)`);
-    
-    return interleaved;
+    return sorted;
   }, []);
 
   useEffect(() => {
@@ -620,16 +603,16 @@ export function RoofVisualization({
           allPanels.push(...panels);
         }
 
-        const interleavedPanels = interleavePanelsByPolygonAndQuadrant(allPanels);
-        setAllPanelPositions(interleavedPanels);
+        const sortedPanels = sortPanelsByRowPriority(allPanels);
+        setAllPanelPositions(sortedPanels);
 
-        console.log(`[RoofVisualization] Total panels generated: ${interleavedPanels.length}, capacity: ${Math.round(interleavedPanels.length * PANEL_KW)} kWc`);
+        console.log(`[RoofVisualization] Total panels generated: ${sortedPanels.length}, capacity: ${Math.round(sortedPanels.length * PANEL_KW)} kWc`);
 
-        if (onGeometryCalculated && interleavedPanels.length > 0) {
+        if (onGeometryCalculated && sortedPanels.length > 0) {
           onGeometryCalculated({
-            maxCapacityKW: Math.round(interleavedPanels.length * PANEL_KW),
-            panelCount: interleavedPanels.length,
-            realisticCapacityKW: Math.round(interleavedPanels.length * PANEL_KW * 0.9),
+            maxCapacityKW: Math.round(sortedPanels.length * PANEL_KW),
+            panelCount: sortedPanels.length,
+            realisticCapacityKW: Math.round(sortedPanels.length * PANEL_KW * 0.9),
             constraintAreaSqM: totalConstraintArea
           });
         }
@@ -654,7 +637,7 @@ export function RoofVisualization({
     };
 
     initMap();
-  }, [latitude, longitude, roofPolygons, language, generatePanelPositions, interleavePanelsByPolygonAndQuadrant, onGeometryCalculated]);
+  }, [latitude, longitude, roofPolygons, language, generatePanelPositions, sortPanelsByRowPriority, onGeometryCalculated]);
 
   useEffect(() => {
     if (!mapRef.current || allPanelPositions.length === 0) return;
