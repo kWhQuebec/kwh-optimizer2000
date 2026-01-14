@@ -353,14 +353,21 @@ export function RoofVisualization({
     let totalRejectedByConstraint = 0;
     
     for (const { polygon, id, coords } of solarPolygonData) {
-      // Create inset polygon for this polygon
-      const insetCoords = insetPolygonCoords(coords, PERIMETER_SETBACK_M, globalCentroid.lat);
+      // Use THIS polygon's centroid for inset calculation (more accurate than global)
+      const localCentroid = computeCentroid(coords);
+      
+      // Create inset polygon for this polygon using LOCAL centroid
+      const insetCoords = insetPolygonCoords(coords, PERIMETER_SETBACK_M, localCentroid.lat);
       let validationPolygon: google.maps.Polygon;
       if (insetCoords) {
         const insetPath = insetCoords.map(([lng, lat]) => ({ lat, lng }));
         validationPolygon = new google.maps.Polygon({ paths: insetPath });
+        console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: inset succeeded, ${insetPath.length} vertices`);
       } else {
-        validationPolygon = polygon;
+        // Fallback: use original polygon path directly
+        const originalPath = coords.map(([lng, lat]) => ({ lat, lng }));
+        validationPolygon = new google.maps.Polygon({ paths: originalPath });
+        console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: inset FAILED, using original polygon`);
       }
       
       // Compute THIS polygon's bounding box in unified rotated space
