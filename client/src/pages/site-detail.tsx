@@ -7132,8 +7132,9 @@ export default function SiteDetailPage() {
         </Card>
       )}
 
-      {/* Roof Visualization with Panels - shown ONLY for quick potential when NO detailed analysis exists */}
-      {/* When detailed analysis exists, the visualization is shown in the analysis section above with scenario-based sizing */}
+      {/* Roof Visualization with Panels - Quick Potential mode (100% capacity, no slider) */}
+      {/* Only shown when quick potential is calculated AND no detailed analysis exists */}
+      {/* When detailed analysis exists, use the visualization in AnalysisResults instead */}
       {quickPotential && !latestSimulation && site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
         <RoofVisualization
           siteId={id!}
