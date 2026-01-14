@@ -340,7 +340,9 @@ export function RoofVisualization({
       console.log(`[RoofVisualization] Inset failed, using original polygon with center-based validation`);
     }
     
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    // Calculate bounding box in ROTATED space (aligned with principal axis)
+    // Then add generous margin to ensure parallelogram corners are covered
+    let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
     for (const [lng, lat] of coords) {
       const x = (lng - centroid.lng) * metersPerDegreeLng;
       const y = (lat - centroid.lat) * metersPerDegreeLat;
@@ -348,21 +350,22 @@ export function RoofVisualization({
       const sin = Math.sin(-axisAngle);
       const rx = x * cos - y * sin;
       const ry = x * sin + y * cos;
-      minX = Math.min(minX, rx);
-      maxX = Math.max(maxX, rx);
-      minY = Math.min(minY, ry);
-      maxY = Math.max(maxY, ry);
+      minXRot = Math.min(minXRot, rx);
+      maxXRot = Math.max(maxXRot, rx);
+      minYRot = Math.min(minYRot, ry);
+      maxYRot = Math.max(maxYRot, ry);
     }
     
-    // Add margin to capture parallelogram corners that extend beyond rotated bbox
-    // The margin accounts for the skew of non-rectangular polygons
-    const bboxWidthRaw = maxX - minX;
-    const bboxHeightRaw = maxY - minY;
-    const margin = Math.max(bboxWidthRaw, bboxHeightRaw) * 0.3; // 30% margin
-    minX -= margin;
-    maxX += margin;
-    minY -= margin;
-    maxY += margin;
+    // Add 100% margin to capture all parallelogram corners
+    // The large margin ensures even heavily skewed polygons are fully covered
+    const bboxWidthRaw = maxXRot - minXRot;
+    const bboxHeightRaw = maxYRot - minYRot;
+    const marginX = bboxWidthRaw * 1.0; // 100% margin on each side
+    const marginY = bboxHeightRaw * 1.0;
+    const minX = minXRot - marginX;
+    const maxX = maxXRot + marginX;
+    const minY = minYRot - marginY;
+    const maxY = maxYRot + marginY;
     
     const bboxWidth = maxX - minX;
     const bboxHeight = maxY - minY;
