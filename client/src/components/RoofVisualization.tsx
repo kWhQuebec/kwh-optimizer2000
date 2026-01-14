@@ -353,27 +353,37 @@ export function RoofVisualization({
     return panels;
   }, []);
 
-  const interleavePanelsByQuadrant = useCallback((panels: PanelPosition[]): PanelPosition[] => {
-    const quadrants: Record<string, PanelPosition[]> = { EN: [], ES: [], WN: [], WS: [] };
+  const interleavePanelsByPolygonAndQuadrant = useCallback((panels: PanelPosition[]): PanelPosition[] => {
+    const polygonBuckets: Record<string, Record<string, PanelPosition[]>> = {};
     
     for (const panel of panels) {
+      const polyId = panel.polygonId;
       const q = panel.quadrant || "EN";
-      if (quadrants[q]) quadrants[q].push(panel);
+      if (!polygonBuckets[polyId]) {
+        polygonBuckets[polyId] = { EN: [], ES: [], WN: [], WS: [] };
+      }
+      polygonBuckets[polyId][q].push(panel);
     }
     
+    const polygonIds = Object.keys(polygonBuckets);
     const interleaved: PanelPosition[] = [];
-    const order = ["WN", "EN", "WS", "ES"];
-    let added = true;
+    const quadrantOrder = ["WN", "EN", "WS", "ES"];
     
+    let added = true;
     while (added) {
       added = false;
-      for (const q of order) {
-        if (quadrants[q].length > 0) {
-          interleaved.push(quadrants[q].shift()!);
-          added = true;
+      for (const polyId of polygonIds) {
+        for (const q of quadrantOrder) {
+          const bucket = polygonBuckets[polyId][q];
+          if (bucket && bucket.length > 0) {
+            interleaved.push(bucket.shift()!);
+            added = true;
+          }
         }
       }
     }
+    
+    console.log(`[RoofVisualization] Interleaved ${interleaved.length} panels across ${polygonIds.length} polygon(s)`);
     
     return interleaved;
   }, []);
@@ -493,7 +503,7 @@ export function RoofVisualization({
           allPanels.push(...panels);
         }
 
-        const interleavedPanels = interleavePanelsByQuadrant(allPanels);
+        const interleavedPanels = interleavePanelsByPolygonAndQuadrant(allPanels);
         setAllPanelPositions(interleavedPanels);
 
         console.log(`[RoofVisualization] Total panels generated: ${interleavedPanels.length}, capacity: ${Math.round(interleavedPanels.length * PANEL_KW)} kWc`);
@@ -527,7 +537,7 @@ export function RoofVisualization({
     };
 
     initMap();
-  }, [latitude, longitude, roofPolygons, language, generatePanelPositions, interleavePanelsByQuadrant, onGeometryCalculated]);
+  }, [latitude, longitude, roofPolygons, language, generatePanelPositions, interleavePanelsByPolygonAndQuadrant, onGeometryCalculated]);
 
   useEffect(() => {
     if (!mapRef.current || allPanelPositions.length === 0) return;
