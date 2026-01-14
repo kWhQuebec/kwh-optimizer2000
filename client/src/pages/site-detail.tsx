@@ -6832,21 +6832,24 @@ export default function SiteDetailPage() {
         <div className="flex items-center gap-2">
           {isStaff && (
             <>
-              {/* Quick Potential Button - available after roof validation, no consumption data needed */}
-              <Button 
-                variant="secondary"
-                onClick={() => quickPotentialMutation.mutate()}
-                disabled={quickPotentialMutation.isPending || !site.roofAreaValidated}
-                className="gap-2"
-                data-testid="button-quick-potential"
-              >
-                {quickPotentialMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Zap className="w-4 h-4" />
-                )}
-                {language === "fr" ? "Analyse rapide" : "Quick Analysis"}
-              </Button>
+              {/* Quick Potential Button - only visible when NO consumption data (CSV files) exist */}
+              {/* Once CSV files are uploaded, use the full analysis instead */}
+              {!(site.meterFiles && site.meterFiles.length > 0) && (
+                <Button 
+                  variant="secondary"
+                  onClick={() => quickPotentialMutation.mutate()}
+                  disabled={quickPotentialMutation.isPending || !site.roofAreaValidated}
+                  className="gap-2"
+                  data-testid="button-quick-potential"
+                >
+                  {quickPotentialMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Zap className="w-4 h-4" />
+                  )}
+                  {language === "fr" ? "Analyse rapide" : "Quick Analysis"}
+                </Button>
+              )}
               <Button 
                 onClick={() => runAnalysisMutation.mutate(customAssumptions)}
                 disabled={runAnalysisMutation.isPending || !site.roofAreaValidated || refreshPhase !== 'idle'}
