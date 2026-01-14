@@ -1,0 +1,101 @@
+"""
+Outil de Conception Solaire Automatisée pour Toits Plats - Montréal, QC
+
+Ce script Replit utilise les meilleures pratiques de l'industrie pour calculer
+le placement intelligent de panneaux solaires sur de grands toits plats,
+en s'intégrant conceptuellement avec la Google Maps Solar API.
+
+Auteur: Assistant Google IA
+Date: Janvier 2026
+"""
+
+import math
+
+# --- 1. Constantes Géographiques et Réglementaires pour Montréal (45.5° N) ---
+LATITUDE_QC = 45.5
+MARGE_SECURITE_TOIT_M = 1.0  # Marge d'1 mètre autour du périmètre pour l'accès/incendie
+ANGLE_INCLINAISON_PRATIQUE = 10.0 # Angle faible pour densité maximale et charge de vent réduite
+ALTITUDE_SOLEIL_HIVER_SOLSTICE = 21.5 # Altitude du soleil au solstice d'hiver (Décembre 21)
+
+# --- 2. Paramètres des Panneaux Solaires Standards (Exemple) ---
+# Vous pouvez ajuster ces valeurs en fonction du modèle de panneau que vous utilisez.
+PANEL_WIDTH_M = 1.1          # Largeur standard ~1.1m (e.g., 60-cell panel)
+PANEL_LENGTH_M = 1.7         # Longueur standard ~1.7m
+
+# --- 3. Fonctions de Calcul Clés ---
+
+def calculate_min_row_gap(panel_tilt_deg, panel_width_m):
+    """
+    Calcule la distance minimale requise entre les rangées de panneaux (de bord à bord)
+    pour éviter l'auto-ombrage au solstice d'hiver à Montréal.
+    """
+    # Convertir les angles en radians
+    tilt_rad = math.radians(panel_tilt_deg)
+    sun_alt_rad = math.radians(ALTITUDE_SOLEIL_HIVER_SOLSTICE)
+
+    # Hauteur verticale du panneau incliné
+    h_panel = panel_width_m * math.sin(tilt_rad)
+
+    # Distance de l'espace requis (D = H / tan(h))
+    spacing_m = h_panel / math.tan(sun_alt_rad)
+    return round(spacing_m, 2)
+
+def calculate_total_panels(usable_area_m2, panel_area_m2, gap_area_m2_per_panel, density_percentage=1.0):
+    """
+    Estime le nombre total de panneaux pouvant s'intégrer dans une zone utilisable,
+    en tenant compte de l'espace d'installation et de l'espace entre les rangées.
+    Le density_percentage permet de simuler 5%, 50% ou 100% de la capacité.
+    """
+    total_area_required_per_panel = panel_area_m2 + gap_area_m2_per_panel
+    max_panels = math.floor(usable_area_m2 / total_area_required_per_panel)
+    target_panels = math.floor(max_panels * density_percentage)
+    return target_panels
+
+
+# --- 4. Fonction Principale de Simulation (L'outil) ---
+
+def run_solar_design_tool(total_roof_area_m2, target_density_pct=1.0):
+    """
+    Fonction principale pour exécuter la logique de conception automatisée.
+    Remplacez cette fonction par votre intégration réelle de la Solar API.
+    """
+    print(f"--- Lancement de l'outil de conception solaire pour Montréal (Densité cible: {target_density_pct*100}%) ---")
+
+    # Étape 1: Simuler la surface nette utilisable après déductions (obstacles, marges)
+    # Dans votre outil, vous obtiendrez cette valeur depuis la Solar API (ex: 44 266 m²).
+    NET_USABLE_AREA = 44266
+    print(f"Surface nette utilisable (m²): {NET_USABLE_AREA}")
+
+    # Étape 2: Calculer l'espacement requis entre les rangées
+    gap_required_m = calculate_min_row_gap(ANGLE_INCLINAISON_PRATIQUE, PANEL_WIDTH_M)
+    print(f"Espace minimal requis entre les rangées (m) : {gap_required_m} (pour éviter l'ombrage hivernal)")
+
+    # Étape 3: Calculer le nombre total de panneaux
+    panel_area = PANEL_WIDTH_M * PANEL_LENGTH_M
+    # Estimation simplifiée de l'espace par panneau pour le calcul de densité
+    gap_area_per_panel = gap_required_m * PANEL_LENGTH_M
+
+    final_panel_count = calculate_total_panels(
+        NET_USABLE_AREA,
+        panel_area,
+        gap_area_per_panel,
+        target_density_pct
+    )
+    print(f"Nombre total de panneaux à visualiser : {final_panel_count}")
+
+    # Étape 4: Générer les coordonnées de visualisation
+    # C'est ici que votre outil générera les polygones/rectangles
+    # pour le rendu visuel sur la carte satellite.
+    print("\n--- Logique de Calepinage Professionnel (Simulation Visuelle) ---")
+    print("TODO: Implémenter l'algorithme qui place 'final_panel_count' rectangles sur la surface polygonale du toit.")
+    print("S'assurer que les placements respectent les marges et les zones d'obstacles masquées.")
+
+
+# --- 5. Exécution ---
+if __name__ == "__main__":
+    # Exemple d'utilisation de l'outil pour 100% de la surface
+    run_solar_design_tool(total_roof_area_m2=50000, target_density_pct=1.0)
+    print("\n" + "-"*50 + "\n")
+    # Exemple d'utilisation de l'outil pour 5% de la surface
+    run_solar_design_tool(total_roof_area_m2=50000, target_density_pct=0.05)
+
