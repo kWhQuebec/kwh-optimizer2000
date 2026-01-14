@@ -104,53 +104,61 @@ function computeCentroid(coords: [number, number][]): { lat: number; lng: number
   return { lat: sumLat / coords.length, lng: sumLng / coords.length };
 }
 
-function computePrincipalAxisAngle(coords: [number, number][]): number {
+// Find the longest edge across all polygon coordinates and return its angle
+function computeLongestEdgeAngle(coords: [number, number][]): number {
   if (coords.length < 2) return 0;
   
-  let cx = 0, cy = 0;
-  for (const [x, y] of coords) {
-    cx += x;
-    cy += y;
-  }
-  cx /= coords.length;
-  cy /= coords.length;
+  let maxLen = 0;
+  let bestAngle = 0;
   
-  let Sxx = 0, Syy = 0, Sxy = 0;
-  for (const [x, y] of coords) {
-    const dx = x - cx;
-    const dy = y - cy;
-    Sxx += dx * dx;
-    Syy += dy * dy;
-    Sxy += dx * dy;
-  }
-  
-  const diff = Sxx - Syy;
-  const discriminant = Math.sqrt(diff * diff + 4 * Sxy * Sxy);
-  
-  if (discriminant < 1e-9) {
-    let maxLen = 0;
-    let bestAngle = 0;
-    for (let i = 0; i < coords.length; i++) {
-      const [x1, y1] = coords[i];
-      const [x2, y2] = coords[(i + 1) % coords.length];
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const len = Math.sqrt(dx * dx + dy * dy);
-      if (len > maxLen) {
-        maxLen = len;
-        bestAngle = Math.atan2(dy, dx);
-      }
+  // Find the longest edge in the polygon
+  for (let i = 0; i < coords.length; i++) {
+    const [x1, y1] = coords[i];
+    const [x2, y2] = coords[(i + 1) % coords.length];
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len > maxLen) {
+      maxLen = len;
+      bestAngle = Math.atan2(dy, dx);
     }
-    while (bestAngle < 0) bestAngle += Math.PI;
-    while (bestAngle >= Math.PI) bestAngle -= Math.PI;
-    return bestAngle;
   }
   
-  let angle = 0.5 * Math.atan2(2 * Sxy, diff);
-  while (angle < 0) angle += Math.PI;
-  while (angle >= Math.PI) angle -= Math.PI;
+  // Normalize to [0, π) - we only care about orientation, not direction
+  while (bestAngle < 0) bestAngle += Math.PI;
+  while (bestAngle >= Math.PI) bestAngle -= Math.PI;
   
-  return angle;
+  return bestAngle;
+}
+
+// Hybrid approach: Use longest edge angle, but fall back to south-facing if edge deviates > 45° from east-west
+// South-facing panels have rows running east-west (angle = 0 or π)
+function computeHybridPanelOrientation(coords: [number, number][]): { angle: number; source: string } {
+  if (coords.length < 2) return { angle: 0, source: "default" };
+  
+  const longestEdgeAngle = computeLongestEdgeAngle(coords);
+  
+  // South-facing means rows run east-west, which is angle = 0 or π (normalized to 0)
+  // An angle of π/2 (90°) means rows run north-south (not optimal for solar)
+  
+  // Calculate deviation from east-west (0 or π)
+  // Since angle is normalized to [0, π), check distance to 0 and to π
+  const deviationFromEastWest = Math.min(longestEdgeAngle, Math.PI - longestEdgeAngle);
+  
+  // Convert to degrees for logging
+  const deviationDegrees = deviationFromEastWest * 180 / Math.PI;
+  const longestEdgeDegrees = longestEdgeAngle * 180 / Math.PI;
+  
+  // If deviation is more than 45° from east-west, use true south orientation
+  const MAX_DEVIATION_RAD = Math.PI / 4; // 45 degrees
+  
+  if (deviationFromEastWest > MAX_DEVIATION_RAD) {
+    console.log(`[Orientation] Longest edge at ${longestEdgeDegrees.toFixed(1)}° deviates ${deviationDegrees.toFixed(1)}° from E-W (>45°) → using TRUE SOUTH (0°)`);
+    return { angle: 0, source: "south-facing (fallback)" };
+  }
+  
+  console.log(`[Orientation] Longest edge at ${longestEdgeDegrees.toFixed(1)}° deviates ${deviationDegrees.toFixed(1)}° from E-W (≤45°) → using BUILDING EDGE`);
+  return { angle: longestEdgeAngle, source: "building edge" };
 }
 
 function rotatePoint(
@@ -445,9 +453,10 @@ export function RoofVisualization({
     }
     
     const globalCentroid = computeCentroid(allCoords);
-    const unifiedAxisAngle = computePrincipalAxisAngle(allCoords);
+    const orientationResult = computeHybridPanelOrientation(allCoords);
+    const unifiedAxisAngle = orientationResult.angle;
     
-    console.log(`[RoofVisualization] UNIFIED AXIS: ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° from ${solarPolygonData.length} polygon(s), ${allCoords.length} vertices`);
+    console.log(`[RoofVisualization] UNIFIED AXIS: ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° (${orientationResult.source}) from ${solarPolygonData.length} polygon(s), ${allCoords.length} vertices`);
     
     // Step 1.5: Expand constraint polygons for obstacle clearance (1.2m setback)
     const expandedConstraintPolygons: google.maps.Polygon[] = [];
@@ -650,7 +659,8 @@ export function RoofVisualization({
     const panels: PanelPosition[] = [];
     
     const centroid = computeCentroid(coords);
-    const axisAngle = computePrincipalAxisAngle(coords);
+    const orientationResult = computeHybridPanelOrientation(coords);
+    const axisAngle = orientationResult.angle;
     
     const metersPerDegreeLat = 111320;
     const metersPerDegreeLng = 111320 * Math.cos(centroid.lat * Math.PI / 180);
