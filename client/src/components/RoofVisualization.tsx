@@ -277,30 +277,24 @@ export function RoofVisualization({
     const xPositions: number[] = [];
     const yPositions: number[] = [];
     
-    if (needsEWPathway) {
-      for (let x = centerX + halfPathway; x + PANEL_WIDTH_M <= effectiveMaxX; x += panelPitchX) {
-        xPositions.push(x);
+    for (let x = effectiveMinX; x + PANEL_WIDTH_M <= effectiveMaxX; x += panelPitchX) {
+      if (needsEWPathway) {
+        const panelCenterX = x + PANEL_WIDTH_M / 2;
+        if (panelCenterX > centerX - halfPathway && panelCenterX < centerX + halfPathway) {
+          continue;
+        }
       }
-      for (let x = centerX - halfPathway - PANEL_WIDTH_M; x >= effectiveMinX; x -= panelPitchX) {
-        xPositions.push(x);
-      }
-    } else {
-      for (let x = effectiveMinX; x + PANEL_WIDTH_M <= effectiveMaxX; x += panelPitchX) {
-        xPositions.push(x);
-      }
+      xPositions.push(x);
     }
     
-    if (needsNSPathway) {
-      for (let y = centerY + halfPathway; y + PANEL_HEIGHT_M <= effectiveMaxY; y += panelPitchY) {
-        yPositions.push(y);
+    for (let y = effectiveMinY; y + PANEL_HEIGHT_M <= effectiveMaxY; y += panelPitchY) {
+      if (needsNSPathway) {
+        const panelCenterY = y + PANEL_HEIGHT_M / 2;
+        if (panelCenterY > centerY - halfPathway && panelCenterY < centerY + halfPathway) {
+          continue;
+        }
       }
-      for (let y = centerY - halfPathway - PANEL_HEIGHT_M; y >= effectiveMinY; y -= panelPitchY) {
-        yPositions.push(y);
-      }
-    } else {
-      for (let y = effectiveMinY; y + PANEL_HEIGHT_M <= effectiveMaxY; y += panelPitchY) {
-        yPositions.push(y);
-      }
+      yPositions.push(y);
     }
     
     console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: bbox=${Math.round(bboxWidth)}×${Math.round(bboxHeight)}m, axis=${(axisAngle * 180 / Math.PI).toFixed(1)}°`);
