@@ -61,6 +61,7 @@ interface PanelPosition {
   polygonId: string;
   corners?: { lat: number; lng: number }[];
   quadrant?: string;
+  priority?: number; // Higher = more central, should be kept when reducing
 }
 
 const PANEL_KW = 0.59;
@@ -427,6 +428,15 @@ export function RoofVisualization({
           (panelCenterLng >= centroid.lng ? "E" : "W") +
           (panelCenterLat >= centroid.lat ? "N" : "S");
         
+        // Calculate priority based on distance to centroid (higher = more central)
+        // Normalize by polygon diagonal to ensure positive scores on large roofs
+        const distToCenterM = Math.sqrt(
+          Math.pow((panelCenterLat - centroid.lat) * metersPerDegreeLat, 2) +
+          Math.pow((panelCenterLng - centroid.lng) * metersPerDegreeLng, 2)
+        );
+        const diagonalM = Math.sqrt(bboxWidth * bboxWidth + bboxHeight * bboxHeight);
+        const normalizedPriority = 1 - (distToCenterM / (diagonalM || 1)); // 0-1 range
+        
         panels.push({
           lat: panelCornersGeo[0].lat,
           lng: panelCornersGeo[0].lng,
@@ -434,7 +444,8 @@ export function RoofVisualization({
           heightDeg: metersToDegreesLat(PANEL_HEIGHT_M),
           polygonId,
           corners: panelCornersGeo,
-          quadrant
+          quadrant,
+          priority: normalizedPriority // 0-1 range, higher = closer to center
         });
         
         accepted++;
@@ -462,6 +473,13 @@ export function RoofVisualization({
         polygonBuckets[polyId] = { EN: [], ES: [], WN: [], WS: [] };
       }
       polygonBuckets[polyId][q].push(panel);
+    }
+    
+    // Sort each bucket by priority (highest first = most central)
+    for (const polyId of Object.keys(polygonBuckets)) {
+      for (const q of ["EN", "ES", "WN", "WS"]) {
+        polygonBuckets[polyId][q].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      }
     }
     
     const polygonIds = Object.keys(polygonBuckets);
@@ -869,7 +887,7 @@ export function RoofVisualization({
               {maxPVCapacityKW && (
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
                   <Sun className="w-3 h-3 mr-1" />
-                  {formatNumber(Math.round(maxCapacity * 0.9), language)} kWc {language === "fr" ? "estimé" : "estimated"}
+                  {formatNumber(Math.round(maxCapacity), language)} kWc {language === "fr" ? "potentiel max" : "max potential"}
                 </Badge>
               )}
               {currentPVSizeKW && (
@@ -945,16 +963,15 @@ export function RoofVisualization({
                 setHasUserAdjusted(true);
               }}
               min={minCapacity}
-              max={Math.round(maxCapacity * 0.9)}
+              max={maxCapacity}
               step={10}
               className="w-full"
               data-testid="capacity-slider"
             />
             
             <div className="absolute left-0 right-0 bottom-0 flex justify-between text-xs text-muted-foreground">
-              {sliderMarkers.filter(m => m.value <= Math.round(maxCapacity * 0.9)).map((marker, idx) => {
-                const estimatedMax = Math.round(maxCapacity * 0.9);
-                const position = ((marker.value - minCapacity) / (estimatedMax - minCapacity)) * 100;
+              {sliderMarkers.filter(m => m.value <= maxCapacity).map((marker, idx) => {
+                const position = ((marker.value - minCapacity) / (maxCapacity - minCapacity)) * 100;
                 const isRecommended = marker.value === currentPVSizeKW;
                 return (
                   <div 
