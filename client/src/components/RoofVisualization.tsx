@@ -247,12 +247,77 @@ function insetPolygonCoords(
   
   const insetArea = Math.abs(computeSignedArea(insetPoints));
   const originalArea = Math.abs(signedArea);
-  if (insetArea > originalArea || insetArea < originalArea * 0.01) {
+  // Allow more tolerance for complex polygons - inset can be 50% smaller for L-shapes
+  if (insetArea > originalArea * 1.05 || insetArea < originalArea * 0.005) {
     console.log(`[RoofVisualization] Inset polygon invalid: original=${originalArea.toFixed(0)}m², inset=${insetArea.toFixed(0)}m²`);
     return null;
   }
   
   return insetPoints.map(p => [
+    p.x / metersPerDegreeLng,
+    p.y / metersPerDegreeLat
+  ] as [number, number]);
+}
+
+function expandPolygonCoords(
+  coords: [number, number][],
+  offsetMeters: number,
+  centroidLat: number
+): [number, number][] | null {
+  // Expand polygon outward (opposite of inset) for obstacle clearance zones
+  if (coords.length < 3) return null;
+  
+  const metersPerDegreeLat = 111320;
+  const metersPerDegreeLng = 111320 * Math.cos(centroidLat * Math.PI / 180);
+  
+  const meterCoords = coords.map(([lng, lat]) => ({
+    x: lng * metersPerDegreeLng,
+    y: lat * metersPerDegreeLat
+  }));
+  
+  const signedArea = computeSignedArea(meterCoords);
+  const windingSign = signedArea >= 0 ? 1 : -1;
+  const expandSign = -windingSign; // Opposite direction for expansion
+  
+  const n = meterCoords.length;
+  const expandedPoints: { x: number; y: number }[] = [];
+  
+  for (let i = 0; i < n; i++) {
+    const prev = meterCoords[(i - 1 + n) % n];
+    const curr = meterCoords[i];
+    const next = meterCoords[(i + 1) % n];
+    
+    const dx1 = curr.x - prev.x;
+    const dy1 = curr.y - prev.y;
+    const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+    if (len1 < 0.001) continue;
+    const nx1 = (-dy1 / len1) * expandSign;
+    const ny1 = (dx1 / len1) * expandSign;
+    
+    const dx2 = next.x - curr.x;
+    const dy2 = next.y - curr.y;
+    const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+    if (len2 < 0.001) continue;
+    const nx2 = (-dy2 / len2) * expandSign;
+    const ny2 = (dx2 / len2) * expandSign;
+    
+    const avgNx = (nx1 + nx2) / 2;
+    const avgNy = (ny1 + ny2) / 2;
+    const avgLen = Math.sqrt(avgNx * avgNx + avgNy * avgNy);
+    
+    if (avgLen < 0.01) {
+      expandedPoints.push({ x: curr.x + nx1 * offsetMeters, y: curr.y + ny1 * offsetMeters });
+    } else {
+      const scale = offsetMeters / avgLen;
+      const maxScale = 3.0;
+      const clampedScale = Math.min(scale, offsetMeters * maxScale);
+      expandedPoints.push({ x: curr.x + avgNx * clampedScale, y: curr.y + avgNy * clampedScale });
+    }
+  }
+  
+  if (expandedPoints.length < 3) return null;
+  
+  return expandedPoints.map(p => [
     p.x / metersPerDegreeLng,
     p.y / metersPerDegreeLat
   ] as [number, number]);
@@ -320,7 +385,8 @@ export function RoofVisualization({
   // This calculates a shared axis from all polygons but iterates each polygon's bbox separately
   const generateUnifiedPanelPositions = useCallback((
     solarPolygonData: { polygon: google.maps.Polygon; id: string; coords: [number, number][] }[],
-    constraintPolygons: google.maps.Polygon[]
+    constraintPolygons: google.maps.Polygon[],
+    constraintCoordsData: [number, number][][]
   ): PanelPosition[] => {
     if (solarPolygonData.length === 0) return [];
     
@@ -334,6 +400,26 @@ export function RoofVisualization({
     const unifiedAxisAngle = computePrincipalAxisAngle(allCoords);
     
     console.log(`[RoofVisualization] UNIFIED AXIS: ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° from ${solarPolygonData.length} polygon(s), ${allCoords.length} vertices`);
+    
+    // Step 1.5: Expand constraint polygons for obstacle clearance (1.2m setback)
+    const expandedConstraintPolygons: google.maps.Polygon[] = [];
+    for (let i = 0; i < constraintCoordsData.length; i++) {
+      const constraintCoords = constraintCoordsData[i];
+      if (constraintCoords.length < 3) {
+        expandedConstraintPolygons.push(constraintPolygons[i]);
+        continue;
+      }
+      const constraintCentroid = computeCentroid(constraintCoords);
+      const expandedCoords = expandPolygonCoords(constraintCoords, PERIMETER_SETBACK_M, constraintCentroid.lat);
+      if (expandedCoords) {
+        const expandedPath = expandedCoords.map(([lng, lat]) => ({ lat, lng }));
+        expandedConstraintPolygons.push(new google.maps.Polygon({ paths: expandedPath }));
+      } else {
+        // Fallback: use original constraint polygon
+        expandedConstraintPolygons.push(constraintPolygons[i]);
+      }
+    }
+    console.log(`[RoofVisualization] Expanded ${expandedConstraintPolygons.length} constraint polygons for 1.2m clearance`);
     
     const metersPerDegreeLat = 111320;
     const metersPerDegreeLng = 111320 * Math.cos(globalCentroid.lat * Math.PI / 180);
@@ -450,9 +536,9 @@ export function RoofVisualization({
             continue;
           }
           
-          // Check constraints
+          // Check constraints (using expanded polygons for 1.2m obstacle clearance)
           let inConstraint = false;
-          for (const constraint of constraintPolygons) {
+          for (const constraint of expandedConstraintPolygons) {
             if (google.maps.geometry.poly.containsLocation(panelCenter, constraint)) {
               inConstraint = true;
               break;
@@ -490,6 +576,11 @@ export function RoofVisualization({
       totalRejectedByConstraint += rejectedByConstraint;
       
       console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: ${accepted} panels accepted, ${rejectedByRoof} outside, ${rejectedByConstraint} constraints`);
+      
+      // Warn if polygon generated 0 panels
+      if (accepted === 0) {
+        console.warn(`[RoofVisualization] WARNING: Polygon ${id.slice(0,8)} generated 0 panels! Grid positions checked: ${xPositions.length * yPositions.length}, rejected by roof: ${rejectedByRoof}, rejected by constraints: ${rejectedByConstraint}`);
+      }
     }
     
     console.log(`[RoofVisualization] UNIFIED TOTAL: ${totalAccepted} panels, ${totalRejectedByRoof} outside roof, ${totalRejectedByConstraint} in constraints`);
@@ -747,8 +838,10 @@ export function RoofVisualization({
         setConstraintArea(totalConstraintArea);
 
         const constraintGooglePolygons: google.maps.Polygon[] = [];
+        const constraintCoordsArray: [number, number][][] = [];
         for (const polygon of constraintPolygonData) {
           const coords = polygon.coordinates as [number, number][];
+          constraintCoordsArray.push(coords);
           const path = coords.map(([lng, lat]) => ({ lat, lng }));
           
           const googlePolygon = new google.maps.Polygon({
@@ -793,7 +886,8 @@ export function RoofVisualization({
         // Generate panels using UNIFIED approach (single axis/grid across all polygons)
         const allPanels = generateUnifiedPanelPositions(
           solarPolygonDataForUnified,
-          constraintGooglePolygons
+          constraintGooglePolygons,
+          constraintCoordsArray
         );
 
         const sortedPanels = sortPanelsByRowPriority(allPanels);
