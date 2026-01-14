@@ -7132,8 +7132,9 @@ export default function SiteDetailPage() {
         </Card>
       )}
 
-      {/* Roof Visualization with Panels - shown after quick potential is calculated */}
-      {quickPotential && site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+      {/* Roof Visualization with Panels - shown ONLY for quick potential when NO detailed analysis exists */}
+      {/* When detailed analysis exists, the visualization is shown in the analysis section above with scenario-based sizing */}
+      {quickPotential && !latestSimulation && site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
         <RoofVisualization
           siteId={id!}
           siteName={site.name}
@@ -7143,6 +7144,7 @@ export default function SiteDetailPage() {
           roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764} 
           maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
           onGeometryCalculated={setGeometryCapacity}
+          /* Note: NO currentPVSizeKW prop = shows 100% max capacity (Quick Potential mode) */
         />
       )}
 
