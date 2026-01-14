@@ -74,6 +74,59 @@ const PERIMETER_SETBACK_M = 1.2;
 const PANEL_TILT_DEG = 10.0;
 const SUN_ALTITUDE_WINTER_SOLSTICE_DEG = 21.5;
 
+// Quebec solar yield constants (based on RNCan data for ~45-48° latitude)
+// South-facing at latitude tilt: ~1150-1200 kWh/kWp/year
+// 10° tilt loses ~5-8% vs latitude tilt
+const QUEBEC_BASE_YIELD_KWH_KWP = 1150; // kWh/kWp/year for south-facing at optimal tilt
+const YIELD_LOSS_10DEG_TILT = 0.06; // ~6% loss for 10° vs 35-45° optimal tilt
+
+// Ballast system structural load constants (based on industry standards)
+// Typical ballast: 4-8 lb/sq ft = 19.5-39 kg/m²
+const BALLAST_KG_PER_SQM = 25; // Average ballast weight
+const PANEL_WEIGHT_KG = 25; // Typical 590W panel weight
+const RACKING_WEIGHT_KG_PER_PANEL = 5; // Racking hardware per panel
+
+// Calculate yield adjustment based on panel orientation deviation from true south
+// South = 180° azimuth, East-West rows have panels facing south
+function calculateOrientationYieldFactor(panelRowAngleRad: number): { factor: number; deviationDeg: number } {
+  // Panel row angle: 0 = east-west rows (panels face south) = optimal
+  // π/2 = north-south rows (panels face east or west) = worst
+  const deviationFromOptimal = Math.min(panelRowAngleRad, Math.PI - panelRowAngleRad);
+  const deviationDeg = deviationFromOptimal * 180 / Math.PI;
+  
+  // Yield loss: approximately 0.5% per degree of azimuth deviation from south
+  // Max loss at 90° deviation (east or west facing): ~25-30%
+  const lossPercent = Math.min(30, deviationDeg * 0.35);
+  const factor = 1 - (lossPercent / 100);
+  
+  return { factor, deviationDeg };
+}
+
+// Calculate estimated annual yield in kWh/kWp
+function calculateEstimatedYield(panelRowAngleRad: number, tiltDeg: number): number {
+  const baseYield = QUEBEC_BASE_YIELD_KWH_KWP;
+  const { factor: orientationFactor } = calculateOrientationYieldFactor(panelRowAngleRad);
+  
+  // Tilt loss: 10° is suboptimal vs 35-45° for Quebec latitude
+  const tiltFactor = tiltDeg < 15 ? (1 - YIELD_LOSS_10DEG_TILT) : 1.0;
+  
+  return Math.round(baseYield * orientationFactor * tiltFactor);
+}
+
+// Calculate structural load in kg/m²
+function calculateStructuralLoad(panelCount: number, roofAreaSqM: number): number {
+  if (roofAreaSqM <= 0) return 0;
+  
+  const totalPanelWeight = panelCount * PANEL_WEIGHT_KG;
+  const totalRackingWeight = panelCount * RACKING_WEIGHT_KG_PER_PANEL;
+  const panelAreaSqM = panelCount * PANEL_WIDTH_M * PANEL_HEIGHT_M;
+  const totalBallastWeight = panelAreaSqM * BALLAST_KG_PER_SQM;
+  
+  // Distribute weight over the usable roof area (where panels are installed)
+  const totalWeight = totalPanelWeight + totalRackingWeight + totalBallastWeight;
+  return Math.round(totalWeight / panelAreaSqM * 10) / 10; // kg/m² with 1 decimal
+}
+
 function calculateAntiShadingRowSpacing(panelHeightM: number, tiltDeg: number, sunAltitudeDeg: number): number {
   const tiltRad = tiltDeg * Math.PI / 180;
   const sunAltRad = sunAltitudeDeg * Math.PI / 180;
@@ -440,6 +493,8 @@ export function RoofVisualization({
   const [isExporting, setIsExporting] = useState(false);
   const [panelsPerZone, setPanelsPerZone] = useState<Record<string, { count: number; label: string }>>({});
   const [zoneCount, setZoneCount] = useState(0);
+  const [panelOrientationAngle, setPanelOrientationAngle] = useState(0); // Radians
+  const [orientationSource, setOrientationSource] = useState<string>("default");
 
   const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
     queryKey: ["/api/sites", siteId, "roof-polygons"],
@@ -478,8 +533,8 @@ export function RoofVisualization({
     solarPolygonData: { polygon: google.maps.Polygon; id: string; coords: [number, number][] }[],
     constraintPolygons: google.maps.Polygon[],
     constraintCoordsData: [number, number][][]
-  ): PanelPosition[] => {
-    if (solarPolygonData.length === 0) return [];
+  ): { panels: PanelPosition[]; orientationAngle: number; orientationSource: string } => {
+    if (solarPolygonData.length === 0) return { panels: [], orientationAngle: 0, orientationSource: "default" };
     
     // Step 1: Extract polygon coordinates list for unified axis calculation
     // IMPORTANT: Keep polygons separate to avoid creating spurious edges between them
@@ -687,7 +742,7 @@ export function RoofVisualization({
     
     console.log(`[RoofVisualization] UNIFIED TOTAL: ${totalAccepted} panels, ${totalRejectedByRoof} outside roof, ${totalRejectedByConstraint} in constraints`);
     
-    return allPanels;
+    return { panels: allPanels, orientationAngle: unifiedAxisAngle, orientationSource: orientationResult.source };
   }, []);
 
   // LEGACY: Single polygon version (kept for backward compatibility)
@@ -987,14 +1042,16 @@ export function RoofVisualization({
         }
 
         // Generate panels using UNIFIED approach (single axis/grid across all polygons)
-        const allPanels = generateUnifiedPanelPositions(
+        const panelResult = generateUnifiedPanelPositions(
           solarPolygonDataForUnified,
           constraintGooglePolygons,
           constraintCoordsArray
         );
 
-        const sortedPanels = sortPanelsByRowPriority(allPanels);
+        const sortedPanels = sortPanelsByRowPriority(panelResult.panels);
         setAllPanelPositions(sortedPanels);
+        setPanelOrientationAngle(panelResult.orientationAngle);
+        setOrientationSource(panelResult.orientationSource);
         
         // Track panels per zone for legend display
         const zoneStats: Record<string, { count: number; label: string }> = {};
@@ -1360,6 +1417,7 @@ export function RoofVisualization({
                 </Badge>
               </div>
             </div>
+            {/* Technical Parameters Row 1 */}
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 bg-blue-500 rounded-full" />
@@ -1371,11 +1429,46 @@ export function RoofVisualization({
               <span>{language === "fr" ? "Espacement rangées" : "Row spacing"}: {ROW_SPACING_M.toFixed(2)}m</span>
               <span>•</span>
               <span>{language === "fr" ? "Marge périmètre" : "Perimeter setback"}: {PERIMETER_SETBACK_M}m</span>
+            </div>
+            {/* Performance Metrics Row 2 */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {/* Estimated Yield */}
+              <Badge variant="secondary" className="text-xs font-normal gap-1" data-testid="badge-yield">
+                <Zap className="w-3 h-3" />
+                {language === "fr" ? "Rendement" : "Yield"}: {calculateEstimatedYield(panelOrientationAngle, PANEL_TILT_DEG)} kWh/kWp
+              </Badge>
+              
+              {/* Orientation info */}
+              {(() => {
+                const { deviationDeg } = calculateOrientationYieldFactor(panelOrientationAngle);
+                const lossPercent = Math.round(deviationDeg * 0.35);
+                return deviationDeg > 0 ? (
+                  <Badge variant={lossPercent > 10 ? "destructive" : "outline"} className="text-xs font-normal gap-1" data-testid="badge-orientation">
+                    {language === "fr" ? "Orientation" : "Orientation"}: {orientationSource === "building edge" 
+                      ? (language === "fr" ? "aligné bâtiment" : "building-aligned")
+                      : (language === "fr" ? "plein sud" : "true south")}
+                    {lossPercent > 0 && ` (-${lossPercent}%)`}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs font-normal gap-1 border-green-500 text-green-700" data-testid="badge-orientation">
+                    {language === "fr" ? "Orientation optimale (Sud)" : "Optimal orientation (South)"}
+                  </Badge>
+                );
+              })()}
+              
+              {/* Structural Load */}
+              {panelsToShow > 0 && netUsableArea > 0 && (
+                <Badge variant="outline" className="text-xs font-normal gap-1" data-testid="badge-load">
+                  <Layers className="w-3 h-3" />
+                  {language === "fr" ? "Charge" : "Load"}: {calculateStructuralLoad(panelsToShow, panelsToShow * PANEL_WIDTH_M * PANEL_HEIGHT_M)} kg/m²
+                </Badge>
+              )}
+              
+              {/* Utilization */}
               {allPanelPositions.length > 0 && (
-                <>
-                  <span>•</span>
-                  <span>{language === "fr" ? "Utilisation" : "Utilization"}: {((panelsToShow / allPanelPositions.length) * 100).toFixed(0)}%</span>
-                </>
+                <span className="text-muted-foreground">
+                  {language === "fr" ? "Utilisation" : "Utilization"}: {((panelsToShow / allPanelPositions.length) * 100).toFixed(0)}%
+                </span>
               )}
             </div>
           </div>
