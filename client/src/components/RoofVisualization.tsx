@@ -579,7 +579,9 @@ export function RoofVisualization({
             continue;
           }
           
-          // Step 2: Check if panel center is at least 1.2m from the polygon boundary
+          // Step 2: Check if panel center is at least 1.2m from polygon boundary
+          // Note: This matches original inset polygon behavior where center must be inside inset
+          // The 1.2m is measured from panel CENTER (same as original approach) for consistency
           const distanceToBoundary = pointToPolygonDistance(panelCenterLat, panelCenterLng, coords, localCentroid.lat);
           if (distanceToBoundary < PERIMETER_SETBACK_M) {
             rejectedByRoof++;
