@@ -356,13 +356,17 @@ export function RoofVisualization({
       maxYRot = Math.max(maxYRot, ry);
     }
     
-    // Step 2: Add FIXED margin (100m) to guarantee all corners are covered
-    // This works regardless of polygon shape or rotation angle
-    const FIXED_MARGIN_M = 100;
-    minXRot -= FIXED_MARGIN_M;
-    maxXRot += FIXED_MARGIN_M;
-    minYRot -= FIXED_MARGIN_M;
-    maxYRot += FIXED_MARGIN_M;
+    // Step 2: Add PROPORTIONAL margin to guarantee all corners are covered
+    // For skewed polygons, rotated bbox vertices can miss corners - use 50% of max dimension
+    const rawWidth = maxXRot - minXRot;
+    const rawHeight = maxYRot - minYRot;
+    const maxDimension = Math.max(rawWidth, rawHeight);
+    const MARGIN_M = Math.max(100, maxDimension * 0.5); // At least 100m, or 50% of max dimension
+    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: raw bbox=${Math.round(rawWidth)}×${Math.round(rawHeight)}m, margin=${Math.round(MARGIN_M)}m`);
+    minXRot -= MARGIN_M;
+    maxXRot += MARGIN_M;
+    minYRot -= MARGIN_M;
+    maxYRot += MARGIN_M;
     
     const bboxWidth = maxXRot - minXRot;
     const bboxHeight = maxYRot - minYRot;
