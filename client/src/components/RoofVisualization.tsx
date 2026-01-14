@@ -164,6 +164,86 @@ function metersToDegreesLng(meters: number, latitude: number): number {
   return meters / (111320 * Math.cos(latitude * Math.PI / 180));
 }
 
+function computeSignedArea(coords: { x: number; y: number }[]): number {
+  let area = 0;
+  const n = coords.length;
+  for (let i = 0; i < n; i++) {
+    const curr = coords[i];
+    const next = coords[(i + 1) % n];
+    area += curr.x * next.y - next.x * curr.y;
+  }
+  return area / 2;
+}
+
+function insetPolygonCoords(
+  coords: [number, number][],
+  offsetMeters: number,
+  centroidLat: number
+): [number, number][] | null {
+  if (coords.length < 3) return null;
+  
+  const metersPerDegreeLat = 111320;
+  const metersPerDegreeLng = 111320 * Math.cos(centroidLat * Math.PI / 180);
+  
+  const meterCoords = coords.map(([lng, lat]) => ({
+    x: lng * metersPerDegreeLng,
+    y: lat * metersPerDegreeLat
+  }));
+  
+  const signedArea = computeSignedArea(meterCoords);
+  const windingSign = signedArea >= 0 ? 1 : -1;
+  
+  const n = meterCoords.length;
+  const insetPoints: { x: number; y: number }[] = [];
+  
+  for (let i = 0; i < n; i++) {
+    const prev = meterCoords[(i - 1 + n) % n];
+    const curr = meterCoords[i];
+    const next = meterCoords[(i + 1) % n];
+    
+    const dx1 = curr.x - prev.x;
+    const dy1 = curr.y - prev.y;
+    const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+    if (len1 < 0.001) continue;
+    const nx1 = (-dy1 / len1) * windingSign;
+    const ny1 = (dx1 / len1) * windingSign;
+    
+    const dx2 = next.x - curr.x;
+    const dy2 = next.y - curr.y;
+    const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+    if (len2 < 0.001) continue;
+    const nx2 = (-dy2 / len2) * windingSign;
+    const ny2 = (dx2 / len2) * windingSign;
+    
+    const avgNx = (nx1 + nx2) / 2;
+    const avgNy = (ny1 + ny2) / 2;
+    const avgLen = Math.sqrt(avgNx * avgNx + avgNy * avgNy);
+    
+    if (avgLen < 0.01) {
+      insetPoints.push({ x: curr.x + nx1 * offsetMeters, y: curr.y + ny1 * offsetMeters });
+    } else {
+      const scale = offsetMeters / avgLen;
+      const maxScale = 3.0;
+      const clampedScale = Math.min(scale, offsetMeters * maxScale);
+      insetPoints.push({ x: curr.x + avgNx * clampedScale, y: curr.y + avgNy * clampedScale });
+    }
+  }
+  
+  if (insetPoints.length < 3) return null;
+  
+  const insetArea = Math.abs(computeSignedArea(insetPoints));
+  const originalArea = Math.abs(signedArea);
+  if (insetArea > originalArea || insetArea < originalArea * 0.01) {
+    console.log(`[RoofVisualization] Inset polygon invalid: original=${originalArea.toFixed(0)}m², inset=${insetArea.toFixed(0)}m²`);
+    return null;
+  }
+  
+  return insetPoints.map(p => [
+    p.x / metersPerDegreeLng,
+    p.y / metersPerDegreeLat
+  ] as [number, number]);
+}
+
 export function RoofVisualization({
   siteId,
   siteName,
@@ -234,6 +314,18 @@ export function RoofVisualization({
     const metersPerDegreeLat = 111320;
     const metersPerDegreeLng = 111320 * Math.cos(centroid.lat * Math.PI / 180);
     
+    const insetCoords = insetPolygonCoords(coords, PERIMETER_SETBACK_M, centroid.lat);
+    
+    let validationPolygon: google.maps.Polygon;
+    if (insetCoords) {
+      const insetPath = insetCoords.map(([lng, lat]) => ({ lat, lng }));
+      validationPolygon = new google.maps.Polygon({ paths: insetPath });
+      console.log(`[RoofVisualization] Using inset polygon for setback validation`);
+    } else {
+      validationPolygon = solarPolygon;
+      console.log(`[RoofVisualization] Inset failed, using original polygon with center-based validation`);
+    }
+    
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const [lng, lat] of coords) {
       const x = (lng - centroid.lng) * metersPerDegreeLng;
@@ -251,13 +343,8 @@ export function RoofVisualization({
     const bboxWidth = maxX - minX;
     const bboxHeight = maxY - minY;
     
-    const effectiveMinX = minX + PERIMETER_SETBACK_M;
-    const effectiveMaxX = maxX - PERIMETER_SETBACK_M;
-    const effectiveMinY = minY + PERIMETER_SETBACK_M;
-    const effectiveMaxY = maxY - PERIMETER_SETBACK_M;
-    
-    if (effectiveMaxX <= effectiveMinX || effectiveMaxY <= effectiveMinY) {
-      console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)} too small after setback`);
+    if (bboxWidth < PANEL_WIDTH_M || bboxHeight < PANEL_HEIGHT_M) {
+      console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)} too small for panels`);
       return panels;
     }
     
@@ -267,11 +354,11 @@ export function RoofVisualization({
     const xPositions: number[] = [];
     const yPositions: number[] = [];
     
-    for (let x = effectiveMinX; x + PANEL_WIDTH_M <= effectiveMaxX; x += panelPitchX) {
+    for (let x = minX; x + PANEL_WIDTH_M <= maxX; x += panelPitchX) {
       xPositions.push(x);
     }
     
-    for (let y = effectiveMinY; y + PANEL_HEIGHT_M <= effectiveMaxY; y += panelPitchY) {
+    for (let y = minY; y + PANEL_HEIGHT_M <= maxY; y += panelPitchY) {
       yPositions.push(y);
     }
     
@@ -306,7 +393,7 @@ export function RoofVisualization({
         const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
         const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
         
-        if (!google.maps.geometry.poly.containsLocation(panelCenter, solarPolygon)) {
+        if (!google.maps.geometry.poly.containsLocation(panelCenter, validationPolygon)) {
           rejectedByRoof++;
           continue;
         }
