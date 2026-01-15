@@ -24,6 +24,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { SEOHead, seoContent, getLocalBusinessSchema } from "@/components/seo-head";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
@@ -67,6 +68,7 @@ type LeadFormValues = z.infer<typeof leadFormSchema>;
 
 export default function LandingPage() {
   const { t, language } = useI18n();
+  const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   
@@ -81,15 +83,18 @@ export default function LandingPage() {
   // Quick calculator states
   const [calcBill, setCalcBill] = useState<string>("");
   const [calcAddress, setCalcAddress] = useState<string>("");
+  const [calcEmail, setCalcEmail] = useState<string>("");
   const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
   const [calcTariff, setCalcTariff] = useState<string>("M");
   const [calcLoading, setCalcLoading] = useState(false);
   const [calcResults, setCalcResults] = useState<{
     success: boolean;
     hasRoofData: boolean;
-    system: { sizeKW: number; annualProductionKWh: number };
-    financial: { annualSavings: number; paybackYears: number; hqIncentive: number; netCAPEX: number };
-    roof?: { areaM2: number; maxCapacityKW: number; satelliteImageUrl?: string | null };
+    inputs: { address: string; monthlyBill: number; buildingType: string; tariffCode: string };
+    system: { sizeKW: number; annualProductionKWh: number; roofMaxCapacityKW?: number };
+    financial: { annualSavings: number; paybackYears: number; hqIncentive: number; netCAPEX: number; grossCAPEX: number };
+    billing: { monthlyBillBefore: number; monthlyBillAfter: number; monthlySavings: number };
+    roof?: { areaM2: number; maxCapacityKW: number; latitude?: number; longitude?: number; satelliteImageUrl?: string | null };
   } | null>(null);
   const [calcError, setCalcError] = useState<string>("");
   
@@ -122,10 +127,21 @@ export default function LandingPage() {
     ? { G: "G - Petite puissance (<65 kW)", M: "M - Moyenne puissance", L: "L - Grande puissance" }
     : { G: "G - Small power (<65 kW)", M: "M - Medium power", L: "L - Large power" };
   
+  // Email validation helper
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+  
   // Quick estimate function
   const handleQuickEstimate = async () => {
     if (!calcAddress.trim()) {
       setCalcError(language === "fr" ? "Veuillez entrer une adresse" : "Please enter an address");
+      return;
+    }
+    
+    if (!calcEmail.trim() || !isValidEmail(calcEmail)) {
+      setCalcError(language === "fr" ? "Veuillez entrer un courriel valide" : "Please enter a valid email");
       return;
     }
     
@@ -145,6 +161,7 @@ export default function LandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           address: calcAddress,
+          email: calcEmail,
           monthlyBill: billAmount,
           buildingType: calcBuildingType,
           tariffCode: calcTariff,
@@ -155,6 +172,12 @@ export default function LandingPage() {
       
       if (data.success) {
         setCalcResults(data);
+        if (data.emailSent) {
+          toast({
+            title: language === "fr" ? "Rapport envoyé!" : "Report sent!",
+            description: language === "fr" ? "Votre analyse a été envoyée par courriel." : "Your analysis has been sent by email.",
+          });
+        }
       } else {
         setCalcError(data.error || (language === "fr" ? "Erreur lors de l'analyse" : "Analysis error"));
       }
@@ -609,6 +632,22 @@ export default function LandingPage() {
                                     className="h-11"
                                     placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
                                     data-testid="input-calc-address"
+                                  />
+                                </div>
+                                
+                                {/* Email */}
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium flex items-center gap-2">
+                                    <Mail className="w-4 h-4 text-primary" />
+                                    {language === "fr" ? "Courriel" : "Email"}
+                                  </label>
+                                  <Input
+                                    type="email"
+                                    value={calcEmail}
+                                    onChange={(e) => setCalcEmail(e.target.value)}
+                                    className="h-11"
+                                    placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
+                                    data-testid="input-calc-email"
                                   />
                                 </div>
                                 

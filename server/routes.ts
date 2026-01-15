@@ -45,6 +45,7 @@ import {
 import { z } from "zod";
 import * as googleSolar from "./googleSolarService";
 import { sendEmail, generatePortalInvitationEmail } from "./gmail";
+import { sendQuickAnalysisEmail } from "./emailService";
 import { generateProcurationPDF, createProcurationData } from "./procurationPdfGenerator";
 import { calculatePricingFromSiteVisit, getSiteVisitCompleteness, estimateConstructionCost } from "./pricing-engine";
 import { 
@@ -654,7 +655,7 @@ export async function registerRoutes(
   // Quick estimate endpoint for landing page calculator (no auth required)
   app.post("/api/quick-estimate", async (req, res) => {
     try {
-      const { address, monthlyBill, buildingType, tariffCode } = req.body;
+      const { address, email, monthlyBill, buildingType, tariffCode } = req.body;
       
       if (!address || !monthlyBill) {
         return res.status(400).json({ error: "Address and monthly bill are required" });
@@ -764,9 +765,41 @@ export async function registerRoutes(
       const monthlyBillAfter = Math.round(annualBillAfter / 12);
       const monthlySavings = monthlyBill - monthlyBillAfter;
       
+      // Send email if email is provided (fire and forget, don't block response)
+      let emailSent = false;
+      if (email && typeof email === "string" && email.includes("@")) {
+        const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+        const host = req.get("host") || "localhost:5000";
+        const baseUrl = `${protocol}://${host}`;
+        
+        // Fire and forget - don't block the response
+        sendQuickAnalysisEmail(email, {
+          address,
+          monthlyBill,
+          buildingType: buildingType || "office",
+          tariffCode: tariff,
+          systemSizeKW,
+          annualProductionKWh: Math.round(annualProductionKWh),
+          annualSavings,
+          paybackYears,
+          hqIncentive: Math.round(hqIncentive),
+          grossCAPEX: Math.round(grossCAPEX),
+          netCAPEX: Math.round(netCAPEX),
+          monthlyBillBefore: monthlyBill,
+          monthlyBillAfter,
+          monthlySavings,
+          hasRoofData,
+          roofAreaM2: hasRoofData ? Math.round(roofAreaSqM) : undefined,
+        }, baseUrl).catch(err => {
+          console.error("[Quick Estimate] Email sending failed:", err);
+        });
+        emailSent = true;
+      }
+      
       res.json({
         success: true,
         hasRoofData,
+        emailSent,
         inputs: {
           address,
           monthlyBill,
