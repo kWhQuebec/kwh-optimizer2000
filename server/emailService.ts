@@ -20,10 +20,10 @@ interface QuickAnalysisData {
 }
 
 function detectLanguage(tariffCode: string, address: string): 'fr' | 'en' {
-  const frenchIndicators = ['rue', 'avenue', 'boulevard', 'chemin', 'montréal', 'québec', 'laval', 'sherbrooke', 'trois-rivières'];
+  const frenchIndicators = ['rue', 'avenue', 'boulevard', 'chemin', 'montréal', 'québec', 'laval', 'sherbrooke', 'trois-rivières', 'saint-', 'sainte-'];
   const lowerAddress = address.toLowerCase();
   const hasFrenchIndicator = frenchIndicators.some(indicator => lowerAddress.includes(indicator));
-  return hasFrenchIndicator ? 'fr' : 'fr';
+  return hasFrenchIndicator ? 'fr' : 'en';
 }
 
 function formatCurrency(amount: number): string {
