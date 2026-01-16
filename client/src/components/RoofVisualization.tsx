@@ -50,7 +50,13 @@ interface RoofVisualizationProps {
   roofAreaSqFt?: number;
   maxPVCapacityKW?: number;
   currentPVSizeKW?: number;
-  onGeometryCalculated?: (data: { maxCapacityKW: number; panelCount: number; realisticCapacityKW: number; constraintAreaSqM: number }) => void;
+  onGeometryCalculated?: (data: { 
+    maxCapacityKW: number; 
+    panelCount: number; 
+    realisticCapacityKW: number; 
+    constraintAreaSqM: number;
+    arrays?: ArrayInfo[];  // KB Racking arrays (sections separated by fire corridors)
+  }) => void;
 }
 
 interface PanelPosition {
@@ -63,6 +69,19 @@ interface PanelPosition {
   rowIndex?: number;  // Row position for straight-row layout
   colIndex?: number;  // Column position within row
   priority?: number;  // Higher = more central, should be kept when reducing
+  arrayId?: number;   // KB Racking array number (1, 2, 3...) based on fire corridors
+  gridX?: number;     // X position in rotated grid space (meters)
+  gridY?: number;     // Y position in rotated grid space (meters)
+}
+
+// KB Racking Array information (sections separated by fire corridors)
+interface ArrayInfo {
+  id: number;           // Array number (1, 2, 3...) like KB Racking
+  panelCount: number;   // Total panels in this array
+  rows: number;         // Number of rows in Y direction
+  columns: number;      // Number of columns in X direction
+  capacityKW: number;   // Total capacity of this array
+  polygonId: string;    // Which roof polygon this array belongs to
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -515,6 +534,7 @@ export function RoofVisualization({
   const [isExporting, setIsExporting] = useState(false);
   const [panelsPerZone, setPanelsPerZone] = useState<Record<string, { count: number; label: string }>>({});
   const [zoneCount, setZoneCount] = useState(0);
+  const [kbArrays, setKbArrays] = useState<ArrayInfo[]>([]); // KB Racking arrays (numbered 1, 2, 3...)
   const [panelOrientationAngle, setPanelOrientationAngle] = useState(0); // Radians
   const [orientationSource, setOrientationSource] = useState<string>("default");
   
@@ -789,6 +809,18 @@ export function RoofVisualization({
           const globalColIdx = Math.round(gridX / panelPitchX);
           const priority = 1000000 - Math.abs(globalRowIdx) * 1000 - Math.abs(globalColIdx);
           
+          // Calculate array ID based on fire corridor positions
+          // Arrays are numbered 1, 2, 3... like KB Racking
+          const panelCenterX = gridX + PANEL_WIDTH_M / 2;
+          const panelCenterY = gridY + PANEL_HEIGHT_M / 2;
+          const corridorSpacingWithGap = MAINTENANCE_CORRIDOR_SPACING_M + MAINTENANCE_CORRIDOR_WIDTH_M;
+          
+          // Calculate which array section this panel belongs to (row-major ordering)
+          const arrayColSection = Math.floor((panelCenterX - minXRot + MARGIN_M) / corridorSpacingWithGap);
+          const arrayRowSection = Math.floor((panelCenterY - minYRot + MARGIN_M) / corridorSpacingWithGap);
+          const numArrayCols = Math.ceil(rawWidth / corridorSpacingWithGap) || 1;
+          const arrayId = arrayRowSection * numArrayCols + arrayColSection + 1; // 1-based numbering
+          
           allPanels.push({
             lat: panelCornersGeo[0].lat,
             lng: panelCornersGeo[0].lng,
@@ -798,7 +830,10 @@ export function RoofVisualization({
             corners: panelCornersGeo,
             rowIndex: globalRowIdx,
             colIndex: globalColIdx,
-            priority
+            priority,
+            arrayId,
+            gridX: panelCenterX,
+            gridY: panelCenterY
           });
           
           accepted++;
@@ -1167,14 +1202,62 @@ export function RoofVisualization({
         setPanelsPerZone(zoneStats);
         setZoneCount(Object.keys(zoneStats).length);
 
-        console.log(`[RoofVisualization] Total panels generated: ${sortedPanels.length}, capacity: ${Math.round(sortedPanels.length * PANEL_KW)} kWc, zones: ${Object.keys(zoneStats).length}`);
+        // Calculate KB Racking arrays (sections separated by fire corridors)
+        // Use composite key: polygonId + arrayId to avoid merging arrays from different polygons
+        const arrayStats: Map<string, { panels: PanelPosition[]; polygonId: string; localArrayId: number }> = new Map();
+        for (const panel of sortedPanels) {
+          if (panel.arrayId !== undefined) {
+            // Composite key ensures arrays from different polygons don't merge
+            const compositeKey = `${panel.polygonId}:${panel.arrayId}`;
+            if (!arrayStats.has(compositeKey)) {
+              arrayStats.set(compositeKey, { panels: [], polygonId: panel.polygonId, localArrayId: panel.arrayId });
+            }
+            arrayStats.get(compositeKey)!.panels.push(panel);
+          }
+        }
+        
+        // Convert to ArrayInfo format with row/column counts
+        const arrays: ArrayInfo[] = [];
+        // Sort by polygonId first, then by local arrayId within each polygon
+        const sortedKeys = Array.from(arrayStats.keys()).sort((a, b) => {
+          const [polyA, idA] = a.split(':');
+          const [polyB, idB] = b.split(':');
+          if (polyA !== polyB) return polyA.localeCompare(polyB);
+          return parseInt(idA) - parseInt(idB);
+        });
+        
+        // Renumber arrays sequentially (1, 2, 3...) across all polygons
+        let arrayNumber = 1;
+        for (const key of sortedKeys) {
+          const { panels, polygonId } = arrayStats.get(key)!;
+          if (panels.length === 0) continue;
+          
+          // Calculate rows and columns from unique row/col indices
+          const uniqueRows = new Set(panels.map(p => p.rowIndex).filter(r => r !== undefined));
+          const uniqueCols = new Set(panels.map(p => p.colIndex).filter(c => c !== undefined));
+          
+          arrays.push({
+            id: arrayNumber++,
+            panelCount: panels.length,
+            rows: uniqueRows.size || 1,
+            columns: uniqueCols.size || Math.ceil(panels.length / (uniqueRows.size || 1)),
+            capacityKW: Math.round(panels.length * PANEL_KW * 10) / 10,
+            polygonId
+          });
+        }
+        
+        setKbArrays(arrays);
+        console.log(`[RoofVisualization] KB Arrays generated: ${arrays.length} arrays`, arrays.map(a => `Array ${a.id}: ${a.panelCount} panels (${a.rows}×${a.columns})`));
+
+        console.log(`[RoofVisualization] Total panels generated: ${sortedPanels.length}, capacity: ${Math.round(sortedPanels.length * PANEL_KW)} kWc, zones: ${Object.keys(zoneStats).length}, arrays: ${arrays.length}`);
 
         if (onGeometryCalculated && sortedPanels.length > 0) {
           onGeometryCalculated({
             maxCapacityKW: Math.round(sortedPanels.length * PANEL_KW),
             panelCount: sortedPanels.length,
             realisticCapacityKW: Math.round(sortedPanels.length * PANEL_KW * 0.9),
-            constraintAreaSqM: totalConstraintArea
+            constraintAreaSqM: totalConstraintArea,
+            arrays: arrays.length > 0 ? arrays : undefined
           });
         }
 
@@ -1584,7 +1667,49 @@ export function RoofVisualization({
                   {language === "fr" ? "Utilisation" : "Utilization"}: {((panelsToShow / allPanelPositions.length) * 100).toFixed(0)}%
                 </span>
               )}
+              
+              {/* KB Racking Arrays count */}
+              {kbArrays.length > 0 && (
+                <Badge variant="outline" className="text-xs font-normal gap-1 border-teal-500 text-teal-700" data-testid="badge-arrays">
+                  <Layers className="w-3 h-3" />
+                  {kbArrays.length} {language === "fr" ? "arrays KB" : "KB arrays"}
+                </Badge>
+              )}
             </div>
+            
+            {/* KB Racking Arrays Detail Panel */}
+            {kbArrays.length > 1 && (
+              <div className="mt-3 p-3 bg-teal-50 dark:bg-teal-950/30 rounded-lg border border-teal-200 dark:border-teal-800" data-testid="kb-arrays-panel">
+                <div className="flex items-center gap-2 mb-2">
+                  <Layers className="w-4 h-4 text-teal-600" />
+                  <span className="text-sm font-medium text-teal-800 dark:text-teal-300">
+                    {language === "fr" ? "Arrays KB Racking" : "KB Racking Arrays"}
+                  </span>
+                  <span className="text-xs text-teal-600 dark:text-teal-400">
+                    ({language === "fr" ? "sections séparées par corridors de feu" : "sections separated by fire corridors"})
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                  {kbArrays.map((array) => (
+                    <div 
+                      key={array.id} 
+                      className="bg-white dark:bg-teal-900/50 rounded px-2 py-1 border border-teal-200 dark:border-teal-700"
+                      data-testid={`array-${array.id}`}
+                    >
+                      <div className="font-medium text-sm text-teal-800 dark:text-teal-200">
+                        Array {array.id}
+                      </div>
+                      <div className="text-xs text-teal-600 dark:text-teal-400">
+                        {array.panelCount} {language === "fr" ? "pan." : "pan."} • {array.capacityKW} kWc
+                      </div>
+                      <div className="text-xs text-teal-500 dark:text-teal-500">
+                        {array.rows}×{array.columns}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {/* Orientation Comparison Panel */}
             {buildingAlignedPanels.length > 0 && trueSouthPanels.length > 0 && (
