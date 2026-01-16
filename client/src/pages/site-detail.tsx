@@ -7155,6 +7155,39 @@ export default function SiteDetailPage() {
               {language === "fr" ? "Présentation" : "Presentation"}
             </Button>
           </Link>
+          {/* Project Info Sheet PDF Button - Staff only */}
+          {isStaff && (
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              data-testid="button-project-info-sheet"
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem("token");
+                  const response = await fetch(`/api/sites/${site.id}/project-info-sheet?lang=${language}`, {
+                    credentials: "include",
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                  });
+                  if (!response.ok) throw new Error("Failed to generate PDF");
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `fiche-projet-${site.name.replace(/\s+/g, '-')}.pdf`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(url);
+                  toast({ title: language === "fr" ? "Fiche projet téléchargée" : "Project sheet downloaded" });
+                } catch (error) {
+                  toast({ title: language === "fr" ? "Erreur" : "Error", variant: "destructive" });
+                }
+              }}
+            >
+              <FileText className="w-4 h-4" />
+              {language === "fr" ? "Fiche Projet" : "Project Sheet"}
+            </Button>
+          )}
           {latestSimulation && (
             <>
               <DownloadReportButton 
