@@ -4,12 +4,14 @@ import fs from "fs";
 import { getRoofVisualizationUrl, getSatelliteImageUrl } from "./googleSolarService";
 
 const COLORS = {
-  blue: "#1e3a5f",
-  gold: "#d4a853",
-  darkGray: "#333333",
-  mediumGray: "#666666",
-  lightGray: "#f5f5f5",
+  primary: "#1e3a5f",
+  accent: "#d4a853",
+  darkText: "#333333",
+  mediumText: "#555555",
+  lightText: "#888888",
+  lightBg: "#f8f9fa",
   white: "#FFFFFF",
+  border: "#e0e0e0",
 };
 
 interface RoofPolygonData {
@@ -35,60 +37,48 @@ interface ProjectInfoData {
 
 const TEXTS = {
   fr: {
-    title: "Fiche d'information du projet solaire",
-    subtitle: "Solar Project Information Sheet",
-    introTitle: "Énergie solaire au Québec",
-    introText: `Le Québec s'engage dans une transition énergétique ambitieuse. Dans le cadre de l'appel de propositions 2025-01 d'Hydro-Québec pour l'achat d'électricité provenant de sources renouvelables, kWh Québec développe des projets solaires sur toiture pour contribuer à l'atteinte des objectifs de décarbonation de la province.
-
-Ce projet fait partie d'un portefeuille de toitures industrielles identifiées pour leur potentiel solaire exceptionnel. L'électricité produite sera vendue à Hydro-Québec dans le cadre d'un contrat d'achat d'énergie à long terme.`,
-    introTextEn: `Quebec is committed to an ambitious energy transition. As part of Hydro-Québec's 2025-01 call for proposals for the purchase of electricity from renewable sources, kWh Québec is developing rooftop solar projects to contribute to the province's decarbonization objectives.
-
-This project is part of a portfolio of industrial rooftops identified for their exceptional solar potential. The electricity produced will be sold to Hydro-Québec under a long-term power purchase agreement.`,
-    projectDetailsTitle: "Détails du projet / Project Details",
-    projectAddress: "Adresse du projet / Project Address",
-    projectSize: "Taille du projet / Project Size",
-    constructionStart: "Début de construction prévu / Planned Construction Start",
-    constructionValue: "Printemps/Été 2028 / Spring/Summer 2028",
-    developer: "Développeur/Constructeur / Developer/Constructor",
+    projectAddress: "Adresse du projet",
+    projectDetails: "Détails du projet",
+    projectSize: "Taille du projet",
+    constructionStart: "Début de construction prévu",
+    constructionValue: "Printemps/Été 2028",
+    developer: "Développeur / Constructeur",
     developerValue: "Scale Cleantech et kWh Québec",
-    buildingSponsor: "Propriétaire du bâtiment / Building Sponsor/Owner",
-    buildingSponsorValue: "[Propriétaire du bâtiment / Building Owner]",
-    electricityOfftake: "Acheteur d'électricité / Electricity Offtake",
+    buildingSponsor: "Propriétaire du bâtiment",
+    buildingSponsorValue: "[Propriétaire du bâtiment]",
+    electricityOfftake: "Acheteur d'électricité",
     electricityOfftakeValue: "Hydro-Québec",
-    roofVisualizationTitle: "Visualisation du toit / Roof Visualization",
-    contactTitle: "Pour plus d'information / For More Information",
-    contactWebsite: "www.kwh.quebec",
+    solarTitle: "L'énergie solaire au Québec",
+    solarParagraph1: `Le solaire devient rapidement l'une des sources d'électricité les moins chères pour la nouvelle génération à l'échelle mondiale. Dans son dernier appel d'offres, Hydro-Québec a lancé un processus pour acquérir jusqu'à 300 MW de nouvelle production solaire.`,
+    solarParagraph2: `La construction de nouvelles installations solaires sur les toitures industrielles est l'une des meilleures façons d'utiliser cette technologie. Non seulement le solaire occupe un espace de toiture sous-utilisé, mais il génère également de l'énergie là où elle est nécessaire. En produisant l'énergie sur place, les services publics minimisent le besoin de lignes à haute tension coûteuses qui s'étendent sur des centaines de kilomètres.`,
+    solarParagraph3: `Ce projet fera partie de ce processus d'appel d'offres compétitif. Les soumissions seront présentées en mars 2026 et les projets retenus seront notifiés en janvier 2027.`,
+    footerPhone: "Tél: 514.594.5392",
+    footerWebsite: "www.kwh.quebec",
     dcLabel: "kW DC",
     acLabel: "kW AC",
-    notAvailable: "À déterminer / TBD",
+    notAvailable: "À déterminer",
   },
   en: {
-    title: "Solar Project Information Sheet",
-    subtitle: "Fiche d'information du projet solaire",
-    introTitle: "Solar Energy in Quebec",
-    introText: `Quebec is committed to an ambitious energy transition. As part of Hydro-Québec's 2025-01 call for proposals for the purchase of electricity from renewable sources, kWh Québec is developing rooftop solar projects to contribute to the province's decarbonization objectives.
-
-This project is part of a portfolio of industrial rooftops identified for their exceptional solar potential. The electricity produced will be sold to Hydro-Québec under a long-term power purchase agreement.`,
-    introTextEn: `Le Québec s'engage dans une transition énergétique ambitieuse. Dans le cadre de l'appel de propositions 2025-01 d'Hydro-Québec pour l'achat d'électricité provenant de sources renouvelables, kWh Québec développe des projets solaires sur toiture pour contribuer à l'atteinte des objectifs de décarbonation de la province.
-
-Ce projet fait partie d'un portefeuille de toitures industrielles identifiées pour leur potentiel solaire exceptionnel. L'électricité produite sera vendue à Hydro-Québec dans le cadre d'un contrat d'achat d'énergie à long terme.`,
-    projectDetailsTitle: "Project Details / Détails du projet",
-    projectAddress: "Project Address / Adresse du projet",
-    projectSize: "Project Size / Taille du projet",
-    constructionStart: "Planned Construction Start / Début de construction prévu",
-    constructionValue: "Spring/Summer 2028 / Printemps/Été 2028",
-    developer: "Developer/Constructor / Développeur/Constructeur",
+    projectAddress: "Project Address",
+    projectDetails: "Project Details",
+    projectSize: "Project Size",
+    constructionStart: "Planned Construction Start",
+    constructionValue: "Spring/Summer 2028",
+    developer: "Developer / Constructor",
     developerValue: "Scale Cleantech and kWh Québec",
-    buildingSponsor: "Building Sponsor/Owner / Propriétaire du bâtiment",
-    buildingSponsorValue: "[Building Owner / Propriétaire du bâtiment]",
-    electricityOfftake: "Electricity Offtake / Acheteur d'électricité",
+    buildingSponsor: "Building Sponsor / Owner",
+    buildingSponsorValue: "[Building Owner]",
+    electricityOfftake: "Electricity Offtake",
     electricityOfftakeValue: "Hydro-Québec",
-    roofVisualizationTitle: "Roof Visualization / Visualisation du toit",
-    contactTitle: "For More Information / Pour plus d'information",
-    contactWebsite: "www.kwh.quebec",
+    solarTitle: "Solar in Quebec",
+    solarParagraph1: `Solar is quickly becoming one of the cheapest new electricity sources for new generation globally. In its latest call for new generation, Hydro-Québec has recently released an Appel d'offres to acquire up to 300 MW of new solar generation.`,
+    solarParagraph2: `Building new solar generation on industrial rooftops is one of the best ways to utilize the technology. Not only does the solar take up underutilized roof space, but it also generates energy right where the energy is needed. By generating energy where it is used, utilities minimize the need for costly high-voltage lines that span for hundreds of kilometers to provide electricity to the major urban industrial areas.`,
+    solarParagraph3: `This project will be part of that competitive bidding process. Bids will be submitted in March 2026 and projects awarded will be notified in January 2027.`,
+    footerPhone: "Tel: 514.594.5392",
+    footerWebsite: "www.kwh.quebec",
     dcLabel: "kW DC",
     acLabel: "kW AC",
-    notAvailable: "TBD / À déterminer",
+    notAvailable: "TBD",
   },
 };
 
@@ -100,14 +90,17 @@ export async function generateProjectInfoSheetPDF(
   
   const doc = new PDFDocument({
     size: "letter",
-    margin: 50,
+    margin: 0,
     bufferPages: true,
   });
 
   const pageWidth = 612;
   const pageHeight = 792;
-  const margin = 50;
+  const margin = 45;
   const contentWidth = pageWidth - 2 * margin;
+  const leftColWidth = contentWidth * 0.42;
+  const rightColWidth = contentWidth * 0.52;
+  const colGap = contentWidth * 0.06;
 
   const chunks: Buffer[] = [];
   doc.on("data", (chunk) => chunks.push(chunk));
@@ -116,61 +109,23 @@ export async function generateProjectInfoSheetPDF(
     process.cwd(),
     "attached_assets",
     lang === "fr"
-      ? "solaire_fr-removebg-preview_1767985380511.png"
-      : "solaire_en-removebg-preview_1767985380510.png"
+      ? "kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png"
+      : "kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png"
   );
 
-  const headerHeight = 90;
-  doc.rect(0, 0, pageWidth, headerHeight).fillColor(COLORS.blue).fill();
-  doc.rect(0, headerHeight - 4, pageWidth, 4).fillColor(COLORS.gold).fill();
+  let yPos = margin;
 
   if (fs.existsSync(logoPath)) {
     try {
-      doc.image(logoPath, margin, 15, { width: 160 });
+      doc.image(logoPath, pageWidth - margin - 140, yPos, { width: 140 });
     } catch (e) {
-      doc.fontSize(24).fillColor(COLORS.white).font("Helvetica-Bold");
-      doc.text("kWh Québec", margin, 25);
+      doc.fontSize(18).fillColor(COLORS.primary).font("Helvetica-Bold");
+      doc.text("kWh Québec", pageWidth - margin - 140, yPos + 10);
       doc.font("Helvetica");
     }
-  } else {
-    doc.fontSize(24).fillColor(COLORS.white).font("Helvetica-Bold");
-    doc.text("kWh Québec", margin, 25);
-    doc.font("Helvetica");
   }
 
-  doc.fontSize(14).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(t.title, margin, 55, { width: contentWidth });
-  doc.font("Helvetica");
-
-  let yPos = headerHeight + 25;
-
-  doc.fontSize(12).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t.introTitle, margin, yPos);
-  doc.font("Helvetica");
-  yPos += 20;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray);
-  doc.text(t.introText, margin, yPos, { width: contentWidth, align: "justify" });
-  yPos = doc.y + 25;
-
-  doc.fontSize(12).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t.projectDetailsTitle, margin, yPos);
-  doc.font("Helvetica");
-  yPos += 20;
-
-  const drawDetailRow = (label: string, value: string, yStart: number): number => {
-    doc.rect(margin, yStart, contentWidth, 28).fillColor(COLORS.lightGray).fill();
-    doc.rect(margin, yStart, contentWidth, 28).strokeColor("#e0e0e0").lineWidth(0.5).stroke();
-
-    doc.fontSize(9).fillColor(COLORS.mediumGray).font("Helvetica-Bold");
-    doc.text(label, margin + 10, yStart + 5, { width: contentWidth - 20 });
-    doc.font("Helvetica");
-
-    doc.fontSize(10).fillColor(COLORS.darkGray);
-    doc.text(value, margin + 10, yStart + 16, { width: contentWidth - 20 });
-
-    return yStart + 30;
-  };
+  yPos += 70;
 
   const fullAddress = [
     data.site.address,
@@ -181,7 +136,60 @@ export async function generateProjectInfoSheetPDF(
     .filter(Boolean)
     .join(", ");
 
-  yPos = drawDetailRow(t.projectAddress, fullAddress || data.site.name, yPos);
+  doc.fontSize(11).fillColor(COLORS.lightText).font("Helvetica");
+  doc.text(t.projectAddress, margin, yPos);
+  yPos += 16;
+
+  doc.fontSize(16).fillColor(COLORS.darkText).font("Helvetica-Bold");
+  doc.text(fullAddress || data.site.name, margin, yPos, { width: contentWidth });
+  doc.font("Helvetica");
+  yPos += 30;
+
+  if (data.roofImageBuffer) {
+    const imageHeight = 180;
+    try {
+      doc.image(data.roofImageBuffer, margin, yPos, {
+        width: contentWidth,
+        height: imageHeight,
+        fit: [contentWidth, imageHeight],
+      });
+      doc.rect(margin, yPos, contentWidth, imageHeight).strokeColor(COLORS.border).lineWidth(0.5).stroke();
+      yPos += imageHeight + 25;
+    } catch (e) {
+      yPos += 10;
+    }
+  } else {
+    yPos += 10;
+  }
+
+  doc.moveTo(margin, yPos).lineTo(margin + contentWidth, yPos).strokeColor(COLORS.border).lineWidth(1).stroke();
+  yPos += 25;
+
+  const leftColX = margin;
+  const rightColX = margin + leftColWidth + colGap;
+  const twoColStartY = yPos;
+
+  doc.fontSize(13).fillColor(COLORS.primary).font("Helvetica-Bold");
+  doc.text(t.projectDetails, leftColX, yPos);
+  doc.font("Helvetica");
+  yPos += 25;
+
+  const drawBulletItem = (label: string, value: string, y: number): number => {
+    doc.circle(leftColX + 4, y + 5, 2.5).fillColor(COLORS.accent).fill();
+    
+    doc.fontSize(9).fillColor(COLORS.lightText).font("Helvetica-Bold");
+    doc.text(label, leftColX + 14, y, { width: leftColWidth - 14 });
+    doc.font("Helvetica");
+    
+    const labelHeight = doc.heightOfString(label, { width: leftColWidth - 14 });
+    
+    doc.fontSize(10).fillColor(COLORS.darkText);
+    doc.text(value, leftColX + 14, y + labelHeight + 2, { width: leftColWidth - 14 });
+    
+    const valueHeight = doc.heightOfString(value, { width: leftColWidth - 14 });
+    
+    return y + labelHeight + valueHeight + 16;
+  };
 
   const kbKwDc = data.site.kbKwDc;
   let sizeValue = t.notAvailable;
@@ -189,65 +197,54 @@ export async function generateProjectInfoSheetPDF(
     const kwAc = Math.round(kbKwDc * 0.85);
     sizeValue = `${Math.round(kbKwDc).toLocaleString()} ${t.dcLabel} / ${kwAc.toLocaleString()} ${t.acLabel}`;
   }
-  yPos = drawDetailRow(t.projectSize, sizeValue, yPos);
 
-  yPos = drawDetailRow(t.constructionStart, t.constructionValue, yPos);
-  yPos = drawDetailRow(t.developer, t.developerValue, yPos);
-  yPos = drawDetailRow(t.buildingSponsor, t.buildingSponsorValue, yPos);
-  yPos = drawDetailRow(t.electricityOfftake, t.electricityOfftakeValue, yPos);
+  yPos = drawBulletItem(t.projectSize, sizeValue, yPos);
+  yPos = drawBulletItem(t.constructionStart, t.constructionValue, yPos);
+  yPos = drawBulletItem(t.developer, t.developerValue, yPos);
+  yPos = drawBulletItem(t.buildingSponsor, t.buildingSponsorValue, yPos);
+  yPos = drawBulletItem(t.electricityOfftake, t.electricityOfftakeValue, yPos);
 
-  yPos += 20;
+  let rightYPos = twoColStartY;
 
-  if (data.roofImageBuffer || (data.site.latitude && data.site.longitude)) {
-    doc.fontSize(12).fillColor(COLORS.blue).font("Helvetica-Bold");
-    doc.text(t.roofVisualizationTitle, margin, yPos);
-    doc.font("Helvetica");
-    yPos += 20;
-
-    const imageHeight = 200;
-    const imageWidth = contentWidth;
-
-    if (data.roofImageBuffer) {
-      try {
-        doc.image(data.roofImageBuffer, margin, yPos, {
-          width: imageWidth,
-          height: imageHeight,
-          fit: [imageWidth, imageHeight],
-        });
-        yPos += imageHeight + 10;
-      } catch (e) {
-        doc.rect(margin, yPos, imageWidth, imageHeight / 2)
-          .fillColor("#e0e0e0")
-          .fill();
-        doc.fontSize(10).fillColor(COLORS.mediumGray);
-        doc.text("Image unavailable", margin, yPos + imageHeight / 4, {
-          width: imageWidth,
-          align: "center",
-        });
-        yPos += imageHeight / 2 + 10;
-      }
-    } else {
-      doc.rect(margin, yPos, imageWidth, imageHeight / 2)
-        .fillColor("#e0e0e0")
-        .fill();
-      doc.fontSize(10).fillColor(COLORS.mediumGray);
-      doc.text("Satellite imagery available upon request", margin, yPos + imageHeight / 4, {
-        width: imageWidth,
-        align: "center",
-      });
-      yPos += imageHeight / 2 + 10;
-    }
-  }
-
-  const footerY = pageHeight - 60;
-  doc.rect(0, footerY, pageWidth, 60).fillColor(COLORS.blue).fill();
-
-  doc.fontSize(10).fillColor(COLORS.gold).font("Helvetica-Bold");
-  doc.text(t.contactTitle, margin, footerY + 15, { width: contentWidth, align: "center" });
+  doc.fontSize(13).fillColor(COLORS.primary).font("Helvetica-Bold");
+  doc.text(t.solarTitle, rightColX, rightYPos, { width: rightColWidth });
   doc.font("Helvetica");
+  rightYPos += 25;
 
-  doc.fontSize(14).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(t.contactWebsite, margin, footerY + 32, { width: contentWidth, align: "center" });
+  doc.fontSize(9.5).fillColor(COLORS.mediumText).font("Helvetica");
+  doc.text(t.solarParagraph1, rightColX, rightYPos, { 
+    width: rightColWidth, 
+    align: "justify",
+    lineGap: 2,
+  });
+  rightYPos = doc.y + 12;
+
+  doc.text(t.solarParagraph2, rightColX, rightYPos, { 
+    width: rightColWidth, 
+    align: "justify",
+    lineGap: 2,
+  });
+  rightYPos = doc.y + 12;
+
+  doc.text(t.solarParagraph3, rightColX, rightYPos, { 
+    width: rightColWidth, 
+    align: "justify",
+    lineGap: 2,
+  });
+
+  const footerY = pageHeight - 50;
+  
+  doc.moveTo(margin, footerY - 15).lineTo(margin + contentWidth, footerY - 15).strokeColor(COLORS.border).lineWidth(0.5).stroke();
+
+  doc.fontSize(9).fillColor(COLORS.lightText).font("Helvetica");
+  
+  const cityForFooter = data.site.city || data.site.address || data.site.name;
+  doc.text(cityForFooter, margin, footerY, { continued: false });
+  
+  doc.text(t.footerPhone, margin + contentWidth / 2 - 40, footerY, { align: "center", width: 80 });
+  
+  doc.fillColor(COLORS.primary).font("Helvetica-Bold");
+  doc.text(t.footerWebsite, margin, footerY, { align: "right", width: contentWidth });
   doc.font("Helvetica");
 
   doc.end();
