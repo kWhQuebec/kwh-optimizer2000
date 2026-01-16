@@ -8683,6 +8683,70 @@ ${fileContent}`
     }
   });
 
+  // GET /api/sites/:siteId/project-info-sheet - Generate Project Information Sheet PDF
+  app.get("/api/sites/:siteId/project-info-sheet", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { siteId } = req.params;
+      const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      const roofPolygons = await storage.getRoofPolygons(siteId);
+
+      const { generateProjectInfoSheetPDF, fetchRoofImageBuffer } = await import("./projectInfoSheetPdf");
+
+      let roofImageBuffer: Buffer | null = null;
+      if (site.latitude && site.longitude) {
+        const polygonData = roofPolygons.map((p) => ({
+          coordinates: p.coordinates as [number, number][],
+          color: p.color || "#3b82f6",
+          label: p.label || undefined,
+        }));
+        roofImageBuffer = await fetchRoofImageBuffer(
+          site.latitude,
+          site.longitude,
+          polygonData.length > 0 ? polygonData : undefined
+        );
+      }
+
+      const pdfBuffer = await generateProjectInfoSheetPDF(
+        {
+          site: {
+            name: site.name,
+            address: site.address,
+            city: site.city,
+            province: site.province,
+            postalCode: site.postalCode,
+            latitude: site.latitude,
+            longitude: site.longitude,
+            kbKwDc: site.kbKwDc,
+          },
+          roofPolygons: roofPolygons.map((p) => ({
+            coordinates: p.coordinates as [number, number][],
+            color: p.color || "#3b82f6",
+            label: p.label || undefined,
+          })),
+          roofImageBuffer: roofImageBuffer || undefined,
+        },
+        lang
+      );
+
+      const safeName = site.name.replace(/[^a-zA-Z0-9-_]/g, "_");
+      const filename = `Project_Info_Sheet_${safeName}_${lang.toUpperCase()}.pdf`;
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader("Content-Length", pdfBuffer.length);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating project info sheet:", error);
+      res.status(500).json({ error: "Failed to generate project info sheet PDF" });
+    }
+  });
+
   // ==================== KB RACKING COST ESTIMATOR & BOM ROUTES ====================
   
   const {
