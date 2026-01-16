@@ -267,6 +267,9 @@ export default function LandingPage() {
               <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-resources">
                 {language === "fr" ? "Ressources" : "Resources"}
               </Link>
+              <Link href="/portfolio" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-portfolio">
+                {language === "fr" ? "Portefeuille" : "Portfolio"}
+              </Link>
             </nav>
 
             <div className="flex items-center gap-2">
