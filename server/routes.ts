@@ -8753,6 +8753,9 @@ ${fileContent}`
             latitude: site.latitude,
             longitude: site.longitude,
             kbKwDc: site.kbKwDc,
+            buildingType: site.buildingType,
+            roofType: site.roofType,
+            roofAreaSqM: site.roofAreaSqM,
           },
           roofPolygons: roofPolygons.map((p) => ({
             coordinates: p.coordinates as [number, number][],
@@ -8760,6 +8763,7 @@ ${fileContent}`
             label: p.label || undefined,
           })),
           roofImageBuffer: roofImageBuffer || undefined,
+          arrayCount: roofPolygons.length,
         },
         lang
       );

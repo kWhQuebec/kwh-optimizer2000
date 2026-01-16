@@ -5,6 +5,7 @@ import { getRoofVisualizationUrl, getSatelliteImageUrl } from "./googleSolarServ
 
 const COLORS = {
   primary: "#1e3a5f",
+  primaryLight: "#2a4d7a",
   accent: "#d4a853",
   darkText: "#333333",
   mediumText: "#555555",
@@ -30,9 +31,13 @@ interface ProjectInfoData {
     latitude?: number | null;
     longitude?: number | null;
     kbKwDc?: number | null;
+    buildingType?: string | null;
+    roofType?: string | null;
+    roofAreaSqM?: number | null;
   };
   roofPolygons?: RoofPolygonData[];
   roofImageBuffer?: Buffer;
+  arrayCount?: number;
 }
 
 const TEXTS = {
@@ -40,6 +45,9 @@ const TEXTS = {
     projectAddress: "Adresse du projet",
     projectDetails: "Détails du projet",
     projectSize: "Taille du projet",
+    numberOfArrays: "Nombre de zones",
+    roofArea: "Surface de toiture",
+    buildingType: "Type de bâtiment",
     constructionStart: "Début de construction prévu",
     constructionValue: "Printemps/Été 2028",
     developer: "Développeur / Constructeur",
@@ -56,12 +64,23 @@ const TEXTS = {
     footerWebsite: "www.kwh.quebec",
     dcLabel: "kW DC",
     acLabel: "kW AC",
+    sqmLabel: "m²",
+    arraysLabel: "zones",
     notAvailable: "À déterminer",
+    buildingTypes: {
+      industrial: "Industriel",
+      commercial: "Commercial",
+      institutional: "Institutionnel",
+      other: "Autre",
+    },
   },
   en: {
     projectAddress: "Project Address",
     projectDetails: "Project Details",
     projectSize: "Project Size",
+    numberOfArrays: "Number of Arrays",
+    roofArea: "Roof Area",
+    buildingType: "Building Type",
     constructionStart: "Planned Construction Start",
     constructionValue: "Spring/Summer 2028",
     developer: "Developer / Constructor",
@@ -78,7 +97,15 @@ const TEXTS = {
     footerWebsite: "www.kwh.quebec",
     dcLabel: "kW DC",
     acLabel: "kW AC",
+    sqmLabel: "m²",
+    arraysLabel: "arrays",
     notAvailable: "TBD",
+    buildingTypes: {
+      industrial: "Industrial",
+      commercial: "Commercial",
+      institutional: "Institutional",
+      other: "Other",
+    },
   },
 };
 
@@ -98,8 +125,8 @@ export async function generateProjectInfoSheetPDF(
   const pageHeight = 792;
   const margin = 45;
   const contentWidth = pageWidth - 2 * margin;
-  const leftColWidth = contentWidth * 0.42;
-  const rightColWidth = contentWidth * 0.52;
+  const leftColWidth = contentWidth * 0.40;
+  const rightColWidth = contentWidth * 0.54;
   const colGap = contentWidth * 0.06;
 
   const chunks: Buffer[] = [];
@@ -163,46 +190,84 @@ export async function generateProjectInfoSheetPDF(
   }
 
   doc.moveTo(margin, yPos).lineTo(margin + contentWidth, yPos).strokeColor(COLORS.border).lineWidth(1).stroke();
-  yPos += 25;
+  yPos += 20;
 
   const leftColX = margin;
   const rightColX = margin + leftColWidth + colGap;
   const twoColStartY = yPos;
 
-  doc.fontSize(13).fillColor(COLORS.primary).font("Helvetica-Bold");
-  doc.text(t.projectDetails, leftColX, yPos);
-  doc.font("Helvetica");
-  yPos += 25;
-
-  const drawBulletItem = (label: string, value: string, y: number): number => {
-    doc.circle(leftColX + 4, y + 5, 2.5).fillColor(COLORS.accent).fill();
-    
-    doc.fontSize(9).fillColor(COLORS.lightText).font("Helvetica-Bold");
-    doc.text(label, leftColX + 14, y, { width: leftColWidth - 14 });
-    doc.font("Helvetica");
-    
-    const labelHeight = doc.heightOfString(label, { width: leftColWidth - 14 });
-    
-    doc.fontSize(10).fillColor(COLORS.darkText);
-    doc.text(value, leftColX + 14, y + labelHeight + 2, { width: leftColWidth - 14 });
-    
-    const valueHeight = doc.heightOfString(value, { width: leftColWidth - 14 });
-    
-    return y + labelHeight + valueHeight + 16;
-  };
-
+  const boxPadding = 15;
+  const boxInnerWidth = leftColWidth - boxPadding * 2;
+  
+  const bulletItems: { label: string; value: string }[] = [];
+  
   const kbKwDc = data.site.kbKwDc;
   let sizeValue = t.notAvailable;
   if (kbKwDc && kbKwDc > 0) {
     const kwAc = Math.round(kbKwDc * 0.85);
     sizeValue = `${Math.round(kbKwDc).toLocaleString()} ${t.dcLabel} / ${kwAc.toLocaleString()} ${t.acLabel}`;
   }
+  bulletItems.push({ label: t.projectSize, value: sizeValue });
+  
+  if (data.arrayCount && data.arrayCount > 0) {
+    bulletItems.push({ label: t.numberOfArrays, value: `${data.arrayCount} ${t.arraysLabel}` });
+  }
+  
+  if (data.site.roofAreaSqM && data.site.roofAreaSqM > 0) {
+    bulletItems.push({ label: t.roofArea, value: `${Math.round(data.site.roofAreaSqM).toLocaleString()} ${t.sqmLabel}` });
+  }
+  
+  if (data.site.buildingType) {
+    const buildingTypeLabel = (t.buildingTypes as Record<string, string>)[data.site.buildingType] || data.site.buildingType;
+    bulletItems.push({ label: t.buildingType, value: buildingTypeLabel });
+  }
+  
+  bulletItems.push({ label: t.constructionStart, value: t.constructionValue });
+  bulletItems.push({ label: t.developer, value: t.developerValue });
+  bulletItems.push({ label: t.buildingSponsor, value: t.buildingSponsorValue });
+  bulletItems.push({ label: t.electricityOfftake, value: t.electricityOfftakeValue });
 
-  yPos = drawBulletItem(t.projectSize, sizeValue, yPos);
-  yPos = drawBulletItem(t.constructionStart, t.constructionValue, yPos);
-  yPos = drawBulletItem(t.developer, t.developerValue, yPos);
-  yPos = drawBulletItem(t.buildingSponsor, t.buildingSponsorValue, yPos);
-  yPos = drawBulletItem(t.electricityOfftake, t.electricityOfftakeValue, yPos);
+  let totalBulletHeight = 30;
+  for (const item of bulletItems) {
+    const labelHeight = 12;
+    const valueHeight = 14;
+    totalBulletHeight += labelHeight + valueHeight + 12;
+  }
+  totalBulletHeight += boxPadding;
+
+  const boxHeight = Math.max(totalBulletHeight, 240);
+
+  doc.roundedRect(leftColX, twoColStartY, leftColWidth, boxHeight, 6)
+    .fillColor(COLORS.primary)
+    .fill();
+
+  let bulletY = twoColStartY + boxPadding;
+
+  doc.fontSize(13).fillColor(COLORS.white).font("Helvetica-Bold");
+  doc.text(t.projectDetails, leftColX + boxPadding, bulletY, { width: boxInnerWidth });
+  doc.font("Helvetica");
+  bulletY += 25;
+
+  const drawBulletItemOnBlue = (label: string, value: string, y: number): number => {
+    doc.circle(leftColX + boxPadding + 4, y + 5, 2.5).fillColor(COLORS.accent).fill();
+    
+    doc.fontSize(9).fillColor(COLORS.accent).font("Helvetica-Bold");
+    doc.text(label, leftColX + boxPadding + 14, y, { width: boxInnerWidth - 14 });
+    doc.font("Helvetica");
+    
+    const labelHeight = 12;
+    
+    doc.fontSize(10).fillColor(COLORS.white);
+    doc.text(value, leftColX + boxPadding + 14, y + labelHeight + 2, { width: boxInnerWidth - 14 });
+    
+    const valueHeight = 14;
+    
+    return y + labelHeight + valueHeight + 12;
+  };
+
+  for (const item of bulletItems) {
+    bulletY = drawBulletItemOnBlue(item.label, item.value, bulletY);
+  }
 
   let rightYPos = twoColStartY;
 
