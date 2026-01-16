@@ -8172,6 +8172,245 @@ ${fileContent}`
     }
   });
 
+  // ==================== KB RACKING COST ESTIMATOR & BOM ROUTES ====================
+  
+  const {
+    estimateKBRackingCost,
+    generateBOM,
+    estimatePanelCountFromArea,
+    KB_RACKING_SPECS,
+    isQuoteExpiringSoon,
+    isQuoteExpired,
+  } = await import("./kbRackingEstimator");
+
+  // GET /api/kb-racking/estimate - Estimate racking cost for panel count
+  app.get("/api/kb-racking/estimate", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const panelCount = parseInt(req.query.panels as string) || 0;
+      if (panelCount <= 0) {
+        return res.status(400).json({ error: "Panel count must be greater than 0" });
+      }
+      
+      const estimate = estimateKBRackingCost(panelCount);
+      res.json(estimate);
+    } catch (error) {
+      console.error("Error estimating KB Racking cost:", error);
+      res.status(500).json({ error: "Failed to estimate racking cost" });
+    }
+  });
+
+  // GET /api/kb-racking/estimate-from-area - Estimate from roof area
+  app.get("/api/kb-racking/estimate-from-area", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const areaSqM = parseFloat(req.query.area as string) || 0;
+      if (areaSqM <= 0) {
+        return res.status(400).json({ error: "Area must be greater than 0" });
+      }
+      
+      const panelCount = estimatePanelCountFromArea(areaSqM);
+      const estimate = estimateKBRackingCost(panelCount);
+      res.json({
+        roofAreaSqM: areaSqM,
+        ...estimate,
+      });
+    } catch (error) {
+      console.error("Error estimating from area:", error);
+      res.status(500).json({ error: "Failed to estimate from area" });
+    }
+  });
+
+  // GET /api/kb-racking/bom/:panelCount - Generate Bill of Materials
+  app.get("/api/kb-racking/bom/:panelCount", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const panelCount = parseInt(req.params.panelCount) || 0;
+      if (panelCount <= 0) {
+        return res.status(400).json({ error: "Panel count must be greater than 0" });
+      }
+      
+      const bom = generateBOM(panelCount);
+      const estimate = estimateKBRackingCost(panelCount);
+      
+      res.json({
+        summary: estimate,
+        items: bom,
+        specs: KB_RACKING_SPECS,
+      });
+    } catch (error) {
+      console.error("Error generating BOM:", error);
+      res.status(500).json({ error: "Failed to generate BOM" });
+    }
+  });
+
+  // GET /api/kb-racking/specs - Get KB Racking standard specifications
+  app.get("/api/kb-racking/specs", authMiddleware, async (req: AuthRequest, res) => {
+    res.json(KB_RACKING_SPECS);
+  });
+
+  // GET /api/kb-racking/portfolio-stats - Portfolio KB Racking statistics
+  app.get("/api/kb-racking/portfolio-stats", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const portfolioId = req.query.portfolioId as string | undefined;
+      
+      // Get all sites with KB data
+      const allSites = await storage.getSites();
+      let sitesWithKB = allSites.filter((s: any) => s.kbDesignStatus === "complete");
+      
+      // If portfolio specified, filter to that portfolio's sites
+      if (portfolioId) {
+        const portfolioSites = await storage.getPortfolioSites(portfolioId);
+        const portfolioSiteIds = new Set(portfolioSites.map((ps: any) => ps.siteId));
+        sitesWithKB = sitesWithKB.filter((s: any) => portfolioSiteIds.has(s.id));
+      }
+      
+      // Calculate statistics
+      let totalPanels = 0;
+      let totalKwDc = 0;
+      let totalRackingValue = 0;
+      let minPrice = Infinity;
+      let maxPrice = 0;
+      let quotesExpiringSoon = 0;
+      let quotesExpired = 0;
+      
+      for (const site of sitesWithKB) {
+        const s = site as any;
+        totalPanels += s.kbPanelCount || 0;
+        totalKwDc += s.kbKwDc || 0;
+        totalRackingValue += s.kbRackingSubtotal || 0;
+        
+        const price = s.kbPricePerPanel || 0;
+        if (price > 0) {
+          if (price < minPrice) minPrice = price;
+          if (price > maxPrice) maxPrice = price;
+        }
+        
+        const expiry = s.kbQuoteExpiry ? new Date(s.kbQuoteExpiry) : null;
+        if (isQuoteExpiringSoon(expiry)) quotesExpiringSoon++;
+        if (isQuoteExpired(expiry)) quotesExpired++;
+      }
+      
+      const avgPrice = sitesWithKB.length > 0 
+        ? totalRackingValue / totalPanels 
+        : 0;
+      
+      res.json({
+        totalSites: allSites.length,
+        sitesWithDesign: sitesWithKB.length,
+        totalPanels,
+        totalKwDc: Math.round(totalKwDc * 100) / 100,
+        totalMwDc: Math.round(totalKwDc / 10) / 100, // Convert to MW with 2 decimals (kW / 1000 = MW, rounded to 2 decimals)
+        totalRackingValue: Math.round(totalRackingValue * 100) / 100,
+        averagePricePerPanel: Math.round(avgPrice * 100) / 100,
+        minPricePerPanel: minPrice === Infinity ? 0 : minPrice,
+        maxPricePerPanel: maxPrice,
+        quotesExpiringSoon,
+        quotesExpired,
+      });
+    } catch (error) {
+      console.error("Error fetching portfolio KB stats:", error);
+      res.status(500).json({ error: "Failed to fetch portfolio statistics" });
+    }
+  });
+
+  // POST /api/kb-racking/proposal-pdf/:siteId - Generate KB Racking proposal PDF
+  app.post("/api/kb-racking/proposal-pdf/:siteId", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { siteId } = req.params;
+      const language = (req.body.language || 'fr') as 'fr' | 'en';
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      // Get client info
+      const client = await storage.getClient(site.clientId);
+      
+      // Check if site has KB Racking data
+      const siteData = site as any;
+      if (siteData.kbDesignStatus !== 'complete' || !siteData.kbPanelCount) {
+        return res.status(400).json({ error: "Site does not have KB Racking design data" });
+      }
+      
+      const { generateKBProposalPDF } = await import("./kbProposalPdfGenerator");
+      
+      const estimate = estimateKBRackingCost(siteData.kbPanelCount);
+      
+      const pdfSiteData = {
+        name: site.name,
+        address: site.address || '',
+        city: site.city || '',
+        province: site.province || 'Québec',
+        postalCode: site.postalCode || '',
+        buildingType: site.buildingType || 'commercial',
+        clientName: client?.name || '',
+      };
+      
+      // Pass stored KB quote metadata if available
+      const pdfOptions: any = {
+        companyName: 'kWh Québec Inc.',
+        companyPhone: '514-427-8871',
+        companyEmail: 'info@kwhquebec.com',
+      };
+      
+      if (siteData.kbQuoteDate) {
+        pdfOptions.quoteDate = new Date(siteData.kbQuoteDate);
+      }
+      if (siteData.kbQuoteExpiry) {
+        const expiryDate = new Date(siteData.kbQuoteExpiry);
+        const quoteDate = pdfOptions.quoteDate || new Date();
+        pdfOptions.quoteValidityDays = Math.ceil((expiryDate.getTime() - quoteDate.getTime()) / (24 * 60 * 60 * 1000));
+      }
+      if (siteData.kbQuoteNumber) {
+        pdfOptions.quoteNumber = siteData.kbQuoteNumber;
+      }
+      
+      const pdfBuffer = await generateKBProposalPDF(pdfSiteData, estimate, language, pdfOptions);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="KB_Proposal_${site.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating KB Racking proposal PDF:", error);
+      res.status(500).json({ error: "Failed to generate proposal PDF" });
+    }
+  });
+
+  // GET /api/kb-racking/expiring-quotes - Get quotes expiring soon
+  app.get("/api/kb-racking/expiring-quotes", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const daysAhead = parseInt(req.query.days as string) || 7;
+      const allSites = await storage.getSites();
+      
+      const now = new Date();
+      const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+      
+      const expiringSites = allSites.filter((s: any) => {
+        if (!s.kbQuoteExpiry || s.kbDesignStatus !== "complete") return false;
+        const expiry = new Date(s.kbQuoteExpiry);
+        return expiry > now && expiry <= futureDate;
+      }).map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        address: s.address,
+        kbPanelCount: s.kbPanelCount,
+        kbKwDc: s.kbKwDc,
+        kbRackingSubtotal: s.kbRackingSubtotal,
+        kbQuoteDate: s.kbQuoteDate,
+        kbQuoteExpiry: s.kbQuoteExpiry,
+        daysUntilExpiry: Math.ceil((new Date(s.kbQuoteExpiry).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),
+      }));
+      
+      res.json({
+        count: expiringSites.length,
+        daysAhead,
+        sites: expiringSites.sort((a: any, b: any) => a.daysUntilExpiry - b.daysUntilExpiry),
+      });
+    } catch (error) {
+      console.error("Error fetching expiring quotes:", error);
+      res.status(500).json({ error: "Failed to fetch expiring quotes" });
+    }
+  });
+
   // ==================== AI ASSISTANT ROUTES ====================
   registerAIAssistantRoutes(app, authMiddleware, requireStaff);
 

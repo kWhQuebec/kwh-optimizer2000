@@ -65,30 +65,43 @@ interface PanelPosition {
   priority?: number;  // Higher = more central, should be kept when reducing
 }
 
-const PANEL_KW = 0.59;
-const PANEL_WIDTH_M = 2.0;
-const PANEL_HEIGHT_M = 1.0;
-const PANEL_GAP_M = 0.1;
-const PERIMETER_SETBACK_M = 1.2;
+// ═══════════════════════════════════════════════════════════════════════════════
+// KB RACKING VALIDATED SPECIFICATIONS - Based on 18 real projects (~40 MW)
+// Product: AeroGrid 10° Landscape with Jinko 625W bifacial panels
+// Source: KB Racking engineering drawings & quotes (Oct-Dec 2025)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-const PANEL_TILT_DEG = 10.0;
-const SUN_ALTITUDE_WINTER_SOLSTICE_DEG = 21.5;
+// Panel specifications - Jinko Solar 625W bifacial
+const PANEL_KW = 0.625;                   // 625W = 0.625 kW
+const PANEL_WIDTH_M = 2.382;              // Length in landscape orientation (mm: 2382)
+const PANEL_HEIGHT_M = 1.134;             // Width in landscape orientation (mm: 1134)
+const PANEL_THICKNESS_MM = 30;            // Panel thickness
+const PANEL_WEIGHT_KG = 32.4;             // Per KB Racking specs
+const PANEL_CELL_TYPE = 72;               // 72-cell bifacial
+
+// Racking specifications - AeroGrid 10° Landscape
+const RACKING_WEIGHT_KG_PER_PANEL = 12.838644;  // Per KB Racking ballast reports
+const PANEL_GAP_M = 0.10;                 // Thermal expansion gap between panels
+const PERIMETER_SETBACK_M = 1.22;         // KB standard edge setback (was 1.2m)
+
+// Fixed row geometry - KB Racking standard for Quebec (validated across 18 sites)
+const KB_ROW_SPACING_M = 1.557;           // Row-to-row distance (center to center)
+const KB_INTER_ROW_SPACING_M = 0.435;     // Gap between back of row 1 and front of row 2
+const PANEL_TILT_DEG = 10.0;              // AeroGrid 10° system
+const SUN_ALTITUDE_WINTER_SOLSTICE_DEG = 21.5; // Quebec winter sun angle
 
 // Maintenance corridor constants (IFC fire code compliance)
-const MAINTENANCE_CORRIDOR_WIDTH_M = 1.2; // 4 feet minimum for firefighter access
+const MAINTENANCE_CORRIDOR_WIDTH_M = 1.22; // 4 feet (1.22m) minimum for firefighter access
 const MAINTENANCE_CORRIDOR_SPACING_M = 40; // Maximum array section before corridor required
 
 // Quebec solar yield constants (based on RNCan data for ~45-48° latitude)
-// South-facing at latitude tilt: ~1150-1200 kWh/kWp/year
-// 10° tilt loses ~5-8% vs latitude tilt
-const QUEBEC_BASE_YIELD_KWH_KWP = 1150; // kWh/kWp/year for south-facing at optimal tilt
-const YIELD_LOSS_10DEG_TILT = 0.06; // ~6% loss for 10° vs 35-45° optimal tilt
+const QUEBEC_BASE_YIELD_KWH_KWP = 1150;   // kWh/kWp/year for south-facing at optimal tilt
+const YIELD_LOSS_10DEG_TILT = 0.06;       // ~6% loss for 10° vs 35-45° optimal tilt
+const BIFACIAL_GAIN_PERCENT = 0.08;       // ~8% additional yield for bifacial panels
 
-// Ballast system structural load constants (based on industry standards)
-// Typical ballast: 4-8 lb/sq ft = 19.5-39 kg/m²
-const BALLAST_KG_PER_SQM = 25; // Average ballast weight
-const PANEL_WEIGHT_KG = 25; // Typical 590W panel weight
-const RACKING_WEIGHT_KG_PER_PANEL = 5; // Racking hardware per panel
+// Ballast system structural load constants (KB Racking ballast reports)
+// AeroGrid uses concrete pavers, weight varies by wind zone (36.75 lb factor typical)
+const BALLAST_KG_PER_SQM = 30;            // Average ballast for Quebec wind zones (q50=0.40-0.44 kPa)
 
 // Calculate yield adjustment based on panel orientation deviation from true south
 // South = 180° azimuth, East-West rows have panels facing south
@@ -131,6 +144,13 @@ function calculateStructuralLoad(panelCount: number, roofAreaSqM: number): numbe
   return Math.round(totalWeight / panelAreaSqM * 10) / 10; // kg/m² with 1 decimal
 }
 
+// KB Racking uses fixed row geometry validated for Quebec winter shading
+// This replaces dynamic calculation with industry-validated constants
+// Total row pitch = inter-row gap + panel width in direction of tilt
+// KB standard: 1.557m row spacing provides optimal winter shading with 10° tilt
+const ROW_SPACING_M = KB_ROW_SPACING_M;  // Use KB Racking validated value (1.557m)
+
+// Legacy anti-shading calculation (kept for reference/comparison)
 function calculateAntiShadingRowSpacing(panelHeightM: number, tiltDeg: number, sunAltitudeDeg: number): number {
   const tiltRad = tiltDeg * Math.PI / 180;
   const sunAltRad = sunAltitudeDeg * Math.PI / 180;
@@ -138,8 +158,6 @@ function calculateAntiShadingRowSpacing(panelHeightM: number, tiltDeg: number, s
   const shadowLength = panelVerticalHeight / Math.tan(sunAltRad);
   return Math.max(0.3, shadowLength);
 }
-
-const ROW_SPACING_M = calculateAntiShadingRowSpacing(PANEL_HEIGHT_M, PANEL_TILT_DEG, SUN_ALTITUDE_WINTER_SOLSTICE_DEG);
 
 function formatNumber(num: number, language: string): string {
   return num.toLocaleString(language === "fr" ? "fr-CA" : "en-CA");

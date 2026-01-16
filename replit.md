@@ -105,6 +105,29 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   Total combined area calculation automatically updates roof area parameter
     -   Database schema: `roofPolygons` table with coordinates, areaSqM, color, and metadata
     -   Database fields: `roofAreaValidated`, `roofAreaValidatedAt`, `roofAreaValidatedBy` track validation state
+-   **KB Racking Integration**: Real-world commercial racking data from 18 actual projects (~40 MW, $7.3M):
+    -   **Validated Panel Specs**: Jinko 625W bifacial (2.382m × 1.134m × 30mm, 32.4kg)
+    -   **Racking System**: AeroGrid 10° Landscape ballast mount (12.84 kg/panel)
+    -   **Fixed Row Spacing**: 1.557m (inter-row 0.435m) for optimal tilt angle
+    -   **Perimeter Setback**: 1.22m IFC fire code compliance
+    -   **Tiered Pricing Curve**: 
+        - <1,500 panels: $115.50/panel
+        - 1,500-3,000 panels: $113.00/panel
+        - 3,000-5,000 panels: $111.50/panel
+        - 5,000-8,000 panels: $111.00/panel
+        - 8,000+ panels: $110.00/panel
+    -   **Automated BOM Generation**: Panels, racking, shipping, PE stamped engineering
+    -   **Portfolio Intelligence Dashboard**: Total MW, racking value, price analytics
+    -   **Quote Expiration Tracking**: 30-day validity with 7-day warning alerts
+    -   **PDF Proposal Generator**: Bilingual FR/EN professional quotes
+    -   **API Endpoints**:
+        - `/api/kb-racking/estimate` - Cost estimation by panel count
+        - `/api/kb-racking/estimate-from-area` - Estimation from roof area (m²)
+        - `/api/kb-racking/bom/:panelCount` - Bill of Materials generation
+        - `/api/kb-racking/specs` - Standard specifications
+        - `/api/kb-racking/portfolio-stats` - Portfolio KPI summary
+        - `/api/kb-racking/expiring-quotes` - Quotes expiring soon
+        - `/api/kb-racking/proposal-pdf/:siteId` - PDF proposal generation
 -   **Advanced Analysis Modules**:
     -   **Monte Carlo Probabilistic ROI**: A 500-iteration simulation for financial calculations with variable ranges, returning P10/P50/P90 confidence intervals.
     -   **15-Minute Peak Shaving Calculator**: Analyzes granular consumption data for battery storage optimization and demand charge savings.

@@ -919,6 +919,26 @@ const translations: Translations = {
   "blog.ctaTitle": { fr: "Prêt à passer à l'action?", en: "Ready to take action?" },
   "blog.ctaDescription": { fr: "Obtenez une estimation gratuite du potentiel solaire de votre bâtiment.", en: "Get a free solar potential estimate for your building." },
   "blog.ctaButton": { fr: "Demander mon analyse", en: "Request my analysis" },
+
+  // KB Racking Dashboard
+  "kbRacking.title": { fr: "Tableau de bord KB Racking", en: "KB Racking Dashboard" },
+  "kbRacking.subtitle": { fr: "Statistiques de portefeuille d'arrimage KB", en: "KB Racking Portfolio Statistics" },
+  "kbRacking.totalMW": { fr: "MW total conçu", en: "Total MW Designed" },
+  "kbRacking.totalValue": { fr: "Valeur totale d'arrimage", en: "Total Racking Value" },
+  "kbRacking.sitesWithDesign": { fr: "Sites avec design KB", en: "Sites with KB Design" },
+  "kbRacking.avgPrice": { fr: "Prix moyen par panneau", en: "Average Price per Panel" },
+  "kbRacking.priceRange": { fr: "Plage de prix", en: "Price Range" },
+  "kbRacking.expiringSoon": { fr: "Devis expirant bientôt", en: "Quotes Expiring Soon" },
+  "kbRacking.daysPlural": { fr: "jours", en: "days" },
+  "kbRacking.daysSingular": { fr: "jour", en: "day" },
+  "kbRacking.expired": { fr: "Devis expirés", en: "Expired Quotes" },
+  "kbRacking.loading": { fr: "Chargement des statistiques KB...", en: "Loading KB statistics..." },
+  "kbRacking.error": { fr: "Erreur lors du chargement des données KB", en: "Error loading KB data" },
+  "kbRacking.noData": { fr: "Aucune donnée KB Racking disponible", en: "No KB Racking data available" },
+  "kbRacking.warning": { fr: "Attention", en: "Warning" },
+  "kbRacking.alert": { fr: "Alerte", en: "Alert" },
+  "kbRacking.min": { fr: "Min", en: "Min" },
+  "kbRacking.max": { fr: "Max", en: "Max" },
 };
 
 interface I18nContextType {

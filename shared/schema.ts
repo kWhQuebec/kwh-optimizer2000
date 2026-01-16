@@ -134,6 +134,23 @@ export const sites = pgTable("sites", {
   roofAreaValidatedAt: timestamp("roof_area_validated_at"), // When manual drawing was completed
   roofAreaValidatedBy: varchar("roof_area_validated_by"), // User ID who validated
   
+  // KB Racking Design Data - Validated from real project quotes
+  // Product: AeroGrid 10° Landscape with Jinko 625W panels
+  kbDesignStatus: text("kb_design_status").default("none"), // "none" | "pending" | "complete"
+  kbPanelCount: integer("kb_panel_count"), // Number of panels from KB design
+  kbKwDc: real("kb_kw_dc"), // Total DC capacity in kW (panel count × 0.625)
+  kbPricePerPanel: real("kb_price_per_panel"), // $/panel from KB quote
+  kbRackingSubtotal: real("kb_racking_subtotal"), // Total racking cost (panels × price)
+  kbShippingCost: real("kb_shipping_cost"), // Shipping/handling estimate
+  kbEngineeringCost: real("kb_engineering_cost"), // PE stamped report cost
+  kbQuoteDate: timestamp("kb_quote_date"), // Date quote was issued
+  kbQuoteExpiry: timestamp("kb_quote_expiry"), // Quote expiration date (typically +30 days)
+  kbQuoteNumber: text("kb_quote_number"), // Reference quote number
+  kbDesignPdfUrl: text("kb_design_pdf_url"), // URL to engineering PDF
+  kbWindPressureKpa: real("kb_wind_pressure_kpa"), // q50 wind pressure from design
+  kbExposureFactor: real("kb_exposure_factor"), // Ce exposure factor
+  kbTerrainType: text("kb_terrain_type"), // "Rough" | "Open" etc.
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
