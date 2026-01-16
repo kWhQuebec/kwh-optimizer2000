@@ -8375,6 +8375,28 @@ ${fileContent}`
     }
   });
 
+  // GET /api/kb-racking/google-solar-comparison - Run KB vs Google Solar comparison
+  app.get("/api/kb-racking/google-solar-comparison", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const { runKBGoogleSolarComparison, generateComparisonReport } = await import("./kbGoogleSolarComparison");
+      
+      console.log("Starting KB vs Google Solar comparison...");
+      const comparison = await runKBGoogleSolarComparison();
+      
+      const format = req.query.format as string;
+      if (format === 'markdown') {
+        const report = generateComparisonReport(comparison);
+        res.setHeader('Content-Type', 'text/markdown');
+        res.send(report);
+      } else {
+        res.json(comparison);
+      }
+    } catch (error) {
+      console.error("Error running KB/Google Solar comparison:", error);
+      res.status(500).json({ error: "Failed to run comparison", details: String(error) });
+    }
+  });
+
   // GET /api/kb-racking/expiring-quotes - Get quotes expiring soon
   app.get("/api/kb-racking/expiring-quotes", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
