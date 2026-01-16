@@ -73,16 +73,16 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   PNG export for client presentations
     -   Integration with system sizing recommendations
     -   Fallback algorithmic panel generation (teal panels) when Google data is limited (<10 panels)
--   **IFC-Compliant Panel Placement**: All solar capacity calculations use consistent, industry-standard parameters:
-    -   **Panel specifications**: 590W bifacial, 2.0m × 1.0m physical dimensions
-    -   **Perimeter setback**: 1.2m (4 feet) IFC fire code standard - properly enforced via polygon inset
-    -   **Obstacle setback**: 1.2m from HVAC/constraints - enforced via polygon expansion + distance validation
-    -   **Panel gap**: 0.1m for thermal expansion and maintenance
-    -   **Row spacing**: 0.5m additional (1.5m total pitch) for 10° ballast systems typical in Quebec
-    -   **Effective panel footprint**: 3.15 m² (2.1m × 1.5m grid cell)
+-   **KB Racking Hybrid Sizing Approach**: Panel sizing uses validated real-world data instead of theoretical calculations:
+    -   **Hybrid Strategy**: Google Solar API used ONLY for irradiance/production data (kWh/kWp), NOT for panel count or roof area
+    -   **Manual Roof Drawing**: Source of truth for roof surfaces (Google fails on large C&I buildings)
+    -   **KB Racking Specs**: Jinko 625W bifacial (2.382m × 1.134m), AeroGrid 10° Landscape, 1.557m row pitch
+    -   **Effective Panel Footprint**: 3.71 m² (2.382m width × 1.557m row pitch)
+    -   **Power Density**: ~168 W/m² (625W / 3.71m²)
+    -   **Realistic Correction Factor**: 0.45× applied to theoretical capacity (validated from 18 real projects)
+    -   **Perimeter setback**: 1.22m IFC fire code compliance
     -   **Utilization ratio**: 85% of roof area usable after perimeter setback
-    -   **Power density**: ~187 W/m² effective
-    -   Consistent parameters across: RoofVisualization, SolarMockup, quick-potential, quick-estimate endpoints
+    -   Consistent parameters across: RoofVisualization, quick-potential, quick-estimate endpoints
     -   **Simple Grid-Based Fill Algorithm**: For all roof geometries including L/U/T-shaped:
         -   Uses global PCA axis for uniform panel orientation across entire roof
         -   CCW polygon winding normalization ensures correct inset/expansion operations

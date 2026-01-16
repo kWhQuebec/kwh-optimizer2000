@@ -720,8 +720,21 @@ export async function registerRoutes(
       if (roofData?.success && roofData.maxArrayAreaSqM > 0) {
         hasRoofData = true;
         roofAreaSqM = roofData.maxArrayAreaSqM;
-        // IFC-compliant: 85% utilization (1.2m setback), 590W/3.15m² = 187 W/m²
-        roofBasedKW = Math.round((roofAreaSqM * 0.85 * 187) / 1000);
+        // KB RACKING VALIDATED PARAMETERS (based on 18 real projects, ~40 MW)
+        // Panel: Jinko 625W bifacial, 2.382m × 1.134m
+        // Row spacing: 1.557m (KB AeroGrid 10°)
+        // Perimeter setback: 1.22m
+        // Effective panel footprint: 2.382m × 1.557m = 3.71 m²
+        // Power density: 625W / 3.71m² = 168 W/m²
+        // Realistic correction: KB designs install ~45% of what Google estimates
+        // Combined: (roofArea × 0.85 × 168 × 0.45) / 1000 = roofArea × 0.064
+        // Simplified: use Google's estimate × 0.45 correction factor
+        const KB_REALISTIC_FACTOR = 0.45; // Validated from 18-site comparison
+        const PANEL_POWER_W = 625;
+        const KB_PANEL_FOOTPRINT_M2 = 3.71; // 2.382m × 1.557m row pitch
+        const UTILIZATION = 0.85;
+        const theoreticalKW = (roofAreaSqM * UTILIZATION * PANEL_POWER_W / KB_PANEL_FOOTPRINT_M2) / 1000;
+        roofBasedKW = Math.round(theoreticalKW * KB_REALISTIC_FACTOR);
       }
       
       // Final system size: minimum of consumption-based and roof-based (min 10 kW for commercial)
@@ -2153,15 +2166,18 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Roof area is zero or invalid" });
       }
       
-      // IFC-compliant parameters for Quebec commercial solar (matching RoofVisualization)
-      // Panel: 2.0m × 1.0m = 2.0 m² physical
-      // Gap between panels: 0.1m
-      // Row spacing: 0.5m (10° ballast systems)
-      // Effective panel footprint: (2.0 + 0.1) × (1.0 + 0.5) = 2.1 × 1.5 = 3.15 m²
-      const UTILIZATION_RATIO = 0.85; // 85% usable after 1.2m perimeter setback + edge losses
-      const QUEBEC_YIELD_KWHPERKWP = 1200; // kWh/kWp average for Quebec
-      const PANEL_POWER_W = 590; // Modern 590W bifacial panel
-      const PANEL_AREA_M2 = 3.15; // Effective area per panel (2.1m × 1.5m grid cell)
+      // ═══════════════════════════════════════════════════════════════════════════════
+      // KB RACKING VALIDATED PARAMETERS - Based on 18 real projects (~40 MW, $7.3M)
+      // Product: AeroGrid 10° Landscape with Jinko 625W bifacial panels
+      // Source: KB Racking engineering drawings & quotes (Oct-Dec 2025)
+      // Validated against Google Solar API: KB installs ~45% of Google estimates
+      // ═══════════════════════════════════════════════════════════════════════════════
+      const UTILIZATION_RATIO = 0.85; // 85% usable after 1.22m perimeter setback
+      const QUEBEC_YIELD_KWHPERKWP = 1150; // kWh/kWp Quebec average (conservative)
+      const PANEL_POWER_W = 625; // Jinko 625W bifacial panel
+      // KB Racking row pitch: 1.557m, Panel width: 2.382m
+      // Effective footprint: 2.382m × 1.557m = 3.71 m²
+      const PANEL_AREA_M2 = 3.71; // KB Racking validated effective area per panel
       
       // Calculate usable roof area (after perimeter setback)
       const usableRoofAreaSqM = totalRoofAreaSqM * UTILIZATION_RATIO;

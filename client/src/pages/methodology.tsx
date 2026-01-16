@@ -479,6 +479,64 @@ function SolarSection({ t }: { t: typeof fr }) {
           </ul>
         </CardContent>
       </Card>
+
+      <Card data-testid="card-kb-racking">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-teal-500" />
+            {t.solar.kbRacking.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="prose dark:prose-invert max-w-none">
+          <p>{t.solar.kbRacking.description}</p>
+          
+          <h4>{t.solar.kbRacking.methodology.title}</h4>
+          <ol>
+            {t.solar.kbRacking.methodology.steps.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+
+          <h4>{t.solar.kbRacking.specs.title}</h4>
+          <div className="grid md:grid-cols-2 gap-4 not-prose">
+            <div className="border rounded-lg p-4" data-testid="card-kb-panels">
+              <h5 className="font-semibold mb-2 text-sm">{t.solar.kbRacking.specs.panelsLabel}</h5>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                {t.solar.kbRacking.specs.panels.map((item, i) => (
+                  <li key={i} className="flex justify-between" data-testid={`row-kb-panel-${i}`}>
+                    <span>{item.name}</span>
+                    <Badge variant="outline">{item.value}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="border rounded-lg p-4" data-testid="card-kb-racking-specs">
+              <h5 className="font-semibold mb-2 text-sm">{t.solar.kbRacking.specs.rackingLabel}</h5>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                {t.solar.kbRacking.specs.racking.map((item, i) => (
+                  <li key={i} className="flex justify-between" data-testid={`row-kb-racking-${i}`}>
+                    <span>{item.name}</span>
+                    <Badge variant="outline">{item.value}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <h4>{t.solar.kbRacking.pricing.title}</h4>
+          <div className="grid grid-cols-5 gap-2 not-prose">
+            {t.solar.kbRacking.pricing.tiers.map((tier, i) => (
+              <div key={i} className="border rounded-lg p-2 text-center text-sm">
+                <div className="font-mono text-xs text-muted-foreground">{tier.range}</div>
+                <Badge variant="secondary" className="mt-1">{tier.price}</Badge>
+              </div>
+            ))}
+          </div>
+
+          <h4>{t.solar.kbRacking.comparison.title}</h4>
+          <p className="text-sm bg-muted p-3 rounded-lg">{t.solar.kbRacking.comparison.description}</p>
+        </CardContent>
+      </Card>
     </>
   );
 }
@@ -1089,6 +1147,52 @@ const fr = {
         ],
       },
     },
+    kbRacking: {
+      title: "Données KB Racking Validées",
+      description: "Les paramètres de dimensionnement sont validés contre 18 projets commerciaux réels (~40 MW, 7.3M$ en valeur de rack). Cette approche hybride utilise Google Solar API uniquement pour les données de production (kWh/kWp) et les specs KB Racking pour la disposition des panneaux.",
+      methodology: {
+        title: "Approche Hybride Google + KB Racking",
+        steps: [
+          "Traçage manuel des toits: Source de vérité pour les surfaces de toit",
+          "Google Solar API: Utilisé uniquement pour l'irradiance (kWh/kWp/an) et données météo",
+          "KB Racking specs: Disposition réaliste des panneaux et densité validée",
+          "Facteur de correction: Les designs KB installent ~45% de ce que Google estime",
+        ],
+      },
+      specs: {
+        title: "Spécifications KB Racking Validées",
+        panelsLabel: "Panneaux",
+        rackingLabel: "Structure de montage",
+        panels: [
+          { name: "Modèle de panneau", value: "Jinko Solar 625W bifacial" },
+          { name: "Dimensions", value: "2382 × 1134 × 30 mm" },
+          { name: "Poids panneau", value: "32.4 kg" },
+          { name: "Type cellule", value: "72-cell bifacial" },
+        ],
+        racking: [
+          { name: "Système", value: "AeroGrid 10° Landscape" },
+          { name: "Poids rack/panneau", value: "12.84 kg" },
+          { name: "Espacement rangées", value: "1.557 m (centre à centre)" },
+          { name: "Inter-rangée", value: "0.435 m" },
+          { name: "Retrait périmètre", value: "1.22 m (code IFC)" },
+          { name: "Inclinaison", value: "10°" },
+        ],
+      },
+      pricing: {
+        title: "Courbe de Prix KB Racking",
+        tiers: [
+          { range: "< 1,500 panneaux", price: "115.50 $/panneau" },
+          { range: "1,500-3,000", price: "113.00 $/panneau" },
+          { range: "3,000-5,000", price: "111.50 $/panneau" },
+          { range: "5,000-8,000", price: "111.00 $/panneau" },
+          { range: "8,000+", price: "110.00 $/panneau" },
+        ],
+      },
+      comparison: {
+        title: "Comparaison KB vs Google Solar",
+        description: "Basé sur l'analyse de 18 sites, les designs KB installent en moyenne 45% du nombre de panneaux estimé par Google Solar API. Cette différence s'explique par les contraintes réelles: retraits incendie, espacement des rangées, charges structurelles et zones HVAC.",
+      },
+    },
   },
 
   battery: {
@@ -1570,6 +1674,52 @@ const en = {
           "Large C&I buildings may exceed API capabilities",
           "Specific yield comparison remains valid even when sizes differ",
         ],
+      },
+    },
+    kbRacking: {
+      title: "KB Racking Validated Data",
+      description: "Sizing parameters are validated against 18 real commercial projects (~40 MW, $7.3M racking value). This hybrid approach uses Google Solar API only for production data (kWh/kWp) and KB Racking specs for panel layout.",
+      methodology: {
+        title: "Hybrid Google + KB Racking Approach",
+        steps: [
+          "Manual roof tracing: Source of truth for roof surfaces",
+          "Google Solar API: Used only for irradiance (kWh/kWp/year) and weather data",
+          "KB Racking specs: Realistic panel layout and validated density",
+          "Correction factor: KB designs install ~45% of what Google estimates",
+        ],
+      },
+      specs: {
+        title: "KB Racking Validated Specifications",
+        panelsLabel: "Panels",
+        rackingLabel: "Racking System",
+        panels: [
+          { name: "Panel model", value: "Jinko Solar 625W bifacial" },
+          { name: "Dimensions", value: "2382 × 1134 × 30 mm" },
+          { name: "Panel weight", value: "32.4 kg" },
+          { name: "Cell type", value: "72-cell bifacial" },
+        ],
+        racking: [
+          { name: "System", value: "AeroGrid 10° Landscape" },
+          { name: "Racking weight/panel", value: "12.84 kg" },
+          { name: "Row spacing", value: "1.557 m (center to center)" },
+          { name: "Inter-row gap", value: "0.435 m" },
+          { name: "Perimeter setback", value: "1.22 m (IFC fire code)" },
+          { name: "Tilt angle", value: "10°" },
+        ],
+      },
+      pricing: {
+        title: "KB Racking Pricing Curve",
+        tiers: [
+          { range: "< 1,500 panels", price: "$115.50/panel" },
+          { range: "1,500-3,000", price: "$113.00/panel" },
+          { range: "3,000-5,000", price: "$111.50/panel" },
+          { range: "5,000-8,000", price: "$111.00/panel" },
+          { range: "8,000+", price: "$110.00/panel" },
+        ],
+      },
+      comparison: {
+        title: "KB vs Google Solar Comparison",
+        description: "Based on analysis of 18 sites, KB designs install on average 45% of the panel count estimated by Google Solar API. This difference is explained by real-world constraints: fire setbacks, row spacing, structural loads, and HVAC zones.",
       },
     },
   },
