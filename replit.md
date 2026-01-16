@@ -83,6 +83,7 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   **Utilization ratio**: 85% of roof area usable after perimeter setback
     -   **Validation**: Results within ~6% of actual KB Racking designs (validated on 18 real projects)
     -   Consistent parameters across: RoofVisualization, quick-potential, quick-estimate endpoints
+    -   **CRITICAL: Row Pitch is Center-to-Center**: The 1.557m row spacing is measured CENTER-TO-CENTER, not as an inter-row gap. In RoofVisualization.tsx, `panelPitchY = ROW_SPACING_M` (1.557m), NOT `PANEL_HEIGHT_M + ROW_SPACING_M` (which would incorrectly double the spacing to 2.691m).
     -   **Simple Grid-Based Fill Algorithm**: For all roof geometries including L/U/T-shaped:
         -   Uses global PCA axis for uniform panel orientation across entire roof
         -   CCW polygon winding normalization ensures correct inset/expansion operations
