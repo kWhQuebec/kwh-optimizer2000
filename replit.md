@@ -29,7 +29,7 @@ The frontend uses React with functional components, managing state via TanStack 
 -   **Portfolio Management**: Allows multi-building project management with volume pricing.
 -   **Hydro-Québec Integrations**: Incorporates HQ incentive policies, net metering rules, and a procuration system for data access authorization.
 -   **Advanced Analysis**: Includes Monte Carlo Probabilistic ROI simulations and a 15-Minute Peak Shaving Calculator.
--   **Market Intelligence Pricing**: Dynamic, component-based pricing with tiered options and an admin UI for management.
+-   **Market Intelligence Pricing**: Dynamic, component-based pricing with tiered options and an admin UI for management. Includes supplier management, price history tracking with analytics (3/6/12 month trends, supplier comparison), and "Promote to Catalog" functionality linking quotes to operational pricing. Freshness indicators (Fresh/Stale/Outdated) show when catalog prices need updating.
 -   **Solar Mockup Visualization**: Generates visual mockups of solar panel installations using Google Solar API data, showing panel positions and constraint areas.
 -   **Manual Roof Drawing Tool**: A mandatory interactive tool for technicians to trace roof areas before analysis, with validation tracking.
 -   **KB Racking Integration**: Utilizes validated KB Racking specifications for direct sizing calculations, automated BOM generation, and tiered pricing.
