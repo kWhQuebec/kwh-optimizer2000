@@ -251,17 +251,16 @@ export async function generateProjectInfoSheetPDF(
   yPos += 30;
 
   if (data.roofImageBuffer) {
-    const imageHeight = 280;
-    const imageMargin = 20;
-    const imageWidth = pageWidth - imageMargin * 2;
-    const imageX = imageMargin;
+    const imageHeight = 320;
+    const imageMargin = 0;
+    const imageWidth = pageWidth;
+    const imageX = 0;
     try {
       doc.image(data.roofImageBuffer, imageX, yPos, {
         width: imageWidth,
         height: imageHeight,
         fit: [imageWidth, imageHeight],
       });
-      doc.rect(imageX, yPos, imageWidth, imageHeight).strokeColor(COLORS.border).lineWidth(0.5).stroke();
       yPos += imageHeight + 25;
     } catch (e) {
       yPos += 10;
