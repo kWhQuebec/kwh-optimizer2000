@@ -720,21 +720,19 @@ export async function registerRoutes(
       if (roofData?.success && roofData.maxArrayAreaSqM > 0) {
         hasRoofData = true;
         roofAreaSqM = roofData.maxArrayAreaSqM;
-        // KB RACKING VALIDATED PARAMETERS (based on 18 real projects, ~40 MW)
-        // Panel: Jinko 625W bifacial, 2.382m × 1.134m
-        // Row spacing: 1.557m (KB AeroGrid 10°)
-        // Perimeter setback: 1.22m
-        // Effective panel footprint: 2.382m × 1.557m = 3.71 m²
-        // Power density: 625W / 3.71m² = 168 W/m²
-        // Realistic correction: KB designs install ~45% of what Google estimates
-        // Combined: (roofArea × 0.85 × 168 × 0.45) / 1000 = roofArea × 0.064
-        // Simplified: use Google's estimate × 0.45 correction factor
-        const KB_REALISTIC_FACTOR = 0.45; // Validated from 18-site comparison
-        const PANEL_POWER_W = 625;
-        const KB_PANEL_FOOTPRINT_M2 = 3.71; // 2.382m × 1.557m row pitch
-        const UTILIZATION = 0.85;
-        const theoreticalKW = (roofAreaSqM * UTILIZATION * PANEL_POWER_W / KB_PANEL_FOOTPRINT_M2) / 1000;
-        roofBasedKW = Math.round(theoreticalKW * KB_REALISTIC_FACTOR);
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // KB RACKING DIRECT CALCULATION - No arbitrary correction factor
+        // Based on validated specs from 18 real projects (~40 MW, $7.3M)
+        // Product: AeroGrid 10° Landscape with Jinko 625W bifacial panels
+        // ═══════════════════════════════════════════════════════════════════════════════
+        const PANEL_POWER_W = 625; // Jinko 625W bifacial
+        const KB_PANEL_FOOTPRINT_M2 = 3.71; // 2.382m width × 1.557m row pitch
+        const UTILIZATION = 0.85; // 85% usable after 1.22m perimeter setback
+        
+        // Direct calculation: usable area ÷ panel footprint × panel power
+        const usableAreaSqM = roofAreaSqM * UTILIZATION;
+        const numPanels = Math.floor(usableAreaSqM / KB_PANEL_FOOTPRINT_M2);
+        roofBasedKW = Math.round((numPanels * PANEL_POWER_W) / 1000);
       }
       
       // Final system size: minimum of consumption-based and roof-based (min 10 kW for commercial)
@@ -2167,10 +2165,10 @@ export async function registerRoutes(
       }
       
       // ═══════════════════════════════════════════════════════════════════════════════
-      // KB RACKING VALIDATED PARAMETERS - Based on 18 real projects (~40 MW, $7.3M)
+      // KB RACKING DIRECT CALCULATION - No arbitrary correction factor
+      // Based on validated specs from 18 real projects (~40 MW, $7.3M)
       // Product: AeroGrid 10° Landscape with Jinko 625W bifacial panels
       // Source: KB Racking engineering drawings & quotes (Oct-Dec 2025)
-      // Validated against Google Solar API: KB installs ~45% of Google estimates
       // ═══════════════════════════════════════════════════════════════════════════════
       const UTILIZATION_RATIO = 0.85; // 85% usable after 1.22m perimeter setback
       const QUEBEC_YIELD_KWHPERKWP = 1150; // kWh/kWp Quebec average (conservative)
