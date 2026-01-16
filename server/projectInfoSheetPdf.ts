@@ -4,9 +4,9 @@ import fs from "fs";
 import { getRoofVisualizationUrl, getSatelliteImageUrl } from "./googleSolarService";
 
 const COLORS = {
-  primary: "#1e3a5f",
-  primaryLight: "#2a4d7a",
-  accent: "#d4a853",
+  primary: "#0054A8",
+  primaryLight: "#0066CC",
+  accent: "#FFBE0D",
   darkText: "#333333",
   mediumText: "#555555",
   lightText: "#888888",
@@ -129,8 +129,8 @@ const TEXTS = {
     constructionValue: "Printemps/Été 2028",
     developer: "Développeur / Constructeur",
     developerValue: "Scale Cleantech et kWh Québec",
-    buildingSponsor: "Propriétaire du bâtiment",
-    buildingSponsorValue: "[Propriétaire du bâtiment]",
+    buildingSponsor: "Propriétaire / Commanditaire",
+    buildingSponsorValue: "Dream Industrial Solar",
     electricityOfftake: "Acheteur d'électricité",
     electricityOfftakeValue: "Hydro-Québec",
     solarTitle: "L'énergie solaire au Québec",
@@ -161,7 +161,7 @@ const TEXTS = {
     developer: "Developer / Constructor",
     developerValue: "Scale Cleantech and kWh Québec",
     buildingSponsor: "Building Sponsor / Owner",
-    buildingSponsorValue: "[Building Owner]",
+    buildingSponsorValue: "Dream Industrial Solar",
     electricityOfftake: "Electricity Offtake",
     electricityOfftakeValue: "Hydro-Québec",
     solarTitle: "Solar in Quebec",
@@ -414,25 +414,37 @@ export async function fetchRoofImageBuffer(
       const centerLat = polygonCenter?.lat ?? latitude;
       const centerLng = polygonCenter?.lng ?? longitude;
       
+      console.log(`[ProjectInfoSheet] Generating roof image: center=${centerLat},${centerLng}, zoom=${zoom}, polygons=${roofPolygons.length}`);
+      
       imageUrl = getRoofVisualizationUrl(
         { latitude: centerLat, longitude: centerLng },
         roofPolygons,
         { width: 800, height: 400, zoom }
       );
     } else {
+      console.log(`[ProjectInfoSheet] No polygons, using satellite image: ${latitude},${longitude}`);
       imageUrl = getSatelliteImageUrl(
         { latitude, longitude },
         { width: 800, height: 400, zoom: 18 }
       );
     }
 
-    if (!imageUrl) return null;
+    if (!imageUrl) {
+      console.log("[ProjectInfoSheet] No image URL generated (API key missing?)");
+      return null;
+    }
 
+    console.log(`[ProjectInfoSheet] Fetching image from Google Maps API...`);
     const response = await fetch(imageUrl);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.log(`[ProjectInfoSheet] Image fetch failed: ${response.status} ${response.statusText}`);
+      return null;
+    }
 
     const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(arrayBuffer);
+    console.log(`[ProjectInfoSheet] Image fetched successfully: ${buffer.length} bytes`);
+    return buffer;
   } catch (error) {
     console.error("[ProjectInfoSheet] Failed to fetch roof image:", error);
     return null;
