@@ -4922,6 +4922,36 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== PUBLIC PORTFOLIO PAGE ====================
+  
+  // Public portfolio endpoint for Dream REIT sites (no auth required)
+  // Returns anonymized site data for public display
+  app.get("/api/public/portfolio", async (req, res) => {
+    try {
+      const DREAM_CLIENT_ID = "6ba7837d-84a0-4526-bfbf-f802bc68c25e";
+      
+      // Get all sites for Dream client
+      const allSites = await storage.getSitesByClient(DREAM_CLIENT_ID);
+      
+      // Filter sites that have coordinates and return anonymized data
+      const portfolioSites = allSites
+        .filter(site => site.latitude != null && site.longitude != null)
+        .map(site => ({
+          id: site.id,
+          city: site.city || "Unknown",
+          kb_kw_dc: site.kbKwDc || null,
+          latitude: site.latitude,
+          longitude: site.longitude,
+          roof_area_sqm: site.roofAreaSqM || site.roofAreaAutoSqM || null,
+        }));
+      
+      res.json(portfolioSites);
+    } catch (error) {
+      console.error("Error fetching public portfolio:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== PORTFOLIO ROUTES ====================
 
   // Get all portfolios
