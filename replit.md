@@ -111,6 +111,7 @@ A PostgreSQL database, managed by Drizzle ORM, includes tables for `users`, `lea
     -   **Racking System**: AeroGrid 10° Landscape ballast mount (12.84 kg/panel)
     -   **Fixed Row Spacing**: 1.557m (inter-row 0.435m) for optimal tilt angle
     -   **Perimeter Setback**: 1.22m IFC fire code compliance
+    -   **Array Grouping**: Panels auto-grouped into numbered arrays (1, 2, 3...) based on fire corridor divisions (40m max sections, 1.22m corridor width), matching KB Racking industry standard for engineering coordination
     -   **Tiered Pricing Curve**: 
         - <1,500 panels: $115.50/panel
         - 1,500-3,000 panels: $113.00/panel
