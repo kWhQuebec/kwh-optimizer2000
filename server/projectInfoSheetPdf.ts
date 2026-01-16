@@ -34,9 +34,88 @@ interface ProjectInfoData {
     buildingType?: string | null;
     roofType?: string | null;
     roofAreaSqM?: number | null;
+    notes?: string | null;
   };
   roofPolygons?: RoofPolygonData[];
   roofImageBuffer?: Buffer;
+  calculatedRoofAreaSqM?: number;
+}
+
+function parseProjectSizeFromNotes(notes: string | null | undefined): { dcKw: number; acKw: number } | null {
+  if (!notes) return null;
+  
+  const dcMatch = notes.match(/Estimated PV Size \(DC\):\s*([\d,]+(?:\.\d+)?)\s*kW/i);
+  const acMatch = notes.match(/Estimated PV Size \(AC\):\s*([\d,]+(?:\.\d+)?)\s*kW/i);
+  
+  if (dcMatch) {
+    const dcKw = parseFloat(dcMatch[1].replace(/,/g, ''));
+    if (!isNaN(dcKw) && dcKw > 0) {
+      let acKw: number;
+      if (acMatch) {
+        acKw = parseFloat(acMatch[1].replace(/,/g, ''));
+        if (isNaN(acKw) || acKw <= 0) {
+          acKw = Math.round(dcKw * 0.625);
+        }
+      } else {
+        acKw = Math.round(dcKw * 0.625);
+      }
+      return { dcKw, acKw };
+    }
+  }
+  return null;
+}
+
+function calculateZoomForPolygons(
+  centerLat: number,
+  centerLng: number,
+  roofPolygons: RoofPolygonData[],
+  imageWidth: number = 800
+): number {
+  if (!roofPolygons || roofPolygons.length === 0) return 18;
+  
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity, maxLng = -Infinity;
+  
+  for (const polygon of roofPolygons) {
+    for (const [lng, lat] of polygon.coordinates) {
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+    }
+  }
+  
+  const latSpan = maxLat - minLat;
+  const lngSpan = maxLng - minLng;
+  
+  const metersPerDegreeLat = 111320;
+  const metersPerDegreeLng = 111320 * Math.cos(centerLat * Math.PI / 180);
+  
+  const heightMeters = latSpan * metersPerDegreeLat;
+  const widthMeters = lngSpan * metersPerDegreeLng;
+  const maxSpanMeters = Math.max(heightMeters, widthMeters);
+  
+  if (maxSpanMeters > 400) return 16;
+  if (maxSpanMeters > 200) return 17;
+  return 18;
+}
+
+function calculatePolygonCenter(roofPolygons: RoofPolygonData[]): { lat: number; lng: number } | null {
+  if (!roofPolygons || roofPolygons.length === 0) return null;
+  
+  let totalLat = 0, totalLng = 0, count = 0;
+  
+  for (const polygon of roofPolygons) {
+    for (const [lng, lat] of polygon.coordinates) {
+      totalLat += lat;
+      totalLng += lng;
+      count++;
+    }
+  }
+  
+  if (count === 0) return null;
+  
+  return { lat: totalLat / count, lng: totalLng / count };
 }
 
 const TEXTS = {
@@ -196,17 +275,23 @@ export async function generateProjectInfoSheetPDF(
   
   const bulletItems: { label: string; value: string }[] = [];
   
-  const kbKwDc = data.site.kbKwDc;
   let sizeValue = t.notAvailable;
+  const kbKwDc = data.site.kbKwDc;
+  
   if (kbKwDc && kbKwDc > 0) {
     const kwAc = Math.round(kbKwDc * 0.85);
     sizeValue = `${Math.round(kbKwDc).toLocaleString()} ${t.dcLabel} / ${kwAc.toLocaleString()} ${t.acLabel}`;
+  } else {
+    const parsedSize = parseProjectSizeFromNotes(data.site.notes);
+    if (parsedSize) {
+      sizeValue = `${Math.round(parsedSize.dcKw).toLocaleString()} ${t.dcLabel} / ${Math.round(parsedSize.acKw).toLocaleString()} ${t.acLabel}`;
+    }
   }
   bulletItems.push({ label: t.projectSize, value: sizeValue });
   
-  
-  if (data.site.roofAreaSqM && data.site.roofAreaSqM > 0) {
-    bulletItems.push({ label: t.roofArea, value: `${Math.round(data.site.roofAreaSqM).toLocaleString()} ${t.sqmLabel}` });
+  const roofArea = data.site.roofAreaSqM || data.calculatedRoofAreaSqM;
+  if (roofArea && roofArea > 0) {
+    bulletItems.push({ label: t.roofArea, value: `${Math.round(roofArea).toLocaleString()} ${t.sqmLabel}` });
   }
   
   if (data.site.buildingType) {
@@ -323,10 +408,16 @@ export async function fetchRoofImageBuffer(
     let imageUrl: string | null = null;
 
     if (roofPolygons && roofPolygons.length > 0) {
+      const zoom = calculateZoomForPolygons(latitude, longitude, roofPolygons);
+      
+      const polygonCenter = calculatePolygonCenter(roofPolygons);
+      const centerLat = polygonCenter?.lat ?? latitude;
+      const centerLng = polygonCenter?.lng ?? longitude;
+      
       imageUrl = getRoofVisualizationUrl(
-        { latitude, longitude },
+        { latitude: centerLat, longitude: centerLng },
         roofPolygons,
-        { width: 800, height: 400, zoom: 18 }
+        { width: 800, height: 400, zoom }
       );
     } else {
       imageUrl = getSatelliteImageUrl(

@@ -8742,6 +8742,14 @@ ${fileContent}`
         );
       }
 
+      const solarPolygons = roofPolygons.filter(p => {
+        const isConstraint = p.label?.toLowerCase().includes("contrainte") || 
+                            p.label?.toLowerCase().includes("constraint") ||
+                            p.color === "#f97316";
+        return !isConstraint;
+      });
+      const calculatedRoofAreaSqM = solarPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+
       const pdfBuffer = await generateProjectInfoSheetPDF(
         {
           site: {
@@ -8756,6 +8764,7 @@ ${fileContent}`
             buildingType: site.buildingType,
             roofType: site.roofType,
             roofAreaSqM: site.roofAreaSqM,
+            notes: site.notes,
           },
           roofPolygons: roofPolygons.map((p) => ({
             coordinates: p.coordinates as [number, number][],
@@ -8763,6 +8772,7 @@ ${fileContent}`
             label: p.label || undefined,
           })),
           roofImageBuffer: roofImageBuffer || undefined,
+          calculatedRoofAreaSqM: calculatedRoofAreaSqM > 0 ? calculatedRoofAreaSqM : undefined,
         },
         lang
       );
