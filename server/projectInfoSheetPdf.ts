@@ -218,20 +218,24 @@ export async function generateProjectInfoSheetPDF(
       : "kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png"
   );
 
-  let yPos = margin;
+  // === HEADER WITH ACCENT BAR ===
+  const headerBarHeight = 8;
+  doc.rect(0, 0, pageWidth, headerBarHeight).fillColor(COLORS.accent).fill();
+  
+  let yPos = headerBarHeight + 20;
 
+  // Logo positioned at top right
   if (fs.existsSync(logoPath)) {
     try {
-      doc.image(logoPath, pageWidth - margin - 140, yPos, { width: 140 });
+      doc.image(logoPath, pageWidth - margin - 150, yPos, { width: 150 });
     } catch (e) {
       doc.fontSize(18).fillColor(COLORS.primary).font("Helvetica-Bold");
-      doc.text("kWh Québec", pageWidth - margin - 140, yPos + 10);
+      doc.text("kWh Québec", pageWidth - margin - 150, yPos + 10);
       doc.font("Helvetica");
     }
   }
 
-  yPos += 70;
-
+  // Project address section with accent underline
   const fullAddress = [
     data.site.address,
     data.site.city,
@@ -241,14 +245,18 @@ export async function generateProjectInfoSheetPDF(
     .filter(Boolean)
     .join(", ");
 
-  doc.fontSize(11).fillColor(COLORS.lightText).font("Helvetica");
-  doc.text(t.projectAddress, margin, yPos);
-  yPos += 16;
+  doc.fontSize(10).fillColor(COLORS.primary).font("Helvetica-Bold");
+  doc.text(t.projectAddress.toUpperCase(), margin, yPos);
+  yPos += 18;
 
-  doc.fontSize(16).fillColor(COLORS.darkText).font("Helvetica-Bold");
-  doc.text(fullAddress || data.site.name, margin, yPos, { width: contentWidth });
+  doc.fontSize(20).fillColor(COLORS.darkText).font("Helvetica-Bold");
+  doc.text(fullAddress || data.site.name, margin, yPos, { width: contentWidth - 170 });
   doc.font("Helvetica");
-  yPos += 30;
+  yPos += 35;
+  
+  // Accent underline under title
+  doc.moveTo(margin, yPos).lineTo(margin + 80, yPos).strokeColor(COLORS.accent).lineWidth(3).stroke();
+  yPos += 20;
 
   if (data.roofImageBuffer) {
     const imageWidth = pageWidth - margin * 2;
@@ -271,8 +279,7 @@ export async function generateProjectInfoSheetPDF(
     yPos += 10;
   }
 
-  doc.moveTo(margin, yPos).lineTo(margin + contentWidth, yPos).strokeColor(COLORS.border).lineWidth(1).stroke();
-  yPos += 20;
+  yPos += 10;
 
   const leftColX = margin;
   const rightColX = margin + leftColWidth + colGap;
@@ -356,10 +363,14 @@ export async function generateProjectInfoSheetPDF(
 
   let rightYPos = twoColStartY;
 
-  doc.fontSize(13).fillColor(COLORS.primary).font("Helvetica-Bold");
+  doc.fontSize(14).fillColor(COLORS.primary).font("Helvetica-Bold");
   doc.text(t.solarTitle, rightColX, rightYPos, { width: rightColWidth });
   doc.font("Helvetica");
-  rightYPos += 25;
+  rightYPos += 20;
+  
+  // Accent underline under section title
+  doc.moveTo(rightColX, rightYPos).lineTo(rightColX + 60, rightYPos).strokeColor(COLORS.accent).lineWidth(2).stroke();
+  rightYPos += 15;
 
   doc.fontSize(9.5).fillColor(COLORS.mediumText).font("Helvetica");
   doc.text(t.solarParagraph1, rightColX, rightYPos, { 
@@ -382,19 +393,24 @@ export async function generateProjectInfoSheetPDF(
     lineGap: 2,
   });
 
-  const footerY = pageHeight - 50;
+  // === PROFESSIONAL FOOTER WITH BLUE BAR ===
+  const footerBarHeight = 45;
+  const footerY = pageHeight - footerBarHeight;
   
-  doc.moveTo(margin, footerY - 15).lineTo(margin + contentWidth, footerY - 15).strokeColor(COLORS.border).lineWidth(0.5).stroke();
-
-  doc.fontSize(9).fillColor(COLORS.lightText).font("Helvetica");
+  // Blue footer bar
+  doc.rect(0, footerY, pageWidth, footerBarHeight).fillColor(COLORS.primary).fill();
+  
+  // Footer content (white text on blue)
+  const footerTextY = footerY + 15;
   
   const cityForFooter = data.site.city || data.site.address || data.site.name;
-  doc.text(cityForFooter, margin, footerY, { continued: false });
+  doc.fontSize(10).fillColor(COLORS.white).font("Helvetica");
+  doc.text(cityForFooter, margin, footerTextY, { continued: false });
   
-  doc.text(t.footerPhone, margin + contentWidth / 2 - 40, footerY, { align: "center", width: 80 });
+  doc.text(t.footerPhone, pageWidth / 2 - 50, footerTextY, { width: 100, align: "center" });
   
-  doc.fillColor(COLORS.primary).font("Helvetica-Bold");
-  doc.text(t.footerWebsite, margin, footerY, { align: "right", width: contentWidth });
+  doc.font("Helvetica-Bold");
+  doc.text(t.footerWebsite, margin, footerTextY, { align: "right", width: contentWidth });
   doc.font("Helvetica");
 
   doc.end();
