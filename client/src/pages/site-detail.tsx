@@ -7056,6 +7056,35 @@ export default function SiteDetailPage() {
                 ? "Analyse basée uniquement sur la surface de toit dessinée. L'analyse complète nécessite les données de consommation."
                 : "Analysis based only on drawn roof area. Full analysis requires consumption data."}
             </p>
+            
+            {/* Structural Warning Banner - flag only, not blocking */}
+            {(site.structuralPassStatus === "no" || site.structuralPassStatus === "partial" || site.structuralBallastRemoval === "yes" || site.structuralNotes) && (
+              <div className="flex items-start gap-2 mt-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800" data-testid="alert-structural-warning">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800 dark:text-amber-300">
+                    {language === "fr" ? "Avertissement structurel" : "Structural Warning"}
+                  </p>
+                  <p className="text-amber-700 dark:text-amber-400/80 mt-0.5">
+                    {site.structuralPassStatus === "no" 
+                      ? (language === "fr" 
+                          ? "La structure existante ne supporte pas le poids ballast requis. Une analyse par ingénieur recommandée."
+                          : "Existing structure cannot support required ballast weight. Engineer analysis recommended.")
+                      : site.structuralPassStatus === "partial"
+                      ? (language === "fr"
+                          ? "Capacité structurelle partielle. Certaines zones du toit peuvent nécessiter un renforcement."
+                          : "Partial structural capacity. Some roof areas may require reinforcement.")
+                      : site.structuralBallastRemoval === "yes"
+                      ? (language === "fr"
+                          ? "Retrait de ballast existant requis avant installation."
+                          : "Existing ballast removal required before installation.")
+                      : (language === "fr"
+                          ? "Contraintes structurelles notées. Consultez les détails ci-dessous."
+                          : "Structural constraints noted. See details below.")}
+                  </p>
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
