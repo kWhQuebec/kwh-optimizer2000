@@ -37,7 +37,6 @@ interface ProjectInfoData {
   };
   roofPolygons?: RoofPolygonData[];
   roofImageBuffer?: Buffer;
-  arrayCount?: number;
 }
 
 const TEXTS = {
@@ -45,7 +44,6 @@ const TEXTS = {
     projectAddress: "Adresse du projet",
     projectDetails: "Détails du projet",
     projectSize: "Taille du projet",
-    numberOfArrays: "Nombre de zones",
     roofArea: "Surface de toiture",
     buildingType: "Type de bâtiment",
     constructionStart: "Début de construction prévu",
@@ -65,7 +63,6 @@ const TEXTS = {
     dcLabel: "kW DC",
     acLabel: "kW AC",
     sqmLabel: "m²",
-    arraysLabel: "zones",
     notAvailable: "À déterminer",
     buildingTypes: {
       industrial: "Industriel",
@@ -78,7 +75,6 @@ const TEXTS = {
     projectAddress: "Project Address",
     projectDetails: "Project Details",
     projectSize: "Project Size",
-    numberOfArrays: "Number of Arrays",
     roofArea: "Roof Area",
     buildingType: "Building Type",
     constructionStart: "Planned Construction Start",
@@ -98,7 +94,6 @@ const TEXTS = {
     dcLabel: "kW DC",
     acLabel: "kW AC",
     sqmLabel: "m²",
-    arraysLabel: "arrays",
     notAvailable: "TBD",
     buildingTypes: {
       industrial: "Industrial",
@@ -209,9 +204,6 @@ export async function generateProjectInfoSheetPDF(
   }
   bulletItems.push({ label: t.projectSize, value: sizeValue });
   
-  if (data.arrayCount && data.arrayCount > 0) {
-    bulletItems.push({ label: t.numberOfArrays, value: `${data.arrayCount} ${t.arraysLabel}` });
-  }
   
   if (data.site.roofAreaSqM && data.site.roofAreaSqM > 0) {
     bulletItems.push({ label: t.roofArea, value: `${Math.round(data.site.roofAreaSqM).toLocaleString()} ${t.sqmLabel}` });

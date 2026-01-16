@@ -8763,7 +8763,6 @@ ${fileContent}`
             label: p.label || undefined,
           })),
           roofImageBuffer: roofImageBuffer || undefined,
-          arrayCount: roofPolygons.length,
         },
         lang
       );
