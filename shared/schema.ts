@@ -300,7 +300,6 @@ export const componentCatalog = pgTable("component_catalog", {
   model: text("model").notNull(),
   specJson: jsonb("spec_json"),
   unitCost: real("unit_cost"),
-  unitSellPrice: real("unit_sell_price"),
   active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

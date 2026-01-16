@@ -25,7 +25,6 @@ const catalogFormSchema = z.object({
   manufacturer: z.string().min(1, "Ce champ est requis"),
   model: z.string().min(1, "Ce champ est requis"),
   unitCost: z.coerce.number().min(0),
-  unitSellPrice: z.coerce.number().min(0),
   active: z.boolean(),
 });
 
@@ -138,9 +137,6 @@ function ComponentCard({ component, onEdit, onDelete }: {
                 <span className="text-muted-foreground">
                   {t("catalog.cost")}: <span className="font-mono">${(component.unitCost || 0).toLocaleString()}</span>
                 </span>
-                <span className="text-primary">
-                  {t("catalog.sale")}: <span className="font-mono">${(component.unitSellPrice || 0).toLocaleString()}</span>
-                </span>
               </div>
             </div>
           </div>
@@ -188,7 +184,6 @@ function CatalogForm({
       manufacturer: component?.manufacturer || "",
       model: component?.model || "",
       unitCost: component?.unitCost || 0,
-      unitSellPrice: component?.unitSellPrice || 0,
       active: component?.active ?? true,
     },
   });
@@ -251,35 +246,19 @@ function CatalogForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="unitCost"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("catalog.unitCost")}</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" {...field} data-testid="input-unit-cost" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="unitSellPrice"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("catalog.sellPrice")}</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" {...field} data-testid="input-unit-sell" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="unitCost"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("catalog.unitCost")}</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" {...field} data-testid="input-unit-cost" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
