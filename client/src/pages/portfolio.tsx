@@ -6,8 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
-import logoFr from "@assets/kWh_Quebec_Logo-01_1764778562811.png";
-import logoEn from "@assets/kWh_Quebec_Logo_Black_Eng-01_1764778562808.png";
+import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
+import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 interface PortfolioSite {
   id: string;
@@ -27,7 +27,7 @@ function PortfolioHeader() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-2" data-testid="link-home">
-            <img src={logo} alt="kWh Québec" className="h-10 w-auto" />
+            <img src={logo} alt="kWh Québec" className="h-[50px] sm:h-[3.75rem] w-auto" />
           </a>
           <div className="flex items-center gap-2">
             <LanguageToggle />
