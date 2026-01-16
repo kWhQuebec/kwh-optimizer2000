@@ -243,13 +243,13 @@ export default function Portfolio() {
               </Badge>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                 {language === "fr" 
-                  ? "Portefeuille solaire Dream Industrial" 
-                  : "Dream Industrial Solar Portfolio"}
+                  ? "Portefeuille de projets solaires" 
+                  : "Solar Projects Portfolio"}
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {language === "fr"
-                  ? "Découvrez les projets solaires en développement pour le portefeuille immobilier industriel Dream."
-                  : "Explore the solar projects in development for the Dream industrial real estate portfolio."}
+                  ? "Découvrez notre portefeuille de projets solaires commerciaux et industriels en développement au Québec."
+                  : "Explore our portfolio of commercial and industrial solar projects in development across Québec."}
               </p>
             </div>
             
