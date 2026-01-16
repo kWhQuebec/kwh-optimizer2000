@@ -97,10 +97,10 @@ function calculateZoomForPolygons(
   
   console.log(`[ProjectInfoSheet] Polygon bounds: ${maxSpanMeters.toFixed(0)}m span`);
   
-  // More aggressive zoom-out for large buildings to ensure all polygons are visible
-  if (maxSpanMeters > 300) return 16;
-  if (maxSpanMeters > 150) return 17;
-  if (maxSpanMeters > 80) return 18;
+  // Zoom levels optimized to fit all polygons while maximizing detail
+  if (maxSpanMeters > 350) return 16;
+  if (maxSpanMeters > 200) return 17;
+  if (maxSpanMeters > 100) return 18;
   return 19;
 }
 
@@ -251,14 +251,17 @@ export async function generateProjectInfoSheetPDF(
   yPos += 30;
 
   if (data.roofImageBuffer) {
-    const imageHeight = 180;
+    const imageHeight = 280;
+    const imageMargin = 20;
+    const imageWidth = pageWidth - imageMargin * 2;
+    const imageX = imageMargin;
     try {
-      doc.image(data.roofImageBuffer, margin, yPos, {
-        width: contentWidth,
+      doc.image(data.roofImageBuffer, imageX, yPos, {
+        width: imageWidth,
         height: imageHeight,
-        fit: [contentWidth, imageHeight],
+        fit: [imageWidth, imageHeight],
       });
-      doc.rect(margin, yPos, contentWidth, imageHeight).strokeColor(COLORS.border).lineWidth(0.5).stroke();
+      doc.rect(imageX, yPos, imageWidth, imageHeight).strokeColor(COLORS.border).lineWidth(0.5).stroke();
       yPos += imageHeight + 25;
     } catch (e) {
       yPos += 10;
@@ -423,7 +426,7 @@ export async function fetchRoofImageBuffer(
       imageUrl = getRoofVisualizationUrl(
         { latitude: centerLat, longitude: centerLng },
         roofPolygons,
-        { width: 800, height: 400, zoom }
+        { width: 1000, height: 600, zoom }
       );
     } else {
       console.log(`[ProjectInfoSheet] No polygons, using satellite image: ${latitude},${longitude}`);
