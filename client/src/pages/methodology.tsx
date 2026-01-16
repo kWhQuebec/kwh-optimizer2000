@@ -1149,14 +1149,14 @@ const fr = {
     },
     kbRacking: {
       title: "Données KB Racking Validées",
-      description: "Les paramètres de dimensionnement sont validés contre 18 projets commerciaux réels (~40 MW, 7.3M$ en valeur de rack). Cette approche hybride utilise Google Solar API uniquement pour les données de production (kWh/kWp) et les specs KB Racking pour la disposition des panneaux.",
+      description: "Les paramètres de dimensionnement sont validés contre 18 projets commerciaux réels (~40 MW, 7.3M$ en valeur de rack). Cette approche utilise le traçage manuel des toits comme source de vérité et applique directement les specs KB Racking pour un calcul précis.",
       methodology: {
-        title: "Approche Hybride Google + KB Racking",
+        title: "Calcul Direct KB Racking (Sans Facteur de Correction)",
         steps: [
-          "Traçage manuel des toits: Source de vérité pour les surfaces de toit",
-          "Google Solar API: Utilisé uniquement pour l'irradiance (kWh/kWp/an) et données météo",
-          "KB Racking specs: Disposition réaliste des panneaux et densité validée",
-          "Facteur de correction: Les designs KB installent ~45% de ce que Google estime",
+          "Traçage manuel des toits: Source de vérité pour les surfaces de toit (Google n'est pas fiable pour C&I)",
+          "Surface utilisable = Surface tracée × 85% (retrait périmètre 1.22m code IFC)",
+          "Nombre de panneaux = Surface utilisable ÷ 3.71 m² (empreinte KB Racking)",
+          "Capacité = Nombre de panneaux × 625W (panneau Jinko bifacial)",
         ],
       },
       specs: {
@@ -1189,8 +1189,8 @@ const fr = {
         ],
       },
       comparison: {
-        title: "Comparaison KB vs Google Solar",
-        description: "Basé sur l'analyse de 18 sites, les designs KB installent en moyenne 45% du nombre de panneaux estimé par Google Solar API. Cette différence s'explique par les contraintes réelles: retraits incendie, espacement des rangées, charges structurelles et zones HVAC.",
+        title: "Validation KB Racking",
+        description: "Basé sur l'analyse de 18 sites réels, le calcul direct (surface × 85% ÷ 3.71 m² × 625W) donne des résultats à ~6% des designs KB finaux. L'écart s'explique par les ajustements finaux: passages, câblage, obstacles spécifiques.",
       },
     },
   },
@@ -1678,14 +1678,14 @@ const en = {
     },
     kbRacking: {
       title: "KB Racking Validated Data",
-      description: "Sizing parameters are validated against 18 real commercial projects (~40 MW, $7.3M racking value). This hybrid approach uses Google Solar API only for production data (kWh/kWp) and KB Racking specs for panel layout.",
+      description: "Sizing parameters are validated against 18 real commercial projects (~40 MW, $7.3M racking value). This approach uses manual roof tracing as the source of truth and applies KB Racking specs directly for accurate calculations.",
       methodology: {
-        title: "Hybrid Google + KB Racking Approach",
+        title: "Direct KB Racking Calculation (No Correction Factor)",
         steps: [
-          "Manual roof tracing: Source of truth for roof surfaces",
-          "Google Solar API: Used only for irradiance (kWh/kWp/year) and weather data",
-          "KB Racking specs: Realistic panel layout and validated density",
-          "Correction factor: KB designs install ~45% of what Google estimates",
+          "Manual roof tracing: Source of truth for roof surfaces (Google not reliable for C&I)",
+          "Usable area = Traced area × 85% (1.22m perimeter setback per IFC code)",
+          "Number of panels = Usable area ÷ 3.71 m² (KB Racking footprint)",
+          "Capacity = Number of panels × 625W (Jinko bifacial panel)",
         ],
       },
       specs: {
@@ -1718,8 +1718,8 @@ const en = {
         ],
       },
       comparison: {
-        title: "KB vs Google Solar Comparison",
-        description: "Based on analysis of 18 sites, KB designs install on average 45% of the panel count estimated by Google Solar API. This difference is explained by real-world constraints: fire setbacks, row spacing, structural loads, and HVAC zones.",
+        title: "KB Racking Validation",
+        description: "Based on analysis of 18 real sites, the direct calculation (area × 85% ÷ 3.71 m² × 625W) yields results within ~6% of final KB designs. The difference is explained by final adjustments: walkways, wiring paths, specific obstacles.",
       },
     },
   },
