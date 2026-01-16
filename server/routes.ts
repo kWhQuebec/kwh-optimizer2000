@@ -3142,9 +3142,9 @@ export async function registerRoutes(
     }
   });
 
-  // ==================== CATALOG ROUTES ====================
+  // ==================== CATALOG ROUTES (staff only) ====================
   
-  app.get("/api/catalog", authMiddleware, async (req, res) => {
+  app.get("/api/catalog", authMiddleware, requireStaff, async (req, res) => {
     try {
       const catalog = await storage.getCatalog();
       res.json(catalog);
@@ -3153,7 +3153,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/catalog", authMiddleware, async (req, res) => {
+  app.post("/api/catalog", authMiddleware, requireStaff, async (req, res) => {
     try {
       const parsed = insertComponentCatalogSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -3167,7 +3167,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/catalog/:id", authMiddleware, async (req, res) => {
+  app.patch("/api/catalog/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const item = await storage.updateCatalogItem(req.params.id, req.body);
       if (!item) {
@@ -3179,7 +3179,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/catalog/:id", authMiddleware, async (req, res) => {
+  app.delete("/api/catalog/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const deleted = await storage.deleteCatalogItem(req.params.id);
       if (!deleted) {
@@ -3193,8 +3193,8 @@ export async function registerRoutes(
 
   // ==================== PRICING COMPONENTS ROUTES (Market Intelligence) ====================
 
-  // Get all pricing components
-  app.get("/api/pricing-components", authMiddleware, async (req, res) => {
+  // Get all pricing components (staff only)
+  app.get("/api/pricing-components", authMiddleware, requireStaff, async (req, res) => {
     try {
       const components = await storage.getPricingComponents();
       res.json(components);
@@ -3203,8 +3203,8 @@ export async function registerRoutes(
     }
   });
 
-  // Get active pricing components only
-  app.get("/api/pricing-components/active", authMiddleware, async (req, res) => {
+  // Get active pricing components only (staff only)
+  app.get("/api/pricing-components/active", authMiddleware, requireStaff, async (req, res) => {
     try {
       const components = await storage.getActivePricingComponents();
       res.json(components);
@@ -3213,8 +3213,8 @@ export async function registerRoutes(
     }
   });
 
-  // Get pricing components by category
-  app.get("/api/pricing-components/category/:category", authMiddleware, async (req, res) => {
+  // Get pricing components by category (staff only)
+  app.get("/api/pricing-components/category/:category", authMiddleware, requireStaff, async (req, res) => {
     try {
       const components = await storage.getPricingComponentsByCategory(req.params.category);
       res.json(components);
@@ -3223,8 +3223,8 @@ export async function registerRoutes(
     }
   });
 
-  // Get a single pricing component
-  app.get("/api/pricing-components/:id", authMiddleware, async (req, res) => {
+  // Get a single pricing component (staff only)
+  app.get("/api/pricing-components/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const component = await storage.getPricingComponent(req.params.id);
       if (!component) {
@@ -3236,8 +3236,8 @@ export async function registerRoutes(
     }
   });
 
-  // Create a new pricing component
-  app.post("/api/pricing-components", authMiddleware, async (req, res) => {
+  // Create a new pricing component (staff only)
+  app.post("/api/pricing-components", authMiddleware, requireStaff, async (req, res) => {
     try {
       const parsed = insertPricingComponentSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -3250,8 +3250,8 @@ export async function registerRoutes(
     }
   });
 
-  // Update a pricing component
-  app.patch("/api/pricing-components/:id", authMiddleware, async (req, res) => {
+  // Update a pricing component (staff only)
+  app.patch("/api/pricing-components/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const component = await storage.updatePricingComponent(req.params.id, req.body);
       if (!component) {
@@ -3263,8 +3263,8 @@ export async function registerRoutes(
     }
   });
 
-  // Delete a pricing component
-  app.delete("/api/pricing-components/:id", authMiddleware, async (req, res) => {
+  // Delete a pricing component (staff only)
+  app.delete("/api/pricing-components/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const deleted = await storage.deletePricingComponent(req.params.id);
       if (!deleted) {
@@ -3276,10 +3276,10 @@ export async function registerRoutes(
     }
   });
 
-  // ==================== SUPPLIERS (Market Intelligence) ====================
+  // ==================== SUPPLIERS (Market Intelligence - staff only) ====================
 
-  // List all suppliers
-  app.get("/api/suppliers", authMiddleware, async (req, res) => {
+  // List all suppliers (staff only)
+  app.get("/api/suppliers", authMiddleware, requireStaff, async (req, res) => {
     try {
       const suppliers = await storage.getSuppliers();
       res.json(suppliers);
@@ -3288,8 +3288,8 @@ export async function registerRoutes(
     }
   });
 
-  // Get suppliers by category
-  app.get("/api/suppliers/category/:category", authMiddleware, async (req, res) => {
+  // Get suppliers by category (staff only)
+  app.get("/api/suppliers/category/:category", authMiddleware, requireStaff, async (req, res) => {
     try {
       const suppliers = await storage.getSuppliersByCategory(req.params.category);
       res.json(suppliers);
@@ -3298,8 +3298,8 @@ export async function registerRoutes(
     }
   });
 
-  // Get single supplier
-  app.get("/api/suppliers/:id", authMiddleware, async (req, res) => {
+  // Get single supplier (staff only)
+  app.get("/api/suppliers/:id", authMiddleware, requireStaff, async (req, res) => {
     try {
       const supplier = await storage.getSupplier(req.params.id);
       if (!supplier) {
@@ -3351,10 +3351,10 @@ export async function registerRoutes(
     }
   });
 
-  // ==================== PRICE HISTORY (Market Intelligence) ====================
+  // ==================== PRICE HISTORY (Market Intelligence - staff only) ====================
 
-  // List all price history with optional filters
-  app.get("/api/price-history", authMiddleware, async (req, res) => {
+  // List all price history with optional filters (staff only)
+  app.get("/api/price-history", authMiddleware, requireStaff, async (req, res) => {
     try {
       const { category, supplierId, itemName } = req.query;
       
@@ -3456,10 +3456,10 @@ export async function registerRoutes(
     }
   });
 
-  // ==================== MARKET INTELLIGENCE ANALYTICS ====================
+  // ==================== MARKET INTELLIGENCE ANALYTICS (staff only) ====================
 
-  // Get price trends by category (% change over 3/6/12 months)
-  app.get("/api/market-intelligence/price-trends", authMiddleware, async (req, res) => {
+  // Get price trends by category (% change over 3/6/12 months) (staff only)
+  app.get("/api/market-intelligence/price-trends", authMiddleware, requireStaff, async (req, res) => {
     try {
       const { category } = req.query;
       
@@ -3518,8 +3518,8 @@ export async function registerRoutes(
     }
   });
 
-  // Compare suppliers by category
-  app.get("/api/market-intelligence/supplier-comparison", authMiddleware, async (req, res) => {
+  // Compare suppliers by category (staff only)
+  app.get("/api/market-intelligence/supplier-comparison", authMiddleware, requireStaff, async (req, res) => {
     try {
       const { category } = req.query;
       
