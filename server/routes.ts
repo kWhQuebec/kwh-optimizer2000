@@ -3426,10 +3426,9 @@ export async function registerRoutes(
       );
       
       if (existingItem) {
-        // Update existing catalog item
+        // Update existing catalog item with cost only (margin applied at quote time)
         const updated = await storage.updateCatalogItem(existingItem.id, {
           unitCost: priceEntry.pricePerUnit,
-          unitSellPrice: priceEntry.pricePerUnit ? priceEntry.pricePerUnit * 1.25 : undefined,
         });
         return res.json({ 
           message: "Catalog item updated", 
@@ -3437,13 +3436,12 @@ export async function registerRoutes(
           action: "updated" 
         });
       } else {
-        // Create new catalog item
+        // Create new catalog item with cost only (margin applied at quote time)
         const newItem = await storage.createCatalogItem({
           category: priceEntry.category,
           manufacturer: manufacturerName,
           model: priceEntry.itemName,
           unitCost: priceEntry.pricePerUnit,
-          unitSellPrice: priceEntry.pricePerUnit ? priceEntry.pricePerUnit * 1.25 : undefined,
           active: true,
         });
         return res.status(201).json({ 
