@@ -619,7 +619,9 @@ export function RoofVisualization({
     const metersPerDegreeLng = 111320 * Math.cos(globalCentroid.lat * Math.PI / 180);
     
     const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
-    const panelPitchY = PANEL_HEIGHT_M + ROW_SPACING_M;
+    // KB_ROW_SPACING_M (1.557m) is already the center-to-center row pitch
+    // Do NOT add PANEL_HEIGHT_M - that was doubling the row spacing!
+    const panelPitchY = ROW_SPACING_M; // 1.557m center-to-center (KB validated)
     
     const cos = Math.cos(-unifiedAxisAngle);
     const sin = Math.sin(-unifiedAxisAngle);
@@ -886,7 +888,8 @@ export function RoofVisualization({
     
     // Step 3: Generate grid in ROTATED space (correct spacing)
     const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
-    const panelPitchY = PANEL_HEIGHT_M + ROW_SPACING_M;
+    // KB_ROW_SPACING_M (1.557m) is already the center-to-center row pitch
+    const panelPitchY = ROW_SPACING_M; // 1.557m center-to-center (KB validated)
     
     const xPositions: number[] = [];
     const yPositions: number[] = [];
