@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Package, Zap, Battery, Settings, MoreHorizontal, Pencil, Trash2, CheckCircle2 } from "lucide-react";
+import { Plus, Package, Zap, Battery, Settings, MoreHorizontal, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,13 +57,53 @@ function getCategoryIcon(category: string) {
   return cat?.icon || Package;
 }
 
+function getFreshnessInfo(updatedAt: Date | string | null | undefined, language: "fr" | "en") {
+  if (!updatedAt) {
+    return {
+      status: "unknown" as const,
+      label: language === "fr" ? "Inconnu" : "Unknown",
+      variant: "secondary" as const,
+      icon: Clock,
+    };
+  }
+  
+  const now = new Date();
+  const updated = new Date(updatedAt);
+  const daysDiff = Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (daysDiff < 30) {
+    return {
+      status: "fresh" as const,
+      label: language === "fr" ? "À jour" : "Fresh",
+      variant: "default" as const,
+      icon: CheckCircle2,
+    };
+  } else if (daysDiff <= 90) {
+    return {
+      status: "stale" as const,
+      label: language === "fr" ? "Vieillissant" : "Stale",
+      variant: "outline" as const,
+      icon: AlertTriangle,
+    };
+  } else {
+    return {
+      status: "outdated" as const,
+      label: language === "fr" ? "Périmé" : "Outdated",
+      variant: "destructive" as const,
+      icon: AlertCircle,
+    };
+  }
+}
+
 function ComponentCard({ component, onEdit, onDelete }: { 
   component: ComponentCatalog; 
   onEdit: () => void; 
   onDelete: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const Icon = getCategoryIcon(component.category);
+  const freshness = getFreshnessInfo(component.updatedAt, language);
+  const FreshnessIcon = freshness.icon;
 
   return (
     <Card className="hover-elevate">
@@ -74,7 +114,7 @@ function ComponentCard({ component, onEdit, onDelete }: {
               <Icon className="w-5 h-5 text-muted-foreground" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-medium truncate">{component.model}</h3>
                 {component.active ? (
                   <Badge variant="default" className="gap-1 shrink-0">
@@ -84,6 +124,14 @@ function ComponentCard({ component, onEdit, onDelete }: {
                 ) : (
                   <Badge variant="secondary" className="shrink-0">{t("catalog.inactive")}</Badge>
                 )}
+                <Badge 
+                  variant={freshness.variant} 
+                  className="gap-1 shrink-0"
+                  data-testid={`badge-freshness-${component.id}`}
+                >
+                  <FreshnessIcon className="w-3 h-3" />
+                  {freshness.label}
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground truncate">{component.manufacturer}</p>
               <div className="flex items-center gap-4 mt-2 text-sm">

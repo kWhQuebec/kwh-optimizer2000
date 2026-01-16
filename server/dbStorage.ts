@@ -6,7 +6,7 @@ import {
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
   competitors, battleCards, marketNotes, marketDocuments, competitorProposalAnalysis,
   constructionAgreements, constructionMilestones, constructionProjects, constructionTasks, omContracts, omVisits, omPerformanceSnapshots,
-  opportunities, activities, partnerships, roofPolygons,
+  opportunities, activities, partnerships, roofPolygons, suppliers, priceHistory,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -48,6 +48,8 @@ import type {
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
   RoofPolygon, InsertRoofPolygon,
   PricingComponent, InsertPricingComponent,
+  Supplier, InsertSupplier,
+  PriceHistory, InsertPriceHistory,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -598,7 +600,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCatalogItem(id: string, item: Partial<ComponentCatalog>): Promise<ComponentCatalog | undefined> {
-    const [result] = await db.update(componentCatalog).set(item).where(eq(componentCatalog.id, id)).returning();
+    const [result] = await db.update(componentCatalog).set({ ...item, updatedAt: new Date() }).where(eq(componentCatalog.id, id)).returning();
+    return result;
+  }
+  
+  async getCatalogItemByManufacturerModel(manufacturer: string, model: string): Promise<ComponentCatalog | undefined> {
+    const [result] = await db.select().from(componentCatalog)
+      .where(and(eq(componentCatalog.manufacturer, manufacturer), eq(componentCatalog.model, model)))
+      .limit(1);
     return result;
   }
 
@@ -2024,5 +2033,74 @@ export class DatabaseStorage implements IStorage {
   async deleteRoofPolygonsBySite(siteId: string): Promise<number> {
     const result = await db.delete(roofPolygons).where(eq(roofPolygons.siteId, siteId)).returning();
     return result.length;
+  }
+
+  // ==================== SUPPLIERS (Market Intelligence) ====================
+  
+  async getSuppliers(): Promise<Supplier[]> {
+    return db.select().from(suppliers).orderBy(suppliers.name);
+  }
+
+  async getSupplier(id: string): Promise<Supplier | undefined> {
+    const result = await db.select().from(suppliers).where(eq(suppliers.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
+    const [result] = await db.insert(suppliers).values({
+      ...supplier,
+      active: supplier.active ?? true,
+    }).returning();
+    return result;
+  }
+
+  async updateSupplier(id: string, supplier: Partial<Supplier>): Promise<Supplier | undefined> {
+    const [result] = await db.update(suppliers).set({
+      ...supplier,
+      updatedAt: new Date(),
+    }).where(eq(suppliers.id, id)).returning();
+    return result;
+  }
+
+  async deleteSupplier(id: string): Promise<boolean> {
+    const result = await db.delete(suppliers).where(eq(suppliers.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getSuppliersByCategory(category: string): Promise<Supplier[]> {
+    return db.select().from(suppliers).where(eq(suppliers.category, category)).orderBy(suppliers.name);
+  }
+
+  // ==================== PRICE HISTORY (Market Intelligence) ====================
+  
+  async getPriceHistory(): Promise<PriceHistory[]> {
+    return db.select().from(priceHistory).orderBy(desc(priceHistory.quoteDate));
+  }
+
+  async getPriceHistoryById(id: string): Promise<PriceHistory | undefined> {
+    const [result] = await db.select().from(priceHistory).where(eq(priceHistory.id, id)).limit(1);
+    return result;
+  }
+
+  async getPriceHistoryBySupplier(supplierId: string): Promise<PriceHistory[]> {
+    return db.select().from(priceHistory).where(eq(priceHistory.supplierId, supplierId)).orderBy(desc(priceHistory.quoteDate));
+  }
+
+  async getPriceHistoryByCategory(category: string): Promise<PriceHistory[]> {
+    return db.select().from(priceHistory).where(eq(priceHistory.category, category)).orderBy(desc(priceHistory.quoteDate));
+  }
+
+  async getPriceHistoryByItem(itemName: string): Promise<PriceHistory[]> {
+    return db.select().from(priceHistory).where(eq(priceHistory.itemName, itemName)).orderBy(desc(priceHistory.quoteDate));
+  }
+
+  async createPriceHistory(entry: InsertPriceHistory): Promise<PriceHistory> {
+    const [result] = await db.insert(priceHistory).values(entry).returning();
+    return result;
+  }
+
+  async deletePriceHistory(id: string): Promise<boolean> {
+    const result = await db.delete(priceHistory).where(eq(priceHistory.id, id)).returning();
+    return result.length > 0;
   }
 }

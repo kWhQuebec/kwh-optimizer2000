@@ -302,6 +302,8 @@ export const componentCatalog = pgTable("component_catalog", {
   unitCost: real("unit_cost"),
   unitSellPrice: real("unit_sell_price"),
   active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Pricing Components for Market Intelligence - component-level pricing for $/W calculation
@@ -314,13 +316,54 @@ export const pricingComponents = pgTable("pricing_components", {
   unit: text("unit").notNull(), // "W" | "panel" | "kW" | "project" | "hour" | "percent"
   minQuantity: real("min_quantity"), // For tiered pricing - minimum quantity for this price
   maxQuantity: real("max_quantity"), // For tiered pricing - maximum quantity for this price
+  supplierId: varchar("supplier_id"), // Reference to supplier
   source: text("source"), // "KB Racking", "Distributor XYZ", "Industry benchmark"
   sourceDate: timestamp("source_date"), // When this price was obtained
   validUntil: timestamp("valid_until"), // Quote expiration date
   notes: text("notes"), // Any relevant notes about the pricing
   active: boolean("active").default(true), // Whether this pricing is currently used
+  isReference: boolean("is_reference").default(false), // Whether this is the reference price used in Catalog
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Suppliers for Market Intelligence - track vendors and their offerings
+export const suppliers = pgTable("suppliers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // e.g., "KB Racking", "Voltxon", "Guillevin"
+  category: text("category").notNull(), // "racking" | "panels" | "inverters" | "electrical" | "labor" | "full_service"
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  website: text("website"),
+  address: text("address"),
+  city: text("city"),
+  province: text("province"),
+  notes: text("notes"),
+  rating: integer("rating"), // 1-5 rating
+  leadTimeWeeks: integer("lead_time_weeks"), // Typical lead time
+  paymentTerms: text("payment_terms"), // e.g., "Net 30", "50% deposit"
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Price History for Market Intelligence - track price changes over time
+export const priceHistory = pgTable("price_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  supplierId: varchar("supplier_id").references(() => suppliers.id),
+  category: text("category").notNull(), // "panels" | "racking" | "inverters" | "bos_electrical" | "labor"
+  itemName: text("item_name").notNull(), // e.g., "Jinko 625W Bifacial", "AeroGrid 10°"
+  pricePerUnit: real("price_per_unit").notNull(),
+  unit: text("unit").notNull(), // "W" | "panel" | "kW" | "project" | "hour"
+  quantity: real("quantity"), // Quantity for tiered pricing
+  quoteNumber: text("quote_number"), // Reference quote number
+  quoteDate: timestamp("quote_date").notNull(), // When this quote was received
+  validUntil: timestamp("valid_until"), // Quote expiration
+  notes: text("notes"),
+  documentUrl: text("document_url"), // Link to stored quote PDF
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Site Visit (Visite Technique) - Based on Rematek form template
@@ -1546,12 +1589,25 @@ export const insertBomItemSchema = createInsertSchema(bomItems).omit({
 
 export const insertComponentCatalogSchema = createInsertSchema(componentCatalog).omit({
   id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertPricingComponentSchema = createInsertSchema(pricingComponents).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertSupplierSchema = createInsertSchema(suppliers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPriceHistorySchema = createInsertSchema(priceHistory).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertSiteVisitSchema = createInsertSchema(siteVisits).omit({
@@ -1758,6 +1814,12 @@ export type ComponentCatalog = typeof componentCatalog.$inferSelect;
 
 export type InsertPricingComponent = z.infer<typeof insertPricingComponentSchema>;
 export type PricingComponent = typeof pricingComponents.$inferSelect;
+
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type Supplier = typeof suppliers.$inferSelect;
+
+export type InsertPriceHistory = z.infer<typeof insertPriceHistorySchema>;
+export type PriceHistory = typeof priceHistory.$inferSelect;
 
 export type InsertSiteVisit = z.infer<typeof insertSiteVisitSchema>;
 export type SiteVisit = typeof siteVisits.$inferSelect;

@@ -39,6 +39,8 @@ import type {
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
   RoofPolygon, InsertRoofPolygon,
   PricingComponent, InsertPricingComponent,
+  Supplier, InsertSupplier,
+  PriceHistory, InsertPriceHistory,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -103,6 +105,7 @@ export interface IStorage {
   getCatalog(): Promise<ComponentCatalog[]>;
   getCatalogItem(id: string): Promise<ComponentCatalog | undefined>;
   getCatalogByCategory(category: string): Promise<ComponentCatalog[]>;
+  getCatalogItemByManufacturerModel(manufacturer: string, model: string): Promise<ComponentCatalog | undefined>;
   createCatalogItem(item: InsertComponentCatalog): Promise<ComponentCatalog>;
   updateCatalogItem(id: string, item: Partial<ComponentCatalog>): Promise<ComponentCatalog | undefined>;
   deleteCatalogItem(id: string): Promise<boolean>;
@@ -364,6 +367,23 @@ export interface IStorage {
   updateRoofPolygon(id: string, polygon: Partial<RoofPolygon>): Promise<RoofPolygon | undefined>;
   deleteRoofPolygon(id: string): Promise<boolean>;
   deleteRoofPolygonsBySite(siteId: string): Promise<number>;
+
+  // Suppliers (Market Intelligence)
+  getSuppliers(): Promise<Supplier[]>;
+  getSupplier(id: string): Promise<Supplier | undefined>;
+  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: string, supplier: Partial<Supplier>): Promise<Supplier | undefined>;
+  deleteSupplier(id: string): Promise<boolean>;
+  getSuppliersByCategory(category: string): Promise<Supplier[]>;
+
+  // Price History (Market Intelligence)
+  getPriceHistory(): Promise<PriceHistory[]>;
+  getPriceHistoryById(id: string): Promise<PriceHistory | undefined>;
+  getPriceHistoryBySupplier(supplierId: string): Promise<PriceHistory[]>;
+  getPriceHistoryByCategory(category: string): Promise<PriceHistory[]>;
+  getPriceHistoryByItem(itemName: string): Promise<PriceHistory[]>;
+  createPriceHistory(entry: InsertPriceHistory): Promise<PriceHistory>;
+  deletePriceHistory(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -784,6 +804,10 @@ export class MemStorage implements IStorage {
 
   async getCatalogByCategory(category: string): Promise<ComponentCatalog[]> {
     return Array.from(this.catalogItems.values()).filter(c => c.category === category && c.active);
+  }
+  
+  async getCatalogItemByManufacturerModel(manufacturer: string, model: string): Promise<ComponentCatalog | undefined> {
+    return Array.from(this.catalogItems.values()).find(c => c.manufacturer === manufacturer && c.model === model);
   }
 
   async createCatalogItem(item: InsertComponentCatalog): Promise<ComponentCatalog> {

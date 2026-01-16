@@ -53,6 +53,7 @@ const SiteVisitFormPage = lazy(() => import("@/pages/site-visit-form"));
 const BatchImportPage = lazy(() => import("@/pages/batch-import"));
 const PresentationPage = lazy(() => import("@/pages/presentation"));
 const AdminPricingPage = lazy(() => import("@/pages/admin-pricing"));
+const MarketIntelligencePricingPage = lazy(() => import("@/pages/market-intelligence-pricing"));
 
 function PageLoader() {
   return (
@@ -414,6 +415,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <MarketIntelligencePage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Market Intelligence - Pricing (Suppliers & Price History) */}
+      <Route path="/app/market-intelligence/pricing">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <MarketIntelligencePricingPage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

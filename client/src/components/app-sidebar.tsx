@@ -189,9 +189,9 @@ export function AppSidebar() {
     },
     {
       title: language === "fr" ? "Intelligence marché" : "Market Intelligence",
-      url: "/app/market-intelligence",
+      url: "/app/market-intelligence/pricing",
       icon: Target,
-      tooltip: language === "fr" ? "Analyses concurrentielles et tendances" : "Competitive analysis and trends",
+      tooltip: language === "fr" ? "Prix fournisseurs, historique et tendances" : "Supplier pricing, history and trends",
     },
     {
       title: language === "fr" ? "Méthodologie" : "Methodology",

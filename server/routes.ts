@@ -14,6 +14,8 @@ import {
   insertSiteSchema,
   insertComponentCatalogSchema,
   insertPricingComponentSchema,
+  insertSupplierSchema,
+  insertPriceHistorySchema,
   insertSiteVisitSchema,
   insertDesignAgreementSchema,
   insertPortfolioSchema,
@@ -3269,6 +3271,323 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Component not found" });
       }
       res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== SUPPLIERS (Market Intelligence) ====================
+
+  // List all suppliers
+  app.get("/api/suppliers", authMiddleware, async (req, res) => {
+    try {
+      const suppliers = await storage.getSuppliers();
+      res.json(suppliers);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get suppliers by category
+  app.get("/api/suppliers/category/:category", authMiddleware, async (req, res) => {
+    try {
+      const suppliers = await storage.getSuppliersByCategory(req.params.category);
+      res.json(suppliers);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single supplier
+  app.get("/api/suppliers/:id", authMiddleware, async (req, res) => {
+    try {
+      const supplier = await storage.getSupplier(req.params.id);
+      if (!supplier) {
+        return res.status(404).json({ error: "Supplier not found" });
+      }
+      res.json(supplier);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create a new supplier
+  app.post("/api/suppliers", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertSupplierSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      const supplier = await storage.createSupplier(parsed.data);
+      res.status(201).json(supplier);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update a supplier
+  app.patch("/api/suppliers/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const supplier = await storage.updateSupplier(req.params.id, req.body);
+      if (!supplier) {
+        return res.status(404).json({ error: "Supplier not found" });
+      }
+      res.json(supplier);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete a supplier
+  app.delete("/api/suppliers/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteSupplier(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Supplier not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== PRICE HISTORY (Market Intelligence) ====================
+
+  // List all price history with optional filters
+  app.get("/api/price-history", authMiddleware, async (req, res) => {
+    try {
+      const { category, supplierId, itemName } = req.query;
+      
+      let history;
+      if (supplierId && typeof supplierId === 'string') {
+        history = await storage.getPriceHistoryBySupplier(supplierId);
+      } else if (category && typeof category === 'string') {
+        history = await storage.getPriceHistoryByCategory(category);
+      } else if (itemName && typeof itemName === 'string') {
+        history = await storage.getPriceHistoryByItem(itemName);
+      } else {
+        history = await storage.getPriceHistory();
+      }
+      
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create a new price history entry
+  app.post("/api/price-history", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const parsed = insertPriceHistorySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      const entry = await storage.createPriceHistory(parsed.data);
+      res.status(201).json(entry);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete a price history entry
+  app.delete("/api/price-history/:id", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deletePriceHistory(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Price history entry not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Promote a price history entry to the component catalog
+  app.post("/api/price-history/:id/promote-to-catalog", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const priceEntry = await storage.getPriceHistoryById(req.params.id);
+      if (!priceEntry) {
+        return res.status(404).json({ error: "Price history entry not found" });
+      }
+      
+      // Get the supplier name if supplierId exists
+      let manufacturerName = "Unknown";
+      if (priceEntry.supplierId) {
+        const supplier = await storage.getSupplier(priceEntry.supplierId);
+        if (supplier) {
+          manufacturerName = supplier.name;
+        }
+      }
+      
+      // Check if catalog item already exists with same manufacturer and model
+      const existingItem = await storage.getCatalogItemByManufacturerModel(
+        manufacturerName,
+        priceEntry.itemName
+      );
+      
+      if (existingItem) {
+        // Update existing catalog item
+        const updated = await storage.updateCatalogItem(existingItem.id, {
+          unitCost: priceEntry.pricePerUnit,
+          unitSellPrice: priceEntry.pricePerUnit ? priceEntry.pricePerUnit * 1.25 : undefined,
+        });
+        return res.json({ 
+          message: "Catalog item updated", 
+          catalogItem: updated,
+          action: "updated" 
+        });
+      } else {
+        // Create new catalog item
+        const newItem = await storage.createCatalogItem({
+          category: priceEntry.category,
+          manufacturer: manufacturerName,
+          model: priceEntry.itemName,
+          unitCost: priceEntry.pricePerUnit,
+          unitSellPrice: priceEntry.pricePerUnit ? priceEntry.pricePerUnit * 1.25 : undefined,
+          active: true,
+        });
+        return res.status(201).json({ 
+          message: "Catalog item created", 
+          catalogItem: newItem,
+          action: "created" 
+        });
+      }
+    } catch (error) {
+      console.error("Error promoting price to catalog:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== MARKET INTELLIGENCE ANALYTICS ====================
+
+  // Get price trends by category (% change over 3/6/12 months)
+  app.get("/api/market-intelligence/price-trends", authMiddleware, async (req, res) => {
+    try {
+      const { category } = req.query;
+      
+      let history;
+      if (category && typeof category === 'string') {
+        history = await storage.getPriceHistoryByCategory(category);
+      } else {
+        history = await storage.getPriceHistory();
+      }
+
+      // Calculate trends by item
+      const now = new Date();
+      const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+      const twelveMonthsAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+      // Group by item name
+      const itemGroups: Record<string, typeof history> = {};
+      for (const entry of history) {
+        if (!itemGroups[entry.itemName]) {
+          itemGroups[entry.itemName] = [];
+        }
+        itemGroups[entry.itemName].push(entry);
+      }
+
+      const trends = Object.entries(itemGroups).map(([itemName, entries]) => {
+        // Sort by date descending
+        const sorted = entries.sort((a, b) => new Date(b.quoteDate).getTime() - new Date(a.quoteDate).getTime());
+        
+        const currentPrice = sorted[0]?.unitPrice || 0;
+        
+        // Find prices at different time points
+        const threeMonthPrice = sorted.find(e => new Date(e.quoteDate) <= threeMonthsAgo)?.unitPrice;
+        const sixMonthPrice = sorted.find(e => new Date(e.quoteDate) <= sixMonthsAgo)?.unitPrice;
+        const twelveMonthPrice = sorted.find(e => new Date(e.quoteDate) <= twelveMonthsAgo)?.unitPrice;
+
+        const calcChange = (oldPrice: number | undefined) => {
+          if (!oldPrice || oldPrice === 0) return null;
+          return ((currentPrice - oldPrice) / oldPrice) * 100;
+        };
+
+        return {
+          itemName,
+          category: sorted[0]?.category,
+          currentPrice,
+          threeMonthChange: calcChange(threeMonthPrice),
+          sixMonthChange: calcChange(sixMonthPrice),
+          twelveMonthChange: calcChange(twelveMonthPrice),
+          dataPoints: sorted.length,
+        };
+      });
+
+      res.json(trends);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Compare suppliers by category
+  app.get("/api/market-intelligence/supplier-comparison", authMiddleware, async (req, res) => {
+    try {
+      const { category } = req.query;
+      
+      // Get suppliers
+      let supplierList;
+      if (category && typeof category === 'string') {
+        supplierList = await storage.getSuppliersByCategory(category);
+      } else {
+        supplierList = await storage.getSuppliers();
+      }
+
+      // Get price history
+      let history;
+      if (category && typeof category === 'string') {
+        history = await storage.getPriceHistoryByCategory(category);
+      } else {
+        history = await storage.getPriceHistory();
+      }
+
+      // Group price history by supplier
+      const supplierPrices: Record<string, typeof history> = {};
+      for (const entry of history) {
+        if (entry.supplierId) {
+          if (!supplierPrices[entry.supplierId]) {
+            supplierPrices[entry.supplierId] = [];
+          }
+          supplierPrices[entry.supplierId].push(entry);
+        }
+      }
+
+      // Build comparison data
+      const comparison = supplierList.map(supplier => {
+        const prices = supplierPrices[supplier.id] || [];
+        const sortedPrices = prices.sort((a, b) => new Date(b.quoteDate).getTime() - new Date(a.quoteDate).getTime());
+        
+        // Calculate average prices by item
+        const itemAverages: Record<string, number[]> = {};
+        for (const price of sortedPrices) {
+          if (!itemAverages[price.itemName]) {
+            itemAverages[price.itemName] = [];
+          }
+          itemAverages[price.itemName].push(price.unitPrice);
+        }
+
+        const avgPrices = Object.entries(itemAverages).map(([itemName, prices]) => ({
+          itemName,
+          avgPrice: prices.reduce((a, b) => a + b, 0) / prices.length,
+          latestPrice: prices[0],
+          priceCount: prices.length,
+        }));
+
+        return {
+          supplier: {
+            id: supplier.id,
+            name: supplier.name,
+            category: supplier.category,
+            rating: supplier.rating,
+            leadTimeDays: supplier.leadTimeDays,
+          },
+          priceData: avgPrices,
+          totalQuotes: sortedPrices.length,
+          lastQuoteDate: sortedPrices[0]?.quoteDate || null,
+        };
+      });
+
+      res.json(comparison);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
