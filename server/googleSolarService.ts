@@ -403,16 +403,18 @@ export function getRoofVisualizationUrl(
        polygon.label?.toLowerCase().includes("obstacle"));
     
     // Convert hex color to static maps format (0xRRGGBBAA)
-    // Blue for solar areas, orange for constraints
-    const fillColor = isConstraint ? "0xf9731660" : "0x3b82f660";
-    const strokeColor = isConstraint ? "0xf97316" : "0x1e40af";
+    // Blue for solar areas (high visibility), orange for constraints
+    // Use higher opacity (80 = 50%) for better visibility and thicker stroke
+    const fillColor = isConstraint ? "0xf9731680" : "0x0054A880";
+    const strokeColor = isConstraint ? "0xf97316" : "0x0054A8";
+    const strokeWeight = isConstraint ? 2 : 3;
     
     // Build path coordinates (lat,lng pairs)
     const pathCoords = polygon.coordinates
       .map(([lng, lat]) => `${lat},${lng}`)
       .join("|");
     
-    url += `&path=fillcolor:${fillColor}|color:${strokeColor}|weight:2|${pathCoords}`;
+    url += `&path=fillcolor:${fillColor}|color:${strokeColor}|weight:${strokeWeight}|${pathCoords}`;
   });
   
   url += `&key=${GOOGLE_SOLAR_API_KEY}`;

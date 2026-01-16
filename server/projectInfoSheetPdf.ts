@@ -95,9 +95,13 @@ function calculateZoomForPolygons(
   const widthMeters = lngSpan * metersPerDegreeLng;
   const maxSpanMeters = Math.max(heightMeters, widthMeters);
   
-  if (maxSpanMeters > 400) return 16;
-  if (maxSpanMeters > 200) return 17;
-  return 18;
+  console.log(`[ProjectInfoSheet] Polygon bounds: ${maxSpanMeters.toFixed(0)}m span`);
+  
+  // More aggressive zoom-out for large buildings to ensure all polygons are visible
+  if (maxSpanMeters > 300) return 16;
+  if (maxSpanMeters > 150) return 17;
+  if (maxSpanMeters > 80) return 18;
+  return 19;
 }
 
 function calculatePolygonCenter(roofPolygons: RoofPolygonData[]): { lat: number; lng: number } | null {
