@@ -52,6 +52,7 @@ const PartnershipsPage = lazy(() => import("@/pages/partnerships"));
 const SiteVisitFormPage = lazy(() => import("@/pages/site-visit-form"));
 const BatchImportPage = lazy(() => import("@/pages/batch-import"));
 const PresentationPage = lazy(() => import("@/pages/presentation"));
+const AdminPricingPage = lazy(() => import("@/pages/admin-pricing"));
 
 function PageLoader() {
   return (
@@ -413,6 +414,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <MarketIntelligencePage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Admin Pricing Components */}
+      <Route path="/app/admin/pricing">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <AdminPricingPage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

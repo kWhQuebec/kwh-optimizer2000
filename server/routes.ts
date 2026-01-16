@@ -13,6 +13,7 @@ import {
   insertClientSchema,
   insertSiteSchema,
   insertComponentCatalogSchema,
+  insertPricingComponentSchema,
   insertSiteVisitSchema,
   insertDesignAgreementSchema,
   insertPortfolioSchema,
@@ -3184,6 +3185,185 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== PRICING COMPONENTS ROUTES (Market Intelligence) ====================
+
+  // Get all pricing components
+  app.get("/api/pricing-components", authMiddleware, async (req, res) => {
+    try {
+      const components = await storage.getPricingComponents();
+      res.json(components);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get active pricing components only
+  app.get("/api/pricing-components/active", authMiddleware, async (req, res) => {
+    try {
+      const components = await storage.getActivePricingComponents();
+      res.json(components);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get pricing components by category
+  app.get("/api/pricing-components/category/:category", authMiddleware, async (req, res) => {
+    try {
+      const components = await storage.getPricingComponentsByCategory(req.params.category);
+      res.json(components);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get a single pricing component
+  app.get("/api/pricing-components/:id", authMiddleware, async (req, res) => {
+    try {
+      const component = await storage.getPricingComponent(req.params.id);
+      if (!component) {
+        return res.status(404).json({ error: "Component not found" });
+      }
+      res.json(component);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create a new pricing component
+  app.post("/api/pricing-components", authMiddleware, async (req, res) => {
+    try {
+      const parsed = insertPricingComponentSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+      const component = await storage.createPricingComponent(parsed.data);
+      res.status(201).json(component);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update a pricing component
+  app.patch("/api/pricing-components/:id", authMiddleware, async (req, res) => {
+    try {
+      const component = await storage.updatePricingComponent(req.params.id, req.body);
+      if (!component) {
+        return res.status(404).json({ error: "Component not found" });
+      }
+      res.json(component);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete a pricing component
+  app.delete("/api/pricing-components/:id", authMiddleware, async (req, res) => {
+    try {
+      const deleted = await storage.deletePricingComponent(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Component not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Calculate $/W breakdown for a site based on pricing components
+  app.get("/api/sites/:siteId/price-breakdown", authMiddleware, async (req, res) => {
+    try {
+      const site = await storage.getSite(req.params.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      // Get system size from KB design or estimate
+      const capacityKW = site.kbKwDc || 100; // Default to 100 kW if not set
+      const panelCount = site.kbPanelCount || Math.ceil(capacityKW * 1000 / 625);
+
+      // Get active pricing components
+      const components = await storage.getActivePricingComponents();
+
+      // Calculate cost breakdown by category
+      const breakdown: Record<string, { cost: number; perW: number; source: string | null }> = {};
+      let totalCost = 0;
+
+      for (const comp of components) {
+        let componentCost = 0;
+
+        // Calculate based on unit type
+        switch (comp.unit) {
+          case 'W':
+            componentCost = comp.pricePerUnit * capacityKW * 1000;
+            break;
+          case 'kW':
+            componentCost = comp.pricePerUnit * capacityKW;
+            break;
+          case 'panel':
+            componentCost = comp.pricePerUnit * panelCount;
+            break;
+          case 'project':
+            componentCost = comp.pricePerUnit;
+            break;
+          case 'percent':
+            // Percentage of subtotal (calculated later)
+            break;
+          default:
+            componentCost = comp.pricePerUnit * capacityKW * 1000;
+        }
+
+        // Handle tiered pricing
+        if (comp.minQuantity !== null && comp.maxQuantity !== null) {
+          const qty = comp.unit === 'panel' ? panelCount : capacityKW;
+          if (qty < comp.minQuantity || qty > comp.maxQuantity) {
+            continue; // Skip if outside tier range
+          }
+        }
+
+        if (!breakdown[comp.category]) {
+          breakdown[comp.category] = { cost: 0, perW: 0, source: null };
+        }
+        breakdown[comp.category].cost += componentCost;
+        breakdown[comp.category].source = comp.source;
+        totalCost += componentCost;
+      }
+
+      // Handle percentage-based components (soft costs)
+      for (const comp of components.filter(c => c.unit === 'percent')) {
+        const percentageCost = totalCost * (comp.pricePerUnit / 100);
+        if (!breakdown[comp.category]) {
+          breakdown[comp.category] = { cost: 0, perW: 0, source: null };
+        }
+        breakdown[comp.category].cost += percentageCost;
+        breakdown[comp.category].source = comp.source;
+        totalCost += percentageCost;
+      }
+
+      // Calculate $/W for each category
+      const capacityW = capacityKW * 1000;
+      for (const cat of Object.keys(breakdown)) {
+        breakdown[cat].perW = Math.round((breakdown[cat].cost / capacityW) * 100) / 100;
+      }
+
+      const totalPerW = Math.round((totalCost / capacityW) * 100) / 100;
+
+      res.json({
+        siteId: site.id,
+        siteName: site.name,
+        capacityKW,
+        panelCount,
+        breakdown,
+        totalCost: Math.round(totalCost),
+        totalPerW,
+        componentCount: components.length,
+      });
+    } catch (error) {
+      console.error("Error calculating price breakdown:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

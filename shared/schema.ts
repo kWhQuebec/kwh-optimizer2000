@@ -304,6 +304,25 @@ export const componentCatalog = pgTable("component_catalog", {
   active: boolean("active").default(true),
 });
 
+// Pricing Components for Market Intelligence - component-level pricing for $/W calculation
+export const pricingComponents = pgTable("pricing_components", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(), // "panels" | "racking" | "inverters" | "bos_electrical" | "labor" | "soft_costs"
+  name: text("name").notNull(), // e.g., "Jinko 625W Bifacial", "KB Racking AeroGrid"
+  description: text("description"), // Additional context
+  pricePerUnit: real("price_per_unit").notNull(), // Price in CAD
+  unit: text("unit").notNull(), // "W" | "panel" | "kW" | "project" | "hour" | "percent"
+  minQuantity: real("min_quantity"), // For tiered pricing - minimum quantity for this price
+  maxQuantity: real("max_quantity"), // For tiered pricing - maximum quantity for this price
+  source: text("source"), // "KB Racking", "Distributor XYZ", "Industry benchmark"
+  sourceDate: timestamp("source_date"), // When this price was obtained
+  validUntil: timestamp("valid_until"), // Quote expiration date
+  notes: text("notes"), // Any relevant notes about the pricing
+  active: boolean("active").default(true), // Whether this pricing is currently used
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Site Visit (Visite Technique) - Based on Rematek form template
 export const siteVisits = pgTable("site_visits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1529,6 +1548,12 @@ export const insertComponentCatalogSchema = createInsertSchema(componentCatalog)
   id: true,
 });
 
+export const insertPricingComponentSchema = createInsertSchema(pricingComponents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertSiteVisitSchema = createInsertSchema(siteVisits).omit({
   id: true,
   createdAt: true,
@@ -1730,6 +1755,9 @@ export type BomItem = typeof bomItems.$inferSelect;
 
 export type InsertComponentCatalog = z.infer<typeof insertComponentCatalogSchema>;
 export type ComponentCatalog = typeof componentCatalog.$inferSelect;
+
+export type InsertPricingComponent = z.infer<typeof insertPricingComponentSchema>;
+export type PricingComponent = typeof pricingComponents.$inferSelect;
 
 export type InsertSiteVisit = z.infer<typeof insertSiteVisitSchema>;
 export type SiteVisit = typeof siteVisits.$inferSelect;

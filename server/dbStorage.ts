@@ -2,7 +2,7 @@ import { eq, desc, and, inArray, count, sum, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
-  simulationRuns, designs, bomItems, componentCatalog, siteVisits, siteVisitPhotos, designAgreements,
+  simulationRuns, designs, bomItems, componentCatalog, pricingComponents, siteVisits, siteVisitPhotos, designAgreements,
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
   competitors, battleCards, marketNotes, marketDocuments, competitorProposalAnalysis,
   constructionAgreements, constructionMilestones, constructionProjects, constructionTasks, omContracts, omVisits, omPerformanceSnapshots,
@@ -47,6 +47,7 @@ import type {
   Partnership, InsertPartnership,
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
   RoofPolygon, InsertRoofPolygon,
+  PricingComponent, InsertPricingComponent,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -82,6 +83,36 @@ export class DatabaseStorage implements IStorage {
         { category: "BATTERY", manufacturer: "LG Chem", model: "RESU16H Prime", unitCost: 9000, unitSellPrice: 12000, active: true },
       ];
       await db.insert(componentCatalog).values(defaultItems);
+    }
+
+    // Initialize pricing components for Market Intelligence
+    const existingPricing = await db.select().from(pricingComponents).limit(1);
+    if (existingPricing.length === 0) {
+      const defaultPricing = [
+        // Panels - based on Jinko 625W bifacial pricing
+        { category: "panels", name: "Jinko 625W Bifacial", pricePerUnit: 0.35, unit: "W", source: "Industry benchmark", notes: "High-efficiency bifacial modules" },
+        
+        // Racking - KB Racking tiered pricing (per panel)
+        { category: "racking", name: "KB AeroGrid 10° (< 1,500 panels)", pricePerUnit: 115.50, unit: "panel", minQuantity: 0, maxQuantity: 1499, source: "KB Racking", notes: "Ballast-mount, 10° tilt landscape" },
+        { category: "racking", name: "KB AeroGrid 10° (1,500-3,000 panels)", pricePerUnit: 113.00, unit: "panel", minQuantity: 1500, maxQuantity: 3000, source: "KB Racking", notes: "Ballast-mount, 10° tilt landscape" },
+        { category: "racking", name: "KB AeroGrid 10° (3,000-5,000 panels)", pricePerUnit: 111.50, unit: "panel", minQuantity: 3001, maxQuantity: 5000, source: "KB Racking", notes: "Ballast-mount, 10° tilt landscape" },
+        { category: "racking", name: "KB AeroGrid 10° (5,000-8,000 panels)", pricePerUnit: 111.00, unit: "panel", minQuantity: 5001, maxQuantity: 8000, source: "KB Racking", notes: "Ballast-mount, 10° tilt landscape" },
+        { category: "racking", name: "KB AeroGrid 10° (8,000+ panels)", pricePerUnit: 110.00, unit: "panel", minQuantity: 8001, maxQuantity: 999999, source: "KB Racking", notes: "Ballast-mount, 10° tilt landscape" },
+        
+        // Inverters - string inverter pricing
+        { category: "inverters", name: "String Inverter (Huawei/SMA)", pricePerUnit: 0.12, unit: "W", source: "Industry benchmark", notes: "Commercial string inverters" },
+        
+        // BOS Electrical
+        { category: "bos_electrical", name: "Electrical BOS (cables, combiner boxes, etc.)", pricePerUnit: 0.15, unit: "W", source: "Industry benchmark", notes: "Cables, combiner boxes, disconnects, grounding" },
+        
+        // Labor
+        { category: "labor", name: "Installation Labor", pricePerUnit: 0.35, unit: "W", source: "Industry benchmark", notes: "Electrical + mechanical installation" },
+        
+        // Soft costs
+        { category: "soft_costs", name: "Engineering & Permitting", pricePerUnit: 5, unit: "percent", source: "Industry benchmark", notes: "PE stamps, permits, inspections" },
+        { category: "soft_costs", name: "Project Management", pricePerUnit: 3, unit: "percent", source: "Industry benchmark", notes: "Procurement, scheduling, coordination" },
+      ];
+      await db.insert(pricingComponents).values(defaultPricing);
     }
   }
 
@@ -573,6 +604,45 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCatalogItem(id: string): Promise<boolean> {
     const result = await db.delete(componentCatalog).where(eq(componentCatalog.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Pricing Components (Market Intelligence)
+  async getPricingComponents(): Promise<PricingComponent[]> {
+    return db.select().from(pricingComponents).orderBy(pricingComponents.category, pricingComponents.name);
+  }
+
+  async getPricingComponent(id: string): Promise<PricingComponent | undefined> {
+    const result = await db.select().from(pricingComponents).where(eq(pricingComponents.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getPricingComponentsByCategory(category: string): Promise<PricingComponent[]> {
+    return db.select().from(pricingComponents).where(eq(pricingComponents.category, category));
+  }
+
+  async getActivePricingComponents(): Promise<PricingComponent[]> {
+    return db.select().from(pricingComponents).where(eq(pricingComponents.active, true));
+  }
+
+  async createPricingComponent(component: InsertPricingComponent): Promise<PricingComponent> {
+    const [result] = await db.insert(pricingComponents).values({
+      ...component,
+      active: component.active ?? true,
+    }).returning();
+    return result;
+  }
+
+  async updatePricingComponent(id: string, component: Partial<PricingComponent>): Promise<PricingComponent | undefined> {
+    const [result] = await db.update(pricingComponents).set({
+      ...component,
+      updatedAt: new Date(),
+    }).where(eq(pricingComponents.id, id)).returning();
+    return result;
+  }
+
+  async deletePricingComponent(id: string): Promise<boolean> {
+    const result = await db.delete(pricingComponents).where(eq(pricingComponents.id, id)).returning();
     return result.length > 0;
   }
 

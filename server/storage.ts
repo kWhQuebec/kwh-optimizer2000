@@ -38,6 +38,7 @@ import type {
   Partnership, InsertPartnership,
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
   RoofPolygon, InsertRoofPolygon,
+  PricingComponent, InsertPricingComponent,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -105,6 +106,15 @@ export interface IStorage {
   createCatalogItem(item: InsertComponentCatalog): Promise<ComponentCatalog>;
   updateCatalogItem(id: string, item: Partial<ComponentCatalog>): Promise<ComponentCatalog | undefined>;
   deleteCatalogItem(id: string): Promise<boolean>;
+
+  // Pricing Components (Market Intelligence)
+  getPricingComponents(): Promise<PricingComponent[]>;
+  getPricingComponent(id: string): Promise<PricingComponent | undefined>;
+  getPricingComponentsByCategory(category: string): Promise<PricingComponent[]>;
+  getActivePricingComponents(): Promise<PricingComponent[]>;
+  createPricingComponent(component: InsertPricingComponent): Promise<PricingComponent>;
+  updatePricingComponent(id: string, component: Partial<PricingComponent>): Promise<PricingComponent | undefined>;
+  deletePricingComponent(id: string): Promise<boolean>;
 
   // Dashboard Stats
   getDashboardStats(): Promise<{
@@ -798,6 +808,58 @@ export class MemStorage implements IStorage {
 
   async deleteCatalogItem(id: string): Promise<boolean> {
     return this.catalogItems.delete(id);
+  }
+
+  // Pricing Components (Market Intelligence)
+  private pricingComponents = new Map<string, PricingComponent>();
+
+  async getPricingComponents(): Promise<PricingComponent[]> {
+    return Array.from(this.pricingComponents.values());
+  }
+
+  async getPricingComponent(id: string): Promise<PricingComponent | undefined> {
+    return this.pricingComponents.get(id);
+  }
+
+  async getPricingComponentsByCategory(category: string): Promise<PricingComponent[]> {
+    return Array.from(this.pricingComponents.values()).filter(c => c.category === category);
+  }
+
+  async getActivePricingComponents(): Promise<PricingComponent[]> {
+    return Array.from(this.pricingComponents.values()).filter(c => c.active);
+  }
+
+  async createPricingComponent(component: InsertPricingComponent): Promise<PricingComponent> {
+    const id = crypto.randomUUID();
+    const now = new Date();
+    const newComponent: PricingComponent = { 
+      ...component, 
+      id, 
+      createdAt: now, 
+      updatedAt: now,
+      description: component.description ?? null,
+      minQuantity: component.minQuantity ?? null,
+      maxQuantity: component.maxQuantity ?? null,
+      source: component.source ?? null,
+      sourceDate: component.sourceDate ?? null,
+      validUntil: component.validUntil ?? null,
+      notes: component.notes ?? null,
+      active: component.active ?? true,
+    };
+    this.pricingComponents.set(id, newComponent);
+    return newComponent;
+  }
+
+  async updatePricingComponent(id: string, component: Partial<PricingComponent>): Promise<PricingComponent | undefined> {
+    const existing = this.pricingComponents.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...component, updatedAt: new Date() };
+    this.pricingComponents.set(id, updated);
+    return updated;
+  }
+
+  async deletePricingComponent(id: string): Promise<boolean> {
+    return this.pricingComponents.delete(id);
   }
 
   // Dashboard Stats
