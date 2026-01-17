@@ -305,15 +305,15 @@ export async function generateProjectInfoSheetPDF(
   bulletItems.push({ label: t.electricityOfftake, value: t.electricityOfftakeValue });
 
   for (const item of bulletItems) {
-    doc.circle(detailsX + 4, detailY + 4, 2.5).fillColor(BRAND_COLORS.accent).fill();
+    doc.circle(detailsX + 4, detailY + 5, 2.5).fillColor(BRAND_COLORS.accent).fill();
     
     doc.fontSize(7).fillColor(BRAND_COLORS.mediumText).font("Helvetica-Bold");
     doc.text(item.label, detailsX + 14, detailY, { width: detailsWidth - 14 });
-    detailY += 10;
+    detailY += 12;
     
     doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
     doc.text(item.value, detailsX + 14, detailY, { width: detailsWidth - 14 });
-    detailY += 16;
+    detailY += 22;
   }
 
   yPos = Math.max(topRowY + imageHeight, detailY) + 30;
