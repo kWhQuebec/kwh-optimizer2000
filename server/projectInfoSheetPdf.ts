@@ -184,15 +184,15 @@ export async function generateProjectInfoSheetPDF(
     process.cwd(),
     "attached_assets",
     lang === "fr"
-      ? "solaire_fr_1764778573075.png"
-      : "solaire_en_1764778591753.png"
+      ? "solaire_fr-removebg-preview_1767985380511.png"
+      : "solaire_en-removebg-preview_1767985380510.png"
   );
 
   let logoBuffer: Buffer | null = null;
   if (fs.existsSync(logoPath)) {
     try {
       logoBuffer = fs.readFileSync(logoPath);
-      console.log(`[ProjectInfoSheet] Loaded logo from: ${logoPath}`);
+      console.log(`[ProjectInfoSheet] Loaded transparent logo from: ${logoPath}`);
     } catch (e) {
       console.error("Failed to read logo:", e);
     }
