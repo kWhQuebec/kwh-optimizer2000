@@ -5,13 +5,6 @@ import { getRoofVisualizationUrl, getSatelliteImageUrl } from "./googleSolarServ
 import {
   BRAND_COLORS,
   PAGE_SIZES,
-  DEFAULT_THEME,
-  drawModernHeader,
-  drawModernFooter,
-  drawInfoCard,
-  drawSectionTitle,
-  drawParagraph,
-  drawImageWithBorder,
   createDocument,
   collectBuffer,
 } from "./pdfTemplates";
@@ -124,18 +117,18 @@ function calculatePolygonCenter(roofPolygons: RoofPolygonData[]): { lat: number;
 
 const TEXTS = {
   fr: {
-    projectAddress: "Adresse du projet",
+    projectAddress: "ADRESSE DU PROJET",
     projectDetails: "Détails du projet",
-    projectSize: "Taille du projet",
-    roofArea: "Surface de toiture",
-    buildingType: "Type de bâtiment",
-    constructionStart: "Début de construction prévu",
+    projectSize: "TAILLE DU PROJET",
+    roofArea: "SURFACE DE TOITURE",
+    buildingType: "TYPE DE BÂTIMENT",
+    constructionStart: "DÉBUT DE CONSTRUCTION PRÉVU",
     constructionValue: "Printemps/Été 2028",
-    developer: "Développeur / Constructeur",
+    developer: "DÉVELOPPEUR / CONSTRUCTEUR",
     developerValue: "Scale Cleantech et kWh Québec",
-    buildingSponsor: "Propriétaire / Commanditaire",
+    buildingSponsor: "PROPRIÉTAIRE / COMMANDITAIRE",
     buildingSponsorValue: "Dream Industrial Solar",
-    electricityOfftake: "Acheteur d'électricité",
+    electricityOfftake: "ACHETEUR D'ÉLECTRICITÉ",
     electricityOfftakeValue: "Hydro-Québec",
     solarTitle: "L'énergie solaire au Québec",
     solarParagraph1: `Le solaire devient rapidement l'une des sources d'électricité les moins chères pour la nouvelle génération à l'échelle mondiale. Dans son dernier appel d'offres, Hydro-Québec a lancé un processus pour acquérir jusqu'à 300 MW de nouvelle production solaire.`,
@@ -147,26 +140,20 @@ const TEXTS = {
     acLabel: "kW AC",
     sqmLabel: "m²",
     notAvailable: "À déterminer",
-    buildingTypes: {
-      industrial: "Industriel",
-      commercial: "Commercial",
-      institutional: "Institutionnel",
-      other: "Autre",
-    },
   },
   en: {
-    projectAddress: "Project Address",
+    projectAddress: "PROJECT ADDRESS",
     projectDetails: "Project Details",
-    projectSize: "Project Size",
-    roofArea: "Roof Area",
-    buildingType: "Building Type",
-    constructionStart: "Planned Construction Start",
+    projectSize: "PROJECT SIZE",
+    roofArea: "ROOF AREA",
+    buildingType: "BUILDING TYPE",
+    constructionStart: "PLANNED CONSTRUCTION START",
     constructionValue: "Spring/Summer 2028",
-    developer: "Developer / Constructor",
+    developer: "DEVELOPER / CONSTRUCTOR",
     developerValue: "Scale Cleantech and kWh Québec",
-    buildingSponsor: "Building Sponsor / Owner",
+    buildingSponsor: "BUILDING SPONSOR / OWNER",
     buildingSponsorValue: "Dream Industrial Solar",
-    electricityOfftake: "Electricity Offtake",
+    electricityOfftake: "ELECTRICITY OFFTAKE",
     electricityOfftakeValue: "Hydro-Québec",
     solarTitle: "Solar Energy in Quebec",
     solarParagraph1: `Solar is quickly becoming one of the cheapest new electricity sources for new generation globally. In its latest call for new generation, Hydro-Québec has released an Appel d'offres to acquire up to 300 MW of new solar generation.`,
@@ -178,12 +165,6 @@ const TEXTS = {
     acLabel: "kW AC",
     sqmLabel: "m²",
     notAvailable: "TBD",
-    buildingTypes: {
-      industrial: "Industrial",
-      commercial: "Commercial",
-      institutional: "Institutional",
-      other: "Other",
-    },
   },
 };
 
@@ -193,7 +174,7 @@ export async function generateProjectInfoSheetPDF(
 ): Promise<Buffer> {
   const t = TEXTS[lang];
   const { width: pageWidth, height: pageHeight } = PAGE_SIZES.letter;
-  const margin = 50;
+  const margin = 40;
   const contentWidth = pageWidth - margin * 2;
   
   const doc = createDocument("letter");
@@ -203,8 +184,8 @@ export async function generateProjectInfoSheetPDF(
     process.cwd(),
     "attached_assets",
     lang === "fr"
-      ? "kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png"
-      : "kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png"
+      ? "solaire_fr-removebg-preview_1767985380511.png"
+      : "solaire_en-removebg-preview_1767985380511.png"
   );
 
   let logoBuffer: Buffer | null = null;
@@ -218,45 +199,82 @@ export async function generateProjectInfoSheetPDF(
 
   const fullAddress = [
     data.site.address,
-    data.site.city,
-    data.site.province || "QC",
-    data.site.postalCode,
+    [data.site.city, data.site.province || "Québec"].filter(Boolean).join(", "),
   ]
     .filter(Boolean)
     .join(", ");
 
-  let yPos = drawModernHeader(doc, {
-    title: fullAddress || data.site.name,
-    subtitle: t.projectAddress,
-    logoBuffer,
-    pageWidth,
-  });
+  doc.rect(0, 0, pageWidth, 6).fillColor(BRAND_COLORS.accent).fill();
 
-  if (data.roofImageBuffer) {
-    const imageWidth = contentWidth;
-    const imageHeight = 160;
-    
-    yPos = drawImageWithBorder(doc, {
-      imageBuffer: data.roofImageBuffer,
-      x: margin,
-      y: yPos,
-      width: imageWidth,
-      height: imageHeight,
-      borderRadius: 6,
-      borderColor: BRAND_COLORS.border,
-      borderWidth: 1,
-    });
-    yPos += 20;
+  let yPos = 25;
+
+  if (logoBuffer) {
+    try {
+      doc.image(logoBuffer, margin, yPos, { width: 160 });
+    } catch (e) {
+      doc.fontSize(20).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
+      doc.text("kWh Québec", margin, yPos + 10);
+    }
   } else {
-    yPos += 10;
+    doc.fontSize(20).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
+    doc.text("kWh Québec", margin, yPos + 10);
   }
 
-  const leftColWidth = contentWidth * 0.42;
-  const rightColWidth = contentWidth * 0.52;
-  const colGap = contentWidth * 0.06;
-  const leftColX = margin;
-  const rightColX = margin + leftColWidth + colGap;
+  yPos = 85;
+
+  doc.fontSize(10).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
+  doc.text(t.projectAddress, margin, yPos);
+  yPos += 16;
+
+  doc.fontSize(18).fillColor(BRAND_COLORS.darkText).font("Helvetica-Bold");
+  const addressLines = doc.heightOfString(fullAddress || data.site.name, { width: contentWidth - 20 });
+  doc.text(fullAddress || data.site.name, margin, yPos, { width: contentWidth - 20 });
+  yPos += addressLines + 8;
+
+  doc.moveTo(margin, yPos).lineTo(margin + 50, yPos)
+    .strokeColor(BRAND_COLORS.accent).lineWidth(3).stroke();
+  yPos += 20;
+
+  const imageWidth = 240;
+  const imageHeight = 160;
+  const detailsX = margin + imageWidth + 25;
+  const detailsWidth = contentWidth - imageWidth - 25;
+  const topRowY = yPos;
+
+  if (data.roofImageBuffer) {
+    try {
+      doc.save();
+      doc.roundedRect(margin, topRowY, imageWidth, imageHeight, 6).clip();
+      doc.image(data.roofImageBuffer, margin, topRowY, { 
+        width: imageWidth, 
+        height: imageHeight,
+        fit: [imageWidth, imageHeight],
+        align: 'center',
+        valign: 'center'
+      });
+      doc.restore();
+      doc.roundedRect(margin, topRowY, imageWidth, imageHeight, 6)
+        .strokeColor(BRAND_COLORS.border).lineWidth(1).stroke();
+    } catch (e) {
+      doc.roundedRect(margin, topRowY, imageWidth, imageHeight, 6)
+        .fillColor(BRAND_COLORS.lightBg).fill();
+      doc.fontSize(10).fillColor(BRAND_COLORS.lightText);
+      doc.text("Image non disponible", margin + 60, topRowY + 70);
+    }
+  } else {
+    doc.roundedRect(margin, topRowY, imageWidth, imageHeight, 6)
+      .fillColor(BRAND_COLORS.lightBg).fill();
+  }
+
+  let detailY = topRowY;
   
+  doc.fontSize(12).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
+  doc.text(t.projectDetails, detailsX, detailY);
+  detailY += 22;
+
+  doc.moveTo(detailsX, detailY - 4).lineTo(detailsX + 40, detailY - 4)
+    .strokeColor(BRAND_COLORS.accent).lineWidth(2).stroke();
+
   const bulletItems: Array<{ label: string; value: string }> = [];
   
   let sizeValue = t.notAvailable;
@@ -283,59 +301,68 @@ export async function generateProjectInfoSheetPDF(
   bulletItems.push({ label: t.buildingSponsor, value: t.buildingSponsorValue });
   bulletItems.push({ label: t.electricityOfftake, value: t.electricityOfftakeValue });
 
-  const cardHeight = 50 + bulletItems.length * 35;
+  for (const item of bulletItems) {
+    doc.circle(detailsX + 4, detailY + 4, 2.5).fillColor(BRAND_COLORS.accent).fill();
+    
+    doc.fontSize(7).fillColor(BRAND_COLORS.mediumText).font("Helvetica-Bold");
+    doc.text(item.label, detailsX + 14, detailY, { width: detailsWidth - 14 });
+    detailY += 10;
+    
+    doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+    doc.text(item.value, detailsX + 14, detailY, { width: detailsWidth - 14 });
+    detailY += 16;
+  }
+
+  yPos = Math.max(topRowY + imageHeight, detailY) + 30;
+
+  doc.rect(margin, yPos, contentWidth, 1).fillColor(BRAND_COLORS.border).fill();
+  yPos += 20;
+
+  doc.fontSize(14).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
+  doc.text(t.solarTitle, margin, yPos);
+  yPos += 22;
+
+  doc.moveTo(margin, yPos - 6).lineTo(margin + 50, yPos - 6)
+    .strokeColor(BRAND_COLORS.accent).lineWidth(2).stroke();
+
+  const textWidth = contentWidth;
+  const lineHeight = 14;
+
+  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+  doc.text(t.solarParagraph1, margin, yPos, { 
+    width: textWidth, 
+    lineGap: 4,
+    align: 'justify'
+  });
+  yPos += doc.heightOfString(t.solarParagraph1, { width: textWidth, lineGap: 4 }) + 12;
+
+  doc.text(t.solarParagraph2, margin, yPos, { 
+    width: textWidth, 
+    lineGap: 4,
+    align: 'justify'
+  });
+  yPos += doc.heightOfString(t.solarParagraph2, { width: textWidth, lineGap: 4 }) + 12;
+
+  doc.text(t.solarParagraph3, margin, yPos, { 
+    width: textWidth, 
+    lineGap: 4,
+    align: 'justify'
+  });
+
+  const footerHeight = 45;
+  const footerY = pageHeight - footerHeight;
   
-  drawInfoCard(doc, {
-    x: leftColX,
-    y: yPos,
-    width: leftColWidth,
-    height: cardHeight,
-    title: t.projectDetails,
-    items: bulletItems,
-  });
-
-  let rightYPos = drawSectionTitle(doc, {
-    x: rightColX,
-    y: yPos,
-    title: t.solarTitle,
-    width: rightColWidth,
-  });
-
-  rightYPos = drawParagraph(doc, {
-    x: rightColX,
-    y: rightYPos,
-    text: t.solarParagraph1,
-    width: rightColWidth,
-    fontSize: 10,
-    color: BRAND_COLORS.mediumText,
-  });
-
-  rightYPos = drawParagraph(doc, {
-    x: rightColX,
-    y: rightYPos,
-    text: t.solarParagraph2,
-    width: rightColWidth,
-    fontSize: 10,
-    color: BRAND_COLORS.mediumText,
-  });
-
-  drawParagraph(doc, {
-    x: rightColX,
-    y: rightYPos,
-    text: t.solarParagraph3,
-    width: rightColWidth,
-    fontSize: 10,
-    color: BRAND_COLORS.mediumText,
-  });
-
-  const cityForFooter = data.site.city || data.site.address || data.site.name;
-  drawModernFooter(doc, {
-    leftText: cityForFooter,
-    centerText: t.footerPhone,
-    rightText: t.footerWebsite,
-    pageWidth,
-    pageHeight,
-  });
+  doc.rect(0, footerY, pageWidth, footerHeight).fillColor(BRAND_COLORS.primary).fill();
+  
+  const footerTextY = footerY + (footerHeight - 12) / 2;
+  
+  doc.fontSize(10).fillColor(BRAND_COLORS.white).font("Helvetica");
+  doc.text(data.site.city || "Montreal", margin, footerTextY);
+  
+  doc.text(t.footerPhone, pageWidth / 2 - 50, footerTextY, { width: 100, align: "center" });
+  
+  doc.font("Helvetica-Bold");
+  doc.text(t.footerWebsite, margin, footerTextY, { width: contentWidth, align: "right" });
 
   doc.end();
 
