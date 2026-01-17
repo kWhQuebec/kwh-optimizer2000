@@ -180,20 +180,26 @@ export async function generateProjectInfoSheetPDF(
   const doc = createDocument("letter");
   const bufferPromise = collectBuffer(doc);
 
-  const logoPath = path.join(
-    process.cwd(),
-    "attached_assets",
-    lang === "fr"
-      ? "solaire_fr-removebg-preview_1767985380511.png"
-      : "solaire_en-removebg-preview_1767985380511.png"
-  );
+  const logoPaths = lang === "fr" 
+    ? [
+        path.join(process.cwd(), "attached_assets", "solaire_fr-removebg-preview_1767985380511.png"),
+        path.join(process.cwd(), "attached_assets", "kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png"),
+      ]
+    : [
+        path.join(process.cwd(), "attached_assets", "solaire_en-removebg-preview_1767985380510.png"),
+        path.join(process.cwd(), "attached_assets", "kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png"),
+      ];
 
   let logoBuffer: Buffer | null = null;
-  if (fs.existsSync(logoPath)) {
-    try {
-      logoBuffer = fs.readFileSync(logoPath);
-    } catch (e) {
-      console.error("Failed to read logo:", e);
+  for (const logoPath of logoPaths) {
+    if (fs.existsSync(logoPath)) {
+      try {
+        logoBuffer = fs.readFileSync(logoPath);
+        console.log(`[ProjectInfoSheet] Loaded logo from: ${logoPath}`);
+        break;
+      } catch (e) {
+        console.error("Failed to read logo:", e);
+      }
     }
   }
 
