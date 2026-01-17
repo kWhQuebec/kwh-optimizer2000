@@ -223,7 +223,7 @@ export async function generateProjectInfoSheetPDF(
     doc.text("kWh Québec", margin, yPos + 10);
   }
 
-  yPos = 85;
+  yPos = 113;
 
   doc.fontSize(10).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
   doc.text(t.projectAddress, margin, yPos);
