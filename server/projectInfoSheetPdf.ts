@@ -2,18 +2,19 @@ import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
 import { getRoofVisualizationUrl, getSatelliteImageUrl } from "./googleSolarService";
-
-const COLORS = {
-  primary: "#0054A8",
-  primaryLight: "#0066CC",
-  accent: "#FFBE0D",
-  darkText: "#333333",
-  mediumText: "#555555",
-  lightText: "#888888",
-  lightBg: "#f8f9fa",
-  white: "#FFFFFF",
-  border: "#e0e0e0",
-};
+import {
+  BRAND_COLORS,
+  PAGE_SIZES,
+  DEFAULT_THEME,
+  drawModernHeader,
+  drawModernFooter,
+  drawInfoCard,
+  drawSectionTitle,
+  drawParagraph,
+  drawImageWithBorder,
+  createDocument,
+  collectBuffer,
+} from "./pdfTemplates";
 
 interface RoofPolygonData {
   coordinates: [number, number][];
@@ -97,7 +98,6 @@ function calculateZoomForPolygons(
   
   console.log(`[ProjectInfoSheet] Polygon bounds: ${maxSpanMeters.toFixed(0)}m span`);
   
-  // Zoom levels optimized to fit all polygons while maximizing detail
   if (maxSpanMeters > 350) return 16;
   if (maxSpanMeters > 200) return 17;
   if (maxSpanMeters > 100) return 18;
@@ -139,7 +139,7 @@ const TEXTS = {
     electricityOfftakeValue: "Hydro-Québec",
     solarTitle: "L'énergie solaire au Québec",
     solarParagraph1: `Le solaire devient rapidement l'une des sources d'électricité les moins chères pour la nouvelle génération à l'échelle mondiale. Dans son dernier appel d'offres, Hydro-Québec a lancé un processus pour acquérir jusqu'à 300 MW de nouvelle production solaire.`,
-    solarParagraph2: `La construction de nouvelles installations solaires sur les toitures industrielles est l'une des meilleures façons d'utiliser cette technologie. Non seulement le solaire occupe un espace de toiture sous-utilisé, mais il génère également de l'énergie là où elle est nécessaire. En produisant l'énergie sur place, les services publics minimisent le besoin de lignes à haute tension coûteuses qui s'étendent sur des centaines de kilomètres.`,
+    solarParagraph2: `La construction de nouvelles installations solaires sur les toitures industrielles est l'une des meilleures façons d'utiliser cette technologie. Non seulement le solaire occupe un espace de toiture sous-utilisé, mais il génère également de l'énergie là où elle est nécessaire.`,
     solarParagraph3: `Ce projet fera partie de ce processus d'appel d'offres compétitif. Les soumissions seront présentées en mars 2026 et les projets retenus seront notifiés en janvier 2027.`,
     footerPhone: "Tél: 514.594.5392",
     footerWebsite: "www.kwh.quebec",
@@ -168,9 +168,9 @@ const TEXTS = {
     buildingSponsorValue: "Dream Industrial Solar",
     electricityOfftake: "Electricity Offtake",
     electricityOfftakeValue: "Hydro-Québec",
-    solarTitle: "Solar in Quebec",
-    solarParagraph1: `Solar is quickly becoming one of the cheapest new electricity sources for new generation globally. In its latest call for new generation, Hydro-Québec has recently released an Appel d'offres to acquire up to 300 MW of new solar generation.`,
-    solarParagraph2: `Building new solar generation on industrial rooftops is one of the best ways to utilize the technology. Not only does the solar take up underutilized roof space, but it also generates energy right where the energy is needed. By generating energy where it is used, utilities minimize the need for costly high-voltage lines that span for hundreds of kilometers to provide electricity to the major urban industrial areas.`,
+    solarTitle: "Solar Energy in Quebec",
+    solarParagraph1: `Solar is quickly becoming one of the cheapest new electricity sources for new generation globally. In its latest call for new generation, Hydro-Québec has released an Appel d'offres to acquire up to 300 MW of new solar generation.`,
+    solarParagraph2: `Building new solar generation on industrial rooftops is one of the best ways to utilize the technology. Not only does the solar take up underutilized roof space, but it also generates energy right where the energy is needed.`,
     solarParagraph3: `This project will be part of that competitive bidding process. Bids will be submitted in March 2026 and projects awarded will be notified in January 2027.`,
     footerPhone: "Tel: 514.594.5392",
     footerWebsite: "www.kwh.quebec",
@@ -192,23 +192,12 @@ export async function generateProjectInfoSheetPDF(
   lang: "fr" | "en" = "fr"
 ): Promise<Buffer> {
   const t = TEXTS[lang];
+  const { width: pageWidth, height: pageHeight } = PAGE_SIZES.letter;
+  const margin = 50;
+  const contentWidth = pageWidth - margin * 2;
   
-  const doc = new PDFDocument({
-    size: "letter",
-    margin: 0,
-    bufferPages: true,
-  });
-
-  const pageWidth = 612;
-  const pageHeight = 792;
-  const margin = 45;
-  const contentWidth = pageWidth - 2 * margin;
-  const leftColWidth = contentWidth * 0.40;
-  const rightColWidth = contentWidth * 0.54;
-  const colGap = contentWidth * 0.06;
-
-  const chunks: Buffer[] = [];
-  doc.on("data", (chunk) => chunks.push(chunk));
+  const doc = createDocument("letter");
+  const bufferPromise = collectBuffer(doc);
 
   const logoPath = path.join(
     process.cwd(),
@@ -218,24 +207,15 @@ export async function generateProjectInfoSheetPDF(
       : "kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png"
   );
 
-  // === HEADER WITH ACCENT BAR ===
-  const headerBarHeight = 8;
-  doc.rect(0, 0, pageWidth, headerBarHeight).fillColor(COLORS.accent).fill();
-  
-  let yPos = headerBarHeight + 20;
-
-  // Logo positioned at top right
+  let logoBuffer: Buffer | null = null;
   if (fs.existsSync(logoPath)) {
     try {
-      doc.image(logoPath, pageWidth - margin - 150, yPos, { width: 150 });
+      logoBuffer = fs.readFileSync(logoPath);
     } catch (e) {
-      doc.fontSize(18).fillColor(COLORS.primary).font("Helvetica-Bold");
-      doc.text("kWh Québec", pageWidth - margin - 150, yPos + 10);
-      doc.font("Helvetica");
+      console.error("Failed to read logo:", e);
     }
   }
 
-  // Project address section with accent underline
   const fullAddress = [
     data.site.address,
     data.site.city,
@@ -245,50 +225,39 @@ export async function generateProjectInfoSheetPDF(
     .filter(Boolean)
     .join(", ");
 
-  doc.fontSize(10).fillColor(COLORS.primary).font("Helvetica-Bold");
-  doc.text(t.projectAddress.toUpperCase(), margin, yPos);
-  yPos += 18;
-
-  doc.fontSize(20).fillColor(COLORS.darkText).font("Helvetica-Bold");
-  doc.text(fullAddress || data.site.name, margin, yPos, { width: contentWidth - 170 });
-  doc.font("Helvetica");
-  yPos += 35;
-  
-  // Accent underline under title
-  doc.moveTo(margin, yPos).lineTo(margin + 80, yPos).strokeColor(COLORS.accent).lineWidth(3).stroke();
-  yPos += 20;
+  let yPos = drawModernHeader(doc, {
+    title: fullAddress || data.site.name,
+    subtitle: t.projectAddress,
+    logoBuffer,
+    pageWidth,
+  });
 
   if (data.roofImageBuffer) {
-    const imageWidth = pageWidth - margin * 2;
-    const imageHeight = imageWidth * 0.5;
-    const imageX = margin;
-    try {
-      doc.image(data.roofImageBuffer, imageX, yPos, {
-        width: imageWidth,
-        height: imageHeight,
-        cover: [imageWidth, imageHeight],
-        align: 'center',
-        valign: 'center',
-      });
-      doc.rect(imageX, yPos, imageWidth, imageHeight).strokeColor(COLORS.border).lineWidth(0.5).stroke();
-      yPos += imageHeight + 25;
-    } catch (e) {
-      yPos += 10;
-    }
+    const imageWidth = contentWidth;
+    const imageHeight = 220;
+    
+    yPos = drawImageWithBorder(doc, {
+      imageBuffer: data.roofImageBuffer,
+      x: margin,
+      y: yPos,
+      width: imageWidth,
+      height: imageHeight,
+      borderRadius: 6,
+      borderColor: BRAND_COLORS.border,
+      borderWidth: 1,
+    });
+    yPos += 25;
   } else {
     yPos += 10;
   }
 
-  yPos += 10;
-
+  const leftColWidth = contentWidth * 0.42;
+  const rightColWidth = contentWidth * 0.52;
+  const colGap = contentWidth * 0.06;
   const leftColX = margin;
   const rightColX = margin + leftColWidth + colGap;
-  const twoColStartY = yPos;
-
-  const boxPadding = 15;
-  const boxInnerWidth = leftColWidth - boxPadding * 2;
   
-  const bulletItems: { label: string; value: string }[] = [];
+  const bulletItems: Array<{ label: string; value: string }> = [];
   
   let sizeValue = t.notAvailable;
   const kbKwDc = data.site.kbKwDc;
@@ -309,118 +278,68 @@ export async function generateProjectInfoSheetPDF(
     bulletItems.push({ label: t.roofArea, value: `${Math.round(roofArea).toLocaleString()} ${t.sqmLabel}` });
   }
   
-  if (data.site.buildingType) {
-    const buildingTypeLabel = (t.buildingTypes as Record<string, string>)[data.site.buildingType] || data.site.buildingType;
-    bulletItems.push({ label: t.buildingType, value: buildingTypeLabel });
-  }
-  
   bulletItems.push({ label: t.constructionStart, value: t.constructionValue });
   bulletItems.push({ label: t.developer, value: t.developerValue });
   bulletItems.push({ label: t.buildingSponsor, value: t.buildingSponsorValue });
   bulletItems.push({ label: t.electricityOfftake, value: t.electricityOfftakeValue });
 
-  let totalBulletHeight = 30;
-  for (const item of bulletItems) {
-    const labelHeight = 12;
-    const valueHeight = 14;
-    totalBulletHeight += labelHeight + valueHeight + 12;
-  }
-  totalBulletHeight += boxPadding;
-
-  const boxHeight = Math.max(totalBulletHeight, 240);
-
-  doc.roundedRect(leftColX, twoColStartY, leftColWidth, boxHeight, 6)
-    .fillColor(COLORS.primary)
-    .fill();
-
-  let bulletY = twoColStartY + boxPadding;
-
-  doc.fontSize(13).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(t.projectDetails, leftColX + boxPadding, bulletY, { width: boxInnerWidth });
-  doc.font("Helvetica");
-  bulletY += 25;
-
-  const drawBulletItemOnBlue = (label: string, value: string, y: number): number => {
-    doc.circle(leftColX + boxPadding + 4, y + 5, 2.5).fillColor(COLORS.accent).fill();
-    
-    doc.fontSize(9).fillColor(COLORS.accent).font("Helvetica-Bold");
-    doc.text(label, leftColX + boxPadding + 14, y, { width: boxInnerWidth - 14 });
-    doc.font("Helvetica");
-    
-    const labelHeight = 12;
-    
-    doc.fontSize(10).fillColor(COLORS.white);
-    doc.text(value, leftColX + boxPadding + 14, y + labelHeight + 2, { width: boxInnerWidth - 14 });
-    
-    const valueHeight = 14;
-    
-    return y + labelHeight + valueHeight + 12;
-  };
-
-  for (const item of bulletItems) {
-    bulletY = drawBulletItemOnBlue(item.label, item.value, bulletY);
-  }
-
-  let rightYPos = twoColStartY;
-
-  doc.fontSize(14).fillColor(COLORS.primary).font("Helvetica-Bold");
-  doc.text(t.solarTitle, rightColX, rightYPos, { width: rightColWidth });
-  doc.font("Helvetica");
-  rightYPos += 20;
+  const cardHeight = 50 + bulletItems.length * 35;
   
-  // Accent underline under section title
-  doc.moveTo(rightColX, rightYPos).lineTo(rightColX + 60, rightYPos).strokeColor(COLORS.accent).lineWidth(2).stroke();
-  rightYPos += 15;
-
-  doc.fontSize(9.5).fillColor(COLORS.mediumText).font("Helvetica");
-  doc.text(t.solarParagraph1, rightColX, rightYPos, { 
-    width: rightColWidth, 
-    align: "justify",
-    lineGap: 2,
-  });
-  rightYPos = doc.y + 12;
-
-  doc.text(t.solarParagraph2, rightColX, rightYPos, { 
-    width: rightColWidth, 
-    align: "justify",
-    lineGap: 2,
-  });
-  rightYPos = doc.y + 12;
-
-  doc.text(t.solarParagraph3, rightColX, rightYPos, { 
-    width: rightColWidth, 
-    align: "justify",
-    lineGap: 2,
+  drawInfoCard(doc, {
+    x: leftColX,
+    y: yPos,
+    width: leftColWidth,
+    height: cardHeight,
+    title: t.projectDetails,
+    items: bulletItems,
   });
 
-  // === PROFESSIONAL FOOTER WITH BLUE BAR ===
-  const footerBarHeight = 45;
-  const footerY = pageHeight - footerBarHeight;
-  
-  // Blue footer bar
-  doc.rect(0, footerY, pageWidth, footerBarHeight).fillColor(COLORS.primary).fill();
-  
-  // Footer content (white text on blue)
-  const footerTextY = footerY + 15;
-  
+  let rightYPos = drawSectionTitle(doc, {
+    x: rightColX,
+    y: yPos,
+    title: t.solarTitle,
+    width: rightColWidth,
+  });
+
+  rightYPos = drawParagraph(doc, {
+    x: rightColX,
+    y: rightYPos,
+    text: t.solarParagraph1,
+    width: rightColWidth,
+    fontSize: 10,
+    color: BRAND_COLORS.mediumText,
+  });
+
+  rightYPos = drawParagraph(doc, {
+    x: rightColX,
+    y: rightYPos,
+    text: t.solarParagraph2,
+    width: rightColWidth,
+    fontSize: 10,
+    color: BRAND_COLORS.mediumText,
+  });
+
+  drawParagraph(doc, {
+    x: rightColX,
+    y: rightYPos,
+    text: t.solarParagraph3,
+    width: rightColWidth,
+    fontSize: 10,
+    color: BRAND_COLORS.mediumText,
+  });
+
   const cityForFooter = data.site.city || data.site.address || data.site.name;
-  doc.fontSize(10).fillColor(COLORS.white).font("Helvetica");
-  doc.text(cityForFooter, margin, footerTextY, { continued: false });
-  
-  doc.text(t.footerPhone, pageWidth / 2 - 50, footerTextY, { width: 100, align: "center" });
-  
-  doc.font("Helvetica-Bold");
-  doc.text(t.footerWebsite, margin, footerTextY, { align: "right", width: contentWidth });
-  doc.font("Helvetica");
+  drawModernFooter(doc, {
+    leftText: cityForFooter,
+    centerText: t.footerPhone,
+    rightText: t.footerWebsite,
+    pageWidth,
+    pageHeight,
+  });
 
   doc.end();
 
-  return new Promise((resolve, reject) => {
-    doc.on("end", () => {
-      resolve(Buffer.concat(chunks));
-    });
-    doc.on("error", reject);
-  });
+  return bufferPromise;
 }
 
 export async function fetchRoofImageBuffer(
