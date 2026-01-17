@@ -184,15 +184,15 @@ export async function generateProjectInfoSheetPDF(
     process.cwd(),
     "attached_assets",
     lang === "fr"
-      ? "solaire_fr-removebg-preview_1767985380511.png"
-      : "solaire_en-removebg-preview_1767985380510.png"
+      ? "kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png"
+      : "kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png"
   );
 
   let logoBuffer: Buffer | null = null;
   if (fs.existsSync(logoPath)) {
     try {
       logoBuffer = fs.readFileSync(logoPath);
-      console.log(`[ProjectInfoSheet] Loaded transparent logo from: ${logoPath}`);
+      console.log(`[ProjectInfoSheet] Loaded rectangular logo from: ${logoPath}`);
     } catch (e) {
       console.error("Failed to read logo:", e);
     }
