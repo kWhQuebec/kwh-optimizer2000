@@ -234,7 +234,7 @@ export async function generateProjectInfoSheetPDF(
 
   if (data.roofImageBuffer) {
     const imageWidth = contentWidth;
-    const imageHeight = 220;
+    const imageHeight = 160;
     
     yPos = drawImageWithBorder(doc, {
       imageBuffer: data.roofImageBuffer,
@@ -246,7 +246,7 @@ export async function generateProjectInfoSheetPDF(
       borderColor: BRAND_COLORS.border,
       borderWidth: 1,
     });
-    yPos += 25;
+    yPos += 20;
   } else {
     yPos += 10;
   }
