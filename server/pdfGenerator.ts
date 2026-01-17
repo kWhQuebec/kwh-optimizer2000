@@ -3,18 +3,19 @@ import path from "path";
 import fs from "fs";
 import { CashflowEntry, FinancialBreakdown, HourlyProfileEntry, PeakWeekEntry, SensitivityAnalysis, FrontierPoint, SolarSweepPoint, BatterySweepPoint } from "@shared/schema";
 import { getRoofVisualizationUrl } from "./googleSolarService";
+import { BRAND_COLORS } from "./pdfTemplates";
 
-// Brand colors
+// Brand colors - using unified BRAND_COLORS for consistency
 const COLORS = {
-  blue: "#003DA6",
-  gold: "#FFB005",
-  darkGray: "#333333",
-  mediumGray: "#666666",
-  lightGray: "#999999",
-  green: "#2D915F",
+  blue: BRAND_COLORS.primary,
+  gold: BRAND_COLORS.accent,
+  darkGray: BRAND_COLORS.darkText,
+  mediumGray: BRAND_COLORS.mediumText,
+  lightGray: BRAND_COLORS.lightText,
+  green: BRAND_COLORS.success,
   red: "#DC2626",
-  white: "#FFFFFF",
-  background: "#F5F5F5",
+  white: BRAND_COLORS.white,
+  background: BRAND_COLORS.ultraLight,
 };
 
 interface RoofPolygonData {

@@ -32,12 +32,12 @@ async function loadImageAsBase64(url: string): Promise<string> {
 }
 
 const COLORS = {
-  blue: [0, 61, 166] as [number, number, number],
-  gold: [255, 176, 5] as [number, number, number],
-  darkGray: [51, 51, 51] as [number, number, number],
+  blue: [0, 84, 168] as [number, number, number],
+  gold: [255, 190, 13] as [number, number, number],
+  darkGray: [45, 55, 72] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
-  lightGray: [150, 150, 150] as [number, number, number],
-  green: [22, 163, 74] as [number, number, number],
+  lightGray: [113, 128, 150] as [number, number, number],
+  green: [72, 187, 120] as [number, number, number],
 };
 
 export async function generateClientSidePDF(options: PDFGeneratorOptions): Promise<Blob> {
