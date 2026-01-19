@@ -6616,6 +6616,44 @@ export default function SiteDetailPage() {
     }
   }, [pendingModalOpen, site?.latitude, site?.longitude]);
 
+  // Load cached Quick Analysis results from database when site data loads
+  useEffect(() => {
+    if (site?.quickAnalysisCompletedAt && site?.quickAnalysisSystemSizeKw && !quickPotential) {
+      // Pre-populate the quickPotential state with cached database values
+      const systemSizeKw = site.quickAnalysisSystemSizeKw;
+      const annualProductionKwh = site.quickAnalysisAnnualProductionKwh || 0;
+      const annualSavings = site.quickAnalysisAnnualSavings || 0;
+      const paybackYears = site.quickAnalysisPaybackYears || 0;
+      const grossCapex = site.quickAnalysisGrossCapex || 0;
+      
+      setQuickPotential({
+        roofAnalysis: {
+          totalRoofAreaSqM: site.roofAreaSqM || site.roofAreaAutoSqM || 0,
+          usableRoofAreaSqM: (site.roofAreaSqM || site.roofAreaAutoSqM || 0) * 0.85,
+          utilizationRatio: 0.85,
+          polygonCount: 1,
+        },
+        systemSizing: {
+          maxCapacityKW: systemSizeKw,
+          numPanels: Math.ceil(systemSizeKw * 1000 / 625),
+          panelPowerW: 625,
+        },
+        production: {
+          annualProductionKWh: annualProductionKwh,
+          annualProductionMWh: annualProductionKwh / 1000,
+          yieldKWhPerKWp: systemSizeKw > 0 ? annualProductionKwh / systemSizeKw : 1150,
+        },
+        financial: {
+          costPerW: grossCapex > 0 && systemSizeKw > 0 ? grossCapex / (systemSizeKw * 1000) : 1.20,
+          pricingTier: systemSizeKw >= 1000 ? "Large (1000+ kW)" : systemSizeKw >= 500 ? "Medium (500-999 kW)" : "Standard (<500 kW)",
+          estimatedCapex: grossCapex,
+          estimatedAnnualSavings: annualSavings,
+          simplePaybackYears: paybackYears,
+        },
+      });
+    }
+  }, [site?.id, site?.quickAnalysisCompletedAt, site?.quickAnalysisSystemSizeKw, quickPotential]);
+
   // Initialize assumptions from site data when loaded (only once per page load)
   useEffect(() => {
     if (site && !assumptionsInitializedRef.current) {
