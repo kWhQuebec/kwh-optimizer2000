@@ -238,8 +238,8 @@ export async function generateProjectInfoSheetPDF(
     .strokeColor(BRAND_COLORS.accent).lineWidth(3).stroke();
   yPos += 20;
 
-  const imageWidth = 240;
-  const imageHeight = 160;
+  const imageWidth = 300;
+  const imageHeight = 200;
   const detailsX = margin + imageWidth + 25;
   const detailsWidth = contentWidth - imageWidth - 25;
   const topRowY = yPos;
