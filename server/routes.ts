@@ -2246,9 +2246,29 @@ Rules:
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           if (parsed.constraints && Array.isArray(parsed.constraints)) {
-            // Helper to check if a point is within the requested bounds (blue polygon area)
-            const isWithinBounds = (lng: number, lat: number) => {
-              return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
+            // Point-in-polygon using ray casting algorithm
+            const pointInPolygon = (point: [number, number], polygon: [number, number][]): boolean => {
+              const [x, y] = point;
+              let inside = false;
+              for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const [xi, yi] = polygon[i];
+                const [xj, yj] = polygon[j];
+                if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+                  inside = !inside;
+                }
+              }
+              return inside;
+            };
+            
+            // Check if point is within ANY of the blue solar polygons
+            const isWithinSolarPolygons = (lng: number, lat: number): boolean => {
+              const point: [number, number] = [lng, lat];
+              for (const poly of solarPolygons) {
+                if (pointInPolygon(point, poly)) {
+                  return true;
+                }
+              }
+              return false;
             };
             
             const MIN_BOX_SIZE = 15; // Minimum 15x15 pixels to avoid tiny detections
@@ -2285,14 +2305,14 @@ Rules:
                 return [topLeft, topRight, bottomRight, bottomLeft];
               })
               .filter((polygon: [number, number][]) => {
-                // Filter out constraints whose center is outside the blue polygon bounds
+                // Filter out constraints whose center is outside the blue solar polygons
                 const centerLng = (polygon[0][0] + polygon[2][0]) / 2;
                 const centerLat = (polygon[0][1] + polygon[2][1]) / 2;
-                const withinBounds = isWithinBounds(centerLng, centerLat);
-                if (!withinBounds) {
-                  console.log(`Filtered out constraint outside bounds: ${centerLng}, ${centerLat}`);
+                const withinPolygons = isWithinSolarPolygons(centerLng, centerLat);
+                if (!withinPolygons) {
+                  console.log(`Filtered out constraint outside solar polygons: ${centerLng.toFixed(6)}, ${centerLat.toFixed(6)}`);
                 }
-                return withinBounds;
+                return withinPolygons;
               });
             
             console.log(`Constraints after filtering: ${constraints.length}`);
