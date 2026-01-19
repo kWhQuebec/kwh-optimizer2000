@@ -2185,42 +2185,40 @@ export async function registerRoutes(
       };
 
       // Prepare the prompt for constraint detection using PIXEL coordinates
-      const prompt = `Analyze this satellite image of an industrial/commercial building rooftop. Find rooftop equipment that would block solar panel installation.
+      const prompt = `You are analyzing a satellite image of a commercial rooftop (640x640 pixels). Find the SMALL HVAC UNITS on the roof.
 
-Image is 640x640 pixels. Coordinates: x=0 is LEFT edge, x=640 is RIGHT edge, y=0 is TOP edge, y=640 is BOTTOM edge.
+WHAT TO LOOK FOR:
+- Small SILVER or GRAY square/rectangular units (about 10-30 pixels each)
+- They are LIGHTER in color than the dark roof membrane around them
+- Often arranged in a REGULAR PATTERN or GRID across the roof
+- May appear as small bright spots or light-colored squares on a darker roof
+- Look for multiple small units scattered across the roof surface
 
-KEY DETECTION METHOD - Look for COLOR CONTRAST:
-- Rooftop obstacles (HVAC units, skylights) are a DIFFERENT COLOR than the surrounding roof membrane
-- On dark/blue roofs: look for SILVER, GRAY, or WHITE rectangular objects
-- On light roofs: look for DARKER rectangular objects
-- Objects typically cast SHADOWS indicating they are raised above the roof surface
-- HVAC units are usually metallic silver/gray boxes, 3-10 meters in size
+COORDINATE SYSTEM:
+- x=0 is LEFT, x=640 is RIGHT
+- y=0 is TOP, y=640 is BOTTOM
 
-What to detect:
-- Large HVAC rooftop units (silver/gray metallic boxes that contrast with roof color)
-- Skylights (rectangular lighter areas, often with frames)
-- Cooling towers or large mechanical equipment
-- Elevator machine rooms (large penthouse structures)
+CRITICAL - DO NOT DETECT:
+- The roof membrane itself (the large dark/blue surface)
+- Edges of the building
+- Adjacent buildings or parking areas  
+- Trees, grass, roads, vehicles
+- Shadows or stains on the roof
+- Roof seams or drainage lines
 
-What to IGNORE:
-- The roof surface itself (even if it has different colored sections)
-- Parking lots, roads, grass, trees
-- Small vents or pipes under 15 pixels
-- Roof membrane seams or drainage patterns
-- Anything that is the SAME COLOR as the surrounding roof
-
-Return ONLY valid JSON:
+Return ONLY this JSON format:
 {
   "constraints": [
-    {"type": "HVAC", "x1": 100, "y1": 150, "x2": 160, "y2": 210}
+    {"type": "HVAC", "x1": 100, "y1": 150, "x2": 120, "y2": 170}
   ]
 }
 
-Rules:
-- Maximum 10 obstacles total
-- Each box must be at least 15x15 pixels
-- ONLY detect objects that are clearly a DIFFERENT COLOR than the roof around them
-- If no equipment visible, return: {"constraints": []}`;
+IMPORTANT RULES:
+- Look for SMALL units (10-30 pixels), not large areas
+- Each unit should be a tight box around just that unit
+- Find the small light-colored objects scattered on the darker roof
+- Maximum 25 constraints
+- If you cannot clearly identify small rooftop equipment, return {"constraints": []}`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -2277,8 +2275,8 @@ Rules:
               return false;
             };
             
-            const MIN_BOX_SIZE = 15; // Minimum 15x15 pixels to avoid tiny detections
-            const MAX_CONSTRAINTS = 20; // Limit total constraints
+            const MIN_BOX_SIZE = 10; // Minimum 10x10 pixels for small HVAC units
+            const MAX_CONSTRAINTS = 25; // Allow up to 25 small units
             
             constraints = parsed.constraints
               .filter((c: any) => {
