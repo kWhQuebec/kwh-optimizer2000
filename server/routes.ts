@@ -2185,23 +2185,29 @@ export async function registerRoutes(
       };
 
       // Prepare the prompt for constraint detection using PIXEL coordinates
-      const prompt = `Analyze this satellite image of an industrial/commercial building rooftop. Identify ONLY large, clearly visible mechanical equipment that would block solar panels.
+      const prompt = `Analyze this satellite image of an industrial/commercial building rooftop. Find rooftop equipment that would block solar panel installation.
 
-The image is 640x640 pixels. Coordinates: x=0 is LEFT, x=640 is RIGHT, y=0 is TOP, y=640 is BOTTOM.
+Image is 640x640 pixels. Coordinates: x=0 is LEFT edge, x=640 is RIGHT edge, y=0 is TOP edge, y=640 is BOTTOM edge.
 
-ONLY detect these LARGE items (minimum 20x20 pixels each):
-- Large HVAC rooftop units (big rectangular boxes, typically 30-100+ pixels wide)
-- Cooling towers (large industrial equipment)
+KEY DETECTION METHOD - Look for COLOR CONTRAST:
+- Rooftop obstacles (HVAC units, skylights) are a DIFFERENT COLOR than the surrounding roof membrane
+- On dark/blue roofs: look for SILVER, GRAY, or WHITE rectangular objects
+- On light roofs: look for DARKER rectangular objects
+- Objects typically cast SHADOWS indicating they are raised above the roof surface
+- HVAC units are usually metallic silver/gray boxes, 3-10 meters in size
+
+What to detect:
+- Large HVAC rooftop units (silver/gray metallic boxes that contrast with roof color)
+- Skylights (rectangular lighter areas, often with frames)
+- Cooling towers or large mechanical equipment
 - Elevator machine rooms (large penthouse structures)
-- Exhaust stacks or chimneys
 
-DO NOT detect:
-- Small vents or pipes (under 20 pixels)
-- Roof membrane patterns or textures
-- Drainage features
-- Parking lots, roads, or anything NOT on the roof
-- Solar panels if already installed
-- Regular roof features or seams
+What to IGNORE:
+- The roof surface itself (even if it has different colored sections)
+- Parking lots, roads, grass, trees
+- Small vents or pipes under 15 pixels
+- Roof membrane seams or drainage patterns
+- Anything that is the SAME COLOR as the surrounding roof
 
 Return ONLY valid JSON:
 {
@@ -2211,10 +2217,10 @@ Return ONLY valid JSON:
 }
 
 Rules:
-- Maximum 15 obstacles total - only the most significant ones
-- Each box must be at least 20x20 pixels (x2-x1 >= 20 AND y2-y1 >= 20)
-- If no large equipment visible, return: {"constraints": []}
-- Be VERY conservative - only mark items you are 100% certain are rooftop equipment`;
+- Maximum 10 obstacles total
+- Each box must be at least 15x15 pixels
+- ONLY detect objects that are clearly a DIFFERENT COLOR than the roof around them
+- If no equipment visible, return: {"constraints": []}`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
