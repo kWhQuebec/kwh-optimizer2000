@@ -4976,7 +4976,8 @@ export async function registerRoutes(
     });
     
     // Return URL without API key - frontend will add its own key
-    return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=19&size=400x300&maptype=satellite${pathParams}`;
+    // Use zoom=17 to show the whole roof (zoom=19 was too close)
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=17&size=400x300&maptype=satellite${pathParams}`;
   }
   
   // Public portfolio endpoint for Dream REIT sites (no auth required)
