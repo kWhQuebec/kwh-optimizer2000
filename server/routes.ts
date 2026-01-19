@@ -2469,8 +2469,9 @@ IMPORTANT RULES:
       // Simple payback period
       const simplePayback = estimatedCapex / estimatedAnnualSavings;
       
-      // Save quick analysis results to database
+      // Save quick analysis results to database (including calculated roof area from polygons)
       await storage.updateSite(siteId, {
+        roofAreaSqM: Math.round(totalRoofAreaSqM), // Save calculated roof area from drawn polygons
         quickAnalysisSystemSizeKw: maxCapacityKWRounded,
         quickAnalysisAnnualProductionKwh: Math.round(annualProductionKWh),
         quickAnalysisAnnualSavings: Math.round(estimatedAnnualSavings),

@@ -6630,12 +6630,23 @@ export default function SiteDetailPage() {
       const paybackYears = site.quickAnalysisPaybackYears || 0;
       const grossCapex = site.quickAnalysisGrossCapex || 0;
       
+      // Calculate roof area from polygons if available, otherwise use saved value
+      const solarPolygons = roofPolygons.filter((p: RoofPolygon) => {
+        if (p.color === "#f97316") return false; // Orange = constraint
+        const label = (p.label || "").toLowerCase();
+        return !label.includes("constraint") && !label.includes("contrainte") && 
+               !label.includes("hvac") && !label.includes("obstacle");
+      });
+      const polygonAreaSqM = solarPolygons.reduce((sum: number, p: RoofPolygon) => sum + (p.areaSqM || 0), 0);
+      const totalRoofAreaSqM = polygonAreaSqM > 0 ? polygonAreaSqM : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+      const polygonCount = solarPolygons.length > 0 ? solarPolygons.length : 1;
+      
       setQuickPotential({
         roofAnalysis: {
-          totalRoofAreaSqM: site.roofAreaSqM || site.roofAreaAutoSqM || 0,
-          usableRoofAreaSqM: (site.roofAreaSqM || site.roofAreaAutoSqM || 0) * 0.85,
+          totalRoofAreaSqM: Math.round(totalRoofAreaSqM),
+          usableRoofAreaSqM: Math.round(totalRoofAreaSqM * 0.85),
           utilizationRatio: 0.85,
-          polygonCount: 1,
+          polygonCount,
         },
         systemSizing: {
           maxCapacityKW: systemSizeKw,
@@ -6656,7 +6667,7 @@ export default function SiteDetailPage() {
         },
       });
     }
-  }, [site?.id, site?.quickAnalysisCompletedAt, site?.quickAnalysisSystemSizeKw, quickPotential]);
+  }, [site?.id, site?.quickAnalysisCompletedAt, site?.quickAnalysisSystemSizeKw, site?.roofAreaSqM, site?.roofAreaAutoSqM, roofPolygons, quickPotential]);
 
   // Initialize assumptions from site data when loaded (only once per page load)
   useEffect(() => {
