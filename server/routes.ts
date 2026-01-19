@@ -2185,48 +2185,36 @@ export async function registerRoutes(
       };
 
       // Prepare the prompt for constraint detection using PIXEL coordinates
-      const prompt = `You are analyzing a satellite image of a commercial/industrial rooftop to identify obstacles and constraints that would prevent solar panel installation.
+      const prompt = `Analyze this satellite image of an industrial/commercial building rooftop. Identify ONLY large, clearly visible mechanical equipment that would block solar panels.
 
-The image is 640x640 pixels. Use PIXEL coordinates (0-640 for both x and y):
-- x=0 is the LEFT edge, x=640 is the RIGHT edge
-- y=0 is the TOP edge, y=640 is the BOTTOM edge
+The image is 640x640 pixels. Coordinates: x=0 is LEFT, x=640 is RIGHT, y=0 is TOP, y=640 is BOTTOM.
 
-Identify all rooftop obstacles including:
-- HVAC units (air conditioning units, rooftop units, exhaust fans)
-- Skylights
-- Vents and exhaust pipes
-- Mechanical equipment
-- Roof access hatches
-- Elevator penthouses
-- Chimneys or stacks
-- Large pipes or conduits
+ONLY detect these LARGE items (minimum 20x20 pixels each):
+- Large HVAC rooftop units (big rectangular boxes, typically 30-100+ pixels wide)
+- Cooling towers (large industrial equipment)
+- Elevator machine rooms (large penthouse structures)
+- Exhaust stacks or chimneys
 
-For each obstacle found, provide a rectangular bounding box using pixel coordinates.
+DO NOT detect:
+- Small vents or pipes (under 20 pixels)
+- Roof membrane patterns or textures
+- Drainage features
+- Parking lots, roads, or anything NOT on the roof
+- Solar panels if already installed
+- Regular roof features or seams
 
-Return ONLY valid JSON in this exact format:
+Return ONLY valid JSON:
 {
   "constraints": [
-    {
-      "type": "HVAC",
-      "x1": 100,
-      "y1": 150,
-      "x2": 180,
-      "y2": 230
-    }
+    {"type": "HVAC", "x1": 100, "y1": 150, "x2": 160, "y2": 210}
   ]
 }
 
-Where:
-- x1, y1 = top-left corner (in pixels)
-- x2, y2 = bottom-right corner (in pixels)
-
-If no obstacles are found, return: {"constraints": []}
-
-IMPORTANT: 
-- All coordinates must be between 0 and 640
-- Only identify clearly visible obstacles (boxes on the roof)
-- Do NOT include the entire roof area, only obstacles on it
-- Be conservative - only mark areas you are confident are obstacles`;
+Rules:
+- Maximum 15 obstacles total - only the most significant ones
+- Each box must be at least 20x20 pixels (x2-x1 >= 20 AND y2-y1 >= 20)
+- If no large equipment visible, return: {"constraints": []}
+- Be VERY conservative - only mark items you are 100% certain are rooftop equipment`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -2258,13 +2246,36 @@ IMPORTANT:
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           if (parsed.constraints && Array.isArray(parsed.constraints)) {
+            // Helper to check if a point is within the requested bounds (blue polygon area)
+            const isWithinBounds = (lng: number, lat: number) => {
+              return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
+            };
+            
+            const MIN_BOX_SIZE = 15; // Minimum 15x15 pixels to avoid tiny detections
+            const MAX_CONSTRAINTS = 20; // Limit total constraints
+            
             constraints = parsed.constraints
-              .filter((c: any) => 
-                typeof c.x1 === 'number' && typeof c.y1 === 'number' &&
-                typeof c.x2 === 'number' && typeof c.y2 === 'number' &&
-                c.x1 >= 0 && c.x1 <= 640 && c.x2 >= 0 && c.x2 <= 640 &&
-                c.y1 >= 0 && c.y1 <= 640 && c.y2 >= 0 && c.y2 <= 640
-              )
+              .filter((c: any) => {
+                // Validate coordinates exist and are numbers
+                if (typeof c.x1 !== 'number' || typeof c.y1 !== 'number' ||
+                    typeof c.x2 !== 'number' || typeof c.y2 !== 'number') {
+                  return false;
+                }
+                // Check pixel coordinates are in valid range
+                if (c.x1 < 0 || c.x1 > 640 || c.x2 < 0 || c.x2 > 640 ||
+                    c.y1 < 0 || c.y1 > 640 || c.y2 < 0 || c.y2 > 640) {
+                  return false;
+                }
+                // Enforce minimum size to filter out tiny detections
+                const width = Math.abs(c.x2 - c.x1);
+                const height = Math.abs(c.y2 - c.y1);
+                if (width < MIN_BOX_SIZE || height < MIN_BOX_SIZE) {
+                  console.log(`Filtered out small constraint: ${width}x${height} pixels`);
+                  return false;
+                }
+                return true;
+              })
+              .slice(0, MAX_CONSTRAINTS) // Limit total number
               .map((c: any) => {
                 // Convert pixel bounding box to geo polygon (4 corners)
                 const topLeft = pixelToGeo(c.x1, c.y1);
@@ -2272,7 +2283,19 @@ IMPORTANT:
                 const bottomRight = pixelToGeo(c.x2, c.y2);
                 const bottomLeft = pixelToGeo(c.x1, c.y2);
                 return [topLeft, topRight, bottomRight, bottomLeft];
+              })
+              .filter((polygon: [number, number][]) => {
+                // Filter out constraints whose center is outside the blue polygon bounds
+                const centerLng = (polygon[0][0] + polygon[2][0]) / 2;
+                const centerLat = (polygon[0][1] + polygon[2][1]) / 2;
+                const withinBounds = isWithinBounds(centerLng, centerLat);
+                if (!withinBounds) {
+                  console.log(`Filtered out constraint outside bounds: ${centerLng}, ${centerLat}`);
+                }
+                return withinBounds;
               });
+            
+            console.log(`Constraints after filtering: ${constraints.length}`);
           }
         }
       } catch (parseError) {
