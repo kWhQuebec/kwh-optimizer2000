@@ -8,6 +8,7 @@ import { MessageCircle, X, Send, Loader2, Bot, User, Minimize2, Maximize2 } from
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -15,10 +16,46 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+interface PageContext {
+  siteId?: string;
+  analysisId?: string;
+  pageName?: string;
+}
+
+function extractPageContext(path: string): PageContext {
+  const context: PageContext = {};
+  
+  // Match /sites/:id patterns (UUID or numeric)
+  const siteMatch = path.match(/\/sites\/([a-zA-Z0-9-]+)/);
+  if (siteMatch) {
+    context.siteId = siteMatch[1];
+    context.pageName = "site-detail";
+  }
+  
+  // Match /analysis/:id patterns (UUID or numeric)
+  const analysisMatch = path.match(/\/analysis\/([a-zA-Z0-9-]+)/);
+  if (analysisMatch) {
+    context.analysisId = analysisMatch[1];
+    context.pageName = "analysis-detail";
+  }
+  
+  // Match /site-detail/:id patterns (for staff view, UUID or numeric)
+  const siteDetailMatch = path.match(/\/site-detail\/([a-zA-Z0-9-]+)/);
+  if (siteDetailMatch) {
+    context.siteId = siteDetailMatch[1];
+    context.pageName = "site-detail";
+  }
+  
+  return context;
+}
+
 export function AIChatWidget() {
   const { language, t } = useI18n();
   const { user, token } = useAuth();
   const { toast } = useToast();
+  const [location] = useLocation();
+  
+  const pageContext = extractPageContext(location);
   
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -74,6 +111,11 @@ export function AIChatWidget() {
             content: m.content,
           })),
           language,
+          pageContext: {
+            siteId: pageContext.siteId,
+            analysisId: pageContext.analysisId,
+            pageName: pageContext.pageName,
+          },
         }),
       });
       

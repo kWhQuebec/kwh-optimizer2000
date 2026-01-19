@@ -23,6 +23,14 @@ interface DataContext {
   opportunities?: any[];
   siteDetails?: any;
   analysisResults?: any;
+  currentSite?: any;
+  currentAnalysis?: any;
+}
+
+interface PageContext {
+  siteId?: string;
+  analysisId?: string;
+  pageName?: string;
 }
 
 const SYSTEM_PROMPT_FR = `Tu es l'assistant IA de kWh Québec, une plateforme B2B de conception et d'analyse solaire pour les bâtiments commerciaux, industriels et institutionnels au Québec.
@@ -63,12 +71,63 @@ Technical context:
 Always respond in French if the user speaks French, English otherwise.
 Be concise, professional and precise with data.`;
 
-async function getDataContext(userId: string, userRole: string, query: string): Promise<DataContext> {
+async function getDataContext(userId: string, userRole: string, query: string, pageContext?: PageContext): Promise<DataContext> {
   const context: DataContext = {};
   const lowerQuery = query.toLowerCase();
   
   try {
-    if (lowerQuery.includes("site") || lowerQuery.includes("bâtiment") || lowerQuery.includes("building")) {
+    // Priority 1: Fetch specific site/analysis if pageContext is provided
+    if (pageContext?.siteId) {
+      const siteId = pageContext.siteId;
+      const site = await storage.getSite(siteId);
+      if (site) {
+        // Get simulation runs (analyses) for this site
+        const simulationRuns = await storage.getSimulationRunsBySite(siteId);
+        // Use provided analysisId or default to the latest
+        let latestAnalysis = null;
+        if (pageContext.analysisId) {
+          latestAnalysis = simulationRuns.find(run => run.id === pageContext.analysisId) || null;
+        }
+        if (!latestAnalysis && simulationRuns.length > 0) {
+          latestAnalysis = simulationRuns[simulationRuns.length - 1];
+        }
+        
+        context.currentSite = {
+          id: site.id,
+          name: site.name,
+          address: site.address,
+          city: site.city,
+          buildingType: site.buildingType,
+          roofAreaSqM: site.roofAreaSqM,
+        };
+        
+        if (latestAnalysis) {
+          // Use correct field names from SimulationRun schema
+          context.currentAnalysis = {
+            id: latestAnalysis.id,
+            name: latestAnalysis.label,
+            systemCapacityKw: latestAnalysis.pvSizeKW,
+            annualProductionKwh: latestAnalysis.totalProductionKWh,
+            selfConsumptionKwh: latestAnalysis.selfConsumptionKWh,
+            annualConsumptionKwh: latestAnalysis.annualConsumptionKWh,
+            peakDemandKw: latestAnalysis.peakDemandKW,
+            netPresentValue: latestAnalysis.npv25,
+            internalRateOfReturn: latestAnalysis.irr25,
+            simplePaybackYears: latestAnalysis.simplePaybackYears,
+            totalCapex: latestAnalysis.capexGross,
+            capexNet: latestAnalysis.capexNet,
+            annualSavings: latestAnalysis.annualSavings,
+            co2AvoidedTons: latestAnalysis.co2AvoidedTonnesPerYear,
+            hqIncentive: latestAnalysis.incentivesHQ,
+            batteryCapacityKwh: latestAnalysis.battEnergyKWh,
+            peakShavingKw: latestAnalysis.demandShavingSetpointKW,
+          };
+        }
+      }
+    }
+    
+    // Fallback: keyword-based context fetching
+    if (!context.currentSite && (lowerQuery.includes("site") || lowerQuery.includes("bâtiment") || lowerQuery.includes("building"))) {
       const sites = await storage.getSites();
       context.sites = sites.slice(0, 20).map((s: Site & { client: Client }) => ({
         id: s.id,
@@ -112,6 +171,43 @@ async function getDataContext(userId: string, userRole: string, query: string): 
 function buildPromptWithContext(userMessage: string, context: DataContext, language: string): string {
   let contextInfo = "";
   
+  // Priority: Current site/analysis context (from page the user is viewing)
+  if (context.currentSite) {
+    const s = context.currentSite;
+    const isFr = language === 'fr';
+    contextInfo += isFr ? `\n\n=== SITE ACTUELLEMENT CONSULTÉ ===\n` : `\n\n=== CURRENTLY VIEWED SITE ===\n`;
+    contextInfo += `${isFr ? 'Nom' : 'Name'}: ${s.name}\n`;
+    contextInfo += `${isFr ? 'Adresse' : 'Address'}: ${s.address || 'N/A'}, ${s.city || ''}\n`;
+    contextInfo += `${isFr ? 'Type de bâtiment' : 'Building type'}: ${s.buildingType || 'N/A'}\n`;
+    contextInfo += `${isFr ? 'Superficie toit' : 'Roof area'}: ${s.roofAreaSqM ? `${Number(s.roofAreaSqM).toLocaleString()} m²` : 'N/A'}\n`;
+    
+    if (context.currentAnalysis) {
+      const a = context.currentAnalysis;
+      contextInfo += isFr ? `\n--- DERNIÈRE ANALYSE ---\n` : `\n--- LATEST ANALYSIS ---\n`;
+      contextInfo += `${isFr ? 'Nom analyse' : 'Analysis name'}: ${a.name || 'N/A'}\n`;
+      contextInfo += `${isFr ? 'Capacité système' : 'System capacity'}: ${a.systemCapacityKw ? `${Number(a.systemCapacityKw).toLocaleString()} kW` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'Production annuelle' : 'Annual production'}: ${a.annualProductionKwh ? `${Number(a.annualProductionKwh).toLocaleString()} kWh` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'Consommation annuelle' : 'Annual consumption'}: ${a.annualConsumptionKwh ? `${Number(a.annualConsumptionKwh).toLocaleString()} kWh` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'Demande de pointe' : 'Peak demand'}: ${a.peakDemandKw ? `${Number(a.peakDemandKw).toLocaleString()} kW` : 'N/A'}\n`;
+      if (a.selfConsumptionKwh && a.annualProductionKwh) {
+        const selfConsumptionRate = (a.selfConsumptionKwh / a.annualProductionKwh) * 100;
+        contextInfo += `${isFr ? 'Taux autoconsommation' : 'Self-consumption rate'}: ${selfConsumptionRate.toFixed(1)}%\n`;
+      }
+      contextInfo += `${isFr ? 'Investissement total (CAPEX)' : 'Total investment (CAPEX)'}: ${a.totalCapex ? `$${Number(a.totalCapex).toLocaleString()}` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'Incitatif HQ' : 'HQ incentive'}: ${a.hqIncentive ? `$${Number(a.hqIncentive).toLocaleString()}` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'Économies annuelles' : 'Annual savings'}: ${a.annualSavings ? `$${Number(a.annualSavings).toLocaleString()}` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'VAN 25 ans (NPV)' : 'NPV 25 years'}: ${a.netPresentValue ? `$${Number(a.netPresentValue).toLocaleString()}` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'TRI 25 ans (IRR)' : 'IRR 25 years'}: ${a.internalRateOfReturn ? `${(Number(a.internalRateOfReturn) * 100).toFixed(1)}%` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'Période de retour' : 'Payback period'}: ${a.simplePaybackYears ? `${Number(a.simplePaybackYears).toFixed(1)} ${isFr ? 'ans' : 'years'}` : 'N/A'}\n`;
+      contextInfo += `${isFr ? 'CO2 évité' : 'CO2 avoided'}: ${a.co2AvoidedTons ? `${Number(a.co2AvoidedTons).toFixed(1)} ${isFr ? 'tonnes/an' : 'tons/year'}` : 'N/A'}\n`;
+      if (a.batteryCapacityKwh) {
+        contextInfo += `${isFr ? 'Batterie' : 'Battery'}: ${a.batteryCapacityKwh} kWh\n`;
+        contextInfo += `${isFr ? 'Écrêtage de pointe' : 'Peak shaving'}: ${a.peakShavingKw ? `${a.peakShavingKw} kW` : 'N/A'}\n`;
+      }
+    }
+    contextInfo += `\n`;
+  }
+  
   if (context.sites && context.sites.length > 0) {
     contextInfo += `\n\nSites disponibles (${context.sites.length}):\n`;
     context.sites.forEach((s: any) => {
@@ -146,7 +242,7 @@ export function registerAIAssistantRoutes(app: Express, authMiddleware: any, req
   
   app.post("/api/ai-assistant/chat", authMiddleware, async (req: AuthRequest, res: Response) => {
     try {
-      const { message, conversationHistory = [], language = 'fr' } = req.body;
+      const { message, conversationHistory = [], language = 'fr', pageContext } = req.body;
       
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: "Message is required" });
@@ -155,7 +251,15 @@ export function registerAIAssistantRoutes(app: Express, authMiddleware: any, req
       const userId = req.userId!;
       const userRole = req.userRole || 'client';
       
-      const context = await getDataContext(userId, userRole, message);
+      // Extract page context (siteId, analysisId from the page user is viewing)
+      // IDs are strings (UUIDs), no need to parse as integers
+      const parsedPageContext: PageContext = {
+        siteId: pageContext?.siteId || undefined,
+        analysisId: pageContext?.analysisId || undefined,
+        pageName: pageContext?.pageName,
+      };
+      
+      const context = await getDataContext(userId, userRole, message, parsedPageContext);
       
       const systemPrompt = buildPromptWithContext(message, context, language);
       
