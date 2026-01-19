@@ -555,8 +555,8 @@ export function RoofDrawingModal({
           </div>
           <p className="text-sm text-muted-foreground">
             {language === 'fr'
-              ? 'Tracez les zones de toit utilisables pour les panneaux solaires. Utilisez les outils pour dessiner des polygones ou des rectangles.'
-              : 'Trace usable roof areas for solar panels. Use the tools to draw polygons or rectangles.'}
+              ? 'Tracez les zones de toit utilisables. Cliquez sur "Éditer polygones" pour repositionner les sommets existants.'
+              : 'Trace usable roof areas. Click "Edit polygons" to drag and reposition existing vertices.'}
           </p>
         </div>
 
@@ -659,10 +659,34 @@ export function RoofDrawingModal({
 
             {/* Drawing Mode Indicator */}
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="flex items-center gap-1" data-testid="badge-draw-mode">
-                <Pentagon className="h-3 w-3" />
-                {language === 'fr' ? 'Mode tracé actif' : 'Drawing mode active'}
-              </Badge>
+              {activeDrawingMode ? (
+                <Badge variant="secondary" className="flex items-center gap-1" data-testid="badge-draw-mode">
+                  <Pentagon className="h-3 w-3" />
+                  {language === 'fr' ? 'Mode tracé actif' : 'Drawing mode active'}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="flex items-center gap-1 border-green-500 text-green-600" data-testid="badge-edit-mode">
+                  <Edit2 className="h-3 w-3" />
+                  {language === 'fr' ? 'Mode édition - cliquez sur un polygone pour modifier ses sommets' : 'Edit mode - click a polygon to drag its vertices'}
+                </Badge>
+              )}
+              {activeDrawingMode && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    if (drawingManagerRef.current) {
+                      drawingManagerRef.current.setDrawingMode(null);
+                    }
+                    setActiveDrawingMode(null);
+                  }}
+                  data-testid="button-edit-mode"
+                >
+                  <Edit2 className="h-3 w-3 mr-1" />
+                  {language === 'fr' ? 'Éditer polygones' : 'Edit polygons'}
+                </Button>
+              )}
             </div>
 
             {/* Outer wrapper for React - inner div for Google Maps */}
