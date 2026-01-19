@@ -1672,51 +1672,68 @@ function AnalysisParametersEditor({
                             <div className="font-medium text-muted-foreground">
                               {language === "fr" ? "Qualité" : "Quality"}
                             </div>
-                            {segments.slice(0, 6).map((seg: any, idx: number) => {
-                              const azimuth = seg.azimuthDegrees || 0;
-                              const pitch = seg.pitchDegrees || 0;
-                              const area = seg.stats?.areaMeters2 || 0;
+                            {(() => {
+                              // Helper function to calculate quality score
+                              const getQualityScore = (seg: any) => {
+                                const azimuth = seg.azimuthDegrees || 0;
+                                const pitch = seg.pitchDegrees || 0;
+                                const azimuthScore = Math.max(0, 100 - Math.abs(azimuth - 180) * 0.8);
+                                const pitchScore = Math.max(0, 100 - Math.abs(pitch - 32) * 3);
+                                return (azimuthScore * 0.6 + pitchScore * 0.4);
+                              };
                               
-                              // Determine orientation label
-                              let orientation = "?";
-                              if (azimuth >= 337.5 || azimuth < 22.5) orientation = "N";
-                              else if (azimuth >= 22.5 && azimuth < 67.5) orientation = "NE";
-                              else if (azimuth >= 67.5 && azimuth < 112.5) orientation = "E";
-                              else if (azimuth >= 112.5 && azimuth < 157.5) orientation = "SE";
-                              else if (azimuth >= 157.5 && azimuth < 202.5) orientation = "S";
-                              else if (azimuth >= 202.5 && azimuth < 247.5) orientation = "SW";
-                              else if (azimuth >= 247.5 && azimuth < 292.5) orientation = "W";
-                              else if (azimuth >= 292.5 && azimuth < 337.5) orientation = "NW";
-                              
-                              // Calculate solar quality score (0-100) based on orientation and pitch
-                              // South-facing (180°) with 30-35° pitch is optimal for Quebec
-                              const azimuthScore = Math.max(0, 100 - Math.abs(azimuth - 180) * 0.8);
-                              const pitchScore = Math.max(0, 100 - Math.abs(pitch - 32) * 3);
-                              const qualityScore = (azimuthScore * 0.6 + pitchScore * 0.4);
-                              
-                              // Get quality color
-                              let qualityColor = "bg-red-500";
-                              let qualityLabel = "⚠";
-                              if (qualityScore >= 80) { qualityColor = "bg-green-500"; qualityLabel = "★★★"; }
-                              else if (qualityScore >= 60) { qualityColor = "bg-amber-400"; qualityLabel = "★★"; }
-                              else if (qualityScore >= 40) { qualityColor = "bg-orange-400"; qualityLabel = "★"; }
-                              
-                              return (
-                                <Fragment key={idx}>
-                                  <div className="font-mono">{idx + 1}</div>
-                                  <div className="font-mono">{Math.round(area)} m²</div>
-                                  <div className="font-mono">{orientation}</div>
-                                  <div className="font-mono">{Math.round(pitch)}°</div>
-                                  <div className="flex items-center gap-1">
-                                    <div 
-                                      className={`w-2 h-2 rounded-full ${qualityColor}`} 
-                                      title={`${Math.round(qualityScore)}% - ${orientation} @ ${Math.round(pitch)}°`}
-                                    />
-                                    <span className="text-[10px]">{qualityLabel}</span>
-                                  </div>
-                                </Fragment>
+                              // Sort segments by quality score (best first) for optimal orientation display
+                              const sortedSegments = [...segments].sort((a: any, b: any) => 
+                                getQualityScore(b) - getQualityScore(a)
                               );
-                            })}
+                              
+                              return sortedSegments.slice(0, 6).map((seg: any, idx: number) => {
+                                const azimuth = seg.azimuthDegrees || 0;
+                                const pitch = seg.pitchDegrees || 0;
+                                const area = seg.stats?.areaMeters2 || 0;
+                                const isOptimal = idx === 0;
+                                
+                                // Determine orientation label
+                                let orientation = "?";
+                                if (azimuth >= 337.5 || azimuth < 22.5) orientation = "N";
+                                else if (azimuth >= 22.5 && azimuth < 67.5) orientation = "NE";
+                                else if (azimuth >= 67.5 && azimuth < 112.5) orientation = "E";
+                                else if (azimuth >= 112.5 && azimuth < 157.5) orientation = "SE";
+                                else if (azimuth >= 157.5 && azimuth < 202.5) orientation = "S";
+                                else if (azimuth >= 202.5 && azimuth < 247.5) orientation = "SW";
+                                else if (azimuth >= 247.5 && azimuth < 292.5) orientation = "W";
+                                else if (azimuth >= 292.5 && azimuth < 337.5) orientation = "NW";
+                                
+                                // Calculate solar quality score (0-100) based on orientation and pitch
+                                // South-facing (180°) with 30-35° pitch is optimal for Quebec
+                                const qualityScore = getQualityScore(seg);
+                                
+                                // Get quality color
+                                let qualityColor = "bg-red-500";
+                                let qualityLabel = "⚠";
+                                if (qualityScore >= 80) { qualityColor = "bg-green-500"; qualityLabel = "★★★"; }
+                                else if (qualityScore >= 60) { qualityColor = "bg-amber-400"; qualityLabel = "★★"; }
+                                else if (qualityScore >= 40) { qualityColor = "bg-orange-400"; qualityLabel = "★"; }
+                                
+                                return (
+                                  <Fragment key={idx}>
+                                    <div className={`font-mono ${isOptimal ? "text-primary font-bold" : ""}`}>
+                                      {isOptimal ? "★" : idx + 1}
+                                    </div>
+                                    <div className={`font-mono ${isOptimal ? "text-primary font-semibold" : ""}`}>{Math.round(area)} m²</div>
+                                    <div className={`font-mono ${isOptimal ? "text-primary font-semibold" : ""}`}>{orientation}</div>
+                                    <div className={`font-mono ${isOptimal ? "text-primary font-semibold" : ""}`}>{Math.round(pitch)}°</div>
+                                    <div className="flex items-center gap-1">
+                                      <div 
+                                        className={`w-2 h-2 rounded-full ${qualityColor}`} 
+                                        title={`${Math.round(qualityScore)}% - ${orientation} @ ${Math.round(pitch)}°`}
+                                      />
+                                      <span className="text-[10px]">{qualityLabel}</span>
+                                    </div>
+                                  </Fragment>
+                                );
+                              });
+                            })()}
                           </div>
                           {segments.length > 6 && (
                             <p className="text-xs text-muted-foreground">
