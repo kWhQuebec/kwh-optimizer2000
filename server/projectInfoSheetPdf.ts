@@ -239,10 +239,9 @@ export async function generateProjectInfoSheetPDF(
     .strokeColor(BRAND_COLORS.accent).lineWidth(3).stroke();
   yPos += 20;
 
-  const imageWidth = 300;
-  const imageHeight = 200;
-  const detailsX = margin + imageWidth + 25;
-  const detailsWidth = contentWidth - imageWidth - 25;
+  // Full-width image layout for better roof visibility
+  const imageWidth = contentWidth;
+  const imageHeight = 280;
   const topRowY = yPos;
 
   if (data.roofImageBuffer) {
@@ -263,21 +262,23 @@ export async function generateProjectInfoSheetPDF(
       doc.roundedRect(margin, topRowY, imageWidth, imageHeight, 6)
         .fillColor(BRAND_COLORS.lightBg).fill();
       doc.fontSize(10).fillColor(BRAND_COLORS.lightText);
-      doc.text("Image non disponible", margin + 60, topRowY + 70);
+      doc.text("Image non disponible", margin + (imageWidth / 2) - 50, topRowY + (imageHeight / 2));
     }
   } else {
     doc.roundedRect(margin, topRowY, imageWidth, imageHeight, 6)
       .fillColor(BRAND_COLORS.lightBg).fill();
   }
 
-  let detailY = topRowY;
-  
-  doc.fontSize(12).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
-  doc.text(t.projectDetails, detailsX, detailY);
-  detailY += 22;
+  yPos = topRowY + imageHeight + 20;
 
-  doc.moveTo(detailsX, detailY - 4).lineTo(detailsX + 40, detailY - 4)
+  // Project details section below the image
+  doc.fontSize(12).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
+  doc.text(t.projectDetails, margin, yPos);
+  yPos += 18;
+
+  doc.moveTo(margin, yPos).lineTo(margin + 40, yPos)
     .strokeColor(BRAND_COLORS.accent).lineWidth(2).stroke();
+  yPos += 12;
 
   const bulletItems: Array<{ label: string; value: string }> = [];
   
@@ -309,19 +310,33 @@ export async function generateProjectInfoSheetPDF(
   bulletItems.push({ label: t.buildingSponsor, value: ownerValue });
   bulletItems.push({ label: t.electricityOfftake, value: t.electricityOfftakeValue });
 
-  for (const item of bulletItems) {
-    doc.circle(detailsX + 4, detailY + 5, 2.5).fillColor(BRAND_COLORS.accent).fill();
+  // Two-column grid layout for details
+  const colWidth = (contentWidth - 20) / 2;
+  const startY = yPos;
+  let leftColY = startY;
+  let rightColY = startY;
+  
+  bulletItems.forEach((item, index) => {
+    const isLeftCol = index % 2 === 0;
+    const colX = isLeftCol ? margin : margin + colWidth + 20;
+    const currentY = isLeftCol ? leftColY : rightColY;
+    
+    doc.circle(colX + 4, currentY + 5, 2.5).fillColor(BRAND_COLORS.accent).fill();
     
     doc.fontSize(7).fillColor(BRAND_COLORS.mediumText).font("Helvetica-Bold");
-    doc.text(item.label, detailsX + 14, detailY, { width: detailsWidth - 14 });
-    detailY += 12;
+    doc.text(item.label, colX + 14, currentY, { width: colWidth - 14 });
     
     doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-    doc.text(item.value, detailsX + 14, detailY, { width: detailsWidth - 14 });
-    detailY += 22;
-  }
+    doc.text(item.value, colX + 14, currentY + 12, { width: colWidth - 14 });
+    
+    if (isLeftCol) {
+      leftColY += 38;
+    } else {
+      rightColY += 38;
+    }
+  });
 
-  yPos = Math.max(topRowY + imageHeight, detailY) + 30;
+  yPos = Math.max(leftColY, rightColY) + 15;
 
   doc.rect(margin, yPos, contentWidth, 1).fillColor(BRAND_COLORS.border).fill();
   yPos += 20;
