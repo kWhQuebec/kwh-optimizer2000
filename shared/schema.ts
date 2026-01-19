@@ -161,6 +161,7 @@ export const sites = pgTable("sites", {
   quickAnalysisNetCapex: real("quick_analysis_net_capex"),
   quickAnalysisHqIncentive: real("quick_analysis_hq_incentive"),
   quickAnalysisMonthlyBill: real("quick_analysis_monthly_bill"),
+  quickAnalysisConstraintFactor: real("quick_analysis_constraint_factor"), // 0.05-0.25 (5-25%)
   quickAnalysisCompletedAt: timestamp("quick_analysis_completed_at"),
   
   // Roof visualization image with solar panel overlay

@@ -2398,6 +2398,25 @@ IMPORTANT RULES:
   app.post("/api/sites/:siteId/quick-potential", authMiddleware, requireStaff, async (req, res) => {
     try {
       const siteId = req.params.siteId;
+      
+      // Validate request body with Zod (handle null/undefined/string/number inputs robustly)
+      const quickPotentialSchema = z.object({
+        constraintFactor: z.preprocess(
+          (val) => {
+            if (val === null || val === undefined || val === '') return 0.10;
+            const num = typeof val === 'number' ? val : parseFloat(String(val));
+            return isNaN(num) ? 0.10 : num;
+          },
+          z.number().min(0.05).max(0.25)
+        )
+      });
+      
+      const parsed = quickPotentialSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid constraint factor. Must be a number between 0.05 and 0.25" });
+      }
+      const constraintFactor = parsed.data.constraintFactor;
+      
       const site = await storage.getSite(siteId);
       
       if (!site) {
@@ -2432,15 +2451,18 @@ IMPORTANT RULES:
       // Product: AeroGrid 10° Landscape with Jinko 625W bifacial panels
       // Source: KB Racking engineering drawings & quotes (Oct-Dec 2025)
       // ═══════════════════════════════════════════════════════════════════════════════
-      const UTILIZATION_RATIO = 0.85; // 85% usable after 1.22m perimeter setback
+      const PERIMETER_SETBACK_RATIO = 0.85; // 85% usable after 1.22m perimeter setback
       const QUEBEC_YIELD_KWHPERKWP = 1150; // kWh/kWp Quebec average (conservative)
       const PANEL_POWER_W = 625; // Jinko 625W bifacial panel
       // KB Racking row pitch: 1.557m, Panel width: 2.382m
       // Effective footprint: 2.382m × 1.557m = 3.71 m²
       const PANEL_AREA_M2 = 3.71; // KB Racking validated effective area per panel
       
-      // Calculate usable roof area (after perimeter setback)
-      const usableRoofAreaSqM = totalRoofAreaSqM * UTILIZATION_RATIO;
+      // Calculate usable roof area: 
+      // 1. Apply perimeter setback (85%)
+      // 2. Apply constraint factor for obstacles (5-25%, adjustable)
+      const effectiveUtilizationRatio = PERIMETER_SETBACK_RATIO * (1 - constraintFactor);
+      const usableRoofAreaSqM = totalRoofAreaSqM * effectiveUtilizationRatio;
       
       // Calculate number of panels (matching RoofVisualization algorithm)
       const numPanels = Math.floor(usableRoofAreaSqM / PANEL_AREA_M2);
@@ -2469,7 +2491,7 @@ IMPORTANT RULES:
       // Simple payback period
       const simplePayback = estimatedCapex / estimatedAnnualSavings;
       
-      // Save quick analysis results to database (including calculated roof area from polygons)
+      // Save quick analysis results to database (including calculated roof area and constraint factor)
       await storage.updateSite(siteId, {
         roofAreaSqM: Math.round(totalRoofAreaSqM), // Save calculated roof area from drawn polygons
         quickAnalysisSystemSizeKw: maxCapacityKWRounded,
@@ -2478,6 +2500,7 @@ IMPORTANT RULES:
         quickAnalysisPaybackYears: Math.round(simplePayback * 10) / 10,
         quickAnalysisGrossCapex: Math.round(estimatedCapex),
         quickAnalysisNetCapex: Math.round(estimatedCapex), // No incentive calc in quick analysis
+        quickAnalysisConstraintFactor: constraintFactor, // Save the constraint factor used (0.05-0.25)
         quickAnalysisCompletedAt: new Date(),
       });
       
@@ -2488,7 +2511,9 @@ IMPORTANT RULES:
         roofAnalysis: {
           totalRoofAreaSqM: Math.round(totalRoofAreaSqM),
           usableRoofAreaSqM: Math.round(usableRoofAreaSqM),
-          utilizationRatio: UTILIZATION_RATIO,
+          utilizationRatio: effectiveUtilizationRatio,
+          perimeterSetbackRatio: PERIMETER_SETBACK_RATIO,
+          constraintFactor,
           polygonCount: solarPolygons.length,
         },
         systemSizing: {

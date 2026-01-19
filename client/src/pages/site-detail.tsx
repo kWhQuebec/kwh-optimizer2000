@@ -109,6 +109,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6552,6 +6553,8 @@ export default function SiteDetailPage() {
       totalRoofAreaSqM: number;
       usableRoofAreaSqM: number;
       utilizationRatio: number;
+      perimeterSetbackRatio?: number;
+      constraintFactor?: number;
       polygonCount: number;
     };
     systemSizing: {
@@ -6573,6 +6576,9 @@ export default function SiteDetailPage() {
     };
   }
   const [quickPotential, setQuickPotential] = useState<QuickPotentialResult | null>(null);
+  
+  // Constraint factor for quick analysis (5-25%, default 10%)
+  const [constraintFactor, setConstraintFactor] = useState(10);
   
   // Geometry-based capacity from RoofVisualization (more accurate than backend estimate)
   const [geometryCapacity, setGeometryCapacity] = useState<{ 
@@ -6641,11 +6647,21 @@ export default function SiteDetailPage() {
       const totalRoofAreaSqM = polygonAreaSqM > 0 ? polygonAreaSqM : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
       const polygonCount = solarPolygons.length > 0 ? solarPolygons.length : 1;
       
+      // Get saved constraint factor or use default
+      const savedConstraintFactor = site.quickAnalysisConstraintFactor ?? 0.10;
+      const effectiveUtilizationRatio = 0.85 * (1 - savedConstraintFactor);
+      
+      // Initialize the constraint factor slider from saved value (explicit check for 0.05 edge case)
+      if (site.quickAnalysisConstraintFactor !== null && site.quickAnalysisConstraintFactor !== undefined) {
+        setConstraintFactor(Math.round(site.quickAnalysisConstraintFactor * 100));
+      }
+      
       setQuickPotential({
         roofAnalysis: {
           totalRoofAreaSqM: Math.round(totalRoofAreaSqM),
-          usableRoofAreaSqM: Math.round(totalRoofAreaSqM * 0.85),
-          utilizationRatio: 0.85,
+          usableRoofAreaSqM: Math.round(totalRoofAreaSqM * effectiveUtilizationRatio),
+          utilizationRatio: effectiveUtilizationRatio,
+          constraintFactor: savedConstraintFactor,
           polygonCount,
         },
         systemSizing: {
@@ -6753,11 +6769,15 @@ export default function SiteDetailPage() {
   // Quick potential analysis mutation (roof-only, no consumption data needed)
   const quickPotentialMutation = useMutation({
     mutationFn: async () => {
-      const result = await apiRequest<{ success: boolean } & QuickPotentialResult>("POST", `/api/sites/${id}/quick-potential`);
+      const result = await apiRequest<{ success: boolean } & QuickPotentialResult>("POST", `/api/sites/${id}/quick-potential`, {
+        constraintFactor: constraintFactor / 100 // Convert percentage to decimal (e.g., 10% -> 0.10)
+      });
       return result;
     },
     onSuccess: (data) => {
       setQuickPotential(data);
+      // Invalidate site query to refetch saved constraint factor
+      queryClient.invalidateQueries({ queryKey: ['/api/sites', id] });
       // Don't show capacity numbers in toast - they will be calculated more accurately
       // by the geometry engine and displayed in the KPI cards
       toast({ 
@@ -7134,23 +7154,40 @@ export default function SiteDetailPage() {
         <div className="flex items-center gap-2">
           {isStaff && (
             <>
-              {/* Quick Potential Button - only visible when NO consumption data (CSV files) exist */}
-              {/* Once CSV files are uploaded, use the full analysis instead */}
+              {/* Quick Potential Button with constraint factor selector */}
+              {/* Only visible when NO consumption data (CSV files) exist */}
               {!(site.meterFiles && site.meterFiles.length > 0) && (
-                <Button 
-                  variant="secondary"
-                  onClick={() => quickPotentialMutation.mutate()}
-                  disabled={quickPotentialMutation.isPending || !site.roofAreaValidated}
-                  className="gap-2"
-                  data-testid="button-quick-potential"
-                >
-                  {quickPotentialMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Zap className="w-4 h-4" />
-                  )}
-                  {language === "fr" ? "Analyse rapide" : "Quick Analysis"}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Select 
+                    value={constraintFactor.toString()} 
+                    onValueChange={(v) => setConstraintFactor(parseInt(v))}
+                  >
+                    <SelectTrigger className="w-[90px] h-9" data-testid="select-constraint-factor">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5%</SelectItem>
+                      <SelectItem value="10">10%</SelectItem>
+                      <SelectItem value="15">15%</SelectItem>
+                      <SelectItem value="20">20%</SelectItem>
+                      <SelectItem value="25">25%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    variant="secondary"
+                    onClick={() => quickPotentialMutation.mutate()}
+                    disabled={quickPotentialMutation.isPending || !site.roofAreaValidated}
+                    className="gap-2"
+                    data-testid="button-quick-potential"
+                  >
+                    {quickPotentialMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Zap className="w-4 h-4" />
+                    )}
+                    {language === "fr" ? "Analyse rapide" : "Quick Analysis"}
+                  </Button>
+                </div>
               )}
               <Button 
                 onClick={() => runAnalysisMutation.mutate(customAssumptions)}
@@ -7511,6 +7548,11 @@ export default function SiteDetailPage() {
                 <span>
                   {quickPotential.roofAnalysis.polygonCount} {language === "fr" ? "zone(s) de toit" : "roof zone(s)"}
                 </span>
+                {quickPotential.roofAnalysis.constraintFactor !== undefined && (
+                  <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                    {language === "fr" ? "Contraintes:" : "Constraints:"} {Math.round(quickPotential.roofAnalysis.constraintFactor * 100)}%
+                  </span>
+                )}
               </div>
             </div>
           </CardContent>
