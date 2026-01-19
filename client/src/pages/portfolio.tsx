@@ -23,6 +23,25 @@ function PortfolioHeader() {
   const { language } = useI18n();
   const logo = language === "fr" ? logoFr : logoEn;
 
+  const menuItems = [
+    { 
+      label: language === "fr" ? "Accueil" : "Home", 
+      href: "/" 
+    },
+    { 
+      label: language === "fr" ? "À propos" : "About", 
+      href: "#about" 
+    },
+    { 
+      label: language === "fr" ? "Services" : "Services", 
+      href: "#services" 
+    },
+    { 
+      label: language === "fr" ? "Contact" : "Contact", 
+      href: "#contact" 
+    },
+  ];
+
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="container mx-auto px-4 py-4">
@@ -30,6 +49,20 @@ function PortfolioHeader() {
           <a href="/" className="flex items-center gap-2" data-testid="link-home">
             <img src={logo} alt="kWh Québec" className="h-[50px] sm:h-[3.75rem] w-auto" />
           </a>
+          
+          <nav className="hidden md:flex items-center gap-6">
+            {menuItems.map((item) => (
+              <a 
+                key={item.href}
+                href={item.href}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                data-testid={`link-nav-${item.href.replace('#', '')}`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          
           <div className="flex items-center gap-2">
             <LanguageToggle />
             <ThemeToggle />
