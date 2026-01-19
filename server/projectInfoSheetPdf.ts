@@ -241,7 +241,7 @@ export async function generateProjectInfoSheetPDF(
 
   // Full-width image layout for better roof visibility
   const imageWidth = contentWidth;
-  const imageHeight = 220;  // Reduced height to crop white space
+  const imageHeight = 180;  // Cropped ~0.75cm top/bottom to fit on one page
   const topRowY = yPos;
 
   if (data.roofImageBuffer) {
