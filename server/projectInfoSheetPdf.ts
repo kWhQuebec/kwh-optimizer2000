@@ -283,13 +283,15 @@ export async function generateProjectInfoSheetPDF(
   let sizeValue = t.notAvailable;
   const kbKwDc = data.site.kbKwDc;
   
+  // Round to nearest 100 kW DC, no AC display (ratio not confirmed)
   if (kbKwDc && kbKwDc > 0) {
-    const kwAc = Math.round(kbKwDc * 0.85);
-    sizeValue = `${Math.round(kbKwDc).toLocaleString()} ${t.dcLabel} / ${kwAc.toLocaleString()} ${t.acLabel}`;
+    const roundedDc = Math.round(kbKwDc / 100) * 100;
+    sizeValue = `${roundedDc.toLocaleString()} ${t.dcLabel}`;
   } else {
     const parsedSize = parseProjectSizeFromNotes(data.site.notes);
     if (parsedSize) {
-      sizeValue = `${Math.round(parsedSize.dcKw).toLocaleString()} ${t.dcLabel} / ${Math.round(parsedSize.acKw).toLocaleString()} ${t.acLabel}`;
+      const roundedDc = Math.round(parsedSize.dcKw / 100) * 100;
+      sizeValue = `${roundedDc.toLocaleString()} ${t.dcLabel}`;
     }
   }
   bulletItems.push({ label: t.projectSize, value: sizeValue });

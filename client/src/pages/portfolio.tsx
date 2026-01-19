@@ -144,7 +144,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
                   {language === "fr" ? "Puissance" : "Capacity"}
                 </p>
                 <p className="font-semibold text-sm">
-                  {site.kb_kw_dc?.toFixed(0)} kW
+                  {Math.round((site.kb_kw_dc || 0) / 100) * 100} kW
                 </p>
               </div>
             </div>
