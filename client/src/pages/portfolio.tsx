@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Sun, MapPin, Zap, Mail, Phone, Building2, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { Link } from "wouter";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
@@ -23,49 +25,39 @@ function PortfolioHeader() {
   const { language } = useI18n();
   const logo = language === "fr" ? logoFr : logoEn;
 
-  const menuItems = [
-    { 
-      label: language === "fr" ? "Accueil" : "Home", 
-      href: "/" 
-    },
-    { 
-      label: language === "fr" ? "À propos" : "About", 
-      href: "#about" 
-    },
-    { 
-      label: language === "fr" ? "Services" : "Services", 
-      href: "#services" 
-    },
-    { 
-      label: language === "fr" ? "Contact" : "Contact", 
-      href: "#contact" 
-    },
-  ];
-
   return (
-    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <a href="/" className="flex items-center gap-2" data-testid="link-home">
-            <img src={logo} alt="kWh Québec" className="h-[50px] sm:h-[3.75rem] w-auto" />
-          </a>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 gap-4">
+          <Link href="/">
+            <img 
+              src={logo} 
+              alt="kWh Québec" 
+              className="h-[50px] sm:h-[3.75rem] w-auto"
+              data-testid="logo-header"
+            />
+          </Link>
           
           <nav className="hidden md:flex items-center gap-6">
-            {menuItems.map((item) => (
-              <a 
-                key={item.href}
-                href={item.href}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                data-testid={`link-nav-${item.href.replace('#', '')}`}
-              >
-                {item.label}
-              </a>
-            ))}
+            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-home">
+              {language === "fr" ? "Accueil" : "Home"}
+            </Link>
+            <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-resources">
+              {language === "fr" ? "Ressources" : "Resources"}
+            </Link>
+            <Link href="/portfolio" className="text-sm font-medium text-foreground" data-testid="link-portfolio">
+              {language === "fr" ? "Portefeuille" : "Portfolio"}
+            </Link>
           </nav>
-          
+
           <div className="flex items-center gap-2">
             <LanguageToggle />
             <ThemeToggle />
+            <Link href="/login">
+              <Button variant="outline" size="sm" data-testid="button-login">
+                {language === "fr" ? "Connexion" : "Login"}
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -260,7 +252,7 @@ export default function Portfolio() {
     <div className="min-h-screen flex flex-col bg-background">
       <PortfolioHeader />
       
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         <section className="py-12 md:py-16 bg-gradient-to-b from-primary/5 to-background">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto space-y-4">
