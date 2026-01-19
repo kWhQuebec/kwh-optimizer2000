@@ -2210,6 +2210,17 @@ export async function registerRoutes(
       // Simple payback period
       const simplePayback = estimatedCapex / estimatedAnnualSavings;
       
+      // Save quick analysis results to database
+      await storage.updateSite(siteId, {
+        quickAnalysisSystemSizeKw: maxCapacityKWRounded,
+        quickAnalysisAnnualProductionKwh: Math.round(annualProductionKWh),
+        quickAnalysisAnnualSavings: Math.round(estimatedAnnualSavings),
+        quickAnalysisPaybackYears: Math.round(simplePayback * 10) / 10,
+        quickAnalysisGrossCapex: Math.round(estimatedCapex),
+        quickAnalysisNetCapex: Math.round(estimatedCapex), // No incentive calc in quick analysis
+        quickAnalysisCompletedAt: new Date(),
+      });
+      
       res.json({
         success: true,
         siteId,
@@ -4924,26 +4935,90 @@ export async function registerRoutes(
 
   // ==================== PUBLIC PORTFOLIO PAGE ====================
   
+  // Helper function to generate static map URL with roof polygon overlays
+  function generateRoofVisualizationUrl(
+    latitude: number,
+    longitude: number,
+    roofPolygons: Array<{ coordinates: unknown; color?: string | null; label?: string | null }>,
+    apiKey: string
+  ): string {
+    let pathParams = "";
+    
+    // Filter and add solar polygons (blue)
+    const solarPolygons = roofPolygons.filter((p) => {
+      if (p.color === "#f97316") return false;
+      const label = (p.label || "").toLowerCase();
+      return !label.includes("constraint") && !label.includes("contrainte") && 
+             !label.includes("hvac") && !label.includes("obstacle");
+    });
+    
+    solarPolygons.forEach((polygon) => {
+      const coords = polygon.coordinates as [number, number][];
+      if (coords && coords.length >= 3) {
+        const pathCoords = coords.map(([pLng, pLat]) => `${pLat},${pLng}`).join("|");
+        pathParams += `&path=fillcolor:0x3b82f680|color:0x1e40af|weight:2|${pathCoords}`;
+      }
+    });
+    
+    // Add constraint polygons (orange)
+    const constraintPolygons = roofPolygons.filter((p) => {
+      if (p.color === "#f97316") return true;
+      const label = (p.label || "").toLowerCase();
+      return label.includes("constraint") || label.includes("contrainte") || 
+             label.includes("hvac") || label.includes("obstacle");
+    });
+    
+    constraintPolygons.forEach((polygon) => {
+      const coords = polygon.coordinates as [number, number][];
+      if (coords && coords.length >= 3) {
+        const pathCoords = coords.map(([pLng, pLat]) => `${pLat},${pLng}`).join("|");
+        pathParams += `&path=fillcolor:0xf9731680|color:0xf97316|weight:2|${pathCoords}`;
+      }
+    });
+    
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=19&size=400x300&maptype=satellite${pathParams}&key=${apiKey}`;
+  }
+  
   // Public portfolio endpoint for Dream REIT sites (no auth required)
   // Returns anonymized site data for public display
   app.get("/api/public/portfolio", async (req, res) => {
     try {
       const DREAM_CLIENT_ID = "6ba7837d-84a0-4526-bfbf-f802bc68c25e";
+      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY || "";
       
       // Get all sites for Dream client
       const allSites = await storage.getSitesByClient(DREAM_CLIENT_ID);
       
-      // Filter sites that have coordinates and return anonymized data
-      const portfolioSites = allSites
-        .filter(site => site.latitude != null && site.longitude != null)
-        .map(site => ({
-          id: site.id,
-          city: site.city || "Unknown",
-          kb_kw_dc: site.kbKwDc || null,
-          latitude: site.latitude,
-          longitude: site.longitude,
-          roof_area_sqm: site.roofAreaSqM || site.roofAreaAutoSqM || null,
-        }));
+      // Filter sites that have coordinates and build portfolio data with visualization URLs
+      const portfolioSites = await Promise.all(
+        allSites
+          .filter(site => site.latitude != null && site.longitude != null)
+          .map(async (site) => {
+            // Get roof polygons for this site
+            const roofPolygons = await storage.getRoofPolygons(site.id);
+            
+            // Generate visualization URL if polygons exist
+            let visualizationUrl = null;
+            if (roofPolygons.length > 0 && site.latitude && site.longitude && apiKey) {
+              visualizationUrl = generateRoofVisualizationUrl(
+                site.latitude,
+                site.longitude,
+                roofPolygons,
+                apiKey
+              );
+            }
+            
+            return {
+              id: site.id,
+              city: site.city || "Unknown",
+              kb_kw_dc: site.kbKwDc || null,
+              latitude: site.latitude,
+              longitude: site.longitude,
+              roof_area_sqm: site.roofAreaSqM || site.roofAreaAutoSqM || null,
+              visualization_url: visualizationUrl,
+            };
+          })
+      );
       
       res.json(portfolioSites);
     } catch (error) {

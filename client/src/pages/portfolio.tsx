@@ -16,6 +16,7 @@ interface PortfolioSite {
   latitude: number;
   longitude: number;
   roof_area_sqm: number | null;
+  visualization_url: string | null;
 }
 
 function PortfolioHeader() {
@@ -98,18 +99,19 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
   const { language } = useI18n();
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   
-  const satelliteUrl = apiKey 
+  // Use visualization URL (with roof polygons) if available, otherwise fall back to plain satellite
+  const imageUrl = site.visualization_url || (apiKey 
     ? `https://maps.googleapis.com/maps/api/staticmap?center=${site.latitude},${site.longitude}&zoom=19&size=400x300&maptype=satellite&key=${apiKey}`
-    : null;
+    : null);
 
   const hasSystemSize = site.kb_kw_dc != null && site.kb_kw_dc > 0;
 
   return (
     <Card className="overflow-hidden hover-elevate transition-all" data-testid={`card-project-${site.id}`}>
       <div className="aspect-[4/3] relative bg-muted">
-        {satelliteUrl ? (
+        {imageUrl ? (
           <img 
-            src={satelliteUrl} 
+            src={imageUrl} 
             alt={`${language === "fr" ? "Vue satellite" : "Satellite view"} - ${site.city}`}
             className="w-full h-full object-cover"
             loading="lazy"
