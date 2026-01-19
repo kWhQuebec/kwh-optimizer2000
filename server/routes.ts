@@ -5008,10 +5008,13 @@ export async function registerRoutes(
               );
             }
             
+            // Use KB Racking data first, fall back to Quick Analysis cache
+            const systemSizeKw = site.kbKwDc || site.quickAnalysisSystemSizeKw || null;
+            
             return {
               id: site.id,
               city: site.city || "Unknown",
-              kb_kw_dc: site.kbKwDc || null,
+              kb_kw_dc: systemSizeKw,
               latitude: site.latitude,
               longitude: site.longitude,
               roof_area_sqm: site.roofAreaSqM || site.roofAreaAutoSqM || null,
