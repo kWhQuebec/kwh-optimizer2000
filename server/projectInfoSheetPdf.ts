@@ -241,17 +241,16 @@ export async function generateProjectInfoSheetPDF(
 
   // Full-width image layout for better roof visibility
   const imageWidth = contentWidth;
-  const imageHeight = 280;
+  const imageHeight = 220;  // Reduced height to crop white space
   const topRowY = yPos;
 
   if (data.roofImageBuffer) {
     try {
       doc.save();
       doc.roundedRect(margin, topRowY, imageWidth, imageHeight, 6).clip();
+      // Use cover mode to crop and fill, centering on the roof
       doc.image(data.roofImageBuffer, margin, topRowY, { 
-        width: imageWidth, 
-        height: imageHeight,
-        fit: [imageWidth, imageHeight],
+        cover: [imageWidth, imageHeight],
         align: 'center',
         valign: 'center'
       });
