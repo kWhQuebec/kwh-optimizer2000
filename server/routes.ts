@@ -8839,6 +8839,7 @@ ${fileContent}`
             roofType: site.roofType,
             roofAreaSqM: site.roofAreaSqM,
             notes: site.notes,
+            ownerName: site.ownerName,
           },
           roofPolygons: roofPolygons.map((p) => ({
             coordinates: p.coordinates as [number, number][],

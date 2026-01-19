@@ -29,6 +29,7 @@ interface ProjectInfoData {
     roofType?: string | null;
     roofAreaSqM?: number | null;
     notes?: string | null;
+    ownerName?: string | null;
   };
   roofPolygons?: RoofPolygonData[];
   roofImageBuffer?: Buffer;
@@ -303,7 +304,9 @@ export async function generateProjectInfoSheetPDF(
   
   bulletItems.push({ label: t.constructionStart, value: t.constructionValue });
   bulletItems.push({ label: t.developer, value: t.developerValue });
-  bulletItems.push({ label: t.buildingSponsor, value: t.buildingSponsorValue });
+  // Use site-specific owner name if available, otherwise fall back to default
+  const ownerValue = data.site.ownerName || t.buildingSponsorValue;
+  bulletItems.push({ label: t.buildingSponsor, value: ownerValue });
   bulletItems.push({ label: t.electricityOfftake, value: t.electricityOfftakeValue });
 
   for (const item of bulletItems) {

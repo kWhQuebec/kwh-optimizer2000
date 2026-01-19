@@ -68,6 +68,7 @@ export const sites = pgTable("sites", {
   province: text("province"),
   postalCode: text("postal_code"),
   notes: text("notes"),
+  ownerName: text("owner_name"), // Building owner/sponsor name for PDF reports
   
   // Building characteristics
   buildingType: text("building_type"), // "industrial" | "commercial" | "institutional" | "other"
