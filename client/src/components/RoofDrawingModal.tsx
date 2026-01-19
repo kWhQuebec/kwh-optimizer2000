@@ -606,56 +606,7 @@ export function RoofDrawingModal({
                 {language === 'fr' ? 'Contrainte' : 'Constraint'}
               </Button>
               
-              <div className="flex-1" />
-              
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
-                onClick={handleSuggestConstraints}
-                disabled={isSuggestingConstraints || polygons.filter((p) => p.color === SOLAR_COLOR).length === 0}
-                data-testid="button-suggest-constraints"
-              >
-                {isSuggestingConstraints ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <Wand2 className="h-4 w-4 mr-1" />
-                )}
-                {language === 'fr' ? 'Suggérer contraintes' : 'Suggest Constraints'}
-              </Button>
-            </div>
-
-            {/* Suggested Constraints Actions */}
-            {suggestedPolygonIds.size > 0 && (
-              <div className="flex items-center gap-2 p-2 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg">
-                <Sparkles className="h-4 w-4 text-orange-500" />
-                <span className="text-xs text-orange-700 dark:text-orange-300 flex-1">
-                  {language === 'fr' 
-                    ? `${suggestedPolygonIds.size} contrainte(s) suggérée(s)` 
-                    : `${suggestedPolygonIds.size} suggested constraint(s)`}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                  onClick={handleAcceptSuggestedConstraints}
-                  data-testid="button-accept-suggestions"
-                >
-                  <Check className="h-3 w-3 mr-1" />
-                  {language === 'fr' ? 'Accepter' : 'Accept'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                  onClick={handleClearSuggestedConstraints}
-                  data-testid="button-clear-suggestions"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  {language === 'fr' ? 'Effacer' : 'Clear'}
-                </Button>
               </div>
-            )}
 
             {/* Drawing Mode Indicator */}
             <div className="flex items-center gap-2">
