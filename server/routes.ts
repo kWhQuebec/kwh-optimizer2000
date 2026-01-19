@@ -2074,6 +2074,218 @@ export async function registerRoutes(
     }
   });
 
+  // AI-powered constraint suggestion for roof drawing
+  app.post("/api/sites/:id/suggest-constraints", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const siteId = req.params.id;
+      const { solarPolygons, bounds, centerLat, centerLng } = req.body;
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      if (!solarPolygons || solarPolygons.length === 0) {
+        return res.status(400).json({ error: "No solar polygons provided" });
+      }
+
+      // Fetch satellite imagery for the area
+      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      // Calculate center and zoom for the satellite image
+      const { minLat, maxLat, minLng, maxLng } = bounds;
+      const imageCenterLat = (minLat + maxLat) / 2;
+      const imageCenterLng = (minLng + maxLng) / 2;
+      
+      // Calculate appropriate zoom level based on bounds
+      const latDiff = maxLat - minLat;
+      const lngDiff = maxLng - minLng;
+      const maxDiff = Math.max(latDiff, lngDiff);
+      
+      // Approximate zoom level calculation
+      let zoom = 20;
+      if (maxDiff > 0.001) zoom = 19;
+      if (maxDiff > 0.002) zoom = 18;
+      if (maxDiff > 0.004) zoom = 17;
+
+      // WebMercator helper functions for accurate coordinate conversion
+      const TILE_SIZE = 256;
+      const WORLD_SIZE = TILE_SIZE * Math.pow(2, zoom);
+      
+      // Convert lat/lng to world pixel coordinates (WebMercator projection)
+      const latLngToWorldPixel = (lat: number, lng: number) => {
+        const x = ((lng + 180) / 360) * WORLD_SIZE;
+        const siny = Math.sin((lat * Math.PI) / 180);
+        const y = ((0.5 - Math.log((1 + siny) / (1 - siny)) / (4 * Math.PI))) * WORLD_SIZE;
+        return { x, y };
+      };
+      
+      // Get world pixel coordinates of image center
+      const centerWorld = latLngToWorldPixel(imageCenterLat, imageCenterLng);
+      
+      // Calculate the actual geographic bounds of the 640x640 image
+      const halfImageSize = 320; // 640/2
+      const imageMinWorldX = centerWorld.x - halfImageSize;
+      const imageMaxWorldX = centerWorld.x + halfImageSize;
+      const imageMinWorldY = centerWorld.y - halfImageSize;
+      const imageMaxWorldY = centerWorld.y + halfImageSize;
+      
+      // Convert world pixel back to lat/lng
+      const worldPixelToLatLng = (worldX: number, worldY: number) => {
+        const lng = (worldX / WORLD_SIZE) * 360 - 180;
+        const n = Math.PI - (2 * Math.PI * worldY) / WORLD_SIZE;
+        const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+        return { lat, lng };
+      };
+      
+      // Calculate actual image bounds (these are the correct bounds for pixel-to-geo conversion)
+      const actualTopLeft = worldPixelToLatLng(imageMinWorldX, imageMinWorldY);
+      const actualBottomRight = worldPixelToLatLng(imageMaxWorldX, imageMaxWorldY);
+      const actualMinLat = actualBottomRight.lat;
+      const actualMaxLat = actualTopLeft.lat;
+      const actualMinLng = actualTopLeft.lng;
+      const actualMaxLng = actualBottomRight.lng;
+      
+      console.log("Image bounds - Requested:", { minLat, maxLat, minLng, maxLng });
+      console.log("Image bounds - Actual:", { actualMinLat, actualMaxLat, actualMinLng, actualMaxLng });
+
+      // Fetch satellite image from Google Static Maps
+      const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${imageCenterLat},${imageCenterLng}&zoom=${zoom}&size=640x640&maptype=satellite&key=${apiKey}`;
+      
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        console.error("Static Maps error:", imageResponse.status, imageResponse.statusText);
+        throw new Error(`Failed to fetch satellite image: ${imageResponse.status}`);
+      }
+      
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64Image = Buffer.from(imageBuffer).toString("base64");
+
+      // Initialize Gemini AI for vision analysis
+      const ai = new GoogleGenAI({
+        apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
+        httpOptions: {
+          apiVersion: "",
+          baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+        },
+      });
+
+      // Helper function to convert pixel coordinates to geographic coordinates
+      // Using the ACTUAL image bounds calculated from WebMercator projection
+      const pixelToGeo = (x: number, y: number): [number, number] => {
+        // Image is 640x640 pixels
+        // x=0 is left (actualMinLng), x=640 is right (actualMaxLng)
+        // y=0 is top (actualMaxLat), y=640 is bottom (actualMinLat)
+        const lng = actualMinLng + (x / 640) * (actualMaxLng - actualMinLng);
+        const lat = actualMaxLat - (y / 640) * (actualMaxLat - actualMinLat);
+        return [lng, lat];
+      };
+
+      // Prepare the prompt for constraint detection using PIXEL coordinates
+      const prompt = `You are analyzing a satellite image of a commercial/industrial rooftop to identify obstacles and constraints that would prevent solar panel installation.
+
+The image is 640x640 pixels. Use PIXEL coordinates (0-640 for both x and y):
+- x=0 is the LEFT edge, x=640 is the RIGHT edge
+- y=0 is the TOP edge, y=640 is the BOTTOM edge
+
+Identify all rooftop obstacles including:
+- HVAC units (air conditioning units, rooftop units, exhaust fans)
+- Skylights
+- Vents and exhaust pipes
+- Mechanical equipment
+- Roof access hatches
+- Elevator penthouses
+- Chimneys or stacks
+- Large pipes or conduits
+
+For each obstacle found, provide a rectangular bounding box using pixel coordinates.
+
+Return ONLY valid JSON in this exact format:
+{
+  "constraints": [
+    {
+      "type": "HVAC",
+      "x1": 100,
+      "y1": 150,
+      "x2": 180,
+      "y2": 230
+    }
+  ]
+}
+
+Where:
+- x1, y1 = top-left corner (in pixels)
+- x2, y2 = bottom-right corner (in pixels)
+
+If no obstacles are found, return: {"constraints": []}
+
+IMPORTANT: 
+- All coordinates must be between 0 and 640
+- Only identify clearly visible obstacles (boxes on the roof)
+- Do NOT include the entire roof area, only obstacles on it
+- Be conservative - only mark areas you are confident are obstacles`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{
+          role: "user",
+          parts: [
+            { text: prompt },
+            { 
+              inlineData: {
+                mimeType: "image/png",
+                data: base64Image
+              }
+            }
+          ]
+        }],
+      });
+
+      // Extract text from Gemini response
+      const candidate = response.candidates?.[0];
+      const textPart = candidate?.content?.parts?.find((part: any) => part.text);
+      const responseText = textPart?.text || "";
+      
+      console.log("Gemini constraint detection response:", responseText);
+      
+      // Parse the JSON response and convert pixel coords to geo coords
+      let constraints: [number, number][][] = [];
+      try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.constraints && Array.isArray(parsed.constraints)) {
+            constraints = parsed.constraints
+              .filter((c: any) => 
+                typeof c.x1 === 'number' && typeof c.y1 === 'number' &&
+                typeof c.x2 === 'number' && typeof c.y2 === 'number' &&
+                c.x1 >= 0 && c.x1 <= 640 && c.x2 >= 0 && c.x2 <= 640 &&
+                c.y1 >= 0 && c.y1 <= 640 && c.y2 >= 0 && c.y2 <= 640
+              )
+              .map((c: any) => {
+                // Convert pixel bounding box to geo polygon (4 corners)
+                const topLeft = pixelToGeo(c.x1, c.y1);
+                const topRight = pixelToGeo(c.x2, c.y1);
+                const bottomRight = pixelToGeo(c.x2, c.y2);
+                const bottomLeft = pixelToGeo(c.x1, c.y2);
+                return [topLeft, topRight, bottomRight, bottomLeft];
+              });
+          }
+        }
+      } catch (parseError) {
+        console.error("Error parsing constraint response:", parseError, responseText);
+      }
+
+      res.json({ constraints });
+    } catch (error) {
+      console.error("Suggest constraints error:", error);
+      res.status(500).json({ error: "Failed to analyze roof for constraints" });
+    }
+  });
+
   // ==================== FILE UPLOAD ROUTES ====================
   
   // Staff-only file upload

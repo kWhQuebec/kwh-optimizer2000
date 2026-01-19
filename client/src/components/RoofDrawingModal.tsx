@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun, Maximize2, Minimize2 } from 'lucide-react';
+import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun, Maximize2, Minimize2, Wand2, Sparkles } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import type { RoofPolygon, InsertRoofPolygon } from '@shared/schema';
 
 interface RoofDrawingModalProps {
@@ -83,6 +85,7 @@ export function RoofDrawingModal({
   onSave,
 }: RoofDrawingModalProps) {
   const { language } = useI18n();
+  const { toast } = useToast();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
@@ -96,6 +99,8 @@ export function RoofDrawingModal({
   const [activeDrawingMode, setActiveDrawingMode] = useState<'polygon' | 'rectangle' | null>(null);
   const [currentPolygonType, setCurrentPolygonType] = useState<PolygonType>('solar');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isSuggestingConstraints, setIsSuggestingConstraints] = useState(false);
+  const [suggestedPolygonIds, setSuggestedPolygonIds] = useState<Set<string>>(new Set());
   const polygonTypeRef = useRef<PolygonType>('solar');
 
   const initializeMap = useCallback(async () => {
@@ -290,6 +295,125 @@ export function RoofDrawingModal({
       polygon.googlePolygon.setMap(null);
     }
     setPolygons((prev) => prev.filter((p) => p.id !== polygonId));
+    setSuggestedPolygonIds((prev) => {
+      const next = new Set(prev);
+      next.delete(polygonId);
+      return next;
+    });
+  };
+
+  const handleClearSuggestedConstraints = () => {
+    suggestedPolygonIds.forEach((id) => {
+      const polygon = polygons.find((p) => p.id === id);
+      if (polygon?.googlePolygon) {
+        polygon.googlePolygon.setMap(null);
+      }
+    });
+    setPolygons((prev) => prev.filter((p) => !suggestedPolygonIds.has(p.id)));
+    setSuggestedPolygonIds(new Set());
+  };
+
+  const handleAcceptSuggestedConstraints = () => {
+    setSuggestedPolygonIds(new Set());
+  };
+
+  const handleSuggestConstraints = async () => {
+    const solarPolygons = polygons.filter((p) => p.color === SOLAR_COLOR);
+    if (solarPolygons.length === 0 || !mapRef.current) return;
+
+    setIsSuggestingConstraints(true);
+    try {
+      // Calculate bounding box of all solar polygons
+      let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+      solarPolygons.forEach((p) => {
+        p.coordinates.forEach(([lng, lat]) => {
+          minLat = Math.min(minLat, lat);
+          maxLat = Math.max(maxLat, lat);
+          minLng = Math.min(minLng, lng);
+          maxLng = Math.max(maxLng, lng);
+        });
+      });
+
+      // Add padding to bounding box
+      const latPadding = (maxLat - minLat) * 0.1;
+      const lngPadding = (maxLng - minLng) * 0.1;
+      minLat -= latPadding;
+      maxLat += latPadding;
+      minLng -= lngPadding;
+      maxLng += lngPadding;
+
+      const data = await apiRequest<{ constraints: [number, number][][] }>('POST', `/api/sites/${siteId}/suggest-constraints`, {
+        solarPolygons: solarPolygons.map((p) => p.coordinates),
+        bounds: { minLat, maxLat, minLng, maxLng },
+        centerLat: latitude,
+        centerLng: longitude,
+      });
+
+      const suggestedConstraints: [number, number][][] = data.constraints || [];
+
+      if (suggestedConstraints.length === 0) {
+        toast({
+          title: language === 'fr' ? 'Aucune contrainte détectée' : 'No constraints detected',
+          description: language === 'fr' 
+            ? 'L\'analyse n\'a détecté aucun obstacle sur le toit.' 
+            : 'The analysis did not detect any obstacles on the roof.',
+        });
+        return;
+      }
+
+      const newSuggestedIds = new Set<string>();
+      const newPolygons: DrawnPolygon[] = suggestedConstraints.map((coords) => {
+        const googleCoords = coords.map(([lng, lat]) => ({ lat, lng }));
+        
+        const googlePolygon = new google.maps.Polygon({
+          paths: googleCoords,
+          fillColor: CONSTRAINT_COLOR,
+          fillOpacity: 0.5,
+          strokeColor: CONSTRAINT_COLOR,
+          strokeWeight: 3,
+          strokeOpacity: 1,
+          editable: true,
+          map: mapRef.current,
+        });
+
+        const path = googlePolygon.getPath();
+        const areaSqM = google.maps.geometry.spherical.computeArea(path);
+        const id = generateId();
+        newSuggestedIds.add(id);
+
+        setupPolygonListeners(googlePolygon, id);
+
+        return {
+          id,
+          label: language === 'fr' ? 'Contrainte (suggérée)' : 'Constraint (suggested)',
+          coordinates: coords,
+          areaSqM,
+          color: CONSTRAINT_COLOR,
+          googlePolygon,
+        };
+      });
+
+      setSuggestedPolygonIds((prev) => new Set([...Array.from(prev), ...Array.from(newSuggestedIds)]));
+      setPolygons((prev) => [...prev, ...newPolygons]);
+      
+      toast({
+        title: language === 'fr' ? 'Contraintes suggérées' : 'Constraints suggested',
+        description: language === 'fr' 
+          ? `${suggestedConstraints.length} contrainte(s) détectée(s). Vérifiez et ajustez si nécessaire.` 
+          : `${suggestedConstraints.length} constraint(s) detected. Review and adjust as needed.`,
+      });
+    } catch (error) {
+      console.error('Error suggesting constraints:', error);
+      toast({
+        title: language === 'fr' ? 'Erreur' : 'Error',
+        description: language === 'fr' 
+          ? 'Impossible d\'analyser le toit. Veuillez réessayer.' 
+          : 'Failed to analyze the roof. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSuggestingConstraints(false);
+    }
   };
 
   const handleStartEditLabel = (polygon: DrawnPolygon) => {
@@ -481,7 +605,57 @@ export function RoofDrawingModal({
                 <AlertTriangle className="h-4 w-4 mr-1" />
                 {language === 'fr' ? 'Contrainte' : 'Constraint'}
               </Button>
+              
+              <div className="flex-1" />
+              
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+                onClick={handleSuggestConstraints}
+                disabled={isSuggestingConstraints || polygons.filter((p) => p.color === SOLAR_COLOR).length === 0}
+                data-testid="button-suggest-constraints"
+              >
+                {isSuggestingConstraints ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4 mr-1" />
+                )}
+                {language === 'fr' ? 'Suggérer contraintes' : 'Suggest Constraints'}
+              </Button>
             </div>
+
+            {/* Suggested Constraints Actions */}
+            {suggestedPolygonIds.size > 0 && (
+              <div className="flex items-center gap-2 p-2 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <Sparkles className="h-4 w-4 text-orange-500" />
+                <span className="text-xs text-orange-700 dark:text-orange-300 flex-1">
+                  {language === 'fr' 
+                    ? `${suggestedPolygonIds.size} contrainte(s) suggérée(s)` 
+                    : `${suggestedPolygonIds.size} suggested constraint(s)`}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                  onClick={handleAcceptSuggestedConstraints}
+                  data-testid="button-accept-suggestions"
+                >
+                  <Check className="h-3 w-3 mr-1" />
+                  {language === 'fr' ? 'Accepter' : 'Accept'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                  onClick={handleClearSuggestedConstraints}
+                  data-testid="button-clear-suggestions"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  {language === 'fr' ? 'Effacer' : 'Clear'}
+                </Button>
+              </div>
+            )}
 
             {/* Drawing Mode Indicator */}
             <div className="flex items-center gap-2">
