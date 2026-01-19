@@ -90,6 +90,7 @@ app.post(
 
 app.use(
   express.json({
+    limit: '15mb',  // Increased for base64 image uploads (visualization captures)
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },

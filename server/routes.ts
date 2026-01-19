@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
@@ -2256,6 +2256,7 @@ export async function registerRoutes(
   });
   
   // Save roof visualization image (base64) for PDF generation
+  // Note: Global express.json limit is set to 15mb in index.ts to handle base64 images
   app.post("/api/sites/:siteId/save-visualization", authMiddleware, requireStaff, async (req, res) => {
     try {
       const siteId = req.params.siteId;
