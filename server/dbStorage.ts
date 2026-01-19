@@ -1041,7 +1041,7 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  // Portfolios - optimized: only load portfolio + client, use pre-computed numBuildings
+  // Portfolios - load portfolio + client + actual site count from portfolio_sites
   async getPortfolios(): Promise<PortfolioWithSites[]> {
     const allPortfolios = await db.select().from(portfolios).orderBy(desc(portfolios.createdAt));
     
@@ -1052,12 +1052,24 @@ export class DatabaseStorage implements IStorage {
       : [];
     const clientMap = new Map(relevantClients.map(c => [c.id, c]));
 
-    // Return portfolios with client info but empty sites array (frontend uses numBuildings from portfolio record)
-    return allPortfolios.map(portfolio => ({
-      ...portfolio,
-      client: clientMap.get(portfolio.clientId)!,
-      sites: [], // Not needed for list view - numBuildings is pre-computed in portfolio record
-    }));
+    // Get all portfolio-site relationships to count actual linked sites
+    const allPortfolioSites = await db.select().from(portfolioSites);
+    const allSitesList = await db.select().from(sites);
+    const siteMap = new Map(allSitesList.map(s => [s.id, s]));
+
+    return allPortfolios.map(portfolio => {
+      const linkedSiteIds = allPortfolioSites
+        .filter(ps => ps.portfolioId === portfolio.id)
+        .map(ps => ps.siteId);
+      const portfolioSiteList = linkedSiteIds
+        .map(id => siteMap.get(id))
+        .filter((s): s is Site => s !== undefined);
+      return {
+        ...portfolio,
+        client: clientMap.get(portfolio.clientId)!,
+        sites: portfolioSiteList,
+      };
+    });
   }
 
   async getPortfolio(id: string): Promise<PortfolioWithSites | undefined> {
