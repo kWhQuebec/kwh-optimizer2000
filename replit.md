@@ -32,7 +32,7 @@ The frontend uses React with functional components, managing state via TanStack 
 -   **Market Intelligence Pricing**: Dynamic, component-based pricing with tiered options and an admin UI for management. Includes supplier management, price history tracking with analytics (3/6/12 month trends, supplier comparison), and "Promote to Catalog" functionality linking quotes to operational pricing. Freshness indicators (Fresh/Stale/Outdated) show when catalog prices need updating.
     -   **Pricing Architecture**: Component Catalog stores COST prices only (from suppliers). Margins are applied at quote time in the Quotation/Estimation tool, allowing per-project or per-item markup flexibility.
 -   **Solar Mockup Visualization**: Generates visual mockups of solar panel installations using Google Solar API data, showing panel positions and constraint areas.
--   **Manual Roof Drawing Tool**: A mandatory interactive tool for technicians to trace roof areas before analysis, with validation tracking.
+-   **Manual Roof Drawing Tool**: A mandatory interactive tool for technicians to trace roof areas before analysis, with validation tracking. Includes AI-powered constraint suggestion using Gemini Vision to automatically detect HVAC units, skylights, vents, and other rooftop obstacles from satellite imagery. Uses WebMercator projection for accurate pixel-to-geographic coordinate conversion.
 -   **KB Racking Integration**: Utilizes validated KB Racking specifications for direct sizing calculations, automated BOM generation, and tiered pricing.
 
 ## External Dependencies
