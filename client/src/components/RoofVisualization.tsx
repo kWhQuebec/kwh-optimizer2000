@@ -1068,7 +1068,7 @@ export function RoofVisualization({
 
         const map = new google.maps.Map(mapContainerRef.current!, {
           center: { lat: latitude, lng: longitude },
-          zoom: 18,
+          zoom: 19,
           mapTypeId: "satellite",
           tilt: 0,
           disableDefaultUI: true,
