@@ -4386,6 +4386,7 @@ function AnalysisResults({
           roofAreaSqFt={assumptions.roofAreaSqFt}
           maxPVCapacityKW={maxPVFromRoof}
           currentPVSizeKW={dashboardPvSizeKW || undefined}
+          onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
         />
       )}
 
@@ -6581,6 +6582,9 @@ export default function SiteDetailPage() {
     constraintAreaSqM: number;
   } | null>(null);
   
+  // Visualization capture function ref for PDF generation
+  const visualizationCaptureRef = useRef<(() => Promise<string | null>) | null>(null);
+  
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
   const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
   const [loadingFullSimulation, setLoadingFullSimulation] = useState<string | null>(null);
@@ -7202,6 +7206,24 @@ export default function SiteDetailPage() {
               onClick={async () => {
                 try {
                   const token = localStorage.getItem("token");
+                  
+                  // Capture and save visualization before generating PDF
+                  if (visualizationCaptureRef.current) {
+                    toast({ title: language === "fr" ? "Capture de l'image..." : "Capturing image..." });
+                    const imageData = await visualizationCaptureRef.current();
+                    if (imageData) {
+                      await fetch(`/api/sites/${site.id}/save-visualization`, {
+                        method: "POST",
+                        credentials: "include",
+                        headers: { 
+                          "Content-Type": "application/json",
+                          ...(token ? { Authorization: `Bearer ${token}` } : {})
+                        },
+                        body: JSON.stringify({ imageData }),
+                      });
+                    }
+                  }
+                  
                   const response = await fetch(`/api/sites/${site.id}/project-info-sheet?lang=${language}`, {
                     credentials: "include",
                     headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -7497,6 +7519,7 @@ export default function SiteDetailPage() {
           roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764} 
           maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
           onGeometryCalculated={setGeometryCapacity}
+          onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
           /* Note: NO currentPVSizeKW prop = shows 100% max capacity (Quick Potential mode) */
         />
       )}

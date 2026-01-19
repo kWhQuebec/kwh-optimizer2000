@@ -2255,6 +2255,35 @@ export async function registerRoutes(
     }
   });
   
+  // Save roof visualization image (base64) for PDF generation
+  app.post("/api/sites/:siteId/save-visualization", authMiddleware, requireStaff, async (req, res) => {
+    try {
+      const siteId = req.params.siteId;
+      const { imageData } = req.body;
+      
+      if (!imageData || typeof imageData !== 'string') {
+        return res.status(400).json({ error: "Missing image data" });
+      }
+      
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      // Save the base64 image URL to the site
+      await storage.updateSite(siteId, {
+        roofVisualizationImageUrl: imageData,
+      });
+      
+      console.log(`[SaveVisualization] Saved visualization for site ${siteId} (${imageData.length} chars)`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Save visualization error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
   // Staff-only analysis (clients can only view results)
   app.post("/api/sites/:siteId/run-potential-analysis", authMiddleware, requireStaff, async (req, res) => {
     try {
@@ -8813,10 +8842,12 @@ ${fileContent}`
           color: p.color || "#3b82f6",
           label: p.label || undefined,
         }));
+        // Pass saved visualization image (with panels) if available
         roofImageBuffer = await fetchRoofImageBuffer(
           site.latitude,
           site.longitude,
-          polygonData.length > 0 ? polygonData : undefined
+          polygonData.length > 0 ? polygonData : undefined,
+          site.roofVisualizationImageUrl || null
         );
       }
 

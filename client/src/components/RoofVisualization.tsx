@@ -8,6 +8,7 @@ import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, Camera } from "lucide
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
+import html2canvas from "html2canvas";
 
 function loadGoogleMapsScript(apiKey: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -57,6 +58,7 @@ interface RoofVisualizationProps {
     constraintAreaSqM: number;
     arrays?: ArrayInfo[];  // Panel arrays (sections separated by fire corridors)
   }) => void;
+  onVisualizationReady?: (captureFunction: () => Promise<string | null>) => void;
 }
 
 interface PanelPosition {
@@ -516,6 +518,7 @@ export function RoofVisualization({
   maxPVCapacityKW,
   currentPVSizeKW,
   onGeometryCalculated,
+  onVisualizationReady,
 }: RoofVisualizationProps) {
   const { language } = useI18n();
   const { toast } = useToast();
@@ -1431,6 +1434,38 @@ export function RoofVisualization({
       setIsExporting(false);
     }
   }, [mapRef, roofPolygons, allPanelPositions, panelsToShow, siteName, language, toast]);
+
+  // Capture visualization as base64 image using html2canvas
+  const captureVisualization = useCallback(async (): Promise<string | null> => {
+    if (!mapContainerRef.current) return null;
+    
+    try {
+      // Wait a moment for the map to fully render
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const canvas = await html2canvas(mapContainerRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 2, // Higher resolution
+        backgroundColor: null,
+        logging: false,
+      });
+      
+      // Convert to base64 PNG
+      const dataUrl = canvas.toDataURL('image/png');
+      return dataUrl;
+    } catch (error) {
+      console.error('Failed to capture visualization:', error);
+      return null;
+    }
+  }, []);
+
+  // Notify parent when visualization is ready for capture
+  useEffect(() => {
+    if (onVisualizationReady && !isLoading && allPanelPositions.length > 0) {
+      onVisualizationReady(captureVisualization);
+    }
+  }, [onVisualizationReady, isLoading, allPanelPositions.length, captureVisualization]);
 
   const hasPolygons = roofPolygons.length > 0;
 

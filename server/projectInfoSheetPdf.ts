@@ -380,9 +380,23 @@ export async function generateProjectInfoSheetPDF(
 export async function fetchRoofImageBuffer(
   latitude: number,
   longitude: number,
-  roofPolygons?: RoofPolygonData[]
+  roofPolygons?: RoofPolygonData[],
+  savedVisualizationImage?: string | null
 ): Promise<Buffer | null> {
   try {
+    // If we have a saved visualization image (base64 from html2canvas), use it
+    if (savedVisualizationImage && savedVisualizationImage.startsWith('data:image/')) {
+      console.log(`[ProjectInfoSheet] Using saved visualization image (${savedVisualizationImage.length} chars)`);
+      // Extract base64 data from data URL
+      const base64Data = savedVisualizationImage.split(',')[1];
+      if (base64Data) {
+        const buffer = Buffer.from(base64Data, 'base64');
+        console.log(`[ProjectInfoSheet] Decoded base64 image: ${buffer.length} bytes`);
+        return buffer;
+      }
+    }
+    
+    // Fallback to static map generation
     let imageUrl: string | null = null;
 
     if (roofPolygons && roofPolygons.length > 0) {
