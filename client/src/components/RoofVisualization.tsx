@@ -253,8 +253,23 @@ function findLongestEdgeAcrossPolygons(polygonCoordsList: [number, number][][]):
   return { angle: globalBestAngle, lengthM: globalMaxLenM };
 }
 
+// Get the RAW building edge angle without any fallback logic
+// Used when explicitly requesting building-aligned orientation
+function getRawBuildingEdgeAngle(polygonCoordsList: [number, number][][]): { angle: number; source: string } {
+  if (polygonCoordsList.length === 0) return { angle: 0, source: "default" };
+  
+  const { angle: longestEdgeAngle, lengthM } = findLongestEdgeAcrossPolygons(polygonCoordsList);
+  
+  if (lengthM === 0) return { angle: 0, source: "default" };
+  
+  const longestEdgeDegrees = longestEdgeAngle * 180 / Math.PI;
+  console.log(`[Orientation] RAW building edge at ${longestEdgeDegrees.toFixed(1)}° (${lengthM.toFixed(1)}m) - NO FALLBACK`);
+  return { angle: longestEdgeAngle, source: "building edge" };
+}
+
 // Hybrid approach: Use longest edge angle, but fall back to south-facing if edge deviates > 45° from east-west
 // South-facing panels have rows running east-west (angle = 0 or π)
+// NOTE: This is used for AUTO/DEFAULT mode only. For explicit building-aligned, use getRawBuildingEdgeAngle
 function computeHybridPanelOrientationFromPolygons(polygonCoordsList: [number, number][][]): { angle: number; source: string } {
   if (polygonCoordsList.length === 0) return { angle: 0, source: "default" };
   
@@ -582,11 +597,13 @@ export function RoofVisualization({
   // NEW: Generate panels with UNIFIED axis but PER-POLYGON iteration for performance
   // This calculates a shared axis from all polygons but iterates each polygon's bbox separately
   // forceOrientationAngle: if provided, use this angle instead of calculating from building edges
+  // useBuildingEdgeOnly: if true, use raw building edge angle WITHOUT fallback to south (for explicit building-aligned mode)
   const generateUnifiedPanelPositions = useCallback((
     solarPolygonData: { polygon: google.maps.Polygon; id: string; coords: [number, number][] }[],
     constraintPolygons: google.maps.Polygon[],
     constraintCoordsData: [number, number][][],
-    forceOrientationAngle?: number // Optional: force specific orientation (radians)
+    forceOrientationAngle?: number, // Optional: force specific orientation (radians)
+    useBuildingEdgeOnly?: boolean // Optional: use raw building edge angle without fallback
   ): { panels: PanelPosition[]; orientationAngle: number; orientationSource: string } => {
     if (solarPolygonData.length === 0) return { panels: [], orientationAngle: 0, orientationSource: "default" };
     
@@ -610,8 +627,15 @@ export function RoofVisualization({
       unifiedAxisAngle = forceOrientationAngle;
       orientationSourceLabel = "true south";
       console.log(`[RoofVisualization] FORCED AXIS: ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° (true south)`);
+    } else if (useBuildingEdgeOnly) {
+      // Use raw building edge angle WITHOUT the 45° fallback
+      // This is for explicit "building-aligned" mode
+      const orientationResult = getRawBuildingEdgeAngle(polygonCoordsList);
+      unifiedAxisAngle = orientationResult.angle;
+      orientationSourceLabel = orientationResult.source;
+      console.log(`[RoofVisualization] BUILDING EDGE AXIS (no fallback): ${(unifiedAxisAngle * 180 / Math.PI).toFixed(1)}° from ${solarPolygonData.length} polygon(s)`);
     } else {
-      // NEW: Use per-polygon edge detection to find the longest TRUE edge
+      // NEW: Use per-polygon edge detection to find the longest TRUE edge (with fallback)
       const orientationResult = computeHybridPanelOrientationFromPolygons(polygonCoordsList);
       unifiedAxisAngle = orientationResult.angle;
       orientationSourceLabel = orientationResult.source;
@@ -1158,11 +1182,13 @@ export function RoofVisualization({
         }
 
         // Generate panels using UNIFIED approach - DUAL ORIENTATION (building + true south)
-        // 1. Building-aligned orientation (default)
+        // 1. Building-aligned orientation - use RAW building edge angle (no 45° fallback)
         const buildingResult = generateUnifiedPanelPositions(
           solarPolygonDataForUnified,
           constraintGooglePolygons,
-          constraintCoordsArray
+          constraintCoordsArray,
+          undefined, // Don't force orientation angle
+          true // useBuildingEdgeOnly = true: always follow building edge, no fallback
         );
         
         // 2. True south orientation (0 radians = east-west rows, panels face south)
