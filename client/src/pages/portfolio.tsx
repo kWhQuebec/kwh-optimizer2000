@@ -121,7 +121,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           </div>
         )}
         <Badge 
-          className={`absolute top-3 right-3 ${
+          className={`absolute top-3 left-3 ${
             status === "in_development" 
               ? "bg-amber-500/90 hover:bg-amber-500 text-white" 
               : "bg-primary/90 hover:bg-primary text-primary-foreground"
