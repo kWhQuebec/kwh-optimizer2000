@@ -1272,7 +1272,14 @@ export function RoofVisualization({
               bounds.extend({ lat, lng });
             }
           }
-          map.fitBounds(bounds, 15);  // Reduced padding to zoom in closer on roof
+          map.fitBounds(bounds, 0);  // No padding - maximum zoom on roof
+          // After fitBounds, zoom in one more level for tighter focus
+          google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+            const currentZoom = map.getZoom();
+            if (currentZoom && currentZoom < 21) {
+              map.setZoom(currentZoom + 1);
+            }
+          });
         }
 
         setIsLoading(false);
