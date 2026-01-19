@@ -1272,7 +1272,7 @@ export function RoofVisualization({
               bounds.extend({ lat, lng });
             }
           }
-          map.fitBounds(bounds, 50);
+          map.fitBounds(bounds, 15);  // Reduced padding to zoom in closer on roof
         }
 
         setIsLoading(false);
