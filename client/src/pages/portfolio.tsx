@@ -100,9 +100,12 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   
   // Use visualization URL (with roof polygons) if available, otherwise fall back to plain satellite
-  const imageUrl = site.visualization_url || (apiKey 
-    ? `https://maps.googleapis.com/maps/api/staticmap?center=${site.latitude},${site.longitude}&zoom=19&size=400x300&maptype=satellite&key=${apiKey}`
-    : null);
+  // Note: visualization_url from API does not contain API key for security - we add it here
+  const imageUrl = apiKey 
+    ? (site.visualization_url 
+        ? `${site.visualization_url}&key=${apiKey}` 
+        : `https://maps.googleapis.com/maps/api/staticmap?center=${site.latitude},${site.longitude}&zoom=19&size=400x300&maptype=satellite&key=${apiKey}`)
+    : null;
 
   const hasSystemSize = site.kb_kw_dc != null && site.kb_kw_dc > 0;
 

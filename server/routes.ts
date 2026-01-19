@@ -4935,12 +4935,11 @@ export async function registerRoutes(
 
   // ==================== PUBLIC PORTFOLIO PAGE ====================
   
-  // Helper function to generate static map URL with roof polygon overlays
-  function generateRoofVisualizationUrl(
+  // Helper function to generate static map URL params with roof polygon overlays (without API key for security)
+  function generateRoofVisualizationParams(
     latitude: number,
     longitude: number,
-    roofPolygons: Array<{ coordinates: unknown; color?: string | null; label?: string | null }>,
-    apiKey: string
+    roofPolygons: Array<{ coordinates: unknown; color?: string | null; label?: string | null }>
   ): string {
     let pathParams = "";
     
@@ -4976,15 +4975,16 @@ export async function registerRoutes(
       }
     });
     
-    return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=19&size=400x300&maptype=satellite${pathParams}&key=${apiKey}`;
+    // Return URL without API key - frontend will add its own key
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=19&size=400x300&maptype=satellite${pathParams}`;
   }
   
   // Public portfolio endpoint for Dream REIT sites (no auth required)
   // Returns anonymized site data for public display
+  // Note: visualization_url does NOT contain API key for security - frontend adds its own key
   app.get("/api/public/portfolio", async (req, res) => {
     try {
       const DREAM_CLIENT_ID = "6ba7837d-84a0-4526-bfbf-f802bc68c25e";
-      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY || "";
       
       // Get all sites for Dream client
       const allSites = await storage.getSitesByClient(DREAM_CLIENT_ID);
@@ -4997,14 +4997,13 @@ export async function registerRoutes(
             // Get roof polygons for this site
             const roofPolygons = await storage.getRoofPolygons(site.id);
             
-            // Generate visualization URL if polygons exist
+            // Generate visualization URL params if polygons exist (no API key for security)
             let visualizationUrl = null;
-            if (roofPolygons.length > 0 && site.latitude && site.longitude && apiKey) {
-              visualizationUrl = generateRoofVisualizationUrl(
+            if (roofPolygons.length > 0 && site.latitude && site.longitude) {
+              visualizationUrl = generateRoofVisualizationParams(
                 site.latitude,
                 site.longitude,
-                roofPolygons,
-                apiKey
+                roofPolygons
               );
             }
             
