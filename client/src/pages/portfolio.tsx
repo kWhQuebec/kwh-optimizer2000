@@ -103,7 +103,6 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
     : null;
 
   const hasSystemSize = site.kb_kw_dc != null && site.kb_kw_dc > 0;
-  const status = hasSystemSize ? "in_development" : "planned";
 
   return (
     <Card className="overflow-hidden hover-elevate transition-all" data-testid={`card-project-${site.id}`}>
@@ -120,17 +119,6 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
             <Building2 className="w-12 h-12 text-muted-foreground" />
           </div>
         )}
-        <Badge 
-          className={`absolute top-3 left-3 ${
-            status === "in_development" 
-              ? "bg-amber-500/90 hover:bg-amber-500 text-white" 
-              : "bg-primary/90 hover:bg-primary text-primary-foreground"
-          }`}
-        >
-          {status === "in_development" 
-            ? (language === "fr" ? "En développement" : "In Development")
-            : (language === "fr" ? "Planifié" : "Planned")}
-        </Badge>
       </div>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">

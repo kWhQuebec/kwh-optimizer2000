@@ -151,6 +151,20 @@ export const sites = pgTable("sites", {
   kbExposureFactor: real("kb_exposure_factor"), // Ce exposure factor
   kbTerrainType: text("kb_terrain_type"), // "Rough" | "Open" etc.
   
+  // Quick Analysis cached results
+  quickAnalysisSystemSizeKw: real("quick_analysis_system_size_kw"),
+  quickAnalysisAnnualProductionKwh: real("quick_analysis_annual_production_kwh"),
+  quickAnalysisAnnualSavings: real("quick_analysis_annual_savings"),
+  quickAnalysisPaybackYears: real("quick_analysis_payback_years"),
+  quickAnalysisGrossCapex: real("quick_analysis_gross_capex"),
+  quickAnalysisNetCapex: real("quick_analysis_net_capex"),
+  quickAnalysisHqIncentive: real("quick_analysis_hq_incentive"),
+  quickAnalysisMonthlyBill: real("quick_analysis_monthly_bill"),
+  quickAnalysisCompletedAt: timestamp("quick_analysis_completed_at"),
+  
+  // Roof visualization image with solar panel overlay
+  roofVisualizationImageUrl: text("roof_visualization_image_url"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
