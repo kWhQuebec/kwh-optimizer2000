@@ -89,6 +89,12 @@ export function AppSidebar() {
       tooltip: language === "fr" ? "Suivi des opportunités et prévisions" : "Opportunity tracking and forecasting",
     },
     {
+      title: language === "fr" ? "File de travail" : "Work Queue",
+      url: "/app/work-queue",
+      icon: ClipboardList,
+      tooltip: language === "fr" ? "Tâches internes à compléter (toits, analyses, rapports)" : "Internal tasks to complete (roofs, analyses, reports)",
+    },
+    {
       title: language === "fr" ? "Partenariats" : "Partnerships",
       url: "/app/partnerships",
       icon: Handshake,
