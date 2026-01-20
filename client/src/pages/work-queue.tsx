@@ -328,7 +328,7 @@ function DelegationEmailModal({
       return apiRequest("POST", "/api/work-queue/delegate", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-queue/sites"] });
       toast({
         title: language === "fr" ? "Courriel envoyé" : "Email sent",
         description: language === "fr" 
@@ -511,7 +511,7 @@ export default function WorkQueuePage() {
   const [delegationModalOpen, setDelegationModalOpen] = useState(false);
 
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithClient[]>({
-    queryKey: ["/api/sites"],
+    queryKey: ["/api/work-queue/sites"],
   });
 
   const { data: users = [] } = useQuery<UserType[]>({
@@ -523,7 +523,7 @@ export default function WorkQueuePage() {
       return apiRequest("PATCH", `/api/sites/${siteId}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-queue/sites"] });
       toast({
         title: language === "fr" ? "Mis à jour" : "Updated",
         description: language === "fr" ? "Tâche mise à jour avec succès" : "Task updated successfully",

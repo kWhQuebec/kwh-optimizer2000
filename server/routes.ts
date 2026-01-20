@@ -9454,6 +9454,28 @@ ${fileContent}`
     }
   });
 
+  // ==================== WORK QUEUE ENDPOINTS ====================
+  
+  // Lightweight endpoint for Work Queue - only loads sites with client names (no simulation runs or design agreements)
+  app.get("/api/work-queue/sites", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      const sites = await storage.getSites();
+      const clients = await storage.getClients();
+      const clientsById = new Map(clients.map(c => [c.id, { name: c.name }]));
+      
+      // Return minimal site data with client name for work queue
+      const sitesWithClient = sites.map(site => ({
+        ...site,
+        clientName: site.clientId ? clientsById.get(site.clientId)?.name : null,
+      }));
+      
+      res.json(sitesWithClient);
+    } catch (error) {
+      console.error("Error fetching work queue sites:", error);
+      res.status(500).json({ error: "Failed to fetch work queue sites" });
+    }
+  });
+
   // ==================== WORK QUEUE DELEGATION ====================
   app.post("/api/work-queue/delegate", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
