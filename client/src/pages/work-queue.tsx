@@ -9,7 +9,9 @@ import {
   Filter,
   Pencil,
   BarChart3,
-  FileText
+  FileText,
+  Mail,
+  X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
@@ -91,7 +98,9 @@ function TaskCard({
   users,
   onAssigneeChange,
   onPriorityChange,
-  isPending
+  isPending,
+  isSelected,
+  onToggleSelect
 }: { 
   site: SiteWithClient; 
   taskType: TaskType;
@@ -99,6 +108,8 @@ function TaskCard({
   onAssigneeChange: (siteId: string, userId: string | null) => void;
   onPriorityChange: (siteId: string, priority: Priority) => void;
   isPending: boolean;
+  isSelected: boolean;
+  onToggleSelect: (siteId: string) => void;
 }) {
   const { language } = useI18n();
   const TaskIcon = TASK_ICONS[taskType];
@@ -113,6 +124,12 @@ function TaskCard({
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleSelect(site.id)}
+                data-testid={`checkbox-select-${site.id}`}
+                className="shrink-0"
+              />
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Building2 className="w-4 h-4 text-primary" />
               </div>
@@ -137,6 +154,12 @@ function TaskCard({
             <Badge className={PRIORITY_COLORS[priority]} data-testid={`badge-priority-${site.id}`}>
               {PRIORITY_LABELS[priority][language]}
             </Badge>
+            {(site as any).workQueueDelegatedToEmail && (
+              <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" data-testid={`badge-delegated-${site.id}`}>
+                <Mail className="w-3 h-3 mr-1" />
+                {(site as any).workQueueDelegatedToName || (site as any).workQueueDelegatedToEmail}
+              </Badge>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -200,7 +223,10 @@ function TaskColumn({
   users,
   onAssigneeChange,
   onPriorityChange,
-  isPending
+  isPending,
+  selectedSiteIds,
+  onToggleSelect,
+  onSelectAll
 }: { 
   taskType: TaskType; 
   sites: SiteWithClient[];
@@ -208,13 +234,27 @@ function TaskColumn({
   onAssigneeChange: (siteId: string, userId: string | null) => void;
   onPriorityChange: (siteId: string, priority: Priority) => void;
   isPending: boolean;
+  selectedSiteIds: Set<string>;
+  onToggleSelect: (siteId: string) => void;
+  onSelectAll: (siteIds: string[], select: boolean) => void;
 }) {
   const { language } = useI18n();
   const TaskIcon = TASK_ICONS[taskType];
+  
+  const siteIds = sites.map(s => s.id);
+  const allSelected = sites.length > 0 && siteIds.every(id => selectedSiteIds.has(id));
+  const someSelected = siteIds.some(id => selectedSiteIds.has(id));
 
   return (
     <div className="flex flex-col min-w-[320px] max-w-[400px] flex-1">
       <div className="flex items-center gap-2 mb-4 pb-2 border-b">
+        <Checkbox
+          checked={allSelected}
+          onCheckedChange={(checked) => onSelectAll(siteIds, !!checked)}
+          data-testid={`checkbox-select-all-${taskType}`}
+          className="shrink-0"
+          disabled={sites.length === 0}
+        />
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${TASK_COLORS[taskType]}`}>
           <TaskIcon className="w-4 h-4" />
         </div>
@@ -245,12 +285,217 @@ function TaskColumn({
                 onAssigneeChange={onAssigneeChange}
                 onPriorityChange={onPriorityChange}
                 isPending={isPending}
+                isSelected={selectedSiteIds.has(site.id)}
+                onToggleSelect={onToggleSelect}
               />
             ))
           )}
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+interface DelegationFormData {
+  recipientEmail: string;
+  recipientName: string;
+  instructions: string;
+  language: "fr" | "en";
+}
+
+function DelegationEmailModal({
+  open,
+  onOpenChange,
+  selectedSites,
+  onSuccess
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedSites: SiteWithClient[];
+  onSuccess: () => void;
+}) {
+  const { language } = useI18n();
+  const { toast } = useToast();
+  const [formData, setFormData] = useState<DelegationFormData>({
+    recipientEmail: "",
+    recipientName: "",
+    instructions: "",
+    language: "fr"
+  });
+
+  const delegateMutation = useMutation({
+    mutationFn: async (data: { siteIds: string[]; recipientEmail: string; recipientName?: string; instructions?: string; language: "fr" | "en" }) => {
+      return apiRequest("POST", "/api/work-queue/delegate", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      toast({
+        title: language === "fr" ? "Courriel envoyé" : "Email sent",
+        description: language === "fr" 
+          ? `${selectedSites.length} tâches déléguées avec succès`
+          : `${selectedSites.length} tasks delegated successfully`,
+      });
+      onSuccess();
+      onOpenChange(false);
+      setFormData({ recipientEmail: "", recipientName: "", instructions: "", language: "fr" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.recipientEmail) return;
+    
+    delegateMutation.mutate({
+      siteIds: selectedSites.map(s => s.id),
+      recipientEmail: formData.recipientEmail,
+      recipientName: formData.recipientName || undefined,
+      instructions: formData.instructions || undefined,
+      language: formData.language,
+    });
+  };
+
+  const emailSubject = formData.language === "fr" 
+    ? `[kWh Québec] Tâches assignées - ${selectedSites.length} sites`
+    : `[kWh Québec] Assigned Tasks - ${selectedSites.length} sites`;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {language === "fr" ? "Déléguer des tâches par courriel" : "Delegate Tasks by Email"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="recipientEmail">
+                {language === "fr" ? "Courriel du destinataire" : "Recipient Email"} *
+              </Label>
+              <Input
+                id="recipientEmail"
+                type="email"
+                required
+                value={formData.recipientEmail}
+                onChange={(e) => setFormData(prev => ({ ...prev, recipientEmail: e.target.value }))}
+                placeholder="email@example.com"
+                data-testid="input-recipient-email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="recipientName">
+                {language === "fr" ? "Nom du destinataire" : "Recipient Name"}
+              </Label>
+              <Input
+                id="recipientName"
+                value={formData.recipientName}
+                onChange={(e) => setFormData(prev => ({ ...prev, recipientName: e.target.value }))}
+                placeholder={language === "fr" ? "Jean Dupont" : "John Doe"}
+                data-testid="input-recipient-name"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="emailLanguage">
+              {language === "fr" ? "Langue du courriel" : "Email Language"}
+            </Label>
+            <Select
+              value={formData.language}
+              onValueChange={(value: "fr" | "en") => setFormData(prev => ({ ...prev, language: value }))}
+            >
+              <SelectTrigger data-testid="select-email-language">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fr">Français</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="instructions">
+              {language === "fr" ? "Instructions personnalisées" : "Custom Instructions"}
+            </Label>
+            <Textarea
+              id="instructions"
+              value={formData.instructions}
+              onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
+              placeholder={language === "fr" 
+                ? "Instructions supplémentaires pour le destinataire..."
+                : "Additional instructions for the recipient..."}
+              rows={3}
+              data-testid="textarea-instructions"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>{language === "fr" ? "Aperçu du courriel" : "Email Preview"}</Label>
+            <Card className="bg-muted/50">
+              <CardContent className="p-4 space-y-3">
+                <div>
+                  <span className="text-sm text-muted-foreground">
+                    {language === "fr" ? "Objet:" : "Subject:"}
+                  </span>
+                  <p className="font-medium">{emailSubject}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">
+                    {language === "fr" ? "Sites inclus:" : "Included sites:"}
+                  </span>
+                  <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
+                    {selectedSites.map((site) => {
+                      const taskType = getTaskType(site);
+                      return (
+                        <div key={site.id} className="text-sm flex items-center gap-2 py-1 border-b border-border/50 last:border-0">
+                          <Building2 className="w-3 h-3 text-muted-foreground shrink-0" />
+                          <span className="font-medium truncate flex-1">{site.name}</span>
+                          {taskType && (
+                            <Badge variant="secondary" className="text-xs shrink-0">
+                              {TASK_LABELS[taskType][formData.language]}
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              data-testid="button-cancel-delegation"
+            >
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={!formData.recipientEmail || delegateMutation.isPending}
+              data-testid="button-send-delegation"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              {delegateMutation.isPending 
+                ? (language === "fr" ? "Envoi..." : "Sending...")
+                : (language === "fr" ? "Envoyer le courriel" : "Send Email")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -262,6 +507,8 @@ export default function WorkQueuePage() {
   const [filterTaskType, setFilterTaskType] = useState<string>("all");
   const [filterAssignee, setFilterAssignee] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [selectedSiteIds, setSelectedSiteIds] = useState<Set<string>>(new Set());
+  const [delegationModalOpen, setDelegationModalOpen] = useState(false);
 
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithClient[]>({
     queryKey: ["/api/sites"],
@@ -306,6 +553,34 @@ export default function WorkQueuePage() {
       siteId,
       data: { workQueuePriority: priority } as Partial<Site>,
     });
+  };
+
+  const handleToggleSelect = (siteId: string) => {
+    setSelectedSiteIds(prev => {
+      const next = new Set(prev);
+      if (next.has(siteId)) {
+        next.delete(siteId);
+      } else {
+        next.add(siteId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = (siteIds: string[], select: boolean) => {
+    setSelectedSiteIds(prev => {
+      const next = new Set(prev);
+      if (select) {
+        siteIds.forEach(id => next.add(id));
+      } else {
+        siteIds.forEach(id => next.delete(id));
+      }
+      return next;
+    });
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedSiteIds(new Set());
   };
 
   const categorizedSites = useMemo(() => {
@@ -365,6 +640,11 @@ export default function WorkQueuePage() {
     categorizedSites.analysis_pending.length + 
     categorizedSites.report_pending.length;
 
+  const selectedSites = useMemo(() => {
+    if (!sites) return [];
+    return sites.filter(s => selectedSiteIds.has(s.id));
+  }, [sites, selectedSiteIds]);
+
   if (sitesLoading) {
     return (
       <div className="space-y-6">
@@ -388,7 +668,7 @@ export default function WorkQueuePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
           <ClipboardList className="w-6 h-6 text-primary" />
@@ -466,6 +746,9 @@ export default function WorkQueuePage() {
             onAssigneeChange={handleAssigneeChange}
             onPriorityChange={handlePriorityChange}
             isPending={updateSiteMutation.isPending}
+            selectedSiteIds={selectedSiteIds}
+            onToggleSelect={handleToggleSelect}
+            onSelectAll={handleSelectAll}
           />
           <TaskColumn
             taskType="analysis_pending"
@@ -474,6 +757,9 @@ export default function WorkQueuePage() {
             onAssigneeChange={handleAssigneeChange}
             onPriorityChange={handlePriorityChange}
             isPending={updateSiteMutation.isPending}
+            selectedSiteIds={selectedSiteIds}
+            onToggleSelect={handleToggleSelect}
+            onSelectAll={handleSelectAll}
           />
           <TaskColumn
             taskType="report_pending"
@@ -482,10 +768,51 @@ export default function WorkQueuePage() {
             onAssigneeChange={handleAssigneeChange}
             onPriorityChange={handlePriorityChange}
             isPending={updateSiteMutation.isPending}
+            selectedSiteIds={selectedSiteIds}
+            onToggleSelect={handleToggleSelect}
+            onSelectAll={handleSelectAll}
           />
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
+
+      {selectedSiteIds.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+          <Card className="shadow-lg border-2">
+            <CardContent className="p-3 flex items-center gap-3">
+              <Badge variant="secondary" className="text-sm">
+                {selectedSiteIds.size} {language === "fr" ? "sélectionnés" : "selected"}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeselectAll}
+                data-testid="button-deselect-all"
+              >
+                <X className="w-4 h-4 mr-1" />
+                {language === "fr" ? "Désélectionner" : "Deselect All"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setDelegationModalOpen(true)}
+                data-testid="button-delegate-selected"
+              >
+                <Mail className="w-4 h-4 mr-1" />
+                {language === "fr" 
+                  ? `Déléguer ${selectedSiteIds.size} tâches`
+                  : `Delegate ${selectedSiteIds.size} tasks`}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <DelegationEmailModal
+        open={delegationModalOpen}
+        onOpenChange={setDelegationModalOpen}
+        selectedSites={selectedSites}
+        onSuccess={handleDeselectAll}
+      />
     </div>
   );
 }

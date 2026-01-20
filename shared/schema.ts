@@ -165,9 +165,13 @@ export const sites = pgTable("sites", {
   quickAnalysisCompletedAt: timestamp("quick_analysis_completed_at"),
   
   // Work Queue assignment for task delegation
-  workQueueAssignedToId: varchar("work_queue_assigned_to_id"),
+  workQueueAssignedToId: varchar("work_queue_assigned_to_id"), // Internal user ID
   workQueueAssignedAt: timestamp("work_queue_assigned_at"),
   workQueuePriority: text("work_queue_priority").default("normal"), // "high" | "normal" | "low"
+  // External delegation (for people not in the system)
+  workQueueDelegatedToEmail: text("work_queue_delegated_to_email"),
+  workQueueDelegatedToName: text("work_queue_delegated_to_name"),
+  workQueueDelegatedAt: timestamp("work_queue_delegated_at"),
   
   // Roof visualization image with solar panel overlay
   roofVisualizationImageUrl: text("roof_visualization_image_url"),
