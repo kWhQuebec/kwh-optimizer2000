@@ -55,6 +55,7 @@ const BatchImportPage = lazy(() => import("@/pages/batch-import"));
 const PresentationPage = lazy(() => import("@/pages/presentation"));
 const AdminPricingPage = lazy(() => import("@/pages/admin-pricing"));
 const MarketIntelligencePricingPage = lazy(() => import("@/pages/market-intelligence-pricing"));
+const WorkQueuePage = lazy(() => import("@/pages/work-queue"));
 
 function PageLoader() {
   return (
@@ -395,6 +396,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <UsersPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Work Queue */}
+      <Route path="/app/work-queue">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <WorkQueuePage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

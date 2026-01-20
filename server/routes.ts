@@ -1651,7 +1651,9 @@ export async function registerRoutes(
         // Building external ID
         'externalBuildingId', 'yearBuilt',
         // Roof area validation
-        'roofAreaValidated', 'roofAreaValidatedAt', 'roofAreaValidatedBy'
+        'roofAreaValidated', 'roofAreaValidatedAt', 'roofAreaValidatedBy',
+        // Work queue fields
+        'workQueueAssignedToId', 'workQueueAssignedAt', 'workQueuePriority'
       ];
       
       // Filter body to only include allowed fields
@@ -1665,6 +1667,11 @@ export async function registerRoutes(
       // Convert roofAreaValidatedAt from string to Date if present
       if ('roofAreaValidatedAt' in filteredBody && filteredBody.roofAreaValidatedAt !== null) {
         filteredBody.roofAreaValidatedAt = new Date(filteredBody.roofAreaValidatedAt as string);
+      }
+      
+      // Convert workQueueAssignedAt from string to Date if present
+      if ('workQueueAssignedAt' in filteredBody && filteredBody.workQueueAssignedAt !== null) {
+        filteredBody.workQueueAssignedAt = new Date(filteredBody.workQueueAssignedAt as string);
       }
       
       // Basic validation for structural fields

@@ -164,6 +164,11 @@ export const sites = pgTable("sites", {
   quickAnalysisConstraintFactor: real("quick_analysis_constraint_factor"), // 0.05-0.25 (5-25%)
   quickAnalysisCompletedAt: timestamp("quick_analysis_completed_at"),
   
+  // Work Queue assignment for task delegation
+  workQueueAssignedToId: varchar("work_queue_assigned_to_id"),
+  workQueueAssignedAt: timestamp("work_queue_assigned_at"),
+  workQueuePriority: text("work_queue_priority").default("normal"), // "high" | "normal" | "low"
+  
   // Roof visualization image with solar panel overlay
   roofVisualizationImageUrl: text("roof_visualization_image_url"),
   
