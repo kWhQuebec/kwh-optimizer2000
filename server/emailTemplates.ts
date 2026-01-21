@@ -123,7 +123,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     },
     text: {
       fr: `Merci {{contactName}}!\n\nVotre estimation rapide pour {{address}} a été générée.\n\nRésultats préliminaires:\n- Capacité PV: {{pvSizeKW}} kW\n- Économies annuelles: {{annualSavings}} $\n- Retour: {{paybackYears}} ans\n\nPour une analyse détaillée gratuite: {{analysisUrl}}\n\nkWh Québec\ninfo@kwhquebec.com`,
-      en: `Thank you {{contactName}}!\n\nYour quick estimate for {{address}} has been generated.\n\nPreliminary Results:\n- PV capacity: {{pvSizeKW}} kW\n- Annual savings: ${{annualSavings}}\n- Payback: {{paybackYears}} years\n\nFor a free detailed analysis: {{analysisUrl}}\n\nkWh Québec\ninfo@kwhquebec.com`,
+      en: `Thank you {{contactName}}!\n\nYour quick estimate for {{address}} has been generated.\n\nPreliminary Results:\n- PV capacity: {{pvSizeKW}} kW\n- Annual savings: \${{annualSavings}}\n- Payback: {{paybackYears}} years\n\nFor a free detailed analysis: {{analysisUrl}}\n\nkWh Québec\ninfo@kwhquebec.com`,
     },
   },
 
@@ -437,7 +437,83 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     },
     text: {
       fr: `Bonne nouvelle {{contactName}}!\n\nVotre rapport pour {{siteName}} est prêt.\n\nRésumé:\n- PV: {{pvSizeKW}} kW\n- Stockage: {{batteryKWh}} kWh\n- VAN 25 ans: {{npv}} $\n- Retour: {{paybackYears}} ans\n\nVoir le rapport: {{reportUrl}}\n\nkWh Québec`,
-      en: `Great news {{contactName}}!\n\nYour report for {{siteName}} is ready.\n\nSummary:\n- PV: {{pvSizeKW}} kW\n- Storage: {{batteryKWh}} kWh\n- 25-year NPV: ${{npv}}\n- Payback: {{paybackYears}} years\n\nView report: {{reportUrl}}\n\nkWh Québec`,
+      en: `Great news {{contactName}}!\n\nYour report for {{siteName}} is ready.\n\nSummary:\n- PV: {{pvSizeKW}} kW\n- Storage: {{batteryKWh}} kWh\n- 25-year NPV: \${{npv}}\n- Payback: {{paybackYears}} years\n\nView report: {{reportUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // Welcome email for new user account
+  userWelcome: {
+    subject: {
+      fr: "Bienvenue sur la plateforme kWh Québec",
+      en: "Welcome to kWh Québec Platform",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1 style="color: #0054A8;">kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Bienvenue {{userName}}!</h2>
+            <p>Un compte a été créé pour vous sur la plateforme kWh Québec.</p>
+            
+            <div class="highlight">
+              <p><strong>Vos informations de connexion:</strong></p>
+              <ul>
+                <li><strong>Courriel:</strong> {{userEmail}}</li>
+                <li><strong>Rôle:</strong> {{userRole}}</li>
+              </ul>
+            </div>
+            
+            <p><strong>Important:</strong> Un mot de passe temporaire a été configuré pour votre compte. Lors de votre première connexion, vous devrez choisir un nouveau mot de passe personnel.</p>
+            
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{loginUrl}}" class="button">Se connecter</a>
+            </p>
+            
+            <p>Si vous avez des questions, n'hésitez pas à contacter l'administrateur ou à répondre à ce courriel.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Solaire + stockage clé en main</p>
+            <p>Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
+          </div>
+        </div>
+      </body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1 style="color: #0054A8;">kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Welcome {{userName}}!</h2>
+            <p>An account has been created for you on the kWh Québec platform.</p>
+            
+            <div class="highlight">
+              <p><strong>Your login information:</strong></p>
+              <ul>
+                <li><strong>Email:</strong> {{userEmail}}</li>
+                <li><strong>Role:</strong> {{userRole}}</li>
+              </ul>
+            </div>
+            
+            <p><strong>Important:</strong> A temporary password has been set for your account. On your first login, you will need to choose a new personal password.</p>
+            
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{loginUrl}}" class="button">Sign In</a>
+            </p>
+            
+            <p>If you have any questions, feel free to contact the administrator or reply to this email.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Turnkey solar + storage</p>
+            <p>Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
+          </div>
+        </div>
+      </body></html>`,
+    },
+    text: {
+      fr: `Bienvenue {{userName}}!\n\nUn compte a été créé pour vous sur la plateforme kWh Québec.\n\nVos informations:\n- Courriel: {{userEmail}}\n- Rôle: {{userRole}}\n\nImportant: Un mot de passe temporaire a été configuré. Lors de votre première connexion, vous devrez choisir un nouveau mot de passe.\n\nConnectez-vous: {{loginUrl}}\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
+      en: `Welcome {{userName}}!\n\nAn account has been created for you on the kWh Québec platform.\n\nYour information:\n- Email: {{userEmail}}\n- Role: {{userRole}}\n\nImportant: A temporary password has been set. On your first login, you will need to choose a new personal password.\n\nSign in: {{loginUrl}}\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
     },
   },
 };

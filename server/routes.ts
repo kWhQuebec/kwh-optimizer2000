@@ -48,7 +48,7 @@ import {
 import { z } from "zod";
 import * as googleSolar from "./googleSolarService";
 import { sendEmail, generatePortalInvitationEmail } from "./gmail";
-import { sendQuickAnalysisEmail } from "./emailService";
+import { sendQuickAnalysisEmail, sendWelcomeEmail } from "./emailService";
 import { generateProcurationPDF, createProcurationData } from "./procurationPdfGenerator";
 import { calculatePricingFromSiteVisit, getSiteVisitCompleteness, estimateConstructionCost } from "./pricing-engine";
 import { 
@@ -457,6 +457,19 @@ export async function registerRoutes(
         role: role || "client",
         clientId: clientId || null,
         forcePasswordChange: true, // Force password change on first login
+      });
+      
+      // Send welcome email (async, don't wait for it)
+      const protocol = req.protocol || 'https';
+      const host = req.get('host') || process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      sendWelcomeEmail({
+        userEmail: email,
+        userName: name || email.split('@')[0],
+        userRole: role || "client",
+      }, baseUrl, 'fr').catch(err => {
+        console.error("Failed to send welcome email:", err);
       });
       
       // Return user without password hash

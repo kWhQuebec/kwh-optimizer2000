@@ -1,4 +1,5 @@
 import { sendEmail } from "./gmail";
+import { renderEmailTemplate } from "./emailTemplates";
 
 interface QuickAnalysisData {
   address: string;
@@ -278,6 +279,52 @@ export async function sendQuickAnalysisEmail(
     console.log(`[EmailService] Quick analysis email sent successfully to ${email}`);
   } else {
     console.error(`[EmailService] Failed to send quick analysis email: ${result.error}`);
+  }
+  
+  return result;
+}
+
+interface WelcomeEmailData {
+  userEmail: string;
+  userName: string;
+  userRole: string;
+}
+
+function getRoleLabel(role: string, lang: 'fr' | 'en'): string {
+  const labels: Record<string, { fr: string; en: string }> = {
+    admin: { fr: 'Administrateur', en: 'Administrator' },
+    analyst: { fr: 'Analyste', en: 'Analyst' },
+    client: { fr: 'Client', en: 'Client' },
+  };
+  return labels[role]?.[lang] || role;
+}
+
+export async function sendWelcomeEmail(
+  data: WelcomeEmailData,
+  baseUrl: string,
+  language: 'fr' | 'en' = 'fr'
+): Promise<{ success: boolean; error?: string }> {
+  const loginUrl = `${baseUrl}/login`;
+  
+  const rendered = renderEmailTemplate('userWelcome', language, {
+    userName: data.userName || data.userEmail.split('@')[0],
+    userEmail: data.userEmail,
+    userRole: getRoleLabel(data.userRole, language),
+    loginUrl,
+  });
+  
+  console.log(`[EmailService] Sending welcome email to ${data.userEmail} (lang: ${language})`);
+  
+  const result = await sendEmail({
+    to: data.userEmail,
+    subject: rendered.subject,
+    htmlBody: rendered.html,
+  });
+  
+  if (result.success) {
+    console.log(`[EmailService] Welcome email sent successfully to ${data.userEmail}`);
+  } else {
+    console.error(`[EmailService] Failed to send welcome email: ${result.error}`);
   }
   
   return result;
