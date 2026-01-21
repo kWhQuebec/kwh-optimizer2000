@@ -5336,6 +5336,7 @@ IMPORTANT RULES:
             return {
               id: site.id,
               city: site.city || "Unknown",
+              address: site.address || null,
               kb_kw_dc: systemSizeKw,
               latitude: site.latitude,
               longitude: site.longitude,

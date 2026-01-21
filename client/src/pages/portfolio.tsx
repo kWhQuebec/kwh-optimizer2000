@@ -11,6 +11,7 @@ import { SEOHead } from "@/components/seo-head";
 interface PortfolioSite {
   id: string;
   city: string;
+  address: string | null;
   kb_kw_dc: number | null;
   latitude: number;
   longitude: number;
@@ -51,11 +52,16 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
         )}
       </div>
       <CardContent className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="space-y-1">
           <div className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="w-4 h-4 shrink-0" />
             <span className="font-medium text-foreground">{site.city}</span>
           </div>
+          {site.address && (
+            <p className="text-sm text-muted-foreground pl-6 line-clamp-2" data-testid={`text-address-${site.id}`}>
+              {site.address}
+            </p>
+          )}
         </div>
         
         <div className="grid grid-cols-2 gap-3 pt-2">
