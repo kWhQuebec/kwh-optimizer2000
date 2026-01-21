@@ -290,11 +290,13 @@ export default function PortfolioProjectPage() {
                   label={t.roofArea} 
                   value={roofAreaDisplay}
                 />
-                <DetailItem 
-                  icon={Building} 
-                  label={t.buildingType} 
-                  value={project.buildingType}
-                />
+                {project.buildingType && (
+                  <DetailItem 
+                    icon={Building} 
+                    label={t.buildingType} 
+                    value={project.buildingType}
+                  />
+                )}
                 <DetailItem 
                   icon={Calendar} 
                   label={t.constructionStart} 
