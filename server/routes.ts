@@ -327,6 +327,7 @@ export async function registerRoutes(
           id: user.id,
           email: user.email,
           role: user.role,
+          forcePasswordChange: user.forcePasswordChange || false,
         },
       });
     } catch (error) {
@@ -356,8 +357,50 @@ export async function registerRoutes(
         name: user.name || null,
         clientId: user.clientId || null,
         clientName,
+        forcePasswordChange: user.forcePasswordChange || false,
       });
     } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // User changes their own password (used for forced password change)
+  app.post("/api/auth/change-password", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!newPassword || newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+      
+      const user = await storage.getUser(req.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // If user is forced to change password, we don't require current password
+      // (they may have been given a temporary password by admin)
+      if (!user.forcePasswordChange) {
+        if (!currentPassword) {
+          return res.status(400).json({ error: "Current password is required" });
+        }
+        const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isValid) {
+          return res.status(401).json({ error: "Current password is incorrect" });
+        }
+      }
+      
+      // Hash new password
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      
+      await storage.updateUser(user.id, { 
+        passwordHash,
+        forcePasswordChange: false // Clear the force flag
+      });
+      
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -413,6 +456,7 @@ export async function registerRoutes(
         name: name || null,
         role: role || "client",
         clientId: clientId || null,
+        forcePasswordChange: true, // Force password change on first login
       });
       
       // Return user without password hash
@@ -516,7 +560,10 @@ export async function registerRoutes(
       // Hash new password
       const passwordHash = await bcrypt.hash(password, 10);
       
-      const updated = await storage.updateUser(req.params.id, { passwordHash });
+      const updated = await storage.updateUser(req.params.id, { 
+        passwordHash,
+        forcePasswordChange: true // Force password change on next login
+      });
       if (!updated) {
         return res.status(404).json({ error: "User not found" });
       }
