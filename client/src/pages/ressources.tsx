@@ -10,16 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead, seoContent, getFAQSchema } from "@/components/seo-head";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 
 export default function RessourcesPage() {
   const { language } = useI18n();
-  const currentLogo = language === "fr" ? logoFr : logoEn;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -391,40 +387,7 @@ export default function RessourcesPage() {
         structuredData={getFAQSchema(language)}
         locale={language}
       />
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/">
-              <img 
-                src={currentLogo} 
-                alt="kWh Québec" 
-                className="h-10 w-auto cursor-pointer"
-                data-testid="logo-header"
-              />
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/ressources" className="text-sm font-medium text-foreground">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-              <Link href="/login">
-                <Button variant="outline" size="sm" data-testid="button-login">
-                  {language === "fr" ? "Connexion" : "Login"}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* Hero */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background">
@@ -689,30 +652,7 @@ export default function RessourcesPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <img src={currentLogo} alt="kWh Québec" className="h-10 w-auto" />
-              <span className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
-              </span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link href="/" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/ressources" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <a href="mailto:info@kwhquebec.com" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Contact" : "Contact"}
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

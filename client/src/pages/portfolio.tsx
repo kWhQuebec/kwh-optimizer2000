@@ -1,15 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Sun, MapPin, Zap, Mail, Phone, Building2, Loader2 } from "lucide-react";
+import { Sun, MapPin, Zap, Building2, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageToggle } from "@/components/language-toggle";
 import { Link } from "wouter";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
+import { SEOHead } from "@/components/seo-head";
 
 interface PortfolioSite {
   id: string;
@@ -21,104 +18,7 @@ interface PortfolioSite {
   visualization_url: string | null;
 }
 
-function PortfolioHeader() {
-  const { language } = useI18n();
-  const logo = language === "fr" ? logoFr : logoEn;
 
-  return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
-          <Link href="/">
-            <img 
-              src={logo} 
-              alt="kWh Québec" 
-              className="h-[50px] sm:h-[3.75rem] w-auto"
-              data-testid="logo-header"
-            />
-          </Link>
-          
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-home">
-              {language === "fr" ? "Accueil" : "Home"}
-            </Link>
-            <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-resources">
-              {language === "fr" ? "Ressources" : "Resources"}
-            </Link>
-            <Link href="/portfolio" className="text-sm font-medium text-foreground" data-testid="link-portfolio">
-              {language === "fr" ? "Portefeuille" : "Portfolio"}
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
-            <Link href="/login">
-              <Button variant="outline" size="sm" data-testid="button-login">
-                {language === "fr" ? "Connexion" : "Login"}
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function PortfolioFooter() {
-  const { language } = useI18n();
-
-  return (
-    <footer className="bg-muted/30 border-t mt-16">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <h3 className="font-semibold text-lg mb-4">kWh Québec</h3>
-            <p className="text-sm text-muted-foreground">
-              {language === "fr" 
-                ? "Solutions solaires et stockage clé en main pour le secteur commercial et industriel québécois."
-                : "Turnkey solar and storage solutions for Québec's commercial and industrial sector."}
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg mb-4">
-              {language === "fr" ? "Contact" : "Contact"}
-            </h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <a 
-                href="mailto:info@kwhquebec.com" 
-                className="flex items-center gap-2 hover:text-foreground transition-colors"
-                data-testid="link-email"
-              >
-                <Mail className="w-4 h-4" />
-                info@kwhquebec.com
-              </a>
-              <a 
-                href="tel:+15149001234" 
-                className="flex items-center gap-2 hover:text-foreground transition-colors"
-                data-testid="link-phone"
-              >
-                <Phone className="w-4 h-4" />
-                +1 (514) 900-1234
-              </a>
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg mb-4">
-              {language === "fr" ? "Adresse" : "Address"}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Montréal, Québec, Canada
-            </p>
-          </div>
-        </div>
-        <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} kWh Québec Inc. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}</p>
-        </div>
-      </div>
-    </footer>
-  );
-}
 
 function ProjectCard({ site }: { site: PortfolioSite }) {
   const { language } = useI18n();
@@ -191,6 +91,13 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
             </div>
           )}
         </div>
+        
+        <Link href={`/portfolio/${site.id}`}>
+          <Button variant="outline" size="sm" className="w-full mt-2" data-testid={`button-view-project-${site.id}`}>
+            {language === "fr" ? "Voir les détails" : "View details"}
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );
@@ -250,23 +157,26 @@ export default function Portfolio() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <PortfolioHeader />
+      <SEOHead 
+        title={language === "fr" ? "Portfolio de projets solaires | kWh Québec" : "Solar Projects Portfolio | kWh Québec"}
+        description={language === "fr"
+          ? "Découvrez notre portfolio de projets solaires commerciaux et industriels en développement au Québec."
+          : "Explore our portfolio of commercial and industrial solar projects in development across Québec."}
+      />
+      <PublicHeader />
       
       <main className="flex-1 pt-16">
         <section className="py-12 md:py-16 bg-gradient-to-b from-primary/5 to-background">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto space-y-4">
-              <Badge variant="secondary" className="mb-2">
-                {language === "fr" ? "Portefeuille" : "Portfolio"}
-              </Badge>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                 {language === "fr" 
-                  ? "Portefeuille de projets solaires" 
+                  ? "Portfolio de projets solaires" 
                   : "Solar Projects Portfolio"}
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {language === "fr"
-                  ? "Découvrez notre portefeuille de projets solaires commerciaux et industriels en développement au Québec."
+                  ? "Découvrez notre portfolio de projets solaires commerciaux et industriels en développement au Québec."
                   : "Explore our portfolio of commercial and industrial solar projects in development across Québec."}
               </p>
             </div>
@@ -309,7 +219,7 @@ export default function Portfolio() {
         </section>
       </main>
 
-      <PortfolioFooter />
+      <PublicFooter />
     </div>
   );
 }

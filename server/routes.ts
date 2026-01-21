@@ -5352,6 +5352,74 @@ IMPORTANT RULES:
     }
   });
 
+  // Public endpoint to get single portfolio project details (for project detail page)
+  app.get("/api/public/portfolio/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const DREAM_CLIENT_ID = "6ba7837d-84a0-4526-bfbf-f802bc68c25e";
+      
+      const site = await storage.getSite(id);
+      
+      if (!site) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      
+      // Security: Only expose Dream client's sites
+      if (site.clientId !== DREAM_CLIENT_ID) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      
+      // Get roof polygons for visualization
+      const roofPolygons = await storage.getRoofPolygons(id);
+      
+      let visualizationUrl = null;
+      if (roofPolygons.length > 0 && site.latitude && site.longitude) {
+        visualizationUrl = generateRoofVisualizationParams(
+          site.latitude,
+          site.longitude,
+          roofPolygons
+        );
+      }
+      
+      // Calculate roof area from polygons if available
+      let calculatedRoofArea = null;
+      if (roofPolygons.length > 0) {
+        calculatedRoofArea = roofPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+      }
+      
+      // Use KB Racking data first, fall back to Quick Analysis cache
+      const systemSizeKw = site.kbKwDc || site.quickAnalysisSystemSizeKw || null;
+      const roofAreaSqM = site.roofAreaSqM || calculatedRoofArea || site.roofAreaAutoSqM || null;
+      
+      // Round system size to nearest 100 kW
+      const roundedSystemSize = systemSizeKw ? Math.round(systemSizeKw / 100) * 100 : null;
+      
+      // Return detailed project info (matching PDF content)
+      res.json({
+        id: site.id,
+        city: site.city || null,
+        address: site.address || null,
+        province: site.province || "Québec",
+        postalCode: site.postalCode || null,
+        latitude: site.latitude,
+        longitude: site.longitude,
+        systemSizeKwDc: roundedSystemSize,
+        roofAreaSqM: roofAreaSqM ? Math.round(roofAreaSqM) : null,
+        buildingType: site.buildingType || null,
+        roofType: site.roofType || null,
+        visualizationUrl: visualizationUrl,
+        // Static project info (same as PDF)
+        constructionStart: { fr: "Printemps/Été 2028", en: "Spring/Summer 2028" },
+        developer: { fr: "Scale Cleantech et kWh Québec", en: "Scale Cleantech and kWh Québec" },
+        buildingSponsor: { fr: "Dream Industrial Solar", en: "Dream Industrial Solar" },
+        electricityOfftake: { fr: "Hydro-Québec", en: "Hydro-Québec" },
+      });
+    } catch (error) {
+      console.error("Error fetching public portfolio project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ==================== PORTFOLIO ROUTES ====================
 
   // Get all portfolios
