@@ -7,14 +7,16 @@ interface AuthUser {
   name?: string | null;
   clientId?: string | null;
   clientName?: string | null;
+  forcePasswordChange?: boolean;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ forcePasswordChange: boolean }>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
   isStaff: boolean;
   isClient: boolean;
@@ -66,6 +68,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [token]);
 
+  const refreshUser = useCallback(async () => {
+    const currentToken = localStorage.getItem("token");
+    if (!currentToken) return;
+    
+    try {
+      const response = await fetch("/api/auth/me", {
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+        },
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+    }
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const response = await fetch("/api/auth/login", {
       method: "POST",
@@ -82,7 +104,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     localStorage.setItem("token", data.token);
     setToken(data.token);
-    setUser(data.user);
+    setUser({
+      ...data.user,
+      forcePasswordChange: data.user.forcePasswordChange || false,
+    });
+    
+    return { forcePasswordChange: data.user.forcePasswordChange || false };
   }, []);
 
   const logout = useCallback(() => {
@@ -103,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
+        refreshUser,
         isAuthenticated: !!user,
         isStaff,
         isClient,
