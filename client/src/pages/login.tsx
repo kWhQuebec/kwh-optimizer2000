@@ -44,8 +44,13 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(data.email, data.password);
-      setLocation("/app");
+      const result = await login(data.email, data.password);
+      
+      if (result.forcePasswordChange) {
+        setLocation("/change-password");
+      } else {
+        setLocation("/app");
+      }
     } catch (err) {
       setError(t("login.error"));
     } finally {

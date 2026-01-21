@@ -18,6 +18,7 @@ import { AIChatWidget } from "@/components/ai-chat-widget";
 
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
+import ChangePasswordPage from "@/pages/change-password";
 import AnalyseDetailleePage from "@/pages/analyse-detaillee";
 import DashboardPage from "@/pages/dashboard";
 import ClientsPage from "@/pages/clients";
@@ -67,7 +68,7 @@ function PageLoader() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
 
   if (isLoading) {
@@ -83,6 +84,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     setLocation("/login");
+    return null;
+  }
+
+  if (user?.forcePasswordChange) {
+    setLocation("/change-password");
     return null;
   }
 
@@ -194,6 +200,7 @@ function AppRoutes() {
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/change-password" component={ChangePasswordPage} />
       <Route path="/sign/:token">
         <Suspense fallback={<PageLoader />}>
           <SignAgreementPage />
