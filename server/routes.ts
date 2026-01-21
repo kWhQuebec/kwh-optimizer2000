@@ -5333,8 +5333,9 @@ IMPORTANT RULES:
             // Use KB Racking data first, fall back to Quick Analysis cache
             const systemSizeKw = site.kbKwDc || site.quickAnalysisSystemSizeKw || null;
             
-            // Roof area: prefer manual drawing, then auto estimate, then estimate from building sqft
-            let roofAreaSqM = site.roofAreaSqM || site.roofAreaAutoSqM || null;
+            // Roof area: prefer manual drawing, then estimate from building sqft
+            // Note: roofAreaAutoSqM (Google Solar) not used - unreliable for large buildings
+            let roofAreaSqM = site.roofAreaSqM || null;
             if (!roofAreaSqM && site.buildingSqFt) {
               // Estimate roof area from building footprint (convert sqft to m²)
               // For industrial buildings, roof area ≈ building footprint
@@ -5399,8 +5400,9 @@ IMPORTANT RULES:
       // Use KB Racking data first, fall back to Quick Analysis cache
       const systemSizeKw = site.kbKwDc || site.quickAnalysisSystemSizeKw || null;
       
-      // Roof area: prefer manual, then calculated from polygons, then auto, then estimate from building sqft
-      let roofAreaSqM = site.roofAreaSqM || calculatedRoofArea || site.roofAreaAutoSqM || null;
+      // Roof area: prefer manual, then calculated from polygons, then estimate from building sqft
+      // Note: roofAreaAutoSqM (Google Solar) not used - unreliable for large buildings
+      let roofAreaSqM = site.roofAreaSqM || calculatedRoofArea || null;
       if (!roofAreaSqM && site.buildingSqFt) {
         // Estimate roof area from building footprint (convert sqft to m²)
         roofAreaSqM = Math.round(site.buildingSqFt / 10.764);
