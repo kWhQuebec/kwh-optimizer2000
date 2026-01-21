@@ -5333,6 +5333,14 @@ IMPORTANT RULES:
             // Use KB Racking data first, fall back to Quick Analysis cache
             const systemSizeKw = site.kbKwDc || site.quickAnalysisSystemSizeKw || null;
             
+            // Roof area: prefer manual drawing, then auto estimate, then estimate from building sqft
+            let roofAreaSqM = site.roofAreaSqM || site.roofAreaAutoSqM || null;
+            if (!roofAreaSqM && site.buildingSqFt) {
+              // Estimate roof area from building footprint (convert sqft to m²)
+              // For industrial buildings, roof area ≈ building footprint
+              roofAreaSqM = Math.round(site.buildingSqFt / 10.764);
+            }
+            
             return {
               id: site.id,
               city: site.city || "Unknown",
@@ -5340,7 +5348,7 @@ IMPORTANT RULES:
               kb_kw_dc: systemSizeKw,
               latitude: site.latitude,
               longitude: site.longitude,
-              roof_area_sqm: site.roofAreaSqM || site.roofAreaAutoSqM || null,
+              roof_area_sqm: roofAreaSqM,
               visualization_url: visualizationUrl,
             };
           })
@@ -5390,7 +5398,13 @@ IMPORTANT RULES:
       
       // Use KB Racking data first, fall back to Quick Analysis cache
       const systemSizeKw = site.kbKwDc || site.quickAnalysisSystemSizeKw || null;
-      const roofAreaSqM = site.roofAreaSqM || calculatedRoofArea || site.roofAreaAutoSqM || null;
+      
+      // Roof area: prefer manual, then calculated from polygons, then auto, then estimate from building sqft
+      let roofAreaSqM = site.roofAreaSqM || calculatedRoofArea || site.roofAreaAutoSqM || null;
+      if (!roofAreaSqM && site.buildingSqFt) {
+        // Estimate roof area from building footprint (convert sqft to m²)
+        roofAreaSqM = Math.round(site.buildingSqFt / 10.764);
+      }
       
       // Round system size to nearest 100 kW
       const roundedSystemSize = systemSizeKw ? Math.round(systemSizeKw / 100) * 100 : null;
