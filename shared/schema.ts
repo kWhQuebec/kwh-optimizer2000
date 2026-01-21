@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   clientId: varchar("client_id"), // Links client users to their company (null for admin/analyst)
   name: text("name"), // Display name for the user
   status: text("status").notNull().default("active"), // "active" | "inactive"
+  forcePasswordChange: boolean("force_password_change").notNull().default(false), // Require password change on next login
   lastLoginAt: timestamp("last_login_at"), // Last successful login timestamp
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
