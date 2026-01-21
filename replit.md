@@ -24,6 +24,7 @@ The frontend uses React with functional components, managing state via TanStack 
 -   **System Design Module**: Enables detailed equipment specifications and Bill of Materials creation.
 -   **Multi-Scenario Analysis**: Offers a Scenario Comparison Dashboard and a Financing Calculator.
 -   **Role-Based Access Control (RBAC)**: Supports Admin, Analyst, and Client roles.
+-   **User Onboarding**: Welcome email sent on user creation with forced password change on first login for security.
 -   **Client Portal**: Provides secure, read-only access to analysis reports.
 -   **PDF Report Generation**: Creates professional PDF analysis reports.
 -   **Portfolio Management**: Allows multi-building project management with volume pricing.
