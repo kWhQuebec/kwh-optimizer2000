@@ -8,6 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
 import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { SEOHead } from "@/components/seo-head";
+import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
+import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import scaleCleantech from "@assets/scale_cleantech_colorHR_1769011389486.png";
 
 interface ProjectDetails {
   id: string;
@@ -230,6 +233,22 @@ export default function PortfolioProjectPage() {
               {t.backToPortfolio}
             </Button>
           </Link>
+          
+          <div className="flex items-center gap-4 mb-6">
+            <img 
+              src={language === "fr" ? logoFr : logoEn} 
+              alt="kWh Québec" 
+              className="h-10 w-auto"
+              data-testid="img-logo-kwh"
+            />
+            <div className="w-px h-8 bg-border" />
+            <img 
+              src={scaleCleantech} 
+              alt="Scale Cleantech" 
+              className="h-8 w-auto"
+              data-testid="img-logo-scale"
+            />
+          </div>
           
           <div className="mb-8">
             <Badge className="mb-2 bg-primary/10 text-primary hover:bg-primary/20">

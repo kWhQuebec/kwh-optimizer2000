@@ -191,6 +191,12 @@ export async function generateProjectInfoSheetPDF(
       : "kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png"
   );
 
+  const scaleLogoPath = path.join(
+    process.cwd(),
+    "attached_assets",
+    "scale_cleantech_colorHR_1769011389486.png"
+  );
+
   let logoBuffer: Buffer | null = null;
   if (fs.existsSync(logoPath)) {
     try {
@@ -201,6 +207,16 @@ export async function generateProjectInfoSheetPDF(
     }
   } else {
     console.log(`[ProjectInfoSheet] Logo not found: ${logoPath}`);
+  }
+
+  let scaleLogoBuffer: Buffer | null = null;
+  if (fs.existsSync(scaleLogoPath)) {
+    try {
+      scaleLogoBuffer = fs.readFileSync(scaleLogoPath);
+      console.log(`[ProjectInfoSheet] Loaded Scale Cleantech logo from: ${scaleLogoPath}`);
+    } catch (e) {
+      console.error("Failed to read Scale Cleantech logo:", e);
+    }
   }
 
   const fullAddress = [
@@ -224,6 +240,14 @@ export async function generateProjectInfoSheetPDF(
   } else {
     doc.fontSize(20).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
     doc.text("kWh Québec", margin, yPos + 10);
+  }
+
+  if (scaleLogoBuffer) {
+    try {
+      doc.image(scaleLogoBuffer, margin + 175, yPos + 15, { width: 150 });
+    } catch (e) {
+      console.error("Failed to render Scale Cleantech logo:", e);
+    }
   }
 
   yPos = 113;
