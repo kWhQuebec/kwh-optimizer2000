@@ -4111,6 +4111,9 @@ function AnalysisResults({
   const [variantPreset, setVariantPreset] = useState<VariantPreset | null>(null);
   const [showExtendedLifeAnalysis, setShowExtendedLifeAnalysis] = useState(false);
   
+  // Visualization capture function ref for PDF generation
+  const visualizationCaptureRef = useRef<(() => Promise<string | null>) | null>(null);
+  
   const handleChartPointClick = (data: any, _index: number, event?: React.MouseEvent) => {
     if (!isStaff) return;
     if (event) {
