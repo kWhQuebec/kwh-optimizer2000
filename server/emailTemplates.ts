@@ -24,17 +24,20 @@ export interface EmailTemplate {
   };
 }
 
+// kWh Québec logo as base64 data URI (SVG logo with text)
+const kwhLogoDataUri = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgNjAiPjxyZWN0IHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDU0QTgiIHJ4PSI0Ii8+PHRleHQgeD0iMTIwIiB5PSI0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmtXaCBRdcOpYmVjPC90ZXh0Pjwvc3ZnPg==`;
+
 const baseStyles = `
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { text-align: center; padding: 20px 0; border-bottom: 2px solid #2563eb; }
-    .logo { height: 40px; }
+    .header { text-align: center; padding: 20px 0; border-bottom: 2px solid #0054A8; }
+    .logo { height: 50px; width: auto; }
     .content { padding: 30px 0; }
-    .button { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; }
+    .button { display: inline-block; background: #0054A8; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; }
     .footer { padding: 20px 0; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; }
     .highlight { background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
-    .metric { font-size: 24px; font-weight: bold; color: #2563eb; }
+    .metric { font-size: 24px; font-weight: bold; color: #0054A8; }
     h1, h2 { color: #1f2937; }
     ul { padding-left: 20px; }
     li { margin: 8px 0; }
@@ -448,63 +451,59 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       en: "Password Reset - kWh Québec",
     },
     html: {
-      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1 style="color: #0054A8;">kWh Québec</h1>
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background: white;">
+          <div style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #003DA6 0%, #0054A8 100%);">
+            <img src="${kwhLogoDataUri}" alt="kWh Québec" style="height: 50px; width: auto;" />
           </div>
-          <div class="content">
-            <h2>Réinitialisation de mot de passe</h2>
-            <p>Votre mot de passe a été réinitialisé.</p>
+          <div style="padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Réinitialisation de mot de passe</h2>
+            <p style="color: #555;">Votre mot de passe a été réinitialisé.</p>
             
-            <div class="highlight">
-              <p><strong>Votre nouveau mot de passe temporaire:</strong></p>
-              <p style="text-align: center;">
-                <code style="background: #e5e7eb; padding: 8px 16px; border-radius: 4px; font-family: monospace; font-size: 18px;">{{tempPassword}}</code>
-              </p>
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <p style="margin: 0 0 12px 0;"><strong>Votre nouveau mot de passe temporaire:</strong></p>
+              <code style="background: #e5e7eb; padding: 8px 16px; border-radius: 4px; font-family: monospace; font-size: 18px; display: inline-block;">{{tempPassword}}</code>
             </div>
             
             <p><strong>Important:</strong> Lors de votre prochaine connexion, vous devrez choisir un nouveau mot de passe personnel pour sécuriser votre compte.</p>
             
             <p style="text-align: center; margin: 30px 0;">
-              <a href="{{loginUrl}}" class="button">Se connecter</a>
+              <a href="{{loginUrl}}" style="display: inline-block; background-color: #0054A8; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">Se connecter</a>
             </p>
             
             <p style="font-size: 12px; color: #6b7280;">Si vous n'avez pas demandé cette réinitialisation, veuillez contacter immédiatement l'administrateur.</p>
           </div>
-          <div class="footer">
-            <p>kWh Québec - Solaire + stockage clé en main</p>
-            <p>Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
+          <div style="padding: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; background-color: #fafafa;">
+            <p style="margin: 0 0 5px 0;"><strong>kWh Québec</strong> - Solaire + stockage clé en main</p>
+            <p style="margin: 0;">Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
           </div>
         </div>
       </body></html>`,
-      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1 style="color: #0054A8;">kWh Québec</h1>
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background: white;">
+          <div style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #003DA6 0%, #0054A8 100%);">
+            <img src="${kwhLogoDataUri}" alt="kWh Québec" style="height: 50px; width: auto;" />
           </div>
-          <div class="content">
-            <h2>Password Reset</h2>
-            <p>Your password has been reset.</p>
+          <div style="padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Password Reset</h2>
+            <p style="color: #555;">Your password has been reset.</p>
             
-            <div class="highlight">
-              <p><strong>Your new temporary password:</strong></p>
-              <p style="text-align: center;">
-                <code style="background: #e5e7eb; padding: 8px 16px; border-radius: 4px; font-family: monospace; font-size: 18px;">{{tempPassword}}</code>
-              </p>
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <p style="margin: 0 0 12px 0;"><strong>Your new temporary password:</strong></p>
+              <code style="background: #e5e7eb; padding: 8px 16px; border-radius: 4px; font-family: monospace; font-size: 18px; display: inline-block;">{{tempPassword}}</code>
             </div>
             
             <p><strong>Important:</strong> On your next login, you will need to choose a new personal password to secure your account.</p>
             
             <p style="text-align: center; margin: 30px 0;">
-              <a href="{{loginUrl}}" class="button">Sign In</a>
+              <a href="{{loginUrl}}" style="display: inline-block; background-color: #0054A8; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">Sign In</a>
             </p>
             
             <p style="font-size: 12px; color: #6b7280;">If you did not request this reset, please contact the administrator immediately.</p>
           </div>
-          <div class="footer">
-            <p>kWh Québec - Turnkey solar + storage</p>
-            <p>Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
+          <div style="padding: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; background-color: #fafafa;">
+            <p style="margin: 0 0 5px 0;"><strong>kWh Québec</strong> - Turnkey solar + storage</p>
+            <p style="margin: 0;">Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
           </div>
         </div>
       </body></html>`,
@@ -522,67 +521,67 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       en: "Welcome to kWh Québec Platform",
     },
     html: {
-      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1 style="color: #0054A8;">kWh Québec</h1>
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background: white;">
+          <div style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #003DA6 0%, #0054A8 100%);">
+            <img src="${kwhLogoDataUri}" alt="kWh Québec" style="height: 50px; width: auto;" />
           </div>
-          <div class="content">
-            <h2>Bienvenue {{userName}}!</h2>
-            <p>Un compte a été créé pour vous sur la plateforme kWh Québec.</p>
+          <div style="padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Bienvenue {{userName}}!</h2>
+            <p style="color: #555;">Un compte a été créé pour vous sur la plateforme kWh Québec.</p>
             
-            <div class="highlight">
-              <p><strong>Vos informations de connexion:</strong></p>
-              <ul>
-                <li><strong>Courriel:</strong> {{userEmail}}</li>
-                <li><strong>Mot de passe temporaire:</strong> <code style="background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-family: monospace;">{{tempPassword}}</code></li>
-                <li><strong>Rôle:</strong> {{userRole}}</li>
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0 0 12px 0;"><strong>Vos informations de connexion:</strong></p>
+              <ul style="padding-left: 20px; margin: 0;">
+                <li style="margin: 8px 0;"><strong>Courriel:</strong> {{userEmail}}</li>
+                <li style="margin: 8px 0;"><strong>Mot de passe temporaire:</strong> <code style="background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-family: monospace;">{{tempPassword}}</code></li>
+                <li style="margin: 8px 0;"><strong>Rôle:</strong> {{userRole}}</li>
               </ul>
             </div>
             
             <p><strong>Important:</strong> Lors de votre première connexion, vous devrez choisir un nouveau mot de passe personnel pour sécuriser votre compte.</p>
             
             <p style="text-align: center; margin: 30px 0;">
-              <a href="{{loginUrl}}" class="button">Se connecter</a>
+              <a href="{{loginUrl}}" style="display: inline-block; background-color: #0054A8; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">Se connecter</a>
             </p>
             
-            <p>Si vous avez des questions, n'hésitez pas à contacter l'administrateur ou à répondre à ce courriel.</p>
+            <p style="color: #666;">Si vous avez des questions, n'hésitez pas à contacter l'administrateur ou à répondre à ce courriel.</p>
           </div>
-          <div class="footer">
-            <p>kWh Québec - Solaire + stockage clé en main</p>
-            <p>Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
+          <div style="padding: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; background-color: #fafafa;">
+            <p style="margin: 0 0 5px 0;"><strong>kWh Québec</strong> - Solaire + stockage clé en main</p>
+            <p style="margin: 0;">Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
           </div>
         </div>
       </body></html>`,
-      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1 style="color: #0054A8;">kWh Québec</h1>
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background: white;">
+          <div style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #003DA6 0%, #0054A8 100%);">
+            <img src="${kwhLogoDataUri}" alt="kWh Québec" style="height: 50px; width: auto;" />
           </div>
-          <div class="content">
-            <h2>Welcome {{userName}}!</h2>
-            <p>An account has been created for you on the kWh Québec platform.</p>
+          <div style="padding: 30px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Welcome {{userName}}!</h2>
+            <p style="color: #555;">An account has been created for you on the kWh Québec platform.</p>
             
-            <div class="highlight">
-              <p><strong>Your login information:</strong></p>
-              <ul>
-                <li><strong>Email:</strong> {{userEmail}}</li>
-                <li><strong>Temporary password:</strong> <code style="background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-family: monospace;">{{tempPassword}}</code></li>
-                <li><strong>Role:</strong> {{userRole}}</li>
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0 0 12px 0;"><strong>Your login information:</strong></p>
+              <ul style="padding-left: 20px; margin: 0;">
+                <li style="margin: 8px 0;"><strong>Email:</strong> {{userEmail}}</li>
+                <li style="margin: 8px 0;"><strong>Temporary password:</strong> <code style="background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-family: monospace;">{{tempPassword}}</code></li>
+                <li style="margin: 8px 0;"><strong>Role:</strong> {{userRole}}</li>
               </ul>
             </div>
             
             <p><strong>Important:</strong> On your first login, you will need to choose a new personal password to secure your account.</p>
             
             <p style="text-align: center; margin: 30px 0;">
-              <a href="{{loginUrl}}" class="button">Sign In</a>
+              <a href="{{loginUrl}}" style="display: inline-block; background-color: #0054A8; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">Sign In</a>
             </p>
             
-            <p>If you have any questions, feel free to contact the administrator or reply to this email.</p>
+            <p style="color: #666;">If you have any questions, feel free to contact the administrator or reply to this email.</p>
           </div>
-          <div class="footer">
-            <p>kWh Québec - Turnkey solar + storage</p>
-            <p>Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
+          <div style="padding: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; background-color: #fafafa;">
+            <p style="margin: 0 0 5px 0;"><strong>kWh Québec</strong> - Turnkey solar + storage</p>
+            <p style="margin: 0;">Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
           </div>
         </div>
       </body></html>`,
