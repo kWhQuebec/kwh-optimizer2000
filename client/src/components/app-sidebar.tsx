@@ -274,23 +274,35 @@ export function AppSidebar() {
     const handleOpenChange = (open: boolean) => {
       setOpenSections(prev => ({ ...prev, [id]: open }));
       
-      // If opening (not closing), scroll the expanded content into view after animation completes
+      // If opening (not closing), scroll to show the expanded content
       if (open) {
-        setTimeout(() => {
-          // Find the SidebarContent scroll container and scroll to show this section
-          const scrollContainer = sectionRef.current?.closest('[data-sidebar="content"]');
-          if (scrollContainer && sectionRef.current) {
-            const containerRect = scrollContainer.getBoundingClientRect();
-            const sectionRect = sectionRef.current.getBoundingClientRect();
-            const sectionBottom = sectionRect.bottom - containerRect.top + scrollContainer.scrollTop;
-            const targetScroll = sectionBottom - containerRect.height + 20; // 20px padding
-            
-            scrollContainer.scrollTo({
-              top: Math.max(0, targetScroll),
-              behavior: 'smooth'
-            });
+        // Use multiple delayed checks to catch when animation completes
+        const checkAndScroll = () => {
+          if (!sectionRef.current) return;
+          
+          // Find the scrollable container (SidebarContent)
+          const scrollContainer = sectionRef.current.closest('[data-sidebar="content"]') as HTMLElement;
+          if (!scrollContainer) return;
+          
+          // Get the section's position relative to the scroll container
+          const sectionRect = sectionRef.current.getBoundingClientRect();
+          const containerRect = scrollContainer.getBoundingClientRect();
+          
+          // Calculate if the bottom of section is below the visible area
+          const sectionBottom = sectionRect.bottom;
+          const containerBottom = containerRect.bottom;
+          
+          if (sectionBottom > containerBottom) {
+            // Scroll the container to show the full section
+            const scrollAmount = sectionBottom - containerBottom + 20;
+            scrollContainer.scrollTop += scrollAmount;
           }
-        }, 400);
+        };
+        
+        // Check at multiple intervals as the animation progresses
+        setTimeout(checkAndScroll, 100);
+        setTimeout(checkAndScroll, 250);
+        setTimeout(checkAndScroll, 400);
       }
     };
     
