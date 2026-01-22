@@ -83,7 +83,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             <p>Des questions? Répondez simplement à ce courriel ou appelez-nous.</p>
           </div>
           <div class="footer">
-            <p>kWh Québec - Solaire + stockage clé en main</p>
+            <p>kWh Québec - Solaire + Stockage</p>
             <p>info@kwhquebec.com | (514) 555-1234</p>
           </div>
         </div>
@@ -167,7 +167,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             <p>Des questions? Répondez simplement à ce courriel.</p>
           </div>
           <div class="footer">
-            <p>kWh Québec - Solaire + stockage clé en main</p>
+            <p>kWh Québec - Solaire + Stockage</p>
             <p>info@kwhquebec.com | (514) 555-1234</p>
           </div>
         </div>
@@ -247,7 +247,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             </p>
           </div>
           <div class="footer">
-            <p>kWh Québec - Solaire + stockage clé en main</p>
+            <p>kWh Québec - Solaire + Stockage</p>
             <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
           </div>
         </div>
@@ -324,7 +324,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             </p>
           </div>
           <div class="footer">
-            <p>kWh Québec - Solaire + stockage clé en main</p>
+            <p>kWh Québec - Solaire + Stockage</p>
             <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
           </div>
         </div>
@@ -401,7 +401,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             <p>Nous vous contacterons dans les prochains jours pour discuter des résultats et répondre à vos questions.</p>
           </div>
           <div class="footer">
-            <p>kWh Québec - Solaire + stockage clé en main</p>
+            <p>kWh Québec - Solaire + Stockage</p>
             <p>info@kwhquebec.com | (514) 555-1234</p>
           </div>
         </div>
@@ -474,7 +474,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             <p style="font-size: 12px; color: #6b7280;">Si vous n'avez pas demandé cette réinitialisation, veuillez contacter immédiatement l'administrateur.</p>
           </div>
           <div style="padding: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; background-color: #fafafa;">
-            <p style="margin: 0 0 5px 0;"><strong>kWh Québec</strong> - Solaire + stockage clé en main</p>
+            <p style="margin: 0 0 5px 0;"><strong>kWh Québec</strong> - Solaire + Stockage</p>
             <p style="margin: 0;">Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
           </div>
         </div>
@@ -548,7 +548,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             <p style="color: #666;">Si vous avez des questions, n'hésitez pas à contacter l'administrateur ou à répondre à ce courriel.</p>
           </div>
           <div style="padding: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; background-color: #fafafa;">
-            <p style="margin: 0 0 5px 0;"><strong>kWh Québec</strong> - Solaire + stockage clé en main</p>
+            <p style="margin: 0 0 5px 0;"><strong>kWh Québec</strong> - Solaire + Stockage</p>
             <p style="margin: 0;">Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
           </div>
         </div>
