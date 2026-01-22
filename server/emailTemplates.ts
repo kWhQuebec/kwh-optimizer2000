@@ -441,6 +441,80 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     },
   },
 
+  // Password reset email
+  passwordReset: {
+    subject: {
+      fr: "Réinitialisation de votre mot de passe - kWh Québec",
+      en: "Password Reset - kWh Québec",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1 style="color: #0054A8;">kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Réinitialisation de mot de passe</h2>
+            <p>Votre mot de passe a été réinitialisé.</p>
+            
+            <div class="highlight">
+              <p><strong>Votre nouveau mot de passe temporaire:</strong></p>
+              <p style="text-align: center;">
+                <code style="background: #e5e7eb; padding: 8px 16px; border-radius: 4px; font-family: monospace; font-size: 18px;">{{tempPassword}}</code>
+              </p>
+            </div>
+            
+            <p><strong>Important:</strong> Lors de votre prochaine connexion, vous devrez choisir un nouveau mot de passe personnel pour sécuriser votre compte.</p>
+            
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{loginUrl}}" class="button">Se connecter</a>
+            </p>
+            
+            <p style="font-size: 12px; color: #6b7280;">Si vous n'avez pas demandé cette réinitialisation, veuillez contacter immédiatement l'administrateur.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Solaire + stockage clé en main</p>
+            <p>Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
+          </div>
+        </div>
+      </body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1 style="color: #0054A8;">kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Password Reset</h2>
+            <p>Your password has been reset.</p>
+            
+            <div class="highlight">
+              <p><strong>Your new temporary password:</strong></p>
+              <p style="text-align: center;">
+                <code style="background: #e5e7eb; padding: 8px 16px; border-radius: 4px; font-family: monospace; font-size: 18px;">{{tempPassword}}</code>
+              </p>
+            </div>
+            
+            <p><strong>Important:</strong> On your next login, you will need to choose a new personal password to secure your account.</p>
+            
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{loginUrl}}" class="button">Sign In</a>
+            </p>
+            
+            <p style="font-size: 12px; color: #6b7280;">If you did not request this reset, please contact the administrator immediately.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Turnkey solar + storage</p>
+            <p>Tel: 514.427.8871 | info@kwh.quebec | www.kwh.quebec</p>
+          </div>
+        </div>
+      </body></html>`,
+    },
+    text: {
+      fr: `Réinitialisation de mot de passe\n\nVotre mot de passe a été réinitialisé.\n\nVotre nouveau mot de passe temporaire: {{tempPassword}}\n\nImportant: Lors de votre prochaine connexion, vous devrez choisir un nouveau mot de passe.\n\nConnectez-vous: {{loginUrl}}\n\nSi vous n'avez pas demandé cette réinitialisation, contactez immédiatement l'administrateur.\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
+      en: `Password Reset\n\nYour password has been reset.\n\nYour new temporary password: {{tempPassword}}\n\nImportant: On your next login, you will need to choose a new password.\n\nSign in: {{loginUrl}}\n\nIf you did not request this reset, please contact the administrator immediately.\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
+    },
+  },
+
   // Welcome email for new user account
   userWelcome: {
     subject: {

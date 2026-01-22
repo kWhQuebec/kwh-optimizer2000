@@ -151,6 +151,16 @@ export default function LoginPage() {
                 </Button>
               </form>
             </Form>
+            
+            <div className="mt-4 text-center">
+              <a 
+                href="/forgot-password" 
+                className="text-sm text-primary hover:underline"
+                data-testid="link-forgot-password"
+              >
+                {language === "fr" ? "Mot de passe oublié?" : "Forgot password?"}
+              </a>
+            </div>
           </CardContent>
         </Card>
       </div>

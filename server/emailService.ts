@@ -291,6 +291,37 @@ interface WelcomeEmailData {
   tempPassword?: string;
 }
 
+export async function sendPasswordResetEmail(
+  email: string,
+  tempPassword: string,
+  language: 'fr' | 'en' = 'fr'
+): Promise<{ success: boolean; error?: string }> {
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const host = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000';
+  const loginUrl = `${protocol}://${host}/login`;
+  
+  const rendered = renderEmailTemplate('passwordReset', language, {
+    tempPassword,
+    loginUrl,
+  });
+  
+  console.log(`[EmailService] Sending password reset email to ${email} (lang: ${language})`);
+  
+  const result = await sendEmail({
+    to: email,
+    subject: rendered.subject,
+    htmlBody: rendered.html,
+  });
+  
+  if (result.success) {
+    console.log(`[EmailService] Password reset email sent successfully to ${email}`);
+  } else {
+    console.error(`[EmailService] Failed to send password reset email: ${result.error}`);
+  }
+  
+  return result;
+}
+
 function getRoleLabel(role: string, lang: 'fr' | 'en'): string {
   const labels: Record<string, { fr: string; en: string }> = {
     admin: { fr: 'Administrateur', en: 'Administrator' },

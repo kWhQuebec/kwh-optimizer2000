@@ -48,7 +48,7 @@ import {
 import { z } from "zod";
 import * as googleSolar from "./googleSolarService";
 import { sendEmail, generatePortalInvitationEmail } from "./gmail";
-import { sendQuickAnalysisEmail, sendWelcomeEmail } from "./emailService";
+import { sendQuickAnalysisEmail, sendWelcomeEmail, sendPasswordResetEmail } from "./emailService";
 import { generateProcurationPDF, createProcurationData } from "./procurationPdfGenerator";
 import { calculatePricingFromSiteVisit, getSiteVisitCompleteness, estimateConstructionCost } from "./pricing-engine";
 import { 
@@ -570,7 +570,7 @@ export async function registerRoutes(
     }
   });
   
-  // Reset user password (admin only)
+  // Reset user password (admin only) - auto-generates and emails new password
   app.post("/api/users/:id/reset-password", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
     try {
       // Only admins can reset passwords
@@ -578,14 +578,23 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Admin access required" });
       }
       
-      const { password } = req.body;
+      // Get user info
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
       
-      if (!password || password.length < 8) {
-        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      // Generate cryptographically secure temporary password
+      const crypto = await import('crypto');
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      const randomBytes = crypto.randomBytes(12);
+      let tempPassword = '';
+      for (let i = 0; i < 12; i++) {
+        tempPassword += chars.charAt(randomBytes[i] % chars.length);
       }
       
       // Hash new password
-      const passwordHash = await bcrypt.hash(password, 10);
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
       
       const updated = await storage.updateUser(req.params.id, { 
         passwordHash,
@@ -595,10 +604,124 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
       
-      res.json({ success: true, message: "Password reset successfully" });
+      // Send password reset email
+      const emailResult = await sendPasswordResetEmail(user.email, tempPassword, 'fr');
+      
+      if (!emailResult.success) {
+        // Password was reset but email failed - return the password for manual sharing
+        return res.json({ 
+          success: true, 
+          emailSent: false,
+          tempPassword, // Return password since email failed
+          warning: "Le mot de passe a été réinitialisé mais l'envoi du courriel a échoué. Partagez le mot de passe manuellement."
+        });
+      }
+      
+      res.json({ success: true, emailSent: true, message: "Password reset and emailed successfully" });
     } catch (error) {
       console.error("Reset password error:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Resend welcome email (admin only) - generates new temp password and resends
+  app.post("/api/users/:id/resend-welcome", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+    try {
+      // Only admins can resend welcome emails
+      if (req.userRole !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      // Get user info
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Generate cryptographically secure temporary password
+      const crypto = await import('crypto');
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      const randomBytes = crypto.randomBytes(12);
+      let tempPassword = '';
+      for (let i = 0; i < 12; i++) {
+        tempPassword += chars.charAt(randomBytes[i] % chars.length);
+      }
+      
+      // Hash new password
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      
+      await storage.updateUser(req.params.id, { 
+        passwordHash,
+        forcePasswordChange: true
+      });
+      
+      // Send welcome email with new password
+      const emailResult = await sendWelcomeEmail(user.email, user.name || undefined, 'fr', tempPassword);
+      
+      if (!emailResult.success) {
+        return res.json({ 
+          success: true, 
+          emailSent: false,
+          tempPassword,
+          warning: "Le nouveau mot de passe a été généré mais l'envoi du courriel a échoué."
+        });
+      }
+      
+      res.json({ success: true, emailSent: true, message: "Welcome email resent successfully" });
+    } catch (error) {
+      console.error("Resend welcome email error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Self-service forgot password request (public endpoint)
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      // Normalize email
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // Check if user exists
+      const user = await storage.getUserByEmail(normalizedEmail);
+      
+      // Always return success to prevent email enumeration attacks
+      if (!user) {
+        console.log(`[Forgot Password] No user found for email: ${normalizedEmail}`);
+        return res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
+      }
+      
+      // Generate cryptographically secure temporary password
+      const crypto = await import('crypto');
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      const randomBytes = crypto.randomBytes(12);
+      let tempPassword = '';
+      for (let i = 0; i < 12; i++) {
+        tempPassword += chars.charAt(randomBytes[i] % chars.length);
+      }
+      
+      // Hash new password
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      
+      await storage.updateUser(user.id, { 
+        passwordHash,
+        forcePasswordChange: true
+      });
+      
+      // Send password reset email
+      await sendPasswordResetEmail(user.email, tempPassword, 'fr');
+      
+      console.log(`[Forgot Password] Password reset email sent to: ${normalizedEmail}`);
+      
+      res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      // Still return success to prevent enumeration
+      res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
     }
   });
   

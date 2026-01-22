@@ -18,6 +18,7 @@ import { AIChatWidget } from "@/components/ai-chat-widget";
 
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
+import ForgotPasswordPage from "@/pages/forgot-password";
 import ChangePasswordPage from "@/pages/change-password";
 import AnalyseDetailleePage from "@/pages/analyse-detaillee";
 import DashboardPage from "@/pages/dashboard";
@@ -200,6 +201,7 @@ function AppRoutes() {
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/change-password" component={ChangePasswordPage} />
       <Route path="/sign/:token">
         <Suspense fallback={<PageLoader />}>
