@@ -277,8 +277,19 @@ export function AppSidebar() {
       // If opening (not closing), scroll the expanded content into view after animation completes
       if (open) {
         setTimeout(() => {
-          // Scroll to show the end of the section (the expanded content)
-          sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          // Find the SidebarContent scroll container and scroll to show this section
+          const scrollContainer = sectionRef.current?.closest('[data-sidebar="content"]');
+          if (scrollContainer && sectionRef.current) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const sectionRect = sectionRef.current.getBoundingClientRect();
+            const sectionBottom = sectionRect.bottom - containerRect.top + scrollContainer.scrollTop;
+            const targetScroll = sectionBottom - containerRect.height + 20; // 20px padding
+            
+            scrollContainer.scrollTo({
+              top: Math.max(0, targetScroll),
+              behavior: 'smooth'
+            });
+          }
         }, 400);
       }
     };
