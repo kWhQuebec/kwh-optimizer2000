@@ -288,6 +288,7 @@ interface WelcomeEmailData {
   userEmail: string;
   userName: string;
   userRole: string;
+  tempPassword?: string;
 }
 
 function getRoleLabel(role: string, lang: 'fr' | 'en'): string {
@@ -310,6 +311,7 @@ export async function sendWelcomeEmail(
     userName: data.userName || data.userEmail.split('@')[0],
     userEmail: data.userEmail,
     userRole: getRoleLabel(data.userRole, language),
+    tempPassword: data.tempPassword || '',
     loginUrl,
   });
   

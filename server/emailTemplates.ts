@@ -461,11 +461,12 @@ export const emailTemplates: Record<string, EmailTemplate> = {
               <p><strong>Vos informations de connexion:</strong></p>
               <ul>
                 <li><strong>Courriel:</strong> {{userEmail}}</li>
+                <li><strong>Mot de passe temporaire:</strong> <code style="background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-family: monospace;">{{tempPassword}}</code></li>
                 <li><strong>Rôle:</strong> {{userRole}}</li>
               </ul>
             </div>
             
-            <p><strong>Important:</strong> Un mot de passe temporaire a été configuré pour votre compte. Lors de votre première connexion, vous devrez choisir un nouveau mot de passe personnel.</p>
+            <p><strong>Important:</strong> Lors de votre première connexion, vous devrez choisir un nouveau mot de passe personnel pour sécuriser votre compte.</p>
             
             <p style="text-align: center; margin: 30px 0;">
               <a href="{{loginUrl}}" class="button">Se connecter</a>
@@ -492,11 +493,12 @@ export const emailTemplates: Record<string, EmailTemplate> = {
               <p><strong>Your login information:</strong></p>
               <ul>
                 <li><strong>Email:</strong> {{userEmail}}</li>
+                <li><strong>Temporary password:</strong> <code style="background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-family: monospace;">{{tempPassword}}</code></li>
                 <li><strong>Role:</strong> {{userRole}}</li>
               </ul>
             </div>
             
-            <p><strong>Important:</strong> A temporary password has been set for your account. On your first login, you will need to choose a new personal password.</p>
+            <p><strong>Important:</strong> On your first login, you will need to choose a new personal password to secure your account.</p>
             
             <p style="text-align: center; margin: 30px 0;">
               <a href="{{loginUrl}}" class="button">Sign In</a>
@@ -512,8 +514,8 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       </body></html>`,
     },
     text: {
-      fr: `Bienvenue {{userName}}!\n\nUn compte a été créé pour vous sur la plateforme kWh Québec.\n\nVos informations:\n- Courriel: {{userEmail}}\n- Rôle: {{userRole}}\n\nImportant: Un mot de passe temporaire a été configuré. Lors de votre première connexion, vous devrez choisir un nouveau mot de passe.\n\nConnectez-vous: {{loginUrl}}\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
-      en: `Welcome {{userName}}!\n\nAn account has been created for you on the kWh Québec platform.\n\nYour information:\n- Email: {{userEmail}}\n- Role: {{userRole}}\n\nImportant: A temporary password has been set. On your first login, you will need to choose a new personal password.\n\nSign in: {{loginUrl}}\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
+      fr: `Bienvenue {{userName}}!\n\nUn compte a été créé pour vous sur la plateforme kWh Québec.\n\nVos informations:\n- Courriel: {{userEmail}}\n- Mot de passe temporaire: {{tempPassword}}\n- Rôle: {{userRole}}\n\nImportant: Lors de votre première connexion, vous devrez choisir un nouveau mot de passe.\n\nConnectez-vous: {{loginUrl}}\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
+      en: `Welcome {{userName}}!\n\nAn account has been created for you on the kWh Québec platform.\n\nYour information:\n- Email: {{userEmail}}\n- Temporary password: {{tempPassword}}\n- Role: {{userRole}}\n\nImportant: On your first login, you will need to choose a new password.\n\nSign in: {{loginUrl}}\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
     },
   },
 };

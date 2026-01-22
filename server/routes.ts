@@ -431,10 +431,10 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Admin access required" });
       }
       
-      const { email, password, name, role, clientId } = req.body;
+      const { email, name, role, clientId } = req.body;
       
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
       }
       
       // Only allow creating client or analyst roles
@@ -447,8 +447,21 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Client users must be linked to a client" });
       }
       
+      // Generate a cryptographically secure random temporary password
+      const crypto = await import('crypto');
+      const generateTempPassword = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        const randomBytes = crypto.randomBytes(12);
+        let password = '';
+        for (let i = 0; i < 12; i++) {
+          password += chars.charAt(randomBytes[i] % chars.length);
+        }
+        return password;
+      };
+      const tempPassword = generateTempPassword();
+      
       // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
       
       const user = await storage.createUser({
         email,
@@ -459,7 +472,7 @@ export async function registerRoutes(
         forcePasswordChange: true, // Force password change on first login
       });
       
-      // Send welcome email (async, don't wait for it)
+      // Send welcome email with temporary password (async, don't wait for it)
       const protocol = req.protocol || 'https';
       const host = req.get('host') || process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
       const baseUrl = `${protocol}://${host}`;
@@ -468,6 +481,7 @@ export async function registerRoutes(
         userEmail: email,
         userName: name || email.split('@')[0],
         userRole: role || "client",
+        tempPassword: tempPassword,
       }, baseUrl, 'fr').catch(err => {
         console.error("Failed to send welcome email:", err);
       });

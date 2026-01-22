@@ -91,7 +91,6 @@ interface UserInfo {
 
 const createUserSchema = z.object({
   email: z.string().email("Valid email required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().optional(),
   role: z.enum(["client", "analyst"]),
   clientId: z.string().optional(),
@@ -149,7 +148,6 @@ export default function UsersPage() {
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       email: "",
-      password: "",
       name: "",
       role: "client",
       clientId: "",
@@ -542,7 +540,9 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>{language === "fr" ? "Créer utilisateur" : "Create User"}</DialogTitle>
             <DialogDescription>
-              {language === "fr" ? "Créez un nouveau compte utilisateur." : "Create a new user account."}
+              {language === "fr" 
+                ? "Un mot de passe temporaire sera généré automatiquement et envoyé par courriel." 
+                : "A temporary password will be auto-generated and sent by email."}
             </DialogDescription>
           </DialogHeader>
           <Form {...createForm}>
@@ -560,20 +560,7 @@ export default function UsersPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={createForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{language === "fr" ? "Mot de passe" : "Password"}</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder={language === "fr" ? "Minimum 8 caractères" : "Minimum 8 characters"} {...field} data-testid="input-user-password" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
+                            <FormField
                 control={createForm.control}
                 name="name"
                 render={({ field }) => (
