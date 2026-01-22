@@ -274,11 +274,12 @@ export function AppSidebar() {
     const handleOpenChange = (open: boolean) => {
       setOpenSections(prev => ({ ...prev, [id]: open }));
       
-      // If opening (not closing), scroll into view after animation completes
+      // If opening (not closing), scroll the expanded content into view after animation completes
       if (open) {
         setTimeout(() => {
-          sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 350);
+          // Scroll to show the end of the section (the expanded content)
+          sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 400);
       }
     };
     
