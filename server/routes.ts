@@ -656,7 +656,16 @@ export async function registerRoutes(
       });
       
       // Send welcome email with new password
-      const emailResult = await sendWelcomeEmail(user.email, user.name || undefined, 'fr', tempPassword);
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'https';
+      const host = req.get('host') || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      const emailResult = await sendWelcomeEmail({
+        userEmail: user.email,
+        userName: user.name || undefined,
+        userRole: user.role,
+        tempPassword,
+      }, baseUrl, 'fr');
       
       if (!emailResult.success) {
         return res.json({ 

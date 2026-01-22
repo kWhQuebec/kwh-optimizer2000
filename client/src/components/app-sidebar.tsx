@@ -276,33 +276,18 @@ export function AppSidebar() {
       
       // If opening (not closing), scroll to show the expanded content
       if (open) {
-        // Use multiple delayed checks to catch when animation completes
-        const checkAndScroll = () => {
+        // Wait for animation to complete then scroll the last item into view
+        setTimeout(() => {
           if (!sectionRef.current) return;
           
-          // Find the scrollable container (SidebarContent)
-          const scrollContainer = sectionRef.current.closest('[data-sidebar="content"]') as HTMLElement;
-          if (!scrollContainer) return;
+          // Find the last menu item in the collapsible content
+          const menuItems = sectionRef.current.querySelectorAll('[data-sidebar="menu-item"]');
+          const lastItem = menuItems[menuItems.length - 1];
           
-          // Get the section's position relative to the scroll container
-          const sectionRect = sectionRef.current.getBoundingClientRect();
-          const containerRect = scrollContainer.getBoundingClientRect();
-          
-          // Calculate if the bottom of section is below the visible area
-          const sectionBottom = sectionRect.bottom;
-          const containerBottom = containerRect.bottom;
-          
-          if (sectionBottom > containerBottom) {
-            // Scroll the container to show the full section
-            const scrollAmount = sectionBottom - containerBottom + 20;
-            scrollContainer.scrollTop += scrollAmount;
+          if (lastItem) {
+            lastItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
-        };
-        
-        // Check at multiple intervals as the animation progresses
-        setTimeout(checkAndScroll, 100);
-        setTimeout(checkAndScroll, 250);
-        setTimeout(checkAndScroll, 400);
+        }, 350);
       }
     };
     
