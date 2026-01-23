@@ -2,25 +2,25 @@ import { sendEmail as sendEmailViaGmail } from "./gmail";
 import { sendEmailViaOutlook } from "./outlook";
 import { renderEmailTemplate } from "./emailTemplates";
 
-// TEMPORARY: Use Gmail as primary while debugging Outlook
-// TODO: Switch back to Outlook once confirmed working
+// Primary: Outlook (info@kwh.quebec), Fallback: Gmail
 async function sendEmail(options: { to: string; subject: string; htmlBody: string; textBody?: string }): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  console.log('[EmailService] Attempting to send via Gmail first (temporary)...');
+  console.log('[EmailService] Attempting to send via Outlook (info@kwh.quebec)...');
   
   try {
-    const gmailResult = await sendEmailViaGmail(options);
-    if (gmailResult.success) {
-      return gmailResult;
+    const outlookResult = await sendEmailViaOutlook(options);
+    if (outlookResult.success) {
+      console.log('[EmailService] Email sent successfully via Outlook');
+      return outlookResult;
     }
-    console.log('[EmailService] Gmail failed, falling back to Outlook...');
-    console.log('[EmailService] Gmail error:', gmailResult.error);
+    console.log('[EmailService] Outlook failed, falling back to Gmail...');
+    console.log('[EmailService] Outlook error:', outlookResult.error);
   } catch (error: any) {
-    console.log('[EmailService] Gmail threw exception, falling back to Outlook...');
+    console.log('[EmailService] Outlook threw exception, falling back to Gmail...');
     console.log('[EmailService] Exception:', error.message);
   }
   
-  // Fallback to Outlook
-  return sendEmailViaOutlook(options);
+  // Fallback to Gmail
+  return sendEmailViaGmail(options);
 }
 
 interface QuickAnalysisData {
