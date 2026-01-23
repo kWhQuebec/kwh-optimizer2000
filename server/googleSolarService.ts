@@ -206,21 +206,10 @@ export async function getBuildingInsights(location: GeoLocation, storage?: IStor
             // Cache hit and not expired
             console.log(`[BuildingInsights] Cache HIT for lat=${roundedLat}, lng=${roundedLng}, hit count: ${(cached.hitCount || 0) + 1}`);
             
-            // Increment hit count
-            await storage.setGoogleSolarCache({
-              latitude: roundedLat,
-              longitude: roundedLng,
-              buildingInsights: cached.buildingInsights,
-              roofAreaSqM: cached.roofAreaSqM,
-              maxArrayAreaSqM: cached.maxArrayAreaSqM,
-              maxPanelCount: cached.maxPanelCount,
-              maxSystemSizeKw: cached.maxSystemSizeKw,
-              yearlyEnergyDcKwh: cached.yearlyEnergyDcKwh,
-              imageryQuality: cached.imageryQuality,
-              imageryDate: cached.imageryDate,
-              expiresAt: cached.expiresAt,
-              hitCount: (cached.hitCount || 0) + 1,
-            });
+            // Increment hit count asynchronously (don't await to avoid blocking response)
+            storage.incrementCacheHitCount(cached.id).catch(err => 
+              console.error("[BuildingInsights] Failed to increment hit count:", err)
+            );
             
             return cached.buildingInsights as BuildingInsights;
           } else {
