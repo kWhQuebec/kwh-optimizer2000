@@ -431,15 +431,15 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Admin access required" });
       }
       
-      const { email, name, role, clientId } = req.body;
+      const { email, name, role, clientId, preferredLanguage } = req.body;
       
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
       
-      // Only allow creating client or analyst roles
-      if (role && !["client", "analyst"].includes(role)) {
-        return res.status(400).json({ error: "Invalid role. Only 'client' or 'analyst' allowed." });
+      // Allow creating admin, client or analyst roles
+      if (role && !["client", "analyst", "admin"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role. Only 'client', 'analyst', or 'admin' allowed." });
       }
       
       // Client users must have a clientId
@@ -477,12 +477,13 @@ export async function registerRoutes(
       const host = req.get('host') || process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
       const baseUrl = `${protocol}://${host}`;
       
+      const emailLang = preferredLanguage === 'en' ? 'en' : 'fr';
       sendWelcomeEmail({
         userEmail: email,
         userName: name || email.split('@')[0],
         userRole: role || "client",
         tempPassword: tempPassword,
-      }, baseUrl, 'fr').catch(err => {
+      }, baseUrl, emailLang).catch(err => {
         console.error("Failed to send welcome email:", err);
       });
       

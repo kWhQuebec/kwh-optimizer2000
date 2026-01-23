@@ -44,6 +44,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -96,8 +97,9 @@ interface UserInfo {
 const createUserSchema = z.object({
   email: z.string().email("Valid email required"),
   name: z.string().optional(),
-  role: z.enum(["client", "analyst"]),
+  role: z.enum(["client", "analyst", "admin"]),
   clientId: z.string().optional(),
+  preferredLanguage: z.enum(["fr", "en"]),
 });
 
 const editUserSchema = z.object({
@@ -165,8 +167,9 @@ export default function UsersPage() {
     defaultValues: {
       email: "",
       name: "",
-      role: "client",
+      role: "analyst",
       clientId: "",
+      preferredLanguage: "fr",
     },
   });
 
@@ -624,6 +627,12 @@ export default function UsersPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="admin">
+                          <span className="flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            Admin
+                          </span>
+                        </SelectItem>
                         <SelectItem value="analyst">
                           <span className="flex items-center gap-2">
                             <BarChart3 className="w-4 h-4" />
@@ -638,6 +647,35 @@ export default function UsersPage() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormDescription className="text-xs">
+                      {field.value === "admin" && (language === "fr" ? "Accès complet: gestion des utilisateurs et paramètres" : "Full access: user and settings management")}
+                      {field.value === "analyst" && (language === "fr" ? "Analyses et gestion des bâtiments/clients" : "Analysis and building/client management")}
+                      {field.value === "client" && (language === "fr" ? "Accès lecture seule à ses propres rapports" : "Read-only access to own reports")}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={createForm.control}
+                name="preferredLanguage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Langue du courriel" : "Email Language"}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-user-language">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="fr">Français</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription className="text-xs">
+                      {language === "fr" ? "Langue du courriel de bienvenue" : "Welcome email language"}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
