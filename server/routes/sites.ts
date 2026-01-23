@@ -127,18 +127,49 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
 
 router.get("/list", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const sites = await storage.getSites();
+    const { limit, offset, search, clientId } = req.query;
+    let sites = await storage.getSites();
+    
+    // Filter by role
     const filtered = req.userRole === "admin" || req.userRole === "analyst"
       ? sites
       : sites.filter(s => s.clientId && s.clientId === req.userId);
-    res.json(filtered.map(s => ({
-      id: s.id,
-      name: s.name,
-      city: s.city,
-      province: s.province,
-      roofEstimateStatus: s.roofEstimateStatus
-    })));
+    
+    // Filter by client if specified
+    let result = clientId && typeof clientId === "string"
+      ? filtered.filter(s => s.clientId === clientId)
+      : filtered;
+    
+    // Filter by search query
+    if (search && typeof search === "string") {
+      const searchLower = search.toLowerCase();
+      result = result.filter(s => 
+        s.name?.toLowerCase().includes(searchLower) ||
+        s.address?.toLowerCase().includes(searchLower) ||
+        s.city?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    const total = result.length;
+    
+    // Apply pagination
+    const limitNum = limit ? parseInt(limit as string, 10) : 50;
+    const offsetNum = offset ? parseInt(offset as string, 10) : 0;
+    const paginated = result.slice(offsetNum, offsetNum + limitNum);
+    
+    res.json({
+      sites: paginated.map(s => ({
+        id: s.id,
+        name: s.name,
+        city: s.city,
+        province: s.province,
+        roofEstimateStatus: s.roofEstimateStatus,
+        clientId: s.clientId
+      })),
+      total
+    });
   } catch (error) {
+    console.error("Error fetching sites list:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
