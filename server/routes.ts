@@ -91,6 +91,7 @@ import partnershipsRouter from "./routes/partnerships";
 import importRouter from "./routes/import";
 import kbRackingRouter from "./routes/kb-racking";
 import workQueueRouter from "./routes/work-queue";
+import rackingComparisonRouter from "./routes/racking-comparison";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -259,6 +260,9 @@ export async function registerRoutes(
 
   // ==================== KB RACKING ROUTES ====================
   app.use(kbRackingRouter);
+
+  // ==================== RACKING COMPARISON ROUTES ====================
+  app.use(rackingComparisonRouter);
 
   // ==================== WORK QUEUE ROUTES ====================
   app.use(workQueueRouter);
