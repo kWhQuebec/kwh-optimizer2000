@@ -535,6 +535,36 @@ function SolarSection({ t }: { t: typeof fr }) {
 
           <h4>{t.solar.kbRacking.comparison.title}</h4>
           <p className="text-sm bg-muted p-3 rounded-lg">{t.solar.kbRacking.comparison.description}</p>
+
+          <h4 className="mt-6">{t.solar.kbRacking.rackingComparison.title}</h4>
+          <p>{t.solar.kbRacking.rackingComparison.description}</p>
+          <div className="overflow-x-auto mt-3">
+            <table className="w-full text-sm border-collapse" data-testid="table-racking-comparison">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">{language === "fr" ? "Système" : "System"}</th>
+                  <th className="text-center p-2">{language === "fr" ? "Rendement" : "Yield"}</th>
+                  <th className="text-center p-2">{language === "fr" ? "Bifacial" : "Bifacial"}</th>
+                  <th className="text-center p-2">DC/AC</th>
+                  <th className="text-center p-2">{language === "fr" ? "Prix" : "Price"}</th>
+                  <th className="text-center p-2">{language === "fr" ? "Densité" : "Density"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {t.solar.kbRacking.rackingComparison.systems.map((sys, i) => (
+                  <tr key={i} className={`border-b ${i === 0 ? 'bg-teal-50/50 dark:bg-teal-950/20' : ''}`} data-testid={`row-racking-${i}`}>
+                    <td className="p-2 font-medium" data-testid={`text-racking-name-${i}`}>{sys.name}</td>
+                    <td className="p-2 text-center"><Badge variant="outline" data-testid={`badge-yield-${i}`}>{sys.yield}</Badge></td>
+                    <td className="p-2 text-center"><Badge variant={sys.bifacial === "0%" ? "secondary" : "default"} data-testid={`badge-bifacial-${i}`}>{sys.bifacial}</Badge></td>
+                    <td className="p-2 text-center" data-testid={`text-dcac-${i}`}>{sys.dcAc}</td>
+                    <td className="p-2 text-center" data-testid={`text-price-${i}`}>{sys.price}</td>
+                    <td className="p-2 text-center" data-testid={`text-density-${i}`}>{sys.density}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-sm text-muted-foreground mt-3 italic" data-testid="text-racking-comparison-note">{t.solar.kbRacking.rackingComparison.note}</p>
         </CardContent>
       </Card>
     </>
@@ -1110,8 +1140,8 @@ const fr = {
       levels: [
         { 
           name: "Rendement de Base", 
-          value: "1000-1200 kWh/kWc", 
-          description: "Rendement variable selon système de racking (KB 10°: 1000, Opsun 25°: 1200)" 
+          value: "1000-1380 kWh/kWc", 
+          description: "Rendement effectif selon racking: KB 10° = 1000, Opsun 20° = 1340, Opsun 25° = 1380 (avec gain bifacial)" 
         },
         { 
           name: "Rendement Brut", 
@@ -1191,6 +1221,18 @@ const fr = {
       comparison: {
         title: "Validation KB Racking",
         description: "Basé sur l'analyse de 18 sites réels, le calcul direct (surface × 85% ÷ 3.71 m² × 625W) donne des résultats à ~6% des designs KB finaux. L'écart s'explique par les ajustements finaux: passages, câblage, obstacles spécifiques.",
+      },
+      rackingComparison: {
+        title: "Comparaison KB vs Opsun",
+        description: "Analyse comparative des systèmes de racking disponibles au Québec, basée sur les données terrain de 6 installations.",
+        systems: [
+          { name: "KB 10° Low Profile", yield: "1000 kWh/kWp", bifacial: "0%", dcAc: "1.6", price: "$0.19/W", density: "Élevée (+27%)" },
+          { name: "Opsun 10° Standard", yield: "1050 kWh/kWp", bifacial: "5%", dcAc: "1.5", price: "$0.34/W", density: "Standard" },
+          { name: "Opsun 15° High Profile", yield: "1232 kWh/kWp", bifacial: "12%", dcAc: "1.4", price: "$0.37/W", density: "-13%" },
+          { name: "Opsun 20° High Profile", yield: "1340 kWh/kWp", bifacial: "17.5%", dcAc: "1.3", price: "$0.39/W", density: "-21%" },
+          { name: "Opsun 25° High Profile", yield: "1380 kWh/kWp", bifacial: "20%", dcAc: "1.2", price: "$0.47/W", density: "-25%" },
+        ],
+        note: "KB 10° offre la meilleure densité (+27% plus de panneaux sur même surface) mais moins de production par panneau. Opsun 20° recommandé par Rematek Énergie pour ROI optimal.",
       },
     },
   },
@@ -1639,8 +1681,8 @@ const en = {
       levels: [
         { 
           name: "Base Yield", 
-          value: "1000-1200 kWh/kWp", 
-          description: "Variable yield based on racking system (KB 10°: 1000, Opsun 25°: 1200)" 
+          value: "1000-1380 kWh/kWp", 
+          description: "Effective yield by racking: KB 10° = 1000, Opsun 20° = 1340, Opsun 25° = 1380 (with bifacial gain)" 
         },
         { 
           name: "Gross Yield", 
@@ -1720,6 +1762,18 @@ const en = {
       comparison: {
         title: "KB Racking Validation",
         description: "Based on analysis of 18 real sites, the direct calculation (area × 85% ÷ 3.71 m² × 625W) yields results within ~6% of final KB designs. The difference is explained by final adjustments: walkways, wiring paths, specific obstacles.",
+      },
+      rackingComparison: {
+        title: "KB vs Opsun Comparison",
+        description: "Comparative analysis of racking systems available in Quebec, based on field data from 6 installations.",
+        systems: [
+          { name: "KB 10° Low Profile", yield: "1000 kWh/kWp", bifacial: "0%", dcAc: "1.6", price: "$0.19/W", density: "High (+27%)" },
+          { name: "Opsun 10° Standard", yield: "1050 kWh/kWp", bifacial: "5%", dcAc: "1.5", price: "$0.34/W", density: "Standard" },
+          { name: "Opsun 15° High Profile", yield: "1232 kWh/kWp", bifacial: "12%", dcAc: "1.4", price: "$0.37/W", density: "-13%" },
+          { name: "Opsun 20° High Profile", yield: "1340 kWh/kWp", bifacial: "17.5%", dcAc: "1.3", price: "$0.39/W", density: "-21%" },
+          { name: "Opsun 25° High Profile", yield: "1380 kWh/kWp", bifacial: "20%", dcAc: "1.2", price: "$0.47/W", density: "-25%" },
+        ],
+        note: "KB 10° offers the best density (+27% more panels on same surface) but less production per panel. Opsun 20° recommended by Rematek Énergie for optimal ROI.",
       },
     },
   },
