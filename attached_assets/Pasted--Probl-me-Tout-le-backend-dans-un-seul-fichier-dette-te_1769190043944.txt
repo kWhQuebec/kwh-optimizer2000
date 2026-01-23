@@ -1,0 +1,684 @@
+**Problème**: Tout le backend dans un seul fichier = dette technique majeure, maintenance difficile, risque de conflits Git, impossible à tester unitairement.
+
+**Refactoring recommandé**:
+```
+server/
+├── routes/
+│   ├── index.ts          # Router principal
+│   ├── auth.ts           # Login, JWT, middleware
+│   ├── leads.ts          # Quick estimate, detailed requests
+│   ├── clients.ts        # CRUD clients
+│   ├── sites.ts          # Sites, roof polygons
+│   ├── analysis.ts       # Analyses, simulations
+│   ├── designs.ts        # BOM, pricing
+│   ├── construction.ts   # Agreements, milestones
+│   ├── om.ts             # O&M contracts, visits
+│   ├── portfolios.ts     # Multi-site aggregation
+│   └── market-intel.ts   # Competitors, battle cards
+├── services/
+│   ├── analysisEngine.ts # Coeur du moteur (extraire de routes.ts)
+│   ├── googleSolar.ts    # API Google Solar (existe déjà)
+│   ├── kbRacking.ts      # Estimateur KB (existe déjà)
+│   ├── pdfGenerator.ts   # Consolidé (existe déjà)
+│   └── emailService.ts   # Gmail API (existe déjà)
+├── jobs/
+│   └── queue.ts          # Bull/BullMQ pour tâches async
+└── middleware/
+    ├── auth.ts
+    ├── validation.ts
+    └── errorHandler.ts
+```
+
+**Effort estimé**: 2-3 jours, impact énorme sur maintenabilité.
+
+---
+
+### 1.2 Opérations Synchrones Bloquantes
+
+**Problème**: `runPotentialAnalysis`, génération PDF, appels Google Solar API - tout synchrone. Un calcul de 30 secondes bloque le serveur entier.
+
+**Solution**: Job queue avec Bull/BullMQ
+
+```typescript
+// server/jobs/analysisQueue.ts
+import Bull from 'bull';
+
+export const analysisQueue = new Bull('analysis', {
+  redis: process.env.REDIS_URL
+});
+
+analysisQueue.process(async (job) => {
+  const { siteId, assumptions } = job.data;
+  const result = await runPotentialAnalysis(siteId, assumptions);
+  await db.update(simulationRuns).set({ 
+    status: 'completed', 
+    results: result 
+  }).where(eq(simulationRuns.id, job.data.runId));
+  return result;
+});
+
+// Dans la route
+app.post('/api/sites/:id/analyze', async (req, res) => {
+  const run = await db.insert(simulationRuns).values({ 
+    status: 'pending', 
+    siteId: req.params.id 
+  }).returning();
+  
+  await analysisQueue.add({ 
+    siteId: req.params.id, 
+    runId: run[0].id,
+    assumptions: req.body 
+  });
+  
+  res.json({ runId: run[0].id, status: 'queued' });
+});
+```
+
+**Bonus**: Ajouter WebSocket pour progress updates en temps réel.
+
+---
+
+### 1.3 Absence de Cache
+
+**Problème**: Google Solar API = lent (~2-5s), rate-limited, coûteux. Chaque appel refait la même requête.
+
+**Solution**: Redis cache avec TTL
+
+```typescript
+// server/services/googleSolarCached.ts
+import Redis from 'ioredis';
+
+const redis = new Redis(process.env.REDIS_URL);
+const CACHE_TTL = 60 * 60 * 24 * 30; // 30 jours (données satellite stables)
+
+export async function getGoogleSolarData(lat: number, lng: number) {
+  const cacheKey = `solar:${lat.toFixed(6)}:${lng.toFixed(6)}`;
+  
+  const cached = await redis.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+  
+  const data = await fetchGoogleSolarAPI(lat, lng);
+  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
+  return data;
+}
+```
+
+**ROI**: Réduction 80%+ des appels API, temps de réponse 50ms vs 3s.
+
+---
+
+## 2. MOTEUR D'ANALYSE - Améliorations
+
+### 2.1 Algorithme de Déduplication
+
+**Code actuel** (bon concept, mais fragile):
+```typescript
+function deduplicateMeterReadingsByHour(readings) {
+  // Bucket par heure, préfère HOUR sur FIFTEEN_MIN
+}
+```
+
+**Problèmes identifiés**:
+- Pas de validation des timestamps (NaN, dates invalides)
+- Pas de détection des gaps > 24h
+- Pas de rapport de qualité des données
+
+**Amélioration**:
+```typescript
+interface DataQualityReport {
+  totalReadings: number;
+  duplicatesRemoved: number;
+  gapsDetected: { start: Date; end: Date; hours: number }[];
+  interpolatedHours: number;
+  coveragePercent: number;
+  warnings: string[];
+}
+
+function deduplicateWithQualityReport(readings): { 
+  deduplicated: Reading[]; 
+  quality: DataQualityReport 
+} {
+  // ... déduplication existante ...
+  
+  // Ajouter: détection des gaps
+  const gaps = detectGaps(deduplicated, 24); // gap > 24h
+  
+  // Ajouter: calcul de couverture
+  const coverage = deduplicated.length / expectedHoursInPeriod * 100;
+  
+  return {
+    deduplicated,
+    quality: {
+      totalReadings: readings.length,
+      duplicatesRemoved: readings.length - deduplicated.length,
+      gapsDetected: gaps,
+      coveragePercent: coverage,
+      warnings: coverage < 80 ? ['Couverture données < 80%'] : []
+    }
+  };
+}
+```
+
+---
+
+### 2.2 Yield Strategy - Incohérences
+
+**Problème actuel**: Trois sources de yield (Google Solar, manuel, default 1150) avec logique de fallback dispersée.
+
+**Issue spécifique**: Le code applique parfois la correction de température même quand Google Solar a déjà inclus les données météo → double correction.
+
+**Fix**:
+```typescript
+interface YieldStrategy {
+  source: 'google_solar' | 'manual' | 'default';
+  baseYield: number;           // kWh/kWp/an
+  skipTempCorrection: boolean; // true si déjà weather-adjusted
+  bifacialBoost: number;       // 0 ou 0.15 (15%)
+  confidence: 'high' | 'medium' | 'low';
+}
+
+function resolveYieldStrategy(site, assumptions): YieldStrategy {
+  // Google Solar disponible ET récent (< 1 an)
+  if (site.googleSolarData?.yearlyEnergy && 
+      isRecent(site.googleSolarDataFetchedAt, 365)) {
+    return {
+      source: 'google_solar',
+      baseYield: site.googleSolarData.yearlyEnergy / site.googleSolarData.panelCapacity,
+      skipTempCorrection: true,  // CRITIQUE: éviter double correction
+      bifacialBoost: site.roofColor === 'white' ? 0.15 : 0,
+      confidence: 'high'
+    };
+  }
+  
+  // Manuel spécifié par l'utilisateur
+  if (assumptions.manualYield) {
+    return {
+      source: 'manual',
+      baseYield: assumptions.manualYield,
+      skipTempCorrection: assumptions.yieldIncludesWeather ?? false,
+      bifacialBoost: assumptions.bifacialBoost ?? 0,
+      confidence: 'medium'
+    };
+  }
+  
+  // Default Québec
+  return {
+    source: 'default',
+    baseYield: 1150,
+    skipTempCorrection: false,  // Appliquer correction
+    bifacialBoost: site.roofColor === 'white' ? 0.15 : 0,
+    confidence: 'low'
+  };
+}
+```
+
+---
+
+### 2.3 Simulation Horaire - Optimisations
+
+**Problème**: Boucle 8760 heures × multiples scénarios sensitivity = lent.
+
+**Optimisations**:
+
+1. **Pré-calculer les profils solaires**:
+```typescript
+// Calculer UNE fois le profil normalisé 8760h
+const normalizedSolarProfile = generateSolarProfile(latitude);
+
+// Réutiliser avec scaling pour chaque taille PV
+function simulateScenario(pvKw: number, batteryKwh: number) {
+  return normalizedSolarProfile.map((factor, hour) => ({
+    production: factor * pvKw,
+    // ... reste de la logique
+  }));
+}
+```
+
+2. **Paralléliser les scénarios**:
+```typescript
+import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+
+// Sensitivity analysis: 20 scénarios solaires × 20 batterie = 400 scénarios
+// Diviser en chunks de 50, exécuter en parallèle sur 8 workers
+const scenarios = generateScenarioGrid(pvRange, batteryRange);
+const chunks = chunkArray(scenarios, 50);
+
+const results = await Promise.all(
+  chunks.map(chunk => runInWorker(chunk))
+);
+```
+
+3. **Early termination pour scénarios non-viables**:
+```typescript
+// Si NPV négatif à year 5 avec tendance négative, skip le reste
+if (year === 5 && cumulativeCashflow < 0 && yearlyDelta < 0) {
+  return { viable: false, reason: 'NPV trajectory negative' };
+}
+```
+
+---
+
+## 3. MODÈLE FINANCIER - Corrections
+
+### 3.1 Bug Potentiel: HQ Incentives
+
+**Code actuel** (potentiel):
+```typescript
+const hqIncentive = Math.min(pvKw * 1000, capex * 0.4, 1000000);
+```
+
+**Problème**: Le programme d'autoproduction HQ a évolué:
+- ~~Batteries: discontinué décembre 2024~~
+- Solar: $1000/kW, plafonné à **1 MW** (pas juste 40% CAPEX)
+- Net metering surplus: 4.54¢/kWh après **24 mois** d'accumulation
+
+**Fix**:
+```typescript
+function calculateHQIncentives(pvKw: number, batteryKwh: number, capex: number, installDate: Date) {
+  // Solar incentive
+  const solarIncentive = Math.min(
+    pvKw * 1000,           // $1000/kW
+    capex * 0.4,           // Max 40% du CAPEX
+    1000 * 1000            // Max 1 MW = $1M
+  );
+  
+  // Battery incentive - DISCONTINUÉ
+  const batteryIncentive = installDate < new Date('2024-12-01') 
+    ? Math.min(batteryKwh * 150, capex * 0.2)  // Ancien programme
+    : 0;  // Plus disponible
+  
+  return {
+    solar: solarIncentive,
+    battery: batteryIncentive,
+    total: solarIncentive + batteryIncentive,
+    warnings: batteryKwh > 0 && batteryIncentive === 0 
+      ? ['Incitatif batterie HQ discontinué depuis décembre 2024'] 
+      : []
+  };
+}
+```
+
+### 3.2 Net Metering - Surplus Mal Calculé
+
+**Problème identifié**: Le surplus compensé à 4.54¢/kWh démarre après **24 mois** d'accumulation, pas immédiatement.
+
+**Fix dans les cashflows**:
+```typescript
+function calculateYearlySavings(year: number, surplus: number) {
+  const surplusRate = 0.0454; // $/kWh
+  
+  // Years 1-2: surplus accumulates, no revenue
+  if (year <= 2) {
+    return {
+      gridSavings: selfConsumedEnergy * gridRate,
+      surplusRevenue: 0,
+      accumulatedSurplus: surplus  // Track for year 3
+    };
+  }
+  
+  // Year 3+: receive surplus compensation
+  return {
+    gridSavings: selfConsumedEnergy * gridRate,
+    surplusRevenue: surplus * surplusRate,
+    accumulatedSurplus: 0
+  };
+}
+```
+
+---
+
+## 4. BASE DE DONNÉES - Optimisations
+
+### 4.1 Index Manquants Critiques
+
+```sql
+-- meterReadings: requêtes par site et timestamp
+CREATE INDEX idx_meter_readings_site_timestamp 
+ON meter_readings(site_id, timestamp DESC);
+
+-- simulationRuns: lookup par site et status
+CREATE INDEX idx_simulation_runs_site_status 
+ON simulation_runs(site_id, status);
+
+-- Heavy JSON fields: index GIN pour queries JSONB
+CREATE INDEX idx_simulation_results_gin 
+ON simulation_runs USING GIN (results jsonb_path_ops);
+```
+
+### 4.2 Partitioning pour meterReadings
+
+**Problème**: Table va croître massivement (8760 readings/site/an).
+
+```sql
+-- Partitionner par mois
+CREATE TABLE meter_readings (
+  id SERIAL,
+  site_id INTEGER,
+  timestamp TIMESTAMPTZ,
+  consumption DECIMAL,
+  PRIMARY KEY (id, timestamp)
+) PARTITION BY RANGE (timestamp);
+
+-- Créer partitions automatiquement
+CREATE TABLE meter_readings_2024_01 
+  PARTITION OF meter_readings 
+  FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
+-- ... etc
+```
+
+### 4.3 Archivage des Anciens Runs
+
+```typescript
+// Cron job: archiver runs > 6 mois vers cold storage
+async function archiveOldRuns() {
+  const cutoff = subMonths(new Date(), 6);
+  
+  const oldRuns = await db.select()
+    .from(simulationRuns)
+    .where(lt(simulationRuns.createdAt, cutoff));
+  
+  // Sauvegarder vers S3/GCS
+  await uploadToStorage(`archives/runs-${format(cutoff, 'yyyy-MM')}.json`, oldRuns);
+  
+  // Supprimer de la DB active (garder metadata)
+  await db.update(simulationRuns)
+    .set({ results: null, archived: true })
+    .where(lt(simulationRuns.createdAt, cutoff));
+}
+```
+
+---
+
+## 5. FRONTEND - Quick Wins
+
+### 5.1 Code Splitting (Impact Immédiat)
+
+**Problème**: 45+ pages bundled ensemble = chargement initial lent.
+
+```typescript
+// client/src/App.tsx
+import { lazy, Suspense } from 'react';
+
+// Lazy load les pages lourdes
+const AnalyseDetaillee = lazy(() => import('./pages/analyse-detaillee'));
+const SiteDetail = lazy(() => import('./pages/site-detail'));
+const MarketIntelligence = lazy(() => import('./pages/market-intelligence'));
+
+function App() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <Router>
+        <Route path="/analyse/:id" component={AnalyseDetaillee} />
+        {/* ... */}
+      </Router>
+    </Suspense>
+  );
+}
+```
+
+### 5.2 State Management
+
+**Problème potentiel**: Prop drilling sur 45 pages = maintenance difficile.
+
+**Solution légère**: Zustand (pas besoin de Redux)
+
+```typescript
+// client/src/stores/analysisStore.ts
+import { create } from 'zustand';
+
+interface AnalysisStore {
+  currentSite: Site | null;
+  analysisResults: AnalysisResult | null;
+  isAnalyzing: boolean;
+  setSite: (site: Site) => void;
+  runAnalysis: (assumptions: Assumptions) => Promise<void>;
+}
+
+export const useAnalysisStore = create<AnalysisStore>((set, get) => ({
+  currentSite: null,
+  analysisResults: null,
+  isAnalyzing: false,
+  
+  setSite: (site) => set({ currentSite: site }),
+  
+  runAnalysis: async (assumptions) => {
+    set({ isAnalyzing: true });
+    const result = await api.post(`/sites/${get().currentSite.id}/analyze`, assumptions);
+    set({ analysisResults: result, isAnalyzing: false });
+  }
+}));
+```
+
+---
+
+## 6. SÉCURITÉ - Gaps Critiques
+
+### 6.1 Input Validation
+
+**Problème**: Pas de validation Zod côté serveur visible.
+
+```typescript
+// shared/validators.ts
+import { z } from 'zod';
+
+export const AnalysisAssumptionsSchema = z.object({
+  pvSizeKw: z.number().min(0).max(10000),
+  batterySizeKwh: z.number().min(0).max(50000),
+  batteryPowerKw: z.number().min(0).max(10000),
+  degradationRate: z.number().min(0).max(0.02).default(0.005),
+  discountRate: z.number().min(0).max(0.20).default(0.08),
+  inflationRate: z.number().min(0).max(0.10).default(0.02),
+  // ... etc
+});
+
+// Dans la route
+app.post('/api/sites/:id/analyze', async (req, res) => {
+  const validated = AnalysisAssumptionsSchema.parse(req.body);
+  // ... utiliser validated
+});
+```
+
+### 6.2 Rate Limiting
+
+```typescript
+import rateLimit from 'express-rate-limit';
+
+// Public endpoints (quick estimate)
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 10,
+  message: 'Trop de requêtes, réessayez dans 15 minutes'
+});
+
+// Authenticated endpoints
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 min
+  max: 100
+});
+
+app.use('/api/public', publicLimiter);
+app.use('/api', authMiddleware, authLimiter);
+```
+
+### 6.3 Audit Logging
+
+```typescript
+// server/middleware/audit.ts
+async function auditLog(req, res, next) {
+  const start = Date.now();
+  
+  res.on('finish', async () => {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      await db.insert(auditLogs).values({
+        userId: req.user?.id,
+        action: `${req.method} ${req.path}`,
+        resourceType: extractResourceType(req.path),
+        resourceId: req.params.id,
+        changes: req.body,
+        ipAddress: req.ip,
+        duration: Date.now() - start,
+        statusCode: res.statusCode
+      });
+    }
+  });
+  
+  next();
+}
+```
+
+---
+
+## 7. TESTS - Priorités
+
+### 7.1 Tests Unitaires Critiques (À Faire IMMÉDIATEMENT)
+
+```typescript
+// server/__tests__/deduplication.test.ts
+describe('deduplicateMeterReadingsByHour', () => {
+  it('should prefer HOUR over FIFTEEN_MIN for same timestamp', () => {
+    const readings = [
+      { timestamp: '2024-01-01T10:00:00', consumption: 100, granularity: 'HOUR' },
+      { timestamp: '2024-01-01T10:00:00', consumption: 25, granularity: 'FIFTEEN_MIN' },
+      { timestamp: '2024-01-01T10:15:00', consumption: 25, granularity: 'FIFTEEN_MIN' },
+    ];
+    
+    const result = deduplicateMeterReadingsByHour(readings);
+    expect(result).toHaveLength(1);
+    expect(result[0].consumption).toBe(100); // HOUR, not sum of FIFTEEN_MIN
+  });
+  
+  it('should aggregate FIFTEEN_MIN when no HOUR exists', () => {
+    const readings = [
+      { timestamp: '2024-01-01T10:00:00', consumption: 25, granularity: 'FIFTEEN_MIN' },
+      { timestamp: '2024-01-01T10:15:00', consumption: 25, granularity: 'FIFTEEN_MIN' },
+      { timestamp: '2024-01-01T10:30:00', consumption: 25, granularity: 'FIFTEEN_MIN' },
+      { timestamp: '2024-01-01T10:45:00', consumption: 25, granularity: 'FIFTEEN_MIN' },
+    ];
+    
+    const result = deduplicateMeterReadingsByHour(readings);
+    expect(result).toHaveLength(1);
+    expect(result[0].consumption).toBe(100); // Sum of 4 × 25
+  });
+});
+
+// server/__tests__/financials.test.ts
+describe('NPV calculation', () => {
+  it('should match Excel NPV for known cashflows', () => {
+    const cashflows = [-100000, 15000, 15000, 15000, 15000, 15000];
+    const discountRate = 0.08;
+    
+    const npv = calculateNPV(cashflows, discountRate);
+    expect(npv).toBeCloseTo(-40130.63, 0); // Verified in Excel
+  });
+});
+
+describe('IRR calculation', () => {
+  it('should find correct IRR for solar project', () => {
+    // Typical 25-year solar cashflow
+    const cashflows = [-150000, ...Array(25).fill(12000)];
+    
+    const irr = calculateIRR(cashflows);
+    expect(irr).toBeCloseTo(0.0545, 3); // ~5.45%
+  });
+});
+```
+
+### 7.2 Integration Tests
+
+```typescript
+// server/__tests__/integration/analysis.test.ts
+describe('Full analysis workflow', () => {
+  it('should complete analysis with valid meter data', async () => {
+    // Setup
+    const site = await createTestSite();
+    await uploadTestMeterData(site.id, 'sample_data/hourly_2023.csv');
+    
+    // Execute
+    const response = await request(app)
+      .post(`/api/sites/${site.id}/analyze`)
+      .send({ pvSizeKw: 100, batterySizeKwh: 0 })
+      .set('Authorization', `Bearer ${testToken}`);
+    
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.body.results.npv25).toBeGreaterThan(0);
+    expect(response.body.results.irr).toBeGreaterThan(0.05);
+    expect(response.body.results.paybackYears).toBeLessThan(15);
+  });
+});
+```
+
+---
+
+## 8. FONCTIONNALITÉS MANQUANTES - Roadmap
+
+### 8.1 Haute Priorité (Impact Business Immédiat)
+
+| Feature | Effort | Impact | Détails |
+|---------|--------|--------|---------|
+| **Tarif M avec demand charges** | 3j | Élevé | Actuellement seulement tarif G simulé correctement |
+| **Export Excel des analyses** | 1j | Moyen | Clients veulent manipuler les données |
+| **Comparaison côte-à-côte** | 2j | Élevé | Comparer 2-3 scénarios visuellement |
+| **Webhook pour CRM** | 1j | Moyen | Intégration Hubspot/Pipedrive |
+
+### 8.2 Moyenne Priorité (Différenciation)
+
+| Feature | Effort | Impact | Détails |
+|---------|--------|--------|---------|
+| **Prévision météo** | 3j | Moyen | Ajuster yield selon météo prochains jours |
+| **Monitoring production** | 5j | Élevé | Intégrer données inverter (SolarEdge, Enphase) |
+| **Carbon credits tracking** | 2j | Moyen | Calculer et tracker crédits carbone |
+| **Multi-tenant** | 5j | Élevé | Partenaires avec leur propre branding |
+
+### 8.3 Nice-to-Have
+
+| Feature | Effort | Impact |
+|---------|--------|--------|
+| Mobile app (React Native) | 10j | Moyen |
+| Voice interface (Alexa/Google) | 3j | Faible |
+| Blockchain pour crédits carbone | 5j | Faible |
+
+---
+
+## 9. QUICK WINS - Actions Immédiates (< 1 jour chacun)
+
+1. **Ajouter index DB** - 30 min, gain performance 50%+
+2. **Rate limiting endpoints publics** - 1h, sécurité critique
+3. **Lazy loading pages frontend** - 2h, UX améliorée
+4. **Test unitaire déduplication** - 2h, filet de sécurité
+5. **Fix double correction température** - 1h, précision améliorée
+6. **Cache Google Solar en mémoire** - 1h, réduction coûts API
+7. **Validation Zod sur analyse** - 2h, robustesse
+
+---
+
+## 10. PROCURATION HQ - ALERTE CRITIQUE
+
+**Dans le code**:
+```typescript
+// TESTING ONLY - must change before production
+const recipient = 'info@kwh.quebec';
+```
+
+**Action requise**: Changer pour l'adresse officielle HQ avant mise en production. Sinon les procurations n'arriveront jamais à Hydro-Québec.
+
+---
+
+## Prochaines Étapes Recommandées
+
+**Semaine 1**:
+1. Implémenter les quick wins (index, rate limiting, validation)
+2. Extraire le moteur d'analyse en module séparé
+3. Ajouter tests unitaires critiques
+
+**Semaine 2**:
+4. Setup Redis cache pour Google Solar API
+5. Implémenter job queue pour analyses async
+6. Code splitting frontend
+
+**Semaine 3-4**:
+7. Tarif M avec demand charges
+8. Export Excel
+9. Comparaison scénarios côte-à-côte
+
+Tu veux que j'approfondisse un de ces points ou que je génère du code pour une implémentation spécifique?
