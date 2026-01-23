@@ -2026,11 +2026,14 @@ export interface AnalysisAssumptions {
   tariffPower: number;       // $/kW/month - default 17.57 (M tariff)
   
   // Solar production parameters
-  solarYieldKWhPerKWp: number; // kWh/kWp/year - default 1150, can be overridden with Google Solar data
+  solarYieldKWhPerKWp: number; // kWh/kWp/year - default 1100, based on racking config
   orientationFactor: number;   // 0-1 multiplier for roof orientation (1.0 = optimal south-facing)
   
+  // Racking configuration (Jan 2026 - KB vs Opsun analysis)
+  rackingSystemType?: RackingSystemType; // Racking system type - affects yield, bifacial gain, DC/AC ratio
+  
   // Helioscope-inspired system modeling
-  inverterLoadRatio: number;     // DC/AC ratio (ILR) - default 1.2, typical range 1.1-1.5
+  inverterLoadRatio: number;     // DC/AC ratio (ILR) - default 1.4, adjusted by racking config (1.2-1.6)
   temperatureCoefficient: number; // Power temp coefficient %/°C - default -0.004 (-0.4%/°C)
   wireLossPercent: number;       // DC wiring losses - default 0.02 (2%)
   degradationRatePercent: number; // Annual module degradation - default 0.005 (0.5%/year)
@@ -2088,11 +2091,15 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   tariffCode: "M", // Default to Medium Power tariff
   tariffEnergy: 0.06061, // Tarif M 2025: 6.061¢/kWh (tier 1)
   tariffPower: 17.573, // Tarif M 2025: $17.573/kW
-  solarYieldKWhPerKWp: 1150, // Quebec average: 1100-1200 kWh/kWp/year
+  solarYieldKWhKWp: 1100, // Quebec field data: 1000-1150 kWh/kWp depending on racking (see RackingConfig)
+  solarYieldKWhPerKWp: 1100, // Alias for backward compatibility
   orientationFactor: 1.0, // 1.0 = optimal south-facing, reduced for E/W orientations
   
+  // Racking system configuration (new - Jan 2026)
+  rackingSystemType: 'kb_10_low' as RackingSystemType, // Default to KB Racking 10° low profile
+  
   // Helioscope-inspired system modeling defaults
-  inverterLoadRatio: 1.2, // DC/AC ratio - typical 1.1-1.5, default 1.2
+  inverterLoadRatio: 1.4, // DC/AC ratio - adjusted based on bifacial gain (1.2-1.6)
   temperatureCoefficient: -0.004, // -0.4%/°C typical for crystalline Si
   wireLossPercent: 0.0, // 0% for free analysis stage (re-enable for detailed design)
   degradationRatePercent: 0.005, // 0.5% annual degradation
@@ -2267,6 +2274,173 @@ export interface SensitivityAnalysis {
   batterySweep: BatterySweepPoint[]; // Battery optimization curve
   optimalScenarioId: string | null;  // ID of the optimal scenario
   optimalScenarios?: OptimalScenarios; // Multi-objective optimization results
+}
+
+// ==================== RACKING CONFIGURATION ====================
+
+/**
+ * Racking system types with production and bifacial characteristics
+ * Based on analysis by James Pagonis (Scale) and Mike Perrault (Rematek) - Jan 2026
+ */
+export type RackingSystemType = 
+  | 'kb_10_low'      // KB Racking 10° landscape, low profile (standard)
+  | 'opsun_10'       // Opsun 10° standard profile
+  | 'opsun_15_high'  // Opsun 15° high profile (12")
+  | 'opsun_20_high'  // Opsun 20° high profile (18") - recommended for bifacial
+  | 'opsun_25_high'  // Opsun 25° high profile
+  | 'custom';        // Custom configuration
+
+export interface RackingConfig {
+  type: RackingSystemType;
+  angle: number;                    // Tilt angle in degrees
+  profile: 'low' | 'standard' | 'high';  // Height above roof
+  profileHeightInches: number;      // Approximate height above roof
+  manufacturer: string;
+  pricePerWatt: number;             // $/W for racking only
+  ballastPerWatt: number;           // $/W for ballast
+  densityFactor: number;            // 1.0 = baseline, <1 = fewer panels fit
+  bifacialGainPercent: number;      // 0-20% additional production from bifacial
+  baseYieldKWhKWp: number;          // Base production without bifacial (Quebec)
+  effectiveYieldKWhKWp: number;     // With bifacial gain applied
+  recommendedDcAcRatio: number;     // Recommended DC/AC ratio
+  description: { fr: string; en: string };
+}
+
+/**
+ * Get racking configuration by system type
+ * Production values based on Quebec field data (6 installations - Mike Perrault)
+ */
+export function getRackingConfig(type: RackingSystemType): RackingConfig {
+  switch (type) {
+    case 'kb_10_low':
+      return {
+        type: 'kb_10_low',
+        angle: 10,
+        profile: 'low',
+        profileHeightInches: 4,
+        manufacturer: 'KB Racking',
+        pricePerWatt: 0.19,
+        ballastPerWatt: 0.03,
+        densityFactor: 1.0,           // Baseline - highest density
+        bifacialGainPercent: 0,       // Low profile = minimal bifacial benefit
+        baseYieldKWhKWp: 1000,        // Quebec field data for 10° low profile
+        effectiveYieldKWhKWp: 1000,   // No bifacial gain
+        recommendedDcAcRatio: 1.6,
+        description: {
+          fr: 'KB Racking 10° paysage, profil bas - Densité maximale, coût minimal',
+          en: 'KB Racking 10° landscape, low profile - Maximum density, lowest cost'
+        }
+      };
+    case 'opsun_10':
+      return {
+        type: 'opsun_10',
+        angle: 10,
+        profile: 'standard',
+        profileHeightInches: 8,
+        manufacturer: 'Opsun Systems',
+        pricePerWatt: 0.34,
+        ballastPerWatt: 0.02,
+        densityFactor: 0.99,
+        bifacialGainPercent: 5,
+        baseYieldKWhKWp: 1000,
+        effectiveYieldKWhKWp: 1050,
+        recommendedDcAcRatio: 1.5,
+        description: {
+          fr: 'Opsun 10° standard - Compromis densité/production',
+          en: 'Opsun 10° standard - Density/production compromise'
+        }
+      };
+    case 'opsun_15_high':
+      return {
+        type: 'opsun_15_high',
+        angle: 15,
+        profile: 'high',
+        profileHeightInches: 12,
+        manufacturer: 'Opsun Systems',
+        pricePerWatt: 0.37,
+        ballastPerWatt: 0.02,
+        densityFactor: 0.87,          // ~13% fewer panels
+        bifacialGainPercent: 12,
+        baseYieldKWhKWp: 1100,
+        effectiveYieldKWhKWp: 1232,   // 1100 * 1.12
+        recommendedDcAcRatio: 1.35,
+        description: {
+          fr: 'Opsun 15° haut profil (12") - Bon gain bifacial',
+          en: 'Opsun 15° high profile (12") - Good bifacial gain'
+        }
+      };
+    case 'opsun_20_high':
+      return {
+        type: 'opsun_20_high',
+        angle: 20,
+        profile: 'high',
+        profileHeightInches: 18,
+        manufacturer: 'Opsun Systems',
+        pricePerWatt: 0.39,
+        ballastPerWatt: 0.03,
+        densityFactor: 0.79,          // ~21% fewer panels
+        bifacialGainPercent: 17.5,
+        baseYieldKWhKWp: 1140,
+        effectiveYieldKWhKWp: 1340,   // 1140 * 1.175
+        recommendedDcAcRatio: 1.2,
+        description: {
+          fr: 'Opsun 20° haut profil (18") - Recommandé pour bifacial (meilleur ROI)',
+          en: 'Opsun 20° high profile (18") - Recommended for bifacial (best ROI)'
+        }
+      };
+    case 'opsun_25_high':
+      return {
+        type: 'opsun_25_high',
+        angle: 25,
+        profile: 'high',
+        profileHeightInches: 20,
+        manufacturer: 'Opsun Systems',
+        pricePerWatt: 0.47,
+        ballastPerWatt: 0.03,
+        densityFactor: 0.75,          // ~25% fewer panels
+        bifacialGainPercent: 20,
+        baseYieldKWhKWp: 1150,
+        effectiveYieldKWhKWp: 1380,   // 1150 * 1.20
+        recommendedDcAcRatio: 1.15,
+        description: {
+          fr: 'Opsun 25° haut profil - Gain bifacial maximum, densité réduite',
+          en: 'Opsun 25° high profile - Maximum bifacial gain, reduced density'
+        }
+      };
+    case 'custom':
+    default:
+      return {
+        type: 'custom',
+        angle: 10,
+        profile: 'low',
+        profileHeightInches: 4,
+        manufacturer: 'Custom',
+        pricePerWatt: 0.25,
+        ballastPerWatt: 0.03,
+        densityFactor: 1.0,
+        bifacialGainPercent: 0,
+        baseYieldKWhKWp: 1100,
+        effectiveYieldKWhKWp: 1100,
+        recommendedDcAcRatio: 1.6,
+        description: {
+          fr: 'Configuration personnalisée',
+          en: 'Custom configuration'
+        }
+      };
+  }
+}
+
+/**
+ * Get all available racking configurations for comparison
+ */
+export function getAllRackingConfigs(): RackingConfig[] {
+  return [
+    getRackingConfig('kb_10_low'),
+    getRackingConfig('opsun_10'),
+    getRackingConfig('opsun_15_high'),
+    getRackingConfig('opsun_20_high'),
+    getRackingConfig('opsun_25_high'),
+  ];
 }
 
 // ==================== BIFACIAL CONFIGURATION BY ROOF COLOR ====================
