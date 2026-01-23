@@ -726,6 +726,19 @@ export class DatabaseStorage implements IStorage {
       estimatedValue: number | null;
       updatedAt: Date | null;
     }>;
+    pendingTasks: Array<{
+      id: string;
+      siteId: string;
+      siteName: string;
+      clientName: string | null;
+      taskType: 'roof_drawing' | 'run_analysis';
+      priority: 'urgent' | 'normal';
+    }>;
+    pendingTasksCount: {
+      roofDrawing: number;
+      runAnalysis: number;
+      total: number;
+    };
   }> {
     const STAGE_PROBABILITIES: Record<string, number> = {
       prospect: 5,
@@ -918,6 +931,61 @@ export class DatabaseStorage implements IStorage {
         updatedAt: o.updatedAt,
       }));
 
+    // Pending tasks from work queue (sites needing action)
+    const allSites = await db.select({
+      id: sites.id,
+      name: sites.name,
+      clientId: sites.clientId,
+      roofAreaValidated: sites.roofAreaValidated,
+      quickAnalysisCompletedAt: sites.quickAnalysisCompletedAt,
+      workQueuePriority: sites.workQueuePriority,
+    }).from(sites);
+
+    const pendingTasks: Array<{
+      id: string;
+      siteId: string;
+      siteName: string;
+      clientName: string | null;
+      taskType: 'roof_drawing' | 'run_analysis';
+      priority: 'urgent' | 'normal';
+    }> = [];
+
+    let roofDrawingCount = 0;
+    let runAnalysisCount = 0;
+
+    for (const site of allSites) {
+      if (!site.roofAreaValidated) {
+        roofDrawingCount++;
+        pendingTasks.push({
+          id: `roof-${site.id}`,
+          siteId: site.id,
+          siteName: site.name,
+          clientName: site.clientId ? clientMap.get(site.clientId) || null : null,
+          taskType: 'roof_drawing',
+          priority: site.workQueuePriority === 'urgent' ? 'urgent' : 'normal',
+        });
+      } else if (!site.quickAnalysisCompletedAt) {
+        runAnalysisCount++;
+        pendingTasks.push({
+          id: `analysis-${site.id}`,
+          siteId: site.id,
+          siteName: site.name,
+          clientName: site.clientId ? clientMap.get(site.clientId) || null : null,
+          taskType: 'run_analysis',
+          priority: site.workQueuePriority === 'urgent' ? 'urgent' : 'normal',
+        });
+      }
+    }
+
+    // Sort by priority (urgent first), then limit to 5 for dashboard display
+    const sortedTasks = pendingTasks
+      .sort((a, b) => {
+        if (a.priority === 'urgent' && b.priority !== 'urgent') return -1;
+        if (a.priority !== 'urgent' && b.priority === 'urgent') return 1;
+        return 0;
+      })
+      .slice(0, 5);
+
     return {
       totalPipelineValue,
       weightedPipelineValue,
@@ -932,6 +1000,12 @@ export class DatabaseStorage implements IStorage {
       topOpportunities,
       atRiskOpportunities,
       recentWins,
+      pendingTasks: sortedTasks,
+      pendingTasksCount: {
+        roofDrawing: roofDrawingCount,
+        runAnalysis: runAnalysisCount,
+        total: roofDrawingCount + runAnalysisCount,
+      },
     };
   }
 

@@ -18,7 +18,9 @@ import {
   FileCheck,
   X,
   Package,
-  CheckCircle2
+  CheckCircle2,
+  ClipboardList,
+  Grid3X3
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +80,19 @@ interface PipelineStats {
     estimatedValue: number | null;
     updatedAt: Date | null;
   }>;
+  pendingTasks: Array<{
+    id: string;
+    siteId: string;
+    siteName: string;
+    clientName: string | null;
+    taskType: 'roof_drawing' | 'run_analysis';
+    priority: 'urgent' | 'normal';
+  }>;
+  pendingTasksCount: {
+    roofDrawing: number;
+    runAnalysis: number;
+    total: number;
+  };
 }
 
 const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
@@ -520,11 +535,11 @@ export default function DashboardPage() {
           loading={isLoading}
         />
         <StatCard
-          title={language === 'fr' ? 'À risque' : 'At Risk'}
-          value={stats?.atRiskOpportunities.length || 0}
-          subtitle={language === 'fr' ? 'Inactives >30 jours' : 'Inactive >30 days'}
-          icon={AlertTriangle}
-          iconBg={stats?.atRiskOpportunities.length ? "bg-orange-500" : "bg-muted"}
+          title={language === 'fr' ? 'Tâches' : 'Tasks'}
+          value={stats?.pendingTasksCount?.total || 0}
+          subtitle={language === 'fr' ? 'À compléter' : 'To complete'}
+          icon={ClipboardList}
+          iconBg={stats?.pendingTasksCount?.total ? "bg-orange-500" : "bg-green-500"}
           loading={isLoading}
         />
       </div>
@@ -652,14 +667,14 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              {language === 'fr' ? 'Opportunités à risque' : 'At-Risk Opportunities'}
-              {stats?.atRiskOpportunities && stats.atRiskOpportunities.length > 0 && (
-                <Badge variant="destructive" className="text-xs">
-                  {stats.atRiskOpportunities.length}
+              {language === 'fr' ? 'Tâches à faire' : 'To-Do List'}
+              {stats?.pendingTasksCount && stats.pendingTasksCount.total > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {stats.pendingTasksCount.total}
                 </Badge>
               )}
             </CardTitle>
-            <AlertTriangle className="w-4 h-4 text-orange-500" />
+            <ClipboardList className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -674,28 +689,51 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            ) : stats?.atRiskOpportunities && stats.atRiskOpportunities.length > 0 ? (
-              <div className="divide-y">
-                {stats.atRiskOpportunities.map((opp) => (
-                  <OpportunityRow
-                    key={opp.id}
-                    id={opp.id}
-                    name={opp.name}
-                    clientName={opp.clientName}
-                    value={opp.estimatedValue}
-                    stage={opp.stage}
-                    badge={`${opp.daysSinceUpdate}j`}
-                    badgeVariant="destructive"
-                    href="/app/pipeline"
-                  />
+            ) : stats?.pendingTasks && stats.pendingTasks.length > 0 ? (
+              <div className="space-y-3">
+                {stats.pendingTasks.map((task) => (
+                  <Link key={task.id} href={`/app/sites/${task.siteId}`}>
+                    <div className="flex items-center gap-3 p-2 rounded-lg hover-elevate cursor-pointer" data-testid={`task-item-${task.siteId}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        task.taskType === 'roof_drawing' ? 'bg-orange-100 dark:bg-orange-950' : 'bg-blue-100 dark:bg-blue-950'
+                      }`}>
+                        {task.taskType === 'roof_drawing' ? (
+                          <Grid3X3 className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        ) : (
+                          <Play className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{task.siteName}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {task.taskType === 'roof_drawing' 
+                            ? (language === 'fr' ? 'Toit à dessiner' : 'Roof Drawing')
+                            : (language === 'fr' ? 'Analyse à lancer' : 'Run Analysis')
+                          }
+                        </p>
+                      </div>
+                      {task.priority === 'urgent' && (
+                        <Badge variant="destructive" className="text-xs shrink-0">
+                          {language === 'fr' ? 'Urgent' : 'Urgent'}
+                        </Badge>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </div>
+                  </Link>
                 ))}
+                <Link href="/app/work-queue">
+                  <Button variant="outline" size="sm" className="w-full mt-2 gap-2" data-testid="button-view-all-tasks">
+                    {language === 'fr' ? 'Voir toutes les tâches' : 'View all tasks'}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>{language === 'fr' ? 'Aucune opportunité à risque' : 'No at-risk opportunities'}</p>
+                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                <p>{language === 'fr' ? 'Aucune tâche en attente' : 'No pending tasks'}</p>
                 <p className="text-xs mt-1 text-green-600">
-                  {language === 'fr' ? 'Excellent! Tout est à jour.' : 'Great! Everything is up to date.'}
+                  {language === 'fr' ? 'Excellent! Tout est complété.' : 'Great! Everything is complete.'}
                 </p>
               </div>
             )}

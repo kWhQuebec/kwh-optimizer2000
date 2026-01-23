@@ -65,6 +65,12 @@ export function AppSidebar() {
       tooltip: language === "fr" ? "Vue d'ensemble du pipeline et des opportunités" : "Pipeline and opportunities overview",
     },
     {
+      title: language === "fr" ? "Tâches à faire" : "To-Do List",
+      url: "/app/work-queue",
+      icon: ClipboardList,
+      tooltip: language === "fr" ? "Tâches internes à compléter (toits, analyses, rapports)" : "Internal tasks to complete (roofs, analyses, reports)",
+    },
+    {
       title: t("nav.clients"),
       url: "/app/clients",
       icon: Users,
@@ -87,12 +93,6 @@ export function AppSidebar() {
       url: "/app/pipeline",
       icon: Target,
       tooltip: language === "fr" ? "Suivi des opportunités et prévisions" : "Opportunity tracking and forecasting",
-    },
-    {
-      title: language === "fr" ? "File de travail" : "Work Queue",
-      url: "/app/work-queue",
-      icon: ClipboardList,
-      tooltip: language === "fr" ? "Tâches internes à compléter (toits, analyses, rapports)" : "Internal tasks to complete (roofs, analyses, reports)",
     },
     {
       title: language === "fr" ? "Partenariats" : "Partnerships",

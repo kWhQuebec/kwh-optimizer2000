@@ -177,6 +177,20 @@ export interface IStorage {
       estimatedValue: number | null;
       updatedAt: Date | null;
     }>;
+    // Pending tasks from work queue
+    pendingTasks: Array<{
+      id: string;
+      siteId: string;
+      siteName: string;
+      clientName: string | null;
+      taskType: 'roof_drawing' | 'run_analysis';
+      priority: 'urgent' | 'normal';
+    }>;
+    pendingTasksCount: {
+      roofDrawing: number;
+      runAnalysis: number;
+      total: number;
+    };
   }>;
 
   // Site Visits
@@ -932,6 +946,8 @@ export class MemStorage implements IStorage {
     topOpportunities: Array<{ id: string; name: string; clientName: string | null; stage: string; probability: number; estimatedValue: number | null; updatedAt: Date | null }>;
     atRiskOpportunities: Array<{ id: string; name: string; clientName: string | null; stage: string; estimatedValue: number | null; daysSinceUpdate: number }>;
     recentWins: Array<{ id: string; name: string; clientName: string | null; estimatedValue: number | null; updatedAt: Date | null }>;
+    pendingTasks: Array<{ id: string; siteId: string; siteName: string; clientName: string | null; taskType: 'roof_drawing' | 'run_analysis'; priority: 'urgent' | 'normal' }>;
+    pendingTasksCount: { roofDrawing: number; runAnalysis: number; total: number };
   }> {
     // Simple implementation for MemStorage - returns empty data
     return {
@@ -948,6 +964,8 @@ export class MemStorage implements IStorage {
       topOpportunities: [],
       atRiskOpportunities: [],
       recentWins: [],
+      pendingTasks: [],
+      pendingTasksCount: { roofDrawing: 0, runAnalysis: 0, total: 0 },
     };
   }
 
