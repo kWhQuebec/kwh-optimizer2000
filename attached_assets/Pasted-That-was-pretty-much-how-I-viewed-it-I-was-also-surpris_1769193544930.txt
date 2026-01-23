@@ -1,0 +1,212 @@
+That was pretty much how I viewed it.
+
+I was also surprised that there wasn’t more
+Ballast which means they are
+Probably anchoring the systems.
+
+His Yields seem high though… as I don’t feel we get that much more on bifacial because density is lower which is what is missing in the analysis.
+
+Etienne Lecompte
+Founding partner
+Scale Cleantech
++1 416-833-5640
+
+From: Marc-André La Barre <malabarre@kwh.quebec>
+Sent: Friday, January 23, 2026 12:42:46 PM
+To: James Pagonis <james@scalecleantech.com>; Etienne Lecompte SCT <etienne@scalecleantech.com>
+Subject: Re: Rematek Énergie quote : 12885
+ 
+What about 10:45 / 11 am Monday morning? I’ll be with Etienne.
+
+kWh Québec
+Cell: 514-891-8199
+Bur.: 514-427-8871 x101
+
+kWh Quebec Logo-01 - Rectangulaire LR.png
+
+From: James Pagonis <james@scalecleantech.com>
+Date: Friday, January 23, 2026 at 12:26 PM
+To: Marc-André La Barre <malabarre@kwh.quebec>, Etienne Lecompte SCT <etienne@scalecleantech.com>
+Subject: RE: Rematek Énergie quote : 12885
+
+Here is the analysis.
+ 
+It all turns on the production number.
+ 
+If the production number is as we expect about 1100-1150 then 10 degree kb is generally a wash or better.
+ 
+Everything else if mostly noise
+Mark if you want me to walk you through any of this let me know otherwise, lets connect on Monday
+ 
+James
+ 
+ 
+ 
+From: Marc-André La Barre <malabarre@kwh.quebec>
+Sent: January 23, 2026 10:18 AM
+To: James Pagonis <james@scalecleantech.com>; Etienne Lecompte SCT <etienne@scalecleantech.com>
+Subject: Re: Rematek Énergie quote : 12885
+ 
+Available mostly all day today but I think Etienne is on or almost on a plane from Calgary to MTL. Also, Etienne and I have a meeting on Monday at 10am. Could be a right time as well.
+ 
+Let me know what’s best for you.
+ 
+Marc-André La Barre
+Chef des opérations | COO
+ 
+kWh Québec
+Cell: 514-891-8199
+Bur.: 514-427-8871 x101
+ 
+kWh Quebec Logo-01 - Rectangulaire LR.png
+ 
+From: James Pagonis <james@scalecleantech.com>
+Date: Friday, January 23, 2026 at 10:12 AM
+To: Marc-André La Barre <malabarre@kwh.quebec>, Etienne Lecompte SCT <etienne@scalecleantech.com>
+Subject: FW: Rematek Énergie quote : 12885
+
+FYI.
+2 important things that jump out at me.
+The pricing is similar to what I’m seeing except panels
+The math doesn’t make sense to me. I see a 20% cost increase for a 3.5% gain in production.
+ 
+I’m going to recreate the numbers in my own spreadsheet and see if I can figure this out. Let me know when either or both of you are free to chat.
+ 
+James
+ 
+ 
+From: Mike Perrault <m.perrault@rematek-energie.com>
+Sent: January 23, 2026 9:26 AM
+To: James Pagonis <james@scalecleantech.com>
+Cc: Wissem Kamraoui <w.kamraoui@rematek-energie.com>
+Subject: Re: Rematek Énergie quote : 12885
+ 
+Oops, with attachment this time.
+Mike
+
+Mike Perrault, Président
+Rematek Énergie Inc.
+514-333-6414 ext 210
+www.rematek-energie.com
+
+ 
+On 2026-01-23 9:24 a.m., Mike Perrault wrote:
+Hi James,
+
+Oh wow, I had guessed 350K, pretty close. ;-)
+Here is my analysis with the specific price you quoted.  No worries, I will not share that price with anyone.
+As discussed and as per my usual analysis of this kind, the 20 degree angle with a high profile (18" above the roof) provides the best financial performance.  Feel free to put these numbers in your LCOE model.
+Once we agree, we can adjust the numbers for the 26 buildings proportionately.
+This reduction in DC capacity combined with the significant reduction in DC/AC ratio will make it such that the AC capacity will be slightly higher, so no buildings will go under the 700kW minimum.
+For example, for this sample building,
+Old Capacities:
+DC: 1,906 kWp (according to layout, even though it says 2,169 in your spreadsheet, which I assume was a prior estimate)
+AC: 1,906/1.6 = 1,191 kWac
+
+New Capacities: 
+DC: 1,501 kWp
+AC: 1,501/1.2 = 1,250 kWac
+
+When can we review?
+Mike
+
+Mike Perrault, Président
+Rematek Énergie Inc.
+514-333-6414 ext 210
+www.rematek-energie.com
+
+ 
+On 2026-01-21 1:14 p.m., James Pagonis wrote:
+Hi Mike,
+The racking cost is 353,898.62 CAD + Tax
+ 
+I’m fine with the 1.2 AC?DC ratio
+Looking forward to seeing the analysis
+ 
+James
+ 
+ 
+ 
+From: Mike Perrault <m.perrault@rematek-energie.com>
+Sent: January 21, 2026 11:05 AM
+To: James Pagonis <james@scalecleantech.com>
+Cc: Wissem Kamraoui <w.kamraoui@rematek-energie.com>
+Subject: Re: Rematek Énergie quote : 12885
+ 
+Hi James,
+
+OK, so I finished my analysis.  All I am missing is the cost for the KB racking system for the sample system (1125 50th Ave in Lachine) so that we can compare.
+Please send me that when you have a minute.
+
+Also, I'll be in meetings for the rest of the day, but it would be good to set some time to review this analysis asap (like tomorrow) to avoid delaying the start of the SLDs next week.
+Before then, we need to agree on two things:
+1) the angle of the racking with the associated change in GCR has a significant impact on the kWp capacity of the roof, and
+2) we should also have a discussion about the average DC to AC ratio you want to use.  If we go with the 20 degree angle as I strongly recommend, we will have an average of 17.5% bifacial gain, which leads me to recommend no more than a 1.20 ratio for DC to AC.  In other words, 1.20 ratio + 17.5% gain is the equivalent of 1.41 DC to AC ratio.
+
+I am available to review most of the day tomorrow, but best in the morning between 9:30 and noon...or starting at 4pm.
+
+Best regards,
+Mike
+
+Mike Perrault, Président
+Rematek Énergie Inc.
+514-333-6414 ext 210
+www.rematek-energie.com
+
+
+ 
+On 2026-01-19 12:33 p.m., Mike Perrault wrote:
+Hi James,
+ok no worries.  We still need the same raw data for that option.  Based on the drawings you sent us for that building, I have the number of panels and ballasts.
+Do you have the two other elements, cost and production estimate?  
+The production estimate will be the trickiest part here, as no tool is really good at predicting snow losses, so I prefer to use actual production data in Quebec to adjust the PVSYST results.  FYI, we know of a number of installations (6 actually) here in the province of Quebec that use a similar racking layout at 10 degrees landscape with only a few inches clearance off the roof and the annual production is just below 1000 kWh/kWp.  Of that, there is very little production in December followed by zero production for Jan, Feb and Mar.
+
+I will be out of the office for the rest of the day, but we can talk about this later in the week when my model is complete.  Once I send you all the info, you can plug the numbers in your LCOE model if you like.  I think it will give the same result, but it will certainly be interesting to compare the approaches.  Because of my other commitments, I don't think I will be ready before end of Thursday, so we can plan a review on Friday if you like.
+
+The only thing I need from you, really, is the cost estimate for the system proposed for this sample project.  I will use 1000 kWh/kWp for the production estimate.
+
+Best regards,
+Mike
+
+Mike Perrault, Président
+Rematek Énergie Inc.
+514-333-6414 ext 210
+www.rematek-energie.com
+
+
+ 
+On 2026-01-19 12:19 p.m., James Pagonis wrote:
+Hi Mike,
+KB cannot offer the 15/20 option for the tier 1 panels we were planning to use. The companies have not signed off on clamping locations and cannot offer it for those panels. We will have to look at what your options are both on weight and production. We can use an LCOE calculation rather than kWh/kWp as a normalization. That way we can evaluate whether the extra cost of the production is offset by simply having more panels.
+ 
+James
+ 
+ 
+From: Mike Perrault <m.perrault@rematek-energie.com>
+Sent: January 19, 2026 12:05 PM
+To: James Pagonis <james@scalecleantech.com>
+Subject: Re: Rematek Énergie quote : 12885
+ 
+Hey James,
+How's it going?
+I wanted to follow up on our project comparing KB racking and Opsun Systems, both with three different angles.
+
+Following our discussion last Jan. 5th, I went ahead and had Opsun Systems prepare 3 distinct layouts (at 10, 15 and 20 degrees) for the "sample project" you selected, that is the 1125 50th Ave in Lachine.  For each one, I now have a PVSYST report, a price estimate and the layout confirming the number of panels and the amount of ballasts required.
+
+I am now in the process of producing a table showing the relative $/kWh produced to help us make a decision on what supplier to use and with what angle.
+Based on this decision, we will be better prepared to determine nominal DC power for each building and we should agree on a proper DC to AC ratio to apply based on the expected bifacial gain.  
+
+I briefly spoke to Etienne about this when he called me on Friday and he was happy that we were doing that.  I know he's out on vacation for at least part if not all of this week, but I was hoping to finish the analysis by end of week so that we can present to him when he is back.  Of course, you and I should review before then, perhaps Thursday or Friday.
+
+To this end, has KB racking furnished you with the three models they were supposed to produce.  To be able to compare apples with apples, I will need the same info, that is:
+- PVSYST (or at least their best estimate of annual production expected)
+- Layout confirming number of panels and number of ballasts
+- Cost estimate (with or without ballasts).  Not sure if they supply ballasts.  Either way, I can put a budgeted price per ballast that is identical for both.
+
+Cheers,
+Mike
+
+Mike Perrault, Président
+Rematek Énergie Inc.
+514-333-6414 ext 210
+www.rematek-energie.com
