@@ -18,7 +18,7 @@ export interface CashflowInputs {
   kwhCostPerWatt: number;
   
   // Incentive parameters
-  hqIncentivePerKw: number;  // $1,000/kW, capped at 40% CAPEX
+  hqIncentivePerKw: number;  // $1,000/kW, capped at 40% CAPEX and 1MW max
   itcRate: number;           // 30% federal ITC
   
   // Rate parameters
@@ -130,7 +130,10 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
 
   // Calculate base values
   const grossCapex = systemSizeKW * 1000 * kwhCostPerWatt;
-  const hqIncentive = Math.min(systemSizeKW * hqIncentivePerKw, grossCapex * 0.4);
+  // HQ incentive: $1000/kW, capped at 1MW (1000 kW) and 40% of CAPEX
+  const eligibleSolarKW = Math.min(systemSizeKW, 1000); // HQ Autoproduction program limited to 1 MW
+  const potentialHQIncentive = eligibleSolarKW * hqIncentivePerKw;
+  const hqIncentive = Math.min(potentialHQIncentive, grossCapex * 0.4);
   const netAfterHQ = grossCapex - hqIncentive;
   const itc = netAfterHQ * itcRate;
   const netClientInvestment = netAfterHQ - itc;
@@ -240,7 +243,8 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
 
   // Provider economics (using TRC cost if available, otherwise estimate)
   const providerCost = trcProjectCost || grossCapex;
-  const providerHQ = Math.min(systemSizeKW * hqIncentivePerKw, providerCost * 0.4);
+  // Provider also subject to 1MW cap
+  const providerHQ = Math.min(eligibleSolarKW * hqIncentivePerKw, providerCost * 0.4);
   const providerNetAfterHQ = providerCost - providerHQ;
   const providerITC = providerNetAfterHQ * itcRate;
   const providerNetInvestment = providerNetAfterHQ - providerITC;
