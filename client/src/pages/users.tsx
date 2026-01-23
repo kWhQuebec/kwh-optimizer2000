@@ -325,7 +325,7 @@ export default function UsersPage() {
       case "admin":
         return { label: "Admin", variant: "default" as const, icon: Shield };
       case "analyst":
-        return { label: language === "fr" ? "Analyste" : "Analyst", variant: "secondary" as const, icon: BarChart3 };
+        return { label: language === "fr" ? "Gestionnaire de projets" : "Project Manager", variant: "secondary" as const, icon: BarChart3 };
       case "client":
         return { label: "Client", variant: "outline" as const, icon: Building2 };
       default:
@@ -441,7 +441,7 @@ export default function UsersPage() {
                 <SelectContent>
                   <SelectItem value="all">{language === "fr" ? "Tous" : "All"}</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="analyst">{language === "fr" ? "Analyste" : "Analyst"}</SelectItem>
+                  <SelectItem value="analyst">{language === "fr" ? "Gestionnaire de projets" : "Project Manager"}</SelectItem>
                   <SelectItem value="client">Client</SelectItem>
                 </SelectContent>
               </Select>
@@ -636,7 +636,7 @@ export default function UsersPage() {
                         <SelectItem value="analyst">
                           <span className="flex items-center gap-2">
                             <BarChart3 className="w-4 h-4" />
-                            {language === "fr" ? "Analyste" : "Analyst"}
+                            {language === "fr" ? "Gestionnaire de projets" : "Project Manager"}
                           </span>
                         </SelectItem>
                         <SelectItem value="client">
@@ -761,7 +761,7 @@ export default function UsersPage() {
                         <SelectItem value="analyst">
                           <span className="flex items-center gap-2">
                             <BarChart3 className="w-4 h-4" />
-                            {language === "fr" ? "Analyste" : "Analyst"}
+                            {language === "fr" ? "Gestionnaire de projets" : "Project Manager"}
                           </span>
                         </SelectItem>
                         <SelectItem value="client">
