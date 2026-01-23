@@ -675,7 +675,7 @@ export default function WorkQueuePage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">
-            {language === "fr" ? "File de travail" : "Work Queue"}
+            {language === "fr" ? "Tâches à faire" : "To-Do List"}
           </h1>
           <p className="text-muted-foreground">
             {language === "fr" 
