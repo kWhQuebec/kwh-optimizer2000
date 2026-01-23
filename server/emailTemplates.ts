@@ -24,8 +24,8 @@ export interface EmailTemplate {
   };
 }
 
-// kWh Québec logo as base64 data URI (SVG logo with text)
-const kwhLogoDataUri = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgNjAiPjxyZWN0IHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiIGZpbGw9IiMwMDU0QTgiIHJ4PSI0Ii8+PHRleHQgeD0iMTIwIiB5PSI0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmtXaCBRdcOpYmVjPC90ZXh0Pjwvc3ZnPg==`;
+// Logo URL placeholder - will be replaced with actual public URL during rendering
+const logoPlaceholder = `{{logoUrl}}`;
 
 const baseStyles = `
   <style>
@@ -454,7 +454,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background: white;">
           <div style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #003DA6 0%, #0054A8 100%);">
-            <img src="${kwhLogoDataUri}" alt="kWh Québec" style="height: 50px; width: auto;" />
+            <img src="${logoPlaceholder}" alt="kWh Québec" style="height: 60px; width: auto; max-width: 200px;" />
           </div>
           <div style="padding: 30px;">
             <h2 style="color: #1f2937; margin-top: 0;">Réinitialisation de mot de passe</h2>
@@ -482,7 +482,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       en: `<!DOCTYPE html><html><head>${baseStyles}</head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background: white;">
           <div style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #003DA6 0%, #0054A8 100%);">
-            <img src="${kwhLogoDataUri}" alt="kWh Québec" style="height: 50px; width: auto;" />
+            <img src="${logoPlaceholder}" alt="kWh Québec" style="height: 60px; width: auto; max-width: 200px;" />
           </div>
           <div style="padding: 30px;">
             <h2 style="color: #1f2937; margin-top: 0;">Password Reset</h2>
@@ -524,7 +524,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background: white;">
           <div style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #003DA6 0%, #0054A8 100%);">
-            <img src="${kwhLogoDataUri}" alt="kWh Québec" style="height: 50px; width: auto;" />
+            <img src="${logoPlaceholder}" alt="kWh Québec" style="height: 60px; width: auto; max-width: 200px;" />
           </div>
           <div style="padding: 30px;">
             <h2 style="color: #1f2937; margin-top: 0;">Bienvenue {{userName}}!</h2>
@@ -556,7 +556,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       en: `<!DOCTYPE html><html><head>${baseStyles}</head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background: white;">
           <div style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #003DA6 0%, #0054A8 100%);">
-            <img src="${kwhLogoDataUri}" alt="kWh Québec" style="height: 50px; width: auto;" />
+            <img src="${logoPlaceholder}" alt="kWh Québec" style="height: 60px; width: auto; max-width: 200px;" />
           </div>
           <div style="padding: 30px;">
             <h2 style="color: #1f2937; margin-top: 0;">Welcome {{userName}}!</h2>

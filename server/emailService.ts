@@ -320,11 +320,14 @@ export async function sendPasswordResetEmail(
 ): Promise<{ success: boolean; error?: string }> {
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
   const host = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000';
-  const loginUrl = `${protocol}://${host}/login`;
+  const baseUrl = `${protocol}://${host}`;
+  const loginUrl = `${baseUrl}/login`;
+  const logoUrl = `${baseUrl}/logo-kwh.png`;
   
   const rendered = renderEmailTemplate('passwordReset', language, {
     tempPassword,
     loginUrl,
+    logoUrl,
   });
   
   console.log(`[EmailService] Sending password reset email to ${email} (lang: ${language})`);
@@ -347,7 +350,7 @@ export async function sendPasswordResetEmail(
 function getRoleLabel(role: string, lang: 'fr' | 'en'): string {
   const labels: Record<string, { fr: string; en: string }> = {
     admin: { fr: 'Administrateur', en: 'Administrator' },
-    analyst: { fr: 'Analyste', en: 'Analyst' },
+    analyst: { fr: 'Gestionnaire de projets', en: 'Project Manager' },
     client: { fr: 'Client', en: 'Client' },
   };
   return labels[role]?.[lang] || role;
@@ -359,6 +362,7 @@ export async function sendWelcomeEmail(
   language: 'fr' | 'en' = 'fr'
 ): Promise<{ success: boolean; error?: string }> {
   const loginUrl = `${baseUrl}/login`;
+  const logoUrl = `${baseUrl}/logo-kwh.png`;
   
   const rendered = renderEmailTemplate('userWelcome', language, {
     userName: data.userName || data.userEmail.split('@')[0],
@@ -366,6 +370,7 @@ export async function sendWelcomeEmail(
     userRole: getRoleLabel(data.userRole, language),
     tempPassword: data.tempPassword || '',
     loginUrl,
+    logoUrl,
   });
   
   console.log(`[EmailService] Sending welcome email to ${data.userEmail} (lang: ${language})`);
