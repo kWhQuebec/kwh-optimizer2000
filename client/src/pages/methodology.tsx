@@ -1110,8 +1110,8 @@ const fr = {
       levels: [
         { 
           name: "Rendement de Base", 
-          value: "~1150 kWh/kWc", 
-          description: "Rendement théorique horizontal au Québec avant ajustements" 
+          value: "1000-1200 kWh/kWc", 
+          description: "Rendement variable selon système de racking (KB 10°: 1000, Opsun 25°: 1200)" 
         },
         { 
           name: "Rendement Brut", 
@@ -1639,8 +1639,8 @@ const en = {
       levels: [
         { 
           name: "Base Yield", 
-          value: "~1150 kWh/kWp", 
-          description: "Theoretical horizontal yield in Quebec before adjustments" 
+          value: "1000-1200 kWh/kWp", 
+          description: "Variable yield based on racking system (KB 10°: 1000, Opsun 25°: 1200)" 
         },
         { 
           name: "Gross Yield", 
