@@ -19,7 +19,8 @@ import {
   MoreHorizontal,
   Mail,
   Copy,
-  Check
+  Check,
+  Globe
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ interface UserInfo {
   clientId: string | null;
   lastLoginAt: string | null;
   createdAt: string | null;
+  language: string | null;
 }
 
 const createUserSchema = z.object({
@@ -107,6 +109,7 @@ const editUserSchema = z.object({
   role: z.enum(["client", "analyst", "admin"]),
   clientId: z.string().optional(),
   status: z.enum(["active", "inactive"]),
+  preferredLanguage: z.enum(["fr", "en"]),
 });
 
 type CreateUserForm = z.infer<typeof createUserSchema>;
@@ -180,6 +183,7 @@ export default function UsersPage() {
       role: "client",
       clientId: "",
       status: "active",
+      preferredLanguage: "fr",
     },
   });
 
@@ -215,6 +219,7 @@ export default function UsersPage() {
         role: data.role,
         clientId: data.role === "client" ? data.clientId : null,
         status: data.status,
+        language: data.preferredLanguage,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -355,6 +360,7 @@ export default function UsersPage() {
       role: user.role as "client" | "analyst" | "admin",
       clientId: user.clientId || "",
       status: (user.status || "active") as "active" | "inactive",
+      preferredLanguage: (user.language || "fr") as "fr" | "en",
     });
   };
 
@@ -819,6 +825,40 @@ export default function UsersPage() {
                         data-testid="switch-edit-user-status"
                       />
                     </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="preferredLanguage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{language === "fr" ? "Langue préférée" : "Preferred Language"}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-user-language">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="fr">
+                          <span className="flex items-center gap-2">
+                            <Globe className="w-4 h-4" />
+                            Français
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="en">
+                          <span className="flex items-center gap-2">
+                            <Globe className="w-4 h-4" />
+                            English
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "fr" ? "Langue utilisée pour les courriels" : "Language used for emails"}
+                    </p>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

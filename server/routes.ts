@@ -527,7 +527,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Admin access required" });
       }
       
-      const { name, role, clientId, status } = req.body;
+      const { name, role, clientId, status, language } = req.body;
       
       // Validate role if provided
       if (role && !["client", "analyst", "admin"].includes(role)) {
@@ -537,6 +537,11 @@ export async function registerRoutes(
       // Validate status if provided
       if (status && !["active", "inactive"].includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      // Validate language if provided
+      if (language && !["fr", "en"].includes(language)) {
+        return res.status(400).json({ error: "Invalid language" });
       }
       
       // Prevent demoting yourself from admin
@@ -556,6 +561,7 @@ export async function registerRoutes(
       if (role !== undefined) updateData.role = role;
       if (clientId !== undefined) updateData.clientId = role === "client" ? clientId : null;
       if (status !== undefined) updateData.status = status;
+      if (language !== undefined) updateData.language = language;
       
       const updated = await storage.updateUser(req.params.id, updateData);
       if (!updated) {
