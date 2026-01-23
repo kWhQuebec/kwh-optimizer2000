@@ -85,7 +85,7 @@ router.post("/api/quick-estimate", async (req, res) => {
     // Call Google Solar API to get roof potential
     let roofData: googleSolar.RoofEstimateResult | null = null;
     try {
-      roofData = await googleSolar.estimateRoofFromAddress(address + ", Québec, Canada");
+      roofData = await googleSolar.estimateRoofFromAddress(address + ", Québec, Canada", storage);
     } catch (err) {
       console.error("[Quick Estimate] Google Solar API error:", err);
     }
@@ -494,7 +494,7 @@ async function triggerRoofEstimation(leadId: string, data: {
     
     console.log(`[Lead ${leadId}] Starting roof estimation for: ${fullAddress}`);
     
-    const roofEstimate = await googleSolar.estimateRoofFromAddress(fullAddress);
+    const roofEstimate = await googleSolar.estimateRoofFromAddress(fullAddress, storage);
     
     if (roofEstimate.success) {
       const utilizationFactor = 0.70;

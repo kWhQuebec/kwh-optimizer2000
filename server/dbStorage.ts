@@ -1,4 +1,4 @@
-import { eq, desc, and, inArray, count, sum, sql } from "drizzle-orm";
+import { eq, desc, and, inArray, count, sum, sql, lt } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
@@ -6,7 +6,7 @@ import {
   portfolios, portfolioSites, blogArticles, procurationSignatures, emailLogs,
   competitors, battleCards, marketNotes, marketDocuments, competitorProposalAnalysis,
   constructionAgreements, constructionMilestones, constructionProjects, constructionTasks, omContracts, omVisits, omPerformanceSnapshots,
-  opportunities, activities, partnerships, roofPolygons, suppliers, priceHistory,
+  opportunities, activities, partnerships, roofPolygons, suppliers, priceHistory, googleSolarCache,
 } from "@shared/schema";
 import type {
   User, InsertUser,
@@ -50,6 +50,7 @@ import type {
   PricingComponent, InsertPricingComponent,
   Supplier, InsertSupplier,
   PriceHistory, InsertPriceHistory,
+  GoogleSolarCache, InsertGoogleSolarCache,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import bcrypt from "bcrypt";
@@ -2114,5 +2115,41 @@ export class DatabaseStorage implements IStorage {
   async deletePriceHistory(id: string): Promise<boolean> {
     const result = await db.delete(priceHistory).where(eq(priceHistory.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Google Solar Cache operations
+  async getGoogleSolarCacheByLocation(lat: number, lng: number): Promise<GoogleSolarCache | null> {
+    // Round to 5 decimal places (~1m precision) for lookup
+    const roundedLat = Math.round(lat * 100000) / 100000;
+    const roundedLng = Math.round(lng * 100000) / 100000;
+    
+    const result = await db.select().from(googleSolarCache)
+      .where(and(
+        eq(googleSolarCache.latitude, roundedLat),
+        eq(googleSolarCache.longitude, roundedLng)
+      ))
+      .limit(1);
+    
+    return result[0] || null;
+  }
+
+  async setGoogleSolarCache(entry: InsertGoogleSolarCache): Promise<GoogleSolarCache> {
+    const [result] = await db.insert(googleSolarCache).values(entry).returning();
+    return result;
+  }
+
+  async incrementCacheHitCount(id: string): Promise<void> {
+    await db.update(googleSolarCache)
+      .set({ hitCount: sql`${googleSolarCache.hitCount} + 1` })
+      .where(eq(googleSolarCache.id, id));
+  }
+
+  async cleanupExpiredCache(): Promise<number> {
+    const now = new Date();
+    const deletedRows = await db.delete(googleSolarCache)
+      .where(lt(googleSolarCache.expiresAt, now))
+      .returning();
+    
+    return deletedRows.length;
   }
 }

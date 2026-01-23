@@ -1553,6 +1553,32 @@ export const roofPolygons = pgTable("roof_polygons", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Google Solar API response cache - reduces API calls and speeds up lookups
+export const googleSolarCache = pgTable("google_solar_cache", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Location key - rounded to 5 decimal places (~1m precision)
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  
+  // Raw Google Solar API response (BuildingInsights JSON)
+  buildingInsights: jsonb("building_insights").notNull(),
+  
+  // Extracted summary data for quick queries
+  roofAreaSqM: real("roof_area_sq_m"),
+  maxArrayAreaSqM: real("max_array_area_sq_m"),
+  maxPanelCount: integer("max_panel_count"),
+  maxSystemSizeKw: real("max_system_size_kw"),
+  yearlyEnergyDcKwh: real("yearly_energy_dc_kwh"),
+  imageryQuality: text("imagery_quality"), // "HIGH" | "MEDIUM" | "LOW"
+  imageryDate: text("imagery_date"),
+  
+  // Cache metadata
+  fetchedAt: timestamp("fetched_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // Optional TTL
+  hitCount: integer("hit_count").default(0), // Track cache usage
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -1803,6 +1829,12 @@ export const insertRoofPolygonSchema = createInsertSchema(roofPolygons).omit({
   updatedAt: true,
 });
 
+export const insertGoogleSolarCacheSchema = createInsertSchema(googleSolarCache).omit({
+  id: true,
+  fetchedAt: true,
+  hitCount: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -1921,6 +1953,9 @@ export type Partnership = typeof partnerships.$inferSelect;
 
 export type InsertRoofPolygon = z.infer<typeof insertRoofPolygonSchema>;
 export type RoofPolygon = typeof roofPolygons.$inferSelect;
+
+export type InsertGoogleSolarCache = z.infer<typeof insertGoogleSolarCacheSchema>;
+export type GoogleSolarCache = typeof googleSolarCache.$inferSelect;
 
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };

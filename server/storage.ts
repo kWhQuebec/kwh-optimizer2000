@@ -41,6 +41,7 @@ import type {
   PricingComponent, InsertPricingComponent,
   Supplier, InsertSupplier,
   PriceHistory, InsertPriceHistory,
+  GoogleSolarCache, InsertGoogleSolarCache,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -384,6 +385,12 @@ export interface IStorage {
   getPriceHistoryByItem(itemName: string): Promise<PriceHistory[]>;
   createPriceHistory(entry: InsertPriceHistory): Promise<PriceHistory>;
   deletePriceHistory(id: string): Promise<boolean>;
+
+  // Google Solar Cache operations
+  getGoogleSolarCacheByLocation(lat: number, lng: number): Promise<GoogleSolarCache | null>;
+  setGoogleSolarCache(entry: InsertGoogleSolarCache): Promise<GoogleSolarCache>;
+  incrementCacheHitCount(id: string): Promise<void>;
+  cleanupExpiredCache(): Promise<number>; // Returns count of deleted entries
 }
 
 export class MemStorage implements IStorage {

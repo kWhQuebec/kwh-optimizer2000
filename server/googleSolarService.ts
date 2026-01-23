@@ -1,9 +1,16 @@
+import type { IStorage } from "./storage";
+
 const GOOGLE_SOLAR_API_KEY = process.env.GOOGLE_SOLAR_API_KEY;
 const GOOGLE_SOLAR_API_BASE = "https://solar.googleapis.com/v1";
 const GOOGLE_GEOCODING_API_BASE = "https://maps.googleapis.com/maps/api/geocode/json";
 
 // Timeout for Google API calls (15 seconds)
 const API_TIMEOUT_MS = 15000;
+
+// Round coordinates to 5 decimal places (~1m precision)
+function roundCoord(val: number): number {
+  return Math.round(val * 100000) / 100000;
+}
 
 // Helper function to fetch with timeout
 async function fetchWithTimeout(
@@ -179,17 +186,62 @@ export async function geocodeAddress(address: string): Promise<GeoLocation | nul
   }
 }
 
-export async function getBuildingInsights(location: GeoLocation): Promise<BuildingInsights | null> {
+export async function getBuildingInsights(location: GeoLocation, storage?: IStorage): Promise<BuildingInsights | null> {
   if (!GOOGLE_SOLAR_API_KEY) {
     console.error("GOOGLE_SOLAR_API_KEY not configured");
     return null;
   }
 
+  const roundedLat = roundCoord(location.latitude);
+  const roundedLng = roundCoord(location.longitude);
+
   try {
-    console.log(`[BuildingInsights] Starting request for lat=${location.latitude}, lng=${location.longitude}`);
+    // Check cache first if storage is provided
+    if (storage) {
+      try {
+        const cached = await storage.getGoogleSolarCacheByLocation(roundedLat, roundedLng);
+        if (cached) {
+          const now = new Date();
+          if (cached.expiresAt && new Date(cached.expiresAt) > now) {
+            // Cache hit and not expired
+            console.log(`[BuildingInsights] Cache HIT for lat=${roundedLat}, lng=${roundedLng}, hit count: ${(cached.hitCount || 0) + 1}`);
+            
+            // Increment hit count
+            await storage.setGoogleSolarCache({
+              latitude: roundedLat,
+              longitude: roundedLng,
+              buildingInsights: cached.buildingInsights,
+              roofAreaSqM: cached.roofAreaSqM,
+              maxArrayAreaSqM: cached.maxArrayAreaSqM,
+              maxPanelCount: cached.maxPanelCount,
+              maxSystemSizeKw: cached.maxSystemSizeKw,
+              yearlyEnergyDcKwh: cached.yearlyEnergyDcKwh,
+              imageryQuality: cached.imageryQuality,
+              imageryDate: cached.imageryDate,
+              expiresAt: cached.expiresAt,
+              hitCount: (cached.hitCount || 0) + 1,
+            });
+            
+            return cached.buildingInsights as BuildingInsights;
+          } else {
+            console.log(`[BuildingInsights] Cache EXPIRED for lat=${roundedLat}, lng=${roundedLng}`);
+          }
+        } else {
+          console.log(`[BuildingInsights] Cache MISS for lat=${roundedLat}, lng=${roundedLng}`);
+        }
+      } catch (cacheError) {
+        console.error("[BuildingInsights] Cache read error (will try API):", cacheError instanceof Error ? cacheError.message : cacheError);
+        // Continue with API call if cache fails
+      }
+    }
+
+    // Call Google Solar API
+    console.log(`[BuildingInsights] Starting API request for lat=${location.latitude}, lng=${location.longitude}`);
     const url = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=HIGH&key=${GOOGLE_SOLAR_API_KEY}`;
     
     const response = await fetchWithTimeout(url);
+    
+    let buildingInsights: BuildingInsights | null = null;
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -202,15 +254,74 @@ export async function getBuildingInsights(location: GeoLocation): Promise<Buildi
         
         if (mediumResponse.ok) {
           console.log("[BuildingInsights] MEDIUM quality success");
-          return await mediumResponse.json();
+          buildingInsights = await mediumResponse.json();
         }
       }
       
-      return null;
+      if (!buildingInsights) {
+        return null;
+      }
+    } else {
+      console.log("[BuildingInsights] HIGH quality success");
+      buildingInsights = await response.json();
     }
-    
-    console.log("[BuildingInsights] HIGH quality success");
-    return await response.json();
+
+    // Extract summary data for the cache
+    const solarPotential = buildingInsights?.solarPotential;
+    let roofAreaSqM: number | undefined;
+    let maxPanelCount: number | undefined;
+    let maxSystemSizeKw: number | undefined;
+    let yearlyEnergyDcKwh: number | undefined;
+
+    if (solarPotential) {
+      roofAreaSqM = solarPotential.wholeRoofStats?.areaMeters2;
+      maxPanelCount = solarPotential.maxArrayPanelsCount;
+      
+      if (solarPotential.solarPanelConfigs && solarPotential.solarPanelConfigs.length > 0) {
+        const bestConfig = solarPotential.solarPanelConfigs[solarPotential.solarPanelConfigs.length - 1];
+        yearlyEnergyDcKwh = bestConfig.yearlyEnergyDcKwh;
+        
+        const panelWatts = solarPotential.panelCapacityWatts || 400;
+        maxSystemSizeKw = (maxPanelCount * panelWatts) / 1000;
+      }
+    }
+
+    // Format imagery date
+    let imageryDate: string | undefined;
+    if (buildingInsights?.imageryDate) {
+      const { year, month, day } = buildingInsights.imageryDate;
+      imageryDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
+    // Store in cache if storage is provided
+    if (storage && buildingInsights) {
+      try {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90); // 90-day expiry
+
+        await storage.setGoogleSolarCache({
+          latitude: roundedLat,
+          longitude: roundedLng,
+          buildingInsights: buildingInsights as any,
+          roofAreaSqM,
+          maxArrayAreaSqM: solarPotential?.maxArrayAreaMeters2,
+          maxPanelCount,
+          maxSystemSizeKw,
+          yearlyEnergyDcKwh,
+          imageryQuality: buildingInsights.imageryQuality,
+          imageryDate,
+          expiresAt,
+          hitCount: 1,
+        });
+
+        console.log(`[BuildingInsights] Cached result for lat=${roundedLat}, lng=${roundedLng}`);
+      } catch (cacheError) {
+        console.error("[BuildingInsights] Cache write error (API result still returned):", cacheError instanceof Error ? cacheError.message : cacheError);
+        // Continue - we still have the API result
+      }
+    }
+
+    return buildingInsights;
   } catch (error) {
     console.error("[BuildingInsights] Error:", error instanceof Error ? error.message : error);
     return null;
@@ -229,7 +340,7 @@ function getOrientationLabel(azimuth: number): string {
   return "?";
 }
 
-export async function estimateRoofFromAddress(address: string): Promise<RoofEstimateResult> {
+export async function estimateRoofFromAddress(address: string, storage?: IStorage): Promise<RoofEstimateResult> {
   const location = await geocodeAddress(address);
   
   if (!location) {
@@ -246,11 +357,11 @@ export async function estimateRoofFromAddress(address: string): Promise<RoofEsti
     };
   }
   
-  return estimateRoofFromLocation(location);
+  return estimateRoofFromLocation(location, storage);
 }
 
-export async function estimateRoofFromLocation(location: GeoLocation): Promise<RoofEstimateResult> {
-  const insights = await getBuildingInsights(location);
+export async function estimateRoofFromLocation(location: GeoLocation, storage?: IStorage): Promise<RoofEstimateResult> {
+  const insights = await getBuildingInsights(location, storage);
   
   if (!insights) {
     return {

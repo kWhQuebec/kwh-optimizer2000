@@ -41,7 +41,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
       result = await googleSolar.estimateRoofFromLocation({
         latitude: site.latitude,
         longitude: site.longitude
-      });
+      }, storage);
     } else {
       const fullAddress = [
         site.address,
@@ -60,7 +60,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
         return;
       }
 
-      result = await googleSolar.estimateRoofFromAddress(fullAddress);
+      result = await googleSolar.estimateRoofFromAddress(fullAddress, storage);
     }
 
     if (!result.success) {
@@ -337,7 +337,7 @@ router.post("/:id/roof-estimate", authMiddleware, async (req: AuthRequest, res) 
       result = await googleSolar.estimateRoofFromLocation({
         latitude: site.latitude,
         longitude: site.longitude
-      });
+      }, storage);
     } else {
       const fullAddress = [
         site.address,
@@ -351,7 +351,7 @@ router.post("/:id/roof-estimate", authMiddleware, async (req: AuthRequest, res) 
         return res.status(400).json({ error: "No address or coordinates provided" });
       }
 
-      result = await googleSolar.estimateRoofFromAddress(fullAddress);
+      result = await googleSolar.estimateRoofFromAddress(fullAddress, storage);
     }
 
     if (!result.success) {
