@@ -164,6 +164,7 @@ router.get("/list", authMiddleware, async (req: AuthRequest, res) => {
         city: s.city,
         province: s.province,
         roofEstimateStatus: s.roofEstimateStatus,
+        roofAreaValidated: s.roofAreaValidated,
         clientId: s.clientId
       })),
       total
