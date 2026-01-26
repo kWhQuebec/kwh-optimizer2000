@@ -561,8 +561,25 @@ export default function SitesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
       toast({ title: t("sites.siteDeleted") });
     },
-    onError: () => {
-      toast({ title: t("sites.deleteError"), variant: "destructive" });
+    onError: (error: Error) => {
+      // Parse error message from apiRequest format: "status: {json}"
+      let errorMessage = t("sites.deleteError");
+      try {
+        const match = error.message?.match(/^\d+:\s*(.+)$/);
+        if (match) {
+          const parsed = JSON.parse(match[1]);
+          errorMessage = parsed.error || errorMessage;
+        }
+      } catch {
+        if (error.message) {
+          errorMessage = error.message.replace(/^\d+:\s*/, '');
+        }
+      }
+      toast({ 
+        title: language === "fr" ? "Impossible de supprimer" : "Cannot delete",
+        description: errorMessage,
+        variant: "destructive" 
+      });
     },
   });
 

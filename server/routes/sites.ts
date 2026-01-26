@@ -286,12 +286,38 @@ router.patch("/:id", authMiddleware, requireStaff, async (req, res) => {
 
 router.delete("/:id", authMiddleware, requireStaff, async (req, res) => {
   try {
-    const deleted = await storage.deleteSite(req.params.id);
-    if (!deleted) {
+    const siteId = req.params.id;
+    
+    // Check if site exists
+    const site = await storage.getSite(siteId);
+    if (!site) {
       return res.status(404).json({ error: "Site not found" });
+    }
+    
+    // Check for related records that would prevent deletion
+    const simulations = await storage.getSimulationRunsBySite(siteId);
+    if (simulations.length > 0) {
+      return res.status(409).json({ 
+        error: `Cannot delete site with ${simulations.length} analysis(es). Please delete them first.`,
+        relatedRecords: { simulations: simulations.length }
+      });
+    }
+    
+    const siteVisits = await storage.getSiteVisitsBySite(siteId);
+    if (siteVisits.length > 0) {
+      return res.status(409).json({ 
+        error: `Cannot delete site with ${siteVisits.length} site visit(s). Please delete them first.`,
+        relatedRecords: { siteVisits: siteVisits.length }
+      });
+    }
+    
+    const deleted = await storage.deleteSite(siteId);
+    if (!deleted) {
+      return res.status(500).json({ error: "Failed to delete site" });
     }
     res.status(204).send();
   } catch (error) {
+    console.error("[Site Delete] Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
