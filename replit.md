@@ -19,6 +19,14 @@ The application is a full-stack monorepo with a unified TypeScript codebase, sep
 ### Architecture Details
 The frontend uses React with functional components, managing state via TanStack Query for server state, React Context for authentication and internationalization, and React Hook Form with Zod for form validation. The backend provides a RESTful API with JWT-based authentication, integrating a data processing and analysis engine for solar simulation, battery peak-shaving, financial calculations (NPV, IRR, LCOE), and sensitivity analysis using Hydro-Québec tariffs. Data access is abstracted through an `IStorage` interface, and Multer handles CSV file uploads. The system includes logic for meter reading deduplication and a priority-based solar production methodology.
 
+### Error Handling Pattern
+The backend uses a centralized error handling system (`server/middleware/errorHandler.ts`):
+-   **AppError classes**: NotFoundError, BadRequestError, ValidationError, ConflictError, UnauthorizedError, ForbiddenError
+-   **asyncHandler wrapper**: Wraps route handlers to catch async errors and forward to middleware
+-   **Response format**: `{error: string, details?: array}` - details array preserves structured Zod validation errors
+-   **Usage**: Routes throw errors instead of manual `res.status().json()` for errors
+-   See `server/routes/clients.ts` as the reference implementation
+
 ### Key Features
 -   **Data Processing & Analysis**: Processes Hydro-Québec consumption data, performs solar production simulations, battery peak-shaving, calculates incentives, and generates 25-year cashflows.
 -   **System Design Module**: Enables detailed equipment specifications and Bill of Materials creation.
