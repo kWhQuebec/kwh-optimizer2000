@@ -94,9 +94,23 @@ router.get("/api/portfolios/:id/full", authMiddleware, async (req: AuthRequest, 
     let totalNpv = 0;
     let sitesWithSimulations = 0;
 
+    interface SimulationResults {
+      pvSizeKW?: number;
+      optimalPvSizeKW?: number;
+      batteryCapacityKWh?: number;
+      optimalBatteryKWh?: number;
+      netCapex?: number;
+      npv?: number;
+      irr?: number;
+      annualSavings?: number;
+      firstYearSavings?: number;
+      co2AvoidedTonnes?: number;
+      annualCo2Avoided?: number;
+    }
+    
     for (const ps of portfolioSites) {
       const sim = ps.latestSimulation;
-      const results = sim?.results as any;
+      const results = sim?.results as SimulationResults | undefined;
       
       const pvSize = ps.overridePvSizeKW ?? results?.pvSizeKW ?? results?.optimalPvSizeKW ?? 0;
       const batterySize = ps.overrideBatteryKWh ?? results?.batteryCapacityKWh ?? results?.optimalBatteryKWh ?? 0;
@@ -385,7 +399,7 @@ router.get("/api/portfolios/:id/pdf", authMiddleware, async (req: AuthRequest, r
     
     const { generatePortfolioSummaryPDF } = await import("../pdfGenerator");
     
-    const quotedCosts = (portfolio.quotedCosts as any) || {};
+    const quotedCosts = (portfolio.quotedCosts as Record<string, unknown>) || {};
     
     generatePortfolioSummaryPDF(doc, {
       id: portfolio.id,

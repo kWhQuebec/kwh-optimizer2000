@@ -9,6 +9,38 @@ import {
   insertConstructionMilestoneSchema,
 } from "@shared/schema";
 
+interface DesignQuotedCosts {
+  designFees?: {
+    numBuildings: number;
+    baseFee: number;
+    pvSizeKW: number;
+    pvFee: number;
+    battEnergyKWh: number;
+    batteryFee: number;
+    travelDays: number;
+    travelFee: number;
+  };
+  engineeringStamps?: {
+    structural: number;
+    electrical: number;
+  };
+  siteVisit: unknown;
+  additionalFees: Array<{ description?: string; amount: number }>;
+  subtotal: number;
+  taxes: { gst: number; qst: number };
+  total: number;
+}
+
+interface QuotedCostsForPDF {
+  siteVisit?: { travel?: number; visit?: number; evaluation?: number; diagrams?: number; sldSupplement?: number; total?: number };
+  designFees?: Record<string, unknown>;
+  engineeringStamps?: Record<string, unknown>;
+  additionalFees?: Array<{ description?: string; amount: number }>;
+  subtotal?: number;
+  taxes?: { gst?: number; qst?: number };
+  total?: number;
+}
+
 const router = Router();
 
 router.get("/api/design-agreements", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
@@ -125,7 +157,7 @@ router.post("/api/sites/:siteId/generate-design-agreement", authMiddleware, requ
     let gst: number;
     let qst: number;
     let total: number;
-    let quotedCosts: any;
+    let quotedCosts: DesignQuotedCosts;
     
     if (pricingConfig) {
       subtotal = pricingConfig.subtotal || 0;
@@ -158,7 +190,7 @@ router.post("/api/sites/:siteId/generate-design-agreement", authMiddleware, requ
       const additionalTotal = Array.isArray(additionalFees) 
         ? additionalFees.reduce((sum: number, fee: { amount: number }) => sum + (fee.amount || 0), 0) 
         : 0;
-      const siteVisitTotal = (siteVisitCost as any)?.total || 0;
+      const siteVisitTotal = (siteVisitCost as { total?: number } | null)?.total || 0;
       subtotal = siteVisitTotal + additionalTotal;
       
       gst = subtotal * 0.05;
@@ -226,7 +258,7 @@ router.get("/api/design-agreements/:id/pdf", authMiddleware, async (req: AuthReq
     
     const { generateDesignAgreementPDF } = await import("../pdfGenerator");
     
-    const quotedCosts = (agreement.quotedCosts as any) || {
+    const quotedCosts: QuotedCostsForPDF = (agreement.quotedCosts as QuotedCostsForPDF) || {
       siteVisit: { travel: 0, visit: 0, evaluation: 0, diagrams: 0, sldSupplement: 0, total: 0 },
       subtotal: 0,
       taxes: { gst: 0, qst: 0 },
@@ -298,7 +330,7 @@ router.post("/api/design-agreements/:id/send-email", authMiddleware, requireStaf
     
     const { generateDesignAgreementPDF } = await import("../pdfGenerator");
     
-    const quotedCosts = (agreement.quotedCosts as any) || {
+    const quotedCostsForEmail: QuotedCostsForPDF = (agreement.quotedCosts as QuotedCostsForPDF) || {
       siteVisit: { travel: 0, visit: 0, evaluation: 0, diagrams: 0, sldSupplement: 0, total: 0 },
       subtotal: 0,
       taxes: { gst: 0, qst: 0 },
@@ -319,7 +351,7 @@ router.post("/api/design-agreements/:id/send-email", authMiddleware, requireStaf
           phone: client.phone || undefined,
         },
       },
-      quotedCosts,
+      quotedCosts: quotedCostsForEmail,
       totalCad: agreement.totalCad || 0,
       paymentTerms: agreement.paymentTerms || undefined,
       validUntil: agreement.validUntil,
@@ -587,7 +619,7 @@ router.get("/api/construction-agreements/:id/proposal-pdf", authMiddleware, requ
     }
 
     let design = null;
-    let bomItems: any[] = [];
+    let bomItems: Array<{ id: string; name: string; quantity: number; unitPrice?: number; total?: number; [key: string]: unknown }> = [];
     if (agreement.designId) {
       design = await storage.getDesign(agreement.designId);
       bomItems = await storage.getBomItems(agreement.designId);
@@ -598,7 +630,7 @@ router.get("/api/construction-agreements/:id/proposal-pdf", authMiddleware, requ
     const allProjects = await storage.getConstructionProjects();
     const project = allProjects.find(p => p.constructionAgreementId === agreement.id) || null;
 
-    let preliminaryTasks: any[] = [];
+    let preliminaryTasks: Array<{ id: string; name: string; isPreliminary?: boolean | null; plannedStartDate?: Date | null; plannedEndDate?: Date | null; [key: string]: unknown }> = [];
     if (project) {
       const projectTasks = await storage.getConstructionTasksByProjectId(project.id);
       preliminaryTasks = projectTasks.filter(t => t.isPreliminary === true);

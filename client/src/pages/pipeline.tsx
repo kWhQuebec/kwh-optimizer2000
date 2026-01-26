@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
@@ -586,6 +587,16 @@ export default function PipelinePage() {
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
   }, [viewMode]);
+
+  const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "new") {
+      setIsAddOpen(true);
+      setLocation("/app/pipeline", { replace: true });
+    }
+  }, [setLocation]);
 
   const { data: opportunities = [], isLoading } = useQuery<OpportunityWithRelations[]>({
     queryKey: ["/api/opportunities"],

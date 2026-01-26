@@ -860,7 +860,7 @@ function runScenarioWithSizing(
   const yieldFactor = effectiveYield / 1150;
   const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
   
-  const storedStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
+  const storedStrategy = (h as AnalysisAssumptions & { _yieldStrategy?: YieldStrategy })._yieldStrategy;
   const skipTempCorrection = storedStrategy 
     ? storedStrategy.skipTempCorrection 
     : (h.yieldSource === 'google' || h.yieldSource === 'manual');
@@ -1160,9 +1160,10 @@ export function runPotentialAnalysis(
 ): AnalysisResult {
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
   
-  const incomingStrategy = (customAssumptions as any)?._yieldStrategy;
+  type AssumptionsWithYieldStrategy = AnalysisAssumptions & { _yieldStrategy?: YieldStrategy };
+  const incomingStrategy = (customAssumptions as Partial<AssumptionsWithYieldStrategy>)?._yieldStrategy;
   if (incomingStrategy) {
-    (h as any)._yieldStrategy = incomingStrategy;
+    (h as AssumptionsWithYieldStrategy)._yieldStrategy = incomingStrategy;
   }
   
   if (customAssumptions?.yieldSource) {
@@ -1193,7 +1194,7 @@ export function runPotentialAnalysis(
   const usableRoofSqFt = h.roofAreaSqFt * h.roofUtilizationRatio;
   const maxPVFromRoof = usableRoofSqFt / 100;
   
-  const storedYieldStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
+  const storedYieldStrategy = (h as AnalysisAssumptions & { _yieldStrategy?: YieldStrategy })._yieldStrategy;
   let effectiveYield: number;
   
   if (storedYieldStrategy) {
@@ -1224,9 +1225,9 @@ export function runPotentialAnalysis(
   
   const yieldFactor = effectiveYield / 1150;
   
-  const storedStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
-  const skipTempCorrection = storedStrategy 
-    ? storedStrategy.skipTempCorrection 
+  const storedStrategyForSim = (h as AnalysisAssumptions & { _yieldStrategy?: YieldStrategy })._yieldStrategy;
+  const skipTempCorrection = storedStrategyForSim 
+    ? storedStrategyForSim.skipTempCorrection 
     : (h.yieldSource === 'google' || h.yieldSource === 'manual');
   
   const currentYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';

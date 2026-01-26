@@ -206,7 +206,7 @@ router.get("/api/site-visits/:id/pdf", authMiddleware, requireStaff, async (req:
     };
     
     const formatBool = (val: boolean | null | undefined) => val ? labels.yes : labels.no;
-    const formatVal = (val: any) => val ?? labels.notSpecified;
+    const formatVal = (val: unknown) => val ?? labels.notSpecified;
     const formatStatus = (status: string) => {
       switch (status) {
         case "scheduled": return labels.statusScheduled;
@@ -261,7 +261,7 @@ router.get("/api/site-visits/:id/pdf", authMiddleware, requireStaff, async (req:
       doc.fontSize(10).fillColor(textColor);
     };
     
-    const drawRow = (label: string, value: any) => {
+    const drawRow = (label: string, value: unknown) => {
       doc.font("Helvetica-Bold").text(`${label}: `, { continued: true });
       doc.font("Helvetica").text(String(value ?? labels.notSpecified));
     };

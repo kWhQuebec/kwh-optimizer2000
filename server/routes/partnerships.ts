@@ -6,12 +6,12 @@ import { insertPartnershipSchema } from "@shared/schema";
 
 const router = Router();
 
-function preprocessPartnershipDates(body: any) {
+function preprocessPartnershipDates(body: Record<string, unknown>) {
   const dateFields = ['firstContactDate', 'lastContactDate', 'nextFollowUpDate', 'expectedDecisionDate', 'agreementStartDate', 'agreementEndDate'];
   const result = { ...body };
   for (const field of dateFields) {
     if (result[field] && typeof result[field] === 'string') {
-      result[field] = new Date(result[field]);
+      result[field] = new Date(result[field] as string);
     }
   }
   return result;

@@ -679,6 +679,11 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req
 
     const { deduplicateMeterReadingsByHour, runPotentialAnalysis, resolveYieldStrategy, getDefaultAnalysisAssumptions } = await import("./siteAnalysisHelpers");
     
+    interface RoofAreaAutoDetails {
+      yearlyEnergyDcKwh?: number;
+      [key: string]: unknown;
+    }
+
     const dedupResult = deduplicateMeterReadingsByHour(readings.map(r => ({
       kWh: r.kWh,
       kW: r.kW,
@@ -686,7 +691,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req
       granularity: r.granularity || undefined
     })));
 
-    const roofDetails = site.roofAreaAutoDetails as any;
+    const roofDetails = site.roofAreaAutoDetails as RoofAreaAutoDetails | null;
     const googleYield = roofDetails?.yearlyEnergyDcKwh && site.kbKwDc
       ? Math.round(roofDetails.yearlyEnergyDcKwh / site.kbKwDc)
       : null;
@@ -724,7 +729,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req
       battPowerKW: result.battPowerKW,
       demandShavingSetpointKW: result.demandShavingSetpointKW,
       assumptions: result.assumptions,
-      result: result as any,
+      result: result,
       createdBy: (req as AuthRequest).userId || null
     });
 
@@ -788,9 +793,9 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
       granularity: r.granularity || undefined
     })));
 
-    const roofDetails = site.roofAreaAutoDetails as any;
-    const googleYield = roofDetails?.yearlyEnergyDcKwh && site.kbKwDc
-      ? Math.round(roofDetails.yearlyEnergyDcKwh / site.kbKwDc)
+    const roofDetailsScenario = site.roofAreaAutoDetails as RoofAreaAutoDetails | null;
+    const googleYield = roofDetailsScenario?.yearlyEnergyDcKwh && site.kbKwDc
+      ? Math.round(roofDetailsScenario.yearlyEnergyDcKwh / site.kbKwDc)
       : null;
 
     const yieldStrategy = resolveYieldStrategy(
@@ -829,7 +834,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
       battPowerKW: result.battPowerKW,
       demandShavingSetpointKW: result.demandShavingSetpointKW,
       assumptions: result.assumptions,
-      result: result as any,
+      result: result,
       createdBy: (req as AuthRequest).userId || null
     });
 
@@ -1116,7 +1121,29 @@ router.post("/:siteId/generate-design-agreement", authMiddleware, requireStaff, 
     let gst: number;
     let qst: number;
     let total: number;
-    let quotedCosts: any;
+    interface SiteQuotedCosts {
+      designFees?: {
+        numBuildings: number;
+        baseFee: number;
+        pvSizeKW: number;
+        pvFee: number;
+        battEnergyKWh: number;
+        batteryFee: number;
+        travelDays: number;
+        travelFee: number;
+      };
+      engineeringStamps?: {
+        structural: number;
+        electrical: number;
+      };
+      siteVisit: unknown;
+      additionalFees: Array<{ description?: string; amount: number }>;
+      subtotal: number;
+      taxes: { gst: number; qst: number };
+      total: number;
+    }
+    
+    let quotedCosts: SiteQuotedCosts;
     
     if (pricingConfig) {
       subtotal = pricingConfig.subtotal || 0;
@@ -1149,7 +1176,7 @@ router.post("/:siteId/generate-design-agreement", authMiddleware, requireStaff, 
       const additionalTotal = Array.isArray(additionalFees) 
         ? additionalFees.reduce((sum: number, fee: { amount: number }) => sum + (fee.amount || 0), 0) 
         : 0;
-      const siteVisitTotal = (siteVisitCost as any)?.total || 0;
+      const siteVisitTotal = (siteVisitCost as { total?: number } | null)?.total || 0;
       subtotal = siteVisitTotal + additionalTotal;
       
       gst = subtotal * 0.05;

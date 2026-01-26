@@ -115,9 +115,9 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
       emailSent: true,
       messageId: emailResult.messageId,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Grant portal access error:", error);
-    res.status(500).json({ error: error.message || "Internal server error" });
+    res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
   }
 });
 
@@ -178,9 +178,9 @@ router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requir
     res.json({
       success: true,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Send HQ procuration error:", error);
-    res.status(500).json({ error: error.message || "Internal server error" });
+    res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
   }
 });
 

@@ -1,14 +1,61 @@
 import { Router, Response } from "express";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
+import type { Site } from "@shared/schema";
 
 const router = Router();
 
+interface KBRackingEstimate {
+  panelCount: number;
+  subtotal: number;
+  pricePerPanel: number;
+  items?: Array<{ name: string; quantity: number; unitPrice: number; total: number }>;
+}
+
+interface KBRackingSpecs {
+  railLengthM: number;
+  panelsPerRail: number;
+  clampsPerPanel: number;
+  [key: string]: unknown;
+}
+
+interface KBProposalPDFOptions {
+  companyName?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  quoteDate?: Date;
+  quoteValidityDays?: number;
+  quoteNumber?: string;
+}
+
+interface SiteWithKBData extends Site {
+  kbDesignStatus?: string;
+  kbPanelCount?: number;
+  kbKwDc?: number;
+  kbRackingSubtotal?: number;
+  kbPricePerPanel?: number;
+  kbQuoteExpiry?: Date | string | null;
+  kbQuoteDate?: Date | string | null;
+  kbQuoteNumber?: string | null;
+}
+
+interface ExpiringQuoteSite {
+  id: string;
+  name: string;
+  address: string | null;
+  kbPanelCount: number | null;
+  kbKwDc: number | null;
+  kbRackingSubtotal: number | null;
+  kbQuoteDate: Date | string | null;
+  kbQuoteExpiry: Date | string | null;
+  daysUntilExpiry: number;
+}
+
 let kbRackingModule: {
-  estimateKBRackingCost: (panelCount: number) => any;
-  generateBOM: (panelCount: number) => any;
+  estimateKBRackingCost: (panelCount: number) => KBRackingEstimate;
+  generateBOM: (panelCount: number) => Array<{ name: string; quantity: number; unitPrice: number; total: number }>;
   estimatePanelCountFromArea: (areaSqM: number) => number;
-  KB_RACKING_SPECS: any;
+  KB_RACKING_SPECS: KBRackingSpecs;
   isQuoteExpiringSoon: (expiry: Date | null) => boolean;
   isQuoteExpired: (expiry: Date | null) => boolean;
 } | null = null;
@@ -93,13 +140,13 @@ router.get("/api/kb-racking/portfolio-stats", authMiddleware, requireStaff, asyn
     const { isQuoteExpiringSoon, isQuoteExpired } = await getKBRackingModule();
     const portfolioId = req.query.portfolioId as string | undefined;
     
-    const allSites = await storage.getSites();
-    let sitesWithKB = allSites.filter((s: any) => s.kbDesignStatus === "complete");
+    const allSites = await storage.getSites() as SiteWithKBData[];
+    let sitesWithKB = allSites.filter((s) => s.kbDesignStatus === "complete");
     
     if (portfolioId) {
       const portfolioSites = await storage.getPortfolioSites(portfolioId);
-      const portfolioSiteIds = new Set(portfolioSites.map((ps: any) => ps.siteId));
-      sitesWithKB = sitesWithKB.filter((s: any) => portfolioSiteIds.has(s.id));
+      const portfolioSiteIds = new Set(portfolioSites.map((ps) => ps.siteId));
+      sitesWithKB = sitesWithKB.filter((s) => portfolioSiteIds.has(s.id));
     }
     
     let totalPanels = 0;
@@ -111,18 +158,17 @@ router.get("/api/kb-racking/portfolio-stats", authMiddleware, requireStaff, asyn
     let quotesExpired = 0;
     
     for (const site of sitesWithKB) {
-      const s = site as any;
-      totalPanels += s.kbPanelCount || 0;
-      totalKwDc += s.kbKwDc || 0;
-      totalRackingValue += s.kbRackingSubtotal || 0;
+      totalPanels += site.kbPanelCount || 0;
+      totalKwDc += site.kbKwDc || 0;
+      totalRackingValue += site.kbRackingSubtotal || 0;
       
-      const price = s.kbPricePerPanel || 0;
+      const price = site.kbPricePerPanel || 0;
       if (price > 0) {
         if (price < minPrice) minPrice = price;
         if (price > maxPrice) maxPrice = price;
       }
       
-      const expiry = s.kbQuoteExpiry ? new Date(s.kbQuoteExpiry) : null;
+      const expiry = site.kbQuoteExpiry ? new Date(site.kbQuoteExpiry) : null;
       if (isQuoteExpiringSoon(expiry)) quotesExpiringSoon++;
       if (isQuoteExpired(expiry)) quotesExpired++;
     }
@@ -163,7 +209,7 @@ router.post("/api/kb-racking/proposal-pdf/:siteId", authMiddleware, requireStaff
     
     const client = await storage.getClient(site.clientId);
     
-    const siteData = site as any;
+    const siteData = site as SiteWithKBData;
     if (siteData.kbDesignStatus !== 'complete' || !siteData.kbPanelCount) {
       return res.status(400).json({ error: "Site does not have KB Racking design data" });
     }
@@ -182,7 +228,7 @@ router.post("/api/kb-racking/proposal-pdf/:siteId", authMiddleware, requireStaff
       clientName: client?.name || '',
     };
     
-    const pdfOptions: any = {
+    const pdfOptions: KBProposalPDFOptions = {
       companyName: 'kWh Québec Inc.',
       companyPhone: '514-427-8871',
       companyEmail: 'info@kwhquebec.com',
@@ -240,26 +286,27 @@ router.get("/api/kb-racking/expiring-quotes", authMiddleware, requireStaff, asyn
     const now = new Date();
     const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
     
-    const expiringSites = allSites.filter((s: any) => {
+    const sitesWithKBData = allSites as SiteWithKBData[];
+    const expiringSites: ExpiringQuoteSite[] = sitesWithKBData.filter((s) => {
       if (!s.kbQuoteExpiry || s.kbDesignStatus !== "complete") return false;
       const expiry = new Date(s.kbQuoteExpiry);
       return expiry > now && expiry <= futureDate;
-    }).map((s: any) => ({
+    }).map((s) => ({
       id: s.id,
       name: s.name,
       address: s.address,
-      kbPanelCount: s.kbPanelCount,
-      kbKwDc: s.kbKwDc,
-      kbRackingSubtotal: s.kbRackingSubtotal,
-      kbQuoteDate: s.kbQuoteDate,
-      kbQuoteExpiry: s.kbQuoteExpiry,
-      daysUntilExpiry: Math.ceil((new Date(s.kbQuoteExpiry).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),
+      kbPanelCount: s.kbPanelCount ?? null,
+      kbKwDc: s.kbKwDc ?? null,
+      kbRackingSubtotal: s.kbRackingSubtotal ?? null,
+      kbQuoteDate: s.kbQuoteDate ?? null,
+      kbQuoteExpiry: s.kbQuoteExpiry ?? null,
+      daysUntilExpiry: Math.ceil((new Date(s.kbQuoteExpiry!).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),
     }));
     
     res.json({
       count: expiringSites.length,
       daysAhead,
-      sites: expiringSites.sort((a: any, b: any) => a.daysUntilExpiry - b.daysUntilExpiry),
+      sites: expiringSites.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry),
     });
   } catch (error) {
     console.error("Error fetching expiring quotes:", error);

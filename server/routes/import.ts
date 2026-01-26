@@ -80,11 +80,29 @@ ${fileContent}`
       }],
     });
 
+    interface GeminiPart {
+      text?: string;
+      [key: string]: unknown;
+    }
+    
+    interface ParsedProspect {
+      companyName?: string;
+      contactName?: string;
+      email?: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+      province?: string;
+      postalCode?: string;
+      buildingType?: string;
+      notes?: string;
+    }
+    
     const candidate = response.candidates?.[0];
-    const textPart = candidate?.content?.parts?.find((part: any) => part.text);
+    const textPart = candidate?.content?.parts?.find((part: GeminiPart) => part.text);
     const responseText = textPart?.text || "";
     
-    let prospects: any[];
+    let prospects: ParsedProspect[];
     try {
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
@@ -100,7 +118,7 @@ ${fileContent}`
       });
     }
 
-    const validProspects = prospects.filter((p: any) => 
+    const validProspects = prospects.filter((p) => 
       p.companyName && p.contactName && p.email
     );
     const invalidCount = prospects.length - validProspects.length;

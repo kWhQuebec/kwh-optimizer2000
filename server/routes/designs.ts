@@ -138,7 +138,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req: Au
     };
 
     const { generateProfessionalPDF } = await import("../pdfGenerator");
-    generateProfessionalPDF(doc, simulationWithRoof as any, lang, siteSimulations as any[]);
+    generateProfessionalPDF(doc, simulationWithRoof, lang, siteSimulations);
 
     doc.end();
   } catch (error) {
@@ -208,7 +208,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
     };
 
     const { generateExecutiveSummaryPDF } = await import("../pdfGenerator");
-    generateExecutiveSummaryPDF(doc, simulationWithRoof as any, lang);
+    generateExecutiveSummaryPDF(doc, simulationWithRoof, lang);
 
     doc.end();
   } catch (error) {
@@ -266,7 +266,7 @@ router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, async (
     }
 
     const { generatePresentationPPTX } = await import("../pptxGenerator");
-    const pptxBuffer = await generatePresentationPPTX(simulation as any, roofVisualizationBuffer, lang);
+    const pptxBuffer = await generatePresentationPPTX(simulation, roofVisualizationBuffer, lang);
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
     res.setHeader("Content-Disposition", `attachment; filename="proposition-${simulation.site.name.replace(/\s+/g, '-')}.pptx"`);
@@ -630,7 +630,14 @@ router.post("/api/designs/:designId/generate-preliminary-schedule", authMiddlewa
       }
     }
 
-    const createdTasks: any[] = [];
+    interface CreatedTask {
+      id: string;
+      name: string;
+      plannedStartDate: Date | null;
+      plannedEndDate: Date | null;
+      [key: string]: unknown;
+    }
+    const createdTasks: CreatedTask[] = [];
     const taskIdMap: Record<string, string> = {};
     let currentDate = new Date(startDate);
 
