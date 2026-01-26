@@ -11,7 +11,8 @@ import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, FileCheck, 
   Shield, Award, BarChart3, Building2, Mail, Phone, User,
   MapPin, DollarSign, FileText, Zap, Battery, Sun, Calendar,
-  Upload, X, File, AlertCircle, FileSignature, ChevronLeft, ChevronRight, Image
+  Upload, X, File, AlertCircle, FileSignature, ChevronLeft, ChevronRight, Image,
+  Loader2, ScanLine, Sparkles
 } from "lucide-react";
 import SignaturePad, { SignaturePadRef } from "@/components/signature-pad";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
@@ -37,6 +39,18 @@ import carouselImg5Fr from "@assets/Screenshot_2025-12-11_at_9.15.38_PM_17655058
 import carouselImg6Fr from "@assets/Screenshot_2025-12-11_at_9.15.53_PM_1765505832701.png";
 import carouselImg7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_1765505832689.png";
 
+interface HQBillData {
+  accountNumber: string | null;
+  clientName: string | null;
+  serviceAddress: string | null;
+  annualConsumptionKwh: number | null;
+  peakDemandKw: number | null;
+  tariffCode: string | null;
+  billingPeriod: string | null;
+  estimatedMonthlyBill: number | null;
+  confidence: number;
+}
+
 const detailedFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
   firstName: z.string().min(1, "Ce champ est requis"),
@@ -51,6 +65,7 @@ const detailedFormSchema = z.object({
   estimatedMonthlyBill: z.coerce.number().optional(),
   buildingType: z.string().optional(),
   hqClientNumber: z.string().min(1, "Ce champ est requis"),
+  tariffCode: z.string().optional(),
   signatureCity: z.string().min(1, "Ce champ est requis"),
   notes: z.string().optional(),
   procurationAccepted: z.boolean().refine(val => val === true, {
@@ -117,6 +132,15 @@ const carouselSlides = [
   },
 ];
 
+function parseAddressParts(fullAddress: string | null): { street: string; city: string } {
+  if (!fullAddress) return { street: "", city: "" };
+  const parts = fullAddress.split(",").map(p => p.trim());
+  if (parts.length >= 2) {
+    return { street: parts[0], city: parts[1] };
+  }
+  return { street: fullAddress, city: "" };
+}
+
 export default function AnalyseDetailleePage() {
   const { t, language } = useI18n();
   const [submitted, setSubmitted] = useState(false);
@@ -125,10 +149,13 @@ export default function AnalyseDetailleePage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedSlide, setSelectedSlide] = useState(0);
-  const [signatureStatus, setSignatureStatus] = useState<{sent: boolean; configured: boolean}>({ sent: false, configured: false });
   const [hasSignature, setHasSignature] = useState(false);
   const signaturePadRef = useRef<SignaturePadRef>(null);
   const currentLogo = language === "fr" ? logoFr : logoEn;
+
+  const [parsedBillData, setParsedBillData] = useState<HQBillData | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
@@ -163,6 +190,7 @@ export default function AnalyseDetailleePage() {
       estimatedMonthlyBill: undefined,
       buildingType: "",
       hqClientNumber: "",
+      tariffCode: "",
       signatureCity: "",
       notes: "",
       procurationAccepted: false,
@@ -171,11 +199,13 @@ export default function AnalyseDetailleePage() {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setUploadError(null);
+    setParseError(null);
+    setParsedBillData(null);
     
     const validFiles = acceptedFiles.filter(file => {
       const isValidType = file.type === 'application/pdf' || 
                           file.type.startsWith('image/');
-      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB max
+      const isValidSize = file.size <= 10 * 1024 * 1024;
       
       if (!isValidType) {
         setUploadError(language === "fr" 
@@ -218,6 +248,63 @@ export default function AnalyseDetailleePage() {
       newFiles.splice(index, 1);
       return newFiles;
     });
+    setParsedBillData(null);
+    setParseError(null);
+  };
+
+  const parseBillMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/parse-hq-bill', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to parse bill');
+      }
+
+      return response.json() as Promise<HQBillData>;
+    },
+    onSuccess: (data) => {
+      setParsedBillData(data);
+      setIsParsing(false);
+      
+      if (data.accountNumber) {
+        form.setValue('hqClientNumber', data.accountNumber);
+      }
+      if (data.clientName) {
+        form.setValue('companyName', data.clientName);
+      }
+      if (data.serviceAddress) {
+        const { street, city } = parseAddressParts(data.serviceAddress);
+        if (street) form.setValue('streetAddress', street);
+        if (city) form.setValue('city', city);
+        if (city) form.setValue('signatureCity', city);
+      }
+      if (data.estimatedMonthlyBill) {
+        form.setValue('estimatedMonthlyBill', data.estimatedMonthlyBill);
+      }
+      if (data.tariffCode) {
+        form.setValue('tariffCode', data.tariffCode);
+      }
+    },
+    onError: (error) => {
+      setIsParsing(false);
+      setParseError(language === "fr" 
+        ? "Impossible d'analyser la facture. Veuillez réessayer ou saisir les informations manuellement."
+        : "Unable to analyze the bill. Please try again or enter information manually.");
+    },
+  });
+
+  const handleParseBill = () => {
+    if (uploadedFiles.length === 0) return;
+    
+    setIsParsing(true);
+    setParseError(null);
+    parseBillMutation.mutate(uploadedFiles[0].file);
   };
 
   const mutation = useMutation({
@@ -233,7 +320,6 @@ export default function AnalyseDetailleePage() {
       formData.append('language', language);
       formData.append('procurationDate', new Date().toISOString());
 
-      // Add signature image if available
       if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
         const signatureDataUrl = signaturePadRef.current.toDataURL('image/png');
         formData.append('signatureImage', signatureDataUrl);
@@ -257,7 +343,6 @@ export default function AnalyseDetailleePage() {
       return result;
     },
     onSuccess: () => {
-      // Clean up object URLs
       uploadedFiles.forEach(f => {
         if (f.preview) URL.revokeObjectURL(f.preview);
       });
@@ -283,21 +368,24 @@ export default function AnalyseDetailleePage() {
     { value: "other", label: language === "fr" ? "Autre" : "Other" },
   ];
 
+  const tariffCodes = [
+    { value: "G", label: language === "fr" ? "G - Petit débit" : "G - Small power" },
+    { value: "G-9", label: language === "fr" ? "G-9 - Moyen débit" : "G-9 - Medium power" },
+    { value: "M", label: language === "fr" ? "M - Moyenne puissance" : "M - Medium power" },
+    { value: "L", label: language === "fr" ? "L - Grande puissance" : "L - Large power" },
+    { value: "LG", label: language === "fr" ? "LG - Grande puissance" : "LG - Large power" },
+  ];
+
   const steps = [
     { 
       number: 1, 
-      title: language === "fr" ? "Informations" : "Information",
-      icon: Building2 
+      title: language === "fr" ? "Facture HQ" : "HQ Bill",
+      icon: FileText 
     },
     { 
       number: 2, 
-      title: language === "fr" ? "Procuration" : "Authorization",
+      title: language === "fr" ? "Informations" : "Information",
       icon: FileSignature 
-    },
-    { 
-      number: 3, 
-      title: language === "fr" ? "Facture HQ" : "HQ Bill",
-      icon: FileText 
     },
   ];
 
@@ -359,14 +447,26 @@ The data obtained will be used exclusively for solar potential analysis and phot
   ];
 
   const canProceedToStep2 = () => {
-    const values = form.getValues();
-    return values.companyName && values.firstName && values.lastName && values.signerTitle && 
-           values.hqClientNumber && values.email && values.streetAddress && values.city;
+    return uploadedFiles.length > 0;
   };
 
-  const canProceedToStep3 = () => {
+  const canSubmit = () => {
     const values = form.getValues();
-    return values.procurationAccepted === true && values.signatureCity && values.signatureCity.length > 0;
+    return values.companyName && values.firstName && values.lastName && values.signerTitle && 
+           values.hqClientNumber && values.email && values.streetAddress && values.city &&
+           values.procurationAccepted === true && values.signatureCity && values.signatureCity.length > 0;
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.8) return "text-green-600 dark:text-green-400";
+    if (confidence >= 0.5) return "text-yellow-600 dark:text-yellow-400";
+    return "text-red-600 dark:text-red-400";
+  };
+
+  const getConfidenceLabel = (confidence: number) => {
+    if (confidence >= 0.8) return language === "fr" ? "Élevée" : "High";
+    if (confidence >= 0.5) return language === "fr" ? "Moyenne" : "Medium";
+    return language === "fr" ? "Faible" : "Low";
   };
 
   return (
@@ -574,7 +674,6 @@ The data obtained will be used exclusively for solar potential analysis and phot
                       {language === "fr" ? "Demande complétée!" : "Request completed!"}
                     </h3>
                     
-                    {/* Procuration signed confirmation */}
                     <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
                       <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-2">
                         <FileSignature className="w-5 h-5" />
@@ -590,7 +689,6 @@ The data obtained will be used exclusively for solar potential analysis and phot
                       </p>
                     </div>
 
-                    {/* Timeline explanation */}
                     <div className="bg-muted/50 border border-border rounded-lg p-4 mb-6 text-left">
                       <h4 className="font-semibold mb-3 flex items-center gap-2">
                         <Clock className="w-4 h-4 text-primary" />
@@ -648,7 +746,6 @@ The data obtained will be used exclusively for solar potential analysis and phot
                       </div>
                     </div>
 
-                    {/* Calendly CTA for qualified prospects (>$5000/month) */}
                     {form.getValues("estimatedMonthlyBill") && form.getValues("estimatedMonthlyBill")! >= 5000 && (
                       <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
                         <div className="flex items-center gap-2 text-primary mb-2">
@@ -705,7 +802,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                             )}
                           </div>
                           {index < steps.length - 1 && (
-                            <div className={`w-8 sm:w-16 h-0.5 mx-1 ${
+                            <div className={`w-16 sm:w-24 h-0.5 mx-2 ${
                               currentStep > step.number ? 'bg-green-500' : 'bg-muted-foreground/20'
                             }`} />
                           )}
@@ -718,7 +815,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                         {steps[currentStep - 1].title}
                       </h2>
                       <p className="text-sm text-muted-foreground">
-                        {language === "fr" ? `Étape ${currentStep} de 3` : `Step ${currentStep} of 3`}
+                        {language === "fr" ? `Étape ${currentStep} de 2` : `Step ${currentStep} of 2`}
                       </p>
                     </div>
                     
@@ -730,6 +827,257 @@ The data obtained will be used exclusively for solar potential analysis and phot
                             animate={{ opacity: 1, x: 0 }}
                             className="space-y-4"
                           >
+                            <div className="bg-muted/50 rounded-lg p-4 border">
+                              <div className="flex items-start gap-3 mb-4">
+                                <Sparkles className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <h3 className="font-semibold mb-1">
+                                    {language === "fr" ? "Analyse automatique de votre facture" : "Automatic bill analysis"}
+                                  </h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {language === "fr" 
+                                      ? "Téléversez votre facture Hydro-Québec et notre IA extraira automatiquement les informations clés pour pré-remplir le formulaire."
+                                      : "Upload your Hydro-Québec bill and our AI will automatically extract key information to pre-fill the form."
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div
+                                {...getRootProps()}
+                                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                                  isDragActive 
+                                    ? 'border-primary bg-primary/5' 
+                                    : 'border-muted-foreground/30 hover:border-primary/50'
+                                }`}
+                                data-testid="dropzone-bill"
+                              >
+                                <input {...getInputProps()} />
+                                <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                                <p className="text-sm font-medium mb-1">
+                                  {isDragActive 
+                                    ? (language === "fr" ? "Déposez le fichier ici..." : "Drop the file here...")
+                                    : (language === "fr" ? "Glissez votre facture HQ ici ou cliquez" : "Drag your HQ bill here or click")
+                                  }
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  PDF, JPG, PNG (max 10 Mo)
+                                </p>
+                              </div>
+
+                              {uploadError && (
+                                <div className="flex items-center gap-2 mt-3 p-3 bg-destructive/10 rounded-md text-destructive text-sm">
+                                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                  {uploadError}
+                                </div>
+                              )}
+
+                              {uploadedFiles.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                  <p className="text-sm font-medium">
+                                    {language === "fr" ? "Fichier sélectionné:" : "Selected file:"}
+                                  </p>
+                                  {uploadedFiles.map((uploadedFile, index) => (
+                                    <div 
+                                      key={index} 
+                                      className="flex items-center justify-between p-3 bg-background rounded-md border"
+                                      data-testid={`uploaded-file-${index}`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <File className="w-5 h-5 text-primary" />
+                                        <div>
+                                          <p className="text-sm font-medium truncate max-w-[200px]">
+                                            {uploadedFile.file.name}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {(uploadedFile.file.size / 1024 / 1024).toFixed(2)} Mo
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeFile(index)}
+                                        data-testid={`button-remove-file-${index}`}
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+
+                                  {!parsedBillData && !isParsing && (
+                                    <Button
+                                      type="button"
+                                      onClick={handleParseBill}
+                                      className="w-full gap-2 mt-4"
+                                      data-testid="button-analyze-bill"
+                                    >
+                                      <ScanLine className="w-4 h-4" />
+                                      {language === "fr" ? "Analyser la facture" : "Analyze Bill"}
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+
+                              {isParsing && (
+                                <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                  <div className="flex items-center gap-3">
+                                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                                    <div>
+                                      <p className="font-medium text-sm">
+                                        {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {language === "fr" 
+                                          ? "Notre IA extrait les informations de votre facture Hydro-Québec"
+                                          : "Our AI is extracting information from your Hydro-Québec bill"
+                                        }
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {parseError && (
+                                <div className="flex items-center gap-2 mt-4 p-3 bg-destructive/10 rounded-md text-destructive text-sm">
+                                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                  {parseError}
+                                </div>
+                              )}
+
+                              {parsedBillData && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="mt-4 p-4 bg-green-500/5 rounded-lg border border-green-500/20"
+                                  data-testid="parsed-bill-preview"
+                                >
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                      <span className="font-semibold text-sm">
+                                        {language === "fr" ? "Données extraites" : "Extracted Data"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground">
+                                        {language === "fr" ? "Confiance:" : "Confidence:"}
+                                      </span>
+                                      <Badge variant="outline" className={getConfidenceColor(parsedBillData.confidence)}>
+                                        {getConfidenceLabel(parsedBillData.confidence)}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-2 text-sm">
+                                    {parsedBillData.accountNumber && (
+                                      <div className="flex items-center gap-2" data-testid="parsed-account-number">
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                        <span className="text-muted-foreground">{language === "fr" ? "No compte:" : "Account #:"}</span>
+                                        <span className="font-medium">{parsedBillData.accountNumber}</span>
+                                      </div>
+                                    )}
+                                    {parsedBillData.clientName && (
+                                      <div className="flex items-center gap-2" data-testid="parsed-client-name">
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                        <span className="text-muted-foreground">{language === "fr" ? "Nom:" : "Name:"}</span>
+                                        <span className="font-medium">{parsedBillData.clientName}</span>
+                                      </div>
+                                    )}
+                                    {parsedBillData.serviceAddress && (
+                                      <div className="flex items-center gap-2" data-testid="parsed-address">
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                        <span className="text-muted-foreground">{language === "fr" ? "Adresse:" : "Address:"}</span>
+                                        <span className="font-medium">{parsedBillData.serviceAddress}</span>
+                                      </div>
+                                    )}
+                                    {parsedBillData.annualConsumptionKwh && (
+                                      <div className="flex items-center gap-2" data-testid="parsed-consumption">
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                        <span className="text-muted-foreground">{language === "fr" ? "Consommation:" : "Consumption:"}</span>
+                                        <span className="font-medium">{parsedBillData.annualConsumptionKwh.toLocaleString()} kWh/{language === "fr" ? "an" : "yr"}</span>
+                                      </div>
+                                    )}
+                                    {parsedBillData.tariffCode && (
+                                      <div className="flex items-center gap-2" data-testid="parsed-tariff">
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                        <span className="text-muted-foreground">{language === "fr" ? "Tarif:" : "Tariff:"}</span>
+                                        <span className="font-medium">{parsedBillData.tariffCode}</span>
+                                      </div>
+                                    )}
+                                    {parsedBillData.estimatedMonthlyBill && (
+                                      <div className="flex items-center gap-2" data-testid="parsed-monthly-bill">
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                        <span className="text-muted-foreground">{language === "fr" ? "Facture mensuelle:" : "Monthly bill:"}</span>
+                                        <span className="font-medium">${parsedBillData.estimatedMonthlyBill.toLocaleString()}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <p className="text-xs text-muted-foreground mt-3">
+                                    {language === "fr" 
+                                      ? "Ces informations seront utilisées pour pré-remplir le formulaire. Vous pourrez les modifier à l'étape suivante."
+                                      : "This information will be used to pre-fill the form. You can edit it in the next step."
+                                    }
+                                  </p>
+                                </motion.div>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col gap-3 pt-4">
+                              <Button 
+                                type="button" 
+                                className="w-full gap-2"
+                                onClick={() => {
+                                  if (canProceedToStep2()) {
+                                    setCurrentStep(2);
+                                  }
+                                }}
+                                disabled={!canProceedToStep2()}
+                                data-testid="button-next-step-1"
+                              >
+                                {language === "fr" ? "Continuer" : "Continue"}
+                                <ArrowRight className="w-4 h-4" />
+                              </Button>
+                              
+                              <button
+                                type="button"
+                                className="text-sm text-muted-foreground hover:text-foreground underline"
+                                onClick={() => setCurrentStep(2)}
+                                data-testid="link-skip-parsing"
+                              >
+                                {language === "fr" ? "Je préfère saisir les informations manuellement" : "I prefer to enter information manually"}
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {currentStep === 2 && (
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="space-y-4"
+                          >
+                            {parsedBillData && parsedBillData.annualConsumptionKwh && (
+                              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4" data-testid="consumption-reference">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Zap className="w-5 h-5 text-primary" />
+                                  <span className="font-semibold text-sm">
+                                    {language === "fr" ? "Consommation annuelle détectée" : "Detected Annual Consumption"}
+                                  </span>
+                                </div>
+                                <p className="text-2xl font-bold text-primary">
+                                  {parsedBillData.annualConsumptionKwh.toLocaleString()} kWh/{language === "fr" ? "an" : "yr"}
+                                </p>
+                                {parsedBillData.peakDemandKw && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {language === "fr" ? "Puissance appelée:" : "Peak demand:"} {parsedBillData.peakDemandKw} kW
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
                             <div className="grid sm:grid-cols-2 gap-4">
                               <FormField
                                 control={form.control}
@@ -750,6 +1098,25 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               
                               <FormField
                                 control={form.control}
+                                name="hqClientNumber"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1">
+                                      <Zap className="w-3 h-3" />
+                                      {language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input {...field} data-testid="input-hq-client" placeholder="Ex: 100142202" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            
+                            <div className="grid sm:grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
                                 name="firstName"
                                 render={({ field }) => (
                                   <FormItem>
@@ -764,9 +1131,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   </FormItem>
                                 )}
                               />
-                            </div>
-                            
-                            <div className="grid sm:grid-cols-2 gap-4">
+                              
                               <FormField
                                 control={form.control}
                                 name="lastName"
@@ -798,35 +1163,11 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                     <FormControl>
                                       <Input {...field} data-testid="input-signer-title" placeholder={language === "fr" ? "Ex: Président, DG, VP Finances..." : "Ex: President, CEO, VP Finance..."} />
                                     </FormControl>
-                                    <FormDescription className="text-xs">
-                                      {language === "fr" ? "Votre titre pour la procuration HQ" : "Your title for the HQ authorization"}
-                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
-                              <FormField
-                                control={form.control}
-                                name="hqClientNumber"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <Zap className="w-3 h-3" />
-                                      {language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} data-testid="input-hq-client" placeholder={language === "fr" ? "Ex: 100142202" : "Ex: 100142202"} />
-                                    </FormControl>
-                                    <FormDescription className="text-xs">
-                                      {language === "fr" ? "Trouvé sur votre facture Hydro-Québec" : "Found on your Hydro-Québec bill"}
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-
-                            <div className="grid sm:grid-cols-2 gap-4">
+                              
                               <FormField
                                 control={form.control}
                                 name="email"
@@ -843,7 +1184,9 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   </FormItem>
                                 )}
                               />
-                              
+                            </div>
+
+                            <div className="grid sm:grid-cols-2 gap-4">
                               <FormField
                                 control={form.control}
                                 name="phone"
@@ -856,6 +1199,34 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                     <FormControl>
                                       <Input type="tel" {...field} data-testid="input-phone" />
                                     </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={form.control}
+                                name="tariffCode"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1">
+                                      <Zap className="w-3 h-3" />
+                                      {language === "fr" ? "Code tarifaire" : "Tariff code"}
+                                    </FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                      <FormControl>
+                                        <SelectTrigger data-testid="select-tariff-code">
+                                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {tariffCodes.map((tariff) => (
+                                          <SelectItem key={tariff.value} value={tariff.value}>
+                                            {tariff.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                   </FormItem>
                                 )}
@@ -965,117 +1336,115 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               />
                             </div>
 
-                            <div className="pt-4">
-                              <Button 
-                                type="button" 
-                                className="w-full gap-2"
-                                onClick={() => {
-                                  if (canProceedToStep2()) {
-                                    setCurrentStep(2);
-                                  } else {
-                                    form.trigger(['companyName', 'firstName', 'lastName', 'signerTitle', 'hqClientNumber', 'email', 'streetAddress', 'city']);
-                                  }
-                                }}
-                                data-testid="button-next-step-1"
-                              >
-                                {language === "fr" ? "Continuer" : "Continue"}
-                                <ArrowRight className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </motion.div>
-                        )}
+                            <div className="border-t pt-6 mt-6">
+                              <div className="bg-muted/50 rounded-lg p-4 border mb-4">
+                                <div className="flex items-start gap-3 mb-4">
+                                  <FileSignature className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
+                                  <div>
+                                    <h3 className="font-semibold mb-1">
+                                      {language === "fr" ? "Procuration Hydro-Québec" : "Hydro-Québec Authorization"}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      {language === "fr" 
+                                        ? "Pour accéder à vos données de consommation détaillées, nous avons besoin de votre autorisation."
+                                        : "To access your detailed consumption data, we need your authorization."
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="bg-background rounded-md p-4 text-sm max-h-48 overflow-y-auto border">
+                                  <pre className="whitespace-pre-wrap font-sans">
+                                    {language === "fr" ? procurationTextFr : procurationTextEn}
+                                  </pre>
+                                </div>
+                              </div>
 
-                        {currentStep === 2 && (
-                          <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="space-y-4"
-                          >
-                            <div className="bg-muted/50 rounded-lg p-4 border">
-                              <div className="flex items-start gap-3 mb-4">
-                                <FileSignature className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
-                                <div>
-                                  <h3 className="font-semibold mb-1">
-                                    {language === "fr" ? "Procuration Hydro-Québec" : "Hydro-Québec Authorization"}
-                                  </h3>
-                                  <p className="text-sm text-muted-foreground">
+                              <FormField
+                                control={form.control}
+                                name="signatureCity"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {language === "fr" ? "Signée à (ville)" : "Signed at (city)"} *
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        {...field} 
+                                        placeholder={language === "fr" ? "Ex: Montréal" : "Ex: Montreal"}
+                                        data-testid="input-signature-city" 
+                                      />
+                                    </FormControl>
+                                    <FormDescription className="text-xs">
+                                      {language === "fr" 
+                                        ? "Ville où vous signez ce document" 
+                                        : "City where you are signing this document"
+                                      }
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <div className="rounded-md border p-4 bg-primary/5 space-y-4 mt-4">
+                                <div className="space-y-1">
+                                  <h4 className="font-medium text-sm">
                                     {language === "fr" 
-                                      ? "Pour accéder à vos données de consommation détaillées, nous avons besoin de votre autorisation."
-                                      : "To access your detailed consumption data, we need your authorization."
+                                      ? "Signez ci-dessous pour accepter la procuration *"
+                                      : "Sign below to accept the authorization *"
+                                    }
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    {language === "fr"
+                                      ? `Signature de ${form.getValues().firstName || ''} ${form.getValues().lastName || 'le représentant'} pour ${form.getValues().companyName || 'l\'entreprise'}`
+                                      : `Signature of ${form.getValues().firstName || ''} ${form.getValues().lastName || 'representative'} for ${form.getValues().companyName || 'company'}`
                                     }
                                   </p>
                                 </div>
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="procurationAccepted"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <div>
+                                          <SignaturePad
+                                            ref={signaturePadRef}
+                                            width={500}
+                                            height={150}
+                                            onSignatureChange={(hasSig) => {
+                                              setHasSignature(hasSig);
+                                              field.onChange(hasSig);
+                                            }}
+                                            clearButtonText={language === "fr" ? "Effacer" : "Clear"}
+                                            signedText={language === "fr" ? "Signature capturée" : "Signature captured"}
+                                          />
+                                        </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
                               </div>
-                              
-                              <div className="bg-background rounded-md p-4 text-sm max-h-48 overflow-y-auto border">
-                                <pre className="whitespace-pre-wrap font-sans">
-                                  {language === "fr" ? procurationTextFr : procurationTextEn}
-                                </pre>
-                              </div>
-                            </div>
 
-                            <FormField
-                              control={form.control}
-                              name="signatureCity"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {language === "fr" ? "Signée à (ville)" : "Signed at (city)"} *
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      placeholder={language === "fr" ? "Ex: Montréal" : "Ex: Montreal"}
-                                      data-testid="input-signature-city" 
-                                    />
-                                  </FormControl>
-                                  <FormDescription className="text-xs">
-                                    {language === "fr" 
-                                      ? "Ville où vous signez ce document" 
-                                      : "City where you are signing this document"
-                                    }
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <div className="rounded-md border p-4 bg-primary/5 space-y-4">
-                              <div className="space-y-1">
-                                <h4 className="font-medium text-sm">
-                                  {language === "fr" 
-                                    ? "Signez ci-dessous pour accepter la procuration *"
-                                    : "Sign below to accept the authorization *"
-                                  }
-                                </h4>
-                                <p className="text-xs text-muted-foreground">
-                                  {language === "fr"
-                                    ? `Signature de ${form.getValues().firstName || ''} ${form.getValues().lastName || 'le représentant'} pour ${form.getValues().companyName || 'l\'entreprise'}`
-                                    : `Signature of ${form.getValues().firstName || ''} ${form.getValues().lastName || 'representative'} for ${form.getValues().companyName || 'company'}`
-                                  }
-                                </p>
-                              </div>
-                              
                               <FormField
                                 control={form.control}
-                                name="procurationAccepted"
+                                name="notes"
                                 render={({ field }) => (
-                                  <FormItem>
+                                  <FormItem className="mt-4">
+                                    <FormLabel>{language === "fr" ? "Notes additionnelles" : "Additional notes"}</FormLabel>
                                     <FormControl>
-                                      <div>
-                                        <SignaturePad
-                                          ref={signaturePadRef}
-                                          width={500}
-                                          height={150}
-                                          onSignatureChange={(hasSig) => {
-                                            setHasSignature(hasSig);
-                                            field.onChange(hasSig);
-                                          }}
-                                          clearButtonText={language === "fr" ? "Effacer" : "Clear"}
-                                          signedText={language === "fr" ? "Signature capturée" : "Signature captured"}
-                                        />
-                                      </div>
+                                      <Textarea 
+                                        {...field} 
+                                        rows={3}
+                                        placeholder={language === "fr" 
+                                          ? "Informations supplémentaires sur votre projet..."
+                                          : "Additional information about your project..."
+                                        }
+                                        data-testid="input-notes" 
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1095,153 +1464,14 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 {language === "fr" ? "Retour" : "Back"}
                               </Button>
                               <Button 
-                                type="button" 
-                                className="flex-1 gap-2"
-                                onClick={() => {
-                                  if (canProceedToStep3()) {
-                                    setCurrentStep(3);
-                                  } else {
-                                    form.trigger(['procurationAccepted', 'signatureCity']);
-                                  }
-                                }}
-                                data-testid="button-next-step-2"
-                              >
-                                {language === "fr" ? "Continuer" : "Continue"}
-                                <ArrowRight className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {currentStep === 3 && (
-                          <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="space-y-4"
-                          >
-                            <div className="bg-muted/50 rounded-lg p-4 border">
-                              <div className="flex items-start gap-3 mb-4">
-                                <FileText className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
-                                <div>
-                                  <h3 className="font-semibold mb-1">
-                                    {language === "fr" ? "Facture Hydro-Québec" : "Hydro-Québec Bill"}
-                                  </h3>
-                                  <p className="text-sm text-muted-foreground">
-                                    {language === "fr" 
-                                      ? "Téléversez au moins une facture HQ datant de moins de 3 mois. Cela nous permet de valider votre numéro de compte."
-                                      : "Upload at least one HQ bill from the last 3 months. This allows us to validate your account number."
-                                    }
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div
-                                {...getRootProps()}
-                                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                                  isDragActive 
-                                    ? 'border-primary bg-primary/5' 
-                                    : 'border-muted-foreground/30 hover:border-primary/50'
-                                }`}
-                                data-testid="dropzone-bill"
-                              >
-                                <input {...getInputProps()} />
-                                <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                                <p className="text-sm font-medium mb-1">
-                                  {isDragActive 
-                                    ? (language === "fr" ? "Déposez le fichier ici..." : "Drop the file here...")
-                                    : (language === "fr" ? "Glissez votre facture ici ou cliquez" : "Drag your bill here or click")
-                                  }
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  PDF, JPG, PNG (max 10 Mo)
-                                </p>
-                              </div>
-
-                              {uploadError && (
-                                <div className="flex items-center gap-2 mt-3 p-3 bg-destructive/10 rounded-md text-destructive text-sm">
-                                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                  {uploadError}
-                                </div>
-                              )}
-
-                              {uploadedFiles.length > 0 && (
-                                <div className="mt-4 space-y-2">
-                                  <p className="text-sm font-medium">
-                                    {language === "fr" ? "Fichiers téléversés:" : "Uploaded files:"}
-                                  </p>
-                                  {uploadedFiles.map((uploadedFile, index) => (
-                                    <div 
-                                      key={index} 
-                                      className="flex items-center justify-between p-3 bg-background rounded-md border"
-                                    >
-                                      <div className="flex items-center gap-3">
-                                        <File className="w-5 h-5 text-primary" />
-                                        <div>
-                                          <p className="text-sm font-medium truncate max-w-[200px]">
-                                            {uploadedFile.file.name}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
-                                            {(uploadedFile.file.size / 1024 / 1024).toFixed(2)} Mo
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => removeFile(index)}
-                                        data-testid={`button-remove-file-${index}`}
-                                      >
-                                        <X className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <FormField
-                              control={form.control}
-                              name="notes"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{language === "fr" ? "Notes additionnelles" : "Additional notes"}</FormLabel>
-                                  <FormControl>
-                                    <Textarea 
-                                      {...field} 
-                                      rows={3}
-                                      placeholder={language === "fr" 
-                                        ? "Informations supplémentaires sur votre projet..."
-                                        : "Additional information about your project..."
-                                      }
-                                      data-testid="input-notes" 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <div className="flex gap-3 pt-4">
-                              <Button 
-                                type="button" 
-                                variant="outline"
-                                className="flex-1"
-                                onClick={() => setCurrentStep(2)}
-                                data-testid="button-prev-step-3"
-                              >
-                                <ArrowLeft className="w-4 h-4 mr-2" />
-                                {language === "fr" ? "Retour" : "Back"}
-                              </Button>
-                              <Button 
                                 type="submit" 
                                 className="flex-1 gap-2"
-                                disabled={mutation.isPending || uploadedFiles.length === 0}
+                                disabled={mutation.isPending}
                                 data-testid="button-submit-form"
                               >
                                 {mutation.isPending ? (
                                   <>
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                     {language === "fr" ? "Envoi..." : "Sending..."}
                                   </>
                                 ) : (
