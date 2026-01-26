@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown, Search, ChevronLeft, ChevronRight, FileSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -361,7 +362,134 @@ Please don't hesitate to contact us if you have any questions.`;
   );
 }
 
-function ClientCard({ client, onEdit, onDelete, onGrantAccess }: { client: ClientWithSites; onEdit: () => void; onDelete: () => void; onGrantAccess: () => void }) {
+function SendHqProcurationDialog({ 
+  client, 
+  open, 
+  onOpenChange 
+}: { 
+  client: ClientWithSites; 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t, language } = useI18n();
+  const { toast } = useToast();
+  const [selectedLanguage, setSelectedLanguage] = useState<"fr" | "en">(language as "fr" | "en");
+  
+  const sendProcurationMutation = useMutation({
+    mutationFn: async (lang: "fr" | "en") => {
+      return await apiRequest("POST", `/api/clients/${client.id}/send-hq-procuration`, { language: lang });
+    },
+    onSuccess: () => {
+      toast({ 
+        title: t("clients.procurationSent"),
+        description: language === "fr" 
+          ? `Courriel envoyé à ${client.email}` 
+          : `Email sent to ${client.email}`
+      });
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      let message = error?.message || t("clients.procurationSendError");
+      try {
+        const colonIndex = message.indexOf(': ');
+        if (colonIndex > 0) {
+          const bodyPart = message.substring(colonIndex + 2);
+          const parsed = JSON.parse(bodyPart);
+          if (parsed.error) {
+            message = parsed.error;
+          }
+        }
+      } catch {
+      }
+      
+      toast({ 
+        title: t("clients.procurationSendError"),
+        description: message,
+        variant: "destructive"
+      });
+    },
+  });
+  
+  const handleSend = () => {
+    sendProcurationMutation.mutate(selectedLanguage);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileSignature className="w-5 h-5 text-primary" />
+            {t("clients.sendHqProcuration")}
+          </DialogTitle>
+          <DialogDescription>
+            {language === "fr" 
+              ? `Envoyer un courriel à ${client.name} avec un lien vers le formulaire de procuration Hydro-Québec.`
+              : `Send an email to ${client.name} with a link to the Hydro-Québec authorization form.`}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              {language === "fr" ? "Adresse courriel" : "Email address"}
+            </label>
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm" data-testid="text-procuration-email">{client.email}</span>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              {language === "fr" ? "Langue du courriel" : "Email language"}
+            </label>
+            <RadioGroup
+              value={selectedLanguage}
+              onValueChange={(val) => setSelectedLanguage(val as "fr" | "en")}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="fr" id="lang-fr" data-testid="radio-language-fr" />
+                <label htmlFor="lang-fr" className="text-sm cursor-pointer">Français</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="en" id="lang-en" data-testid="radio-language-en" />
+                <label htmlFor="lang-en" className="text-sm cursor-pointer">English</label>
+              </div>
+            </RadioGroup>
+          </div>
+        </div>
+        
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button 
+            onClick={handleSend}
+            disabled={sendProcurationMutation.isPending}
+            className="gap-2"
+            data-testid="button-send-procuration"
+          >
+            {sendProcurationMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {language === "fr" ? "Envoi en cours..." : "Sending..."}
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                {language === "fr" ? "Envoyer" : "Send"}
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ClientCard({ client, onEdit, onDelete, onGrantAccess, onSendHqProcuration }: { client: ClientWithSites; onEdit: () => void; onDelete: () => void; onGrantAccess: () => void; onSendHqProcuration: () => void }) {
   const { t } = useI18n();
 
   return (
@@ -423,6 +551,12 @@ function ClientCard({ client, onEdit, onDelete, onGrantAccess }: { client: Clien
                 <KeyRound className="w-4 h-4 mr-2" />
                 {t("clients.grantPortalAccess")}
               </DropdownMenuItem>
+              {client.email && (
+                <DropdownMenuItem onClick={onSendHqProcuration} data-testid={`menu-send-hq-procuration-${client.id}`}>
+                  <FileSignature className="w-4 h-4 mr-2" />
+                  {t("clients.sendHqProcuration")}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={onEdit}>
                 <Pencil className="w-4 h-4 mr-2" />
                 {t("common.edit")}
@@ -646,6 +780,7 @@ export default function ClientsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [portalAccessClient, setPortalAccessClient] = useState<ClientWithSites | null>(null);
+  const [hqProcurationClient, setHqProcurationClient] = useState<ClientWithSites | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -810,6 +945,7 @@ export default function ClientsPage() {
               onEdit={() => setEditingClient(client)}
               onDelete={() => deleteMutation.mutate(client.id)}
               onGrantAccess={() => setPortalAccessClient(client)}
+              onSendHqProcuration={() => setHqProcurationClient(client)}
             />
           ))}
         </div>
@@ -882,6 +1018,15 @@ export default function ClientsPage() {
           client={portalAccessClient}
           open={!!portalAccessClient}
           onOpenChange={(open) => !open && setPortalAccessClient(null)}
+        />
+      )}
+      
+      {/* Send HQ Procuration Dialog */}
+      {hqProcurationClient && (
+        <SendHqProcurationDialog
+          client={hqProcurationClient}
+          open={!!hqProcurationClient}
+          onOpenChange={(open) => !open && setHqProcurationClient(null)}
         />
       )}
     </div>

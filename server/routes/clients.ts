@@ -5,6 +5,7 @@ import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertClientSchema } from "@shared/schema";
 import { sendEmail, generatePortalInvitationEmail } from "../gmail";
+import { sendHqProcurationEmail } from "../emailService";
 
 const router = Router();
 
@@ -116,6 +117,69 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
     });
   } catch (error: any) {
     console.error("Grant portal access error:", error);
+    res.status(500).json({ error: error.message || "Internal server error" });
+  }
+});
+
+const sendHqProcurationSchema = z.object({
+  language: z.enum(["fr", "en"]).default("fr"),
+});
+
+router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+  try {
+    const { clientId } = req.params;
+    
+    const parseResult = sendHqProcurationSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        error: "Validation error", 
+        details: parseResult.error.errors 
+      });
+    }
+    
+    const { language } = parseResult.data;
+    
+    const client = await storage.getClient(clientId);
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+    
+    if (!client.email) {
+      return res.status(400).json({ 
+        error: language === 'fr' 
+          ? "Ce client n'a pas d'adresse courriel" 
+          : "This client has no email address" 
+      });
+    }
+    
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const host = req.get('host') || 'localhost:5000';
+    const baseUrl = `${protocol}://${host}`;
+    
+    const emailResult = await sendHqProcurationEmail(
+      client.email,
+      client.name,
+      language,
+      baseUrl
+    );
+    
+    if (!emailResult.success) {
+      console.error(`[HQ Procuration] Email failed for client ${client.name}: ${emailResult.error}`);
+      return res.status(500).json({
+        success: false,
+        error: language === 'fr' 
+          ? "L'envoi du courriel a échoué. Veuillez réessayer."
+          : "Email delivery failed. Please try again.",
+      });
+    }
+    
+    console.log(`[HQ Procuration] Successfully sent procuration email to ${client.email} for client ${client.name}`);
+    
+    res.json({
+      success: true,
+    });
+  } catch (error: any) {
+    console.error("Send HQ procuration error:", error);
     res.status(500).json({ error: error.message || "Internal server error" });
   }
 });

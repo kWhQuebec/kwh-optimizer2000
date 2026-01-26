@@ -406,3 +406,142 @@ export async function sendWelcomeEmail(
   
   return result;
 }
+
+function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', baseUrl: string): string {
+  const procurationUrl = `${baseUrl}/analyse-detaillee`;
+  
+  const t = {
+    fr: {
+      greeting: 'Bonjour,',
+      intro: `Dans le cadre de votre projet d'analyse solaire avec kWh Québec, nous avons besoin d'accéder à vos données de consommation Hydro-Québec pour réaliser une analyse précise et personnalisée.`,
+      whyTitle: 'Pourquoi avons-nous besoin de cette autorisation?',
+      whyText: 'Les données de consommation horaires nous permettent de:',
+      benefit1: 'Dimensionner précisément votre système solaire',
+      benefit2: 'Calculer vos économies réelles basées sur votre profil de consommation',
+      benefit3: 'Optimiser la taille de la batterie si applicable',
+      benefit4: 'Fournir des projections financières fiables',
+      actionTitle: 'Comment procéder?',
+      actionText: 'Cliquez sur le bouton ci-dessous pour accéder au formulaire de procuration. La signature prend moins de 2 minutes.',
+      ctaButton: 'Signer la procuration',
+      securityNote: 'Cette procuration autorise uniquement kWh Québec à consulter vos données de consommation auprès d\'Hydro-Québec. Elle peut être révoquée à tout moment.',
+      questions: 'Des questions? N\'hésitez pas à nous contacter.',
+      footer: 'kWh Québec - 514.427.8871 - info@kwh.quebec',
+    },
+    en: {
+      greeting: 'Hello,',
+      intro: `As part of your solar analysis project with kWh Québec, we need access to your Hydro-Québec consumption data to provide an accurate and personalized analysis.`,
+      whyTitle: 'Why do we need this authorization?',
+      whyText: 'Hourly consumption data allows us to:',
+      benefit1: 'Precisely size your solar system',
+      benefit2: 'Calculate your actual savings based on your consumption profile',
+      benefit3: 'Optimize battery size if applicable',
+      benefit4: 'Provide reliable financial projections',
+      actionTitle: 'How to proceed?',
+      actionText: 'Click the button below to access the authorization form. Signing takes less than 2 minutes.',
+      ctaButton: 'Sign Authorization',
+      securityNote: 'This authorization only allows kWh Québec to access your consumption data from Hydro-Québec. It can be revoked at any time.',
+      questions: 'Questions? Feel free to contact us.',
+      footer: 'kWh Québec - 514.427.8871 - info@kwh.quebec',
+    },
+  };
+  
+  const txt = t[lang];
+  
+  return `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+    .container { max-width: 600px; margin: 0 auto; background: white; }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #1e5a9f 100%); color: white; padding: 30px; text-align: center; }
+    .header img { max-width: 180px; height: auto; }
+    .header h1 { margin: 15px 0 0; font-size: 22px; font-weight: 600; }
+    .content { padding: 30px; }
+    .intro { font-size: 15px; color: #555; margin-bottom: 25px; }
+    .section { margin-bottom: 25px; }
+    .section-title { font-size: 16px; font-weight: 600; color: #003DA6; margin-bottom: 12px; }
+    .benefit-list { margin: 0; padding-left: 20px; }
+    .benefit-list li { margin-bottom: 8px; color: #555; }
+    .cta-section { text-align: center; margin: 30px 0; }
+    .cta-button { display: inline-block; background: #FFB005; color: #003DA6; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 16px; }
+    .security-note { background: #f0f7ff; padding: 15px; border-radius: 6px; font-size: 13px; color: #666; border-left: 4px solid #003DA6; margin: 20px 0; }
+    .questions { font-size: 14px; color: #666; text-align: center; margin-top: 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 13px; background: #f0f0f0; border-top: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="${baseUrl}/logo-kwh.png" alt="kWh Québec" />
+      <h1>${lang === 'fr' ? 'Autorisation d\'accès aux données Hydro-Québec' : 'Hydro-Québec Data Access Authorization'}</h1>
+    </div>
+    
+    <div class="content">
+      <p class="intro">${txt.greeting}<br><br>${txt.intro}</p>
+      
+      <div class="section">
+        <div class="section-title">${txt.whyTitle}</div>
+        <p style="color: #555; margin-bottom: 10px;">${txt.whyText}</p>
+        <ul class="benefit-list">
+          <li>${txt.benefit1}</li>
+          <li>${txt.benefit2}</li>
+          <li>${txt.benefit3}</li>
+          <li>${txt.benefit4}</li>
+        </ul>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">${txt.actionTitle}</div>
+        <p style="color: #555;">${txt.actionText}</p>
+      </div>
+      
+      <div class="cta-section">
+        <a href="${procurationUrl}" class="cta-button">${txt.ctaButton}</a>
+      </div>
+      
+      <div class="security-note">
+        ${txt.securityNote}
+      </div>
+      
+      <p class="questions">${txt.questions}</p>
+    </div>
+    
+    <div class="footer">
+      <strong>${txt.footer}</strong>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendHqProcurationEmail(
+  email: string,
+  clientName: string,
+  language: 'fr' | 'en',
+  baseUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  const subject = language === 'fr' 
+    ? '[kWh Québec] Autorisation d\'accès aux données Hydro-Québec' 
+    : '[kWh Québec] Hydro-Québec Data Access Authorization';
+  
+  const htmlBody = generateHqProcurationEmailHtml(clientName, language, baseUrl);
+  
+  console.log(`[EmailService] Sending HQ procuration email to ${email} for ${clientName} (lang: ${language})`);
+  
+  const result = await sendEmail({
+    to: email,
+    subject,
+    htmlBody,
+  });
+  
+  if (result.success) {
+    console.log(`[EmailService] HQ procuration email sent successfully to ${email}`);
+  } else {
+    console.error(`[EmailService] Failed to send HQ procuration email: ${result.error}`);
+  }
+  
+  return result;
+}

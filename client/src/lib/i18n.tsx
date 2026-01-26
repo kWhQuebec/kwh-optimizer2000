@@ -431,6 +431,9 @@ const translations: Translations = {
   "clients.clientUpdated": { fr: "Client mis à jour", en: "Client updated" },
   "clients.clientDeleted": { fr: "Client supprimé", en: "Client deleted" },
   "clients.grantPortalAccess": { fr: "Accorder l'accès au portail", en: "Grant Portal Access" },
+  "clients.sendHqProcuration": { fr: "Envoyer procuration HQ", en: "Send HQ Procuration" },
+  "clients.procurationSent": { fr: "Procuration envoyée", en: "Procuration sent" },
+  "clients.procurationSendError": { fr: "Erreur d'envoi de la procuration", en: "Error sending procuration" },
 
   // Analyses
   "analyses.createDesign": { fr: "Créer un design", en: "Create design" },
