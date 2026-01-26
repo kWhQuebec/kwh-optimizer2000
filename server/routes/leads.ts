@@ -9,6 +9,7 @@ import { sendQuickAnalysisEmail } from "../emailService";
 import { sendEmail } from "../gmail";
 import * as googleSolar from "../googleSolarService";
 import { generateProcurationPDF, createProcurationData } from "../procurationPdfGenerator";
+import { parseHQBill, type HQBillData } from "../hqBillParser";
 
 const router = express.Router();
 
@@ -739,6 +740,65 @@ router.get("/api/search", authMiddleware, requireStaff, async (req, res) => {
   } catch (error) {
     console.error("Error in global search:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ==================== HQ BILL PARSING ====================
+
+const billUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  }
+});
+
+router.post("/api/parse-hq-bill", billUpload.single('file'), async (req, res) => {
+  try {
+    let imageBase64: string | undefined;
+    let mimeType = 'image/jpeg';
+
+    if (req.file) {
+      imageBase64 = req.file.buffer.toString('base64');
+      mimeType = req.file.mimetype;
+      console.log(`[HQ Bill Parse] Received file upload: ${req.file.originalname}, ${req.file.mimetype}, ${Math.round(req.file.size / 1024)}KB`);
+    } else if (req.body.imageBase64) {
+      imageBase64 = req.body.imageBase64;
+      mimeType = req.body.mimeType || 'image/jpeg';
+      console.log(`[HQ Bill Parse] Received base64 image, mimeType: ${mimeType}`);
+    } else {
+      return res.status(400).json({ 
+        error: "No image provided. Send a file upload or imageBase64 in body." 
+      });
+    }
+
+    const result = await parseHQBill(imageBase64, mimeType);
+
+    console.log(`[HQ Bill Parse] Extraction complete, confidence: ${result.confidence}, fields: account=${!!result.accountNumber}, tariff=${result.tariffCode}, kWh=${result.annualConsumptionKwh}`);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("[HQ Bill Parse] Error:", error);
+    res.status(500).json({ 
+      error: "Failed to parse bill",
+      details: error instanceof Error ? error.message : String(error),
+    });
   }
 });
 
