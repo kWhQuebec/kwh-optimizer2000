@@ -1,7 +1,8 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import bcrypt from "bcrypt";
 import { z } from "zod";
-import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
+import { authMiddleware, requireStaff } from "../middleware/auth";
+import { asyncHandler, NotFoundError, BadRequestError, ConflictError, ValidationError } from "../middleware/errorHandler";
 import { storage } from "../storage";
 import { insertClientSchema } from "@shared/schema";
 import { sendEmail, generatePortalInvitationEmail } from "../gmail";
@@ -25,345 +26,271 @@ const grantPortalAccessSchema = z.object({
   customMessage: z.string().optional().default(""),
 });
 
-router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
-  try {
-    const { clientId } = req.params;
+router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const { clientId } = req.params;
+  
+  const parseResult = grantPortalAccessSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    throw new ValidationError("Validation error", parseResult.error.errors);
+  }
+  
+  const { email, contactName, language, customMessage } = parseResult.data;
+  
+  const client = await storage.getClient(clientId);
+  if (!client) {
+    throw new NotFoundError("Client");
+  }
+  
+  const existingUser = await storage.getUserByEmail(email);
+  if (existingUser) {
+    throw new BadRequestError("A user with this email already exists");
+  }
+  
+  const tempPassword = generateTempPassword();
+  const hashedPassword = await bcrypt.hash(tempPassword, 10);
+  
+  const user = await storage.createUser({
+    email,
+    passwordHash: hashedPassword,
+    name: contactName || null,
+    role: 'client',
+    clientId: clientId,
+  });
+  
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const host = req.get('host') || 'localhost:5000';
+  const portalUrl = `${protocol}://${host}/login`;
+  
+  const emailContent = generatePortalInvitationEmail({
+    clientName: client.name,
+    contactName: contactName || email.split('@')[0],
+    email,
+    tempPassword,
+    portalUrl,
+    language: language as 'fr' | 'en',
+  });
+  
+  let finalHtmlBody = emailContent.htmlBody;
+  let finalTextBody = emailContent.textBody;
+  if (customMessage) {
+    const customHtml = `<div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #856404;">
+      <p style="margin: 0;"><strong>${language === 'fr' ? 'Message personnel :' : 'Personal message:'}</strong></p>
+      <p style="margin: 10px 0 0 0;">${customMessage.replace(/\n/g, '<br>')}</p>
+    </div>`;
+    finalHtmlBody = finalHtmlBody.replace('</div>\n    <div class="footer">', customHtml + '</div>\n    <div class="footer">');
+    finalTextBody = finalTextBody + `\n\n${language === 'fr' ? 'Message personnel' : 'Personal message'}:\n${customMessage}`;
+  }
+  
+  const emailResult = await sendEmail({
+    to: email,
+    subject: emailContent.subject,
+    htmlBody: finalHtmlBody,
+    textBody: finalTextBody,
+  });
+  
+  if (!emailResult.success) {
+    console.error(`[Portal Access] Email failed for user ${user.email} (client: ${client.name}): ${emailResult.error}`);
+    console.warn(`[Portal Access] Temporary password was generated but email not delivered. Manual credential sharing required.`);
     
-    const parseResult = grantPortalAccessSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return res.status(400).json({ 
-        error: "Validation error", 
-        details: parseResult.error.errors 
-      });
-    }
-    
-    const { email, contactName, language, customMessage } = parseResult.data;
-    
-    const client = await storage.getClient(clientId);
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    
-    const existingUser = await storage.getUserByEmail(email);
-    if (existingUser) {
-      return res.status(400).json({ error: "A user with this email already exists" });
-    }
-    
-    const tempPassword = generateTempPassword();
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
-    
-    const user = await storage.createUser({
-      email,
-      passwordHash: hashedPassword,
-      name: contactName || null,
-      role: 'client',
-      clientId: clientId,
-    });
-    
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const host = req.get('host') || 'localhost:5000';
-    const portalUrl = `${protocol}://${host}/login`;
-    
-    const emailContent = generatePortalInvitationEmail({
-      clientName: client.name,
-      contactName: contactName || email.split('@')[0],
-      email,
-      tempPassword,
-      portalUrl,
-      language: language as 'fr' | 'en',
-    });
-    
-    let finalHtmlBody = emailContent.htmlBody;
-    let finalTextBody = emailContent.textBody;
-    if (customMessage) {
-      const customHtml = `<div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #856404;">
-        <p style="margin: 0;"><strong>${language === 'fr' ? 'Message personnel :' : 'Personal message:'}</strong></p>
-        <p style="margin: 10px 0 0 0;">${customMessage.replace(/\n/g, '<br>')}</p>
-      </div>`;
-      finalHtmlBody = finalHtmlBody.replace('</div>\n    <div class="footer">', customHtml + '</div>\n    <div class="footer">');
-      finalTextBody = finalTextBody + `\n\n${language === 'fr' ? 'Message personnel' : 'Personal message'}:\n${customMessage}`;
-    }
-    
-    const emailResult = await sendEmail({
-      to: email,
-      subject: emailContent.subject,
-      htmlBody: finalHtmlBody,
-      textBody: finalTextBody,
-    });
-    
-    if (!emailResult.success) {
-      console.error(`[Portal Access] Email failed for user ${user.email} (client: ${client.name}): ${emailResult.error}`);
-      console.warn(`[Portal Access] Temporary password was generated but email not delivered. Manual credential sharing required.`);
-      
-      return res.status(201).json({
-        success: true,
-        user: { id: user.id, email: user.email, name: user.name },
-        emailSent: false,
-        emailError: emailResult.error,
-        tempPassword,
-        warning: language === 'fr' 
-          ? "L'envoi du courriel a échoué. Veuillez partager le mot de passe temporaire manuellement."
-          : "Email delivery failed. Please share the temporary password manually.",
-      });
-    }
-    
-    console.log(`[Portal Access] Successfully created account and sent invitation to ${user.email} for client ${client.name}`);
-    
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       user: { id: user.id, email: user.email, name: user.name },
-      emailSent: true,
-      messageId: emailResult.messageId,
+      emailSent: false,
+      emailError: emailResult.error,
+      tempPassword,
+      warning: language === 'fr' 
+        ? "L'envoi du courriel a échoué. Veuillez partager le mot de passe temporaire manuellement."
+        : "Email delivery failed. Please share the temporary password manually.",
     });
-  } catch (error) {
-    console.error("Grant portal access error:", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
   }
-});
+  
+  console.log(`[Portal Access] Successfully created account and sent invitation to ${user.email} for client ${client.name}`);
+  
+  res.status(201).json({
+    success: true,
+    user: { id: user.id, email: user.email, name: user.name },
+    emailSent: true,
+    messageId: emailResult.messageId,
+  });
+}));
 
 const sendHqProcurationSchema = z.object({
   language: z.enum(["fr", "en"]).default("fr"),
 });
 
-router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
-  try {
-    const { clientId } = req.params;
-    
-    const parseResult = sendHqProcurationSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return res.status(400).json({ 
-        error: "Validation error", 
-        details: parseResult.error.errors 
-      });
-    }
-    
-    const { language } = parseResult.data;
-    
-    const client = await storage.getClient(clientId);
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    
-    if (!client.email) {
-      return res.status(400).json({ 
-        error: language === 'fr' 
-          ? "Ce client n'a pas d'adresse courriel" 
-          : "This client has no email address" 
-      });
-    }
-    
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const host = req.get('host') || 'localhost:5000';
-    const baseUrl = `${protocol}://${host}`;
-    
-    const emailResult = await sendHqProcurationEmail(
-      client.email,
-      client.name,
-      language,
-      baseUrl
+router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const { clientId } = req.params;
+  
+  const parseResult = sendHqProcurationSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    throw new ValidationError("Validation error", parseResult.error.errors);
+  }
+  
+  const { language } = parseResult.data;
+  
+  const client = await storage.getClient(clientId);
+  if (!client) {
+    throw new NotFoundError("Client");
+  }
+  
+  if (!client.email) {
+    throw new BadRequestError(
+      language === 'fr' 
+        ? "Ce client n'a pas d'adresse courriel" 
+        : "This client has no email address"
     );
-    
-    if (!emailResult.success) {
-      console.error(`[HQ Procuration] Email failed for client ${client.name}: ${emailResult.error}`);
-      return res.status(500).json({
-        success: false,
-        error: language === 'fr' 
-          ? "L'envoi du courriel a échoué. Veuillez réessayer."
-          : "Email delivery failed. Please try again.",
-      });
-    }
-    
-    console.log(`[HQ Procuration] Successfully sent procuration email to ${client.email} for client ${client.name}`);
-    
-    res.json({
-      success: true,
-    });
-  } catch (error) {
-    console.error("Send HQ procuration error:", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
   }
-});
-
-router.get("/api/clients/list", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const { limit, offset, search, includeArchived } = req.query;
-    
-    const limitNum = limit ? parseInt(limit as string, 10) : 50;
-    const offsetNum = offset ? parseInt(offset as string, 10) : 0;
-    const searchStr = search && typeof search === "string" ? search : undefined;
-    const showArchived = includeArchived === "true";
-    
-    const result = await storage.getClientsPaginated({
-      limit: limitNum,
-      offset: offsetNum,
-      search: searchStr,
-      includeArchived: showArchived,
-    });
-    
-    res.json(result);
-  } catch (error) {
-    console.error("Error fetching clients list:", error);
-    res.status(500).json({ error: "Internal server error" });
+  
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const host = req.get('host') || 'localhost:5000';
+  const baseUrl = `${protocol}://${host}`;
+  
+  const emailResult = await sendHqProcurationEmail(
+    client.email,
+    client.name,
+    language,
+    baseUrl
+  );
+  
+  if (!emailResult.success) {
+    console.error(`[HQ Procuration] Email failed for client ${client.name}: ${emailResult.error}`);
+    throw new BadRequestError(
+      language === 'fr' 
+        ? "L'envoi du courriel a échoué. Veuillez réessayer."
+        : "Email delivery failed. Please try again."
+    );
   }
-});
+  
+  console.log(`[HQ Procuration] Successfully sent procuration email to ${client.email} for client ${client.name}`);
+  
+  res.json({ success: true });
+}));
 
-router.get("/api/clients", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const clients = await storage.getClients();
-    res.json(clients);
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+router.get("/api/clients/list", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const { limit, offset, search, includeArchived } = req.query;
+  
+  const limitNum = limit ? parseInt(limit as string, 10) : 50;
+  const offsetNum = offset ? parseInt(offset as string, 10) : 0;
+  const searchStr = search && typeof search === "string" ? search : undefined;
+  const showArchived = includeArchived === "true";
+  
+  const result = await storage.getClientsPaginated({
+    limit: limitNum,
+    offset: offsetNum,
+    search: searchStr,
+    includeArchived: showArchived,
+  });
+  
+  res.json(result);
+}));
+
+router.get("/api/clients", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const clients = await storage.getClients();
+  res.json(clients);
+}));
+
+router.get("/api/clients/:id", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const client = await storage.getClient(req.params.id);
+  if (!client) {
+    throw new NotFoundError("Client");
   }
-});
+  res.json(client);
+}));
 
-router.get("/api/clients/:id", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const client = await storage.getClient(req.params.id);
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    res.json(client);
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+router.get("/api/clients/:id/sites", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const sites = await storage.getSitesByClient(req.params.id);
+  res.json(sites);
+}));
+
+router.post("/api/clients", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const parsed = insertClientSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new ValidationError("Validation error", parsed.error.errors);
   }
-});
+  
+  const client = await storage.createClient(parsed.data);
+  res.status(201).json(client);
+}));
 
-router.get("/api/clients/:id/sites", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const sites = await storage.getSitesByClient(req.params.id);
-    res.json(sites);
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+router.patch("/api/clients/:id", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const client = await storage.updateClient(req.params.id, req.body);
+  if (!client) {
+    throw new NotFoundError("Client");
   }
-});
+  res.json(client);
+}));
 
-router.post("/api/clients", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const parsed = insertClientSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors });
-    }
-    
-    const client = await storage.createClient(parsed.data);
-    res.status(201).json(client);
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+router.delete("/api/clients/:id", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const clientId = req.params.id;
+  
+  const client = await storage.getClient(clientId);
+  if (!client) {
+    throw new NotFoundError("Client");
   }
-});
-
-router.patch("/api/clients/:id", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const client = await storage.updateClient(req.params.id, req.body);
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    res.json(client);
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+  
+  const sites = await storage.getSitesByClient(clientId);
+  if (sites.length > 0) {
+    throw new ConflictError(`Cannot delete client with ${sites.length} site(s). Please delete or reassign the sites first.`);
   }
-});
+  
+  const portfolios = await storage.getPortfoliosByClient(clientId);
+  if (portfolios.length > 0) {
+    throw new ConflictError(`Cannot delete client with ${portfolios.length} portfolio(s). Please delete the portfolios first.`);
+  }
+  
+  const opportunities = await storage.getOpportunitiesByClientId(clientId);
+  if (opportunities.length > 0) {
+    throw new ConflictError(`Cannot delete client with ${opportunities.length} opportunity(ies) in the pipeline. Please close or reassign them first.`);
+  }
+  
+  const deleted = await storage.deleteClient(clientId);
+  if (!deleted) {
+    throw new BadRequestError("Failed to delete client");
+  }
+  res.status(204).send();
+}));
 
-router.delete("/api/clients/:id", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const clientId = req.params.id;
-    
-    // Check if client exists
-    const client = await storage.getClient(clientId);
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    
-    // Check for related records that would prevent deletion
+router.post("/api/clients/:id/archive", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const clientId = req.params.id;
+  const { archiveSites } = req.body;
+  
+  const client = await storage.getClient(clientId);
+  if (!client) {
+    throw new NotFoundError("Client");
+  }
+  
+  const updatedClient = await storage.updateClient(clientId, {
+    isArchived: true,
+    archivedAt: new Date(),
+  });
+  
+  if (archiveSites) {
     const sites = await storage.getSitesByClient(clientId);
-    if (sites.length > 0) {
-      return res.status(409).json({ 
-        error: `Cannot delete client with ${sites.length} site(s). Please delete or reassign the sites first.`,
-        relatedRecords: { sites: sites.length }
+    for (const site of sites) {
+      await storage.updateSite(site.id, {
+        isArchived: true,
+        archivedAt: new Date(),
       });
     }
-    
-    const portfolios = await storage.getPortfoliosByClient(clientId);
-    if (portfolios.length > 0) {
-      return res.status(409).json({ 
-        error: `Cannot delete client with ${portfolios.length} portfolio(s). Please delete the portfolios first.`,
-        relatedRecords: { portfolios: portfolios.length }
-      });
-    }
-    
-    const opportunities = await storage.getOpportunitiesByClientId(clientId);
-    if (opportunities.length > 0) {
-      return res.status(409).json({ 
-        error: `Cannot delete client with ${opportunities.length} opportunity(ies) in the pipeline. Please close or reassign them first.`,
-        relatedRecords: { opportunities: opportunities.length }
-      });
-    }
-    
-    const deleted = await storage.deleteClient(clientId);
-    if (!deleted) {
-      return res.status(500).json({ error: "Failed to delete client" });
-    }
-    res.status(204).send();
-  } catch (error) {
-    console.error("[Client Delete] Error:", error);
-    res.status(500).json({ error: "Internal server error" });
   }
-});
+  
+  res.json(updatedClient);
+}));
 
-// Archive a client (and optionally all related sites)
-router.post("/api/clients/:id/archive", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const clientId = req.params.id;
-    const { archiveSites } = req.body; // Optional: also archive all sites for this client
-    
-    const client = await storage.getClient(clientId);
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    
-    // Archive the client
-    const updatedClient = await storage.updateClient(clientId, {
-      isArchived: true,
-      archivedAt: new Date(),
-    });
-    
-    // Optionally archive all sites for this client
-    if (archiveSites) {
-      const sites = await storage.getSitesByClient(clientId);
-      for (const site of sites) {
-        await storage.updateSite(site.id, {
-          isArchived: true,
-          archivedAt: new Date(),
-        });
-      }
-    }
-    
-    res.json(updatedClient);
-  } catch (error) {
-    console.error("[Client Archive] Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+router.post("/api/clients/:id/unarchive", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const clientId = req.params.id;
+  
+  const client = await storage.getClient(clientId);
+  if (!client) {
+    throw new NotFoundError("Client");
   }
-});
-
-// Unarchive a client
-router.post("/api/clients/:id/unarchive", authMiddleware, requireStaff, async (req, res) => {
-  try {
-    const clientId = req.params.id;
-    
-    const client = await storage.getClient(clientId);
-    if (!client) {
-      return res.status(404).json({ error: "Client not found" });
-    }
-    
-    const updatedClient = await storage.updateClient(clientId, {
-      isArchived: false,
-      archivedAt: null,
-    });
-    
-    res.json(updatedClient);
-  } catch (error) {
-    console.error("[Client Unarchive] Error:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+  
+  const updatedClient = await storage.updateClient(clientId, {
+    isArchived: false,
+    archivedAt: null,
+  });
+  
+  res.json(updatedClient);
+}));
 
 export default router;
