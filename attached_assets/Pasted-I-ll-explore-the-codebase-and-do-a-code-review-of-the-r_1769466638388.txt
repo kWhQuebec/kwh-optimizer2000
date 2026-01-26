@@ -1,0 +1,172 @@
+I'll explore the codebase and do a code review of the recent changes. Let me start by understanding the architecture and then diving into the code quality.Excellent! Now let me dive deeper into the code to understand the architecture and quality:Let me look at more files to get a complete picture, including the storage interface and some of the larger route files:Now let me check a few more things for security and best practices:---
+
+## kWh Optimizer 2000 — Architecture Overview & Code Review
+
+### What This Project Is
+
+**kWh Optimizer 2000** is a sophisticated B2B solar + battery storage analysis platform for commercial/industrial buildings in Québec. It's a full-stack TypeScript monorepo that handles:
+
+- Lead generation and CRM
+- Solar roof analysis (via Google Solar API)
+- Battery peak-shaving calculations
+- 25-year financial cashflow modeling (NPV, IRR, LCOE)
+- Bill of Materials generation with KB Racking integration
+- PDF report generation
+- Client portal with role-based access
+- AI-powered Hydro-Québec bill parsing (via Gemini)
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 18 + TypeScript + Vite |
+| **UI** | Tailwind CSS + shadcn/ui + Radix |
+| **State** | TanStack Query + React Context |
+| **Routing** | Wouter |
+| **Backend** | Express + TypeScript |
+| **Database** | PostgreSQL via Drizzle ORM (Neon serverless) |
+| **Auth** | JWT + bcrypt |
+| **AI** | Google Gemini (bill parsing, constraints detection) |
+| **External APIs** | Google Solar, Hydro-Québec integrations |
+
+---
+
+## Code Review: What's Good ✅
+
+### 1. **Recent Refactoring is a Major Win**
+The backend routes were split from a **9,665-line monolith** (`routes.ts`) into **18 modular route files**. This is excellent:
+- `auth.ts` (157 lines) — clean authentication flows
+- `clients.ts`, `sites.ts`, `leads.ts` — domain-separated
+- `siteAnalysisHelpers.ts` — reusable analysis logic extracted
+
+### 2. **Clean Auth Middleware**
+```typescript
+// server/middleware/auth.ts
+export async function authMiddleware(req, res, next) {
+  // Proper JWT verification
+  // Attaches userId, userRole, userClientId to request
+}
+export function requireStaff() { ... }
+export function requireAdmin() { ... }
+```
+Role-based access control is implemented correctly with reusable middleware.
+
+### 3. **Well-Typed Schema**
+The `shared/schema.ts` uses Drizzle ORM with proper TypeScript types and Zod validation schemas. The `IStorage` interface provides good abstraction over the database.
+
+### 4. **Smart Frontend Architecture**
+- Lazy loading for non-critical pages (`React.lazy()`)
+- Proper auth context with loading states
+- Good use of TanStack Query for server state
+- Clean protected route pattern
+
+### 5. **Domain Logic Separation**
+The `shared/finance/cashflowEngine.ts` is well-documented with clear interfaces for financial calculations. This is business-critical code that's properly isolated.
+
+---
+
+## Code Review: Areas for Improvement ⚠️
+
+### 1. **Main `routes.ts` Still Has 2,727 Lines**
+Even after the refactoring, the main routes file is still large. It still contains:
+- PDF generation logic
+- Some analysis endpoints
+- Multer configuration
+- Various utility functions
+
+**Recommendation:** Continue extracting into dedicated route files or service modules.
+
+### 2. **256 Console.log/error Statements in Routes**
+Production code has excessive logging:
+```typescript
+console.log(`Roof estimation success for site ${siteId}: ${result.roofAreaSqM.toFixed(1)} m²`);
+```
+**Recommendation:** Implement a proper logging library (like `pino` or `winston`) with log levels. This enables:
+- Filtering logs by environment
+- Structured logging for production
+- Easier debugging
+
+### 3. **47 Uses of `any` Type in Routes**
+TypeScript's `any` defeats type safety:
+```typescript
+// Found in kb-racking.ts (12 instances), siteAnalysisHelpers.ts (5 instances), etc.
+```
+**Recommendation:** Replace with proper types or use `unknown` with type guards.
+
+### 4. **Inconsistent Error Handling**
+Some endpoints log errors, others don't:
+```typescript
+// Some do this:
+} catch (error) {
+  console.error("Error:", error);
+  res.status(500).json({ error: "Internal server error" });
+}
+
+// Others just:
+} catch (error) {
+  res.status(500).json({ error: "Internal server error" });
+}
+```
+**Recommendation:** Create a centralized error handler middleware.
+
+### 5. **Environment Variable Access is Scattered**
+`process.env` is accessed in ~25 places across the codebase without validation.
+
+**Recommendation:** Create a config module that validates all env vars at startup:
+```typescript
+// config.ts
+export const config = {
+  jwtSecret: requireEnv('SESSION_SECRET'),
+  databaseUrl: requireEnv('DATABASE_URL'),
+  geminiApiKey: optionalEnv('AI_INTEGRATIONS_GEMINI_API_KEY'),
+};
+```
+
+### 6. **No Automated Tests Visible**
+I didn't find any test files (`*.test.ts`, `*.spec.ts`). For a financial application doing cashflow calculations, this is risky.
+
+**Recommendation:** Add tests for:
+- Financial calculations (cashflow engine)
+- Auth flows
+- Critical API endpoints
+
+### 7. **Hard-coded Replit References**
+Several places reference `REPLIT_DOMAINS`, `REPL_SLUG`, etc. This ties the codebase to Replit infrastructure.
+
+**Recommendation:** Abstract these into a deployment config module.
+
+---
+
+## Security Observations 🔒
+
+**Good:**
+- Passwords properly hashed with bcrypt (cost factor 10)
+- JWT tokens with expiration (7 days)
+- Forced password change on first login
+- Secure temp password generation using `crypto.randomBytes`
+
+**Could Improve:**
+- No rate limiting visible on auth endpoints
+- Token stored in localStorage (vulnerable to XSS)
+- Consider adding CSRF protection
+
+---
+
+## Summary
+
+| Aspect | Grade | Notes |
+|--------|-------|-------|
+| **Architecture** | B+ | Good separation, refactoring in progress |
+| **TypeScript Usage** | B | Mostly typed, but `any` usage needs cleanup |
+| **Security** | B | Solid auth, but could add rate limiting |
+| **Code Quality** | B | Clean patterns, but needs logging/testing |
+| **Documentation** | A- | Good `replit.md`, clear schema docs |
+
+**Overall:** This is a substantial, well-architected application. The recent refactoring shows good engineering practices. The main areas to focus on are: completing the routes extraction, adding tests, and implementing proper logging.
+
+---
+
+Would you like me to:
+1. **Deep dive** into any specific area?
+2. **Start fixing** some of these issues?
+3. **Set up a coding challenge** to compare how Replit's agent vs. Claude handles improvements?

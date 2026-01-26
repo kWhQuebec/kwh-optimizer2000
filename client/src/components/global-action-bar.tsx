@@ -18,6 +18,11 @@ interface QuickAction {
 
 const quickActions: QuickAction[] = [
   {
+    label: { fr: "+ Opportunité", en: "+ Opportunity" },
+    href: "/app/pipeline?action=new",
+    icon: Target,
+  },
+  {
     label: { fr: "+ Client", en: "+ Client" },
     href: "/app/clients?action=new",
     icon: Users,
@@ -26,11 +31,6 @@ const quickActions: QuickAction[] = [
     label: { fr: "+ Site", en: "+ Site" },
     href: "/app/sites?action=new",
     icon: Building2,
-  },
-  {
-    label: { fr: "+ Opportunité", en: "+ Opportunity" },
-    href: "/app/pipeline?action=new",
-    icon: Target,
   },
 ];
 
