@@ -186,16 +186,18 @@ router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requir
 
 router.get("/api/clients/list", authMiddleware, requireStaff, async (req, res) => {
   try {
-    const { limit, offset, search } = req.query;
+    const { limit, offset, search, includeArchived } = req.query;
     
     const limitNum = limit ? parseInt(limit as string, 10) : 50;
     const offsetNum = offset ? parseInt(offset as string, 10) : 0;
     const searchStr = search && typeof search === "string" ? search : undefined;
+    const showArchived = includeArchived === "true";
     
     const result = await storage.getClientsPaginated({
       limit: limitNum,
       offset: offsetNum,
       search: searchStr,
+      includeArchived: showArchived,
     });
     
     res.json(result);
@@ -303,6 +305,63 @@ router.delete("/api/clients/:id", authMiddleware, requireStaff, async (req, res)
     res.status(204).send();
   } catch (error) {
     console.error("[Client Delete] Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Archive a client (and optionally all related sites)
+router.post("/api/clients/:id/archive", authMiddleware, requireStaff, async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const { archiveSites } = req.body; // Optional: also archive all sites for this client
+    
+    const client = await storage.getClient(clientId);
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+    
+    // Archive the client
+    const updatedClient = await storage.updateClient(clientId, {
+      isArchived: true,
+      archivedAt: new Date(),
+    });
+    
+    // Optionally archive all sites for this client
+    if (archiveSites) {
+      const sites = await storage.getSitesByClient(clientId);
+      for (const site of sites) {
+        await storage.updateSite(site.id, {
+          isArchived: true,
+          archivedAt: new Date(),
+        });
+      }
+    }
+    
+    res.json(updatedClient);
+  } catch (error) {
+    console.error("[Client Archive] Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Unarchive a client
+router.post("/api/clients/:id/unarchive", authMiddleware, requireStaff, async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    
+    const client = await storage.getClient(clientId);
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+    
+    const updatedClient = await storage.updateClient(clientId, {
+      isArchived: false,
+      archivedAt: null,
+    });
+    
+    res.json(updatedClient);
+  } catch (error) {
+    console.error("[Client Unarchive] Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

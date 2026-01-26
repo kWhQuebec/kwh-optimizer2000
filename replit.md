@@ -24,6 +24,7 @@ The frontend uses React with functional components, managing state via TanStack 
 -   **System Design Module**: Enables detailed equipment specifications and Bill of Materials creation.
 -   **Multi-Scenario Analysis**: Offers a Scenario Comparison Dashboard and a Financing Calculator.
 -   **Role-Based Access Control (RBAC)**: Supports Admin, Analyst, and Client roles.
+-   **Archive System**: Soft-delete capability for clients and sites with isArchived boolean field, optional cascade archiving of sites when archiving clients, and UI toggles to show/hide archived records.
 -   **User Onboarding**: Auto-generated temporary passwords (12-char, cryptographically secure via crypto.randomBytes) sent in welcome emails. Users are forced to change password on first login for security.
 -   **Client Portal**: Provides secure, read-only access to analysis reports.
 -   **PDF Report Generation**: Creates professional PDF analysis reports.

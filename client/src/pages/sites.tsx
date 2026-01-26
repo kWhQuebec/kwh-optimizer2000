@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ interface SiteListItem {
   clientName: string;
   hasSimulation: boolean;
   hasDesignAgreement: boolean;
+  isArchived?: boolean;
 }
 
 interface SitesListResponse {
@@ -60,11 +61,11 @@ const siteFormSchema = z.object({
 
 type SiteFormValues = z.infer<typeof siteFormSchema>;
 
-function SiteCard({ site, onEdit, onDelete }: { site: SiteListItem; onEdit: () => void; onDelete: () => void }) {
-  const { t } = useI18n();
+function SiteCard({ site, onEdit, onDelete, onArchive }: { site: SiteListItem; onEdit: () => void; onDelete: () => void; onArchive: () => void }) {
+  const { t, language } = useI18n();
 
   return (
-    <Card className="hover-elevate">
+    <Card className={`hover-elevate ${site.isArchived ? 'opacity-60' : ''}`}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
@@ -73,7 +74,15 @@ function SiteCard({ site, onEdit, onDelete }: { site: SiteListItem; onEdit: () =
                 <Building2 className="w-5 h-5 text-primary" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-semibold truncate">{site.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold truncate">{site.name}</h3>
+                  {site.isArchived && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Archive className="w-3 h-3 mr-1" />
+                      {language === "fr" ? "Archivé" : "Archived"}
+                    </Badge>
+                  )}
+                </div>
                 {site.clientName ? (
                   <Link 
                     href={`/app/clients/${site.clientId}/sites`}
@@ -144,6 +153,19 @@ function SiteCard({ site, onEdit, onDelete }: { site: SiteListItem; onEdit: () =
               <DropdownMenuItem onClick={onEdit}>
                 <Pencil className="w-4 h-4 mr-2" />
                 {t("common.edit")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onArchive}>
+                {site.isArchived ? (
+                  <>
+                    <ArchiveRestore className="w-4 h-4 mr-2" />
+                    {language === "fr" ? "Désarchiver" : "Unarchive"}
+                  </>
+                ) : (
+                  <>
+                    <Archive className="w-4 h-4 mr-2" />
+                    {language === "fr" ? "Archiver" : "Archive"}
+                  </>
+                )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onDelete} className="text-destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -479,6 +501,7 @@ export default function SitesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Debounce search input
   const handleSearchChange = useCallback((value: string) => {
@@ -498,8 +521,9 @@ export default function SitesPage() {
     params.set("offset", String(page * ITEMS_PER_PAGE));
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (clientId) params.set("clientId", clientId);
+    if (showArchived) params.set("includeArchived", "true");
     return params.toString();
-  }, [page, debouncedSearch, clientId]);
+  }, [page, debouncedSearch, clientId, showArchived]);
 
   // Fetch sites with optimized endpoint using apiRequest (handles auth properly)
   const { data: sitesData, isLoading, error, isError } = useQuery<SitesListResponse>({
@@ -583,6 +607,26 @@ export default function SitesPage() {
     },
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: async ({ id, isArchived }: { id: string; isArchived: boolean }) => {
+      const endpoint = isArchived ? `/api/sites/${id}/unarchive` : `/api/sites/${id}/archive`;
+      return apiRequest("POST", endpoint);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
+      const message = variables.isArchived
+        ? (language === "fr" ? "Site désarchivé" : "Site unarchived")
+        : (language === "fr" ? "Site archivé" : "Site archived");
+      toast({ title: message });
+    },
+    onError: () => {
+      toast({ 
+        title: language === "fr" ? "Erreur" : "Error",
+        variant: "destructive" 
+      });
+    },
+  });
+
   const handleCreate = (data: SiteFormValues) => {
     createMutation.mutate(data);
   };
@@ -646,6 +690,29 @@ export default function SitesPage() {
             />
           </div>
           
+          <Button
+            variant={showArchived ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              setShowArchived(!showArchived);
+              setPage(0); // Reset to first page on filter change
+            }}
+            className="gap-2"
+            data-testid="button-toggle-archived-sites"
+          >
+            {showArchived ? (
+              <>
+                <Eye className="w-4 h-4" />
+                {language === "fr" ? "Archivés visibles" : "Showing archived"}
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-4 h-4" />
+                {language === "fr" ? "Afficher archivés" : "Show archived"}
+              </>
+            )}
+          </Button>
+          
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2" disabled={!clients || clients.length === 0} data-testid="button-add-site">
@@ -707,6 +774,7 @@ export default function SitesPage() {
               site={site}
               onEdit={() => setEditingSite(site)}
               onDelete={() => deleteMutation.mutate(site.id)}
+              onArchive={() => archiveMutation.mutate({ id: site.id, isArchived: !!site.isArchived })}
             />
           ))}
         </div>

@@ -61,7 +61,7 @@ export interface IStorage {
 
   // Clients
   getClients(): Promise<(Client & { sites: Site[] })[]>;
-  getClientsPaginated(options: { limit?: number; offset?: number; search?: string }): Promise<{
+  getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean }): Promise<{
     clients: (Client & { sites: Site[] })[];
     total: number;
   }>;
@@ -577,12 +577,17 @@ export class MemStorage implements IStorage {
     })).sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
   }
 
-  async getClientsPaginated(options: { limit?: number; offset?: number; search?: string } = {}): Promise<{
+  async getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean } = {}): Promise<{
     clients: (Client & { sites: Site[] })[];
     total: number;
   }> {
-    const { limit = 50, offset = 0, search } = options;
+    const { limit = 50, offset = 0, search, includeArchived = false } = options;
     let clients = Array.from(this.clients.values());
+    
+    // Filter out archived clients unless requested
+    if (!includeArchived) {
+      clients = clients.filter(c => !c.isArchived);
+    }
     
     // Apply search filter
     if (search) {

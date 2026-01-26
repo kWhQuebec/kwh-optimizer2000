@@ -56,6 +56,8 @@ export const clients = pgTable("clients", {
   province: text("province"),
   postalCode: text("postal_code"),
   notes: text("notes"),
+  isArchived: boolean("is_archived").notNull().default(false),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -176,6 +178,10 @@ export const sites = pgTable("sites", {
   
   // Roof visualization image with solar panel overlay
   roofVisualizationImageUrl: text("roof_visualization_image_url"),
+  
+  // Archive status
+  isArchived: boolean("is_archived").notNull().default(false),
+  archivedAt: timestamp("archived_at"),
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

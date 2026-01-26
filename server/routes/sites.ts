@@ -127,7 +127,9 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
 
 router.get("/list", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const { limit, offset, search, clientId } = req.query;
+    const { limit, offset, search, clientId, includeArchived } = req.query;
+    const showArchived = includeArchived === "true";
+    
     let sites = await storage.getSites();
     
     // Filter by role
@@ -139,6 +141,11 @@ router.get("/list", authMiddleware, async (req: AuthRequest, res) => {
     let result = clientId && typeof clientId === "string"
       ? filtered.filter(s => s.clientId === clientId)
       : filtered;
+    
+    // Filter out archived sites unless explicitly requested
+    if (!showArchived) {
+      result = result.filter(s => !s.isArchived);
+    }
     
     // Filter by search query
     if (search && typeof search === "string") {
@@ -165,7 +172,8 @@ router.get("/list", authMiddleware, async (req: AuthRequest, res) => {
         province: s.province,
         roofEstimateStatus: s.roofEstimateStatus,
         roofAreaValidated: s.roofAreaValidated,
-        clientId: s.clientId
+        clientId: s.clientId,
+        isArchived: s.isArchived
       })),
       total
     });
@@ -1358,6 +1366,51 @@ router.get("/:siteId/project-info-sheet", authMiddleware, async (req: AuthReques
   } catch (error) {
     console.error("Error generating project info sheet:", error);
     res.status(500).json({ error: "Failed to generate project info sheet PDF" });
+  }
+});
+
+// Archive a site
+router.post("/:id/archive", authMiddleware, requireStaff, async (req, res) => {
+  try {
+    const siteId = req.params.id;
+    
+    const site = await storage.getSite(siteId);
+    if (!site) {
+      return res.status(404).json({ error: "Site not found" });
+    }
+    
+    // Archive the site
+    const updatedSite = await storage.updateSite(siteId, {
+      isArchived: true,
+      archivedAt: new Date(),
+    });
+    
+    res.json(updatedSite);
+  } catch (error) {
+    console.error("[Site Archive] Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Unarchive a site
+router.post("/:id/unarchive", authMiddleware, requireStaff, async (req, res) => {
+  try {
+    const siteId = req.params.id;
+    
+    const site = await storage.getSite(siteId);
+    if (!site) {
+      return res.status(404).json({ error: "Site not found" });
+    }
+    
+    const updatedSite = await storage.updateSite(siteId, {
+      isArchived: false,
+      archivedAt: null,
+    });
+    
+    res.json(updatedSite);
+  } catch (error) {
+    console.error("[Site Unarchive] Error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

@@ -180,14 +180,20 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getClientsPaginated(options: { limit?: number; offset?: number; search?: string } = {}): Promise<{
+  async getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean } = {}): Promise<{
     clients: (Client & { sites: Site[] })[];
     total: number;
   }> {
-    const { limit = 50, offset = 0, search } = options;
+    const { limit = 50, offset = 0, search, includeArchived = false } = options;
     
-    // Build where conditions for search
+    // Build where conditions for search and archive filter
     let whereConditions: any[] = [];
+    
+    // Filter out archived clients unless explicitly requested
+    if (!includeArchived) {
+      whereConditions.push(eq(clients.isArchived, false));
+    }
+    
     if (search) {
       const searchPattern = `%${search.toLowerCase()}%`;
       whereConditions.push(
@@ -264,6 +270,7 @@ export class DatabaseStorage implements IStorage {
     offset?: number;
     search?: string;
     clientId?: string;
+    includeArchived?: boolean;
   } = {}): Promise<{
     sites: Array<{
       id: string;
@@ -279,10 +286,11 @@ export class DatabaseStorage implements IStorage {
       clientName: string;
       hasSimulation: boolean;
       hasDesignAgreement: boolean;
+      isArchived: boolean;
     }>;
     total: number;
   }> {
-    const { limit = 50, offset = 0, search, clientId } = options;
+    const { limit = 50, offset = 0, search, clientId, includeArchived = false } = options;
     
     // Build lightweight query - only essential columns, no heavy JSON
     let query = db.select({
@@ -297,6 +305,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: sites.createdAt,
       clientId: sites.clientId,
       clientName: clients.name,
+      isArchived: sites.isArchived,
     })
     .from(sites)
     .innerJoin(clients, eq(sites.clientId, clients.id))
@@ -304,6 +313,12 @@ export class DatabaseStorage implements IStorage {
     
     // Apply filters
     const conditions = [];
+    
+    // Filter out archived sites unless requested
+    if (!includeArchived) {
+      conditions.push(eq(sites.isArchived, false));
+    }
+    
     if (clientId) {
       conditions.push(eq(sites.clientId, clientId));
     }
