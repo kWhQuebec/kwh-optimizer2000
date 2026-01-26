@@ -120,6 +120,27 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
   }
 });
 
+router.get("/api/clients/list", authMiddleware, requireStaff, async (req, res) => {
+  try {
+    const { limit, offset, search } = req.query;
+    
+    const limitNum = limit ? parseInt(limit as string, 10) : 50;
+    const offsetNum = offset ? parseInt(offset as string, 10) : 0;
+    const searchStr = search && typeof search === "string" ? search : undefined;
+    
+    const result = await storage.getClientsPaginated({
+      limit: limitNum,
+      offset: offsetNum,
+      search: searchStr,
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching clients list:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/api/clients", authMiddleware, requireStaff, async (req, res) => {
   try {
     const clients = await storage.getClients();

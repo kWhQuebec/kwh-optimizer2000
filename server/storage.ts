@@ -61,6 +61,10 @@ export interface IStorage {
 
   // Clients
   getClients(): Promise<(Client & { sites: Site[] })[]>;
+  getClientsPaginated(options: { limit?: number; offset?: number; search?: string }): Promise<{
+    clients: (Client & { sites: Site[] })[];
+    total: number;
+  }>;
   getClient(id: string): Promise<Client | undefined>;
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: string, client: Partial<Client>): Promise<Client | undefined>;
@@ -571,6 +575,40 @@ export class MemStorage implements IStorage {
       ...client,
       sites: Array.from(this.sites.values()).filter(s => s.clientId === client.id),
     })).sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getClientsPaginated(options: { limit?: number; offset?: number; search?: string } = {}): Promise<{
+    clients: (Client & { sites: Site[] })[];
+    total: number;
+  }> {
+    const { limit = 50, offset = 0, search } = options;
+    let clients = Array.from(this.clients.values());
+    
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      clients = clients.filter(c => 
+        c.name?.toLowerCase().includes(searchLower) ||
+        c.mainContactName?.toLowerCase().includes(searchLower) ||
+        c.email?.toLowerCase().includes(searchLower) ||
+        c.city?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Sort by createdAt descending
+    clients.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    
+    const total = clients.length;
+    const paginated = clients.slice(offset, offset + limit);
+    
+    // Add sites to each client
+    const allSites = Array.from(this.sites.values());
+    const clientsWithSites = paginated.map(client => ({
+      ...client,
+      sites: allSites.filter(s => s.clientId === client.id),
+    }));
+    
+    return { clients: clientsWithSites, total };
   }
 
   async getClient(id: string): Promise<Client | undefined> {

@@ -180,6 +180,53 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async getClientsPaginated(options: { limit?: number; offset?: number; search?: string } = {}): Promise<{
+    clients: (Client & { sites: Site[] })[];
+    total: number;
+  }> {
+    const { limit = 50, offset = 0, search } = options;
+    
+    // Build where conditions for search
+    let whereConditions: any[] = [];
+    if (search) {
+      const searchPattern = `%${search.toLowerCase()}%`;
+      whereConditions.push(
+        sql`(
+          LOWER(${clients.name}) LIKE ${searchPattern} OR
+          LOWER(${clients.mainContactName}) LIKE ${searchPattern} OR
+          LOWER(${clients.email}) LIKE ${searchPattern} OR
+          LOWER(${clients.city}) LIKE ${searchPattern}
+        )`
+      );
+    }
+    
+    // Get total count
+    const countQuery = whereConditions.length > 0
+      ? db.select({ count: count() }).from(clients).where(and(...whereConditions))
+      : db.select({ count: count() }).from(clients);
+    const [{ count: totalCount }] = await countQuery;
+    
+    // Get paginated clients
+    const clientsQuery = whereConditions.length > 0
+      ? db.select().from(clients).where(and(...whereConditions)).orderBy(desc(clients.createdAt)).limit(limit).offset(offset)
+      : db.select().from(clients).orderBy(desc(clients.createdAt)).limit(limit).offset(offset);
+    const paginatedClients = await clientsQuery;
+    
+    // Get sites for these clients
+    const clientIds = paginatedClients.map(c => c.id);
+    const clientSites = clientIds.length > 0
+      ? await db.select().from(sites).where(inArray(sites.clientId, clientIds))
+      : [];
+    
+    // Map sites to clients
+    const clientsWithSites = paginatedClients.map(client => ({
+      ...client,
+      sites: clientSites.filter(s => s.clientId === client.id),
+    }));
+    
+    return { clients: clientsWithSites, total: Number(totalCount) };
+  }
+
   async getClient(id: string): Promise<Client | undefined> {
     const result = await db.select().from(clients).where(eq(clients.id, id)).limit(1);
     return result[0];

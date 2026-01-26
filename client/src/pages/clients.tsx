@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,11 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 interface ClientWithSites extends Client {
   sites: Site[];
+}
+
+interface ClientsListResponse {
+  clients: ClientWithSites[];
+  total: number;
 }
 
 const portalAccessFormSchema = z.object({
@@ -633,23 +638,56 @@ function ClientForm({
   );
 }
 
+const ITEMS_PER_PAGE = 50;
+
 export default function ClientsPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [portalAccessClient, setPortalAccessClient] = useState<ClientWithSites | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(0);
 
-  const { data: clients, isLoading } = useQuery<ClientWithSites[]>({
-    queryKey: ["/api/clients"],
+  // Debounce search input
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    setPage(0); // Reset to first page on search
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearch(value);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Build query params
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("limit", String(ITEMS_PER_PAGE));
+    params.set("offset", String(page * ITEMS_PER_PAGE));
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    return params.toString();
+  }, [page, debouncedSearch]);
+
+  const { data: clientsData, isLoading } = useQuery<ClientsListResponse>({
+    queryKey: ["/api/clients/list", queryParams],
+    queryFn: async () => {
+      return await apiRequest<ClientsListResponse>("GET", `/api/clients/list?${queryParams}`);
+    },
+    staleTime: 0,
+    refetchOnMount: true,
   });
+
+  const clients = clientsData?.clients ?? [];
+  const totalClients = clientsData?.total ?? 0;
+  const totalPages = Math.ceil(totalClients / ITEMS_PER_PAGE);
 
   const createMutation = useMutation({
     mutationFn: async (data: ClientFormValues) => {
       return apiRequest("POST", "/api/clients", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients/list"] });
       setDialogOpen(false);
       toast({ title: t("clients.clientCreated") });
     },
@@ -664,7 +702,7 @@ export default function ClientsPage() {
       return apiRequest("PATCH", `/api/clients/${id}`, rest);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients/list"] });
       setEditingClient(null);
       toast({ title: t("clients.clientUpdated") });
     },
@@ -678,7 +716,7 @@ export default function ClientsPage() {
       return apiRequest("DELETE", `/api/clients/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients/list"] });
       toast({ title: t("clients.clientDeleted") });
     },
     onError: () => {
@@ -701,16 +739,34 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("clients.title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("clients.subtitle")}</p>
+          <p className="text-muted-foreground mt-1">
+            {language === "fr" 
+              ? `${totalClients} client(s) au total`
+              : `${totalClients} client(s) total`
+            }
+          </p>
         </div>
         
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" data-testid="button-add-client">
-              <Plus className="w-4 h-4" />
-              {t("clients.add")}
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          {/* Search input */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder={language === "fr" ? "Rechercher..." : "Search..."}
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 w-48"
+              data-testid="input-search-clients"
+            />
+          </div>
+          
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2" data-testid="button-add-client">
+                <Plus className="w-4 h-4" />
+                {t("clients.add")}
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{t("clients.add")}</DialogTitle>
@@ -722,6 +778,7 @@ export default function ClientsPage() {
             />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {isLoading ? (
@@ -768,6 +825,38 @@ export default function ClientsPage() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(Math.max(0, page - 1))}
+            disabled={page === 0}
+            data-testid="button-prev-page"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {language === "fr" ? "Précédent" : "Previous"}
+          </Button>
+          <span className="text-sm text-muted-foreground px-3">
+            {language === "fr" 
+              ? `Page ${page + 1} de ${totalPages}`
+              : `Page ${page + 1} of ${totalPages}`
+            }
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+            disabled={page >= totalPages - 1}
+            data-testid="button-next-page"
+          >
+            {language === "fr" ? "Suivant" : "Next"}
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
       )}
 
       {/* Edit Dialog */}
