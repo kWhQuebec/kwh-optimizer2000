@@ -1,0 +1,212 @@
+Great question! Let me think about this strategically — what Replit's agent will likely prioritize vs. what I would prioritize, and why our approaches might differ.
+
+## What Replit Will Likely Suggest
+
+Based on how Replit's AI agent typically operates (quick wins, incremental changes, staying within its comfort zone):
+
+### Replit's Probable Top 3:
+
+1. **Add a logging library** — This is a safe, low-risk change. Replit will probably suggest installing `winston` or `pino` and do a find-replace of `console.log` → `logger.info`
+
+2. **Create a config.ts file** — Another low-risk refactor. Centralize `process.env` access into one file.
+
+3. **Fix some `any` types** — Probably the easy ones, not the complex nested objects.
+
+### What Replit Will Likely Avoid:
+
+- Breaking up the remaining 2,700-line `routes.ts` (too risky, too many files to touch)
+- Adding tests (AI agents struggle with writing meaningful tests)
+- Architectural changes (prefers incremental over structural)
+
+---
+
+## What I Would Change — And How
+
+I'd prioritize differently, focusing on **impact** and **reducing future pain**:
+
+### Priority 1: Centralized Error Handling (High Impact, Medium Effort)
+
+**Why:** Every route has copy-pasted try/catch blocks. This is a bug factory.
+
+**How I'd do it:**
+
+```typescript
+// server/middleware/errorHandler.ts
+import { Request, Response, NextFunction } from "express";
+import { ZodError } from "zod";
+
+export class AppError extends Error {
+  constructor(
+    public statusCode: number,
+    public message: string,
+    public isOperational = true
+  ) {
+    super(message);
+  }
+}
+
+export function errorHandler(
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  // Log with context
+  console.error({
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    userId: (req as any).userId,
+  });
+
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({ error: err.message });
+  }
+
+  if (err instanceof ZodError) {
+    return res.status(400).json({ 
+      error: "Validation failed", 
+      details: err.errors 
+    });
+  }
+
+  // Don't leak internal errors
+  res.status(500).json({ error: "Internal server error" });
+}
+```
+
+Then routes become cleaner:
+```typescript
+// Before (repeated 100+ times)
+router.get("/sites", async (req, res) => {
+  try {
+    const sites = await storage.getSites();
+    res.json(sites);
+  } catch (error) {
+    console.error("Error fetching sites:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// After
+router.get("/sites", async (req, res, next) => {
+  const sites = await storage.getSites();
+  res.json(sites);
+});
+// Error handler middleware catches all errors automatically
+```
+
+---
+
+### Priority 2: Extract Remaining Route Logic (High Impact, High Effort)
+
+**Why:** The 2,700-line `routes.ts` is still a maintenance nightmare.
+
+**How I'd do it:**
+
+Looking at what's left, I'd extract:
+- `server/routes/reports.ts` — PDF generation
+- `server/routes/analysis.ts` — Monte Carlo, peak shaving
+- `server/routes/uploads.ts` — File upload handling
+- `server/services/` — Non-HTTP business logic
+
+---
+
+### Priority 3: Add Critical Path Tests (High Impact, Medium Effort)
+
+**Why:** Financial calculations without tests = liability.
+
+**How I'd do it:**
+
+```typescript
+// shared/finance/cashflowEngine.test.ts
+import { describe, it, expect } from "vitest";
+import { calculateCashScenario, calculateLeaseScenario } from "./cashflowEngine";
+
+describe("CashflowEngine", () => {
+  const baseInputs = {
+    systemSizeKW: 100,
+    annualProductionKWh: 120000,
+    kwhCostPerWatt: 2.50,
+    // ... standard test inputs
+  };
+
+  it("calculates cash scenario payback correctly", () => {
+    const result = calculateCashScenario(baseInputs);
+    expect(result.paybackYear).toBeLessThanOrEqual(7);
+    expect(result.totalSavings).toBeGreaterThan(0);
+  });
+
+  it("applies HQ incentive cap at 40% of CAPEX", () => {
+    const result = calculateCashScenario({
+      ...baseInputs,
+      systemSizeKW: 2000, // Large system to trigger cap
+    });
+    const capex = 2000 * 1000 * baseInputs.kwhCostPerWatt;
+    expect(result.investment).toBeGreaterThanOrEqual(capex * 0.6);
+  });
+});
+```
+
+---
+
+### Priority 4: Type Safety Cleanup (Medium Impact, Low Effort)
+
+**Why:** 47 `any` types = 47 potential runtime bugs.
+
+**How I'd do it:**
+
+Create proper types for the worst offenders:
+```typescript
+// server/types/kbRacking.ts
+export interface RackingQuoteRequest {
+  projectName: string;
+  roofType: "flat" | "sloped" | "ground";
+  systemSizeKW: number;
+  modules: ModuleSpec[];
+  // ...
+}
+
+export interface RackingQuoteResponse {
+  quoteId: string;
+  lineItems: LineItem[];
+  totalPrice: number;
+  // ...
+}
+```
+
+Then replace:
+```typescript
+// Before
+async function getQuote(data: any): Promise<any>
+
+// After  
+async function getQuote(data: RackingQuoteRequest): Promise<RackingQuoteResponse>
+```
+
+---
+
+## Head-to-Head Comparison
+
+| Change | Replit's Approach | My Approach |
+|--------|------------------|-------------|
+| **Logging** | Add winston, replace console.log | Same, but also add request context middleware |
+| **Config** | Create config.ts, move env vars | Same, plus add Zod validation for env vars |
+| **Error handling** | Maybe add to a few routes | Centralized middleware + custom error classes |
+| **Route extraction** | Probably skip (too risky) | Extract 3-4 more modules systematically |
+| **Tests** | Probably skip | Add Vitest + critical path tests |
+| **Types** | Fix easy ones | Create domain type files, fix systematically |
+
+---
+
+## Want to Test This?
+
+We could run an experiment:
+
+1. I make a list of 3 specific improvements
+2. You give Replit's agent the same list
+3. We both implement them
+4. You compare the results
+
+This would show you concretely how the approaches differ. Want to try it?
