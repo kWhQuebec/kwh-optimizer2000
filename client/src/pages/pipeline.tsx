@@ -846,7 +846,9 @@ export default function PipelinePage() {
             {language === "fr" ? "Pipeline de ventes" : "Sales Pipeline"}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {language === "fr" ? "Gérez vos opportunités commerciales" : "Manage your sales opportunities"}
+            {language === "fr" 
+              ? "Commencez ici pour un nouveau lead – ajoutez une opportunité et suivez-la jusqu'à la conversion" 
+              : "Start here for new leads – add an opportunity and track it through conversion"}
           </p>
         </div>
         <div className="flex items-center gap-2">

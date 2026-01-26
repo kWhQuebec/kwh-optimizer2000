@@ -854,8 +854,26 @@ export default function ClientsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/clients/list"] });
       toast({ title: t("clients.clientDeleted") });
     },
-    onError: () => {
-      toast({ title: t("clients.deleteError"), variant: "destructive" });
+    onError: (error: Error) => {
+      // Parse error message from apiRequest format: "status: {json}"
+      let errorMessage = t("clients.deleteError");
+      try {
+        const match = error.message?.match(/^\d+:\s*(.+)$/);
+        if (match) {
+          const parsed = JSON.parse(match[1]);
+          errorMessage = parsed.error || errorMessage;
+        }
+      } catch {
+        // If parsing fails, use the raw message or fallback
+        if (error.message) {
+          errorMessage = error.message.replace(/^\d+:\s*/, '');
+        }
+      }
+      toast({ 
+        title: language === "fr" ? "Impossible de supprimer" : "Cannot delete",
+        description: errorMessage,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -876,9 +894,14 @@ export default function ClientsPage() {
           <h1 className="text-3xl font-bold tracking-tight">{t("clients.title")}</h1>
           <p className="text-muted-foreground mt-1">
             {language === "fr" 
-              ? `${totalClients} client(s) au total`
-              : `${totalClients} client(s) total`
+              ? `Entreprises avec projets actifs ou convertis • ${totalClients} client(s)`
+              : `Companies with active or converted projects • ${totalClients} client(s)`
             }
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {language === "fr" 
+              ? "Pour un nouveau lead, utilisez le Pipeline de ventes"
+              : "For a new lead, use the Sales Pipeline"}
           </p>
         </div>
         

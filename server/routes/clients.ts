@@ -263,12 +263,46 @@ router.patch("/api/clients/:id", authMiddleware, requireStaff, async (req, res) 
 
 router.delete("/api/clients/:id", authMiddleware, requireStaff, async (req, res) => {
   try {
-    const deleted = await storage.deleteClient(req.params.id);
-    if (!deleted) {
+    const clientId = req.params.id;
+    
+    // Check if client exists
+    const client = await storage.getClient(clientId);
+    if (!client) {
       return res.status(404).json({ error: "Client not found" });
+    }
+    
+    // Check for related records that would prevent deletion
+    const sites = await storage.getSitesByClient(clientId);
+    if (sites.length > 0) {
+      return res.status(409).json({ 
+        error: `Cannot delete client with ${sites.length} site(s). Please delete or reassign the sites first.`,
+        relatedRecords: { sites: sites.length }
+      });
+    }
+    
+    const portfolios = await storage.getPortfoliosByClient(clientId);
+    if (portfolios.length > 0) {
+      return res.status(409).json({ 
+        error: `Cannot delete client with ${portfolios.length} portfolio(s). Please delete the portfolios first.`,
+        relatedRecords: { portfolios: portfolios.length }
+      });
+    }
+    
+    const opportunities = await storage.getOpportunitiesByClientId(clientId);
+    if (opportunities.length > 0) {
+      return res.status(409).json({ 
+        error: `Cannot delete client with ${opportunities.length} opportunity(ies) in the pipeline. Please close or reassign them first.`,
+        relatedRecords: { opportunities: opportunities.length }
+      });
+    }
+    
+    const deleted = await storage.deleteClient(clientId);
+    if (!deleted) {
+      return res.status(500).json({ error: "Failed to delete client" });
     }
     res.status(204).send();
   } catch (error) {
+    console.error("[Client Delete] Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -74,7 +74,7 @@ export function AppSidebar() {
       title: t("nav.clients"),
       url: "/app/clients",
       icon: Users,
-      tooltip: language === "fr" ? "Gérer les entreprises clientes" : "Manage client companies",
+      tooltip: language === "fr" ? "Entreprises avec projets actifs (leads convertis)" : "Companies with active projects (converted leads)",
     },
     {
       title: t("nav.sites"),
@@ -92,7 +92,7 @@ export function AppSidebar() {
       title: language === "fr" ? "Pipeline ventes" : "Sales Pipeline",
       url: "/app/pipeline",
       icon: Target,
-      tooltip: language === "fr" ? "Suivi des opportunités et prévisions" : "Opportunity tracking and forecasting",
+      tooltip: language === "fr" ? "Commencez ici pour un nouveau lead – suivi des opportunités" : "Start here for new leads – opportunity tracking",
     },
     {
       title: language === "fr" ? "Partenariats" : "Partnerships",
