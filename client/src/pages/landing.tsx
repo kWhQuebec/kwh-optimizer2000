@@ -11,7 +11,7 @@ import {
   TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
   Timer, Rocket, BatteryCharging, BadgePercent, Calculator, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ChevronDown, ChevronUp,
-  ClipboardCheck, Phone, Mail, Building, CalendarDays, User
+  ClipboardCheck, Phone, Mail, Building, CalendarDays, User, Upload, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,22 +81,43 @@ export default function LandingPage() {
   const detailedPathRef = useRef<HTMLDivElement>(null);
   
   // Quick calculator states
+  const [calcInputMode, setCalcInputMode] = useState<"upload" | "manual">("manual");
   const [calcBill, setCalcBill] = useState<string>("");
+  const [calcAnnualConsumption, setCalcAnnualConsumption] = useState<string>("");
   const [calcAddress, setCalcAddress] = useState<string>("");
   const [calcEmail, setCalcEmail] = useState<string>("");
   const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
   const [calcTariff, setCalcTariff] = useState<string>("M");
   const [calcLoading, setCalcLoading] = useState(false);
+  const [calcBillFile, setCalcBillFile] = useState<File | null>(null);
+  const [calcBillParsing, setCalcBillParsing] = useState(false);
+  const [calcBillParsed, setCalcBillParsed] = useState<{
+    annualConsumptionKwh?: number;
+    accountNumber?: string;
+    tariffCode?: string;
+  } | null>(null);
   const [calcResults, setCalcResults] = useState<{
     success: boolean;
-    hasRoofData: boolean;
-    inputs: { address: string; monthlyBill: number; buildingType: string; tariffCode: string };
-    system: { sizeKW: number; annualProductionKWh: number; roofMaxCapacityKW?: number };
+    inputs: { address: string | null; monthlyBill: number; annualConsumptionKwh: number; buildingType: string; tariffCode: string };
+    system: { sizeKW: number; annualProductionKWh: number };
+    scenarios: Array<{
+      key: string;
+      offsetPercent: number;
+      recommended: boolean;
+      systemSizeKW: number;
+      annualProductionKWh: number;
+      annualSavings: number;
+      grossCAPEX: number;
+      hqIncentive: number;
+      netCAPEX: number;
+      paybackYears: number;
+    }>;
     financial: { annualSavings: number; paybackYears: number; hqIncentive: number; netCAPEX: number; grossCAPEX: number };
     billing: { monthlyBillBefore: number; monthlyBillAfter: number; monthlySavings: number };
-    roof?: { areaM2: number; maxCapacityKW: number; latitude?: number; longitude?: number; satelliteImageUrl?: string | null };
+    consumption: { annualKWh: number; monthlyKWh: number };
   } | null>(null);
   const [calcError, setCalcError] = useState<string>("");
+  const billFileInputRef = useRef<HTMLInputElement>(null);
   
   const currentLogo = language === "fr" ? logoFr : logoEn;
   
@@ -133,21 +154,65 @@ export default function LandingPage() {
     return emailRegex.test(email);
   };
   
+  // Handle bill file upload and parsing
+  const handleBillUpload = async (file: File) => {
+    setCalcBillFile(file);
+    setCalcBillParsing(true);
+    setCalcBillParsed(null);
+    setCalcError("");
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const response = await fetch("/api/parse-hq-bill", {
+        method: "POST",
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setCalcBillParsed(result.data);
+        if (result.data.annualConsumptionKwh) {
+          setCalcAnnualConsumption(result.data.annualConsumptionKwh.toString());
+        }
+        if (result.data.tariffCode) {
+          setCalcTariff(result.data.tariffCode);
+        }
+        toast({
+          title: language === "fr" ? "Facture analysée!" : "Bill analyzed!",
+          description: language === "fr" 
+            ? `Consommation: ${result.data.annualConsumptionKwh?.toLocaleString() || "N/A"} kWh/an` 
+            : `Consumption: ${result.data.annualConsumptionKwh?.toLocaleString() || "N/A"} kWh/yr`,
+        });
+      } else {
+        setCalcError(language === "fr" 
+          ? "Impossible d'extraire les données de la facture. Essayez l'entrée manuelle." 
+          : "Could not extract data from bill. Try manual entry.");
+      }
+    } catch (err) {
+      setCalcError(language === "fr" ? "Erreur lors de l'analyse de la facture" : "Error parsing bill");
+    } finally {
+      setCalcBillParsing(false);
+    }
+  };
+  
   // Quick estimate function
   const handleQuickEstimate = async () => {
-    if (!calcAddress.trim()) {
-      setCalcError(language === "fr" ? "Veuillez entrer une adresse" : "Please enter an address");
-      return;
-    }
-    
     if (!calcEmail.trim() || !isValidEmail(calcEmail)) {
       setCalcError(language === "fr" ? "Veuillez entrer un courriel valide" : "Please enter a valid email");
       return;
     }
     
+    const annualConsumption = parseInt(calcAnnualConsumption, 10);
     const billAmount = parseInt(calcBill, 10);
-    if (!billAmount || billAmount < 500) {
-      setCalcError(language === "fr" ? "Veuillez entrer une facture d'au moins 500$" : "Please enter a bill of at least $500");
+    
+    // Need either annual consumption or monthly bill
+    if ((!annualConsumption || annualConsumption < 10000) && (!billAmount || billAmount < 200)) {
+      setCalcError(language === "fr" 
+        ? "Veuillez entrer une consommation annuelle (min 10,000 kWh) ou une facture mensuelle (min 200$)" 
+        : "Please enter annual consumption (min 10,000 kWh) or monthly bill (min $200)");
       return;
     }
     
@@ -160,9 +225,10 @@ export default function LandingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          address: calcAddress,
+          address: calcAddress || null,
           email: calcEmail,
-          monthlyBill: billAmount,
+          monthlyBill: billAmount || null,
+          annualConsumptionKwh: annualConsumption || null,
           buildingType: calcBuildingType,
           tariffCode: calcTariff,
         }),
@@ -622,20 +688,184 @@ export default function LandingPage() {
                             
                             {!calcResults ? (
                               <div className="space-y-4">
-                                {/* Address */}
+                                {/* Input mode toggle */}
+                                <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg">
+                                  <Button
+                                    type="button"
+                                    variant={calcInputMode === "upload" ? "default" : "ghost"}
+                                    size="sm"
+                                    className="flex-1 gap-2"
+                                    onClick={() => setCalcInputMode("upload")}
+                                    data-testid="button-mode-upload"
+                                  >
+                                    <Upload className="w-4 h-4" />
+                                    {language === "fr" ? "Téléverser facture" : "Upload bill"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant={calcInputMode === "manual" ? "default" : "ghost"}
+                                    size="sm"
+                                    className="flex-1 gap-2"
+                                    onClick={() => setCalcInputMode("manual")}
+                                    data-testid="button-mode-manual"
+                                  >
+                                    <Calculator className="w-4 h-4" />
+                                    {language === "fr" ? "Entrée manuelle" : "Manual entry"}
+                                  </Button>
+                                </div>
+                                
+                                {/* Upload mode */}
+                                {calcInputMode === "upload" && (
+                                  <div className="space-y-3">
+                                    <input
+                                      type="file"
+                                      ref={billFileInputRef}
+                                      accept=".pdf,image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleBillUpload(file);
+                                      }}
+                                    />
+                                    <div
+                                      className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover-elevate transition-colors"
+                                      onClick={() => billFileInputRef.current?.click()}
+                                    >
+                                      {calcBillParsing ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                          <p className="text-sm text-muted-foreground">
+                                            {language === "fr" ? "Analyse de la facture..." : "Analyzing bill..."}
+                                          </p>
+                                        </div>
+                                      ) : calcBillParsed ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                          <FileCheck className="w-8 h-8 text-green-600" />
+                                          <p className="text-sm font-medium text-green-600">
+                                            {language === "fr" ? "Facture analysée!" : "Bill analyzed!"}
+                                          </p>
+                                          <p className="text-lg font-bold text-primary">
+                                            {calcBillParsed.annualConsumptionKwh?.toLocaleString()} kWh/{language === "fr" ? "an" : "yr"}
+                                          </p>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setCalcBillFile(null);
+                                              setCalcBillParsed(null);
+                                              setCalcAnnualConsumption("");
+                                            }}
+                                          >
+                                            {language === "fr" ? "Changer de facture" : "Change bill"}
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex flex-col items-center gap-2">
+                                          <Upload className="w-8 h-8 text-muted-foreground" />
+                                          <p className="text-sm font-medium">
+                                            {language === "fr" ? "Cliquez pour téléverser votre facture HQ" : "Click to upload your HQ bill"}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            PDF ou image (JPG, PNG)
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground text-center">
+                                      {language === "fr" 
+                                        ? "Nous extrayons automatiquement votre consommation annuelle" 
+                                        : "We automatically extract your annual consumption"}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                {/* Manual entry mode */}
+                                {calcInputMode === "manual" && (
+                                  <div className="space-y-4">
+                                    {/* Annual consumption - primary input */}
+                                    <div className="space-y-2">
+                                      <label className="text-sm font-medium flex items-center gap-2">
+                                        <Zap className="w-4 h-4 text-primary" />
+                                        {language === "fr" ? "Consommation annuelle (kWh)" : "Annual consumption (kWh)"}
+                                        <span className="text-xs text-muted-foreground">
+                                          ({language === "fr" ? "recommandé" : "recommended"})
+                                        </span>
+                                      </label>
+                                      <Input
+                                        type="number"
+                                        value={calcAnnualConsumption}
+                                        onChange={(e) => setCalcAnnualConsumption(e.target.value)}
+                                        className="h-11"
+                                        placeholder={language === "fr" ? "ex: 150000" : "e.g., 150000"}
+                                        min={10000}
+                                        data-testid="input-calc-annual-consumption"
+                                      />
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-1 h-px bg-border" />
+                                      <span className="text-xs text-muted-foreground px-2">
+                                        {language === "fr" ? "OU" : "OR"}
+                                      </span>
+                                      <div className="flex-1 h-px bg-border" />
+                                    </div>
+                                    
+                                    {/* Monthly bill - alternative input */}
+                                    <div className="grid sm:grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <label className="text-sm font-medium flex items-center gap-2">
+                                          <DollarSign className="w-4 h-4 text-primary" />
+                                          {language === "fr" ? "Facture mensuelle" : "Monthly bill"}
+                                        </label>
+                                        <Input
+                                          type="number"
+                                          value={calcBill}
+                                          onChange={(e) => setCalcBill(e.target.value)}
+                                          className="h-11"
+                                          placeholder="$"
+                                          min={200}
+                                          data-testid="input-calc-bill"
+                                        />
+                                      </div>
+                                      
+                                      <div className="space-y-2">
+                                        <label className="text-sm font-medium flex items-center gap-2">
+                                          <Zap className="w-4 h-4 text-primary" />
+                                          {language === "fr" ? "Tarif HQ" : "HQ tariff"}
+                                        </label>
+                                        <Select value={calcTariff} onValueChange={setCalcTariff}>
+                                          <SelectTrigger className="h-11" data-testid="select-calc-tariff">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {Object.entries(tariffLabels).map(([value, label]) => (
+                                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Building type */}
                                 <div className="space-y-2">
                                   <label className="text-sm font-medium flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-primary" />
-                                    {language === "fr" ? "Adresse du bâtiment" : "Building address"}
+                                    <Building2 className="w-4 h-4 text-primary" />
+                                    {language === "fr" ? "Type de bâtiment" : "Building type"}
                                   </label>
-                                  <Input
-                                    type="text"
-                                    value={calcAddress}
-                                    onChange={(e) => setCalcAddress(e.target.value)}
-                                    className="h-11"
-                                    placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
-                                    data-testid="input-calc-address"
-                                  />
+                                  <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
+                                    <SelectTrigger className="h-11" data-testid="select-calc-building">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {Object.entries(buildingTypeLabels).map(([value, label]) => (
+                                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                                 
                                 {/* Email */}
@@ -654,58 +884,23 @@ export default function LandingPage() {
                                   />
                                 </div>
                                 
-                                {/* Monthly bill + Building type */}
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                      <DollarSign className="w-4 h-4 text-primary" />
-                                      {language === "fr" ? "Facture mensuelle" : "Monthly bill"}
-                                    </label>
-                                    <Input
-                                      type="number"
-                                      value={calcBill}
-                                      onChange={(e) => setCalcBill(e.target.value)}
-                                      className="h-11"
-                                      placeholder="$"
-                                      min={500}
-                                      data-testid="input-calc-bill"
-                                    />
-                                  </div>
-                                  
-                                  <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                      <Building2 className="w-4 h-4 text-primary" />
-                                      {language === "fr" ? "Type de bâtiment" : "Building type"}
-                                    </label>
-                                    <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
-                                      <SelectTrigger className="h-11" data-testid="select-calc-building">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {Object.entries(buildingTypeLabels).map(([value, label]) => (
-                                          <SelectItem key={value} value={value}>{label}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </div>
-                                
-                                {/* Tariff */}
+                                {/* Address - optional */}
                                 <div className="space-y-2">
                                   <label className="text-sm font-medium flex items-center gap-2">
-                                    <Zap className="w-4 h-4 text-primary" />
-                                    {language === "fr" ? "Tarif Hydro-Québec" : "Hydro-Québec tariff"}
+                                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                                    {language === "fr" ? "Adresse" : "Address"}
+                                    <span className="text-xs text-muted-foreground">
+                                      ({language === "fr" ? "optionnel" : "optional"})
+                                    </span>
                                   </label>
-                                  <Select value={calcTariff} onValueChange={setCalcTariff}>
-                                    <SelectTrigger className="h-11" data-testid="select-calc-tariff">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {Object.entries(tariffLabels).map(([value, label]) => (
-                                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <Input
+                                    type="text"
+                                    value={calcAddress}
+                                    onChange={(e) => setCalcAddress(e.target.value)}
+                                    className="h-11"
+                                    placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
+                                    data-testid="input-calc-address"
+                                  />
                                 </div>
                                 
                                 {calcError && (
@@ -716,7 +911,7 @@ export default function LandingPage() {
                                   size="lg" 
                                   className="w-full gap-2"
                                   onClick={handleQuickEstimate}
-                                  disabled={calcLoading}
+                                  disabled={calcLoading || (calcInputMode === "upload" && calcBillParsing)}
                                   data-testid="button-calc-analyze"
                                 >
                                   {calcLoading ? (
@@ -727,124 +922,125 @@ export default function LandingPage() {
                                   ) : (
                                     <>
                                       <Calculator className="w-4 h-4" />
-                                      {language === "fr" ? "Analyser mon potentiel" : "Analyze my potential"}
+                                      {language === "fr" ? "Voir 3 scénarios" : "See 3 scenarios"}
                                     </>
                                   )}
                                 </Button>
                               </div>
                             ) : (
-                              /* Results display */
+                              /* Results display - 3 scenarios */
                               <div className="space-y-4">
-                                <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                    <span className="font-semibold text-green-800 dark:text-green-200">
-                                      {language === "fr" ? "Analyse complétée!" : "Analysis complete!"}
-                                    </span>
-                                  </div>
-                                  
-                                  {/* Before/After HQ Bill Comparison */}
-                                  <div className="p-3 bg-background rounded-lg border mb-4">
-                                    <p className="text-xs text-muted-foreground mb-2 font-medium">
-                                      {language === "fr" ? "Votre facture Hydro-Québec" : "Your Hydro-Québec bill"}
-                                    </p>
-                                    <div className="flex items-center justify-between gap-4">
-                                      <div className="text-center">
-                                        <p className="text-xs text-muted-foreground">
-                                          {language === "fr" ? "Avant" : "Before"}
-                                        </p>
-                                        <p className="text-lg font-bold text-destructive line-through" data-testid="text-bill-before">
-                                          ${calcResults.billing?.monthlyBillBefore?.toLocaleString() || calcResults.inputs.monthlyBill.toLocaleString()}/mo
-                                        </p>
-                                      </div>
-                                      <ArrowRight className="w-5 h-5 text-green-600 shrink-0" />
-                                      <div className="text-center">
-                                        <p className="text-xs text-muted-foreground">
-                                          {language === "fr" ? "Après" : "After"}
-                                        </p>
-                                        <p className="text-lg font-bold text-green-600" data-testid="text-bill-after">
-                                          ${calcResults.billing?.monthlyBillAfter?.toLocaleString() || 0}/mo
-                                        </p>
-                                      </div>
-                                      <div className="text-center bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded">
-                                        <p className="text-xs text-green-700 dark:text-green-300">
-                                          {language === "fr" ? "Économie" : "Savings"}
-                                        </p>
-                                        <p className="text-sm font-bold text-green-700 dark:text-green-300" data-testid="text-monthly-savings">
-                                          -${calcResults.billing?.monthlySavings?.toLocaleString() || Math.round(calcResults.financial.annualSavings / 12).toLocaleString()}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="grid sm:grid-cols-2 gap-3">
-                                    <div className="bg-background rounded-lg p-3 border">
-                                      <p className="text-xs text-muted-foreground mb-1">
-                                        {language === "fr" ? "Système recommandé" : "Recommended system"}
-                                      </p>
-                                      <p className="text-xl font-bold text-primary" data-testid="text-quick-system-kw">
-                                        {calcResults.system.sizeKW.toFixed(0)} kW
-                                      </p>
-                                      {calcResults.system.roofMaxCapacityKW && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          {calcResults.system.roofMaxCapacityKW > calcResults.system.sizeKW
-                                            ? (language === "fr" 
-                                                ? `Capacité toit: ${calcResults.system.roofMaxCapacityKW} kW (expansion possible)` 
-                                                : `Roof capacity: ${calcResults.system.roofMaxCapacityKW} kW (expansion possible)`)
-                                            : (language === "fr" 
-                                                ? `Limité par le toit (${calcResults.system.roofMaxCapacityKW} kW max)` 
-                                                : `Roof limited (${calcResults.system.roofMaxCapacityKW} kW max)`)}
-                                        </p>
-                                      )}
-                                    </div>
-                                    
-                                    <div className="bg-background rounded-lg p-3 border">
-                                      <p className="text-xs text-muted-foreground mb-1">
-                                        {language === "fr" ? "Production annuelle" : "Annual production"}
-                                      </p>
-                                      <p className="text-xl font-bold" data-testid="text-quick-production-mwh">
-                                        {(calcResults.system.annualProductionKWh / 1000).toFixed(0)} MWh
-                                      </p>
-                                    </div>
-                                    
-                                    <div className="bg-background rounded-lg p-3 border">
-                                      <p className="text-xs text-muted-foreground mb-1">
-                                        {language === "fr" ? "Économies annuelles" : "Annual savings"}
-                                      </p>
-                                      <p className="text-xl font-bold text-green-600" data-testid="text-quick-savings">
-                                        ${calcResults.financial.annualSavings.toLocaleString()}
-                                      </p>
-                                    </div>
-                                    
-                                    <div className="bg-background rounded-lg p-3 border">
-                                      <p className="text-xs text-muted-foreground mb-1">
-                                        {language === "fr" ? "Retour sur investissement" : "Payback period"}
-                                      </p>
-                                      <p className="text-xl font-bold" data-testid="text-quick-payback">
-                                        {calcResults.financial.paybackYears.toFixed(1)} {language === "fr" ? "ans" : "years"}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-sm font-medium">
-                                        {language === "fr" ? "Incitatif Hydro-Québec" : "Hydro-Québec incentive"}
-                                      </span>
-                                      <span className="text-lg font-bold text-primary" data-testid="text-quick-incentive">
-                                        ${calcResults.financial.hqIncentive.toLocaleString()}
-                                      </span>
-                                    </div>
-                                  </div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                  <span className="font-semibold text-green-800 dark:text-green-200">
+                                    {language === "fr" ? "Analyse complétée!" : "Analysis complete!"}
+                                  </span>
                                 </div>
                                 
-                                <div className="flex flex-col sm:flex-row gap-3">
+                                {/* Consumption summary */}
+                                <div className="p-3 bg-muted/50 rounded-lg border mb-2">
+                                  <p className="text-sm">
+                                    <span className="text-muted-foreground">{language === "fr" ? "Consommation annuelle:" : "Annual consumption:"}</span>{" "}
+                                    <span className="font-bold">{calcResults.consumption?.annualKWh?.toLocaleString() || calcResults.inputs.annualConsumptionKwh?.toLocaleString()} kWh</span>
+                                  </p>
+                                </div>
+                                
+                                {/* 3 Scenario cards */}
+                                <div className="space-y-3">
+                                  {calcResults.scenarios?.map((scenario) => {
+                                    const scenarioLabels = {
+                                      conservative: {
+                                        title: language === "fr" ? "Conservateur" : "Conservative",
+                                        subtitle: language === "fr" ? "70% de compensation" : "70% offset",
+                                        tooltip: language === "fr" 
+                                          ? "Couvre 70% de votre consommation. Recommandé pour la plupart des bâtiments." 
+                                          : "Covers 70% of consumption. Recommended for most buildings.",
+                                        badge: language === "fr" ? "Recommandé" : "Recommended",
+                                      },
+                                      optimal: {
+                                        title: language === "fr" ? "Optimal" : "Optimal",
+                                        subtitle: language === "fr" ? "85% de compensation" : "85% offset",
+                                        tooltip: language === "fr" 
+                                          ? "Équilibre idéal entre autoconsommation et surplus." 
+                                          : "Ideal balance between self-consumption and surplus.",
+                                        badge: null,
+                                      },
+                                      maximum: {
+                                        title: "Maximum",
+                                        subtitle: language === "fr" ? "100% de compensation" : "100% offset",
+                                        tooltip: language === "fr" 
+                                          ? "Couverture complète de votre consommation annuelle." 
+                                          : "Full coverage of your annual consumption.",
+                                        badge: null,
+                                      },
+                                    };
+                                    const labels = scenarioLabels[scenario.key as keyof typeof scenarioLabels];
+                                    const isRecommended = scenario.key === "conservative";
+                                    
+                                    return (
+                                      <div 
+                                        key={scenario.key}
+                                        className={`p-4 rounded-lg border ${isRecommended ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'bg-background'}`}
+                                        data-testid={`scenario-${scenario.key}`}
+                                      >
+                                        <div className="flex items-start justify-between gap-2 mb-3">
+                                          <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <h5 className="font-semibold">{labels.title}</h5>
+                                              <span className="text-sm text-muted-foreground">({labels.subtitle})</span>
+                                              {labels.badge && (
+                                                <Badge className="bg-primary text-primary-foreground text-xs">
+                                                  {labels.badge}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                              <Info className="w-3 h-3" />
+                                              {labels.tooltip}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Système" : "System"}</p>
+                                            <p className="text-lg font-bold text-primary">{scenario.systemSizeKW} kW</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Production" : "Production"}</p>
+                                            <p className="text-lg font-bold">{(scenario.annualProductionKWh / 1000).toFixed(0)} MWh/{language === "fr" ? "an" : "yr"}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Économies" : "Savings"}</p>
+                                            <p className="text-lg font-bold text-green-600">${scenario.annualSavings.toLocaleString()}/{language === "fr" ? "an" : "yr"}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Retour" : "Payback"}</p>
+                                            <p className="text-lg font-bold">{scenario.paybackYears.toFixed(1)} {language === "fr" ? "ans" : "yrs"}</p>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="mt-3 pt-3 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                          <span>{language === "fr" ? "Coût brut:" : "Gross cost:"} <span className="font-medium">${scenario.grossCAPEX.toLocaleString()}</span></span>
+                                          <span>{language === "fr" ? "Incitatif HQ:" : "HQ incentive:"} <span className="font-medium text-green-600">-${scenario.hqIncentive.toLocaleString()}</span></span>
+                                          <span>{language === "fr" ? "Coût net:" : "Net cost:"} <span className="font-medium">${scenario.netCAPEX.toLocaleString()}</span></span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                
+                                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                                   <Button 
                                     variant="outline" 
-                                    onClick={() => setCalcResults(null)}
+                                    onClick={() => {
+                                      setCalcResults(null);
+                                      setCalcBillFile(null);
+                                      setCalcBillParsed(null);
+                                    }}
                                     className="flex-1"
                                   >
-                                    {language === "fr" ? "Refaire une analyse" : "Run another analysis"}
+                                    {language === "fr" ? "Nouvelle analyse" : "New analysis"}
                                   </Button>
                                   <Button 
                                     className="flex-1 gap-2"

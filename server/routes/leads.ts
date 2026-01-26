@@ -40,12 +40,14 @@ const upload = multer({
 // ==================== LEAD ROUTES (PUBLIC) ====================
 
 // Quick estimate endpoint for landing page calculator (no auth required)
+// Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
 router.post("/api/quick-estimate", async (req, res) => {
   try {
-    const { address, email, monthlyBill, buildingType, tariffCode } = req.body;
+    const { address, email, monthlyBill, buildingType, tariffCode, annualConsumptionKwh } = req.body;
     
-    if (!address || !monthlyBill) {
-      return res.status(400).json({ error: "Address and monthly bill are required" });
+    // Either annualConsumptionKwh or monthlyBill is required
+    if (!annualConsumptionKwh && !monthlyBill) {
+      return res.status(400).json({ error: "Annual consumption or monthly bill is required" });
     }
     
     // HQ energy rates ($/kWh) - energy portion only
@@ -72,85 +74,86 @@ router.post("/api/quick-estimate", async (req, res) => {
       education: 0.95,
     };
     
-    // Use provided tariff or default to G (small power <65 kW)
-    const tariff = tariffCode || "G";
-    const energyRate = HQ_ENERGY_RATES[tariff] || 0.11933;
+    // Use provided tariff or default to M (medium power)
+    const tariff = tariffCode || "M";
+    const energyRate = HQ_ENERGY_RATES[tariff] || 0.06061;
     const energyPortion = ENERGY_PORTION_FACTORS[tariff] || 0.60;
     const buildingFactor = BUILDING_FACTORS[buildingType] || 1.0;
     
-    // Calculate annual consumption from monthly bill
-    const monthlyEnergyBill = monthlyBill * energyPortion;
-    const monthlyKWh = monthlyEnergyBill / energyRate;
-    const annualKWh = monthlyKWh * 12 * buildingFactor;
+    // Calculate annual consumption - prefer direct input over bill estimation
+    let annualKWh: number;
+    let monthlyKWh: number;
+    let estimatedMonthlyBill = monthlyBill || 0;
     
-    // Call Google Solar API to get roof potential
-    let roofData: googleSolar.RoofEstimateResult | null = null;
-    try {
-      roofData = await googleSolar.estimateRoofFromAddress(address + ", Québec, Canada", storage);
-    } catch (err) {
-      console.error("[Quick Estimate] Google Solar API error:", err);
+    if (annualConsumptionKwh && annualConsumptionKwh > 0) {
+      // Direct annual consumption provided (from bill parsing or manual entry)
+      annualKWh = annualConsumptionKwh;
+      monthlyKWh = annualKWh / 12;
+      // Estimate monthly bill if not provided
+      if (!monthlyBill) {
+        estimatedMonthlyBill = Math.round((annualKWh * energyRate) / energyPortion / 12);
+      }
+    } else {
+      // Calculate from monthly bill
+      const monthlyEnergyBill = monthlyBill * energyPortion;
+      monthlyKWh = monthlyEnergyBill / energyRate;
+      annualKWh = monthlyKWh * 12 * buildingFactor;
     }
     
-    // Quebec realistic average: ~1100 kWh/kW/year production (conservative)
-    const QC_PRODUCTION_FACTOR = 1100;
+    // Solar yield: 1000 kWh/kWp (conservative KB 10° baseline for Quebec)
+    const SOLAR_YIELD = 1000;
     
-    // Calculate system size based on consumption (target 70% self-consumption)
-    const targetSelfConsumption = 0.70;
-    const consumptionBasedKW = Math.round((annualKWh * targetSelfConsumption) / QC_PRODUCTION_FACTOR);
+    // Cost per watt for CAPEX calculation ($2.25/W = $2250/kW)
+    const COST_PER_KW = 2250;
     
-    // If we have roof data, limit by roof capacity
-    let roofBasedKW = consumptionBasedKW;
-    let roofAreaSqM = 0;
-    let hasRoofData = false;
+    // HQ incentive: 20% of gross CAPEX, capped at $1000/kW
+    const HQ_INCENTIVE_RATE = 0.20;
+    const HQ_INCENTIVE_CAP_PER_KW = 1000;
     
-    if (roofData?.success && roofData.maxArrayAreaSqM > 0) {
-      hasRoofData = true;
-      roofAreaSqM = roofData.maxArrayAreaSqM;
-      const PANEL_POWER_W = 625;
-      const KB_PANEL_FOOTPRINT_M2 = 3.71;
-      const UTILIZATION = 0.85;
+    // Define offset scenarios
+    const scenarios = [
+      { key: "conservative", offsetPercent: 0.70, recommended: true },
+      { key: "optimal", offsetPercent: 0.85, recommended: false },
+      { key: "maximum", offsetPercent: 1.00, recommended: false },
+    ];
+    
+    // Calculate each scenario
+    const calculatedScenarios = scenarios.map(scenario => {
+      const systemSizeKW = Math.max(10, Math.round((annualKWh * scenario.offsetPercent) / SOLAR_YIELD));
+      const annualProductionKWh = systemSizeKW * SOLAR_YIELD;
+      const annualSavings = Math.round(annualProductionKWh * energyRate);
+      const grossCAPEX = systemSizeKW * COST_PER_KW;
+      const hqIncentive = Math.min(grossCAPEX * HQ_INCENTIVE_RATE, systemSizeKW * HQ_INCENTIVE_CAP_PER_KW);
+      const netCAPEX = grossCAPEX - hqIncentive;
+      const paybackYears = annualSavings > 0 ? Math.round((netCAPEX / annualSavings) * 10) / 10 : 99;
       
-      const usableAreaSqM = roofAreaSqM * UTILIZATION;
-      const numPanels = Math.floor(usableAreaSqM / KB_PANEL_FOOTPRINT_M2);
-      roofBasedKW = Math.round((numPanels * PANEL_POWER_W) / 1000);
-    }
+      return {
+        key: scenario.key,
+        offsetPercent: scenario.offsetPercent,
+        recommended: scenario.recommended,
+        systemSizeKW,
+        annualProductionKWh,
+        annualSavings,
+        grossCAPEX: Math.round(grossCAPEX),
+        hqIncentive: Math.round(hqIncentive),
+        netCAPEX: Math.round(netCAPEX),
+        paybackYears,
+      };
+    });
     
-    // Final system size: minimum of consumption-based and roof-based (min 10 kW for commercial)
-    const systemSizeKW = Math.max(10, Math.min(consumptionBasedKW, roofBasedKW));
+    // Use conservative (70%) scenario as the primary/highlighted result
+    const primaryScenario = calculatedScenarios.find(s => s.key === "conservative")!;
     
-    // Annual production - use Quebec average
-    const annualProductionKWh = systemSizeKW * QC_PRODUCTION_FACTOR;
+    console.log(`[Quick Estimate] Consumption: ${Math.round(annualKWh)} kWh/yr, 3 scenarios calculated, Rate: ${energyRate} $/kWh`);
     
-    console.log(`[Quick Estimate] System: ${systemSizeKW} kW, Production: ${annualProductionKWh} kWh/yr, Rate: ${energyRate} $/kWh`);
+    // CO2 reduction (based on conservative scenario)
+    const co2ReductionTons = Math.round(primaryScenario.annualProductionKWh * 0.0012 * 10) / 10;
     
-    // Avoided cost rate - use energy rate only
-    const avoidedRate = energyRate;
-    
-    // Annual savings
-    const annualSavings = Math.round(annualProductionKWh * avoidedRate);
-    
-    // CAPEX calculation
-    const solarCostPerKW = 1800;
-    const grossCAPEX = systemSizeKW * solarCostPerKW;
-    
-    // HQ incentive: $1000/kW capped at 40% of gross CAPEX
-    const eligibleKW = Math.min(systemSizeKW, 1000);
-    const hqIncentive = Math.min(eligibleKW * 1000, grossCAPEX * 0.40);
-    
-    // Net CAPEX after incentive
-    const netCAPEX = grossCAPEX - hqIncentive;
-    
-    // Simple payback (years)
-    const paybackYears = annualSavings > 0 ? Math.max(0, Math.round((netCAPEX / annualSavings) * 10) / 10) : 99;
-    
-    // CO2 reduction
-    const co2ReductionTons = Math.round(annualProductionKWh * 0.0012 * 10) / 10;
-    
-    // Calculate before/after HQ bill comparison
-    const annualBillBefore = monthlyBill * 12;
-    const annualBillAfter = Math.max(0, annualBillBefore - annualSavings);
+    // Calculate before/after HQ bill comparison (based on conservative scenario)
+    const annualBillBefore = estimatedMonthlyBill * 12;
+    const annualBillAfter = Math.max(0, annualBillBefore - primaryScenario.annualSavings);
     const monthlyBillAfter = Math.round(annualBillAfter / 12);
-    const monthlySavings = monthlyBill - monthlyBillAfter;
+    const monthlySavings = estimatedMonthlyBill - monthlyBillAfter;
     
     // Send email if email is provided
     let emailSent = false;
@@ -160,22 +163,22 @@ router.post("/api/quick-estimate", async (req, res) => {
       const baseUrl = `${protocol}://${host}`;
       
       sendQuickAnalysisEmail(email, {
-        address,
-        monthlyBill,
+        address: address || "",
+        monthlyBill: estimatedMonthlyBill,
         buildingType: buildingType || "office",
         tariffCode: tariff,
-        systemSizeKW,
-        annualProductionKWh: Math.round(annualProductionKWh),
-        annualSavings,
-        paybackYears,
-        hqIncentive: Math.round(hqIncentive),
-        grossCAPEX: Math.round(grossCAPEX),
-        netCAPEX: Math.round(netCAPEX),
-        monthlyBillBefore: monthlyBill,
+        systemSizeKW: primaryScenario.systemSizeKW,
+        annualProductionKWh: primaryScenario.annualProductionKWh,
+        annualSavings: primaryScenario.annualSavings,
+        paybackYears: primaryScenario.paybackYears,
+        hqIncentive: primaryScenario.hqIncentive,
+        grossCAPEX: primaryScenario.grossCAPEX,
+        netCAPEX: primaryScenario.netCAPEX,
+        monthlyBillBefore: estimatedMonthlyBill,
         monthlyBillAfter,
         monthlySavings,
-        hasRoofData,
-        roofAreaM2: hasRoofData ? Math.round(roofAreaSqM) : undefined,
+        hasRoofData: false,
+        roofAreaM2: undefined,
       }, baseUrl).catch(err => {
         console.error("[Quick Estimate] Email sending failed:", err);
       });
@@ -184,11 +187,11 @@ router.post("/api/quick-estimate", async (req, res) => {
     
     res.json({
       success: true,
-      hasRoofData,
       emailSent,
       inputs: {
-        address,
-        monthlyBill,
+        address: address || null,
+        monthlyBill: estimatedMonthlyBill,
+        annualConsumptionKwh: Math.round(annualKWh),
         buildingType: buildingType || "office",
         tariffCode: tariff,
       },
@@ -196,36 +199,26 @@ router.post("/api/quick-estimate", async (req, res) => {
         annualKWh: Math.round(annualKWh),
         monthlyKWh: Math.round(monthlyKWh),
       },
-      roof: hasRoofData ? {
-        areaM2: Math.round(roofAreaSqM),
-        maxCapacityKW: roofBasedKW,
-        latitude: roofData?.latitude,
-        longitude: roofData?.longitude,
-        satelliteImageUrl: roofData?.latitude && roofData?.longitude 
-          ? googleSolar.getSatelliteImageUrl({ latitude: roofData.latitude, longitude: roofData.longitude }, { width: 400, height: 300 })
-          : null,
-      } : null,
+      scenarios: calculatedScenarios,
       system: {
-        sizeKW: systemSizeKW,
-        consumptionBasedKW,
-        roofMaxCapacityKW: hasRoofData ? roofBasedKW : null,
-        annualProductionKWh: Math.round(annualProductionKWh),
-        selfConsumptionRate: targetSelfConsumption,
+        sizeKW: primaryScenario.systemSizeKW,
+        annualProductionKWh: primaryScenario.annualProductionKWh,
+        selfConsumptionRate: 0.70,
       },
       financial: {
-        annualSavings,
-        grossCAPEX: Math.round(grossCAPEX),
-        hqIncentive: Math.round(hqIncentive),
-        netCAPEX: Math.round(netCAPEX),
-        paybackYears,
+        annualSavings: primaryScenario.annualSavings,
+        grossCAPEX: primaryScenario.grossCAPEX,
+        hqIncentive: primaryScenario.hqIncentive,
+        netCAPEX: primaryScenario.netCAPEX,
+        paybackYears: primaryScenario.paybackYears,
       },
       billing: {
-        monthlyBillBefore: monthlyBill,
+        monthlyBillBefore: estimatedMonthlyBill,
         monthlyBillAfter,
         monthlySavings,
         annualBillBefore,
         annualBillAfter: Math.round(annualBillAfter),
-        annualSavings,
+        annualSavings: primaryScenario.annualSavings,
       },
       environmental: {
         co2ReductionTons,
@@ -252,6 +245,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       postalCode,
       estimatedMonthlyBill,
       buildingType,
+      tariffCode,
       hqClientNumber,
       notes,
       procurationAccepted,
@@ -286,12 +280,13 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       procurationInfo,
       '',
       `No de client HQ: ${hqClientNumber || 'Non fourni'}`,
+      tariffCode ? `Tarif HQ: ${tariffCode}` : '',
       '',
       'Factures téléversées:',
       fileInfo,
       '',
       notes || ''
-    ].join('\n').trim();
+    ].filter(Boolean).join('\n').trim();
 
     const leadData = {
       companyName,
