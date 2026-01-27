@@ -1,0 +1,961 @@
+Qualification form · MDOpen in TextEditFormulaire de Qualification - Code Complet
+client/src/components/qualification/qualification-form.tsx
+typescriptimport { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Building2,
+  User,
+  Home,
+  Calendar,
+  DollarSign,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Flame,
+  Snowflake,
+  Target,
+  FileText,
+  Loader2,
+} from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Lead } from "@shared/schema";
+
+const qualificationSchema = z.object({
+  // Section A: Economic
+  estimatedMonthlyBill: z.number().nullable(),
+
+  // Section B: Property Rights
+  propertyRelationship: z.enum(["owner", "tenant_authorized", "tenant_pending", "tenant_no_auth", "unknown"]),
+  landlordName: z.string().optional(),
+  landlordEmail: z.string().email().optional().or(z.literal("")),
+  landlordPhone: z.string().optional(),
+  hasAuthorizationLetter: z.boolean().default(false),
+
+  // Section C: Roof Condition
+  roofAge: z.enum(["new", "recent", "mature", "old", "unknown"]),
+  roofAgeYearsApprox: z.number().optional(),
+  roofCondition: z.enum(["excellent", "good", "needs_repair", "needs_replacement", "unknown"]),
+  plannedRoofWorkNext5Years: z.boolean().default(false),
+  plannedRoofWorkDescription: z.string().optional(),
+
+  // Section D: Decision Capacity
+  contactIsDecisionMaker: z.boolean().default(false),
+  decisionMakerName: z.string().optional(),
+  decisionMakerTitle: z.string().optional(),
+  decisionMakerEmail: z.string().email().optional().or(z.literal("")),
+  budgetReadiness: z.enum(["budget_allocated", "budget_possible", "budget_needed", "no_budget", "unknown"]),
+  timelineUrgency: z.enum(["immediate", "this_year", "next_year", "exploring", "unknown"]),
+  targetDecisionQuarter: z.string().optional(),
+});
+
+type QualificationFormData = z.infer<typeof qualificationSchema>;
+
+interface QualificationFormProps {
+  lead: Lead;
+  open: boolean;
+  onClose: () => void;
+  onSuccess?: (result: any) => void;
+}
+
+const TRANSLATIONS = {
+  fr: {
+    title: "Qualification du prospect",
+    subtitle: "Évaluez le potentiel et identifiez les bloqueurs",
+    sectionA: "A. Potentiel économique",
+    sectionB: "B. Droit d'installation",
+    sectionC: "C. État du toit",
+    sectionD: "D. Capacité de décision",
+    monthlyBill: "Facture mensuelle HQ",
+    monthlyBillDesc: "Montant moyen de la facture d'électricité",
+    propertyRelationship: "Relation avec la propriété",
+    owner: "Propriétaire",
+    tenantAuthorized: "Locataire (autorisé)",
+    tenantPending: "Locataire (autorisation en cours)",
+    tenantNoAuth: "Locataire (sans autorisation)",
+    unknown: "Inconnu",
+    landlordName: "Nom du propriétaire",
+    landlordEmail: "Courriel du propriétaire",
+    landlordPhone: "Téléphone du propriétaire",
+    hasAuthorizationLetter: "Lettre d'autorisation obtenue",
+    roofAge: "Âge du toit",
+    roofAgeNew: "Neuf (0-5 ans)",
+    roofAgeRecent: "Récent (5-10 ans)",
+    roofAgeMature: "Mature (10-20 ans)",
+    roofAgeOld: "Âgé (20+ ans)",
+    roofAgeYears: "Âge approximatif (années)",
+    roofCondition: "État du toit",
+    roofExcellent: "Excellent",
+    roofGood: "Bon",
+    roofNeedsRepair: "Nécessite réparations",
+    roofNeedsReplacement: "Nécessite remplacement",
+    plannedRoofWork: "Travaux de toiture prévus (5 ans)",
+    plannedRoofWorkDesc: "Description des travaux prévus",
+    contactIsDecisionMaker: "Le contact est le décideur",
+    decisionMakerName: "Nom du décideur",
+    decisionMakerTitle: "Titre du décideur",
+    decisionMakerEmail: "Courriel du décideur",
+    budgetReadiness: "Disponibilité du budget",
+    budgetAllocated: "Budget alloué",
+    budgetPossible: "Budget possible",
+    budgetNeeded: "Budget à approuver",
+    noBudget: "Pas de budget",
+    timelineUrgency: "Urgence du projet",
+    immediate: "Immédiat",
+    thisYear: "Cette année",
+    nextYear: "L'an prochain",
+    exploring: "En exploration",
+    targetDecisionQuarter: "Trimestre cible de décision",
+    cancel: "Annuler",
+    qualify: "Qualifier",
+    qualifying: "Qualification en cours...",
+    resultTitle: "Résultat de la qualification",
+    score: "Score",
+    status: "Statut",
+    blockers: "Bloqueurs identifiés",
+    nextSteps: "Prochaines étapes suggérées",
+    hot: "Chaud 🔥",
+    warm: "Tiède",
+    nurture: "À nourrir",
+    cold: "Froid",
+    disqualified: "Non qualifié",
+    pending: "En attente",
+  },
+  en: {
+    title: "Lead Qualification",
+    subtitle: "Assess potential and identify blockers",
+    sectionA: "A. Economic Potential",
+    sectionB: "B. Installation Rights",
+    sectionC: "C. Roof Condition",
+    sectionD: "D. Decision Capacity",
+    monthlyBill: "Monthly HQ Bill",
+    monthlyBillDesc: "Average monthly electricity bill",
+    propertyRelationship: "Property Relationship",
+    owner: "Owner",
+    tenantAuthorized: "Tenant (authorized)",
+    tenantPending: "Tenant (authorization pending)",
+    tenantNoAuth: "Tenant (no authorization)",
+    unknown: "Unknown",
+    landlordName: "Landlord Name",
+    landlordEmail: "Landlord Email",
+    landlordPhone: "Landlord Phone",
+    hasAuthorizationLetter: "Authorization letter obtained",
+    roofAge: "Roof Age",
+    roofAgeNew: "New (0-5 years)",
+    roofAgeRecent: "Recent (5-10 years)",
+    roofAgeMature: "Mature (10-20 years)",
+    roofAgeOld: "Old (20+ years)",
+    roofAgeYears: "Approximate age (years)",
+    roofCondition: "Roof Condition",
+    roofExcellent: "Excellent",
+    roofGood: "Good",
+    roofNeedsRepair: "Needs repair",
+    roofNeedsReplacement: "Needs replacement",
+    plannedRoofWork: "Planned roof work (5 years)",
+    plannedRoofWorkDesc: "Description of planned work",
+    contactIsDecisionMaker: "Contact is decision maker",
+    decisionMakerName: "Decision Maker Name",
+    decisionMakerTitle: "Decision Maker Title",
+    decisionMakerEmail: "Decision Maker Email",
+    budgetReadiness: "Budget Readiness",
+    budgetAllocated: "Budget allocated",
+    budgetPossible: "Budget possible",
+    budgetNeeded: "Budget needs approval",
+    noBudget: "No budget",
+    timelineUrgency: "Project Timeline",
+    immediate: "Immediate",
+    thisYear: "This year",
+    nextYear: "Next year",
+    exploring: "Exploring",
+    targetDecisionQuarter: "Target decision quarter",
+    cancel: "Cancel",
+    qualify: "Qualify",
+    qualifying: "Qualifying...",
+    resultTitle: "Qualification Result",
+    score: "Score",
+    status: "Status",
+    blockers: "Identified Blockers",
+    nextSteps: "Suggested Next Steps",
+    hot: "Hot 🔥",
+    warm: "Warm",
+    nurture: "Nurture",
+    cold: "Cold",
+    disqualified: "Disqualified",
+    pending: "Pending",
+  },
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  hot: "bg-red-500 text-white",
+  warm: "bg-orange-500 text-white",
+  nurture: "bg-yellow-500 text-black",
+  cold: "bg-blue-500 text-white",
+  disqualified: "bg-gray-500 text-white",
+  pending: "bg-gray-300 text-gray-700",
+};
+
+const STATUS_ICONS: Record<string, React.ReactNode> = {
+  hot: <Flame className="h-4 w-4" />,
+  warm: <Target className="h-4 w-4" />,
+  nurture: <Clock className="h-4 w-4" />,
+  cold: <Snowflake className="h-4 w-4" />,
+  disqualified: <AlertTriangle className="h-4 w-4" />,
+  pending: <Clock className="h-4 w-4" />,
+};
+
+export function QualificationForm({ lead, open, onClose, onSuccess }: QualificationFormProps) {
+  const { language } = useI18n();
+  const { toast } = useToast();
+  const t = TRANSLATIONS[language];
+  const [activeTab, setActiveTab] = useState("economic");
+  const [result, setResult] = useState<any>(null);
+
+  const form = useForm<QualificationFormData>({
+    resolver: zodResolver(qualificationSchema),
+    defaultValues: {
+      estimatedMonthlyBill: lead.estimatedMonthlyBill || null,
+      propertyRelationship: (lead as any).propertyRelationship || "unknown",
+      landlordName: (lead as any).landlordName || "",
+      landlordEmail: "",
+      landlordPhone: "",
+      hasAuthorizationLetter: false,
+      roofAge: (lead as any).roofAge || "unknown",
+      roofAgeYearsApprox: (lead as any).roofAgeYears || undefined,
+      roofCondition: (lead as any).roofCondition || "unknown",
+      plannedRoofWorkNext5Years: false,
+      plannedRoofWorkDescription: "",
+      contactIsDecisionMaker: (lead as any).decisionAuthority === "decision_maker",
+      decisionMakerName: (lead as any).decisionMakerName || "",
+      decisionMakerTitle: (lead as any).decisionMakerTitle || "",
+      decisionMakerEmail: "",
+      budgetReadiness: (lead as any).budgetReadiness || "unknown",
+      timelineUrgency: (lead as any).timelineUrgency || "unknown",
+      targetDecisionQuarter: "",
+    },
+  });
+
+  const qualifyMutation = useMutation({
+    mutationFn: async (data: QualificationFormData) => {
+      const response = await apiRequest("PUT", `/api/leads/${lead.id}/qualification`, data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setResult(data.result);
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      toast({
+        title: language === "fr" ? "Qualification enregistrée" : "Qualification saved",
+        description: language === "fr"
+          ? `Score: ${data.result.score}/100 - Statut: ${t[data.result.status as keyof typeof t]}`
+          : `Score: ${data.result.score}/100 - Status: ${t[data.result.status as keyof typeof t]}`,
+      });
+      onSuccess?.(data);
+    },
+    onError: (error) => {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: QualificationFormData) => {
+    qualifyMutation.mutate(data);
+  };
+
+  const propertyRelationship = form.watch("propertyRelationship");
+  const plannedRoofWork = form.watch("plannedRoofWorkNext5Years");
+  const contactIsDecisionMaker = form.watch("contactIsDecisionMaker");
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            {t.title}
+          </DialogTitle>
+          <DialogDescription>
+            {t.subtitle} - {lead.companyName}
+          </DialogDescription>
+        </DialogHeader>
+
+        {result ? (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>{t.resultTitle}</span>
+                  <Badge className={STATUS_COLORS[result.status]}>
+                    {STATUS_ICONS[result.status]}
+                    <span className="ml-1">{t[result.status as keyof typeof t]}</span>
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium">{t.score}</span>
+                    <span className="text-sm font-bold">{result.score}/100</span>
+                  </div>
+                  <Progress value={result.score} className="h-3" />
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="p-2 bg-muted rounded">
+                    <div className="font-medium">Économique</div>
+                    <div className="text-lg font-bold">{result.gateScores.economic}/25</div>
+                  </div>
+                  <div className="p-2 bg-muted rounded">
+                    <div className="font-medium">Propriété</div>
+                    <div className="text-lg font-bold">{result.gateScores.property}/25</div>
+                  </div>
+                  <div className="p-2 bg-muted rounded">
+                    <div className="font-medium">Toiture</div>
+                    <div className="text-lg font-bold">{result.gateScores.roof}/25</div>
+                  </div>
+                  <div className="p-2 bg-muted rounded">
+                    <div className="font-medium">Décision</div>
+                    <div className="text-lg font-bold">{result.gateScores.decision}/25</div>
+                  </div>
+                </div>
+
+                {result.blockers.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-500" />
+                      {t.blockers}
+                    </h4>
+                    <ul className="space-y-2">
+                      {result.blockers.map((blocker: any, idx: number) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm">
+                          <Badge
+                            variant={blocker.severity === "critical" ? "destructive" : "secondary"}
+                            className="shrink-0"
+                          >
+                            {blocker.severity}
+                          </Badge>
+                          <span>{blocker.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {result.suggestedNextSteps.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      {t.nextSteps}
+                    </h4>
+                    <ul className="space-y-1">
+                      {result.suggestedNextSteps.map((step: string, idx: number) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm">
+                          <span className="text-muted-foreground">•</span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <DialogFooter>
+              <Button onClick={onClose}>
+                {language === "fr" ? "Fermer" : "Close"}
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="economic" className="flex items-center gap-1">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="hidden sm:inline">A</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="property" className="flex items-center gap-1">
+                    <Home className="h-4 w-4" />
+                    <span className="hidden sm:inline">B</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="roof" className="flex items-center gap-1">
+                    <Building2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">C</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="decision" className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">D</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="economic" className="space-y-4 mt-4">
+                  <h3 className="font-semibold">{t.sectionA}</h3>
+                  <FormField
+                    control={form.control}
+                    name="estimatedMonthlyBill"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t.monthlyBill}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+                            <Input
+                              type="number"
+                              className="pl-7"
+                              placeholder="5000"
+                              {...field}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>{t.monthlyBillDesc}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch("estimatedMonthlyBill") && (
+                    <Alert>
+                      <DollarSign className="h-4 w-4" />
+                      <AlertDescription>
+                        {form.watch("estimatedMonthlyBill")! >= 10000
+                          ? language === "fr" ? "🎯 Potentiel élevé!" : "🎯 High potential!"
+                          : form.watch("estimatedMonthlyBill")! >= 5000
+                          ? language === "fr" ? "✓ Bon potentiel" : "✓ Good potential"
+                          : form.watch("estimatedMonthlyBill")! >= 2500
+                          ? language === "fr" ? "⚠️ Potentiel marginal" : "⚠️ Marginal potential"
+                          : language === "fr" ? "❌ Potentiel insuffisant" : "❌ Insufficient potential"}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="property" className="space-y-4 mt-4">
+                  <h3 className="font-semibold">{t.sectionB}</h3>
+                  <FormField
+                    control={form.control}
+                    name="propertyRelationship"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t.propertyRelationship}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="owner">{t.owner}</SelectItem>
+                            <SelectItem value="tenant_authorized">{t.tenantAuthorized}</SelectItem>
+                            <SelectItem value="tenant_pending">{t.tenantPending}</SelectItem>
+                            <SelectItem value="tenant_no_auth">{t.tenantNoAuth}</SelectItem>
+                            <SelectItem value="unknown">{t.unknown}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {(propertyRelationship === "tenant_authorized" ||
+                    propertyRelationship === "tenant_pending" ||
+                    propertyRelationship === "tenant_no_auth") && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="landlordName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t.landlordName}</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="landlordEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t.landlordEmail}</FormLabel>
+                              <FormControl>
+                                <Input type="email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="landlordPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t.landlordPhone}</FormLabel>
+                              <FormControl>
+                                <Input type="tel" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="hasAuthorizationLetter"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                            <div>
+                              <FormLabel>{t.hasAuthorizationLetter}</FormLabel>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="roof" className="space-y-4 mt-4">
+                  <h3 className="font-semibold">{t.sectionC}</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="roofAge"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t.roofAge}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="new">{t.roofAgeNew}</SelectItem>
+                              <SelectItem value="recent">{t.roofAgeRecent}</SelectItem>
+                              <SelectItem value="mature">{t.roofAgeMature}</SelectItem>
+                              <SelectItem value="old">{t.roofAgeOld}</SelectItem>
+                              <SelectItem value="unknown">{t.unknown}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="roofCondition"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t.roofCondition}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="excellent">{t.roofExcellent}</SelectItem>
+                              <SelectItem value="good">{t.roofGood}</SelectItem>
+                              <SelectItem value="needs_repair">{t.roofNeedsRepair}</SelectItem>
+                              <SelectItem value="needs_replacement">{t.roofNeedsReplacement}</SelectItem>
+                              <SelectItem value="unknown">{t.unknown}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="roofAgeYearsApprox"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t.roofAgeYears}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="plannedRoofWorkNext5Years"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <FormLabel>{t.plannedRoofWork}</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {plannedRoofWork && (
+                    <FormField
+                      control={form.control}
+                      name="plannedRoofWorkDescription"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t.plannedRoofWorkDesc}</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="decision" className="space-y-4 mt-4">
+                  <h3 className="font-semibold">{t.sectionD}</h3>
+
+                  <FormField
+                    control={form.control}
+                    name="contactIsDecisionMaker"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <FormLabel>{t.contactIsDecisionMaker}</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {!contactIsDecisionMaker && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="decisionMakerName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t.decisionMakerName}</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="decisionMakerTitle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t.decisionMakerTitle}</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="budgetReadiness"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t.budgetReadiness}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="budget_allocated">{t.budgetAllocated}</SelectItem>
+                              <SelectItem value="budget_possible">{t.budgetPossible}</SelectItem>
+                              <SelectItem value="budget_needed">{t.budgetNeeded}</SelectItem>
+                              <SelectItem value="no_budget">{t.noBudget}</SelectItem>
+                              <SelectItem value="unknown">{t.unknown}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="timelineUrgency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t.timelineUrgency}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="immediate">{t.immediate}</SelectItem>
+                              <SelectItem value="this_year">{t.thisYear}</SelectItem>
+                              <SelectItem value="next_year">{t.nextYear}</SelectItem>
+                              <SelectItem value="exploring">{t.exploring}</SelectItem>
+                              <SelectItem value="unknown">{t.unknown}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="targetDecisionQuarter"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t.targetDecisionQuarter}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t.unknown} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Q1-2026">Q1 2026</SelectItem>
+                            <SelectItem value="Q2-2026">Q2 2026</SelectItem>
+                            <SelectItem value="Q3-2026">Q3 2026</SelectItem>
+                            <SelectItem value="Q4-2026">Q4 2026</SelectItem>
+                            <SelectItem value="2027+">2027+</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+              </Tabs>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={onClose}>
+                  {t.cancel}
+                </Button>
+                <Button type="submit" disabled={qualifyMutation.isPending}>
+                  {qualifyMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t.qualifying}
+                    </>
+                  ) : (
+                    <>
+                      <Target className="mr-2 h-4 w-4" />
+                      {t.qualify}
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default QualificationForm;
+
+Modifications à pipeline.tsx
+1. Ajouter les imports en haut du fichier
+typescriptimport {
+  // ... imports existants ...
+  ClipboardCheck,
+  Flame,
+  Snowflake,
+  Clock,
+  AlertTriangle,
+  Loader2,
+  CheckCircle
+} from "lucide-react";
+import { QualificationForm } from "@/components/qualification";
+2. Ajouter les états pour le modal de qualification
+Après les autres états useState:
+typescript// Qualification modal state
+const [isQualificationOpen, setIsQualificationOpen] = useState(false);
+const [qualifyingLead, setQualifyingLead] = useState<any | null>(null);
+3. Modifier le TabsList dans le Dialog d'édition d'opportunité
+Changer de grid-cols-4 à grid-cols-5 et ajouter l'onglet Qualification:
+typescript<TabsList className="grid w-full grid-cols-5" data-testid="tabs-edit-opportunity">
+  <TabsTrigger value="opportunity" data-testid="tab-edit-opportunity">
+    {language === "fr" ? "Opportunité" : "Opportunity"}
+  </TabsTrigger>
+  <TabsTrigger value="qualification" data-testid="tab-edit-qualification" className="flex items-center gap-1">
+    <ClipboardCheck className="w-3 h-3" />
+    <span className="hidden sm:inline">{language === "fr" ? "Qualif." : "Qualify"}</span>
+  </TabsTrigger>
+  <TabsTrigger value="site" data-testid="tab-edit-site">
+    Site
+  </TabsTrigger>
+  <TabsTrigger value="financial" data-testid="tab-edit-financial">
+    {language === "fr" ? "Financier" : "Financial"}
+  </TabsTrigger>
+  <TabsTrigger value="stakeholders" data-testid="tab-edit-stakeholders">
+    {language === "fr" ? "Parties" : "Contacts"}
+  </TabsTrigger>
+</TabsList>
+4. Ajouter le TabsContent pour la qualification
+Après le TabsContent "opportunity" et avant le TabsContent "site":
+typescript<TabsContent value="qualification" className="space-y-4 mt-4" data-testid="tabcontent-edit-qualification">
+  {selectedOpportunity?.stage === "prospect" ? (
+    <div className="space-y-4">
+      <div className="p-4 border rounded-lg space-y-3">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <ClipboardCheck className="w-5 h-5" />
+          <span className="font-medium">
+            {language === "fr"
+              ? "Qualifier ce prospect pour identifier les bloqueurs et prochaines étapes"
+              : "Qualify this prospect to identify blockers and next steps"}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {language === "fr"
+            ? "Le formulaire de qualification évalue 4 aspects: potentiel économique, droit d'installation, état du toit, et capacité de décision."
+            : "The qualification form evaluates 4 aspects: economic potential, installation rights, roof condition, and decision capacity."}
+        </p>
+        <Button
+          type="button"
+          onClick={() => {
+            const leadData = {
+              id: selectedOpportunity.id,
+              companyName: selectedOpportunity.client?.name || selectedOpportunity.name,
+              contactName: selectedOpportunity.client?.mainContactName || "",
+              email: selectedOpportunity.client?.email || "",
+              estimatedMonthlyBill: selectedOpportunity.site?.quickAnalysisMonthlyBill || null,
+            };
+            setQualifyingLead(leadData);
+            setIsQualificationOpen(true);
+          }}
+          className="w-full"
+        >
+          <Target className="w-4 h-4 mr-2" />
+          {language === "fr" ? "Ouvrir le formulaire de qualification" : "Open Qualification Form"}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 border rounded-lg">
+          <div className="text-xs text-muted-foreground mb-1">
+            {language === "fr" ? "Facture estimée" : "Est. Bill"}
+          </div>
+          <div className="font-medium">
+            {selectedOpportunity.site?.quickAnalysisMonthlyBill
+              ? `$${selectedOpportunity.site.quickAnalysisMonthlyBill.toLocaleString()}/mois`
+              : language === "fr" ? "Non défini" : "Not set"}
+          </div>
+        </div>
+        <div className="p-3 border rounded-lg">
+          <div className="text-xs text-muted-foreground mb-1">
+            {language === "fr" ? "Potentiel PV" : "PV Potential"}
+          </div>
+          <div className="font-medium">
+            {selectedOpportunity.pvSizeKW
+              ? `${selectedOpportunity.pvSizeKW} kW`
+              : selectedOpportunity.site?.quickAnalysisSystemSizeKw
+              ? `${Math.round(selectedOpportunity.site.quickAnalysisSystemSizeKw)} kW`
+              : language === "fr" ? "Non défini" : "Not set"}
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="text-center py-8 space-y-4">
+      <CheckCircle className="w-12 h-12 mx-auto text-green-500" />
+      <p className="text-muted-foreground">
+        {language === "fr"
+          ? "Cette opportunité est déjà au stade " + (STAGE_LABELS[selectedOpportunity?.stage || "prospect"]?.fr || selectedOpportunity?.stage)
+          : "This opportunity is already at " + (STAGE_LABELS[selectedOpportunity?.stage || "prospect"]?.en || selectedOpportunity?.stage) + " stage"}
+      </p>
+    </div>
+  )}
+</TabsContent>
+5. Ajouter le modal QualificationForm à la fin du composant
+Juste avant la fermeture </div> finale du return:
+typescript{/* Qualification Form Modal */}
+{qualifyingLead && (
+  <QualificationForm
+    lead={qualifyingLead}
+    open={isQualificationOpen}
+    onClose={() => {
+      setIsQualificationOpen(false);
+      setQualifyingLead(null);
+    }}
+    onSuccess={(result) => {
+      if (result.result.status === 'hot' || result.result.status === 'warm') {
+        if (selectedOpportunity?.stage === 'prospect') {
+          toast({
+            title: language === "fr" ? "Prospect qualifié!" : "Prospect qualified!",
+            description: language === "fr"
+              ? "Considérez d'avancer cette opportunité au stade Qualifié"
+              : "Consider advancing this opportunity to Qualified stage",
+          });
+        }
+      }
+      setIsQualificationOpen(false);
+      setQualifyingLead(null);
+    }}
+  />
+)}

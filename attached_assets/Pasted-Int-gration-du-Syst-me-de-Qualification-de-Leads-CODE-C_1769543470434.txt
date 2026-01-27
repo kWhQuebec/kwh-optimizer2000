@@ -1,0 +1,851 @@
+Intégration du Système de Qualification de Leads - CODE COMPLET
+Structure des fichiers à créer
+shared/
+  qualification/
+    types.ts
+    engine.ts
+    index.ts
+
+server/
+  routes/
+    qualification.ts
+
+client/
+  src/
+    components/
+      qualification/
+        qualification-form.tsx
+        index.ts
+
+1. shared/qualification/types.ts
+typescript/**
+ * Lead Qualification System Types
+ *
+ * Four qualification gates:
+ * 1. Economic Potential - Monthly bill viability
+ * 2. Right to Install - Property ownership/authorization
+ * 3. Roof Condition - Age, repairs needed
+ * 4. Decision Capacity - Authority, timeline, budget
+ */
+
+// Gate 1: Economic Potential
+export type EconomicPotentialStatus = 'high' | 'medium' | 'low' | 'insufficient';
+
+// Gate 2: Right to Install
+export type PropertyRelationship = 'owner' | 'tenant_authorized' | 'tenant_pending' | 'tenant_no_auth' | 'unknown';
+
+// Gate 3: Roof Condition
+export type RoofCondition = 'excellent' | 'good' | 'needs_repair' | 'needs_replacement' | 'unknown';
+export type RoofAge = 'new' | 'recent' | 'mature' | 'old' | 'unknown';
+
+// Gate 4: Decision Capacity
+export type DecisionAuthority = 'decision_maker' | 'influencer' | 'researcher' | 'unknown';
+export type BudgetReadiness = 'budget_allocated' | 'budget_possible' | 'budget_needed' | 'no_budget' | 'unknown';
+export type TimelineUrgency = 'immediate' | 'this_year' | 'next_year' | 'exploring' | 'unknown';
+
+// Overall qualification status
+export type QualificationStatus =
+  | 'hot'           // All gates passed, ready for proposal
+  | 'warm'          // Most gates passed, minor blockers
+  | 'nurture'       // Potential but significant blockers
+  | 'cold'          // Multiple blockers, long-term nurture
+  | 'disqualified'  // Not a fit (insufficient potential or no path forward)
+  | 'pending';      // Not yet qualified
+
+// Blocker types
+export type BlockerType =
+  | 'insufficient_bill'
+  | 'property_authorization'
+  | 'roof_repair_needed'
+  | 'roof_replacement_needed'
+  | 'no_decision_authority'
+  | 'no_budget'
+  | 'long_timeline'
+  | 'other';
+
+// Solution types
+export type SolutionType =
+  | 'landlord_template'      // Template letter for landlord authorization
+  | 'roof_partner_referral'  // Connect with roofing partner
+  | 'ppa_financing'          // PPA option if no upfront budget
+  | 'lease_financing'        // Lease option
+  | 'executive_intro'        // Help connect with decision maker
+  | 'education_content'      // Send educational content
+  | 'follow_up_later'        // Schedule future follow-up
+  | 'other';
+
+export interface Blocker {
+  type: BlockerType;
+  description: string;
+  severity: 'critical' | 'major' | 'minor';
+  suggestedSolutions: SolutionType[];
+}
+
+export interface QualificationData {
+  // Gate 1: Economic Potential
+  estimatedMonthlyBill: number | null;
+  economicStatus: EconomicPotentialStatus;
+
+  // Gate 2: Right to Install
+  propertyRelationship: PropertyRelationship;
+  landlordName?: string;
+  landlordContact?: string;
+  authorizationStatus?: string;
+
+  // Gate 3: Roof Condition
+  roofCondition: RoofCondition;
+  roofAge: RoofAge;
+  roofAgeYears?: number;
+  lastRoofInspection?: Date;
+  plannedRoofWork?: string;
+
+  // Gate 4: Decision Capacity
+  decisionAuthority: DecisionAuthority;
+  decisionMakerName?: string;
+  decisionMakerTitle?: string;
+  budgetReadiness: BudgetReadiness;
+  timelineUrgency: TimelineUrgency;
+  targetDecisionDate?: Date;
+
+  // Notes
+  qualificationNotes?: string;
+}
+
+export interface QualificationResult {
+  status: QualificationStatus;
+  score: number;              // 0-100
+  gateScores: {
+    economic: number;         // 0-25
+    property: number;         // 0-25
+    roof: number;             // 0-25
+    decision: number;         // 0-25
+  };
+  blockers: Blocker[];
+  suggestedNextSteps: string[];
+  qualifiedAt?: Date;
+  qualifiedBy?: string;
+}
+
+// Pre-qualification form data structure
+export interface PreQualificationFormData {
+  // Section A: Economic (auto-filled if available)
+  estimatedMonthlyBill: number | null;
+
+  // Section B: Property Rights
+  propertyRelationship: PropertyRelationship;
+  landlordName?: string;
+  landlordEmail?: string;
+  landlordPhone?: string;
+  hasAuthorizationLetter: boolean;
+
+  // Section C: Roof Condition
+  roofAge: RoofAge;
+  roofAgeYearsApprox?: number;
+  roofCondition: RoofCondition;
+  plannedRoofWorkNext5Years: boolean;
+  plannedRoofWorkDescription?: string;
+
+  // Section D: Decision Capacity
+  contactIsDecisionMaker: boolean;
+  decisionMakerName?: string;
+  decisionMakerTitle?: string;
+  decisionMakerEmail?: string;
+  budgetReadiness: BudgetReadiness;
+  timelineUrgency: TimelineUrgency;
+  targetDecisionQuarter?: string;
+}
+
+2. shared/qualification/engine.ts
+typescript/**
+ * Qualification Scoring Engine
+ *
+ * Calculates qualification score and status based on the 4 gates:
+ * 1. Economic Potential (25 pts) - Based on monthly bill
+ * 2. Right to Install (25 pts) - Property ownership/authorization
+ * 3. Roof Condition (25 pts) - Age and condition
+ * 4. Decision Capacity (25 pts) - Authority, budget, timeline
+ */
+
+import {
+  QualificationData,
+  QualificationResult,
+  QualificationStatus,
+  Blocker,
+  BlockerType,
+  SolutionType,
+  EconomicPotentialStatus,
+  PropertyRelationship,
+  RoofCondition,
+  RoofAge,
+  DecisionAuthority,
+  BudgetReadiness,
+  TimelineUrgency,
+} from './types';
+
+// Thresholds for economic potential (monthly HQ bill)
+const BILL_THRESHOLDS = {
+  HIGH: 10000,      // $10k+/month = excellent potential
+  MEDIUM: 5000,     // $5k-10k = good potential
+  LOW: 2500,        // $2.5k-5k = possible but marginal
+  MINIMUM: 1500,    // Below $1.5k = probably not viable for C&I
+};
+
+// Score mappings
+const ECONOMIC_SCORES: Record<EconomicPotentialStatus, number> = {
+  high: 25,
+  medium: 20,
+  low: 12,
+  insufficient: 0,
+};
+
+const PROPERTY_SCORES: Record<PropertyRelationship, number> = {
+  owner: 25,
+  tenant_authorized: 22,
+  tenant_pending: 12,
+  tenant_no_auth: 5,
+  unknown: 10,
+};
+
+const ROOF_CONDITION_SCORES: Record<RoofCondition, number> = {
+  excellent: 15,
+  good: 12,
+  needs_repair: 6,
+  needs_replacement: 0,
+  unknown: 8,
+};
+
+const ROOF_AGE_SCORES: Record<RoofAge, number> = {
+  new: 10,         // 0-5 years
+  recent: 8,       // 5-10 years
+  mature: 5,       // 10-20 years
+  old: 2,          // 20+ years
+  unknown: 4,
+};
+
+const DECISION_AUTHORITY_SCORES: Record<DecisionAuthority, number> = {
+  decision_maker: 10,
+  influencer: 6,
+  researcher: 3,
+  unknown: 4,
+};
+
+const BUDGET_SCORES: Record<BudgetReadiness, number> = {
+  budget_allocated: 8,
+  budget_possible: 6,
+  budget_needed: 3,
+  no_budget: 1,
+  unknown: 3,
+};
+
+const TIMELINE_SCORES: Record<TimelineUrgency, number> = {
+  immediate: 7,
+  this_year: 5,
+  next_year: 3,
+  exploring: 1,
+  unknown: 2,
+};
+
+/**
+ * Calculate economic potential status based on monthly bill
+ */
+export function calculateEconomicStatus(monthlyBill: number | null): EconomicPotentialStatus {
+  if (monthlyBill === null || monthlyBill === undefined) {
+    return 'insufficient';
+  }
+  if (monthlyBill >= BILL_THRESHOLDS.HIGH) return 'high';
+  if (monthlyBill >= BILL_THRESHOLDS.MEDIUM) return 'medium';
+  if (monthlyBill >= BILL_THRESHOLDS.LOW) return 'low';
+  return 'insufficient';
+}
+
+/**
+ * Identify blockers based on qualification data
+ */
+function identifyBlockers(data: QualificationData): Blocker[] {
+  const blockers: Blocker[] = [];
+
+  // Gate 1: Economic blockers
+  if (data.economicStatus === 'insufficient') {
+    blockers.push({
+      type: 'insufficient_bill',
+      description: 'Facture mensuelle insuffisante pour un projet C&I viable',
+      severity: 'critical',
+      suggestedSolutions: ['education_content', 'follow_up_later'],
+    });
+  }
+
+  // Gate 2: Property blockers
+  if (data.propertyRelationship === 'tenant_no_auth') {
+    blockers.push({
+      type: 'property_authorization',
+      description: 'Locataire sans autorisation du propriétaire',
+      severity: 'critical',
+      suggestedSolutions: ['landlord_template', 'follow_up_later'],
+    });
+  } else if (data.propertyRelationship === 'tenant_pending') {
+    blockers.push({
+      type: 'property_authorization',
+      description: 'Autorisation du propriétaire en attente',
+      severity: 'major',
+      suggestedSolutions: ['landlord_template', 'follow_up_later'],
+    });
+  }
+
+  // Gate 3: Roof blockers
+  if (data.roofCondition === 'needs_replacement') {
+    blockers.push({
+      type: 'roof_replacement_needed',
+      description: 'Toiture nécessite un remplacement complet',
+      severity: 'critical',
+      suggestedSolutions: ['roof_partner_referral', 'follow_up_later'],
+    });
+  } else if (data.roofCondition === 'needs_repair') {
+    blockers.push({
+      type: 'roof_repair_needed',
+      description: 'Toiture nécessite des réparations',
+      severity: 'major',
+      suggestedSolutions: ['roof_partner_referral'],
+    });
+  }
+
+  // Gate 4: Decision blockers
+  if (data.decisionAuthority === 'researcher') {
+    blockers.push({
+      type: 'no_decision_authority',
+      description: 'Contact n\'est pas le décideur',
+      severity: 'major',
+      suggestedSolutions: ['executive_intro', 'education_content'],
+    });
+  }
+
+  if (data.budgetReadiness === 'no_budget') {
+    blockers.push({
+      type: 'no_budget',
+      description: 'Aucun budget disponible',
+      severity: 'critical',
+      suggestedSolutions: ['ppa_financing', 'lease_financing', 'follow_up_later'],
+    });
+  } else if (data.budgetReadiness === 'budget_needed') {
+    blockers.push({
+      type: 'no_budget',
+      description: 'Budget doit être approuvé',
+      severity: 'major',
+      suggestedSolutions: ['ppa_financing', 'lease_financing', 'education_content'],
+    });
+  }
+
+  if (data.timelineUrgency === 'exploring') {
+    blockers.push({
+      type: 'long_timeline',
+      description: 'Client en phase d\'exploration seulement',
+      severity: 'minor',
+      suggestedSolutions: ['education_content', 'follow_up_later'],
+    });
+  }
+
+  return blockers;
+}
+
+/**
+ * Determine overall status based on score and blockers
+ */
+function determineStatus(score: number, blockers: Blocker[]): QualificationStatus {
+  const criticalBlockers = blockers.filter(b => b.severity === 'critical');
+  const majorBlockers = blockers.filter(b => b.severity === 'major');
+
+  // If any critical blocker, can't be hot/warm
+  if (criticalBlockers.length > 0) {
+    // Insufficient bill = disqualified (no path forward)
+    if (criticalBlockers.some(b => b.type === 'insufficient_bill')) {
+      return 'disqualified';
+    }
+    // Other critical blockers = cold (potential but major work needed)
+    return 'cold';
+  }
+
+  // Score-based with major blocker consideration
+  if (score >= 80 && majorBlockers.length === 0) {
+    return 'hot';
+  }
+  if (score >= 65 || (score >= 55 && majorBlockers.length <= 1)) {
+    return 'warm';
+  }
+  if (score >= 40) {
+    return 'nurture';
+  }
+  return 'cold';
+}
+
+/**
+ * Generate suggested next steps based on status and blockers
+ */
+function generateNextSteps(
+  status: QualificationStatus,
+  blockers: Blocker[],
+  data: QualificationData
+): string[] {
+  const steps: string[] = [];
+
+  if (status === 'hot') {
+    steps.push('Planifier une rencontre pour présenter la proposition');
+    steps.push('Préparer l\'analyse solaire détaillée');
+    return steps;
+  }
+
+  if (status === 'warm') {
+    steps.push('Résoudre les blocages mineurs identifiés');
+    if (data.decisionAuthority === 'influencer') {
+      steps.push('Demander une introduction au décideur');
+    }
+    steps.push('Envoyer une proposition préliminaire');
+    return steps;
+  }
+
+  // Address specific blockers
+  for (const blocker of blockers) {
+    switch (blocker.type) {
+      case 'property_authorization':
+        steps.push('Envoyer le modèle de lettre d\'autorisation au propriétaire');
+        steps.push('Offrir de participer à une rencontre avec le propriétaire');
+        break;
+      case 'roof_replacement_needed':
+      case 'roof_repair_needed':
+        steps.push('Référer à notre partenaire couvreur pour évaluation');
+        steps.push('Proposer un projet combiné toiture + solaire');
+        break;
+      case 'no_budget':
+        steps.push('Présenter les options PPA et crédit-bail (0$ initial)');
+        break;
+      case 'no_decision_authority':
+        steps.push('Demander une introduction au décideur');
+        steps.push('Envoyer du contenu éducatif pour partager en interne');
+        break;
+      case 'long_timeline':
+        steps.push('Planifier un suivi dans 3-6 mois');
+        steps.push('Ajouter à la liste de nurturing');
+        break;
+    }
+  }
+
+  if (status === 'disqualified') {
+    steps.push('Classer comme non-viable pour le moment');
+    steps.push('Considérer pour projets résidentiels ou référence à partenaire');
+  }
+
+  return [...new Set(steps)]; // Remove duplicates
+}
+
+/**
+ * Main qualification scoring function
+ */
+export function calculateQualification(data: QualificationData): QualificationResult {
+  // Calculate individual gate scores
+  const economicScore = ECONOMIC_SCORES[data.economicStatus];
+  const propertyScore = PROPERTY_SCORES[data.propertyRelationship];
+  const roofScore = ROOF_CONDITION_SCORES[data.roofCondition] + ROOF_AGE_SCORES[data.roofAge];
+  const decisionScore =
+    DECISION_AUTHORITY_SCORES[data.decisionAuthority] +
+    BUDGET_SCORES[data.budgetReadiness] +
+    TIMELINE_SCORES[data.timelineUrgency];
+
+  const totalScore = economicScore + propertyScore + roofScore + decisionScore;
+
+  // Identify blockers
+  const blockers = identifyBlockers(data);
+
+  // Determine overall status
+  const status = determineStatus(totalScore, blockers);
+
+  // Generate next steps
+  const suggestedNextSteps = generateNextSteps(status, blockers, data);
+
+  return {
+    status,
+    score: totalScore,
+    gateScores: {
+      economic: economicScore,
+      property: propertyScore,
+      roof: roofScore,
+      decision: decisionScore,
+    },
+    blockers,
+    suggestedNextSteps,
+    qualifiedAt: new Date(),
+  };
+}
+
+/**
+ * Quick qualification check based on minimal data
+ * Used for initial lead scoring before full qualification
+ */
+export function quickQualificationScore(monthlyBill: number | null): {
+  status: EconomicPotentialStatus;
+  estimatedPotentialKw: number | null;
+  viable: boolean;
+} {
+  const status = calculateEconomicStatus(monthlyBill);
+
+  // Rough estimate: $1000/month ≈ 100 kW potential (very approximate)
+  const estimatedPotentialKw = monthlyBill ? Math.round(monthlyBill / 10) : null;
+
+  return {
+    status,
+    estimatedPotentialKw,
+    viable: status !== 'insufficient',
+  };
+}
+
+/**
+ * Solution templates and resources
+ */
+export const SOLUTION_RESOURCES: Record<SolutionType, { fr: string; en: string; templatePath?: string }> = {
+  landlord_template: {
+    fr: 'Modèle de lettre d\'autorisation pour le propriétaire',
+    en: 'Landlord authorization letter template',
+    templatePath: '/templates/landlord-authorization-letter.pdf',
+  },
+  roof_partner_referral: {
+    fr: 'Référence à notre partenaire couvreur certifié',
+    en: 'Referral to our certified roofing partner',
+  },
+  ppa_financing: {
+    fr: 'Option PPA - 0$ initial, économies dès le jour 1',
+    en: 'PPA option - $0 upfront, savings from day 1',
+  },
+  lease_financing: {
+    fr: 'Option crédit-bail - Propriété après 7 ans',
+    en: 'Lease option - Ownership after 7 years',
+  },
+  executive_intro: {
+    fr: 'Faciliter une introduction au niveau exécutif',
+    en: 'Facilitate executive-level introduction',
+  },
+  education_content: {
+    fr: 'Envoyer du contenu éducatif sur le solaire C&I',
+    en: 'Send educational content about C&I solar',
+  },
+  follow_up_later: {
+    fr: 'Planifier un suivi ultérieur',
+    en: 'Schedule follow-up for later',
+  },
+  other: {
+    fr: 'Autre solution personnalisée',
+    en: 'Other custom solution',
+  },
+};
+
+3. shared/qualification/index.ts
+typescript/**
+ * Lead Qualification System
+ *
+ * Exports all qualification types, engine, and utilities
+ */
+
+export * from './types';
+export * from './engine';
+
+4. server/routes/qualification.ts
+typescriptimport { Router } from "express";
+import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
+import { storage } from "../storage";
+import {
+  calculateQualification,
+  calculateEconomicStatus,
+  quickQualificationScore,
+  QualificationData,
+  PreQualificationFormData,
+  SOLUTION_RESOURCES,
+} from "@shared/qualification";
+
+const router = Router();
+
+/**
+ * Get qualification data for a lead
+ */
+router.get("/api/leads/:id/qualification", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const lead = await storage.getLead(id);
+
+    if (!lead) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+
+    // Build qualification data from lead
+    const qualificationData: QualificationData = {
+      estimatedMonthlyBill: lead.estimatedMonthlyBill,
+      economicStatus: (lead as any).economicStatus || calculateEconomicStatus(lead.estimatedMonthlyBill),
+      propertyRelationship: (lead as any).propertyRelationship || 'unknown',
+      landlordName: (lead as any).landlordName,
+      landlordContact: (lead as any).landlordContact,
+      authorizationStatus: (lead as any).authorizationStatus,
+      roofCondition: (lead as any).roofCondition || 'unknown',
+      roofAge: (lead as any).roofAge || 'unknown',
+      roofAgeYears: (lead as any).roofAgeYears,
+      lastRoofInspection: (lead as any).lastRoofInspection,
+      plannedRoofWork: (lead as any).plannedRoofWork,
+      decisionAuthority: (lead as any).decisionAuthority || 'unknown',
+      decisionMakerName: (lead as any).decisionMakerName,
+      decisionMakerTitle: (lead as any).decisionMakerTitle,
+      budgetReadiness: (lead as any).budgetReadiness || 'unknown',
+      timelineUrgency: (lead as any).timelineUrgency || 'unknown',
+      targetDecisionDate: (lead as any).targetDecisionDate,
+      qualificationNotes: (lead as any).qualificationNotes,
+    };
+
+    // Calculate current qualification
+    const result = calculateQualification(qualificationData);
+
+    res.json({
+      lead: {
+        id: lead.id,
+        companyName: lead.companyName,
+        contactName: lead.contactName,
+        email: lead.email,
+        estimatedMonthlyBill: lead.estimatedMonthlyBill,
+      },
+      qualificationData,
+      result,
+      savedResult: {
+        score: (lead as any).qualificationScore,
+        status: (lead as any).qualificationStatus,
+        blockers: (lead as any).qualificationBlockers,
+        nextSteps: (lead as any).qualificationNextSteps,
+        qualifiedAt: (lead as any).qualifiedAt,
+        qualifiedBy: (lead as any).qualifiedBy,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching lead qualification:", error);
+    res.status(500).json({ error: "Failed to fetch qualification data" });
+  }
+});
+
+/**
+ * Update qualification data for a lead
+ */
+router.put("/api/leads/:id/qualification", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const formData: PreQualificationFormData = req.body;
+
+    const lead = await storage.getLead(id);
+    if (!lead) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+
+    // Calculate economic status from bill
+    const economicStatus = calculateEconomicStatus(formData.estimatedMonthlyBill);
+
+    // Build qualification data
+    const qualificationData: QualificationData = {
+      estimatedMonthlyBill: formData.estimatedMonthlyBill,
+      economicStatus,
+      propertyRelationship: formData.propertyRelationship,
+      landlordName: formData.landlordName,
+      landlordContact: formData.landlordEmail || formData.landlordPhone,
+      roofCondition: formData.roofCondition,
+      roofAge: formData.roofAge,
+      roofAgeYears: formData.roofAgeYearsApprox,
+      plannedRoofWork: formData.plannedRoofWorkNext5Years ? formData.plannedRoofWorkDescription : undefined,
+      decisionAuthority: formData.contactIsDecisionMaker ? 'decision_maker' :
+        (formData.decisionMakerName ? 'influencer' : 'unknown'),
+      decisionMakerName: formData.decisionMakerName,
+      decisionMakerTitle: formData.decisionMakerTitle,
+      budgetReadiness: formData.budgetReadiness,
+      timelineUrgency: formData.timelineUrgency,
+    };
+
+    // Calculate qualification result
+    const result = calculateQualification(qualificationData);
+
+    // Update lead with qualification data
+    const updatedLead = await storage.updateLead(id, {
+      estimatedMonthlyBill: formData.estimatedMonthlyBill,
+      // Qualification fields (will need to be added to storage interface)
+      economicStatus,
+      propertyRelationship: formData.propertyRelationship,
+      landlordName: formData.landlordName,
+      landlordContact: formData.landlordEmail || formData.landlordPhone,
+      roofCondition: formData.roofCondition,
+      roofAge: formData.roofAge,
+      roofAgeYears: formData.roofAgeYearsApprox,
+      plannedRoofWork: formData.plannedRoofWorkNext5Years ? formData.plannedRoofWorkDescription : undefined,
+      decisionAuthority: formData.contactIsDecisionMaker ? 'decision_maker' :
+        (formData.decisionMakerName ? 'influencer' : 'unknown'),
+      decisionMakerName: formData.decisionMakerName,
+      decisionMakerTitle: formData.decisionMakerTitle,
+      budgetReadiness: formData.budgetReadiness,
+      timelineUrgency: formData.timelineUrgency,
+      // Results
+      qualificationScore: result.score,
+      qualificationStatus: result.status,
+      qualificationBlockers: result.blockers,
+      qualificationNextSteps: result.suggestedNextSteps,
+      qualifiedAt: new Date(),
+      qualifiedBy: req.userId,
+    } as any);
+
+    // Update lead status if appropriate
+    if (result.status === 'hot' || result.status === 'warm') {
+      await storage.updateLead(id, { status: 'qualified' });
+    } else if (result.status === 'disqualified') {
+      await storage.updateLead(id, { status: 'disqualified' });
+    }
+
+    res.json({
+      success: true,
+      lead: updatedLead,
+      result,
+    });
+  } catch (error) {
+    console.error("Error updating lead qualification:", error);
+    res.status(500).json({ error: "Failed to update qualification" });
+  }
+});
+
+/**
+ * Quick qualification check (minimal data)
+ */
+router.post("/api/leads/quick-qualify", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+  try {
+    const { monthlyBill } = req.body;
+    const result = quickQualificationScore(monthlyBill);
+    res.json(result);
+  } catch (error) {
+    console.error("Error in quick qualification:", error);
+    res.status(500).json({ error: "Quick qualification failed" });
+  }
+});
+
+/**
+ * Get solution resources/templates
+ */
+router.get("/api/qualification/solutions", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+  try {
+    res.json(SOLUTION_RESOURCES);
+  } catch (error) {
+    console.error("Error fetching solution resources:", error);
+    res.status(500).json({ error: "Failed to fetch solutions" });
+  }
+});
+
+/**
+ * Bulk qualification status for dashboard/pipeline
+ */
+router.get("/api/leads/qualification-summary", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+  try {
+    const leads = await storage.getLeads();
+
+    const summary = {
+      total: leads.length,
+      byStatus: {
+        hot: 0,
+        warm: 0,
+        nurture: 0,
+        cold: 0,
+        disqualified: 0,
+        pending: 0,
+      },
+      unqualified: 0,
+      avgScore: 0,
+    };
+
+    let totalScore = 0;
+    let scoredCount = 0;
+
+    for (const lead of leads) {
+      const status = (lead as any).qualificationStatus;
+      const score = (lead as any).qualificationScore;
+
+      if (status && summary.byStatus.hasOwnProperty(status)) {
+        summary.byStatus[status as keyof typeof summary.byStatus]++;
+      } else {
+        summary.unqualified++;
+      }
+
+      if (score !== null && score !== undefined) {
+        totalScore += score;
+        scoredCount++;
+      }
+    }
+
+    summary.avgScore = scoredCount > 0 ? Math.round(totalScore / scoredCount) : 0;
+
+    res.json(summary);
+  } catch (error) {
+    console.error("Error fetching qualification summary:", error);
+    res.status(500).json({ error: "Failed to fetch summary" });
+  }
+});
+
+export default router;
+
+5. client/src/components/qualification/index.ts
+typescriptexport { QualificationForm } from './qualification-form';
+
+6. client/src/components/qualification/qualification-form.tsx
+Ce fichier est très long (~820 lignes). Je le mets dans un fichier séparé.
+
+Modifications aux fichiers existants
+A. Dans server/routes.ts - Ajouter l'import et enregistrer la route
+typescript// Ajouter avec les autres imports de routes
+import qualificationRouter from "./routes/qualification";
+
+// ...
+
+// Ajouter après les autres app.use()
+// ==================== QUALIFICATION ROUTES ====================
+app.use(qualificationRouter);
+B. Dans shared/schema.ts - Ajouter les champs à la table leads
+Trouve la définition de export const leads = pgTable("leads", { et ajoute ces champs AVANT createdAt:
+typescript  // ... champs existants ...
+  estimateError: text("estimate_error"),
+  estimateCompletedAt: timestamp("estimate_completed_at"),
+
+  // Qualification System Fields
+  // Gate 1: Economic (auto-calculated from estimatedMonthlyBill)
+  economicStatus: text("economic_status"), // "high" | "medium" | "low" | "insufficient"
+
+  // Gate 2: Right to Install
+  propertyRelationship: text("property_relationship"), // "owner" | "tenant_authorized" | "tenant_pending" | "tenant_no_auth" | "unknown"
+  landlordName: text("landlord_name"),
+  landlordContact: text("landlord_contact"),
+  authorizationStatus: text("authorization_status"),
+
+  // Gate 3: Roof Condition
+  roofCondition: text("roof_condition"), // "excellent" | "good" | "needs_repair" | "needs_replacement" | "unknown"
+  roofAge: text("roof_age"), // "new" | "recent" | "mature" | "old" | "unknown"
+  roofAgeYears: integer("roof_age_years"),
+  lastRoofInspection: timestamp("last_roof_inspection"),
+  plannedRoofWork: text("planned_roof_work"),
+
+  // Gate 4: Decision Capacity
+  decisionAuthority: text("decision_authority"), // "decision_maker" | "influencer" | "researcher" | "unknown"
+  decisionMakerName: text("decision_maker_name"),
+  decisionMakerTitle: text("decision_maker_title"),
+  budgetReadiness: text("budget_readiness"), // "budget_allocated" | "budget_possible" | "budget_needed" | "no_budget" | "unknown"
+  timelineUrgency: text("timeline_urgency"), // "immediate" | "this_year" | "next_year" | "exploring" | "unknown"
+  targetDecisionDate: timestamp("target_decision_date"),
+
+  // Qualification Results
+  qualificationScore: integer("qualification_score"), // 0-100
+  qualificationStatus: text("qualification_status"), // "hot" | "warm" | "nurture" | "cold" | "disqualified" | "pending"
+  qualificationBlockers: jsonb("qualification_blockers"), // Array of Blocker objects
+  qualificationNextSteps: jsonb("qualification_next_steps"), // Array of strings
+  qualificationNotes: text("qualification_notes"),
+  qualifiedAt: timestamp("qualified_at"),
+  qualifiedBy: varchar("qualified_by"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+Note: N'oublie pas d'importer integer et jsonb de drizzle-orm si ce n'est pas déjà fait:
+typescriptimport { pgTable, text, timestamp, varchar, real, boolean, integer, jsonb } from "drizzle-orm/pg-core";
+C. Après avoir ajouté les champs au schéma, exécuter la migration:
+bashnpm run db:push
+# ou
+npx drizzle-kit push
+
+Le formulaire de qualification complet est dans le fichier suivant:
+📄 QUALIFICATION_FORM.md (voir fichier séparé)
