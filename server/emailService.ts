@@ -3,36 +3,36 @@ import { sendEmailViaOutlook } from "./outlook";
 import { sendEmailViaResend } from "./resend";
 import { renderEmailTemplate } from "./emailTemplates";
 
-// Primary: Gmail (malabarre@kwh.quebec) - TODO: Switch to Resend once domain verified
-// Fallback chain: Gmail -> Resend -> Outlook
+// Primary: Resend (more reliable for transactional emails)
+// Fallback chain: Resend -> Gmail -> Outlook
 async function sendEmail(options: { to: string; subject: string; htmlBody: string; textBody?: string }): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  console.log('[EmailService] Attempting to send via Gmail (primary)...');
+  console.log('[EmailService] Attempting to send via Resend (primary)...');
   
-  // Primary: Gmail
-  try {
-    const gmailResult = await sendEmailViaGmail(options);
-    if (gmailResult.success) {
-      console.log('[EmailService] Email sent successfully via Gmail');
-      return gmailResult;
-    }
-    console.log('[EmailService] Gmail failed, trying Resend...');
-    console.log('[EmailService] Gmail error:', gmailResult.error);
-  } catch (error: any) {
-    console.log('[EmailService] Gmail threw exception, trying Resend...');
-    console.log('[EmailService] Exception:', error.message);
-  }
-  
-  // Fallback: Resend (once domain is verified, this will work)
+  // Primary: Resend
   try {
     const resendResult = await sendEmailViaResend(options);
     if (resendResult.success) {
-      console.log('[EmailService] Email sent successfully via Resend (fallback)');
+      console.log('[EmailService] Email sent successfully via Resend');
       return resendResult;
     }
-    console.log('[EmailService] Resend also failed, trying Outlook...');
+    console.log('[EmailService] Resend failed, trying Gmail...');
     console.log('[EmailService] Resend error:', resendResult.error);
   } catch (error: any) {
-    console.log('[EmailService] Resend threw exception, trying Outlook...');
+    console.log('[EmailService] Resend threw exception, trying Gmail...');
+    console.log('[EmailService] Exception:', error.message);
+  }
+  
+  // Fallback: Gmail
+  try {
+    const gmailResult = await sendEmailViaGmail(options);
+    if (gmailResult.success) {
+      console.log('[EmailService] Email sent successfully via Gmail (fallback)');
+      return gmailResult;
+    }
+    console.log('[EmailService] Gmail also failed, trying Outlook...');
+    console.log('[EmailService] Gmail error:', gmailResult.error);
+  } catch (error: any) {
+    console.log('[EmailService] Gmail threw exception, trying Outlook...');
     console.log('[EmailService] Exception:', error.message);
   }
   
