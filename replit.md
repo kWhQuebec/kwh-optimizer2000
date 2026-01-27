@@ -48,7 +48,8 @@ The backend uses a centralized error handling system (`server/middleware/errorHa
 -   **Solar Mockup Visualization**: Generates visual mockups of solar panel installations using Google Solar API data, showing panel positions and constraint areas.
 -   **Manual Roof Drawing Tool**: A mandatory interactive tool for technicians to trace roof areas before analysis, with validation tracking. Includes AI-powered constraint suggestion using Gemini Vision to automatically detect HVAC units, skylights, vents, and other rooftop obstacles from satellite imagery. Uses WebMercator projection for accurate pixel-to-geographic coordinate conversion.
 -   **KB Racking Integration**: Utilizes validated KB Racking specifications for direct sizing calculations, automated BOM generation, and tiered pricing.
--   **CRM Workflow Automation**: Website leads (from quick estimate and detailed analysis forms) automatically create Opportunity records in the sales pipeline. Dashboard QuickStart shows 5-step workflow (0. New Opportunity → 1. Create Site → 2. Import Data → 3. Run Analysis → 4. Generate Proposal) and displays "New Prospects" count to prompt timely follow-up.
+-   **CRM Workflow Automation**: Website leads (from quick estimate and detailed analysis forms) automatically create Opportunity records in the sales pipeline. Dashboard QuickStart shows 5-step workflow (0. New Opportunity → 1. Create Site → 2. Import Data → 3. Run Analysis → 4. Generate Proposal) and displays "New Prospects" count to prompt timely follow-up. Clicking the "New Prospects" KPI navigates to pipeline with stage filter pre-applied.
+-   **Pipeline Stage Filtering**: Pipeline page supports URL parameter `?stage=prospect` to pre-filter by stage. Stage filter dropdown allows filtering opportunities by pipeline stage in both Kanban and List views.
 
 ## External Dependencies
 

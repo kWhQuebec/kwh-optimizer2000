@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { 
   Building2, 
   BarChart3, 
@@ -151,7 +151,8 @@ function StatCard({
   icon: Icon, 
   iconBg,
   loading,
-  trend 
+  trend,
+  onClick
 }: { 
   title: string; 
   value: string | number; 
@@ -160,9 +161,10 @@ function StatCard({
   iconBg?: string;
   loading?: boolean;
   trend?: { value: number; positive: boolean };
+  onClick?: () => void;
 }) {
   return (
-    <Card>
+    <Card className={onClick ? "hover-elevate cursor-pointer" : ""} onClick={onClick}>
       <CardContent className="p-4 md:p-6">
         <div className="flex items-start justify-between gap-3 md:gap-4">
           <div className="space-y-1">
@@ -454,6 +456,7 @@ function WeightedVsActualChart({ stageBreakdown, language }: { stageBreakdown: P
 
 export default function DashboardPage() {
   const { t, language } = useI18n();
+  const [, setLocation] = useLocation();
   const [showQuickStart, setShowQuickStart] = useState(() => {
     // Check localStorage for dismissed state
     if (typeof window !== 'undefined') {
@@ -512,6 +515,7 @@ export default function DashboardPage() {
           icon={UserPlus}
           iconBg={(stats?.stageBreakdown?.find(s => s.stage === 'prospect')?.count || 0) > 0 ? "bg-yellow-500" : "bg-slate-400"}
           loading={isLoading}
+          onClick={() => setLocation("/app/pipeline?stage=prospect")}
         />
         <StatCard
           title={language === 'fr' ? 'Pipeline actif' : 'Active Pipeline'}

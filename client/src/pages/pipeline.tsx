@@ -579,6 +579,7 @@ export default function PipelinePage() {
   const [filterOwner, setFilterOwner] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterStage, setFilterStage] = useState<string>("all");
   const [selectedOpportunity, setSelectedOpportunity] = useState<OpportunityWithRelations | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -602,6 +603,13 @@ export default function PipelinePage() {
     if (params.get("action") === "new") {
       setIsAddOpen(true);
       setLocation("/app/pipeline", { replace: true });
+    }
+    // Handle stage filter from URL
+    const stageParam = params.get("stage");
+    if (stageParam && STAGES.includes(stageParam as Stage)) {
+      setFilterStage(stageParam);
+      // Switch to list view for filtered stage view
+      setViewMode("list");
     }
   }, [setLocation]);
 
@@ -852,6 +860,7 @@ export default function PipelinePage() {
     if (filterOwner !== "all" && opp.ownerId !== filterOwner) return false;
     if (filterPriority !== "all" && opp.priority !== filterPriority) return false;
     if (filterSource !== "all" && opp.source !== filterSource) return false;
+    if (filterStage !== "all" && opp.stage !== filterStage) return false;
     return true;
   });
 
@@ -977,7 +986,21 @@ export default function PipelinePage() {
           </SelectContent>
         </Select>
 
-        {(filterOwner !== "all" || filterPriority !== "all" || filterSource !== "all") && (
+        <Select value={filterStage} onValueChange={setFilterStage}>
+          <SelectTrigger className="w-36" data-testid="select-filter-stage">
+            <SelectValue placeholder={language === "fr" ? "Étape" : "Stage"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{language === "fr" ? "Toutes" : "All"}</SelectItem>
+            {STAGES.map((stage) => (
+              <SelectItem key={stage} value={stage}>
+                {STAGE_LABELS[stage][language === "fr" ? "fr" : "en"]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(filterOwner !== "all" || filterPriority !== "all" || filterSource !== "all" || filterStage !== "all") && (
           <Button 
             variant="ghost" 
             size="sm"
@@ -985,6 +1008,7 @@ export default function PipelinePage() {
               setFilterOwner("all");
               setFilterPriority("all");
               setFilterSource("all");
+              setFilterStage("all");
             }}
             data-testid="button-clear-filters"
           >
