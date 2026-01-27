@@ -311,6 +311,25 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
     }
 
     let lead = await storage.createLead(parsed.data);
+    
+    // Auto-create opportunity when lead is submitted
+    try {
+      const opportunityName = `${companyName} - ${streetAddress || city || 'Solar Project'}`;
+      await storage.createOpportunity({
+        name: opportunityName,
+        description: `Auto-created from detailed analysis request. Contact: ${contactName}`,
+        leadId: lead.id,
+        stage: 'qualified', // Detailed analysis = qualified (has procuration)
+        probability: 15,
+        source: 'website',
+        estimatedValue: null,
+        expectedCloseDate: null,
+        ownerId: null,
+      });
+      console.log(`[Detailed Analysis] Auto-created opportunity for lead: ${lead.id}`);
+    } catch (oppError) {
+      console.error(`[Detailed Analysis] Failed to auto-create opportunity:`, oppError);
+    }
 
     const uploadDir = path.join('uploads', 'bills', lead.id);
     if (!fs.existsSync(uploadDir)) {
@@ -454,6 +473,25 @@ router.post("/api/leads", async (req, res) => {
     }
     
     const lead = await storage.createLead(parsed.data);
+    
+    // Auto-create opportunity when lead is submitted
+    try {
+      const opportunityName = `${lead.companyName} - ${lead.streetAddress || lead.city || 'Solar Project'}`;
+      await storage.createOpportunity({
+        name: opportunityName,
+        description: `Auto-created from website lead form. Contact: ${lead.contactName}`,
+        leadId: lead.id,
+        stage: 'prospect', // Website leads start as prospects
+        probability: 5,
+        source: 'website',
+        estimatedValue: null,
+        expectedCloseDate: null,
+        ownerId: null,
+      });
+      console.log(`[Lead] Auto-created opportunity for lead: ${lead.id}`);
+    } catch (oppError) {
+      console.error(`[Lead] Failed to auto-create opportunity:`, oppError);
+    }
     
     if (parsed.data.streetAddress && parsed.data.city) {
       triggerRoofEstimation(lead.id, parsed.data).catch((err) => {
