@@ -49,6 +49,8 @@ import carouselSlide4Fr from "@assets/Screenshot_2025-12-11_at_9.15.24_PM_176550
 import carouselSlide5Fr from "@assets/Screenshot_2025-12-11_at_9.15.38_PM_1765505832702.png";
 import carouselSlide6Fr from "@assets/Screenshot_2025-12-11_at_9.15.53_PM_1765505832701.png";
 import carouselSlide7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_1765505832689.png";
+import dreamIndustrialLogo from "@assets/Dream_industrial_logo_1769527405856.png";
+import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
 
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
@@ -1837,25 +1839,20 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="flex flex-wrap items-center justify-center gap-8 mb-16 opacity-60"
+            className="flex flex-wrap items-center justify-center gap-12 mb-16"
           >
-            {/* Placeholder logos - replace with real client logos */}
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Building2 className="w-8 h-8" />
-              <span className="text-sm font-medium">{language === "fr" ? "Votre logo ici" : "Your logo here"}</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Factory className="w-8 h-8" />
-              <span className="text-sm font-medium">{language === "fr" ? "Votre logo ici" : "Your logo here"}</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <School className="w-8 h-8" />
-              <span className="text-sm font-medium">{language === "fr" ? "Votre logo ici" : "Your logo here"}</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Building2 className="w-8 h-8" />
-              <span className="text-sm font-medium">{language === "fr" ? "Votre logo ici" : "Your logo here"}</span>
-            </div>
+            <img 
+              src={dreamIndustrialLogo} 
+              alt="Dream Industrial REIT" 
+              className="h-12 object-contain"
+              data-testid="logo-dream-industrial"
+            />
+            <img 
+              src={labSpaceLogo} 
+              alt="Lab.Space Construction" 
+              className="h-10 object-contain dark:invert"
+              data-testid="logo-labspace"
+            />
           </motion.div>
           
           {/* Testimonials */}
