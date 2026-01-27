@@ -3376,9 +3376,10 @@ function FinancingCalculator({ simulation, displayedScenario }: { simulation: Si
   const [leaseTerm, setLeaseTerm] = useState(15); // Default 15-year lease term
   
   // PPA (Third-Party Power Purchase Agreement) - TRC Solar model defaults
-  const [ppaTerm, setPpaTerm] = useState(16); // 16 years typical
-  const [ppaYear1Rate, setPpaYear1Rate] = useState(100); // Year 1: 100% of HQ rate
-  const [ppaYear2Rate, setPpaYear2Rate] = useState(60); // Year 2+: 60% of HQ rate
+  // Note: More conservative defaults to show realistic competitor comparison
+  const [ppaTerm, setPpaTerm] = useState(15); // 15 years typical for TRC
+  const [ppaYear1Rate, setPpaYear1Rate] = useState(100); // Year 1: 100% of HQ rate (no savings)
+  const [ppaYear2Rate, setPpaYear2Rate] = useState(75); // Year 2+: 75% of HQ rate (25% savings - realistic)
   
   const breakdown = simulation.breakdown as FinancialBreakdown | null;
   const assumptions = simulation.assumptions as AnalysisAssumptions | null;

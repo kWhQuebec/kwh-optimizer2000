@@ -85,7 +85,7 @@ export default function LandingPage() {
   const detailedPathRef = useRef<HTMLDivElement>(null);
   
   // Quick calculator states
-  const [calcInputMode, setCalcInputMode] = useState<"upload" | "manual">("manual");
+  const [calcInputMode, setCalcInputMode] = useState<"upload" | "manual">("upload");
   const [calcBill, setCalcBill] = useState<string>("");
   const [calcAnnualConsumption, setCalcAnnualConsumption] = useState<string>("");
   const [calcAddress, setCalcAddress] = useState<string>("");
