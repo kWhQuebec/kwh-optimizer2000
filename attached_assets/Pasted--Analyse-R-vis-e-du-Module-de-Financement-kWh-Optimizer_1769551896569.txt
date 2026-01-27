@@ -1,0 +1,220 @@
+# 📊 Analyse Révisée du Module de Financement - kWh Optimizer 2000
+
+*Analyse du 27 janvier 2026*
+
+---
+
+## 🎯 Compréhension du Module
+
+Le module `FinancingCalculator` dans `site-detail.tsx` présente **4 options d'acquisition** à un prospect:
+
+| Mode | But | Qui offre? |
+|------|-----|------------|
+| **Cash (Comptant)** | Achat direct avec paiement initial | kWh |
+| **Loan (Prêt)** | Financement par prêt bancaire | kWh (via partenaire) |
+| **Lease (Crédit-bail)** | Location avec option d'achat | kWh (via partenaire) |
+| **PPA (Tiers)** | ⚠️ **Modèle concurrent** pour comparaison | Concurrent (ex: TRC Solar) |
+
+### ✅ Le mode PPA est un outil de comparaison
+
+Le label UI confirme: **"Modèle concurrent (ex: TRC Solar)"**
+
+Ce n'est PAS une offre de kWh, mais un outil pour montrer au prospect ce qu'un concurrent comme TRC Solar proposerait, permettant une comparaison directe avec les options kWh.
+
+---
+
+## 📋 Analyse Détaillée par Mode
+
+### 1. 💵 MODE CASH — ✅ Calculs Corrects
+
+**Logique:**
+```
+upfrontCashNeeded = CAPEX brut - HQ Solar - (HQ Batterie × 50%)
+year1Returns = (HQ Batterie × 50%) + Tax Shield (CCA)
+year2Returns = CII fédéral (30%)
+netSavings (25 ans) = Économies annuelles × 25 - CAPEX net
+```
+
+**Points forts:**
+- ✅ Timing réaliste des incitatifs (Jour 0 / An 1 / An 2)
+- ✅ Rabais HQ déduit immédiatement du paiement initial
+- ✅ CCA présenté comme "Tax Shield" simplifié
+- ✅ Inclut les incitatifs batterie HQ
+
+**⚠️ Point d'attention:**
+- Le "Tax Shield" est une valeur fixe calculée par `breakdown.taxShield`
+- Dans `cashflowEngine.ts`, le CCA utilise la méthode declining balance
+- Pour un prospect, la simplification est acceptable, mais les chiffres pourraient différer légèrement
+
+---
+
+### 2. 💳 MODE LOAN — ✅ Calculs Corrects
+
+**Logique:**
+```
+loanAmount = CAPEX brut - mise de fonds
+monthlyPayment = Formule d'amortissement standard
+totalLoanPayments = (paiement mensuel × nb mois) + mise de fonds
+effectiveLoanCost = totalLoanPayments - totalIncentives
+netSavings (25 ans) = Économies annuelles × 25 - effectiveLoanCost
+```
+
+**Points forts:**
+- ✅ Paramètres ajustables (durée, taux, mise de fonds)
+- ✅ Formule d'amortissement standard correcte
+- ✅ Incitatifs retournés au client comme cash
+- ✅ Flux de trésorerie réaliste affiché
+
+**✅ Formule vérifiée:**
+```javascript
+monthlyPayment = (P × r × (1+r)^n) / ((1+r)^n - 1)
+// où P = principal, r = taux mensuel, n = nombre de paiements
+```
+
+---
+
+### 3. 📄 MODE LEASE (Crédit-bail) — ✅ Calculs Corrects
+
+**Logique:**
+```
+leaseFinancedAmount = CAPEX brut (100% financé)
+leaseMonthlyPayment = Formule d'amortissement standard
+leaseTotalPayments = paiement mensuel × nb mois
+leaseTotalIncentives = HQ Solar + HQ Batterie + CII + Tax Shield
+effectiveLeaseCost = leaseTotalPayments - leaseTotalIncentives
+```
+
+**Points forts:**
+- ✅ Crédit-bail = client traité comme propriétaire fiscalement
+- ✅ Client reçoit TOUS les incitatifs (contrairement au PPA)
+- ✅ Formule d'amortissement identique au prêt
+- ✅ Paramètres ajustables (durée, taux implicite)
+
+**Note importante:**
+Le code commente clairement que dans un crédit-bail, le client est le "propriétaire fiscal" et reçoit donc:
+- Les rabais HQ (solaire + batterie)
+- Le CII fédéral
+- Le crédit CCA
+
+---
+
+### 4. ⚡ MODE PPA — Outil de Comparaison Concurrentielle
+
+**But:** Montrer au prospect ce qu'un concurrent PPA comme TRC Solar proposerait.
+
+**Logique par défaut (modèle TRC Solar):**
+```
+Year 1: 100% du tarif HQ × production
+Year 2+: 60% du tarif HQ × production
+Total PPA = Year 1 + (Year 2-n × (n-1 ans))
+Post-PPA (25-n ans): Électricité gratuite (transfert pour 1$)
+```
+
+**Ce qui est affiché au prospect:**
+- ⚠️ **Avertissement légal** en rouge prominent
+- 📊 Paramètres ajustables pour simuler différentes offres concurrentes
+- 💸 "Incitatifs conservés par le fournisseur PPA" (en rouge)
+- 🏠 "Transfert propriété après terme" (en vert)
+
+**Points forts:**
+- ✅ Clairement identifié comme "Modèle concurrent"
+- ✅ Permet de comparer apple-to-apple avec les options kWh
+- ✅ Met en évidence que le client perd les incitatifs
+- ✅ Paramètres flexibles pour différents concurrents
+
+---
+
+## 🔍 Comparaison avec `cashflowEngine.ts`
+
+| Aspect | site-detail.tsx | cashflowEngine.ts |
+|--------|-----------------|-------------------|
+| **Modes** | 4 (Cash, Loan, Lease, PPA) | 3 (Cash, Lease, PPA) |
+| **Loan mode** | ✅ Implémenté | ❌ Absent |
+| **But** | Présentation prospect | Calculs Market Intelligence |
+| **Lease calcul** | Amortization standard | Division + 15% premium |
+| **PPA modèle** | Concurrent (TRC par défaut) | Générique avec inflation |
+| **O&M costs** | ❌ Non inclus (simplifié) | ✅ Inclus |
+| **Inflation kWh** | ❌ Non appliquée | ✅ 4.8%/an |
+
+### Pourquoi deux systèmes différents?
+
+1. **site-detail.tsx** = Outil de **vente/présentation** simplifié pour prospects
+2. **cashflowEngine.ts** = Modèle **analytique détaillé** pour Market Intelligence
+
+Les deux ont des buts différents et c'est acceptable.
+
+---
+
+## ✅ Ce qui Fonctionne Bien
+
+1. **Cash, Loan, Lease** — Calculs corrects et cohérents
+2. **Timing des incitatifs** — Réaliste et bien documenté
+3. **PPA comme comparateur** — Clairement identifié comme concurrent
+4. **Interface utilisateur** — Sliders interactifs pour explorer les scénarios
+5. **Graphique comparatif** — Flux cumulatifs sur 25 ans
+
+---
+
+## ⚠️ Points d'Amélioration Potentiels
+
+### 1. Cohérence du Lease entre les deux systèmes
+
+**Problème:**
+- `site-detail.tsx` utilise une formule d'amortissement standard
+- `cashflowEngine.ts` utilise `cost / term × (1 + 0.15)`
+
+**Impact:** Si un prospect voit les chiffres de site-detail puis passe à Market Intelligence, les paiements mensuels Lease pourraient différer.
+
+**Recommandation:** Aligner les deux calculs (préférer l'amortissement standard).
+
+### 2. Absence des coûts O&M dans site-detail
+
+**Situation actuelle:**
+- `site-detail.tsx` ne déduit pas les coûts O&M des économies
+- `cashflowEngine.ts` inclut 1% CAPEX + 2.5% escalation
+
+**Impact:** Les économies nettes affichées au prospect sont légèrement optimistes.
+
+**Recommandation:**
+- Option A: Ajouter une note "hors O&M"
+- Option B: Intégrer un O&M simplifié (ex: forfait annuel)
+
+### 3. Pas d'inflation des tarifs HQ dans site-detail
+
+**Situation actuelle:**
+- `annualSavings` reste constant sur 25 ans
+- `cashflowEngine.ts` applique 4.8%/an d'inflation
+
+**Impact:** Sous-estime les économies à long terme (ce qui est conservateur, donc acceptable).
+
+### 4. Synchroniser Loan dans cashflowEngine
+
+**Problème:** Le mode Loan n'existe pas dans `cashflowEngine.ts`
+
+**Impact:** Market Intelligence ne peut pas afficher les analyses Loan.
+
+**Recommandation:** Ajouter le mode Loan à `cashflowEngine.ts` si Market Intelligence doit le supporter.
+
+---
+
+## 💡 Conclusion pour les Prospects
+
+Le module de financement tel qu'implémenté dans `site-detail.tsx` est **fiable et pertinent** pour présenter les options à un prospect:
+
+| Mode | Fiabilité | Pertinence | Note |
+|------|-----------|------------|------|
+| Cash | ✅ Excellente | ✅ Excellente | Timing réaliste des incitatifs |
+| Loan | ✅ Excellente | ✅ Excellente | Formule standard, paramètres flexibles |
+| Lease | ✅ Bonne | ✅ Excellente | Formule correcte, légèrement différente de cashflowEngine |
+| PPA | ✅ Bonne* | ✅ Excellente | *Clairement un outil de comparaison concurrentielle |
+
+### Points à communiquer aux prospects:
+
+1. **Cash/Loan/Lease** = Options kWh avec récupération des incitatifs
+2. **PPA** = Ce que les concurrents proposent (pour comparaison)
+3. Les économies sont basées sur le tarif HQ actuel (conservateur)
+4. Coûts O&M non inclus (responsabilité client ou option de service kWh)
+
+---
+
+*Analyse effectuée le 27 janvier 2026*
