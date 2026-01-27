@@ -30,6 +30,7 @@ import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
 import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
+import consumptionAnalysis from "@assets/generated_images/consumption_analysis_concept.png";
 import heroRoofAnalysis from "@assets/generated_images/industrial_roof_solar_potential_overlay.png";
 import roofZoneOverlay from "@assets/generated_images/commercial_roof_solar_zone_overlay.png";
 import roofMeasurementOverlay from "@assets/generated_images/commercial_roof_solar_measurement_overlay.png";
@@ -115,10 +116,12 @@ export default function LandingPage() {
       annualSavings: number;
       grossCAPEX: number;
       hqIncentive: number;
+      federalITC: number;
+      totalIncentives: number;
       netCAPEX: number;
       paybackYears: number;
     }>;
-    financial: { annualSavings: number; paybackYears: number; hqIncentive: number; netCAPEX: number; grossCAPEX: number };
+    financial: { annualSavings: number; paybackYears: number; hqIncentive: number; federalITC: number; totalIncentives: number; netCAPEX: number; grossCAPEX: number };
     billing: { monthlyBillBefore: number; monthlyBillAfter: number; monthlySavings: number };
     consumption: { annualKWh: number; monthlyKWh: number };
   } | null>(null);
@@ -632,12 +635,12 @@ export default function LandingPage() {
                             
                             <ul className="space-y-3 text-sm">
                               <li className="flex items-start gap-2">
-                                <Sun className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Analyse satellite de votre toiture" : "Satellite analysis of your roof"}</span>
+                                <BarChart3 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "3 scénarios de dimensionnement (70%, 85%, 100%)" : "3 sizing scenarios (70%, 85%, 100%)"}</span>
                               </li>
                               <li className="flex items-start gap-2">
-                                <BarChart3 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Capacité solaire estimée (kW)" : "Estimated solar capacity (kW)"}</span>
+                                <Sun className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Production solaire estimée (kWh/an)" : "Estimated solar production (kWh/yr)"}</span>
                               </li>
                               <li className="flex items-start gap-2">
                                 <DollarSign className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -645,7 +648,7 @@ export default function LandingPage() {
                               </li>
                               <li className="flex items-start gap-2">
                                 <BadgePercent className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Incitatifs Hydro-Québec applicables" : "Applicable Hydro-Québec incentives"}</span>
+                                <span>{language === "fr" ? "Incitatifs directs (Hydro-Québec + ITC fédéral 30%)" : "Direct incentives (Hydro-Québec + Federal ITC 30%)"}</span>
                               </li>
                               <li className="flex items-start gap-2">
                                 <TrendingUp className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -653,30 +656,19 @@ export default function LandingPage() {
                               </li>
                             </ul>
                             
-                            {/* Roof preview image - shows real satellite when available */}
+                            {/* Consumption analysis image - reflects the consumption-based approach */}
                             <div className="pt-2">
                               <div className="relative">
                                 <img 
-                                  src={calcResults?.roof?.satelliteImageUrl || roofMeasurement} 
-                                  alt={calcResults?.roof?.satelliteImageUrl 
-                                    ? (language === "fr" ? "Votre toiture" : "Your roof")
-                                    : (language === "fr" ? "Exemple d'analyse de toit" : "Roof analysis example")
-                                  }
+                                  src={consumptionAnalysis} 
+                                  alt={language === "fr" ? "Analyse de consommation énergétique" : "Energy consumption analysis"}
                                   className="w-full h-40 object-cover rounded-lg border"
                                 />
-                                {calcResults?.roof?.satelliteImageUrl && (
-                                  <div className="absolute bottom-2 left-2 right-2 bg-primary text-primary-foreground text-xs font-semibold py-1.5 px-3 rounded-md text-center">
-                                    {language === "fr" 
-                                      ? `POTENTIEL = ${calcResults.system.sizeKW.toFixed(0)} kW`
-                                      : `POTENTIAL = ${calcResults.system.sizeKW.toFixed(0)} kW`
-                                    }
-                                  </div>
-                                )}
                               </div>
                               <p className="text-xs text-muted-foreground mt-1 text-center">
-                                {calcResults?.roof?.satelliteImageUrl 
-                                  ? (language === "fr" ? "Image satellite de votre immeuble" : "Satellite image of your building")
-                                  : (language === "fr" ? "Exemple d'analyse satellite" : "Example satellite analysis")
+                                {language === "fr" 
+                                  ? "Dimensionnement basé sur votre consommation réelle" 
+                                  : "Sizing based on your actual consumption"
                                 }
                               </p>
                             </div>
@@ -1033,10 +1025,32 @@ export default function LandingPage() {
                                           </div>
                                         </div>
                                         
-                                        <div className="mt-3 pt-3 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">
-                                          <span>{language === "fr" ? "Coût brut:" : "Gross cost:"} <span className="font-medium">${scenario.grossCAPEX.toLocaleString()}</span></span>
-                                          <span>{language === "fr" ? "Incitatif Hydro-Québec:" : "Hydro-Québec incentive:"} <span className="font-medium text-green-600">-${scenario.hqIncentive.toLocaleString()}</span></span>
-                                          <span>{language === "fr" ? "Coût net:" : "Net cost:"} <span className="font-medium">${scenario.netCAPEX.toLocaleString()}</span></span>
+                                        <div className="mt-3 pt-3 border-t space-y-2">
+                                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                            <span>{language === "fr" ? "Coût brut:" : "Gross cost:"} <span className="font-medium">${scenario.grossCAPEX.toLocaleString()}</span></span>
+                                            <span>{language === "fr" ? "Coût net:" : "Net cost:"} <span className="font-medium">${scenario.netCAPEX.toLocaleString()}</span></span>
+                                          </div>
+                                          <div className="bg-green-50 dark:bg-green-950/30 rounded-md p-2 space-y-1">
+                                            <p className="text-xs font-medium text-green-700 dark:text-green-400">
+                                              {language === "fr" ? "Incitatifs directs inclus:" : "Direct incentives included:"}
+                                            </p>
+                                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                                              <span className="text-green-600 dark:text-green-400">
+                                                Hydro-Québec: <span className="font-medium">-${scenario.hqIncentive?.toLocaleString() || 0}</span>
+                                              </span>
+                                              <span className="text-green-600 dark:text-green-400">
+                                                {language === "fr" ? "ITC Fédéral (30%):" : "Federal ITC (30%):"} <span className="font-medium">-${scenario.federalITC?.toLocaleString() || 0}</span>
+                                              </span>
+                                            </div>
+                                            <p className="text-xs font-semibold text-green-700 dark:text-green-300 pt-1 border-t border-green-200 dark:border-green-800">
+                                              {language === "fr" ? "Total incitatifs:" : "Total incentives:"} -${scenario.totalIncentives?.toLocaleString() || 0}
+                                            </p>
+                                          </div>
+                                          <p className="text-[10px] text-muted-foreground italic">
+                                            {language === "fr" 
+                                              ? "* L'amortissement accéléré (CCA 43.2) offre un avantage fiscal additionnel selon votre situation fiscale." 
+                                              : "* Accelerated depreciation (CCA Class 43.2) provides additional tax benefits based on your tax situation."}
+                                          </p>
                                         </div>
                                       </div>
                                     );

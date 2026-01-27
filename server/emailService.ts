@@ -50,6 +50,8 @@ interface QuickAnalysisData {
   annualSavings: number;
   paybackYears: number;
   hqIncentive: number;
+  federalITC?: number;
+  totalIncentives?: number;
   grossCAPEX: number;
   netCAPEX: number;
   monthlyBillBefore: number;
@@ -99,7 +101,7 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
       analysisTitle: 'Résumé de votre analyse',
       addressLabel: 'Adresse',
       buildingTypeLabel: 'Type de bâtiment',
-      tariffLabel: 'Tarif HQ',
+      tariffLabel: 'Tarif Hydro-Québec',
       systemTitle: 'Système recommandé',
       systemSize: 'Puissance du système',
       annualProduction: 'Production annuelle',
@@ -110,8 +112,10 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
       monthlySavings: 'Économies mensuelles',
       annualSavings: 'Économies annuelles',
       hqIncentive: 'Incitatif Hydro-Québec',
+      federalITC: 'Crédit d\'impôt fédéral (30%)',
+      totalIncentives: 'Total des incitatifs directs',
       grossCost: 'Coût brut du système',
-      netCost: 'Coût net après incitatif',
+      netCost: 'Coût net après incitatifs',
       paybackPeriod: 'Période de récupération',
       years: 'ans',
       ctaTitle: 'Prêt à passer à l\'étape suivante?',
@@ -128,7 +132,7 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
       analysisTitle: 'Your Analysis Summary',
       addressLabel: 'Address',
       buildingTypeLabel: 'Building Type',
-      tariffLabel: 'HQ Tariff',
+      tariffLabel: 'Hydro-Québec Tariff',
       systemTitle: 'Recommended System',
       systemSize: 'System Size',
       annualProduction: 'Annual Production',
@@ -139,8 +143,10 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
       monthlySavings: 'Monthly Savings',
       annualSavings: 'Annual Savings',
       hqIncentive: 'Hydro-Québec Incentive',
+      federalITC: 'Federal Tax Credit (30%)',
+      totalIncentives: 'Total Direct Incentives',
       grossCost: 'Gross System Cost',
-      netCost: 'Net Cost After Incentive',
+      netCost: 'Net Cost After Incentives',
       paybackPeriod: 'Payback Period',
       years: 'years',
       ctaTitle: 'Ready for the next step?',
@@ -262,6 +268,16 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
             <div class="info-label">${txt.hqIncentive}</div>
             <div class="info-value" style="color: #2e7d32;">-${formatCurrency(data.hqIncentive)}</div>
           </div>
+          ${data.federalITC ? `
+          <div class="info-row">
+            <div class="info-label">${txt.federalITC}</div>
+            <div class="info-value" style="color: #2e7d32;">-${formatCurrency(data.federalITC)}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label" style="font-weight: 600;">${txt.totalIncentives}</div>
+            <div class="info-value" style="color: #2e7d32; font-weight: 600;">-${formatCurrency(data.totalIncentives || 0)}</div>
+          </div>
+          ` : ''}
           <div class="info-row">
             <div class="info-label">${txt.netCost}</div>
             <div class="info-value" style="font-weight: 700;">${formatCurrency(data.netCAPEX)}</div>

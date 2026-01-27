@@ -106,9 +106,15 @@ router.post("/api/quick-estimate", async (req, res) => {
     // Cost per watt for CAPEX calculation ($2.25/W = $2250/kW)
     const COST_PER_KW = 2250;
     
-    // HQ incentive: 20% of gross CAPEX, capped at $1000/kW
-    const HQ_INCENTIVE_RATE = 0.20;
-    const HQ_INCENTIVE_CAP_PER_KW = 1000;
+    // Hydro-Québec Autoproduction incentive: $1000/kW, max 40% of CAPEX, limited to 1 MW
+    const HQ_INCENTIVE_PER_KW = 1000;
+    const HQ_INCENTIVE_MAX_PERCENT = 0.40;
+    const HQ_MW_LIMIT = 1000; // Only first 1000 kW eligible
+    
+    // Federal Investment Tax Credit (ITC): 30% of eligible project cost
+    // For simplicity, applied to gross CAPEX (before HQ subsidy) as per CRA guidelines
+    // In practice, interaction with provincial grants can reduce eligible base
+    const FEDERAL_ITC_RATE = 0.30;
     
     // Define offset scenarios
     const scenarios = [
@@ -123,8 +129,25 @@ router.post("/api/quick-estimate", async (req, res) => {
       const annualProductionKWh = systemSizeKW * SOLAR_YIELD;
       const annualSavings = Math.round(annualProductionKWh * energyRate);
       const grossCAPEX = systemSizeKW * COST_PER_KW;
-      const hqIncentive = Math.min(grossCAPEX * HQ_INCENTIVE_RATE, systemSizeKW * HQ_INCENTIVE_CAP_PER_KW);
-      const netCAPEX = grossCAPEX - hqIncentive;
+      
+      // Hydro-Québec incentive: $1000/kW for first 1MW, capped at 40% of CAPEX
+      const eligibleKW = Math.min(systemSizeKW, HQ_MW_LIMIT);
+      const hqIncentiveRaw = eligibleKW * HQ_INCENTIVE_PER_KW;
+      const hqIncentive = Math.min(hqIncentiveRaw, grossCAPEX * HQ_INCENTIVE_MAX_PERCENT);
+      
+      // Federal ITC: 30% of gross CAPEX (before provincial subsidies)
+      // Note: This is a tax credit, requires taxable income to claim
+      const federalITC = Math.round(grossCAPEX * FEDERAL_ITC_RATE);
+      
+      // Total direct incentives (for payback calculation)
+      // Note: CCA/DPA tax shield provides additional benefit over time but is not included
+      // in simple payback as it depends on taxable income and is realized over years
+      const totalIncentives = hqIncentive + federalITC;
+      
+      // Net CAPEX after direct incentives (HQ + Federal ITC)
+      const netCAPEX = grossCAPEX - totalIncentives;
+      
+      // Simple payback based on net cost after direct incentives
       const paybackYears = annualSavings > 0 ? Math.round((netCAPEX / annualSavings) * 10) / 10 : 99;
       
       return {
@@ -136,6 +159,8 @@ router.post("/api/quick-estimate", async (req, res) => {
         annualSavings,
         grossCAPEX: Math.round(grossCAPEX),
         hqIncentive: Math.round(hqIncentive),
+        federalITC,
+        totalIncentives: Math.round(totalIncentives),
         netCAPEX: Math.round(netCAPEX),
         paybackYears,
       };
@@ -172,6 +197,8 @@ router.post("/api/quick-estimate", async (req, res) => {
         annualSavings: primaryScenario.annualSavings,
         paybackYears: primaryScenario.paybackYears,
         hqIncentive: primaryScenario.hqIncentive,
+        federalITC: primaryScenario.federalITC,
+        totalIncentives: primaryScenario.totalIncentives,
         grossCAPEX: primaryScenario.grossCAPEX,
         netCAPEX: primaryScenario.netCAPEX,
         monthlyBillBefore: estimatedMonthlyBill,
@@ -253,6 +280,8 @@ router.post("/api/quick-estimate", async (req, res) => {
         annualSavings: primaryScenario.annualSavings,
         grossCAPEX: primaryScenario.grossCAPEX,
         hqIncentive: primaryScenario.hqIncentive,
+        federalITC: primaryScenario.federalITC,
+        totalIncentives: primaryScenario.totalIncentives,
         netCAPEX: primaryScenario.netCAPEX,
         paybackYears: primaryScenario.paybackYears,
       },
