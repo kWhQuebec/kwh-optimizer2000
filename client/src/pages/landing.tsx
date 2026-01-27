@@ -89,6 +89,7 @@ export default function LandingPage() {
   const [calcAnnualConsumption, setCalcAnnualConsumption] = useState<string>("");
   const [calcAddress, setCalcAddress] = useState<string>("");
   const [calcEmail, setCalcEmail] = useState<string>("");
+  const [calcClientName, setCalcClientName] = useState<string>("");
   const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
   const [calcTariff, setCalcTariff] = useState<string>("M");
   const [calcLoading, setCalcLoading] = useState(false);
@@ -99,6 +100,7 @@ export default function LandingPage() {
     accountNumber?: string;
     tariffCode?: string;
     serviceAddress?: string;
+    clientName?: string;
   } | null>(null);
   const [calcResults, setCalcResults] = useState<{
     success: boolean;
@@ -187,6 +189,9 @@ export default function LandingPage() {
         if (result.data.serviceAddress) {
           setCalcAddress(result.data.serviceAddress);
         }
+        if (result.data.clientName) {
+          setCalcClientName(result.data.clientName);
+        }
         toast({
           title: language === "fr" ? "Facture analysée!" : "Bill analyzed!",
           description: language === "fr" 
@@ -234,6 +239,7 @@ export default function LandingPage() {
         body: JSON.stringify({
           address: calcAddress || null,
           email: calcEmail,
+          clientName: calcClientName || null,
           monthlyBill: billAmount || null,
           annualConsumptionKwh: annualConsumption || null,
           buildingType: calcBuildingType,

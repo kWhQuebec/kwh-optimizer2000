@@ -43,7 +43,7 @@ const upload = multer({
 // Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
 router.post("/api/quick-estimate", async (req, res) => {
   try {
-    const { address, email, monthlyBill, buildingType, tariffCode, annualConsumptionKwh } = req.body;
+    const { address, email, clientName, monthlyBill, buildingType, tariffCode, annualConsumptionKwh } = req.body;
     
     // Either annualConsumptionKwh or monthlyBill is required
     if (!annualConsumptionKwh && !monthlyBill) {
@@ -185,9 +185,53 @@ router.post("/api/quick-estimate", async (req, res) => {
       emailSent = true;
     }
     
+    // Create lead and opportunity for CRM tracking (nurturing)
+    let leadId: string | null = null;
+    try {
+      // Create lead with available information - use fallbacks for required fields
+      const companyName = clientName || (address ? `Quick Estimate - ${address}` : `Quick Estimate - ${email || 'Anonymous'}`);
+      const contactName = clientName || email || 'Quick Estimate Lead';
+      const leadEmail = email || 'quick-estimate@placeholder.local';
+      
+      const lead = await storage.createLead({
+        companyName,
+        contactName,
+        email: leadEmail,
+        phone: null,
+        streetAddress: address || null,
+        city: null,
+        province: "Québec",
+        postalCode: null,
+        estimatedMonthlyBill: estimatedMonthlyBill || null,
+        buildingType: buildingType || "office",
+        notes: `Quick Estimate: ${Math.round(annualKWh).toLocaleString()} kWh/year, ${primaryScenario.systemSizeKW} kW system, ${tariff} tariff`,
+        source: "quick_estimate",
+      });
+      leadId = lead.id;
+      
+      // Auto-create opportunity as prospect (for nurturing)
+      const opportunityName = clientName || address || email || 'Quick Estimate Lead';
+      await storage.createOpportunity({
+        name: opportunityName,
+        description: `Auto-created from Quick Estimate. ${Math.round(annualKWh).toLocaleString()} kWh/year, ${primaryScenario.systemSizeKW} kW potential.`,
+        leadId: lead.id,
+        stage: 'prospect', // Start as prospect for nurturing
+        probability: 5,
+        source: 'quick_estimate',
+        estimatedValue: primaryScenario.netCAPEX || null,
+        expectedCloseDate: null,
+        ownerId: null,
+      });
+      console.log(`[Quick Estimate] Created lead ${lead.id} and opportunity for: ${companyName}`);
+    } catch (leadErr) {
+      console.error("[Quick Estimate] Lead creation failed (non-blocking):", leadErr);
+      // Continue - lead creation failure should not block the estimate response
+    }
+    
     res.json({
       success: true,
       emailSent,
+      leadId,
       inputs: {
         address: address || null,
         monthlyBill: estimatedMonthlyBill,
