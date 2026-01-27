@@ -195,6 +195,14 @@ router.post("/api/import/clients", authMiddleware, requireStaff, async (req: Aut
       return res.status(400).json({ error: "No items provided" });
     }
 
+    // FIX: Fetch clients ONCE before the loop (N+1 query fix)
+    const existingClients = await storage.getClients();
+    const clientsByName = new Map<string, typeof existingClients[0] | null>(
+      existingClients.map(c => [c.name.toLowerCase().trim(), c])
+    );
+    // Track names we've created in this batch to handle duplicates
+    const createdNames = new Set<string>();
+
     let created = 0;
     let updated = 0;
     let skipped = 0;
@@ -209,14 +217,19 @@ router.post("/api/import/clients", authMiddleware, requireStaff, async (req: Aut
           continue;
         }
 
-        const existingClients = await storage.getClients();
-        const existingClient = existingClients.find(
-          c => c.name.toLowerCase().trim() === item.name.toLowerCase().trim()
-        );
+        const normalizedName = item.name.toLowerCase().trim();
+        
+        // Skip if we already created this name in this batch
+        if (createdNames.has(normalizedName)) {
+          skipped++;
+          continue;
+        }
+        
+        const existingClient = clientsByName.get(normalizedName);
 
         if (existingClient) {
           await storage.updateClient(existingClient.id, {
-            contactName: item.contactName?.trim() || existingClient.contactName,
+            mainContactName: item.contactName?.trim() || existingClient.mainContactName,
             email: item.email?.trim() || existingClient.email,
             phone: item.phone?.trim() || existingClient.phone,
             address: item.address?.trim() || existingClient.address,
@@ -229,7 +242,7 @@ router.post("/api/import/clients", authMiddleware, requireStaff, async (req: Aut
         } else {
           await storage.createClient({
             name: item.name.trim(),
-            contactName: item.contactName?.trim() || null,
+            mainContactName: item.contactName?.trim() || null,
             email: item.email?.trim() || null,
             phone: item.phone?.trim() || null,
             address: item.address?.trim() || null,
@@ -238,6 +251,8 @@ router.post("/api/import/clients", authMiddleware, requireStaff, async (req: Aut
             postalCode: item.postalCode?.trim() || null,
             notes: item.notes?.trim() || null,
           });
+          // Track that we've created this name in this batch
+          createdNames.add(normalizedName);
           created++;
         }
       } catch (err) {
@@ -266,6 +281,15 @@ router.post("/api/import/catalog", authMiddleware, requireStaff, async (req: Aut
       return res.status(400).json({ error: "No items provided" });
     }
 
+    // FIX: Fetch catalog ONCE before the loop (N+1 query fix)
+    const existingCatalog = await storage.getCatalog();
+    const catalogByKey = new Map(
+      existingCatalog.map(c => [
+        `${c.manufacturer.toLowerCase().trim()}|${c.model.toLowerCase().trim()}`,
+        c
+      ])
+    );
+
     let created = 0;
     let updated = 0;
     let skipped = 0;
@@ -288,11 +312,8 @@ router.post("/api/import/catalog", authMiddleware, requireStaff, async (req: Aut
           continue;
         }
 
-        const catalog = await storage.getCatalog();
-        const existingItem = catalog.find(
-          c => c.manufacturer.toLowerCase().trim() === item.manufacturer.toLowerCase().trim() &&
-               c.model.toLowerCase().trim() === item.model.toLowerCase().trim()
-        );
+        const key = `${item.manufacturer.toLowerCase().trim()}|${item.model.toLowerCase().trim()}`;
+        const existingItem = catalogByKey.get(key);
 
         let specJson = item.specJson;
         if (typeof specJson === 'string' && specJson.trim()) {
@@ -304,7 +325,6 @@ router.post("/api/import/catalog", authMiddleware, requireStaff, async (req: Aut
         }
 
         const unitCost = item.unitCost ? parseFloat(String(item.unitCost)) : null;
-        const unitSellPrice = item.unitSellPrice ? parseFloat(String(item.unitSellPrice)) : null;
         const active = item.active !== undefined ? Boolean(item.active) : true;
 
         if (existingItem) {
@@ -312,20 +332,20 @@ router.post("/api/import/catalog", authMiddleware, requireStaff, async (req: Aut
             category: item.category.trim().toUpperCase(),
             specJson: specJson || existingItem.specJson,
             unitCost: unitCost !== null && !isNaN(unitCost) ? unitCost : existingItem.unitCost,
-            unitSellPrice: unitSellPrice !== null && !isNaN(unitSellPrice) ? unitSellPrice : existingItem.unitSellPrice,
             active,
           });
           updated++;
         } else {
-          await storage.createCatalogItem({
+          const newItem = await storage.createCatalogItem({
             category: item.category.trim().toUpperCase(),
             manufacturer: item.manufacturer.trim(),
             model: item.model.trim(),
             specJson: specJson || null,
             unitCost: unitCost !== null && !isNaN(unitCost) ? unitCost : null,
-            unitSellPrice: unitSellPrice !== null && !isNaN(unitSellPrice) ? unitSellPrice : null,
             active,
           });
+          // Add to map for subsequent iterations
+          catalogByKey.set(key, newItem);
           created++;
         }
       } catch (err) {
