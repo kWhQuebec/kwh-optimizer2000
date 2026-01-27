@@ -1,0 +1,138 @@
+
+# 🔍 Analyse des Calculs de Flux de Trésorerie - 4 Modes d'Acquisition
+
+## 📊 Résumé des Problèmes Identifiés
+
+### ⚠️ PROBLÈME MAJEUR: Deux systèmes de calcul différents!
+
+Il y a **deux implémentations parallèles** des calculs de cashflow qui ne sont pas synchronisées:
+
+| Fichier | Modes | Utilisé où? |
+|---------|-------|-------------|
+| `shared/finance/cashflowEngine.ts` | 3 modes (Cash, Lease, PPA) | Market Intelligence |
+| `client/src/pages/site-detail.tsx` | 4 modes (Cash, **Loan**, Lease, PPA) | Site Detail / Financing Calculator |
+
+**Le mode "Loan" (Prêt) n'existe PAS dans `cashflowEngine.ts`!**
+
+---
+
+## 📋 Détail des Calculs par Mode
+
+### 1. 💵 MODE CASH (Comptant)
+
+#### Dans `site-detail.tsx`:
+```javascript
+// Day 0: Pay Gross CAPEX, receive HQ Solar rebate immediately
+upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5)
+year1Returns = (hqBattery * 0.5) + taxShield
+year2Returns = federalITC
+totalIncentives = hqSolar + hqBattery + federalITC + taxShield
+netSavings = annualSavings * 25 - capexNet
+```
+
+#### Dans `cashflowEngine.ts`:
+```javascript
+// Investissement initial
+netClientInvestment = grossCapex - hqIncentive - itc
+cashCumulative = -netClientInvestment
+
+// Chaque année
+ccaBenefit = ucc * ccaRate * taxRate  // CCA declining balance
+cashNet = gridSavings - omCost + ccaBenefit
+```
+
+#### ❌ Problèmes identifiés:
+1. **Timing des incitatifs différent**: `site-detail` sépare Year 0/1/2, `cashflowEngine` applique tout au début
+2. **CCA calculé différemment**: `cashflowEngine` utilise declining balance, `site-detail` utilise un "tax shield" fixe
+3. **O&M costs**: `cashflowEngine` inclut O&M, `site-detail` ne l'inclut PAS dans le cash flow
+4. **Batterie**: `site-detail` inclut HQ Battery incentive, `cashflowEngine` ne gère que HQ Solar
+
+---
+
+### 2. 💳 MODE LOAN (Prêt) - ⚠️ MANQUANT DANS cashflowEngine!
+
+#### Dans `site-detail.tsx` seulement:
+```javascript
+loanDownPaymentAmount = capexGross * downPayment / 100
+loanAmount = capexGross - loanDownPaymentAmount
+monthlyPayment = standard_amortization_formula(loanAmount, rate, term)
+totalLoanPayments = monthlyPayment * numPayments + loanDownPaymentAmount
+effectiveLoanCost = totalLoanPayments - totalIncentives
+netSavings = annualSavings * 25 - effectiveLoanCost
+```
+
+#### ❌ Problème:
+- **MODE LOAN N'EXISTE PAS dans `cashflowEngine.ts`**
+- Si Market Intelligence utilise `cashflowEngine`, le mode Loan ne sera pas disponible là
+- Incohérence entre les deux vues de l'application
+
+---
+
+### 3. 📄 MODE LEASE (Crédit-bail)
+
+#### Dans `site-detail.tsx`:
+```javascript
+leaseFinancedAmount = capexGross  // Full CAPEX financed
+leaseMonthlyPayment = standard_amortization_formula(leaseFinancedAmount, implicitRate, term)
+leaseTotalPayments = leaseMonthlyPayment * numPayments
+leaseTotalIncentives = hqSolar + hqBattery + federalITC + taxShield // ALL incentives
+effectiveLeaseCost = leaseTotalPayments - leaseTotalIncentives
+leaseNetSavings = annualSavings * 25 - effectiveLeaseCost
+```
+
+#### Dans `cashflowEngine.ts`:
+```javascript
+// Paiement de lease calculé différemment!
+leasePayment = netClientInvestment / leaseTerm * (1 + leasePremium)  // ⚠️ Pas d'amortization formula!
+
+// Cashflow annuel
+leaseNet = gridSavings - omCost - leasePaymentThisYear
+```
+
+#### ❌ Problèmes identifiés:
+1. **Calcul du paiement DIFFÉRENT**:
+   - `site-detail`: Formule d'amortissement standard (comme un prêt)
+   - `cashflowEngine`: Simple division + premium (`cost/term * 1.15`)
+2. **Base de financement DIFFÉRENTE**:
+   - `site-detail`: `capexGross` (avant incitatifs)
+   - `cashflowEngine`: `netClientInvestment` (après HQ + ITC!)
+3. **Incitatifs**:
+   - `site-detail`: Client reçoit TOUS les incitatifs (HQ, ITC, tax shield)
+   - `cashflowEngine`: Pas clair qui reçoit les incitatifs
+4. **O&M**: `cashflowEngine` inclut O&M, `site-detail` non
+
+---
+
+### 4. ⚡ MODE PPA (Power Purchase Agreement)
+
+#### Dans `site-detail.tsx`:
+```javascript
+hqTariffRate = tariffCode === "M" ? 0.06061 : 0.11933
+ppaYear1Annual = production * hqTariffRate * (ppaYear1Rate / 100)  // 100% Year 1
+ppaYear2Annual = production * hqTariffRate * (ppaYear2Rate / 100)  // 60% Year 2+
+ppaTotalPayments = ppaYear1Annual + (ppaYear2Annual * (ppaTerm - 1))
+
+// Pendant le PPA: savings = HQ rate - PPA rate
+// Après le PPA: full savings (client owns system)
+```
+
+#### Dans `cashflowEngine.ts`:
+```javascript
+// Pendant le PPA
+trcRate = gridRateY1 * (1 + trcInflation)^year * (1 - ppaDiscount)  // 40% discount
+ppaPayment = production * trcRate
+ppaNet = gridSavings - ppaPayment
+
+// Après le PPA
+solarValue = production * gridRate
+ppaPayment = solarValue * ppaOmRate  // 7% O&M
+ppaNet = solarValue - ppaPayment
+```
+
+#### ❌ Problèmes identifiés:
+1. **Modèle de tarification DIFFÉRENT**:
+   - `site-detail`: Year 1 = 100%, Year 2+ = 60% du tarif HQ (TRC Solar model)
+   - `cashflowEngine`: Discount fixe de 40% sur gridRate, avec inflation TRC
+2. **Après la fin du PPA**:
+   - `site-detail`: Client obtient électricité 100% gratuite
+   - `cashflowEngine`: Client...
