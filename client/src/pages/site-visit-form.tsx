@@ -1443,7 +1443,7 @@ export default function SiteVisitFormPage() {
               </CollapsibleSection>
               
               <CollapsibleSection 
-                title={language === 'fr' ? '5. Espace onduleurs et batteries' : '5. Inverter & Battery Space'} 
+                title={language === 'fr' ? '5. Espace onduleurs et stockage' : '5. Inverter & Storage Space'} 
                 icon={Settings}
               >
                 <div className="space-y-4">

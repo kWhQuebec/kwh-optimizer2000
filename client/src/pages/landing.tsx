@@ -595,7 +595,7 @@ export default function LandingPage() {
                           <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
                             <li className="flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {language === "fr" ? "Capacité PV estimée" : "Estimated PV capacity"}
+                              {language === "fr" ? "Capacité solaire estimée" : "Estimated solar capacity"}
                             </li>
                             <li className="flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-green-500" />
@@ -637,7 +637,7 @@ export default function LandingPage() {
                               </li>
                               <li className="flex items-start gap-2">
                                 <BarChart3 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Capacité PV estimée (kW)" : "Estimated PV capacity (kW)"}</span>
+                                <span>{language === "fr" ? "Capacité solaire estimée (kW)" : "Estimated solar capacity (kW)"}</span>
                               </li>
                               <li className="flex items-start gap-2">
                                 <DollarSign className="w-4 h-4 text-primary shrink-0 mt-0.5" />

@@ -27,8 +27,8 @@ export default function ServicesPage() {
         ? "Simulation 8 760 heures de votre système optimal basée sur vos données de consommation réelles Hydro-Québec."
         : "8,760-hour simulation of your optimal system based on your real Hydro-Québec consumption data.",
       features: language === "fr" 
-        ? ["Profil de consommation détaillé", "Optimisation PV + stockage", "Projections financières 25 ans", "Analyse de sensibilité"]
-        : ["Detailed consumption profile", "PV + storage optimization", "25-year financial projections", "Sensitivity analysis"]
+        ? ["Profil de consommation détaillé", "Optimisation solaire + stockage", "Projections financières 25 ans", "Analyse de sensibilité"]
+        : ["Detailed consumption profile", "Solar + storage optimization", "25-year financial projections", "Sensitivity analysis"]
     },
     {
       icon: Wrench,

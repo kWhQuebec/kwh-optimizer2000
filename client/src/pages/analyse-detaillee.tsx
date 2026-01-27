@@ -432,7 +432,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
     },
     {
       icon: Sun,
-      title: language === "fr" ? "3. Optimisation PV + batterie" : "3. PV + battery optimization",
+      title: language === "fr" ? "3. Optimisation solaire + stockage" : "3. Solar + storage optimization",
       description: language === "fr"
         ? "Dimensionnement optimal selon votre profil énergétique"
         : "Optimal sizing based on your energy profile"
@@ -563,8 +563,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
                 <ul className="space-y-3">
                   {[
                     language === "fr" ? "Analyse complète 8760 heures de consommation" : "Complete 8760-hour consumption analysis",
-                    language === "fr" ? "Simulation PV basée sur votre toiture réelle" : "PV simulation based on your actual roof",
-                    language === "fr" ? "Optimisation batterie peak-shaving" : "Battery peak-shaving optimization",
+                    language === "fr" ? "Simulation solaire basée sur votre toiture réelle" : "Solar simulation based on your actual roof",
+                    language === "fr" ? "Optimisation stockage peak-shaving" : "Storage peak-shaving optimization",
                     language === "fr" ? "Calcul incitatifs HQ + fédéral (ITC 30%)" : "HQ + federal incentives calculation (ITC 30%)",
                     language === "fr" ? "Comparaison 3 options de financement" : "3 financing options comparison",
                     language === "fr" ? "Analyse de sensibilité multi-scénario" : "Multi-scenario sensitivity analysis",

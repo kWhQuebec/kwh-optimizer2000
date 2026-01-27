@@ -494,10 +494,10 @@ function StructuralConstraintsEditor({
               />
             </div>
             
-            {/* Max PV Load */}
+            {/* Max Solar Load */}
             <div className="space-y-2">
               <Label htmlFor="max-pv-load">
-                {language === "fr" ? "Charge max PV admissible (kPa)" : "Max Allowable PV Load (kPa)"}
+                {language === "fr" ? "Charge max solaire admissible (kPa)" : "Max Allowable Solar Load (kPa)"}
               </Label>
               <Input
                 id="max-pv-load"
@@ -510,8 +510,8 @@ function StructuralConstraintsEditor({
               />
               <p className="text-xs text-muted-foreground">
                 {language === "fr" 
-                  ? "Charge additionnelle que le toit peut supporter pour l'installation PV" 
-                  : "Additional load the roof can support for PV installation"}
+                  ? "Charge additionnelle que le toit peut supporter pour l'installation solaire" 
+                  : "Additional load the roof can support for solar installation"}
               </p>
             </div>
             
@@ -1415,7 +1415,7 @@ function AnalysisParametersEditor({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">{language === "fr" ? "O&M Batterie (% CAPEX)" : "Battery O&M (% CAPEX)"}</Label>
+                  <Label className="text-xs">{language === "fr" ? "O&M Stockage (% CAPEX)" : "Storage O&M (% CAPEX)"}</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -1441,11 +1441,11 @@ function AnalysisParametersEditor({
               </div>
             </div>
 
-            {/* Battery Replacement Section */}
+            {/* Storage Replacement Section */}
             <div className="space-y-3">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <Battery className="w-4 h-4 text-primary" />
-                {language === "fr" ? "Remplacement de batterie" : "Battery Replacement"}
+                {language === "fr" ? "Remplacement de stockage" : "Storage Replacement"}
               </h4>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1.5">
@@ -1885,8 +1885,8 @@ function AnalysisParametersEditor({
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Info className="w-3 h-3" />
                 {language === "fr" 
-                  ? `Capacité max PV estimée: ${Math.round((merged.roofAreaSqFt * merged.roofUtilizationRatio) / 100)} kWc` 
-                  : `Estimated max PV capacity: ${Math.round((merged.roofAreaSqFt * merged.roofUtilizationRatio) / 100)} kWp`}
+                  ? `Capacité max solaire estimée: ${Math.round((merged.roofAreaSqFt * merged.roofUtilizationRatio) / 100)} kWc` 
+                  : `Estimated max solar capacity: ${Math.round((merged.roofAreaSqFt * merged.roofUtilizationRatio) / 100)} kWp`}
               </p>
             </div>
 
@@ -2756,8 +2756,8 @@ function ScenarioComparison({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-[140px]">{language === "fr" ? "Stratégie" : "Strategy"}</TableHead>
-                    <TableHead className="text-right">PV (kW)</TableHead>
-                    <TableHead className="text-right">{language === "fr" ? "Batterie" : "Battery"}</TableHead>
+                    <TableHead className="text-right">{language === "fr" ? "Solaire (kW)" : "Solar (kW)"}</TableHead>
+                    <TableHead className="text-right">{language === "fr" ? "Stockage" : "Storage"}</TableHead>
                     <TableHead className="text-right">{language === "fr" ? "CAPEX net" : "Net CAPEX"}</TableHead>
                     <TableHead className="text-right">VAN/NPV</TableHead>
                     <TableHead className="text-right">TRI/IRR</TableHead>
@@ -4509,7 +4509,7 @@ function AnalysisResults({
                 <Zap className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{language === "fr" ? "Puissance batterie" : "Battery Power"}</p>
+                <p className="text-sm text-muted-foreground">{language === "fr" ? "Puissance stockage" : "Storage Power"}</p>
                 <p className="text-2xl font-bold font-mono text-primary" data-testid="text-battery-power">{displayedScenario.battPowerKW.toFixed(0)} <span className="text-sm font-normal">kW</span></p>
               </div>
             </div>
@@ -5307,11 +5307,11 @@ function AnalysisResults({
                   </h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm">{language === "fr" ? "Solaire PV" : "Solar PV"}</span>
+                      <span className="text-sm">{language === "fr" ? "Solaire" : "Solar"}</span>
                       <span className="font-mono text-sm">${((breakdown.capexSolar || 0) / 1000).toFixed(1)}k</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm">{language === "fr" ? "Batterie" : "Battery"}</span>
+                      <span className="text-sm">{language === "fr" ? "Stockage" : "Storage"}</span>
                       <span className="font-mono text-sm">${((breakdown.capexBattery || 0) / 1000).toFixed(1)}k</span>
                     </div>
                     <div className="flex justify-between border-t pt-2">
@@ -5595,9 +5595,9 @@ function AnalysisResults({
                         );
                       }}
                     />
-                    {/* Hybrid points - Battery sweep (varies battery at fixed PV) */}
+                    {/* Hybrid points - Storage sweep (varies storage at fixed solar) */}
                     <Scatter
-                      name={language === "fr" ? "Batterie variable" : "Battery sweep"}
+                      name={language === "fr" ? "Stockage variable" : "Storage sweep"}
                       data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal && p.sweepSource === 'battSweep')}
                       fill="#10B981"
                       shape={(props: any) => {
@@ -5692,14 +5692,14 @@ function AnalysisResults({
                 {(simulation.sensitivity as SensitivityAnalysis).frontier.some(p => p.sweepSource === 'pvSweep') && (
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22C55E' }}></div>
-                    <span>{language === "fr" ? "PV variable (batterie fixe)" : "PV sweep (fixed battery)"}</span>
+                    <span>{language === "fr" ? "Solaire variable (stockage fixe)" : "Solar sweep (fixed storage)"}</span>
                   </div>
                 )}
-                {/* Only show Battery sweep legend if there are battery sweep hybrid points */}
+                {/* Only show Storage sweep legend if there are storage sweep hybrid points */}
                 {(simulation.sensitivity as SensitivityAnalysis).frontier.some(p => p.sweepSource === 'battSweep') && (
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#10B981' }}></div>
-                    <span>{language === "fr" ? "Batterie variable (PV fixe)" : "Battery sweep (fixed PV)"}</span>
+                    <span>{language === "fr" ? "Stockage variable (solaire fixe)" : "Storage sweep (fixed solar)"}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1">

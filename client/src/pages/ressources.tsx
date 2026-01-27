@@ -40,11 +40,11 @@ export default function RessourcesPage() {
     {
       category: "incentives",
       question: language === "fr"
-        ? "Les batteries de stockage sont-elles admissibles aux incitatifs?"
-        : "Are battery storage systems eligible for incentives?",
+        ? "Les systèmes de stockage sont-ils admissibles aux incitatifs?"
+        : "Are storage systems eligible for incentives?",
       answer: language === "fr"
-        ? "Le stockage par batterie peut être éligible au crédit d'impôt fédéral de 30% lorsqu'il est jumelé à un système solaire et répond aux critères d'éligibilité. Le programme d'autoproduction HQ n'offre pas d'incitatif spécifique aux batteries, mais celles-ci peuvent optimiser votre autoconsommation et réduire vos frais de pointe (Tarif M)."
-        : "Battery storage may be eligible for the 30% federal tax credit when paired with a solar system and meeting eligibility criteria. The HQ self-generation program doesn't offer battery-specific incentives, but batteries can optimize self-consumption and reduce peak demand charges (Rate M)."
+        ? "Le stockage d'énergie peut être éligible au crédit d'impôt fédéral de 30% lorsqu'il est jumelé à un système solaire et répond aux critères d'éligibilité. Le programme d'autoproduction HQ n'offre pas d'incitatif spécifique au stockage, mais celui-ci peut optimiser votre autoconsommation et réduire vos frais de pointe (Tarif M)."
+        : "Energy storage may be eligible for the 30% federal tax credit when paired with a solar system and meeting eligibility criteria. The HQ self-generation program doesn't offer storage-specific incentives, but storage can optimize self-consumption and reduce peak demand charges (Rate M)."
     },
     {
       category: "incentives",

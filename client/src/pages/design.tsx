@@ -548,11 +548,11 @@ export default function DesignPage() {
               <>
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">CAPEX PV</span>
+                    <span className="text-muted-foreground">CAPEX Solaire</span>
                     <span className="font-mono">${(generatedDesign.totalCapexPV || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">CAPEX Batterie</span>
+                    <span className="text-muted-foreground">CAPEX Stockage</span>
                     <span className="font-mono">${(generatedDesign.totalCapexBattery || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">

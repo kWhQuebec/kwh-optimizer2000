@@ -988,7 +988,7 @@ const fr = {
           ],
         },
         {
-          name: "Stockage Batterie",
+          name: "Stockage",
           items: [
             { label: "Efficacité aller-retour", value: "90%" },
             { label: "Profondeur de décharge", value: "90%" },
@@ -1007,8 +1007,8 @@ const fr = {
           name: "CAPEX",
           items: [
             { label: "Coût solaire", value: "2.25 $/Wc" },
-            { label: "Coût batterie énergie", value: "550 $/kWh" },
-            { label: "Coût batterie puissance", value: "800 $/kW" },
+            { label: "Coût stockage énergie", value: "550 $/kWh" },
+            { label: "Coût stockage puissance", value: "800 $/kW" },
           ],
         },
       ],
@@ -1074,7 +1074,7 @@ const fr = {
         },
         {
           name: "Coefficient de Température",
-          description: "Ajuste la production PV horaire selon la température cellulaire.",
+          description: "Ajuste la production solaire horaire selon la température cellulaire.",
           default: "-0.4%/°C (typique pour silicium cristallin)",
           formula: "P_corrigée = P_base × (1 + Coeff_temp × (T_cellule - 25°C))",
           note: "Utilise T_cellule = T_ambiante + 25°C avec moyennes mensuelles québécoises.",
@@ -1258,8 +1258,8 @@ const fr = {
       },
     },
     sizing: {
-      title: "Dimensionnement de la Batterie",
-      description: "La capacité de la batterie est dimensionnée selon deux paramètres: l'énergie (kWh) et la puissance (kW).",
+      title: "Dimensionnement du Stockage",
+      description: "La capacité de stockage est dimensionnée selon deux paramètres: l'énergie (kWh) et la puissance (kW).",
       energy: {
         title: "Capacité Énergétique (kWh)",
         description: "Détermine la quantité d'énergie stockable, affectant la durée de soutien possible.",
@@ -1292,8 +1292,8 @@ const fr = {
         title: "Composantes",
         list: [
           { name: "Coût solaire ($/Wc)", description: "Modules, onduleurs, structure, installation" },
-          { name: "Coût batterie énergie ($/kWh)", description: "Cellules et modules de batterie" },
-          { name: "Coût batterie puissance ($/kW)", description: "Onduleur batterie et contrôleur" },
+          { name: "Coût stockage énergie ($/kWh)", description: "Cellules et modules de stockage" },
+          { name: "Coût stockage puissance ($/kW)", description: "Onduleur stockage et contrôleur" },
         ],
       },
     },
@@ -1323,11 +1323,11 @@ const fr = {
         title: "Chronologie des Incitatifs",
         description: "Les incitatifs sont versés à différents moments, affectant le flux de trésorerie réel.",
         timeline: [
-          { year: "Année 0", items: ["Subvention HQ Solaire (100%)", "Subvention HQ Batterie (50%)"] },
-          { year: "Année 1", items: ["Subvention HQ Batterie restante (50%)", "Bouclier fiscal (DPA/CCA)"] },
+          { year: "Année 0", items: ["Subvention HQ Solaire (100%)", "Subvention HQ Stockage (50%)"] },
+          { year: "Année 1", items: ["Subvention HQ Stockage restante (50%)", "Bouclier fiscal (DPA/CCA)"] },
           { year: "Année 2", items: ["Crédit d'impôt fédéral (CII 30%)"] },
         ],
-        note: "L'équité initiale requise = CAPEX brut - Subvention HQ Solaire - 50% Subvention HQ Batterie",
+        note: "L'équité initiale requise = CAPEX brut - Subvention HQ Solaire - 50% Subvention HQ Stockage",
       },
     },
     cashflow: {
@@ -1355,7 +1355,7 @@ const fr = {
         {
           name: "Achat Comptant",
           description: "Paiement initial complet avec retour maximum des incitatifs.",
-          formula: "Équité = CAPEX_brut - Subv_HQ_Solaire - 50%_Subv_HQ_Batterie",
+          formula: "Équité = CAPEX_brut - Subv_HQ_Solaire - 50%_Subv_HQ_Stockage",
           pros: ["Rendement maximum", "Propriété immédiate", "Incitatifs complets"],
           cons: ["Capital initial élevé"],
         },
@@ -1407,9 +1407,9 @@ const fr = {
       scenarios: {
         title: "Types de Scénarios",
         list: [
-          { type: "Solaire seul", description: "Variation de la taille PV de 10% à 100% de la capacité maximale" },
-          { type: "Batterie seule", description: "Variation de la capacité batterie de 0 à la capacité optimale" },
-          { type: "Hybride", description: "Combinaisons de PV et batterie à différentes échelles" },
+          { type: "Solaire seul", description: "Variation de la taille solaire de 10% à 100% de la capacité maximale" },
+          { type: "Stockage seul", description: "Variation de la capacité stockage de 0 à la capacité optimale" },
+          { type: "Hybride", description: "Combinaisons solaire et stockage à différentes échelles" },
         ],
       },
     },
@@ -1456,7 +1456,7 @@ const en = {
       description: "The kWh Québec analysis tool performs a comprehensive 25-year energy and financial simulation for photovoltaic solar systems with or without battery storage.",
       points: [
         "8760-hour simulation of solar production and consumption",
-        "Battery behavior modeling with state of charge tracking",
+        "Storage behavior modeling with state of charge tracking",
         "Energy and power savings calculation based on Hydro-Québec rates",
         "Financial projection including all government incentives",
         "Multi-scenario sensitivity analysis for sizing optimization",
@@ -1529,7 +1529,7 @@ const en = {
           ],
         },
         {
-          name: "Battery Storage",
+          name: "Storage",
           items: [
             { label: "Round-trip efficiency", value: "90%" },
             { label: "Depth of discharge", value: "90%" },
@@ -1548,8 +1548,8 @@ const en = {
           name: "CAPEX",
           items: [
             { label: "Solar cost", value: "$2.25/Wp" },
-            { label: "Battery energy cost", value: "$550/kWh" },
-            { label: "Battery power cost", value: "$800/kW" },
+            { label: "Storage energy cost", value: "$550/kWh" },
+            { label: "Storage power cost", value: "$800/kW" },
           ],
         },
       ],
@@ -1615,7 +1615,7 @@ const en = {
         },
         {
           name: "Temperature Coefficient",
-          description: "Adjusts hourly PV output based on cell temperature.",
+          description: "Adjusts hourly solar output based on cell temperature.",
           default: "-0.4%/°C (typical for crystalline silicon)",
           formula: "P_corrected = P_base × (1 + Temp_coeff × (T_cell - 25°C))",
           note: "Uses T_cell = T_ambient + 25°C with Quebec monthly averages.",
@@ -1799,8 +1799,8 @@ const en = {
       },
     },
     sizing: {
-      title: "Battery Sizing",
-      description: "Battery capacity is sized according to two parameters: energy (kWh) and power (kW).",
+      title: "Storage Sizing",
+      description: "Storage capacity is sized according to two parameters: energy (kWh) and power (kW).",
       energy: {
         title: "Energy Capacity (kWh)",
         description: "Determines storable energy amount, affecting possible support duration.",
@@ -1833,8 +1833,8 @@ const en = {
         title: "Components",
         list: [
           { name: "Solar cost ($/Wp)", description: "Modules, inverters, racking, installation" },
-          { name: "Battery energy cost ($/kWh)", description: "Battery cells and modules" },
-          { name: "Battery power cost ($/kW)", description: "Battery inverter and controller" },
+          { name: "Storage energy cost ($/kWh)", description: "Storage cells and modules" },
+          { name: "Storage power cost ($/kW)", description: "Storage inverter and controller" },
         ],
       },
     },
@@ -1864,11 +1864,11 @@ const en = {
         title: "Incentive Timeline",
         description: "Incentives are paid at different times, affecting actual cash flow.",
         timeline: [
-          { year: "Year 0", items: ["HQ Solar Rebate (100%)", "HQ Battery Rebate (50%)"] },
-          { year: "Year 1", items: ["Remaining HQ Battery Rebate (50%)", "Tax Shield (CCA/DPA)"] },
+          { year: "Year 0", items: ["HQ Solar Rebate (100%)", "HQ Storage Rebate (50%)"] },
+          { year: "Year 1", items: ["Remaining HQ Storage Rebate (50%)", "Tax Shield (CCA/DPA)"] },
           { year: "Year 2", items: ["Federal Investment Tax Credit (ITC 30%)"] },
         ],
-        note: "Initial equity required = Gross CAPEX - HQ Solar Rebate - 50% HQ Battery Rebate",
+        note: "Initial equity required = Gross CAPEX - HQ Solar Rebate - 50% HQ Storage Rebate",
       },
     },
     cashflow: {
@@ -1896,7 +1896,7 @@ const en = {
         {
           name: "Cash Purchase",
           description: "Full upfront payment with maximum incentive returns.",
-          formula: "Equity = Gross_CAPEX - HQ_Solar_Rebate - 50%_HQ_Battery_Rebate",
+          formula: "Equity = Gross_CAPEX - HQ_Solar_Rebate - 50%_HQ_Storage_Rebate",
           pros: ["Maximum return", "Immediate ownership", "Full incentives"],
           cons: ["High initial capital"],
         },
@@ -1948,9 +1948,9 @@ const en = {
       scenarios: {
         title: "Scenario Types",
         list: [
-          { type: "Solar only", description: "PV size variation from 10% to 100% of maximum capacity" },
-          { type: "Battery only", description: "Battery capacity variation from 0 to optimal capacity" },
-          { type: "Hybrid", description: "PV and battery combinations at different scales" },
+          { type: "Solar only", description: "Solar size variation from 10% to 100% of maximum capacity" },
+          { type: "Storage only", description: "Storage capacity variation from 0 to optimal capacity" },
+          { type: "Hybrid", description: "Solar and storage combinations at different scales" },
         ],
       },
     },

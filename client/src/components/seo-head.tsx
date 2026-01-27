@@ -107,8 +107,8 @@ export const organizationSchema: StructuredData = {
     "@type": "AdministrativeArea",
     "name": "Québec, Canada"
   },
-  "serviceType": ["Solar Panel Installation", "Battery Storage", "Energy Analysis"],
-  "knowsAbout": ["Solar Energy", "Battery Storage", "Hydro-Québec Tariffs", "Commercial Solar"],
+  "serviceType": ["Solar Panel Installation", "Energy Storage", "Energy Analysis"],
+  "knowsAbout": ["Solar Energy", "Energy Storage", "Hydro-Québec Tariffs", "Commercial Solar"],
   "sameAs": []
 };
 
@@ -275,12 +275,12 @@ export const seoContent = {
     fr: {
       title: "Services EPC Solaire | kWh Québec",
       description: "Services clé en main pour projets solaires commerciaux: analyse, ingénierie, construction et maintenance. Expertise québécoise en énergie solaire.",
-      keywords: "EPC solaire québec, installation panneaux solaires, ingénierie solaire, maintenance système PV",
+      keywords: "EPC solaire québec, installation panneaux solaires, ingénierie solaire, maintenance système solaire",
     },
     en: {
       title: "Solar EPC Services | kWh Québec",
       description: "Turnkey services for commercial solar projects: analysis, engineering, construction and maintenance. Quebec solar energy expertise.",
-      keywords: "solar EPC quebec, solar panel installation, solar engineering, PV system maintenance",
+      keywords: "solar EPC quebec, solar panel installation, solar engineering, solar system maintenance",
     },
   },
   howItWorks: {

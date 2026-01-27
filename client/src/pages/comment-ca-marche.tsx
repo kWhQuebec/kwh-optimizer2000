@@ -28,8 +28,8 @@ export default function CommentCaMarchePage() {
         ? "Entrez l'adresse de votre bâtiment et votre facture mensuelle moyenne. Notre système analyse automatiquement votre toiture via satellite et estime votre potentiel solaire."
         : "Enter your building address and average monthly bill. Our system automatically analyzes your roof via satellite and estimates your solar potential.",
       deliverables: language === "fr"
-        ? ["Capacité PV estimée", "Économies annuelles approximatives", "Retour sur investissement estimé"]
-        : ["Estimated PV capacity", "Approximate annual savings", "Estimated ROI"],
+        ? ["Capacité solaire estimée", "Économies annuelles approximatives", "Retour sur investissement estimé"]
+        : ["Estimated solar capacity", "Approximate annual savings", "Estimated ROI"],
       accuracy: "~75%",
       free: true
     },
@@ -53,11 +53,11 @@ export default function CommentCaMarchePage() {
       title: language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis",
       duration: language === "fr" ? "5 jours ouvrables" : "5 business days",
       description: language === "fr"
-        ? "Simulation 8 760 heures de votre système optimal basée sur vos données de consommation réelles. Nous optimisons la taille du PV et du stockage pour maximiser votre retour sur investissement."
-        : "8,760-hour simulation of your optimal system based on your real consumption data. We optimize PV and storage sizing to maximize your ROI.",
+        ? "Simulation 8 760 heures de votre système optimal basée sur vos données de consommation réelles. Nous optimisons la taille du solaire et du stockage pour maximiser votre retour sur investissement."
+        : "8,760-hour simulation of your optimal system based on your real consumption data. We optimize solar and storage sizing to maximize your ROI.",
       deliverables: language === "fr"
-        ? ["Configuration optimale PV + batterie", "Projections financières 25 ans", "Comparaison options de financement", "Rapport PDF professionnel"]
-        : ["Optimal PV + battery configuration", "25-year financial projections", "Financing options comparison", "Professional PDF report"],
+        ? ["Configuration optimale solaire + stockage", "Projections financières 25 ans", "Comparaison options de financement", "Rapport PDF professionnel"]
+        : ["Optimal solar + storage configuration", "25-year financial projections", "Financing options comparison", "Professional PDF report"],
       accuracy: "~95%",
       free: true
     },
