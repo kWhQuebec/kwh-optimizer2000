@@ -78,11 +78,14 @@ router.get("/api/opportunities/site/:siteId", authMiddleware, requireStaff, asyn
 
 router.post("/api/opportunities", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
   try {
+    console.log("Creating opportunity with body:", JSON.stringify(req.body, null, 2));
     const parseResult = insertOpportunitySchema.safeParse(req.body);
     if (!parseResult.success) {
+      console.error("Opportunity validation errors:", parseResult.error.errors);
       return res.status(400).json({ error: "Validation error", details: parseResult.error.errors });
     }
     
+    console.log("Parsed opportunity data:", JSON.stringify(parseResult.data, null, 2));
     const opportunity = await storage.createOpportunity(parseResult.data);
     res.status(201).json(opportunity);
   } catch (error) {
