@@ -483,7 +483,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
       icon: BarChart3,
       title: language === "fr" ? "2. On analyse vos données" : "2. We analyze your data",
       description: language === "fr"
-        ? "Analyse heure par heure de consommation + potentiel solaire"
+        ? "Analyse du profil de consommation détaillé de votre immeuble"
         : "Hour-by-hour consumption analysis + solar potential"
     },
     {
