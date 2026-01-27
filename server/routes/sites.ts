@@ -27,7 +27,19 @@ const router = Router();
 
 const upload = multer({ dest: "/tmp/meter-uploads/" });
 
+// FIX: In-memory lock to prevent concurrent roof estimations for the same site
+// Note: For multi-instance deployments, use database-level locking (e.g., pg_advisory_lock)
+const roofEstimationLocks = new Set<string>();
+
 async function triggerRoofEstimation(siteId: string): Promise<void> {
+  // Prevent concurrent estimations for the same site
+  if (roofEstimationLocks.has(siteId)) {
+    console.log(`Roof estimation already in progress for site ${siteId}, skipping`);
+    return;
+  }
+  
+  roofEstimationLocks.add(siteId);
+  
   try {
     const site = await storage.getSite(siteId);
     if (!site) {
@@ -122,6 +134,9 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
       roofEstimateError: error instanceof Error ? error.message : "Unknown error",
       roofEstimatePendingAt: null
     });
+  } finally {
+    // Always release the lock when done
+    roofEstimationLocks.delete(siteId);
   }
 }
 
