@@ -20,7 +20,8 @@ import {
   Package,
   CheckCircle2,
   ClipboardList,
-  Grid3X3
+  Grid3X3,
+  UserPlus
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -287,6 +288,15 @@ function OpportunityRow({
 function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDismiss: () => void }) {
   const steps = [
     {
+      icon: UserPlus,
+      title: language === 'fr' ? '0. Nouvelle opportunité' : '0. New Opportunity',
+      description: language === 'fr' 
+        ? 'Capturez un nouveau prospect (appel, email, référence)' 
+        : 'Capture a new lead (call, email, referral)',
+      href: '/app/crm',
+      action: language === 'fr' ? 'Voir le CRM' : 'View CRM'
+    },
+    {
       icon: Building2,
       title: language === 'fr' ? '1. Créer un site' : '1. Create a Site',
       description: language === 'fr' 
@@ -351,7 +361,7 @@ function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDism
         </Button>
       </CardHeader>
       <CardContent className="pt-2">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {steps.map((step, index) => (
             <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
               <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
