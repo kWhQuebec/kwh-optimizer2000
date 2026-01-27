@@ -504,7 +504,15 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          title={language === 'fr' ? 'Nouveaux prospects' : 'New Prospects'}
+          value={stats?.stageBreakdown?.find(s => s.stage === 'prospect')?.count || 0}
+          subtitle={language === 'fr' ? 'À contacter' : 'To follow up'}
+          icon={UserPlus}
+          iconBg={(stats?.stageBreakdown?.find(s => s.stage === 'prospect')?.count || 0) > 0 ? "bg-yellow-500" : "bg-slate-400"}
+          loading={isLoading}
+        />
         <StatCard
           title={language === 'fr' ? 'Pipeline actif' : 'Active Pipeline'}
           value={formatCompactCurrency(stats?.totalPipelineValue)}
