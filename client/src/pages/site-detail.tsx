@@ -6781,8 +6781,14 @@ export default function SiteDetailPage() {
       toast({ title: language === "fr" ? "Analyse terminée avec succès" : "Analysis completed successfully" });
       setActiveTab("analysis");
     },
-    onError: () => {
-      toast({ title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis", variant: "destructive" });
+    onError: (error: Error) => {
+      // Extract the actual error message from the server response
+      const errorMessage = error.message || (language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis");
+      toast({ 
+        title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis", 
+        description: errorMessage,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -6807,9 +6813,11 @@ export default function SiteDetailPage() {
           : "Loading solar potential visualization..."
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      const errorMessage = error.message || "";
       toast({ 
         title: language === "fr" ? "Erreur lors de l'analyse rapide" : "Error during quick analysis", 
+        description: errorMessage,
         variant: "destructive" 
       });
     },

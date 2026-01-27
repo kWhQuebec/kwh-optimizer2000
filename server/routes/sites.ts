@@ -860,7 +860,9 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     });
   } catch (error) {
     console.error("Error running potential analysis:", error);
-    res.status(500).json({ error: "Internal server error" });
+    // Provide more specific error message to frontend
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    res.status(500).json({ error: errorMessage });
   }
 });
 
