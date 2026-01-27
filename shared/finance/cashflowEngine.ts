@@ -9,6 +9,13 @@
  * All displays in Market Intelligence should derive from these calculations.
  */
 
+// FIX: Helper for currency rounding to avoid floating-point accumulation errors
+// Uses multiplication/rounding/division pattern which is more reliable than toFixed
+function roundCurrency(value: number, decimals: number = 2): number {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+}
+
 export interface CashflowInputs {
   // System parameters
   systemSizeKW: number;
@@ -128,15 +135,15 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
     trcProjectCost
   } = inputs;
 
-  // Calculate base values
-  const grossCapex = systemSizeKW * 1000 * kwhCostPerWatt;
+  // Calculate base values (rounded for precision)
+  const grossCapex = roundCurrency(systemSizeKW * 1000 * kwhCostPerWatt);
   // HQ incentive: $1000/kW, capped at 1MW (1000 kW) and 40% of CAPEX
   const eligibleSolarKW = Math.min(systemSizeKW, 1000); // HQ Autoproduction program limited to 1 MW
-  const potentialHQIncentive = eligibleSolarKW * hqIncentivePerKw;
-  const hqIncentive = Math.min(potentialHQIncentive, grossCapex * 0.4);
-  const netAfterHQ = grossCapex - hqIncentive;
-  const itc = netAfterHQ * itcRate;
-  const netClientInvestment = netAfterHQ - itc;
+  const potentialHQIncentive = roundCurrency(eligibleSolarKW * hqIncentivePerKw);
+  const hqIncentive = roundCurrency(Math.min(potentialHQIncentive, grossCapex * 0.4));
+  const netAfterHQ = roundCurrency(grossCapex - hqIncentive);
+  const itc = roundCurrency(netAfterHQ * itcRate);
+  const netClientInvestment = roundCurrency(netAfterHQ - itc);
 
   // Build yearly arrays for each scenario
   const cashCashflows: YearlyCashflow[] = [];
@@ -151,7 +158,7 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
   let ucc = netClientInvestment;
   
   // Lease payment calculation
-  const leasePayment = netClientInvestment / leaseTerm * (1 + leasePremium);
+  const leasePayment = roundCurrency(netClientInvestment / leaseTerm * (1 + leasePremium));
 
   for (let year = 1; year <= 25; year++) {
     // Production with degradation
@@ -173,31 +180,31 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
     const ccaBenefit = ccaDeduction * taxRate;
     ucc -= ccaDeduction;
     
-    const cashNet = gridSavings - omCost + ccaBenefit;
-    cashCumulative += cashNet;
+    const cashNet = roundCurrency(gridSavings - omCost + ccaBenefit);
+    cashCumulative = roundCurrency(cashCumulative + cashNet);
     
     cashCashflows.push({
       year,
-      production,
-      gridRate,
-      gridSavings,
-      omCost,
-      ccaBenefit,
+      production: roundCurrency(production, 0),
+      gridRate: roundCurrency(gridRate, 4),
+      gridSavings: roundCurrency(gridSavings),
+      omCost: roundCurrency(omCost),
+      ccaBenefit: roundCurrency(ccaBenefit),
       netCashflow: cashNet,
       cumulative: cashCumulative
     });
 
     // === LEASE SCENARIO ===
-    const leasePaymentThisYear = year <= leaseTerm ? leasePayment : 0;
-    const leaseNet = gridSavings - omCost - leasePaymentThisYear;
-    leaseCumulative += leaseNet;
+    const leasePaymentThisYear = year <= leaseTerm ? roundCurrency(leasePayment) : 0;
+    const leaseNet = roundCurrency(gridSavings - omCost - leasePaymentThisYear);
+    leaseCumulative = roundCurrency(leaseCumulative + leaseNet);
     
     leaseCashflows.push({
       year,
-      production,
-      gridRate,
-      gridSavings,
-      omCost,
+      production: roundCurrency(production, 0),
+      gridRate: roundCurrency(gridRate, 4),
+      gridSavings: roundCurrency(gridSavings),
+      omCost: roundCurrency(omCost),
       leasePayment: leasePaymentThisYear,
       netCashflow: leaseNet,
       cumulative: leaseCumulative
@@ -210,22 +217,22 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
     if (year <= ppaTerm) {
       // During PPA term: pay discounted rate to provider
       const trcRate = gridRateY1 * Math.pow(1 + trcInflation, year - 1) * (1 - ppaDiscount);
-      ppaPayment = production * trcRate;
-      ppaNet = gridSavings - ppaPayment;
+      ppaPayment = roundCurrency(production * trcRate);
+      ppaNet = roundCurrency(gridSavings - ppaPayment);
     } else {
       // After PPA term: own system with O&M
-      const solarValue = production * gridRate;
-      ppaPayment = solarValue * ppaOmRate;
-      ppaNet = solarValue - ppaPayment;
+      const solarValue = roundCurrency(production * gridRate);
+      ppaPayment = roundCurrency(solarValue * ppaOmRate);
+      ppaNet = roundCurrency(solarValue - ppaPayment);
     }
-    ppaCumulative += ppaNet;
+    ppaCumulative = roundCurrency(ppaCumulative + ppaNet);
     
     ppaCashflows.push({
       year,
-      production,
-      gridRate,
-      gridSavings,
-      omCost,
+      production: roundCurrency(production, 0),
+      gridRate: roundCurrency(gridRate, 4),
+      gridSavings: roundCurrency(gridSavings),
+      omCost: roundCurrency(omCost),
       ppaPayment,
       netCashflow: ppaNet,
       cumulative: ppaCumulative
@@ -242,14 +249,14 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
   const leasePayback = findPaybackYear(leaseCashflows);
 
   // Provider economics (using TRC cost if available, otherwise estimate)
-  const providerCost = trcProjectCost || grossCapex;
+  const providerCost = roundCurrency(trcProjectCost || grossCapex);
   // Provider also subject to 1MW cap
-  const providerHQ = Math.min(eligibleSolarKW * hqIncentivePerKw, providerCost * 0.4);
-  const providerNetAfterHQ = providerCost - providerHQ;
-  const providerITC = providerNetAfterHQ * itcRate;
-  const providerNetInvestment = providerNetAfterHQ - providerITC;
-  const providerCCAShield = providerNetInvestment * 0.26; // 26% effective CCA benefit
-  const totalProviderIncentives = providerHQ + providerITC + providerCCAShield;
+  const providerHQ = roundCurrency(Math.min(eligibleSolarKW * hqIncentivePerKw, providerCost * 0.4));
+  const providerNetAfterHQ = roundCurrency(providerCost - providerHQ);
+  const providerITC = roundCurrency(providerNetAfterHQ * itcRate);
+  const providerNetInvestment = roundCurrency(providerNetAfterHQ - providerITC);
+  const providerCCAShield = roundCurrency(providerNetInvestment * 0.26); // 26% effective CCA benefit
+  const totalProviderIncentives = roundCurrency(providerHQ + providerITC + providerCCAShield);
 
   const providerEconomics: ProviderEconomics = {
     grossCost: providerCost,
@@ -257,12 +264,12 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
     itc: providerITC,
     ccaShield: providerCCAShield,
     totalIncentives: totalProviderIncentives,
-    actualInvestment: Math.max(0, providerCost - totalProviderIncentives)
+    actualInvestment: roundCurrency(Math.max(0, providerCost - totalProviderIncentives))
   };
 
   // Foregone incentives (client perspective - what they give up with PPA)
-  const clientCCAShield = netClientInvestment * 0.26;
-  const foregoneIncentives = hqIncentive + itc + clientCCAShield;
+  const clientCCAShield = roundCurrency(netClientInvestment * 0.26);
+  const foregoneIncentives = roundCurrency(hqIncentive + itc + clientCCAShield);
 
   // PPA payback based on foregone incentives
   const ppaPaybackIdx = ppaCashflows.findIndex(cf => cf.cumulative >= foregoneIncentives);
@@ -280,8 +287,8 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
       nameEn: "Cash (kWh)",
       investment: netClientInvestment,
       yearlyCashflows: cashCashflows,
-      totalSavings: cashCumulative,
-      avgAnnualSavings: (cashCumulative + netClientInvestment) / 25,
+      totalSavings: roundCurrency(cashCumulative),
+      avgAnnualSavings: roundCurrency((cashCumulative + netClientInvestment) / 25),
       paybackYear: cashPayback,
       ownershipYear: 1
     },
@@ -290,8 +297,8 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
       nameEn: "Lease (kWh)",
       investment: 0,
       yearlyCashflows: leaseCashflows,
-      totalSavings: leaseCumulative,
-      avgAnnualSavings: leaseCumulative / 25,
+      totalSavings: roundCurrency(leaseCumulative),
+      avgAnnualSavings: roundCurrency(leaseCumulative / 25),
       paybackYear: leasePayback,
       ownershipYear: leaseTerm + 1
     },
@@ -300,8 +307,8 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
       nameEn: "PPA",
       investment: 0,
       yearlyCashflows: ppaCashflows,
-      totalSavings: ppaCumulative,
-      avgAnnualSavings: ppaCumulative / 25,
+      totalSavings: roundCurrency(ppaCumulative),
+      avgAnnualSavings: roundCurrency(ppaCumulative / 25),
       paybackYear: ppaPayback,
       ownershipYear: ppaTerm + 1
     },
