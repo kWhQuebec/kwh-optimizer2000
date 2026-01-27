@@ -51,6 +51,7 @@ import carouselSlide6Fr from "@assets/Screenshot_2025-12-11_at_9.15.53_PM_176550
 import carouselSlide7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_1765505832689.png";
 import dreamIndustrialLogo from "@assets/Dream_industrial_logo_1769527405856.png";
 import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
+import scaleCleantechLogo from "@assets/scale-cleantech-color_small-VSYW5GJE_1769527536419.webp";
 
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
@@ -1852,6 +1853,12 @@ export default function LandingPage() {
               alt="Lab.Space Construction" 
               className="h-10 object-contain dark:invert"
               data-testid="logo-labspace"
+            />
+            <img 
+              src={scaleCleantechLogo} 
+              alt="Scale Cleantech" 
+              className="h-8 object-contain"
+              data-testid="logo-scale-cleantech"
             />
           </motion.div>
           
