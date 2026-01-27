@@ -98,6 +98,7 @@ export default function LandingPage() {
     annualConsumptionKwh?: number;
     accountNumber?: string;
     tariffCode?: string;
+    serviceAddress?: string;
   } | null>(null);
   const [calcResults, setCalcResults] = useState<{
     success: boolean;
@@ -182,6 +183,9 @@ export default function LandingPage() {
         }
         if (result.data.tariffCode) {
           setCalcTariff(result.data.tariffCode);
+        }
+        if (result.data.serviceAddress) {
+          setCalcAddress(result.data.serviceAddress);
         }
         toast({
           title: language === "fr" ? "Facture analysée!" : "Bill analyzed!",
