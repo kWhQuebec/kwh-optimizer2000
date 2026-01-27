@@ -1247,7 +1247,7 @@ export default function LandingPage() {
                             <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
                               <li className="flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                {language === "fr" ? "Simulation 8 760h complète" : "Complete 8,760h simulation"}
+                                {language === "fr" ? "Profil de consommation annuel complet" : "Complete annual consumption profile"}
                               </li>
                               <li className="flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-green-500" />
@@ -1296,7 +1296,7 @@ export default function LandingPage() {
                               <ul className="space-y-3 text-sm">
                                 <li className="flex items-start gap-2">
                                   <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                  <span>{language === "fr" ? "Simulation 8 760h basée sur votre consommation réelle" : "8,760h simulation based on your real consumption"}</span>
+                                  <span>{language === "fr" ? "Analyse heure par heure basée sur votre consommation réelle" : "Hour-by-hour analysis based on your real consumption"}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                   <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
@@ -1533,8 +1533,8 @@ export default function LandingPage() {
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {language === "fr" 
-                      ? "Simulation 8 760h, rapport complet"
-                      : "8,760h simulation, full report"
+                      ? "Analyse horaire complète, rapport détaillé"
+                      : "Complete hourly analysis, detailed report"
                     }
                   </p>
                 </div>

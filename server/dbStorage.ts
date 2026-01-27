@@ -1812,12 +1812,49 @@ export class DatabaseStorage implements IStorage {
 
   // Portfolio auto-sync helper - applies portfolio KPIs to linked opportunities
   // Also calculates RFP eligibility breakdown for pipeline split display
+  // OPTIMIZED: Batch all queries instead of N+1 pattern
   private async applyPortfolioAutoSync(opps: Opportunity[]): Promise<(Opportunity & { rfpBreakdown?: { eligibleSites: number; eligibleCapex: number; eligiblePvKW: number; nonEligibleSites: number; nonEligibleCapex: number; nonEligiblePvKW: number; totalSites: number } })[]> {
     if (opps.length === 0) return opps;
     
     const portfolioIds = Array.from(new Set(opps.filter(o => o.portfolioId).map(o => o.portfolioId!)));
     if (portfolioIds.length === 0) return opps;
     
+    // BATCH QUERY 1: Fetch all portfolio sites in one query
+    const allPortfolioSites = await db.select().from(portfolioSites).where(inArray(portfolioSites.portfolioId, portfolioIds));
+    
+    // Group by portfolio ID
+    const portfolioSitesMap = new Map<string, typeof allPortfolioSites>();
+    for (const ps of allPortfolioSites) {
+      if (!portfolioSitesMap.has(ps.portfolioId)) {
+        portfolioSitesMap.set(ps.portfolioId, []);
+      }
+      portfolioSitesMap.get(ps.portfolioId)!.push(ps);
+    }
+    
+    // Collect all unique site IDs
+    const allSiteIds = Array.from(new Set(allPortfolioSites.map(ps => ps.siteId)));
+    
+    // BATCH QUERY 2 & 3: Fetch all sites and simulations in parallel
+    const [allSitesData, allSimsData] = await Promise.all([
+      allSiteIds.length > 0 ? db.select().from(sites).where(inArray(sites.id, allSiteIds)) : Promise.resolve([]),
+      allSiteIds.length > 0 ? db.select().from(simulationRuns).where(inArray(simulationRuns.siteId, allSiteIds)) : Promise.resolve([]),
+    ]);
+    
+    // Build lookup maps
+    const siteDetails = new Map<string, typeof sites.$inferSelect>();
+    for (const site of allSitesData) {
+      siteDetails.set(site.id, site);
+    }
+    
+    const latestSims = new Map<string, typeof simulationRuns.$inferSelect>();
+    for (const sim of allSimsData) {
+      const existing = latestSims.get(sim.siteId);
+      if (!existing || (sim.createdAt && existing.createdAt && new Date(sim.createdAt) > new Date(existing.createdAt))) {
+        latestSims.set(sim.siteId, sim);
+      }
+    }
+    
+    // Calculate KPIs for each portfolio
     const portfolioKPIs = new Map<string, { 
       totalCapex: number; 
       totalPvKW: number;
@@ -1833,28 +1870,7 @@ export class DatabaseStorage implements IStorage {
     }>();
     
     for (const portfolioId of portfolioIds) {
-      const pSites = await db.select().from(portfolioSites).where(eq(portfolioSites.portfolioId, portfolioId));
-      const siteIds = pSites.map(ps => ps.siteId);
-      
-      // Fetch site details to get RFP status
-      const siteDetails = new Map<string, typeof sites.$inferSelect>();
-      if (siteIds.length > 0) {
-        const sitesData = await db.select().from(sites).where(inArray(sites.id, siteIds));
-        for (const site of sitesData) {
-          siteDetails.set(site.id, site);
-        }
-      }
-      
-      const latestSims = new Map<string, typeof simulationRuns.$inferSelect>();
-      if (siteIds.length > 0) {
-        const sims = await db.select().from(simulationRuns).where(inArray(simulationRuns.siteId, siteIds));
-        for (const sim of sims) {
-          const existing = latestSims.get(sim.siteId);
-          if (!existing || (sim.createdAt && existing.createdAt && new Date(sim.createdAt) > new Date(existing.createdAt))) {
-            latestSims.set(sim.siteId, sim);
-          }
-        }
-      }
+      const pSites = portfolioSitesMap.get(portfolioId) || [];
       
       let totalCapex = 0;
       let totalPvKW = 0;

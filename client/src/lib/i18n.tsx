@@ -69,8 +69,8 @@ const translations: Translations = {
   "landing.step2.time": { fr: "Signature électronique", en: "E-signature" },
   "landing.step3.title": { fr: "Analyse détaillée", en: "Detailed Analysis" },
   "landing.step3.description": { 
-    fr: "Simulation 8 760h de votre système solaire + stockage optimal qui maximise votre retour sur investissement.", 
-    en: "8,760h simulation of your optimal solar + storage system that maximizes your ROI." 
+    fr: "Analyse heure par heure de votre système solaire + stockage optimal qui maximise votre retour sur investissement.", 
+    en: "Hour-by-hour analysis of your optimal solar + storage system that maximizes your ROI." 
   },
   "landing.step3.time": { fr: "48h", en: "48h" },
   "landing.step4.title": { fr: "Visite et devis", en: "Site Visit & Quote" },
@@ -103,7 +103,7 @@ const translations: Translations = {
   "landing.benefits.title": { fr: "Ce que vous obtenez", en: "What you get" },
   "landing.benefits.subtitle": { fr: "Une approche complète pour votre projet solaire", en: "A complete approach for your solar project" },
   "landing.benefits.analysis": { fr: "Analyse personnalisée", en: "Personalized analysis" },
-  "landing.benefits.analysisDesc": { fr: "Simulation 8 760h basée sur vos données réelles", en: "8,760h simulation based on your real data" },
+  "landing.benefits.analysisDesc": { fr: "Analyse heure par heure basée sur vos données réelles", en: "Hour-by-hour analysis based on your real data" },
   "landing.benefits.financial": { fr: "Projections financières", en: "Financial projections" },
   "landing.benefits.financialDesc": { fr: "ROI, VAN, TRI sur 25 ans avec tous les incitatifs", en: "ROI, NPV, IRR over 25 years with all incentives" },
   "landing.benefits.design": { fr: "Design détaillé", en: "Detailed design" },

@@ -427,8 +427,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
       icon: BarChart3,
       title: language === "fr" ? "2. On analyse vos données" : "2. We analyze your data",
       description: language === "fr"
-        ? "Analyse 8760 heures de consommation + potentiel solaire"
-        : "8760-hour consumption analysis + solar potential"
+        ? "Analyse heure par heure de consommation + potentiel solaire"
+        : "Hour-by-hour consumption analysis + solar potential"
     },
     {
       icon: Sun,
@@ -562,7 +562,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                 </h2>
                 <ul className="space-y-3">
                   {[
-                    language === "fr" ? "Analyse complète 8760 heures de consommation" : "Complete 8760-hour consumption analysis",
+                    language === "fr" ? "Analyse horaire complète de consommation" : "Complete hourly consumption analysis",
                     language === "fr" ? "Simulation solaire basée sur votre toiture réelle" : "Solar simulation based on your actual roof",
                     language === "fr" ? "Optimisation stockage peak-shaving" : "Storage peak-shaving optimization",
                     language === "fr" ? "Calcul incitatifs Hydro-Québec + fédéral (ITC 30%)" : "Hydro-Québec + federal incentives calculation (ITC 30%)",

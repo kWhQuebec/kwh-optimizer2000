@@ -24,8 +24,8 @@ export default function ServicesPage() {
       icon: FileBarChart,
       title: language === "fr" ? "Analyse & Design" : "Analysis & Design",
       description: language === "fr" 
-        ? "Simulation 8 760 heures de votre système optimal basée sur vos données de consommation réelles Hydro-Québec."
-        : "8,760-hour simulation of your optimal system based on your real Hydro-Québec consumption data.",
+        ? "Analyse heure par heure de votre système optimal basée sur vos données de consommation réelles Hydro-Québec."
+        : "Hour-by-hour analysis of your optimal system based on your real Hydro-Québec consumption data.",
       features: language === "fr" 
         ? ["Profil de consommation détaillé", "Optimisation solaire + stockage", "Projections financières 25 ans", "Analyse de sensibilité"]
         : ["Detailed consumption profile", "Solar + storage optimization", "25-year financial projections", "Sensitivity analysis"]
@@ -229,7 +229,7 @@ export default function ServicesPage() {
             {[
               { icon: Award, title: language === "fr" ? "Expertise locale" : "Local expertise", desc: language === "fr" ? "Spécialistes du marché québécois" : "Quebec market specialists" },
               { icon: Shield, title: language === "fr" ? "Partenaire Hydro-Québec" : "Hydro-Québec Partner", desc: language === "fr" ? "Accès aux programmes d'incitatifs" : "Access to incentive programs" },
-              { icon: Zap, title: language === "fr" ? "Analyse avancée" : "Advanced analysis", desc: language === "fr" ? "Simulation 8 760h précise" : "Precise 8,760h simulation" },
+              { icon: Zap, title: language === "fr" ? "Analyse avancée" : "Advanced analysis", desc: language === "fr" ? "Analyse horaire précise" : "Precise hourly analysis" },
               { icon: Clock, title: language === "fr" ? "Clé en main" : "Turnkey", desc: language === "fr" ? "Un seul interlocuteur" : "Single point of contact" },
             ].map((item) => (
               <div key={item.title} className="text-center">

@@ -53,8 +53,8 @@ export default function CommentCaMarchePage() {
       title: language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis",
       duration: language === "fr" ? "5 jours ouvrables" : "5 business days",
       description: language === "fr"
-        ? "Simulation 8 760 heures de votre système optimal basée sur vos données de consommation réelles. Nous optimisons la taille du solaire et du stockage pour maximiser votre retour sur investissement."
-        : "8,760-hour simulation of your optimal system based on your real consumption data. We optimize solar and storage sizing to maximize your ROI.",
+        ? "Analyse heure par heure de votre système optimal basée sur vos données de consommation réelles. Nous optimisons la taille du solaire et du stockage pour maximiser votre retour sur investissement."
+        : "Hour-by-hour analysis of your optimal system based on your real consumption data. We optimize solar and storage sizing to maximize your ROI.",
       deliverables: language === "fr"
         ? ["Configuration optimale solaire + stockage", "Projections financières 25 ans", "Comparaison options de financement", "Rapport PDF professionnel"]
         : ["Optimal solar + storage configuration", "25-year financial projections", "Financing options comparison", "Professional PDF report"],

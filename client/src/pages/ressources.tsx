@@ -81,8 +81,8 @@ export default function RessourcesPage() {
         ? "Quelle est la production solaire typique au Québec?"
         : "What is typical solar production in Quebec?",
       answer: language === "fr"
-        ? "Au Québec, la production solaire moyenne est d'environ 1 150-1 300 kWh/kW/an selon la région et l'orientation. Montréal produit environ 1 200 kWh/kW/an. Notre analyse utilise des données satellitaires Google Solar et des simulations horaires sur 8 760 heures pour estimer précisément votre production."
-        : "In Quebec, average solar production is approximately 1,150-1,300 kWh/kW/year depending on region and orientation. Montreal produces about 1,200 kWh/kW/year. Our analysis uses Google Solar satellite data and 8,760-hour simulations to precisely estimate your production."
+        ? "Au Québec, la production solaire moyenne est d'environ 1 150-1 300 kWh/kW/an selon la région et l'orientation. Montréal produit environ 1 200 kWh/kW/an. Notre analyse utilise des données satellitaires Google Solar et des simulations horaires sur une année complète (8 760 heures) pour estimer précisément votre production."
+        : "In Quebec, average solar production is approximately 1,150-1,300 kWh/kW/year depending on region and orientation. Montreal produces about 1,200 kWh/kW/year. Our analysis uses Google Solar satellite data and hourly simulations over a full year (8,760 hours) to precisely estimate your production."
     },
     {
       category: "technical",
