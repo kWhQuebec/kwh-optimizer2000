@@ -193,7 +193,7 @@ export default function ProcurationsPage() {
           <div className="flex items-center gap-2 pt-2">
             <ExternalLink className="w-4 h-4" />
             <span className="font-medium">
-              {language === "fr" ? "Email HQ:" : "HQ Email:"}
+              {language === "fr" ? "Email Hydro-Québec:" : "Hydro-Québec Email:"}
             </span>
             <code className="bg-muted px-2 py-0.5 rounded text-xs">
               procuration@hydroquebec.com

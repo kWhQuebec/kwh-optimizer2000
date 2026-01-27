@@ -354,8 +354,8 @@ export default function AnalyseDetailleePage() {
   const onSubmit = (data: DetailedFormValues) => {
     if (uploadedFiles.length === 0) {
       setUploadError(language === "fr" 
-        ? "Veuillez téléverser au moins une facture HQ" 
-        : "Please upload at least one HQ bill");
+        ? "Veuillez téléverser au moins une facture Hydro-Québec" 
+        : "Please upload at least one Hydro-Québec bill");
       return;
     }
     mutation.mutate(data);
@@ -379,7 +379,7 @@ export default function AnalyseDetailleePage() {
   const steps = [
     { 
       number: 1, 
-      title: language === "fr" ? "Facture HQ" : "HQ Bill",
+      title: language === "fr" ? "Facture Hydro-Québec" : "Hydro-Québec Bill",
       icon: FileText 
     },
     { 
@@ -420,8 +420,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
       icon: FileText,
       title: language === "fr" ? "1. Vous nous donnez accès" : "1. You give us access",
       description: language === "fr" 
-        ? "Autorisez kWh Québec comme mandataire via votre Espace client HQ"
-        : "Authorize kWh Québec as agent via your HQ Customer Space"
+        ? "Autorisez kWh Québec comme mandataire via votre Espace client Hydro-Québec"
+        : "Authorize kWh Québec as agent via your Hydro-Québec Customer Space"
     },
     {
       icon: BarChart3,
@@ -565,7 +565,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                     language === "fr" ? "Analyse complète 8760 heures de consommation" : "Complete 8760-hour consumption analysis",
                     language === "fr" ? "Simulation solaire basée sur votre toiture réelle" : "Solar simulation based on your actual roof",
                     language === "fr" ? "Optimisation stockage peak-shaving" : "Storage peak-shaving optimization",
-                    language === "fr" ? "Calcul incitatifs HQ + fédéral (ITC 30%)" : "HQ + federal incentives calculation (ITC 30%)",
+                    language === "fr" ? "Calcul incitatifs Hydro-Québec + fédéral (ITC 30%)" : "Hydro-Québec + federal incentives calculation (ITC 30%)",
                     language === "fr" ? "Comparaison 3 options de financement" : "3 financing options comparison",
                     language === "fr" ? "Analyse de sensibilité multi-scénario" : "Multi-scenario sensitivity analysis",
                     language === "fr" ? "Rapport PDF prêt pour décision" : "Decision-ready PDF report",
@@ -857,7 +857,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 <p className="text-sm font-medium mb-1">
                                   {isDragActive 
                                     ? (language === "fr" ? "Déposez le fichier ici..." : "Drop the file here...")
-                                    : (language === "fr" ? "Glissez votre facture HQ ici ou cliquez" : "Drag your HQ bill here or click")
+                                    : (language === "fr" ? "Glissez votre facture Hydro-Québec ici ou cliquez" : "Drag your Hydro-Québec bill here or click")
                                   }
                                 </p>
                                 <p className="text-xs text-muted-foreground">

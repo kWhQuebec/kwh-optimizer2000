@@ -999,7 +999,7 @@ const fr = {
           name: "Financier",
           items: [
             { label: "Taux d'actualisation", value: "8%" },
-            { label: "Inflation tarif HQ", value: "4.8%/an" },
+            { label: "Inflation tarif Hydro-Québec", value: "4.8%/an" },
             { label: "Taux d'imposition", value: "26.5%" },
           ],
         },
@@ -1311,7 +1311,7 @@ const fr = {
       },
       itc: {
         title: "Crédit d'Impôt Fédéral (CII)",
-        description: "Crédit d'impôt à l'investissement de 30% sur le CAPEX net (après incitatifs HQ).",
+        description: "Crédit d'impôt à l'investissement de 30% sur le CAPEX net (après incitatifs Hydro-Québec).",
         formula: "CII = (CAPEX_brut - Incitatif_HQ) × 0.30",
       },
       taxShield: {
@@ -1323,11 +1323,11 @@ const fr = {
         title: "Chronologie des Incitatifs",
         description: "Les incitatifs sont versés à différents moments, affectant le flux de trésorerie réel.",
         timeline: [
-          { year: "Année 0", items: ["Subvention HQ Solaire (100%)", "Subvention HQ Stockage (50%)"] },
-          { year: "Année 1", items: ["Subvention HQ Stockage restante (50%)", "Bouclier fiscal (DPA/CCA)"] },
+          { year: "Année 0", items: ["Subvention Hydro-Québec Solaire (100%)", "Subvention Hydro-Québec Stockage (50%)"] },
+          { year: "Année 1", items: ["Subvention Hydro-Québec Stockage restante (50%)", "Bouclier fiscal (DPA/CCA)"] },
           { year: "Année 2", items: ["Crédit d'impôt fédéral (CII 30%)"] },
         ],
-        note: "L'équité initiale requise = CAPEX brut - Subvention HQ Solaire - 50% Subvention HQ Stockage",
+        note: "L'équité initiale requise = CAPEX brut - Subvention Hydro-Québec Solaire - 50% Subvention Hydro-Québec Stockage",
       },
     },
     cashflow: {
@@ -1367,7 +1367,7 @@ const fr = {
         },
         {
           name: "Crédit-Bail (Capital Lease)",
-          description: "Paiements mensuels fixes avec propriété fiscale au client. Le client reçoit tous les incitatifs (rabais HQ, CII fédéral 30%, bouclier fiscal ACC).",
+          description: "Paiements mensuels fixes avec propriété fiscale au client. Le client reçoit tous les incitatifs (rabais Hydro-Québec, CII fédéral 30%, bouclier fiscal ACC).",
           formula: "Paiement_mensuel = (CAPEX × Facteur_taux_implicite) / (Terme × 12)",
           note: "Résulte typiquement en flux de trésorerie positifs ou neutres grâce aux incitatifs.",
         },
@@ -1540,7 +1540,7 @@ const en = {
           name: "Financial",
           items: [
             { label: "Discount rate", value: "8%" },
-            { label: "HQ rate inflation", value: "4.8%/year" },
+            { label: "Hydro-Québec rate inflation", value: "4.8%/year" },
             { label: "Tax rate", value: "26.5%" },
           ],
         },
@@ -1852,7 +1852,7 @@ const en = {
       },
       itc: {
         title: "Federal Investment Tax Credit (ITC)",
-        description: "30% investment tax credit on net CAPEX (after HQ incentives).",
+        description: "30% investment tax credit on net CAPEX (after Hydro-Québec incentives).",
         formula: "ITC = (Gross_CAPEX - HQ_incentive) × 0.30",
       },
       taxShield: {
@@ -1864,11 +1864,11 @@ const en = {
         title: "Incentive Timeline",
         description: "Incentives are paid at different times, affecting actual cash flow.",
         timeline: [
-          { year: "Year 0", items: ["HQ Solar Rebate (100%)", "HQ Storage Rebate (50%)"] },
-          { year: "Year 1", items: ["Remaining HQ Storage Rebate (50%)", "Tax Shield (CCA/DPA)"] },
+          { year: "Year 0", items: ["Hydro-Québec Solar Rebate (100%)", "Hydro-Québec Storage Rebate (50%)"] },
+          { year: "Year 1", items: ["Remaining Hydro-Québec Storage Rebate (50%)", "Tax Shield (CCA/DPA)"] },
           { year: "Year 2", items: ["Federal Investment Tax Credit (ITC 30%)"] },
         ],
-        note: "Initial equity required = Gross CAPEX - HQ Solar Rebate - 50% HQ Storage Rebate",
+        note: "Initial equity required = Gross CAPEX - Hydro-Québec Solar Rebate - 50% Hydro-Québec Storage Rebate",
       },
     },
     cashflow: {
@@ -1908,7 +1908,7 @@ const en = {
         },
         {
           name: "Capital Lease (Crédit-Bail)",
-          description: "Fixed monthly payments with client treated as owner for tax purposes. Client receives all incentives (HQ rebates, Federal ITC 30%, CCA tax shield).",
+          description: "Fixed monthly payments with client treated as owner for tax purposes. Client receives all incentives (Hydro-Québec rebates, Federal ITC 30%, CCA tax shield).",
           formula: "Monthly_payment = (CAPEX × Implicit_rate_factor) / (Term × 12)",
           note: "Typically results in positive or break-even cash flows due to incentives.",
         },

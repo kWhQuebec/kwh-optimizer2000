@@ -43,8 +43,8 @@ export default function RessourcesPage() {
         ? "Les systèmes de stockage sont-ils admissibles aux incitatifs?"
         : "Are storage systems eligible for incentives?",
       answer: language === "fr"
-        ? "Le stockage d'énergie peut être éligible au crédit d'impôt fédéral de 30% lorsqu'il est jumelé à un système solaire et répond aux critères d'éligibilité. Le programme d'autoproduction HQ n'offre pas d'incitatif spécifique au stockage, mais celui-ci peut optimiser votre autoconsommation et réduire vos frais de pointe (Tarif M)."
-        : "Energy storage may be eligible for the 30% federal tax credit when paired with a solar system and meeting eligibility criteria. The HQ self-generation program doesn't offer storage-specific incentives, but storage can optimize self-consumption and reduce peak demand charges (Rate M)."
+        ? "Le stockage d'énergie peut être éligible au crédit d'impôt fédéral de 30% lorsqu'il est jumelé à un système solaire et répond aux critères d'éligibilité. Le programme d'autoproduction Hydro-Québec n'offre pas d'incitatif spécifique au stockage, mais celui-ci peut optimiser votre autoconsommation et réduire vos frais de pointe (Tarif M)."
+        : "Energy storage may be eligible for the 30% federal tax credit when paired with a solar system and meeting eligibility criteria. The Hydro-Québec self-generation program doesn't offer storage-specific incentives, but storage can optimize self-consumption and reduce peak demand charges (Rate M)."
     },
     {
       category: "incentives",
@@ -146,8 +146,8 @@ export default function RessourcesPage() {
         ? "Combien coûte un système solaire commercial au Québec?"
         : "How much does a commercial solar system cost in Quebec?",
       answer: language === "fr"
-        ? "Le coût installé varie de 1,50$ à 2,50$/W selon la taille et la complexité. Un système de 100 kW coûte typiquement 150 000$ - 200 000$ avant incitatifs. Après tous les incitatifs (HQ, fédéral, fiscal), le coût net peut être réduit de 40-60%. Notre analyse fournit une estimation précise pour votre projet."
-        : "Installed cost ranges from $1.50 to $2.50/W depending on size and complexity. A 100 kW system typically costs $150,000 - $200,000 before incentives. After all incentives (HQ, federal, tax), net cost can be reduced by 40-60%. Our analysis provides a precise estimate for your project."
+        ? "Le coût installé varie de 1,50$ à 2,50$/W selon la taille et la complexité. Un système de 100 kW coûte typiquement 150 000$ - 200 000$ avant incitatifs. Après tous les incitatifs (Hydro-Québec, fédéral, fiscal), le coût net peut être réduit de 40-60%. Notre analyse fournit une estimation précise pour votre projet."
+        : "Installed cost ranges from $1.50 to $2.50/W depending on size and complexity. A 100 kW system typically costs $150,000 - $200,000 before incentives. After all incentives (Hydro-Québec, federal, tax), net cost can be reduced by 40-60%. Our analysis provides a precise estimate for your project."
     },
     {
       category: "financial",
@@ -184,8 +184,8 @@ export default function RessourcesPage() {
         ? "Qu'est-ce que la procuration Hydro-Québec?"
         : "What is the Hydro-Québec authorization?",
       answer: language === "fr"
-        ? "La procuration HQ est un formulaire standard qui nous autorise à accéder à votre historique de consommation électrique détaillé (données 15 minutes). Ces données sont essentielles pour effectuer une analyse précise de dimensionnement et calculer l'autoconsommation. Le processus est 100% électronique, sécurisé et gratuit."
-        : "The HQ authorization is a standard form that allows us to access your detailed electricity consumption history (15-minute data). This data is essential for accurate sizing analysis and calculating self-consumption. The process is 100% electronic, secure and free."
+        ? "La procuration Hydro-Québec est un formulaire standard qui nous autorise à accéder à votre historique de consommation électrique détaillé (données 15 minutes). Ces données sont essentielles pour effectuer une analyse précise de dimensionnement et calculer l'autoconsommation. Le processus est 100% électronique, sécurisé et gratuit."
+        : "The Hydro-Québec authorization is a standard form that allows us to access your detailed electricity consumption history (15-minute data). This data is essential for accurate sizing analysis and calculating self-consumption. The process is 100% electronic, secure and free."
     },
     {
       category: "process",
@@ -220,8 +220,8 @@ export default function RessourcesPage() {
     {
       title: language === "fr" ? "Guide actuel des incitatifs solaires" : "Current Solar Incentives Guide",
       description: language === "fr"
-        ? "Tout ce que vous devez savoir sur le programme HQ, le crédit fédéral et les avantages fiscaux."
-        : "Everything you need to know about the HQ program, federal credit, and tax benefits.",
+        ? "Tout ce que vous devez savoir sur le programme Hydro-Québec, le crédit fédéral et les avantages fiscaux."
+        : "Everything you need to know about the Hydro-Québec program, federal credit, and tax benefits.",
       category: "incentives",
       readTime: "8 min",
       slug: "incitatifs-solaires-quebec-2025"
@@ -275,8 +275,8 @@ export default function RessourcesPage() {
     {
       term: language === "fr" ? "Net metering (mesurage net)" : "Net metering",
       definition: language === "fr"
-        ? "Système où votre surplus solaire injecté au réseau est crédité sur votre facture. Au Québec, les crédits sont valides 24 mois via le programme d'autoproduction HQ."
-        : "System where your solar surplus injected to the grid is credited on your bill. In Quebec, credits are valid 24 months via the HQ self-generation program."
+        ? "Système où votre surplus solaire injecté au réseau est crédité sur votre facture. Au Québec, les crédits sont valides 24 mois via le programme d'autoproduction Hydro-Québec."
+        : "System where your solar surplus injected to the grid is credited on your bill. In Quebec, credits are valid 24 months via the Hydro-Québec self-generation program."
     },
     {
       term: language === "fr" ? "Tarif G" : "Rate G",

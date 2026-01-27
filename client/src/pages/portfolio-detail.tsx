@@ -878,7 +878,7 @@ export default function PortfolioDetailPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Badge variant="default" className="text-sm">
-                        {language === "fr" ? "Éligible RFP HQ" : "HQ RFP Eligible"}
+                        {language === "fr" ? "Éligible RFP Hydro-Québec" : "Hydro-Québec RFP Eligible"}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
                         ({rfpEligibleSites.length} {language === "fr" ? "sites" : "sites"})

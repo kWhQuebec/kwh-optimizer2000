@@ -214,7 +214,7 @@ function OpportunityCard({
   
   // Visual indicator for RFP split type
   const splitBadge = opportunity.isVirtualSplit && opportunity.splitType === 'rfp' 
-    ? { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-300", label: "RFP HQ" }
+    ? { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-300", label: "RFP Hydro-Québec" }
     : opportunity.isVirtualSplit && opportunity.splitType === 'non-rfp'
     ? { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-300", label: "Hors RFP" }
     : null;

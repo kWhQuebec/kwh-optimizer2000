@@ -228,7 +228,7 @@ export default function ServicesPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: Award, title: language === "fr" ? "Expertise locale" : "Local expertise", desc: language === "fr" ? "Spécialistes du marché québécois" : "Quebec market specialists" },
-              { icon: Shield, title: language === "fr" ? "Partenaire HQ" : "HQ Partner", desc: language === "fr" ? "Accès aux programmes d'incitatifs" : "Access to incentive programs" },
+              { icon: Shield, title: language === "fr" ? "Partenaire Hydro-Québec" : "Hydro-Québec Partner", desc: language === "fr" ? "Accès aux programmes d'incitatifs" : "Access to incentive programs" },
               { icon: Zap, title: language === "fr" ? "Analyse avancée" : "Advanced analysis", desc: language === "fr" ? "Simulation 8 760h précise" : "Precise 8,760h simulation" },
               { icon: Clock, title: language === "fr" ? "Clé en main" : "Turnkey", desc: language === "fr" ? "Un seul interlocuteur" : "Single point of contact" },
             ].map((item) => (

@@ -1533,7 +1533,7 @@ function SiteVisitForm({
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center gap-2">
-                      <FormLabel>{language === "fr" ? "No compteur HQ" : "HQ Meter No"}</FormLabel>
+                      <FormLabel>{language === "fr" ? "No compteur Hydro-Québec" : "Hydro-Québec Meter No"}</FormLabel>
                       <BarcodeScanner 
                         label="hq-meter"
                         language={language}

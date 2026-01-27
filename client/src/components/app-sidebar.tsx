@@ -185,7 +185,7 @@ export function AppSidebar() {
       title: t("nav.procurations") || "Procurations",
       url: "/app/procurations",
       icon: FileSignature,
-      tooltip: language === "fr" ? "Autorisations d'accès aux données HQ" : "Hydro-Québec data access authorizations",
+      tooltip: language === "fr" ? "Autorisations d'accès aux données Hydro-Québec" : "Hydro-Québec data access authorizations",
     },
     {
       title: language === "fr" ? "Import en lot" : "Batch Import",

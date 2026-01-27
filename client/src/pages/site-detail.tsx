@@ -1142,8 +1142,8 @@ function AnalysisParametersEditor({
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Info className="w-3 h-3" />
                 {language === "fr" 
-                  ? "Les tarifs sont basés sur la grille HQ avril 2025. Vous pouvez les ajuster manuellement." 
-                  : "Tariffs based on HQ April 2025 rates. You can adjust them manually."}
+                  ? "Les tarifs sont basés sur la grille Hydro-Québec avril 2025. Vous pouvez les ajuster manuellement." 
+                  : "Tariffs based on Hydro-Québec April 2025 rates. You can adjust them manually."}
               </p>
             </div>
 
@@ -1369,7 +1369,7 @@ function AnalysisParametersEditor({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">{language === "fr" ? "Inflation tarif HQ (%)" : "HQ Tariff Inflation (%)"}</Label>
+                  <Label className="text-xs">{language === "fr" ? "Inflation tarif Hydro-Québec (%)" : "Hydro-Québec Tariff Inflation (%)"}</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -3896,7 +3896,7 @@ function FinancingCalculator({ simulation, displayedScenario }: { simulation: Si
                   {hqSolar > 0 && (
                     <div className="flex justify-between items-center py-1 border-b border-dashed">
                       <span className="text-muted-foreground text-xs">
-                        {language === "fr" ? "└ Incl. rabais HQ solaire" : "└ Incl. HQ solar rebate"}
+                        {language === "fr" ? "└ Incl. rabais Hydro-Québec solaire" : "└ Incl. Hydro-Québec solar rebate"}
                       </span>
                       <span className="font-mono text-xs text-primary">
                         (-{formatCurrency(hqSolar)})
@@ -3927,7 +3927,7 @@ function FinancingCalculator({ simulation, displayedScenario }: { simulation: Si
               {year1Returns > 0 && (
                 <div className="flex justify-between items-center py-1 border-b border-dashed">
                   <span className="text-muted-foreground">
-                    {language === "fr" ? "An 1 — Rabais HQ + Crédit CCA" : "Year 1 — HQ Rebate + CCA Credit"}
+                    {language === "fr" ? "An 1 — Rabais Hydro-Québec + Crédit CCA" : "Year 1 — Hydro-Québec Rebate + CCA Credit"}
                   </span>
                   <span className="font-mono font-semibold text-primary">
                     +{formatCurrency(year1Returns)}
@@ -4490,7 +4490,7 @@ function AnalysisResults({
                 {displayedScenario.pvSizeKW > 1000 && (
                   <Badge variant="destructive" className="mt-1 text-xs flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
-                    {language === "fr" ? "Dépasse 1 MW (limite HQ)" : "Exceeds 1 MW (HQ limit)"}
+                    {language === "fr" ? "Dépasse 1 MW (limite Hydro-Québec)" : "Exceeds 1 MW (Hydro-Québec limit)"}
                   </Badge>
                 )}
               </div>
@@ -4575,7 +4575,7 @@ function AnalysisResults({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-                    {language === "fr" ? "Revenus de surplus HQ" : "HQ Surplus Revenue"}
+                    {language === "fr" ? "Revenus de surplus Hydro-Québec" : "Hydro-Québec Surplus Revenue"}
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400">
                     {language === "fr" ? "Programme d'autoproduction (mesurage net)" : "Self-production program (net metering)"}
@@ -4602,8 +4602,8 @@ function AnalysisResults({
               </div>
               <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-3">
                 {language === "fr" 
-                  ? "Tarif coût d'approvisionnement HQ: ~$0.06/kWh. Les premiers 24 mois créditent votre facture, ensuite HQ vous paie."
-                  : "HQ cost of supply rate: ~$0.06/kWh. First 24 months credit your bill, then HQ pays you."}
+                  ? "Tarif coût d'approvisionnement Hydro-Québec: ~$0.06/kWh. Les premiers 24 mois créditent votre facture, ensuite Hydro-Québec vous paie."
+                  : "Hydro-Québec cost of supply rate: ~$0.06/kWh. First 24 months credit your bill, then Hydro-Québec pays you."}
               </p>
             </div>
           )}
@@ -5327,13 +5327,13 @@ function AnalysisResults({
                   </h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm">{language === "fr" ? "Hydro-Québec (solaire)" : "HQ Solar"}</span>
+                      <span className="text-sm">{language === "fr" ? "Hydro-Québec (solaire)" : "Hydro-Québec Solar"}</span>
                       <span className="font-mono text-sm text-primary">-${((breakdown.actualHQSolar || 0) / 1000).toFixed(1)}k</span>
                     </div>
                     {(breakdown.actualHQBattery || 0) > 0 && (
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">
-                          {language === "fr" ? "HQ (crédit stockage jumelé)" : "HQ (paired storage credit)"}
+                          {language === "fr" ? "Hydro-Québec (crédit stockage jumelé)" : "Hydro-Québec (paired storage credit)"}
                         </span>
                         <span className="font-mono text-sm text-primary">-${((breakdown.actualHQBattery || 0) / 1000).toFixed(1)}k</span>
                       </div>
@@ -6141,7 +6141,7 @@ function AnalysisResults({
               <p className="font-mono">{(assumptions.roofUtilizationRatio * 100).toFixed(0)}%</p>
             </div>
             <div>
-              <p className="text-muted-foreground">{language === "fr" ? "Inflation HQ" : "HQ Inflation"}</p>
+              <p className="text-muted-foreground">{language === "fr" ? "Inflation Hydro-Québec" : "Hydro-Québec Inflation"}</p>
               <p className="font-mono">{(assumptions.inflationRate * 100).toFixed(1)}%</p>
             </div>
             <div>

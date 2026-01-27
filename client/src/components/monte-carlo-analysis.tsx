@@ -294,7 +294,7 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                   <div className="space-y-3">
                     <Label className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-primary" />
-                      {language === "fr" ? "Inflation tarifaire HQ" : "HQ Tariff Inflation"}
+                      {language === "fr" ? "Inflation tarifaire Hydro-Québec" : "Hydro-Québec Tariff Inflation"}
                     </Label>
                     <div className="flex-1 space-y-2">
                       <div className="flex justify-between text-sm text-muted-foreground">
@@ -315,8 +315,8 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {language === "fr" 
-                        ? "Taux d'augmentation annuel des tarifs HQ (historique: 2.6-3.1%)"
-                        : "Annual HQ tariff increase rate (historic: 2.6-3.1%)"}
+                        ? "Taux d'augmentation annuel des tarifs Hydro-Québec (historique: 2.6-3.1%)"
+                        : "Annual Hydro-Québec tariff increase rate (historic: 2.6-3.1%)"}
                     </p>
                   </div>
 

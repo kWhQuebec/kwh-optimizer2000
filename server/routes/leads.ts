@@ -310,7 +310,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
 
     const files = req.files as Express.Multer.File[];
     if (!files || files.length === 0) {
-      return res.status(400).json({ error: "At least one HQ bill file is required" });
+      return res.status(400).json({ error: "At least one Hydro-Québec bill file is required" });
     }
 
     const procurationInfo = language === 'fr'

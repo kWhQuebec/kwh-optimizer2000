@@ -197,7 +197,7 @@ export async function generatePresentationPPTX(
       { text: formatPercent(simulation.irr25), options: { bold: true, color: COLORS.green } }
     ],
     [
-      { text: t("Subventions HQ", "HQ Incentives") },
+      { text: t("Subventions Hydro-Québec", "Hydro-Québec Incentives") },
       { text: formatCurrency(simulation.totalIncentives), options: { color: COLORS.green } },
       { text: t("Retour simple", "Simple payback") },
       { text: `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "years")}` }

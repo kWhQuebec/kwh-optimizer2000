@@ -348,7 +348,7 @@ export function SingleBillEstimator({ onEstimate }: SingleBillEstimatorProps) {
           
           <div className="space-y-2">
             <Label htmlFor="tariff-code">
-              {language === "fr" ? "Code tarifaire HQ" : "HQ Tariff Code"}
+              {language === "fr" ? "Code tarifaire Hydro-Québec" : "Hydro-Québec Tariff Code"}
             </Label>
             <Select value={tariffCode} onValueChange={setTariffCode}>
               <SelectTrigger data-testid="select-tariff-code">

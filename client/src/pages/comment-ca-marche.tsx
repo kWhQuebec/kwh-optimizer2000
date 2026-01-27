@@ -84,8 +84,8 @@ export default function CommentCaMarchePage() {
         ? "Conception détaillée par nos ingénieurs: plans électriques, structuraux, demandes de permis et coordination avec Hydro-Québec."
         : "Detailed design by our engineers: electrical plans, structural plans, permit applications, and Hydro-Québec coordination.",
       deliverables: language === "fr"
-        ? ["Plans complets", "Permis obtenus", "Entente de raccordement HQ"]
-        : ["Complete plans", "Permits obtained", "HQ connection agreement"],
+        ? ["Plans complets", "Permis obtenus", "Entente de raccordement Hydro-Québec"]
+        : ["Complete plans", "Permits obtained", "Hydro-Québec connection agreement"],
       accuracy: null,
       free: false
     },

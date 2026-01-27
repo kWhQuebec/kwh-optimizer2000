@@ -827,7 +827,7 @@ export function generateProfessionalPDF(
   
   // Subsidies total (HQ Solar + HQ Battery + Federal ITC)
   doc.fontSize(10).fillColor(COLORS.mediumGray);
-  doc.text(t("Subventions directes (HQ + ITC):", "Direct subsidies (HQ + ITC):"), margin, doc.y);
+  doc.text(t("Subventions directes (Hydro-Québec + ITC):", "Direct subsidies (Hydro-Québec + ITC):"), margin, doc.y);
   doc.fontSize(12).fillColor(COLORS.blue).font("Helvetica-Bold");
   doc.text(formatCurrency(simulation.totalIncentives), margin + 220, doc.y - 1);
   doc.font("Helvetica");
@@ -1592,7 +1592,7 @@ export function generateProfessionalPDF(
   const hqItems = [
     [t("Solaire: $1,000/kW installé", "Solar: $1,000/kW installed"), `- ${formatCurrency(bd.actualHQSolar)}`],
     [t("Batterie: $300/kW de puissance", "Battery: $300/kW power"), `- ${formatCurrency(bd.actualHQBattery)}`],
-    [t("Total Incitatifs HQ", "Total HQ Incentives"), `- ${formatCurrency(bd.totalHQ)}`],
+    [t("Total Incitatifs Hydro-Québec", "Total Hydro-Québec Incentives"), `- ${formatCurrency(bd.totalHQ)}`],
     [t("(Plafond 40%: " + formatCurrency(bd.cap40Percent) + ")", "(40% Cap: " + formatCurrency(bd.cap40Percent) + ")"), ""],
   ];
 
@@ -1983,7 +1983,7 @@ export function generateMethodologyPDF(
     [t("Efficacité batterie aller-retour", "Battery round-trip efficiency"), "90%"],
     [t("Profondeur de décharge", "Depth of discharge"), "90%"],
     [t("Taux d'actualisation (WACC)", "Discount rate (WACC)"), "8%"],
-    [t("Inflation tarif HQ", "HQ rate inflation"), "4.8%/an"],
+    [t("Inflation tarif Hydro-Québec", "Hydro-Québec rate inflation"), "4.8%/an"],
     [t("Taux d'imposition corporatif", "Corporate tax rate"), "26.5%"],
   ];
 
@@ -2279,8 +2279,8 @@ export function generateMethodologyPDF(
   doc.moveDown(0.5);
 
   doc.fontSize(10).text(t(
-    "Crédit d'impôt à l'investissement de 30% sur le CAPEX net (après incitatifs HQ).",
-    "30% investment tax credit on net CAPEX (after HQ incentives)."
+    "Crédit d'impôt à l'investissement de 30% sur le CAPEX net (après incitatifs Hydro-Québec).",
+    "30% investment tax credit on net CAPEX (after Hydro-Québec incentives)."
   ), margin + 10, doc.y, { width: contentWidth - 20 });
   doc.moveDown(0.5);
 
@@ -2440,13 +2440,13 @@ export function generateMethodologyPDF(
   const sources = lang === "fr" ? [
     "• Tarifs Hydro-Québec en vigueur (avril 2025)",
     "• Données d'irradiation: Ressources naturelles Canada (RNCan)",
-    "• Programme Autoproduction HQ: conditions et montants officiels",
+    "• Programme Autoproduction Hydro-Québec: conditions et montants officiels",
     "• Crédit d'impôt fédéral: Agence du revenu du Canada",
     "• Classes CCA: Agence du revenu du Canada (Classe 43.2)",
   ] : [
     "• Hydro-Québec rates in effect (April 2025)",
     "• Irradiation data: Natural Resources Canada (NRCan)",
-    "• HQ Self-Generation Program: official conditions and amounts",
+    "• Hydro-Québec Self-Generation Program: official conditions and amounts",
     "• Federal tax credit: Canada Revenue Agency",
     "• CCA Classes: Canada Revenue Agency (Class 43.2)",
   ];

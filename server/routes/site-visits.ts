@@ -150,7 +150,7 @@ router.get("/api/site-visits/:id/pdf", authMiddleware, requireStaff, async (req:
       lightningRod: lang === "fr" ? "Paratonnerre présent" : "Lightning Rod Present",
       electricalSection: lang === "fr" ? "Infrastructure électrique" : "Electrical Infrastructure",
       numberOfMeters: lang === "fr" ? "Nombre de compteurs" : "Number of Meters",
-      meterNumber: lang === "fr" ? "Numéro de compteur HQ" : "HQ Meter Number",
+      meterNumber: lang === "fr" ? "Numéro de compteur Hydro-Québec" : "Hydro-Québec Meter Number",
       mainPanelPower: lang === "fr" ? "Puissance panneau principal" : "Main Panel Power",
       mainPanelVoltage: lang === "fr" ? "Voltage" : "Voltage",
       mainPanel: lang === "fr" ? "Panneau principal" : "Main Panel",

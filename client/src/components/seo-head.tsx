@@ -192,7 +192,7 @@ export const getHowToSchema = (lang: "fr" | "en"): StructuredData => ({
       "@type": "HowToStep",
       "position": 2,
       "name": lang === "fr" ? "Analyse détaillée" : "Detailed Analysis",
-      "text": lang === "fr" ? "Signez la procuration HQ" : "Sign HQ authorization"
+      "text": lang === "fr" ? "Signez la procuration Hydro-Québec" : "Sign Hydro-Québec authorization"
     },
     {
       "@type": "HowToStep",

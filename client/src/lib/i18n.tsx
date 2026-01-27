@@ -61,7 +61,7 @@ const translations: Translations = {
     en: "Get a solar potential estimate and optimal solar size for your building within seconds." 
   },
   "landing.step1.time": { fr: "Quelques secondes", en: "Within seconds" },
-  "landing.step2.title": { fr: "Procuration HQ", en: "HQ Proxy" },
+  "landing.step2.title": { fr: "Procuration Hydro-Québec", en: "Hydro-Québec Proxy" },
   "landing.step2.description": { 
     fr: "Signez la procuration Hydro-Québec pour nous permettre d'accéder à votre profil de consommation et obtenir une analyse détaillée.", 
     en: "Sign the Hydro-Québec proxy to let us access your consumption profile and get a detailed analysis." 
@@ -431,7 +431,7 @@ const translations: Translations = {
   "clients.clientUpdated": { fr: "Client mis à jour", en: "Client updated" },
   "clients.clientDeleted": { fr: "Client supprimé", en: "Client deleted" },
   "clients.grantPortalAccess": { fr: "Accorder l'accès au portail", en: "Grant Portal Access" },
-  "clients.sendHqProcuration": { fr: "Envoyer procuration HQ", en: "Send HQ Procuration" },
+  "clients.sendHqProcuration": { fr: "Envoyer procuration Hydro-Québec", en: "Send Hydro-Québec Procuration" },
   "clients.procurationSent": { fr: "Procuration envoyée", en: "Procuration sent" },
   "clients.procurationSendError": { fr: "Erreur d'envoi de la procuration", en: "Error sending procuration" },
 
@@ -486,7 +486,7 @@ const translations: Translations = {
   "users.accessDenied": { fr: "Accès refusé", en: "Access denied" },
 
   // Procurations Management
-  "procurations.title": { fr: "Procurations HQ", en: "HQ Authorizations" },
+  "procurations.title": { fr: "Procurations Hydro-Québec", en: "Hydro-Québec Authorizations" },
   "procurations.description": { fr: "Gérez les procurations Hydro-Québec signées par les prospects", en: "Manage Hydro-Québec authorizations signed by prospects" },
   "procurations.recentTitle": { fr: "Procurations récentes", en: "Recent Authorizations" },
   "procurations.recentDescription": { fr: "Documents signés électroniquement via le formulaire d'analyse détaillée", en: "Documents signed electronically via the detailed analysis form" },
@@ -553,8 +553,8 @@ const translations: Translations = {
   "financing.years": { fr: "Années", en: "Years" },
   "financing.ppa": { fr: "PPA Tiers", en: "Third-Party PPA" },
   "financing.ppaTerm": { fr: "Durée PPA (ans)", en: "PPA Term (years)" },
-  "financing.ppaYear1Rate": { fr: "An 1: % tarif HQ", en: "Year 1: % of HQ rate" },
-  "financing.ppaYear2Rate": { fr: "An 2+: % tarif HQ", en: "Year 2+: % of HQ rate" },
+  "financing.ppaYear1Rate": { fr: "An 1: % tarif Hydro-Québec", en: "Year 1: % of Hydro-Québec rate" },
+  "financing.ppaYear2Rate": { fr: "An 2+: % tarif Hydro-Québec", en: "Year 2+: % of Hydro-Québec rate" },
   "financing.ppaLegalWarning": { 
     fr: "⚠️ AVERTISSEMENT LÉGAL: Au Québec, les PPA tiers (achat d'électricité d'un producteur autre qu'Hydro-Québec) opèrent dans une zone grise réglementaire. Cette option est présentée à titre comparatif uniquement. Consultez un avocat spécialisé en énergie avant de considérer ce modèle.", 
     en: "⚠️ LEGAL WARNING: In Quebec, third-party PPAs (purchasing electricity from a producer other than Hydro-Québec) operate in a regulatory gray area. This option is presented for comparison purposes only. Consult an energy lawyer before considering this model." 

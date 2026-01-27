@@ -778,7 +778,7 @@ export default function LandingPage() {
                                         <div className="flex flex-col items-center gap-2">
                                           <Upload className="w-8 h-8 text-muted-foreground" />
                                           <p className="text-sm font-medium">
-                                            {language === "fr" ? "Cliquez pour téléverser votre facture HQ" : "Click to upload your HQ bill"}
+                                            {language === "fr" ? "Cliquez pour téléverser votre facture Hydro-Québec" : "Click to upload your Hydro-Québec bill"}
                                           </p>
                                           <p className="text-xs text-muted-foreground">
                                             PDF ou image (JPG, PNG)
@@ -846,7 +846,7 @@ export default function LandingPage() {
                                       <div className="space-y-2">
                                         <label className="text-sm font-medium flex items-center gap-2">
                                           <Zap className="w-4 h-4 text-primary" />
-                                          {language === "fr" ? "Tarif HQ" : "HQ tariff"}
+                                          {language === "fr" ? "Tarif Hydro-Québec" : "Hydro-Québec tariff"}
                                         </label>
                                         <Select value={calcTariff} onValueChange={setCalcTariff}>
                                           <SelectTrigger className="h-11" data-testid="select-calc-tariff">
@@ -1035,7 +1035,7 @@ export default function LandingPage() {
                                         
                                         <div className="mt-3 pt-3 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">
                                           <span>{language === "fr" ? "Coût brut:" : "Gross cost:"} <span className="font-medium">${scenario.grossCAPEX.toLocaleString()}</span></span>
-                                          <span>{language === "fr" ? "Incitatif HQ:" : "HQ incentive:"} <span className="font-medium text-green-600">-${scenario.hqIncentive.toLocaleString()}</span></span>
+                                          <span>{language === "fr" ? "Incitatif Hydro-Québec:" : "Hydro-Québec incentive:"} <span className="font-medium text-green-600">-${scenario.hqIncentive.toLocaleString()}</span></span>
                                           <span>{language === "fr" ? "Coût net:" : "Net cost:"} <span className="font-medium">${scenario.netCAPEX.toLocaleString()}</span></span>
                                         </div>
                                       </div>
@@ -1238,7 +1238,7 @@ export default function LandingPage() {
                                 <div className="space-y-3">
                                   {[
                                     { step: 1, text: language === "fr" ? "Vous remplissez le formulaire" : "You fill out the form", icon: FileText },
-                                    { step: 2, text: language === "fr" ? "Vous signez la procuration HQ" : "You sign the HQ proxy", icon: FileSignature },
+                                    { step: 2, text: language === "fr" ? "Vous signez la procuration Hydro-Québec" : "You sign the Hydro-Québec proxy", icon: FileSignature },
                                     { step: 3, text: language === "fr" ? "Nous analysons vos données" : "We analyze your data", icon: BarChart3 },
                                     { step: 4, text: language === "fr" ? "Vous recevez votre rapport" : "You receive your report", icon: FileCheck },
                                   ].map((item) => (
@@ -1315,7 +1315,7 @@ export default function LandingPage() {
                                   </div>
                                   <div className="flex items-center gap-2 text-sm">
                                     <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                    <span>{language === "fr" ? "Téléversement de factures HQ" : "HQ bill upload"}</span>
+                                    <span>{language === "fr" ? "Téléversement de factures Hydro-Québec" : "Hydro-Québec bill upload"}</span>
                                   </div>
                                 </div>
                                 

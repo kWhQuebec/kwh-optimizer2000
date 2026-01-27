@@ -295,7 +295,7 @@ function FinancingComparisonSection({ proposal, competitorName, language, format
             </p>
             <ul className="space-y-1 text-amber-900 dark:text-amber-200">
               <li className="flex justify-between gap-2">
-                <span>{language === "fr" ? "Incitatif HQ:" : "HQ Incentive:"}</span>
+                <span>{language === "fr" ? "Incitatif Hydro-Québec:" : "Hydro-Québec Incentive:"}</span>
                 <span className="font-mono">{formatCurrency(Math.round(providerEconomics.hqIncentive))}</span>
               </li>
               <li className="flex justify-between gap-2">
@@ -1545,8 +1545,8 @@ export default function MarketIntelligencePage() {
                               <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
                               <span>
                                 {language === "fr"
-                                  ? `"Qui garde les crédits de surplus accumulés après 24 mois (compensation HQ à 4.54¢/kWh)?"`
-                                  : `"Who keeps the surplus credits accumulated after 24 months (HQ compensation at 4.54¢/kWh)?"`}
+                                  ? `"Qui garde les crédits de surplus accumulés après 24 mois (compensation Hydro-Québec à 4.54¢/kWh)?"`
+                                  : `"Who keeps the surplus credits accumulated after 24 months (Hydro-Québec compensation at 4.54¢/kWh)?"`}
                               </span>
                             </li>
                             <li className="flex items-start gap-2">
@@ -1629,7 +1629,7 @@ export default function MarketIntelligencePage() {
                                 </td>
                               </tr>
                               <tr className="border-b border-muted">
-                                <td className="py-2 pr-2">{language === "fr" ? "Incitatif HQ ($1,000/kW)" : "HQ Incentive ($1,000/kW)"}</td>
+                                <td className="py-2 pr-2">{language === "fr" ? "Incitatif Hydro-Québec ($1,000/kW)" : "Hydro-Québec Incentive ($1,000/kW)"}</td>
                                 <td className="text-center py-2 px-2">
                                   <span className="text-xs text-muted-foreground">{language === "fr" ? "TRC garde" : "TRC keeps"}</span>
                                 </td>
@@ -1671,8 +1671,8 @@ export default function MarketIntelligencePage() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
                           *{language === "fr" 
-                            ? "CAPEX estimé: coût − incitatif HQ (min $1000/kW ou 40%) × 70% après ITC fédéral. Le graphique inclut le bouclier fiscal CCA (Classe 43.2, 50% dégressif, taux 26.5%)." 
-                            : "Estimated CAPEX: cost − HQ incentive (min $1000/kW or 40%) × 70% after federal ITC. Chart includes CCA tax shield (Class 43.2, 50% declining, 26.5% rate)."}
+                            ? "CAPEX estimé: coût − incitatif Hydro-Québec (min $1000/kW ou 40%) × 70% après ITC fédéral. Le graphique inclut le bouclier fiscal CCA (Classe 43.2, 50% dégressif, taux 26.5%)." 
+                            : "Estimated CAPEX: cost − Hydro-Québec incentive (min $1000/kW or 40%) × 70% after federal ITC. Chart includes CCA tax shield (Class 43.2, 50% declining, 26.5% rate)."}
                         </p>
 
                         {/* Cashflow comparison chart */}
@@ -2136,7 +2136,7 @@ export default function MarketIntelligencePage() {
                         <FormControl>
                           <Input type="number" step="1" {...field} data-testid="input-ppa-year1" />
                         </FormControl>
-                        <FormDescription>{language === "fr" ? "% du tarif HQ" : "% of HQ rate"}</FormDescription>
+                        <FormDescription>{language === "fr" ? "% du tarif Hydro-Québec" : "% of Hydro-Québec rate"}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -2150,7 +2150,7 @@ export default function MarketIntelligencePage() {
                         <FormControl>
                           <Input type="number" step="1" {...field} data-testid="input-ppa-year2" />
                         </FormControl>
-                        <FormDescription>{language === "fr" ? "% du tarif HQ" : "% of HQ rate"}</FormDescription>
+                        <FormDescription>{language === "fr" ? "% du tarif Hydro-Québec" : "% of Hydro-Québec rate"}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
