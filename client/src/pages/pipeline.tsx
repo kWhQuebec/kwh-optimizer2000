@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -178,9 +178,15 @@ const opportunityFormSchema = z.object({
   priority: z.string().default("medium"),
   source: z.string().optional(),
   clientId: z.string().optional(),
+  // Inline client creation fields
+  newClientName: z.string().optional(),
+  newClientEmail: z.string().email().optional().or(z.literal("")),
+  newClientPhone: z.string().optional(),
 });
 
 type OpportunityFormValues = z.infer<typeof opportunityFormSchema>;
+
+const CREATE_NEW_CLIENT_VALUE = "__create_new__";
 
 function OpportunityCard({ 
   opportunity, 
@@ -576,6 +582,7 @@ export default function PipelinePage() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<OpportunityWithRelations | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
   
   // Stage advance modal state
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
@@ -629,17 +636,44 @@ export default function PipelinePage() {
     },
   });
 
+  const createClientMutation = useMutation({
+    mutationFn: async (data: { name: string; email?: string; phone?: string }) => {
+      const response = await apiRequest("POST", "/api/clients", data);
+      return response.json();
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: OpportunityFormValues) => {
+      let clientId = data.clientId;
+      
+      // If creating new client, create it first
+      if (clientId === CREATE_NEW_CLIENT_VALUE && data.newClientName) {
+        const newClient = await createClientMutation.mutateAsync({
+          name: data.newClientName,
+          email: data.newClientEmail || undefined,
+          phone: data.newClientPhone || undefined,
+        });
+        clientId = newClient.id;
+      }
+      
+      // Remove inline client fields and normalize clientId
+      const { newClientName, newClientEmail, newClientPhone, ...opportunityData } = data;
+      // Normalize clientId: treat empty string or CREATE_NEW_CLIENT_VALUE as undefined
+      const normalizedClientId = clientId && clientId !== CREATE_NEW_CLIENT_VALUE ? clientId : undefined;
       const payload = {
-        ...data,
+        ...opportunityData,
+        clientId: normalizedClientId,
         expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate).toISOString() : undefined,
       };
       return apiRequest("POST", "/api/opportunities", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       setIsAddOpen(false);
+      setIsCreatingNewClient(false);
+      addForm.reset();
       toast({
         title: language === "fr" ? "Opportunité créée" : "Opportunity created",
       });
@@ -684,6 +718,10 @@ export default function PipelinePage() {
       stage: "prospect",
       priority: "medium",
       source: "web_form",
+      clientId: "",
+      newClientName: "",
+      newClientEmail: "",
+      newClientPhone: "",
     },
   });
 
@@ -1052,7 +1090,13 @@ export default function PipelinePage() {
         />
       )}
 
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      <Dialog open={isAddOpen} onOpenChange={(open) => {
+        setIsAddOpen(open);
+        if (!open) {
+          setIsCreatingNewClient(false);
+          addForm.reset();
+        }
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
@@ -1060,7 +1104,17 @@ export default function PipelinePage() {
             </DialogTitle>
           </DialogHeader>
           <Form {...addForm}>
-            <form onSubmit={addForm.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+            <form onSubmit={addForm.handleSubmit((data) => {
+              // Validate new client name if creating new client
+              if (data.clientId === CREATE_NEW_CLIENT_VALUE && !data.newClientName?.trim()) {
+                addForm.setError("newClientName", { 
+                  type: "required", 
+                  message: language === "fr" ? "Le nom du client est requis" : "Client name is required" 
+                });
+                return;
+              }
+              createMutation.mutate(data);
+            })} className="space-y-4">
               <Tabs defaultValue="opportunity" className="w-full">
                 <TabsList className="grid w-full grid-cols-3" data-testid="tabs-add-opportunity">
                   <TabsTrigger value="opportunity" data-testid="tab-add-opportunity">
@@ -1109,13 +1163,35 @@ export default function PipelinePage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{language === "fr" ? "Client" : "Client"}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            const isNewClient = value === CREATE_NEW_CLIENT_VALUE;
+                            setIsCreatingNewClient(isNewClient);
+                            // Clear new client fields when switching to existing client
+                            if (!isNewClient) {
+                              addForm.setValue("newClientName", "");
+                              addForm.setValue("newClientEmail", "");
+                              addForm.setValue("newClientPhone", "");
+                            }
+                          }} 
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger data-testid="select-opportunity-client">
                               <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value={CREATE_NEW_CLIENT_VALUE} className="text-primary font-medium">
+                              <span className="flex items-center gap-1.5">
+                                <Plus className="w-3.5 h-3.5" />
+                                {language === "fr" ? "Créer un nouveau client" : "Create new client"}
+                              </span>
+                            </SelectItem>
+                            {clients.length > 0 && (
+                              <SelectSeparator />
+                            )}
                             {clients.map((client) => (
                               <SelectItem key={client.id} value={client.id}>
                                 {client.name}
@@ -1127,6 +1203,56 @@ export default function PipelinePage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Inline client creation fields */}
+                  {isCreatingNewClient && (
+                    <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {language === "fr" ? "Nouveau client" : "New Client"}
+                      </p>
+                      <FormField
+                        control={addForm.control}
+                        name="newClientName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{language === "fr" ? "Nom du client" : "Client Name"} *</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder={language === "fr" ? "Nom de l'entreprise" : "Company name"} data-testid="input-new-client-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={addForm.control}
+                          name="newClientEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{language === "fr" ? "Courriel" : "Email"}</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="email" placeholder="email@example.com" data-testid="input-new-client-email" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={addForm.control}
+                          name="newClientPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{language === "fr" ? "Téléphone" : "Phone"}</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="tel" placeholder="514-555-0000" data-testid="input-new-client-phone" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <FormField
                     control={addForm.control}
@@ -1259,7 +1385,11 @@ export default function PipelinePage() {
               </Tabs>
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => {
+                  setIsAddOpen(false);
+                  setIsCreatingNewClient(false);
+                  addForm.reset();
+                }}>
                   {language === "fr" ? "Annuler" : "Cancel"}
                 </Button>
                 <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-opportunity">
