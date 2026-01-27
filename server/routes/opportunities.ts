@@ -14,7 +14,22 @@ router.get("/api/opportunities", authMiddleware, requireStaff, async (req: AuthR
     } else {
       opportunities = await storage.getOpportunities();
     }
-    res.json(opportunities);
+    
+    // Enrich opportunities with related data (owner, client, site)
+    const [allUsers, allClients, allSites] = await Promise.all([
+      storage.getUsers(),
+      storage.getClients(),
+      storage.getSites(),
+    ]);
+    
+    const enrichedOpportunities = opportunities.map(opp => ({
+      ...opp,
+      owner: opp.ownerId ? allUsers.find(u => u.id === opp.ownerId) || null : null,
+      client: opp.clientId ? allClients.find(c => c.id === opp.clientId) || null : null,
+      site: opp.siteId ? allSites.find(s => s.id === opp.siteId) || null : null,
+    }));
+    
+    res.json(enrichedOpportunities);
   } catch (error) {
     console.error("Error fetching opportunities:", error);
     res.status(500).json({ error: "Internal server error" });

@@ -38,7 +38,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Opportunity, User as UserType, Client } from "@shared/schema";
+import type { Opportunity, User as UserType, Client, Site } from "@shared/schema";
 
 // Format currency in a compact, readable way (e.g., "$128M", "$1.5M", "$250k")
 function formatCompactCurrency(value: number | null | undefined): string {
@@ -155,6 +155,7 @@ interface RfpBreakdown {
 interface OpportunityWithRelations extends Opportunity {
   owner?: UserType | null;
   client?: Client | null;
+  site?: Site | null;
   rfpBreakdown?: RfpBreakdown;
 }
 
@@ -1443,9 +1444,12 @@ export default function PipelinePage() {
                 className="space-y-4"
               >
                 <Tabs defaultValue="opportunity" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3" data-testid="tabs-edit-opportunity">
+                  <TabsList className="grid w-full grid-cols-4" data-testid="tabs-edit-opportunity">
                     <TabsTrigger value="opportunity" data-testid="tab-edit-opportunity">
                       {language === "fr" ? "Opportunité" : "Opportunity"}
+                    </TabsTrigger>
+                    <TabsTrigger value="site" data-testid="tab-edit-site">
+                      Site
                     </TabsTrigger>
                     <TabsTrigger value="financial" data-testid="tab-edit-financial">
                       {language === "fr" ? "Financier" : "Financial"}
@@ -1584,6 +1588,58 @@ export default function PipelinePage() {
                         )}
                       />
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="site" className="space-y-4 mt-4" data-testid="tabcontent-edit-site">
+                    {selectedOpportunity?.site ? (
+                      <div className="space-y-4">
+                        <div className="p-4 border rounded-lg space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium">{selectedOpportunity.site.name}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {selectedOpportunity.site.city}{selectedOpportunity.site.province ? `, ${selectedOpportunity.site.province}` : ''}
+                              </p>
+                            </div>
+                            <Button 
+                              type="button"
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setIsDetailOpen(false);
+                                window.location.href = `/sites/${selectedOpportunity.site!.id}`;
+                              }}
+                              data-testid="button-goto-site"
+                            >
+                              <Building2 className="w-4 h-4 mr-2" />
+                              {language === "fr" ? "Ouvrir le site" : "Open Site"}
+                            </Button>
+                          </div>
+                          {selectedOpportunity.site.address && (
+                            <p className="text-sm">{selectedOpportunity.site.address}</p>
+                          )}
+                          {selectedOpportunity.site.roofAreaSqM && (
+                            <p className="text-sm text-muted-foreground">
+                              {language === "fr" ? "Superficie de toiture:" : "Roof area:"} {Math.round(selectedOpportunity.site.roofAreaSqM)} m²
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 space-y-4">
+                        <Building2 className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
+                        <p className="text-muted-foreground">
+                          {language === "fr" 
+                            ? "Aucun site lié à cette opportunité" 
+                            : "No site linked to this opportunity"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {language === "fr" 
+                            ? "Créez un client d'abord, puis ajoutez un site depuis la page client" 
+                            : "Create a client first, then add a site from the client page"}
+                        </p>
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="financial" className="space-y-4 mt-4" data-testid="tabcontent-edit-financial">
