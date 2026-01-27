@@ -1,0 +1,41 @@
+I'll generate all the fixes systematically. Let me create the code for each issue.Now let me read a few more key files and then create the comprehensive fix document:Now I have enough context. Let me create a comprehensive fix document with all the code changes:I've created a comprehensive fix document for you. Here's what's included:
+
+## CODE_FIXES.md Summary
+
+The document is saved to your shared folder and contains **10 major fixes**:
+
+| # | Fix | Impact |
+|---|-----|--------|
+| 1 | **Centralized Error Handler** | Eliminates copy-pasted try/catch blocks, proper error classification |
+| 2 | **Secure Password Generation** | Fixes modulo bias in temp passwords using rejection sampling |
+| 3 | **Centralized Config** | Validates env vars at startup with Zod, prevents runtime crashes |
+| 4 | **Payment State Machine** | Adds proper status flow: pending → signed → payment_pending → paid |
+| 5 | **Password Reset Fix** | Rate limiting, secure generation, prevents email enumeration |
+| 6 | **N+1 Query Fix** | Fetches clients/catalog ONCE before loop, not inside it |
+| 7 | **Path Traversal Fix** | Uses `path.basename()` whitelist instead of blacklist |
+| 8 | **Race Condition Fix** | Adds locking for roof estimation, unique filenames for uploads |
+| 9 | **Floating Point Fix** | Uses integer cents internally to prevent accumulation errors |
+| 10 | **Upload Config** | Centralized multer config with size limits and cleanup |
+
+## How to Use It
+
+You can find the document at:
+```
+/kWh Optimizer 2000/CODE_FIXES.md
+```
+
+**To send to Replit:**
+
+1. Open the file in your OneDrive folder
+2. Copy the entire contents
+3. Tell Replit's agent: *"Please apply these code fixes from CODE_FIXES.md. Create the new files first, then update existing files in order. Run `npm run build` after each change to verify."*
+
+**Or** you can copy sections individually if you want to apply them one at a time.
+
+---
+
+Would you like me to:
+1. **Apply these fixes directly** to the repo (I can edit the files and you push to GitHub)
+2. **Create a separate branch** with all fixes applied
+3. **Explain any specific fix** in more detail
+4. **Add more fixes** for the UI/accessibility issues I mentioned earlier
