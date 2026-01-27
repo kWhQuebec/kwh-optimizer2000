@@ -335,18 +335,28 @@ router.get("/api/admin/procuration-pdfs/:filename", authMiddleware, requireStaff
   try {
     const { filename } = req.params;
     
-    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-      return res.status(400).json({ error: "Invalid filename" });
+    // FIX: Path traversal protection using allowlist pattern + path normalization
+    const safeFilename = path.basename(filename);
+    
+    // Only allow procuration PDFs matching our expected pattern
+    if (!/^procuration_[a-f0-9-]+_\d+\.pdf$/.test(safeFilename)) {
+      return res.status(400).json({ error: "Invalid filename format" });
     }
     
-    const filePath = path.join(process.cwd(), "uploads", "procurations", filename);
+    const baseDir = path.resolve(process.cwd(), "uploads", "procurations");
+    const filePath = path.resolve(baseDir, safeFilename);
+    
+    // Double-check the resolved path is within the allowed directory
+    if (!filePath.startsWith(baseDir + path.sep)) {
+      return res.status(400).json({ error: "Invalid file path" });
+    }
     
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: "File not found" });
     }
     
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+    res.setHeader("Content-Disposition", `attachment; filename=${safeFilename}`);
     res.sendFile(filePath);
   } catch (error) {
     console.error("Error downloading procuration PDF:", error);
