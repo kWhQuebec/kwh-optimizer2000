@@ -1425,6 +1425,19 @@ export default function LandingPage() {
                                     size="lg" 
                                     className="w-full gap-2 bg-accent text-accent-foreground"
                                     data-testid="button-go-to-detailed-form"
+                                    onClick={() => {
+                                      // Transfer parsed bill data to localStorage for use on detailed analysis page
+                                      if (calcBillParsed) {
+                                        localStorage.setItem('kwhquebec_bill_data', JSON.stringify({
+                                          accountNumber: calcBillParsed.accountNumber || null,
+                                          clientName: calcBillParsed.clientName || calcClientName || null,
+                                          serviceAddress: calcBillParsed.serviceAddress || calcAddress || null,
+                                          annualConsumptionKwh: calcBillParsed.annualConsumptionKwh || null,
+                                          tariffCode: calcBillParsed.tariffCode || null,
+                                          email: calcEmail || null,
+                                        }));
+                                      }
+                                    }}
                                   >
                                     {language === "fr" ? "Commencer ma demande" : "Start my request"}
                                     <ArrowRight className="w-4 h-4" />

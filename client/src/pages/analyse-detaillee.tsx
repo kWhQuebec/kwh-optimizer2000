@@ -197,6 +197,62 @@ export default function AnalyseDetailleePage() {
     },
   });
 
+  // Check for pre-filled data from Quick Analysis (transferred via localStorage)
+  useEffect(() => {
+    const storedBillData = localStorage.getItem('kwhquebec_bill_data');
+    if (storedBillData) {
+      try {
+        const billData = JSON.parse(storedBillData);
+        
+        // Pre-fill the form with transferred data
+        if (billData.clientName) {
+          form.setValue('companyName', billData.clientName);
+        }
+        if (billData.serviceAddress) {
+          const { street, city } = parseAddressParts(billData.serviceAddress);
+          if (street) form.setValue('streetAddress', street);
+          if (city) {
+            form.setValue('city', city);
+            form.setValue('signatureCity', city);
+          }
+        }
+        if (billData.tariffCode) {
+          form.setValue('tariffCode', billData.tariffCode);
+        }
+        if (billData.email) {
+          form.setValue('email', billData.email);
+        }
+        if (billData.accountNumber) {
+          form.setValue('hqClientNumber', billData.accountNumber);
+        }
+        
+        // Also set the parsed bill data state for display purposes
+        if (billData.annualConsumptionKwh || billData.tariffCode || billData.accountNumber) {
+          setParsedBillData({
+            accountNumber: billData.accountNumber || null,
+            clientName: billData.clientName || null,
+            serviceAddress: billData.serviceAddress || null,
+            annualConsumptionKwh: billData.annualConsumptionKwh || null,
+            peakDemandKw: null,
+            tariffCode: billData.tariffCode || null,
+            billingPeriod: null,
+            estimatedMonthlyBill: null,
+            confidence: 0.8,
+          });
+          
+          // Skip to step 2 since we already have bill data
+          setCurrentStep(2);
+        }
+        
+        // Clear localStorage after reading (one-time transfer)
+        localStorage.removeItem('kwhquebec_bill_data');
+      } catch (e) {
+        console.error('Failed to parse stored bill data:', e);
+        localStorage.removeItem('kwhquebec_bill_data');
+      }
+    }
+  }, [form]);
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setUploadError(null);
     setParseError(null);
