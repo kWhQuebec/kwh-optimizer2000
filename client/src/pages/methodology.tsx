@@ -98,7 +98,7 @@ export default function MethodologyPage() {
           </TabsContent>
 
           <TabsContent value="solar" className="space-y-6">
-            <SolarSection t={t} />
+            <SolarSection t={t} language={language} />
           </TabsContent>
 
           <TabsContent value="battery" className="space-y-6">
@@ -264,7 +264,7 @@ function OverviewSection({ t }: { t: typeof fr }) {
   );
 }
 
-function SolarSection({ t }: { t: typeof fr }) {
+function SolarSection({ t, language }: { t: typeof fr; language: string }) {
   return (
     <>
       <Card>
