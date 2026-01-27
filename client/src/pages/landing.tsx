@@ -49,7 +49,7 @@ import carouselSlide4Fr from "@assets/Screenshot_2025-12-11_at_9.15.24_PM_176550
 import carouselSlide5Fr from "@assets/Screenshot_2025-12-11_at_9.15.38_PM_1765505832702.png";
 import carouselSlide6Fr from "@assets/Screenshot_2025-12-11_at_9.15.53_PM_1765505832701.png";
 import carouselSlide7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_1765505832689.png";
-import dreamIndustrialLogo from "@assets/Dream_industrial_logo_1769527405856.png";
+import dreamIndustrialLogo from "@assets/Dream_industrial_logo-removebg-preview_1769529256535.png";
 import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
 import scaleCleantechLogo from "@assets/scale-cleantech-color_small-VSYW5GJE_1769527536419.webp";
 
