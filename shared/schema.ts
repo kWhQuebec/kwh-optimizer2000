@@ -41,6 +41,41 @@ export const leads = pgTable("leads", {
   roofPotentialKw: real("roof_potential_kw"),
   estimateError: text("estimate_error"),
   estimateCompletedAt: timestamp("estimate_completed_at"),
+  
+  // Lead Qualification System - 4 Gates
+  // Gate 1: Economic Potential
+  economicStatus: text("economic_status"), // "high" | "medium" | "low" | "insufficient"
+  
+  // Gate 2: Right to Install
+  propertyRelationship: text("property_relationship"), // "owner" | "tenant_authorized" | "tenant_pending" | "tenant_no_auth" | "unknown"
+  landlordName: text("landlord_name"),
+  landlordContact: text("landlord_contact"),
+  authorizationStatus: text("authorization_status"),
+  
+  // Gate 3: Roof Condition
+  roofCondition: text("roof_condition"), // "excellent" | "good" | "needs_repair" | "needs_replacement" | "unknown"
+  roofAge: text("roof_age"), // "new" | "recent" | "mature" | "old" | "unknown"
+  roofAgeYears: integer("roof_age_years"),
+  lastRoofInspection: timestamp("last_roof_inspection"),
+  plannedRoofWork: text("planned_roof_work"),
+  
+  // Gate 4: Decision Capacity
+  decisionAuthority: text("decision_authority"), // "decision_maker" | "influencer" | "researcher" | "unknown"
+  decisionMakerName: text("decision_maker_name"),
+  decisionMakerTitle: text("decision_maker_title"),
+  budgetReadiness: text("budget_readiness"), // "budget_allocated" | "budget_possible" | "budget_needed" | "no_budget" | "unknown"
+  timelineUrgency: text("timeline_urgency"), // "immediate" | "this_year" | "next_year" | "exploring" | "unknown"
+  targetDecisionDate: timestamp("target_decision_date"),
+  
+  // Qualification Results
+  qualificationScore: integer("qualification_score"), // 0-100
+  qualificationStatus: text("qualification_status"), // "hot" | "warm" | "nurture" | "cold" | "disqualified" | "pending"
+  qualificationBlockers: jsonb("qualification_blockers"), // Array of Blocker objects
+  qualificationNextSteps: jsonb("qualification_next_steps"), // Array of strings
+  qualificationNotes: text("qualification_notes"),
+  qualifiedAt: timestamp("qualified_at"),
+  qualifiedBy: varchar("qualified_by"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1604,7 +1639,38 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   roofPotentialKw: true,
   estimateError: true,
   estimateCompletedAt: true,
+  // Qualification results (computed by system)
+  qualificationScore: true,
+  qualificationStatus: true,
+  qualificationBlockers: true,
+  qualificationNextSteps: true,
+  qualifiedAt: true,
+  qualifiedBy: true,
 });
+
+// Schema for qualification form data
+export const qualificationFormSchema = z.object({
+  estimatedMonthlyBill: z.number().nullable(),
+  propertyRelationship: z.enum(["owner", "tenant_authorized", "tenant_pending", "tenant_no_auth", "unknown"]),
+  landlordName: z.string().optional(),
+  landlordEmail: z.string().email().optional().or(z.literal("")),
+  landlordPhone: z.string().optional(),
+  hasAuthorizationLetter: z.boolean().default(false),
+  roofAge: z.enum(["new", "recent", "mature", "old", "unknown"]),
+  roofAgeYearsApprox: z.number().optional(),
+  roofCondition: z.enum(["excellent", "good", "needs_repair", "needs_replacement", "unknown"]),
+  plannedRoofWorkNext5Years: z.boolean().default(false),
+  plannedRoofWorkDescription: z.string().optional(),
+  contactIsDecisionMaker: z.boolean().default(false),
+  decisionMakerName: z.string().optional(),
+  decisionMakerTitle: z.string().optional(),
+  decisionMakerEmail: z.string().email().optional().or(z.literal("")),
+  budgetReadiness: z.enum(["budget_allocated", "budget_possible", "budget_needed", "no_budget", "unknown"]),
+  timelineUrgency: z.enum(["immediate", "this_year", "next_year", "exploring", "unknown"]),
+  targetDecisionQuarter: z.string().optional(),
+});
+
+export type QualificationFormData = z.infer<typeof qualificationFormSchema>;
 
 export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,

@@ -17,7 +17,10 @@ import {
   XCircle,
   HelpCircle,
   LayoutGrid,
-  List
+  List,
+  Flame,
+  Snowflake,
+  Clock as ClockIcon
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +41,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Opportunity, User as UserType, Client, Site } from "@shared/schema";
+import type { Opportunity, User as UserType, Client, Site, Lead } from "@shared/schema";
+import { QualificationForm } from "@/components/qualification";
 
 // Format currency in a compact, readable way (e.g., "$128M", "$1.5M", "$250k")
 function formatCompactCurrency(value: number | null | undefined): string {
@@ -592,6 +596,10 @@ export default function PipelinePage() {
   const [advanceNotes, setAdvanceNotes] = useState("");
   const [advanceExpectedCloseDate, setAdvanceExpectedCloseDate] = useState("");
   const [isAdvancing, setIsAdvancing] = useState(false);
+  
+  // Qualification state
+  const [isQualificationOpen, setIsQualificationOpen] = useState(false);
+  const [selectedLeadForQualification, setSelectedLeadForQualification] = useState<Lead | null>(null);
 
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
@@ -1695,10 +1703,30 @@ export default function PipelinePage() {
                   </TabsContent>
                 </Tabs>
 
-                <DialogFooter>
+                <DialogFooter className="gap-2 flex-wrap">
                   <Button type="button" variant="outline" onClick={() => setIsDetailOpen(false)}>
                     {language === "fr" ? "Annuler" : "Cancel"}
                   </Button>
+                  {(selectedOpportunity as any)?.leadId && (
+                    <Button 
+                      type="button" 
+                      variant="secondary"
+                      onClick={async () => {
+                        try {
+                          const response = await apiRequest("GET", `/api/leads/${(selectedOpportunity as any).leadId}`);
+                          const lead = await response.json();
+                          setSelectedLeadForQualification(lead);
+                          setIsQualificationOpen(true);
+                        } catch (error) {
+                          console.error("Failed to fetch lead:", error);
+                        }
+                      }}
+                      data-testid="button-qualify-lead"
+                    >
+                      <Target className="w-4 h-4 mr-2" />
+                      {language === "fr" ? "Qualifier" : "Qualify"}
+                    </Button>
+                  )}
                   <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-opportunity">
                     {updateMutation.isPending 
                       ? (language === "fr" ? "Sauvegarde..." : "Saving...") 
@@ -1710,6 +1738,21 @@ export default function PipelinePage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Qualification Dialog */}
+      {selectedLeadForQualification && (
+        <QualificationForm
+          lead={selectedLeadForQualification}
+          open={isQualificationOpen}
+          onClose={() => {
+            setIsQualificationOpen(false);
+            setSelectedLeadForQualification(null);
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+          }}
+        />
+      )}
 
       {/* Stage Advance Modal */}
       <Dialog open={isAdvanceModalOpen} onOpenChange={setIsAdvanceModalOpen}>

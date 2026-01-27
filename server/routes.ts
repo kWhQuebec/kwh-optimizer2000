@@ -92,6 +92,7 @@ import importRouter from "./routes/import";
 import kbRackingRouter from "./routes/kb-racking";
 import workQueueRouter from "./routes/work-queue";
 import rackingComparisonRouter from "./routes/racking-comparison";
+import qualificationRouter from "./routes/qualification";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
@@ -266,6 +267,9 @@ export async function registerRoutes(
 
   // ==================== WORK QUEUE ROUTES ====================
   app.use(workQueueRouter);
+
+  // ==================== QUALIFICATION ROUTES ====================
+  app.use(qualificationRouter);
 
   // ==================== ROOF POLYGON STANDALONE ROUTES ====================
   // PUT /api/roof-polygons/:id and DELETE /api/roof-polygons/:id are handled via sitesRouter
