@@ -1845,7 +1845,7 @@ export default function LandingPage() {
             <img 
               src={dreamIndustrialLogo} 
               alt="Dream Industrial REIT" 
-              className="h-10 object-contain"
+              className="h-16 object-contain"
               data-testid="logo-dream-industrial"
             />
             <img 
