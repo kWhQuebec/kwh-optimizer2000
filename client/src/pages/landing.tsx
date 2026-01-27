@@ -53,6 +53,8 @@ import carouselSlide7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_176550
 import dreamIndustrialLogo from "@assets/Dream_industrial_logo-removebg-preview_1769529256535.png";
 import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
 import scaleCleantechLogo from "@assets/scale-cleantech-color_small-VSYW5GJE_1769527536419.webp";
+import hqBillUploadIllustration from "@assets/generated_images/hq_bill_upload_illustration.png";
+import hqLogo from "@assets/Screenshot_2026-01-27_at_5.26.14_PM_1769552778826.png";
 
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
@@ -777,10 +779,23 @@ export default function LandingPage() {
                                           </Button>
                                         </div>
                                       ) : (
-                                        <div className="flex flex-col items-center gap-2">
-                                          <Upload className="w-8 h-8 text-muted-foreground" />
-                                          <p className="text-sm font-medium">
-                                            {language === "fr" ? "Cliquez pour téléverser votre facture Hydro-Québec" : "Click to upload your Hydro-Québec bill"}
+                                        <div className="flex flex-col items-center gap-3">
+                                          <div className="relative">
+                                            <img 
+                                              src={hqBillUploadIllustration} 
+                                              alt="Hydro-Québec bill" 
+                                              className="w-20 h-20 object-contain"
+                                            />
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <img 
+                                              src={hqLogo} 
+                                              alt="Hydro-Québec" 
+                                              className="h-6 object-contain"
+                                            />
+                                          </div>
+                                          <p className="text-sm font-medium text-center">
+                                            {language === "fr" ? "Téléversez votre facture Hydro-Québec" : "Upload your Hydro-Québec bill"}
                                           </p>
                                           <p className="text-xs text-muted-foreground">
                                             PDF ou image (JPG, PNG)
