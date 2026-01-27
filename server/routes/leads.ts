@@ -171,6 +171,48 @@ router.post("/api/quick-estimate", async (req, res) => {
     
     console.log(`[Quick Estimate] Consumption: ${Math.round(annualKWh)} kWh/yr, 3 scenarios calculated, Rate: ${energyRate} $/kWh`);
     
+    // Storage (Battery) Recommendation
+    // Storage is most valuable for:
+    // 1. Tariff M/L clients (demand charges make peak shaving valuable)
+    // 2. Large systems (>100 kW) that generate excess daytime production
+    // 3. Buildings with evening/weekend consumption patterns
+    const hasDemandCharges = tariff === 'M' || tariff === 'L';
+    const isLargeSystem = primaryScenario.systemSizeKW >= 100;
+    const estimatedPeakDemandKW = Math.round(annualKWh / (8760 * 0.3)); // Estimated peak from load factor
+    
+    // Recommend storage if demand charges exist or system is large enough to benefit
+    const storageRecommended = hasDemandCharges || isLargeSystem;
+    
+    // Sizing: Battery power = 20-30% of solar system size for peak shaving
+    // Battery energy = 2-4 hours of storage at rated power
+    const recommendedBatteryPowerKW = storageRecommended 
+      ? Math.round(primaryScenario.systemSizeKW * 0.25) 
+      : 0;
+    const recommendedBatteryEnergyKWh = recommendedBatteryPowerKW * 3; // 3 hours storage
+    
+    // Estimated additional savings from peak shaving (for M/L tariffs)
+    // HQ Rate M demand charge: ~$17.57/kW/month = ~$210/kW/year
+    const demandChargeRate = tariff === 'M' ? 17.573 : (tariff === 'L' ? 14.521 : 0);
+    const estimatedDemandSavings = hasDemandCharges 
+      ? Math.round(recommendedBatteryPowerKW * demandChargeRate * 12 * 0.5) // Assume 50% peak reduction
+      : 0;
+    
+    // Storage CAPEX estimate: ~$500/kWh (installed)
+    const storageCAPEX = recommendedBatteryEnergyKWh * 500;
+    
+    const storageRecommendation = {
+      recommended: storageRecommended,
+      reason: hasDemandCharges 
+        ? (tariff === 'M' ? 'demand_charges_m' : 'demand_charges_l')
+        : (isLargeSystem ? 'large_system' : 'not_applicable'),
+      batteryPowerKW: recommendedBatteryPowerKW,
+      batteryEnergyKWh: recommendedBatteryEnergyKWh,
+      estimatedCost: storageCAPEX,
+      estimatedAnnualSavings: estimatedDemandSavings,
+      paybackYears: estimatedDemandSavings > 0 ? Math.round((storageCAPEX / estimatedDemandSavings) * 10) / 10 : 0,
+      tariffHasDemandCharges: hasDemandCharges,
+    };
+    
     // CO2 reduction (based on conservative scenario)
     const co2ReductionTons = Math.round(primaryScenario.annualProductionKWh * 0.0012 * 10) / 10;
     
@@ -296,6 +338,7 @@ router.post("/api/quick-estimate", async (req, res) => {
       environmental: {
         co2ReductionTons,
       },
+      storage: storageRecommendation,
     });
   } catch (error) {
     console.error("Quick estimate error:", error);

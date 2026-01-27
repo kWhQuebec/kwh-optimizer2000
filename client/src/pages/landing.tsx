@@ -30,7 +30,7 @@ import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
 import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
-import consumptionAnalysis from "@assets/generated_images/consumption_analysis_concept.png";
+import consumptionAnalysis from "@assets/generated_images/consumption_analysis_hq_branded.png";
 import heroRoofAnalysis from "@assets/generated_images/industrial_roof_solar_potential_overlay.png";
 import roofZoneOverlay from "@assets/generated_images/commercial_roof_solar_zone_overlay.png";
 import roofMeasurementOverlay from "@assets/generated_images/commercial_roof_solar_measurement_overlay.png";
@@ -122,8 +122,18 @@ export default function LandingPage() {
       paybackYears: number;
     }>;
     financial: { annualSavings: number; paybackYears: number; hqIncentive: number; federalITC: number; totalIncentives: number; netCAPEX: number; grossCAPEX: number };
-    billing: { monthlyBillBefore: number; monthlyBillAfter: number; monthlySavings: number };
+    billing: { monthlyBillBefore: number; monthlyBillAfter: number; monthlySavings: number; annualBillBefore?: number; annualBillAfter?: number; annualSavings?: number };
     consumption: { annualKWh: number; monthlyKWh: number };
+    storage?: {
+      recommended: boolean;
+      reason: string;
+      batteryPowerKW: number;
+      batteryEnergyKWh: number;
+      estimatedCost: number;
+      estimatedAnnualSavings: number;
+      paybackYears: number;
+      tariffHasDemandCharges: boolean;
+    };
   } | null>(null);
   const [calcError, setCalcError] = useState<string>("");
   const billFileInputRef = useRef<HTMLInputElement>(null);
@@ -587,7 +597,7 @@ export default function LandingPage() {
                     <div className="mt-4 pt-4 border-t">
                       <div className="flex gap-4 items-center">
                         <img 
-                          src={roofMeasurement} 
+                          src={consumptionAnalysis} 
                           alt={language === "fr" ? "Aperçu analyse" : "Analysis preview"}
                           className="w-24 h-16 object-cover rounded-lg border shrink-0"
                         />
@@ -982,6 +992,10 @@ export default function LandingPage() {
                                     const labels = scenarioLabels[scenario.key as keyof typeof scenarioLabels];
                                     const isRecommended = scenario.key === "conservative";
                                     
+                                    // Calculate percentage savings vs current bill
+                                    const annualBill = calcResults.billing.annualBillBefore || (calcResults.billing.monthlyBillBefore * 12);
+                                    const savingsPercent = annualBill > 0 ? Math.round((scenario.annualSavings / annualBill) * 100) : 0;
+                                    
                                     return (
                                       <div 
                                         key={scenario.key}
@@ -993,6 +1007,9 @@ export default function LandingPage() {
                                             <div className="flex items-center gap-2 flex-wrap">
                                               <h5 className="font-semibold">{labels.title}</h5>
                                               <span className="text-sm text-muted-foreground">({labels.subtitle})</span>
+                                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 text-xs">
+                                                -{savingsPercent}%
+                                              </Badge>
                                               {labels.badge && (
                                                 <Badge className="bg-primary text-primary-foreground text-xs">
                                                   {labels.badge}
@@ -1056,6 +1073,61 @@ export default function LandingPage() {
                                     );
                                   })}
                                 </div>
+                                
+                                {/* Storage Recommendation Section */}
+                                {calcResults.storage?.recommended && (
+                                  <div className="mt-4 p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30" data-testid="storage-recommendation">
+                                    <div className="flex items-start gap-3">
+                                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50">
+                                        <Battery className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h5 className="font-semibold flex items-center gap-2">
+                                          {language === "fr" ? "Stockage recommandé" : "Storage Recommended"}
+                                          <Badge variant="outline" className="bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 text-xs">
+                                            {language === "fr" ? "Optionnel" : "Optional"}
+                                          </Badge>
+                                        </h5>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                          {calcResults.storage.tariffHasDemandCharges 
+                                            ? (language === "fr" 
+                                                ? "Votre tarif comporte des frais de puissance. Le stockage peut réduire vos pointes de demande et générer des économies additionnelles." 
+                                                : "Your tariff includes demand charges. Storage can reduce your demand peaks and generate additional savings.")
+                                            : (language === "fr"
+                                                ? "Avec un système solaire de cette taille, le stockage peut maximiser l'autoconsommation et fournir une alimentation de secours."
+                                                : "With a solar system of this size, storage can maximize self-consumption and provide backup power.")}
+                                        </p>
+                                        
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Puissance" : "Power"}</p>
+                                            <p className="text-base font-bold text-amber-700 dark:text-amber-400">{calcResults.storage.batteryPowerKW} kW</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Capacité" : "Capacity"}</p>
+                                            <p className="text-base font-bold text-amber-700 dark:text-amber-400">{calcResults.storage.batteryEnergyKWh} kWh</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Coût estimé" : "Est. Cost"}</p>
+                                            <p className="text-base font-bold">${calcResults.storage.estimatedCost.toLocaleString()}</p>
+                                          </div>
+                                          {calcResults.storage.estimatedAnnualSavings > 0 && (
+                                            <div>
+                                              <p className="text-xs text-muted-foreground">{language === "fr" ? "Écon. add." : "Add. Savings"}</p>
+                                              <p className="text-base font-bold text-green-600">${calcResults.storage.estimatedAnnualSavings.toLocaleString()}/{language === "fr" ? "an" : "yr"}</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        <p className="text-xs text-muted-foreground mt-2 italic">
+                                          {language === "fr" 
+                                            ? "* L'analyse détaillée avec données 15-min permettra un dimensionnement précis du stockage." 
+                                            : "* Detailed analysis with 15-min data will enable precise storage sizing."}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                                 
                                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                                   <Button 
