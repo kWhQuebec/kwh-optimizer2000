@@ -293,8 +293,8 @@ function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDism
       description: language === 'fr' 
         ? 'Capturez un nouveau prospect (appel, email, référence)' 
         : 'Capture a new lead (call, email, referral)',
-      href: '/app/crm',
-      action: language === 'fr' ? 'Voir le CRM' : 'View CRM'
+      href: '/app/pipeline',
+      action: language === 'fr' ? 'Voir le pipeline' : 'View Pipeline'
     },
     {
       icon: Building2,
@@ -353,7 +353,7 @@ function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDism
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-8 w-8 shrink-0" 
+          className="shrink-0" 
           onClick={onDismiss}
           title={language === 'fr' ? 'Masquer' : 'Dismiss'}
         >
