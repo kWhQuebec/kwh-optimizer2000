@@ -2,9 +2,36 @@ import { Router, Response } from "express";
 import { authMiddleware, signToken, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import bcrypt from "bcrypt";
+import { z } from "zod";
 import { sendPasswordResetEmail } from "../emailService";
+import { generateSecurePassword } from "../lib/secureRandom";
+import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
 
 const router = Router();
+
+const emailSchema = z.string().email().transform(e => e.toLowerCase().trim());
+
+// Rate limiting map (in production, use Redis)
+const resetAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_RESET_ATTEMPTS = 5;
+const RESET_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(email: string): boolean {
+  const now = Date.now();
+  const attempts = resetAttempts.get(email);
+
+  if (!attempts || now > attempts.resetAt) {
+    resetAttempts.set(email, { count: 1, resetAt: now + RESET_WINDOW_MS });
+    return true;
+  }
+
+  if (attempts.count >= MAX_RESET_ATTEMPTS) {
+    return false;
+  }
+
+  attempts.count++;
+  return true;
+}
 
 router.post("/api/auth/login", async (req, res) => {
   try {
@@ -111,47 +138,55 @@ router.post("/api/auth/change-password", authMiddleware, async (req: AuthRequest
   }
 });
 
-router.post("/api/auth/forgot-password", async (req, res) => {
-  try {
-    const { email } = req.body;
-    
-    if (!email) {
-      return res.status(400).json({ error: "Email is required" });
-    }
-    
-    const normalizedEmail = email.toLowerCase().trim();
-    
-    const user = await storage.getUserByEmail(normalizedEmail);
-    
-    if (!user) {
-      console.log(`[Forgot Password] No user found for email: ${normalizedEmail}`);
-      return res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
-    }
-    
-    const crypto = await import('crypto');
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    const randomBytes = crypto.randomBytes(12);
-    let tempPassword = '';
-    for (let i = 0; i < 12; i++) {
-      tempPassword += chars.charAt(randomBytes[i] % chars.length);
-    }
-    
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
-    
-    await storage.updateUser(user.id, { 
-      passwordHash,
-      forcePasswordChange: true
-    });
-    
-    await sendPasswordResetEmail(user.email, tempPassword, 'fr');
-    
-    console.log(`[Forgot Password] Password reset email sent to: ${normalizedEmail}`);
-    
-    res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
-  } catch (error) {
-    console.error("Forgot password error:", error);
-    res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
+router.post("/api/auth/forgot-password", asyncHandler(async (req, res) => {
+  const { email, language = "fr" } = req.body;
+  
+  if (!email) {
+    throw new BadRequestError("Email is required");
   }
-});
+  
+  // Validate and normalize email
+  const emailResult = emailSchema.safeParse(email);
+  if (!emailResult.success) {
+    // Return success anyway to prevent email enumeration
+    res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
+    return;
+  }
+  
+  const normalizedEmail = emailResult.data;
+  
+  // Rate limiting
+  if (!checkRateLimit(normalizedEmail)) {
+    // Return success anyway to prevent timing attacks
+    console.log(`[Forgot Password] Rate limited: ${normalizedEmail}`);
+    res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
+    return;
+  }
+  
+  const user = await storage.getUserByEmail(normalizedEmail);
+  
+  if (!user) {
+    console.log(`[Forgot Password] No user found for email: ${normalizedEmail}`);
+    // Return success anyway to prevent email enumeration
+    res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
+    return;
+  }
+  
+  // Generate secure temporary password (no modulo bias)
+  const tempPassword = generateSecurePassword(14);
+  
+  const passwordHash = await bcrypt.hash(tempPassword, 10);
+  
+  await storage.updateUser(user.id, { 
+    passwordHash,
+    forcePasswordChange: true
+  });
+  
+  await sendPasswordResetEmail(user.email, tempPassword, language);
+  
+  console.log(`[Forgot Password] Password reset email sent to: ${normalizedEmail}`);
+  
+  res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
+}));
 
 export default router;
