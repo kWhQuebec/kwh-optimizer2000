@@ -116,10 +116,10 @@ router.post("/api/quick-estimate", async (req, res) => {
     // In practice, interaction with provincial grants can reduce eligible base
     const FEDERAL_ITC_RATE = 0.30;
     
-    // Define offset scenarios
+    // Define offset scenarios (industry standard: 50%, 75%, 100%)
     const scenarios = [
-      { key: "conservative", offsetPercent: 0.70, recommended: true },
-      { key: "optimal", offsetPercent: 0.85, recommended: false },
+      { key: "conservative", offsetPercent: 0.50, recommended: true },
+      { key: "optimal", offsetPercent: 0.75, recommended: false },
       { key: "maximum", offsetPercent: 1.00, recommended: false },
     ];
     
@@ -150,6 +150,19 @@ router.post("/api/quick-estimate", async (req, res) => {
       // Simple payback based on net cost after direct incentives
       const paybackYears = annualSavings > 0 ? Math.round((netCAPEX / annualSavings) * 10) / 10 : 99;
       
+      // LCOE (Levelized Cost of Energy) calculation
+      // 25-year lifetime with 0.5% annual degradation
+      // Average production factor over 25 years ≈ 0.94 (accounting for degradation)
+      const SYSTEM_LIFETIME_YEARS = 25;
+      const DEGRADATION_FACTOR = 0.94; // Average over 25 years with 0.5%/year degradation
+      const lifetimeProductionKWh = annualProductionKWh * SYSTEM_LIFETIME_YEARS * DEGRADATION_FACTOR;
+      const lcoePerKWh = lifetimeProductionKWh > 0 ? netCAPEX / lifetimeProductionKWh : 0;
+      
+      // LCOE savings vs HQ rate (percentage cheaper than grid)
+      const lcoeSavingsPercent = energyRate > 0 
+        ? Math.round(((energyRate - lcoePerKWh) / energyRate) * 100) 
+        : 0;
+      
       return {
         key: scenario.key,
         offsetPercent: scenario.offsetPercent,
@@ -163,6 +176,8 @@ router.post("/api/quick-estimate", async (req, res) => {
         totalIncentives: Math.round(totalIncentives),
         netCAPEX: Math.round(netCAPEX),
         paybackYears,
+        lcoePerKWh: Math.round(lcoePerKWh * 1000) / 1000, // Round to 3 decimals
+        lcoeSavingsPercent, // % cheaper than HQ rate
       };
     });
     

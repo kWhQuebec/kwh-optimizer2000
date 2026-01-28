@@ -122,6 +122,8 @@ export default function LandingPage() {
       totalIncentives: number;
       netCAPEX: number;
       paybackYears: number;
+      lcoePerKWh: number;
+      lcoeSavingsPercent: number;
     }>;
     financial: { annualSavings: number; paybackYears: number; hqIncentive: number; federalITC: number; totalIncentives: number; netCAPEX: number; grossCAPEX: number };
     billing: { monthlyBillBefore: number; monthlyBillAfter: number; monthlySavings: number; annualBillBefore?: number; annualBillAfter?: number; annualSavings?: number };
@@ -648,7 +650,7 @@ export default function LandingPage() {
                             <ul className="space-y-3 text-sm">
                               <li className="flex items-start gap-2">
                                 <BarChart3 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "3 scénarios de dimensionnement (70%, 85%, 100%)" : "3 sizing scenarios (70%, 85%, 100%)"}</span>
+                                <span>{language === "fr" ? "3 scénarios de dimensionnement (50%, 75%, 100%)" : "3 sizing scenarios (50%, 75%, 100%)"}</span>
                               </li>
                               <li className="flex items-start gap-2">
                                 <Sun className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -980,15 +982,15 @@ export default function LandingPage() {
                                     const scenarioLabels = {
                                       conservative: {
                                         title: language === "fr" ? "Conservateur" : "Conservative",
-                                        subtitle: language === "fr" ? "70% de compensation" : "70% offset",
+                                        subtitle: language === "fr" ? "50% de compensation" : "50% offset",
                                         tooltip: language === "fr" 
-                                          ? "Couvre 70% de votre consommation. Recommandé pour la plupart des bâtiments." 
-                                          : "Covers 70% of consumption. Recommended for most buildings.",
+                                          ? "Couvre 50% de votre consommation. Approche prudente." 
+                                          : "Covers 50% of consumption. Conservative approach.",
                                         badge: language === "fr" ? "Recommandé" : "Recommended",
                                       },
                                       optimal: {
                                         title: language === "fr" ? "Optimal" : "Optimal",
-                                        subtitle: language === "fr" ? "85% de compensation" : "85% offset",
+                                        subtitle: language === "fr" ? "75% de compensation" : "75% offset",
                                         tooltip: language === "fr" 
                                           ? "Équilibre idéal entre autoconsommation et surplus." 
                                           : "Ideal balance between self-consumption and surplus.",
@@ -1006,9 +1008,8 @@ export default function LandingPage() {
                                     const labels = scenarioLabels[scenario.key as keyof typeof scenarioLabels];
                                     const isRecommended = scenario.key === "conservative";
                                     
-                                    // Calculate percentage savings vs current bill
-                                    const annualBill = calcResults.billing.annualBillBefore || (calcResults.billing.monthlyBillBefore * 12);
-                                    const savingsPercent = annualBill > 0 ? Math.round((scenario.annualSavings / annualBill) * 100) : 0;
+                                    // LCOE savings vs HQ rate (from backend calculation)
+                                    const lcoeSavingsPercent = scenario.lcoeSavingsPercent || 0;
                                     
                                     return (
                                       <div 
@@ -1022,7 +1023,7 @@ export default function LandingPage() {
                                               <h5 className="font-semibold">{labels.title}</h5>
                                               <span className="text-sm text-muted-foreground">({labels.subtitle})</span>
                                               <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 text-xs">
-                                                -{savingsPercent}%
+                                                {lcoeSavingsPercent > 0 ? `-${lcoeSavingsPercent}%` : "0%"} {language === "fr" ? "vs HQ" : "vs HQ"}
                                               </Badge>
                                               {labels.badge && (
                                                 <Badge className="bg-primary text-primary-foreground text-xs">
