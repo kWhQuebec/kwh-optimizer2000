@@ -1057,7 +1057,23 @@ export default function LandingPage() {
                                           <div>
                                             <div className="flex items-center gap-2 flex-wrap">
                                               <h5 className="font-semibold">{labels.title}</h5>
-                                              <span className="text-sm text-muted-foreground">({labels.subtitle})</span>
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <span className="text-sm text-muted-foreground cursor-help inline-flex items-center gap-1">
+                                                      ({labels.subtitle})
+                                                      <Info className="w-3 h-3" />
+                                                    </span>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent className="max-w-xs">
+                                                    <p className="text-sm">
+                                                      {language === "fr" 
+                                                        ? "Compensation annuelle via le programme de mesurage net d'Hydro-Québec. L'été, votre surplus est crédité; l'hiver, vous tirez du réseau."
+                                                        : "Annual offset via Hydro-Québec's net metering program. Summer surplus is credited; winter draws from the grid."}
+                                                    </p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
                                               <TooltipProvider>
                                                 <Tooltip>
                                                   <TooltipTrigger asChild>
