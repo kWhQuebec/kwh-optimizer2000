@@ -116,16 +116,13 @@ router.post("/api/quick-estimate", async (req, res) => {
     // In practice, interaction with provincial grants can reduce eligible base
     const FEDERAL_ITC_RATE = 0.30;
     
-    // Define offset scenarios (industry standard: 50%, 75%, 100%)
-    const scenarios = [
-      { key: "conservative", offsetPercent: 0.50, recommended: true },
-      { key: "optimal", offsetPercent: 0.75, recommended: false },
-      { key: "maximum", offsetPercent: 1.00, recommended: false },
-    ];
+    // System lifetime for LCOE calculation
+    const SYSTEM_LIFETIME_YEARS = 25;
+    const DEGRADATION_FACTOR = 0.94; // Average over 25 years with 0.5%/year degradation
     
-    // Calculate each scenario
-    const calculatedScenarios = scenarios.map(scenario => {
-      const systemSizeKW = Math.max(10, Math.round((annualKWh * scenario.offsetPercent) / SOLAR_YIELD));
+    // Helper function to calculate scenario metrics
+    const calculateScenario = (offsetPercent: number) => {
+      const systemSizeKW = Math.max(10, Math.round((annualKWh * offsetPercent) / SOLAR_YIELD));
       const annualProductionKWh = systemSizeKW * SOLAR_YIELD;
       const annualSavings = Math.round(annualProductionKWh * energyRate);
       const grossCAPEX = systemSizeKW * COST_PER_KW;
@@ -136,25 +133,18 @@ router.post("/api/quick-estimate", async (req, res) => {
       const hqIncentive = Math.min(hqIncentiveRaw, grossCAPEX * HQ_INCENTIVE_MAX_PERCENT);
       
       // Federal ITC: 30% of gross CAPEX (before provincial subsidies)
-      // Note: This is a tax credit, requires taxable income to claim
       const federalITC = Math.round(grossCAPEX * FEDERAL_ITC_RATE);
       
-      // Total direct incentives (for payback calculation)
-      // Note: CCA/DPA tax shield provides additional benefit over time but is not included
-      // in simple payback as it depends on taxable income and is realized over years
+      // Total direct incentives
       const totalIncentives = hqIncentive + federalITC;
       
-      // Net CAPEX after direct incentives (HQ + Federal ITC)
+      // Net CAPEX after direct incentives
       const netCAPEX = grossCAPEX - totalIncentives;
       
       // Simple payback based on net cost after direct incentives
       const paybackYears = annualSavings > 0 ? Math.round((netCAPEX / annualSavings) * 10) / 10 : 99;
       
-      // LCOE (Levelized Cost of Energy) calculation
-      // 25-year lifetime with 0.5% annual degradation
-      // Average production factor over 25 years ≈ 0.94 (accounting for degradation)
-      const SYSTEM_LIFETIME_YEARS = 25;
-      const DEGRADATION_FACTOR = 0.94; // Average over 25 years with 0.5%/year degradation
+      // LCOE calculation (25-year lifetime with degradation)
       const lifetimeProductionKWh = annualProductionKWh * SYSTEM_LIFETIME_YEARS * DEGRADATION_FACTOR;
       const lcoePerKWh = lifetimeProductionKWh > 0 ? netCAPEX / lifetimeProductionKWh : 0;
       
@@ -164,9 +154,7 @@ router.post("/api/quick-estimate", async (req, res) => {
         : 0;
       
       return {
-        key: scenario.key,
-        offsetPercent: scenario.offsetPercent,
-        recommended: scenario.recommended,
+        offsetPercent,
         systemSizeKW,
         annualProductionKWh,
         annualSavings,
@@ -176,15 +164,115 @@ router.post("/api/quick-estimate", async (req, res) => {
         totalIncentives: Math.round(totalIncentives),
         netCAPEX: Math.round(netCAPEX),
         paybackYears,
-        lcoePerKWh: Math.round(lcoePerKWh * 1000) / 1000, // Round to 3 decimals
-        lcoeSavingsPercent, // % cheaper than HQ rate
+        lcoePerKWh: Math.round(lcoePerKWh * 1000) / 1000,
+        lcoeSavingsPercent,
       };
-    });
+    };
     
-    // Use conservative (70%) scenario as the primary/highlighted result
-    const primaryScenario = calculatedScenarios.find(s => s.key === "conservative")!;
+    // DYNAMIC OPTIMIZATION: Calculate scenarios from 25% to 125% in 10% increments
+    const allScenarios = [];
+    for (let pct = 0.25; pct <= 1.25; pct += 0.10) {
+      allScenarios.push(calculateScenario(Math.round(pct * 100) / 100));
+    }
     
-    console.log(`[Quick Estimate] Consumption: ${Math.round(annualKWh)} kWh/yr, 3 scenarios calculated, Rate: ${energyRate} $/kWh`);
+    // Find best payback scenario (shortest payback period)
+    const bestPaybackScenario = [...allScenarios].sort((a, b) => a.paybackYears - b.paybackYears)[0];
+    
+    // Find best LCOE scenario (lowest cost per kWh)
+    const bestLcoeScenario = [...allScenarios].sort((a, b) => a.lcoePerKWh - b.lcoePerKWh)[0];
+    
+    // Maximum scenario (100% offset)
+    const maximumScenario = allScenarios.find(s => Math.abs(s.offsetPercent - 1.0) < 0.01)!;
+    
+    // Build final 3 scenarios with proper keys and deduplication
+    // Strategy: 100% ALWAYS appears with key "maximum", plus best payback and one other option
+    const buildCalculatedScenarios = () => {
+      const scenarios: Array<{
+        key: string;
+        offsetPercent: number;
+        recommended: boolean;
+        systemSizeKW: number;
+        annualProductionKWh: number;
+        annualSavings: number;
+        grossCAPEX: number;
+        hqIncentive: number;
+        federalITC: number;
+        totalIncentives: number;
+        netCAPEX: number;
+        paybackYears: number;
+        lcoePerKWh: number;
+        lcoeSavingsPercent: number;
+      }> = [];
+      
+      const usedOffsets = new Set<number>();
+      
+      // Helper to check if offset is already used (within 5% tolerance)
+      const isOffsetUsed = (pct: number) => {
+        for (const used of usedOffsets) {
+          if (Math.abs(used - pct) < 0.05) return true;
+        }
+        return false;
+      };
+      
+      // Check if best payback is at 100%
+      const bestPaybackIs100 = Math.abs(bestPaybackScenario.offsetPercent - 1.0) < 0.05;
+      
+      // Slot 1: 100% Maximum - ALWAYS included with key "maximum"
+      // If best payback is at 100%, this also gets the "recommended" badge
+      scenarios.push({
+        key: "maximum",
+        ...maximumScenario,
+        recommended: bestPaybackIs100, // Recommended only if 100% is also the best payback
+      });
+      usedOffsets.add(1.0);
+      
+      // Slot 2: Best Payback (if not 100%)
+      if (!bestPaybackIs100) {
+        scenarios.push({
+          key: "bestPayback",
+          ...bestPaybackScenario,
+          recommended: true, // Recommended when it's a different % than 100%
+        });
+        usedOffsets.add(bestPaybackScenario.offsetPercent);
+      }
+      
+      // Slot 3: Best LCOE if different, or an intermediate option
+      if (!isOffsetUsed(bestLcoeScenario.offsetPercent)) {
+        scenarios.push({
+          key: "bestLcoe",
+          ...bestLcoeScenario,
+          recommended: false,
+        });
+        usedOffsets.add(bestLcoeScenario.offsetPercent);
+      }
+      
+      // If we still need more scenarios (didn't reach 3), add intermediate options
+      if (scenarios.length < 3) {
+        const alternateScenario = 
+          allScenarios.find(s => Math.abs(s.offsetPercent - 0.75) < 0.01 && !isOffsetUsed(s.offsetPercent)) ||
+          allScenarios.find(s => Math.abs(s.offsetPercent - 0.50) < 0.01 && !isOffsetUsed(s.offsetPercent)) ||
+          allScenarios.find(s => Math.abs(s.offsetPercent - 0.65) < 0.01 && !isOffsetUsed(s.offsetPercent)) ||
+          allScenarios.find(s => !isOffsetUsed(s.offsetPercent));
+        
+        if (alternateScenario) {
+          scenarios.push({
+            key: "optimal",
+            ...alternateScenario,
+            recommended: false,
+          });
+        }
+      }
+      
+      // Sort by offset percent for consistent display order (lowest to highest)
+      return scenarios.sort((a, b) => a.offsetPercent - b.offsetPercent);
+    };
+    
+    const calculatedScenarios = buildCalculatedScenarios();
+    
+    // Primary scenario is the recommended one (best payback)
+    const primaryScenario = calculatedScenarios.find(s => s.recommended) || calculatedScenarios[0];
+    
+    console.log(`[Quick Estimate] Consumption: ${Math.round(annualKWh)} kWh/yr, Dynamic optimization: Best Payback @ ${Math.round(bestPaybackScenario.offsetPercent * 100)}%, Best LCOE @ ${Math.round(bestLcoeScenario.offsetPercent * 100)}%`);
     
     // Storage (Battery) Recommendation
     // Storage is most valuable for:

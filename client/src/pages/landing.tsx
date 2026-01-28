@@ -976,37 +976,68 @@ export default function LandingPage() {
                                   </p>
                                 </div>
                                 
-                                {/* 3 Scenario cards */}
+                                {/* 3 Optimized Scenario cards */}
                                 <div className="space-y-3">
                                   {calcResults.scenarios?.map((scenario) => {
-                                    const scenarioLabels = {
-                                      conservative: {
-                                        title: language === "fr" ? "Conservateur" : "Conservative",
-                                        subtitle: language === "fr" ? "50% de compensation" : "50% offset",
-                                        tooltip: language === "fr" 
-                                          ? "Couvre 50% de votre consommation. Approche prudente." 
-                                          : "Covers 50% of consumption. Conservative approach.",
-                                        badge: language === "fr" ? "Recommandé" : "Recommended",
-                                      },
-                                      optimal: {
-                                        title: language === "fr" ? "Optimal" : "Optimal",
-                                        subtitle: language === "fr" ? "75% de compensation" : "75% offset",
-                                        tooltip: language === "fr" 
-                                          ? "Équilibre idéal entre autoconsommation et surplus." 
-                                          : "Ideal balance between self-consumption and surplus.",
-                                        badge: null,
-                                      },
-                                      maximum: {
-                                        title: "Maximum",
-                                        subtitle: language === "fr" ? "100% de compensation" : "100% offset",
-                                        tooltip: language === "fr" 
-                                          ? "Couverture complète de votre consommation annuelle." 
-                                          : "Full coverage of your annual consumption.",
-                                        badge: null,
-                                      },
+                                    // Dynamic subtitle based on actual offset percentage
+                                    const offsetPct = Math.round((scenario.offsetPercent ?? 0) * 100);
+                                    const dynamicSubtitle = language === "fr" 
+                                      ? `${offsetPct}% de compensation` 
+                                      : `${offsetPct}% offset`;
+                                    
+                                    // Dynamic labels based on scenario key (supports new optimization keys)
+                                    const getScenarioLabel = () => {
+                                      switch (scenario.key) {
+                                        case "bestPayback":
+                                          return {
+                                            title: language === "fr" ? "Meilleur retour" : "Best Payback",
+                                            subtitle: dynamicSubtitle,
+                                            tooltip: language === "fr" 
+                                              ? `Retour sur investissement le plus rapide parmi tous les scénarios analysés (25%-125%).` 
+                                              : `Fastest return on investment among all analyzed scenarios (25%-125%).`,
+                                          };
+                                        case "bestLcoe":
+                                          return {
+                                            title: language === "fr" ? "Meilleur LCOE" : "Best LCOE",
+                                            subtitle: dynamicSubtitle,
+                                            tooltip: language === "fr" 
+                                              ? `Coût d'énergie le plus bas sur 25 ans.` 
+                                              : `Lowest energy cost over 25 years.`,
+                                          };
+                                        case "optimal":
+                                          return {
+                                            title: language === "fr" ? "Optimal" : "Optimal",
+                                            subtitle: dynamicSubtitle,
+                                            tooltip: language === "fr" 
+                                              ? `Équilibre idéal entre autoconsommation et surplus.` 
+                                              : `Ideal balance between self-consumption and surplus.`,
+                                          };
+                                        case "maximum":
+                                          return {
+                                            title: "Maximum",
+                                            subtitle: dynamicSubtitle,
+                                            tooltip: language === "fr" 
+                                              ? offsetPct > 100 
+                                                ? `Couverture ${offsetPct}% pour excédent et revenu net.`
+                                                : `Couverture complète de votre consommation annuelle.`
+                                              : offsetPct > 100 
+                                                ? `${offsetPct}% coverage for surplus and net revenue.`
+                                                : `Full coverage of your annual consumption.`,
+                                          };
+                                        case "conservative":
+                                        default:
+                                          return {
+                                            title: language === "fr" ? "Conservateur" : "Conservative",
+                                            subtitle: dynamicSubtitle,
+                                            tooltip: language === "fr" 
+                                              ? `Couvre ${offsetPct}% de votre consommation. Approche prudente.` 
+                                              : `Covers ${offsetPct}% of consumption. Conservative approach.`,
+                                          };
+                                      }
                                     };
-                                    const labels = scenarioLabels[scenario.key as keyof typeof scenarioLabels];
-                                    const isRecommended = scenario.key === "conservative";
+                                    
+                                    const labels = getScenarioLabel();
+                                    const isRecommended = scenario.recommended === true;
                                     
                                     // LCOE savings vs HQ rate (from backend calculation)
                                     const lcoeSavingsPercent = scenario.lcoeSavingsPercent || 0;
@@ -1025,9 +1056,9 @@ export default function LandingPage() {
                                               <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 text-xs">
                                                 {lcoeSavingsPercent > 0 ? `-${lcoeSavingsPercent}%` : "0%"} {language === "fr" ? "vs HQ" : "vs HQ"}
                                               </Badge>
-                                              {labels.badge && (
+                                              {isRecommended && (
                                                 <Badge className="bg-primary text-primary-foreground text-xs">
-                                                  {labels.badge}
+                                                  {language === "fr" ? "Recommandé" : "Recommended"}
                                                 </Badge>
                                               )}
                                             </div>
@@ -1041,26 +1072,26 @@ export default function LandingPage() {
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                           <div>
                                             <p className="text-xs text-muted-foreground">{language === "fr" ? "Système" : "System"}</p>
-                                            <p className="text-lg font-bold text-primary">{scenario.systemSizeKW} kW</p>
+                                            <p className="text-lg font-bold text-primary">{scenario.systemSizeKW ?? 0} kW</p>
                                           </div>
                                           <div>
                                             <p className="text-xs text-muted-foreground">{language === "fr" ? "Production" : "Production"}</p>
-                                            <p className="text-lg font-bold">{(scenario.annualProductionKWh / 1000).toFixed(0)} MWh/{language === "fr" ? "an" : "yr"}</p>
+                                            <p className="text-lg font-bold">{((scenario.annualProductionKWh ?? 0) / 1000).toFixed(0)} MWh/{language === "fr" ? "an" : "yr"}</p>
                                           </div>
                                           <div>
                                             <p className="text-xs text-muted-foreground">{language === "fr" ? "Économies" : "Savings"}</p>
-                                            <p className="text-lg font-bold text-green-600">${scenario.annualSavings.toLocaleString()}/{language === "fr" ? "an" : "yr"}</p>
+                                            <p className="text-lg font-bold text-green-600">${(scenario.annualSavings ?? 0).toLocaleString()}/{language === "fr" ? "an" : "yr"}</p>
                                           </div>
                                           <div>
                                             <p className="text-xs text-muted-foreground">{language === "fr" ? "Retour" : "Payback"}</p>
-                                            <p className="text-lg font-bold">{scenario.paybackYears.toFixed(1)} {language === "fr" ? "ans" : "yrs"}</p>
+                                            <p className="text-lg font-bold">{(scenario.paybackYears ?? 0).toFixed(1)} {language === "fr" ? "ans" : "yrs"}</p>
                                           </div>
                                         </div>
                                         
                                         <div className="mt-3 pt-3 border-t space-y-2">
                                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                            <span>{language === "fr" ? "Coût brut:" : "Gross cost:"} <span className="font-medium">${scenario.grossCAPEX.toLocaleString()}</span></span>
-                                            <span>{language === "fr" ? "Coût net:" : "Net cost:"} <span className="font-medium">${scenario.netCAPEX.toLocaleString()}</span></span>
+                                            <span>{language === "fr" ? "Coût brut:" : "Gross cost:"} <span className="font-medium">${(scenario.grossCAPEX ?? 0).toLocaleString()}</span></span>
+                                            <span>{language === "fr" ? "Coût net:" : "Net cost:"} <span className="font-medium">${(scenario.netCAPEX ?? 0).toLocaleString()}</span></span>
                                           </div>
                                           <div className="bg-green-50 dark:bg-green-950/30 rounded-md p-2 space-y-1">
                                             <p className="text-xs font-medium text-green-700 dark:text-green-400">
