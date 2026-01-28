@@ -132,13 +132,53 @@ const carouselSlides = [
   },
 ];
 
-function parseAddressParts(fullAddress: string | null): { street: string; city: string } {
-  if (!fullAddress) return { street: "", city: "" };
-  const parts = fullAddress.split(",").map(p => p.trim());
-  if (parts.length >= 2) {
-    return { street: parts[0], city: parts[1] };
+function parseAddressParts(fullAddress: string | null): { street: string; city: string; postalCode: string } {
+  if (!fullAddress) return { street: "", city: "", postalCode: "" };
+  
+  // Try comma-separated format first: "123 rue Example, Montréal, QC H2X 1Y4"
+  const commaParts = fullAddress.split(",").map(p => p.trim());
+  if (commaParts.length >= 2) {
+    // Extract postal code from last part if present
+    const postalMatch = fullAddress.match(/[A-Z]\d[A-Z]\s*\d[A-Z]\d/i);
+    const postalCode = postalMatch ? postalMatch[0].toUpperCase() : "";
+    return { street: commaParts[0], city: commaParts[1].replace(/\s*(QC|Quebec|Québec)\s*/i, "").trim(), postalCode };
   }
-  return { street: fullAddress, city: "" };
+  
+  // Quebec-style address without commas: "515 boul Champlain Québec QC G1K 0E4"
+  // Extract postal code (Canadian format: A1A 1A1)
+  const postalMatch = fullAddress.match(/([A-Z]\d[A-Z])\s*(\d[A-Z]\d)/i);
+  const postalCode = postalMatch ? `${postalMatch[1]} ${postalMatch[2]}`.toUpperCase() : "";
+  
+  // Remove postal code and province code from address for parsing
+  let addressWithoutPostal = fullAddress.replace(/[A-Z]\d[A-Z]\s*\d[A-Z]\d/i, "").trim();
+  addressWithoutPostal = addressWithoutPostal.replace(/\s+(QC|Quebec|Québec)\s*$/i, "").trim();
+  
+  // Common Quebec cities to detect
+  const quebecCities = [
+    "Montréal", "Montreal", "Québec", "Quebec", "Laval", "Gatineau", "Longueuil", 
+    "Sherbrooke", "Saguenay", "Lévis", "Levis", "Trois-Rivières", "Trois-Rivieres",
+    "Terrebonne", "Saint-Jean-sur-Richelieu", "Repentigny", "Brossard", "Drummondville",
+    "Saint-Jérôme", "Saint-Jerome", "Granby", "Blainville", "Saint-Hyacinthe",
+    "Châteauguay", "Chateauguay", "Dollard-des-Ormeaux", "Rimouski", "Victoriaville",
+    "Saint-Eustache", "Mascouche", "Rouyn-Noranda", "Shawinigan", "Côte Saint-Luc",
+    "Boucherville", "Vaudreuil-Dorion", "Mirabel", "Sainte-Julie", "Varennes"
+  ];
+  
+  // Try to find a city name in the address
+  let detectedCity = "";
+  let street = addressWithoutPostal;
+  
+  for (const city of quebecCities) {
+    const cityRegex = new RegExp(`\\b${city}\\b`, "i");
+    if (cityRegex.test(addressWithoutPostal)) {
+      detectedCity = city;
+      // Extract street by removing city name
+      street = addressWithoutPostal.replace(cityRegex, "").trim();
+      break;
+    }
+  }
+  
+  return { street, city: detectedCity, postalCode };
 }
 
 export default function AnalyseDetailleePage() {
@@ -209,12 +249,13 @@ export default function AnalyseDetailleePage() {
           form.setValue('companyName', billData.clientName);
         }
         if (billData.serviceAddress) {
-          const { street, city } = parseAddressParts(billData.serviceAddress);
+          const { street, city, postalCode } = parseAddressParts(billData.serviceAddress);
           if (street) form.setValue('streetAddress', street);
           if (city) {
             form.setValue('city', city);
             form.setValue('signatureCity', city);
           }
+          if (postalCode) form.setValue('postalCode', postalCode);
         }
         if (billData.tariffCode) {
           form.setValue('tariffCode', billData.tariffCode);
@@ -335,10 +376,11 @@ export default function AnalyseDetailleePage() {
         form.setValue('companyName', data.clientName);
       }
       if (data.serviceAddress) {
-        const { street, city } = parseAddressParts(data.serviceAddress);
+        const { street, city, postalCode } = parseAddressParts(data.serviceAddress);
         if (street) form.setValue('streetAddress', street);
         if (city) form.setValue('city', city);
         if (city) form.setValue('signatureCity', city);
+        if (postalCode) form.setValue('postalCode', postalCode);
       }
       if (data.estimatedMonthlyBill) {
         form.setValue('estimatedMonthlyBill', data.estimatedMonthlyBill);
