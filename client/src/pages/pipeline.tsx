@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -20,7 +20,8 @@ import {
   List,
   Flame,
   Snowflake,
-  Clock as ClockIcon
+  Clock as ClockIcon,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -183,15 +184,22 @@ const opportunityFormSchema = z.object({
   priority: z.string().default("medium"),
   source: z.string().optional(),
   clientId: z.string().optional(),
+  siteId: z.string().optional(),
   // Inline client creation fields
   newClientName: z.string().optional(),
   newClientEmail: z.string().email().optional().or(z.literal("")),
   newClientPhone: z.string().optional(),
+  // Inline site creation fields
+  newSiteName: z.string().optional(),
+  newSiteAddress: z.string().optional(),
+  newSiteCity: z.string().optional(),
+  newSiteProvince: z.string().optional(),
 });
 
 type OpportunityFormValues = z.infer<typeof opportunityFormSchema>;
 
 const CREATE_NEW_CLIENT_VALUE = "__create_new__";
+const CREATE_NEW_SITE_VALUE = "__create_new_site__";
 
 function OpportunityCard({ 
   opportunity, 
@@ -589,6 +597,7 @@ export default function PipelinePage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  const [isCreatingNewSite, setIsCreatingNewSite] = useState(false);
   
   // Stage advance modal state
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
@@ -634,6 +643,11 @@ export default function PipelinePage() {
     queryKey: ["/api/clients"],
   });
 
+  // Fetch sites for site selection in opportunity form
+  const { data: sites = [] } = useQuery<Array<{ id: string; name: string; city: string | null; clientId: string; isArchived: boolean }>>({
+    queryKey: ["/api/sites"],
+  });
+
   const stageChangeMutation = useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: Stage }) => {
       const probability = STAGE_PROBABILITIES[stage];
@@ -655,14 +669,21 @@ export default function PipelinePage() {
 
   const createClientMutation = useMutation({
     mutationFn: async (data: { name: string; email?: string; phone?: string }) => {
-      const response = await apiRequest("POST", "/api/clients", data);
-      return response.json();
+      // apiRequest already returns parsed JSON
+      return apiRequest<{ id: string; name: string }>("POST", "/api/clients", data);
+    },
+  });
+
+  const createSiteMutation = useMutation({
+    mutationFn: async (data: { name: string; clientId: string; address?: string; city?: string; province?: string }) => {
+      return apiRequest<{ id: string; name: string }>("POST", "/api/sites", data);
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: OpportunityFormValues) => {
       let clientId = data.clientId;
+      let siteId = data.siteId;
       
       // If creating new client, create it first
       if (clientId === CREATE_NEW_CLIENT_VALUE && data.newClientName) {
@@ -674,13 +695,29 @@ export default function PipelinePage() {
         clientId = newClient.id;
       }
       
-      // Remove inline client fields and normalize clientId
-      const { newClientName, newClientEmail, newClientPhone, ...opportunityData } = data;
       // Normalize clientId: treat empty string or CREATE_NEW_CLIENT_VALUE as undefined
       const normalizedClientId = clientId && clientId !== CREATE_NEW_CLIENT_VALUE ? clientId : undefined;
+      
+      // If creating new site, create it after we have a clientId
+      if (siteId === CREATE_NEW_SITE_VALUE && data.newSiteName && normalizedClientId) {
+        const newSite = await createSiteMutation.mutateAsync({
+          name: data.newSiteName,
+          clientId: normalizedClientId,
+          address: data.newSiteAddress || undefined,
+          city: data.newSiteCity || undefined,
+          province: data.newSiteProvince || "Québec",
+        });
+        siteId = newSite.id;
+      }
+      
+      // Remove inline fields and normalize IDs
+      const { newClientName, newClientEmail, newClientPhone, newSiteName, newSiteAddress, newSiteCity, newSiteProvince, ...opportunityData } = data;
+      const normalizedSiteId = siteId && siteId !== CREATE_NEW_SITE_VALUE ? siteId : undefined;
+      
       const payload = {
         ...opportunityData,
         clientId: normalizedClientId,
+        siteId: normalizedSiteId,
         expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate).toISOString() : undefined,
       };
       return apiRequest("POST", "/api/opportunities", payload);
@@ -688,8 +725,10 @@ export default function PipelinePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       setIsAddOpen(false);
       setIsCreatingNewClient(false);
+      setIsCreatingNewSite(false);
       addForm.reset();
       toast({
         title: language === "fr" ? "Opportunité créée" : "Opportunity created",
@@ -736,15 +775,29 @@ export default function PipelinePage() {
       priority: "medium",
       source: "web_form",
       clientId: "",
+      siteId: "",
       newClientName: "",
       newClientEmail: "",
       newClientPhone: "",
+      newSiteName: "",
+      newSiteAddress: "",
+      newSiteCity: "",
+      newSiteProvince: "Québec",
     },
   });
 
   const editForm = useForm<OpportunityFormValues>({
     resolver: zodResolver(opportunityFormSchema),
   });
+
+  // Watch clientId for site selection
+  const watchClientId = addForm.watch("clientId");
+  
+  // Get sites for selected client
+  const clientSites = useMemo(() => {
+    if (!watchClientId || watchClientId === CREATE_NEW_CLIENT_VALUE) return [];
+    return sites.filter(s => s.clientId === watchClientId && !s.isArchived);
+  }, [watchClientId, sites]);
 
   // Smart stage change handler - shows modal for advancing stages
   const handleStageChange = (id: string, stage: Stage) => {
@@ -1146,6 +1199,14 @@ export default function PipelinePage() {
                 });
                 return;
               }
+              // Validate new site name if creating new site
+              if (data.siteId === CREATE_NEW_SITE_VALUE && !data.newSiteName?.trim()) {
+                addForm.setError("newSiteName", { 
+                  type: "required", 
+                  message: language === "fr" ? "Le nom du site est requis" : "Site name is required" 
+                });
+                return;
+              }
               createMutation.mutate(data);
             })} className="space-y-4">
               <Tabs defaultValue="opportunity" className="w-full">
@@ -1201,6 +1262,13 @@ export default function PipelinePage() {
                             field.onChange(value);
                             const isNewClient = value === CREATE_NEW_CLIENT_VALUE;
                             setIsCreatingNewClient(isNewClient);
+                            // Reset site selection when client changes
+                            setIsCreatingNewSite(false);
+                            addForm.setValue("siteId", "");
+                            addForm.setValue("newSiteName", "");
+                            addForm.setValue("newSiteAddress", "");
+                            addForm.setValue("newSiteCity", "");
+                            addForm.setValue("newSiteProvince", "Québec");
                             // Clear new client fields when switching to existing client
                             if (!isNewClient) {
                               addForm.setValue("newClientName", "");
@@ -1278,6 +1346,114 @@ export default function PipelinePage() {
                               <FormLabel>{language === "fr" ? "Téléphone" : "Phone"}</FormLabel>
                               <FormControl>
                                 <Input {...field} type="tel" placeholder="514-555-0000" data-testid="input-new-client-phone" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Site Selection - only show when client is selected */}
+                  {(watchClientId && watchClientId !== CREATE_NEW_CLIENT_VALUE) && (
+                    <FormField
+                      control={addForm.control}
+                      name="siteId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === "fr" ? "Site" : "Site"}</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              setIsCreatingNewSite(value === CREATE_NEW_SITE_VALUE);
+                              if (value !== CREATE_NEW_SITE_VALUE) {
+                                addForm.setValue("newSiteName", "");
+                                addForm.setValue("newSiteAddress", "");
+                                addForm.setValue("newSiteCity", "");
+                              }
+                            }} 
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-opportunity-site">
+                                <SelectValue placeholder={language === "fr" ? "Sélectionner un site (optionnel)" : "Select a site (optional)"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value={CREATE_NEW_SITE_VALUE}>
+                                <span className="flex items-center gap-2">
+                                  <Plus className="h-3 w-3" />
+                                  {language === "fr" ? "Créer un nouveau site" : "Create new site"}
+                                </span>
+                              </SelectItem>
+                              {clientSites.map((site) => (
+                                <SelectItem key={site.id} value={site.id}>
+                                  {site.name} {site.city && `(${site.city})`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {/* Inline site creation fields */}
+                  {isCreatingNewSite && watchClientId && watchClientId !== CREATE_NEW_CLIENT_VALUE && (
+                    <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {language === "fr" ? "Nouveau site" : "New Site"}
+                      </p>
+                      <FormField
+                        control={addForm.control}
+                        name="newSiteName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{language === "fr" ? "Nom du site" : "Site Name"} *</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder={language === "fr" ? "Ex: Entrepôt Montréal" : "Ex: Montreal Warehouse"} data-testid="input-new-site-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={addForm.control}
+                        name="newSiteAddress"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{language === "fr" ? "Adresse" : "Address"}</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="123 rue Example" data-testid="input-new-site-address" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={addForm.control}
+                          name="newSiteCity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{language === "fr" ? "Ville" : "City"}</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Montréal" data-testid="input-new-site-city" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={addForm.control}
+                          name="newSiteProvince"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{language === "fr" ? "Province" : "Province"}</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Québec" data-testid="input-new-site-province" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1421,6 +1597,7 @@ export default function PipelinePage() {
                 <Button type="button" variant="outline" onClick={() => {
                   setIsAddOpen(false);
                   setIsCreatingNewClient(false);
+                  setIsCreatingNewSite(false);
                   addForm.reset();
                 }}>
                   {language === "fr" ? "Annuler" : "Cancel"}
@@ -1713,8 +1890,8 @@ export default function PipelinePage() {
                       variant="secondary"
                       onClick={async () => {
                         try {
-                          const response = await apiRequest("GET", `/api/leads/${(selectedOpportunity as any).leadId}`);
-                          const lead = await response.json();
+                          // apiRequest already returns parsed JSON
+                          const lead = await apiRequest("GET", `/api/leads/${(selectedOpportunity as any).leadId}`);
                           setSelectedLeadForQualification(lead);
                           setIsQualificationOpen(true);
                         } catch (error) {

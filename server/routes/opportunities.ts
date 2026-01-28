@@ -16,17 +16,18 @@ router.get("/api/opportunities", authMiddleware, requireStaff, async (req: AuthR
     }
     
     // Enrich opportunities with related data (owner, client, site)
-    const [allUsers, allClients, allSites] = await Promise.all([
+    // Use lightweight site data - only fields needed for pipeline display (no googleSolarData)
+    const [allUsers, allClients, sitesMinimal] = await Promise.all([
       storage.getUsers(),
       storage.getClients(),
-      storage.getSites(),
+      storage.getSitesMinimal(),
     ]);
     
     const enrichedOpportunities = opportunities.map(opp => ({
       ...opp,
       owner: opp.ownerId ? allUsers.find(u => u.id === opp.ownerId) || null : null,
       client: opp.clientId ? allClients.find(c => c.id === opp.clientId) || null : null,
-      site: opp.siteId ? allSites.find(s => s.id === opp.siteId) || null : null,
+      site: opp.siteId ? sitesMinimal.find(s => s.id === opp.siteId) || null : null,
     }));
     
     res.json(enrichedOpportunities);
