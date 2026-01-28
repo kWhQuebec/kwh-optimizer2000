@@ -1016,13 +1016,25 @@ router.get("/:siteId/price-breakdown", authMiddleware, async (req, res) => {
 
     const capacityKW = site.kbKwDc || 100;
     const panelCount = site.kbPanelCount || Math.ceil(capacityKW * 1000 / 625);
+    const capacityW = capacityKW * 1000;
 
     const components = await storage.getActivePricingComponents();
 
     const breakdown: Record<string, { cost: number; perW: number; source: string | null }> = {};
     let totalCost = 0;
 
+    // Use fixed $0.35/W for racking in analysis phase (specific racking selection is for design/quotation phase)
+    const RACKING_RATE_PER_W = 0.35;
+    const rackingCost = RACKING_RATE_PER_W * capacityW;
+    breakdown['racking'] = { cost: rackingCost, perW: RACKING_RATE_PER_W, source: 'Estimation analyse' };
+    totalCost += rackingCost;
+
     for (const comp of components) {
+      // Skip racking components - we use a fixed rate for analysis
+      if (comp.category === 'racking') {
+        continue;
+      }
+
       let componentCost = 0;
 
       switch (comp.unit) {
@@ -1059,7 +1071,7 @@ router.get("/:siteId/price-breakdown", authMiddleware, async (req, res) => {
       totalCost += componentCost;
     }
 
-    for (const comp of components.filter(c => c.unit === 'percent')) {
+    for (const comp of components.filter(c => c.unit === 'percent' && c.category !== 'racking')) {
       const percentageCost = totalCost * (comp.pricePerUnit / 100);
       if (!breakdown[comp.category]) {
         breakdown[comp.category] = { cost: 0, perW: 0, source: null };
@@ -1069,7 +1081,6 @@ router.get("/:siteId/price-breakdown", authMiddleware, async (req, res) => {
       totalCost += percentageCost;
     }
 
-    const capacityW = capacityKW * 1000;
     for (const cat of Object.keys(breakdown)) {
       breakdown[cat].perW = Math.round((breakdown[cat].cost / capacityW) * 100) / 100;
     }
