@@ -29,6 +29,7 @@ import BlogPage from "@/pages/blog";
 import BlogArticlePage from "@/pages/blog-article";
 import PortfolioPage from "@/pages/portfolio";
 import PortfolioProjectPage from "@/pages/portfolio-project";
+import PrivacyPage from "@/pages/privacy";
 import NotFound from "@/pages/not-found";
 
 const SiteDetailPage = lazy(() => import("@/pages/site-detail"));
@@ -200,6 +201,7 @@ function AppRoutes() {
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
+      <Route path="/privacy" component={PrivacyPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/change-password" component={ChangePasswordPage} />

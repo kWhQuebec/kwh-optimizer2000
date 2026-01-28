@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -97,6 +98,7 @@ export default function LandingPage() {
   const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
   const [calcTariff, setCalcTariff] = useState<string>("M");
   const [calcLoading, setCalcLoading] = useState(false);
+  const [calcConsent, setCalcConsent] = useState(false);
   const [calcBillFile, setCalcBillFile] = useState<File | null>(null);
   const [calcBillParsing, setCalcBillParsing] = useState(false);
   const [calcBillParsed, setCalcBillParsed] = useState<{
@@ -943,11 +945,41 @@ export default function LandingPage() {
                                   <p className="text-sm text-destructive">{calcError}</p>
                                 )}
                                 
+                                {/* Law 25 Consent Checkbox */}
+                                <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg border">
+                                  <Checkbox 
+                                    id="calc-consent"
+                                    checked={calcConsent}
+                                    onCheckedChange={(checked) => setCalcConsent(checked === true)}
+                                    data-testid="checkbox-consent"
+                                  />
+                                  <label 
+                                    htmlFor="calc-consent" 
+                                    className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+                                  >
+                                    {language === "fr" ? (
+                                      <>
+                                        J'accepte de recevoir mon analyse par courriel et je consens à ce que kWh Québec conserve mes coordonnées pour me contacter concernant des solutions solaires.{" "}
+                                        <Link href="/privacy" className="text-primary underline hover:no-underline">
+                                          Politique de confidentialité
+                                        </Link>
+                                      </>
+                                    ) : (
+                                      <>
+                                        I agree to receive my analysis by email and consent to kWh Québec storing my contact information to reach out about solar solutions.{" "}
+                                        <Link href="/privacy" className="text-primary underline hover:no-underline">
+                                          Privacy Policy
+                                        </Link>
+                                      </>
+                                    )}
+                                  </label>
+                                </div>
+                                
                                 <Button 
                                   size="lg" 
                                   className="w-full gap-2"
                                   onClick={handleQuickEstimate}
-                                  disabled={calcLoading || (calcInputMode === "upload" && calcBillParsing)}
+                                  disabled={calcLoading || !calcConsent || (calcInputMode === "upload" && calcBillParsing)}
                                   data-testid="button-calc-analyze"
                                 >
                                   {calcLoading ? (
@@ -2200,6 +2232,9 @@ export default function LandingPage() {
               </a>
               <Link href="/ressources" className="hover:text-foreground transition-colors">
                 {language === "fr" ? "Ressources" : "Resources"}
+              </Link>
+              <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="link-privacy">
+                {language === "fr" ? "Confidentialité" : "Privacy"}
               </Link>
               <a href="mailto:info@kwhquebec.com" className="hover:text-foreground transition-colors">
                 {t("footer.contact")}
