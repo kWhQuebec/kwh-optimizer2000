@@ -40,23 +40,31 @@ async function sendEmail(options: { to: string; subject: string; htmlBody: strin
   return sendEmailViaOutlook(options);
 }
 
-interface QuickAnalysisData {
-  address: string;
-  monthlyBill: number;
-  buildingType: string;
-  tariffCode: string;
+interface ScenarioData {
+  key: string;
+  offsetPercent: number;
   systemSizeKW: number;
   annualProductionKWh: number;
   annualSavings: number;
   paybackYears: number;
   hqIncentive: number;
-  federalITC?: number;
-  totalIncentives?: number;
+  federalITC: number;
+  totalIncentives: number;
   grossCAPEX: number;
   netCAPEX: number;
+  lcoePerKWh: number;
+  lcoeSavingsPercent: number;
+  recommended?: boolean;
+}
+
+interface QuickAnalysisData {
+  address: string;
+  annualConsumptionKWh: number;
+  monthlyBill: number;
+  buildingType: string;
+  tariffCode: string;
+  scenarios: ScenarioData[];
   monthlyBillBefore: number;
-  monthlyBillAfter: number;
-  monthlySavings: number;
   hasRoofData: boolean;
   roofAreaM2?: number;
 }
@@ -88,6 +96,40 @@ function getBuildingTypeLabel(buildingType: string, lang: 'fr' | 'en'): string {
   return labels[buildingType]?.[lang] || buildingType;
 }
 
+function getScenarioLabel(key: string, offsetPercent: number, lang: 'fr' | 'en'): { title: string; subtitle: string } {
+  const offsetPct = Math.round(offsetPercent * 100);
+  const subtitleFr = `${offsetPct}% de compensation`;
+  const subtitleEn = `${offsetPct}% offset`;
+  
+  switch (key) {
+    case "bestPayback":
+      return {
+        title: lang === 'fr' ? 'Économique' : 'Economic',
+        subtitle: lang === 'fr' ? subtitleFr : subtitleEn,
+      };
+    case "bestLcoe":
+      return {
+        title: lang === 'fr' ? 'Équilibré' : 'Balanced',
+        subtitle: lang === 'fr' ? subtitleFr : subtitleEn,
+      };
+    case "optimal":
+      return {
+        title: lang === 'fr' ? 'Équilibré' : 'Balanced',
+        subtitle: lang === 'fr' ? subtitleFr : subtitleEn,
+      };
+    case "maximum":
+      return {
+        title: 'Maximum',
+        subtitle: lang === 'fr' ? subtitleFr : subtitleEn,
+      };
+    default:
+      return {
+        title: lang === 'fr' ? 'Scénario' : 'Scenario',
+        subtitle: lang === 'fr' ? subtitleFr : subtitleEn,
+      };
+  }
+}
+
 function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'en', baseUrl: string): string {
   const logoUrl = lang === 'fr' 
     ? `${baseUrl}/assets/logo-fr.png`
@@ -100,29 +142,26 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
       intro: 'Merci de votre intérêt pour l\'énergie solaire! Voici le résumé de votre analyse rapide basée sur les informations fournies.',
       analysisTitle: 'Résumé de votre analyse',
       addressLabel: 'Adresse',
+      consumptionLabel: 'Consommation annuelle',
       buildingTypeLabel: 'Type de bâtiment',
       tariffLabel: 'Tarif Hydro-Québec',
-      systemTitle: 'Système recommandé',
-      systemSize: 'Puissance du système',
-      annualProduction: 'Production annuelle',
-      roofArea: 'Surface de toit disponible',
-      financialTitle: 'Analyse financière',
-      monthlyBillBefore: 'Facture mensuelle actuelle',
-      monthlyBillAfter: 'Facture mensuelle estimée',
-      monthlySavings: 'Économies mensuelles',
-      annualSavings: 'Économies annuelles',
-      hqIncentive: 'Incitatif Hydro-Québec',
-      federalITC: 'Crédit d\'impôt fédéral (30%)',
-      totalIncentives: 'Total des incitatifs directs',
-      grossCost: 'Coût brut du système',
-      netCost: 'Coût net après incitatifs',
-      paybackPeriod: 'Période de récupération',
+      currentBillLabel: 'Facture mensuelle actuelle',
+      scenariosTitle: 'Vos 3 scénarios optimisés',
+      scenariosIntro: 'Nous avons analysé 11 scénarios (de 20% à 120% de compensation) pour vous proposer les 3 meilleures options:',
+      recommended: 'Recommandé',
+      systemSize: 'Puissance',
+      annualProduction: 'Production',
+      annualSavings: 'Économies/an',
+      paybackPeriod: 'Retour',
+      netCost: 'Coût net',
+      lcoeVsHQ: 'vs Hydro-Québec',
       years: 'ans',
       ctaTitle: 'Prêt à passer à l\'étape suivante?',
       ctaText: 'Obtenez une analyse détaillée gratuite avec des données de consommation réelles et un design personnalisé pour votre bâtiment.',
       ctaButton: 'Demander une analyse détaillée',
-      disclaimer: 'Cette analyse est une estimation préliminaire basée sur des moyennes régionales. Une analyse détaillée avec vos données de consommation réelles fournira des projections plus précises.',
+      disclaimer: 'Cette analyse est une estimation préliminaire basée sur des moyennes régionales. Une analyse détaillée avec vos données de consommation réelles fournira des projections plus précises. La "compensation" représente le bilan annuel via le programme de mesurage net d\'Hydro-Québec.',
       footer: 'kWh Québec - Solaire + Stockage',
+      footerContact: '514.427.8871 | info@kwh.quebec',
       footerNote: 'Ce courriel a été envoyé automatiquement suite à votre demande d\'analyse rapide.',
     },
     en: {
@@ -131,34 +170,75 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
       intro: 'Thank you for your interest in solar energy! Here is the summary of your quick analysis based on the information provided.',
       analysisTitle: 'Your Analysis Summary',
       addressLabel: 'Address',
+      consumptionLabel: 'Annual consumption',
       buildingTypeLabel: 'Building Type',
       tariffLabel: 'Hydro-Québec Tariff',
-      systemTitle: 'Recommended System',
-      systemSize: 'System Size',
-      annualProduction: 'Annual Production',
-      roofArea: 'Available Roof Area',
-      financialTitle: 'Financial Analysis',
-      monthlyBillBefore: 'Current Monthly Bill',
-      monthlyBillAfter: 'Estimated Monthly Bill',
-      monthlySavings: 'Monthly Savings',
-      annualSavings: 'Annual Savings',
-      hqIncentive: 'Hydro-Québec Incentive',
-      federalITC: 'Federal Tax Credit (30%)',
-      totalIncentives: 'Total Direct Incentives',
-      grossCost: 'Gross System Cost',
-      netCost: 'Net Cost After Incentives',
-      paybackPeriod: 'Payback Period',
+      currentBillLabel: 'Current monthly bill',
+      scenariosTitle: 'Your 3 Optimized Scenarios',
+      scenariosIntro: 'We analyzed 11 scenarios (from 20% to 120% offset) to propose the 3 best options for you:',
+      recommended: 'Recommended',
+      systemSize: 'System size',
+      annualProduction: 'Production',
+      annualSavings: 'Savings/yr',
+      paybackPeriod: 'Payback',
+      netCost: 'Net cost',
+      lcoeVsHQ: 'vs Hydro-Québec',
       years: 'years',
       ctaTitle: 'Ready for the next step?',
       ctaText: 'Get a free detailed analysis with your actual consumption data and a custom design for your building.',
       ctaButton: 'Request Detailed Analysis',
-      disclaimer: 'This analysis is a preliminary estimate based on regional averages. A detailed analysis with your actual consumption data will provide more accurate projections.',
+      disclaimer: 'This analysis is a preliminary estimate based on regional averages. A detailed analysis with your actual consumption data will provide more accurate projections. "Offset" represents the annual balance via Hydro-Québec\'s net metering program.',
       footer: 'kWh Québec - Solar + Storage',
+      footerContact: '514.427.8871 | info@kwh.quebec',
       footerNote: 'This email was sent automatically following your quick analysis request.',
     },
   };
   
   const txt = t[lang];
+  
+  const scenariosHtml = data.scenarios.map((scenario) => {
+    const labels = getScenarioLabel(scenario.key, scenario.offsetPercent, lang);
+    const isRecommended = scenario.recommended === true;
+    
+    return `
+      <div style="background: ${isRecommended ? 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' : '#f8f9fa'}; border-radius: 8px; padding: 20px; margin-bottom: 15px; ${isRecommended ? 'border: 2px solid #003DA6;' : 'border: 1px solid #e0e0e0;'}">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <span style="font-size: 18px; font-weight: 700; color: #003DA6;">${labels.title}</span>
+            <span style="font-size: 14px; color: #666; margin-left: 8px;">(${labels.subtitle})</span>
+          </div>
+          ${isRecommended ? `<span style="background: #003DA6; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;">${txt.recommended}</span>` : ''}
+        </div>
+        
+        <div style="display: table; width: 100%; border-collapse: collapse;">
+          <div style="display: table-row;">
+            <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.systemSize}</div>
+            <div style="display: table-cell; padding: 6px 0; font-weight: 600; text-align: right;">${scenario.systemSizeKW} kW</div>
+          </div>
+          <div style="display: table-row;">
+            <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.annualProduction}</div>
+            <div style="display: table-cell; padding: 6px 0; font-weight: 600; text-align: right;">${formatNumber(scenario.annualProductionKWh)} kWh</div>
+          </div>
+          <div style="display: table-row;">
+            <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.annualSavings}</div>
+            <div style="display: table-cell; padding: 6px 0; font-weight: 700; color: #2e7d32; text-align: right;">${formatCurrency(scenario.annualSavings)}</div>
+          </div>
+          <div style="display: table-row;">
+            <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.netCost}</div>
+            <div style="display: table-cell; padding: 6px 0; font-weight: 600; text-align: right;">${formatCurrency(scenario.netCAPEX)}</div>
+          </div>
+          <div style="display: table-row;">
+            <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.paybackPeriod}</div>
+            <div style="display: table-cell; padding: 6px 0; font-weight: 700; color: #003DA6; text-align: right;">${scenario.paybackYears} ${txt.years}</div>
+          </div>
+          <div style="display: table-row;">
+            <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.lcoeVsHQ}</div>
+            <div style="display: table-cell; padding: 6px 0; font-weight: 600; color: #2e7d32; text-align: right;">-${scenario.lcoeSavingsPercent}%</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
   
   return `
 <!DOCTYPE html>
@@ -175,27 +255,18 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
     .content { padding: 30px; }
     .intro { font-size: 15px; color: #555; margin-bottom: 25px; }
     .section { margin-bottom: 25px; }
-    .section-title { font-size: 16px; font-weight: 600; color: #003DA6; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #FFB005; }
-    .info-grid { display: table; width: 100%; }
+    .section-title { font-size: 18px; font-weight: 600; color: #003DA6; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #FFB005; }
+    .info-grid { display: table; width: 100%; margin-bottom: 20px; }
     .info-row { display: table-row; }
     .info-label { display: table-cell; padding: 8px 10px 8px 0; color: #666; font-size: 14px; width: 50%; }
     .info-value { display: table-cell; padding: 8px 0; font-weight: 600; color: #333; font-size: 14px; text-align: right; }
-    .highlight-box { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 8px; padding: 20px; margin: 20px 0; }
-    .highlight-title { font-size: 14px; color: #2e7d32; font-weight: 600; margin-bottom: 10px; }
-    .highlight-value { font-size: 28px; font-weight: 700; color: #1b5e20; }
-    .highlight-subtext { font-size: 13px; color: #388e3c; margin-top: 5px; }
-    .savings-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-    .savings-row:last-child { border-bottom: none; }
+    .scenarios-intro { font-size: 14px; color: #555; margin-bottom: 20px; }
     .cta-section { background: #003DA6; color: white; padding: 25px; text-align: center; margin-top: 20px; }
     .cta-section h3 { margin: 0 0 10px; font-size: 18px; }
     .cta-section p { margin: 0 0 20px; font-size: 14px; opacity: 0.9; }
     .cta-button { display: inline-block; background: #FFB005; color: #003DA6; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 15px; }
     .disclaimer { font-size: 12px; color: #888; padding: 20px 30px; background: #fafafa; border-top: 1px solid #eee; }
     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; background: #f0f0f0; }
-    .metric-card { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 10px; }
-    .metric-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-    .metric-value { font-size: 24px; font-weight: 700; color: #003DA6; margin-top: 5px; }
-    .metric-unit { font-size: 14px; font-weight: 400; color: #666; }
   </style>
 </head>
 <body>
@@ -212,7 +283,11 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
         <div class="info-grid">
           <div class="info-row">
             <div class="info-label">${txt.addressLabel}</div>
-            <div class="info-value">${data.address}</div>
+            <div class="info-value">${data.address || '-'}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">${txt.consumptionLabel}</div>
+            <div class="info-value">${formatNumber(data.annualConsumptionKWh)} kWh</div>
           </div>
           <div class="info-row">
             <div class="info-label">${txt.buildingTypeLabel}</div>
@@ -222,71 +297,17 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
             <div class="info-label">${txt.tariffLabel}</div>
             <div class="info-value">${data.tariffCode}</div>
           </div>
+          <div class="info-row">
+            <div class="info-label">${txt.currentBillLabel}</div>
+            <div class="info-value">${formatCurrency(data.monthlyBillBefore)}</div>
+          </div>
         </div>
       </div>
       
       <div class="section">
-        <div class="section-title">${txt.systemTitle}</div>
-        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-          <div class="metric-card" style="flex: 1; min-width: 150px;">
-            <div class="metric-label">${txt.systemSize}</div>
-            <div class="metric-value">${data.systemSizeKW} <span class="metric-unit">kW</span></div>
-          </div>
-          <div class="metric-card" style="flex: 1; min-width: 150px;">
-            <div class="metric-label">${txt.annualProduction}</div>
-            <div class="metric-value">${formatNumber(data.annualProductionKWh)} <span class="metric-unit">kWh</span></div>
-          </div>
-        </div>
-        ${data.hasRoofData && data.roofAreaM2 ? `
-        <div class="info-grid" style="margin-top: 10px;">
-          <div class="info-row">
-            <div class="info-label">${txt.roofArea}</div>
-            <div class="info-value">${formatNumber(data.roofAreaM2)} m²</div>
-          </div>
-        </div>
-        ` : ''}
-      </div>
-      
-      <div class="highlight-box">
-        <div class="highlight-title">${txt.monthlySavings}</div>
-        <div class="highlight-value">${formatCurrency(data.monthlySavings)}</div>
-        <div class="highlight-subtext">${txt.monthlyBillBefore}: ${formatCurrency(data.monthlyBillBefore)} → ${txt.monthlyBillAfter}: ${formatCurrency(data.monthlyBillAfter)}</div>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">${txt.financialTitle}</div>
-        <div class="info-grid">
-          <div class="info-row">
-            <div class="info-label">${txt.annualSavings}</div>
-            <div class="info-value" style="color: #2e7d32;">${formatCurrency(data.annualSavings)}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.grossCost}</div>
-            <div class="info-value">${formatCurrency(data.grossCAPEX)}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.hqIncentive}</div>
-            <div class="info-value" style="color: #2e7d32;">-${formatCurrency(data.hqIncentive)}</div>
-          </div>
-          ${data.federalITC ? `
-          <div class="info-row">
-            <div class="info-label">${txt.federalITC}</div>
-            <div class="info-value" style="color: #2e7d32;">-${formatCurrency(data.federalITC)}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label" style="font-weight: 600;">${txt.totalIncentives}</div>
-            <div class="info-value" style="color: #2e7d32; font-weight: 600;">-${formatCurrency(data.totalIncentives || 0)}</div>
-          </div>
-          ` : ''}
-          <div class="info-row">
-            <div class="info-label">${txt.netCost}</div>
-            <div class="info-value" style="font-weight: 700;">${formatCurrency(data.netCAPEX)}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.paybackPeriod}</div>
-            <div class="info-value">${data.paybackYears} ${txt.years}</div>
-          </div>
-        </div>
+        <div class="section-title">${txt.scenariosTitle}</div>
+        <p class="scenarios-intro">${txt.scenariosIntro}</p>
+        ${scenariosHtml}
       </div>
     </div>
     
@@ -302,7 +323,8 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
     
     <div class="footer">
       <p><strong>${txt.footer}</strong></p>
-      <p>${txt.footerNote}</p>
+      <p>${txt.footerContact}</p>
+      <p style="font-size: 11px; color: #999;">${txt.footerNote}</p>
     </div>
   </div>
 </body>
