@@ -993,8 +993,8 @@ export default function LandingPage() {
                                             title: language === "fr" ? "Meilleur retour" : "Best Payback",
                                             subtitle: dynamicSubtitle,
                                             tooltip: language === "fr" 
-                                              ? `Retour sur investissement le plus rapide parmi tous les scénarios analysés (25%-125%).` 
-                                              : `Fastest return on investment among all analyzed scenarios (25%-125%).`,
+                                              ? `Retour sur investissement le plus rapide parmi tous les scénarios analysés.` 
+                                              : `Fastest return on investment among all analyzed scenarios.`,
                                           };
                                         case "bestLcoe":
                                           return {

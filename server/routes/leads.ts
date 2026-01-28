@@ -169,10 +169,12 @@ router.post("/api/quick-estimate", async (req, res) => {
       };
     };
     
-    // DYNAMIC OPTIMIZATION: Calculate scenarios from 25% to 125% in 10% increments
+    // DYNAMIC OPTIMIZATION: Calculate scenarios from 20% to 120% in 10% increments
+    // Use integer math to avoid floating-point precision issues
+    // Range 20-120 ensures we hit 100% exactly (20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120)
     const allScenarios = [];
-    for (let pct = 0.25; pct <= 1.25; pct += 0.10) {
-      allScenarios.push(calculateScenario(Math.round(pct * 100) / 100));
+    for (let pctInt = 20; pctInt <= 120; pctInt += 10) {
+      allScenarios.push(calculateScenario(pctInt / 100));
     }
     
     // Find best payback scenario (shortest payback period)
