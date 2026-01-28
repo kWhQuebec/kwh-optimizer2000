@@ -802,7 +802,9 @@ The data obtained will be used exclusively for solar potential analysis and phot
                       </div>
                     </div>
 
-                    {form.getValues("estimatedMonthlyBill") && form.getValues("estimatedMonthlyBill")! >= 5000 && (
+                    {/* Show personalized presentation offer for large projects: $5k+/month or 600k+ kWh/year */}
+                    {((form.getValues("estimatedMonthlyBill") && form.getValues("estimatedMonthlyBill")! >= 5000) || 
+                      (parsedBillData?.annualConsumptionKwh && parsedBillData.annualConsumptionKwh >= 600000)) && (
                       <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
                         <div className="flex items-center gap-2 text-primary mb-2">
                           <Calendar className="w-5 h-5" />
@@ -1340,57 +1342,60 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               />
                             </div>
 
-                            <div className="grid sm:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="buildingType"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <Building2 className="w-3 h-3" />
-                                      {language === "fr" ? "Type de bâtiment" : "Building type"}
-                                    </FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            {/* Only show building type and monthly bill fields when no bill was uploaded (manual entry mode) */}
+                            {!parsedBillData && (
+                              <div className="grid sm:grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name="buildingType"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        <Building2 className="w-3 h-3" />
+                                        {language === "fr" ? "Type de bâtiment" : "Building type"}
+                                      </FormLabel>
+                                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger data-testid="select-building-type">
+                                            <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {buildingTypes.map((type) => (
+                                            <SelectItem key={type.value} value={type.value}>
+                                              {type.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="estimatedMonthlyBill"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        <DollarSign className="w-3 h-3" />
+                                        {language === "fr" ? "Facture mensuelle approx." : "Approx. monthly bill"}
+                                      </FormLabel>
                                       <FormControl>
-                                        <SelectTrigger data-testid="select-building-type">
-                                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
-                                        </SelectTrigger>
+                                        <Input 
+                                          type="number" 
+                                          {...field} 
+                                          placeholder="5000"
+                                          data-testid="input-monthly-bill" 
+                                        />
                                       </FormControl>
-                                      <SelectContent>
-                                        {buildingTypes.map((type) => (
-                                          <SelectItem key={type.value} value={type.value}>
-                                            {type.label}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={form.control}
-                                name="estimatedMonthlyBill"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <DollarSign className="w-3 h-3" />
-                                      {language === "fr" ? "Facture mensuelle approx." : "Approx. monthly bill"}
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number" 
-                                        {...field} 
-                                        placeholder="5000"
-                                        data-testid="input-monthly-bill" 
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            )}
 
                             <div className="border-t pt-6 mt-6">
                               <div className="bg-muted/50 rounded-lg p-4 border mb-4">
