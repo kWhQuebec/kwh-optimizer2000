@@ -916,14 +916,11 @@ export default function LandingPage() {
                                   />
                                 </div>
                                 
-                                {/* Address - optional */}
+                                {/* Address */}
                                 <div className="space-y-2">
                                   <label className="text-sm font-medium flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                                    <MapPin className="w-4 h-4 text-primary" />
                                     {language === "fr" ? "Adresse" : "Address"}
-                                    <span className="text-xs text-muted-foreground">
-                                      ({language === "fr" ? "optionnel" : "optional"})
-                                    </span>
                                   </label>
                                   <Input
                                     type="text"
