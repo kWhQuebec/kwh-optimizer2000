@@ -11,7 +11,8 @@ import {
   TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
   Timer, Rocket, BatteryCharging, BadgePercent, Calculator, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ChevronDown, ChevronUp,
-  ClipboardCheck, Phone, Mail, Building, CalendarDays, User, Upload, Info
+  ClipboardCheck, Phone, Mail, Building, CalendarDays, User, Upload, Info,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -127,6 +128,7 @@ export default function LandingPage() {
       paybackYears: number;
       lcoePerKWh: number;
       lcoeSavingsPercent: number;
+      exceedsNetMeteringLimit?: boolean;
     }>;
     financial: { annualSavings: number; paybackYears: number; hqIncentive: number; federalITC: number; totalIncentives: number; netCAPEX: number; grossCAPEX: number };
     billing: { monthlyBillBefore: number; monthlyBillAfter: number; monthlySavings: number; annualBillBefore?: number; annualBillAfter?: number; annualSavings?: number };
@@ -141,6 +143,10 @@ export default function LandingPage() {
       paybackYears: number;
       tariffHasDemandCharges: boolean;
     };
+    warnings?: Array<{
+      type: string;
+      message: { fr: string; en: string };
+    }>;
   } | null>(null);
   const [calcError, setCalcError] = useState<string>("");
   const billFileInputRef = useRef<HTMLInputElement>(null);
@@ -1236,6 +1242,25 @@ export default function LandingPage() {
                                             ? "* L'analyse détaillée avec données 15-min permettra un dimensionnement précis du stockage." 
                                             : "* Detailed analysis with 15-min data will enable precise storage sizing."}
                                         </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Net Metering Warning for systems > 1 MW */}
+                                {calcResults.warnings && calcResults.warnings.length > 0 && (
+                                  <div className="mt-4 p-4 rounded-lg border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30" data-testid="warning-net-metering">
+                                    <div className="flex items-start gap-3">
+                                      <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                                      <div>
+                                        <h5 className="font-semibold text-orange-800 dark:text-orange-300">
+                                          {language === "fr" ? "Important" : "Important"}
+                                        </h5>
+                                        {calcResults.warnings.map((warning, idx) => (
+                                          <p key={idx} className="text-sm text-orange-700 dark:text-orange-400 mt-1">
+                                            {language === "fr" ? warning.message.fr : warning.message.en}
+                                          </p>
+                                        ))}
                                       </div>
                                     </div>
                                   </div>

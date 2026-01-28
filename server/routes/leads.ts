@@ -10,6 +10,7 @@ import { sendEmail } from "../gmail";
 import * as googleSolar from "../googleSolarService";
 import { generateProcurationPDF, createProcurationData } from "../procurationPdfGenerator";
 import { parseHQBill, type HQBillData } from "../hqBillParser";
+import { getTieredSolarCostPerW, BASELINE_YIELD, QUEBEC_MONTHLY_TEMPS } from "../analysis/potentialAnalysis";
 
 const router = express.Router();
 
@@ -100,16 +101,39 @@ router.post("/api/quick-estimate", async (req, res) => {
       annualKWh = monthlyKWh * 12 * buildingFactor;
     }
     
-    // Solar yield: 1000 kWh/kWp (conservative KB 10° baseline for Quebec)
-    const SOLAR_YIELD = 1000;
+    // ============================================================
+    // UNIFIED METHODOLOGY - Matches Detailed Analysis (potentialAnalysis.ts)
+    // ============================================================
     
-    // Cost per watt for CAPEX calculation ($2.25/W = $2250/kW)
-    const COST_PER_KW = 2250;
+    // Solar yield: 1150 kWh/kWp (Quebec baseline from detailed analysis)
+    // This is the SAME constant used in potentialAnalysis.ts
+    const SOLAR_YIELD = BASELINE_YIELD; // 1150 kWh/kWp
+    
+    // System losses (simplified annual average, matching detailed analysis)
+    // - Temperature coefficient: -0.4%/°C above 25°C STC
+    // - Quebec annual average cell temp ~35°C (ambient + cell rise)
+    // - Wire losses: ~2%
+    // - Inverter efficiency: ~96%
+    const TEMP_COEFF = -0.004; // -0.4%/°C
+    const AVERAGE_CELL_TEMP = 35; // °C (annual average including cell rise)
+    const STC_CELL_TEMP = 25; // °C
+    const WIRE_LOSS_PERCENT = 0.02;
+    const INVERTER_EFFICIENCY = 0.96;
+    
+    // Combined system efficiency factor
+    const tempLossFactor = 1 + TEMP_COEFF * (AVERAGE_CELL_TEMP - STC_CELL_TEMP); // ~0.96
+    const systemEfficiency = tempLossFactor * (1 - WIRE_LOSS_PERCENT) * INVERTER_EFFICIENCY; // ~0.90
+    
+    // Effective yield after all losses
+    const EFFECTIVE_YIELD = SOLAR_YIELD * systemEfficiency; // ~1035 kWh/kWp
+    
+    // Cost per watt: Use tiered pricing from detailed analysis
+    // This will be calculated per scenario based on system size
     
     // Hydro-Québec Autoproduction incentive: $1000/kW, max 40% of CAPEX, limited to 1 MW
     const HQ_INCENTIVE_PER_KW = 1000;
     const HQ_INCENTIVE_MAX_PERCENT = 0.40;
-    const HQ_MW_LIMIT = 1000; // Only first 1000 kW eligible
+    const HQ_MW_LIMIT = 1000; // Only first 1000 kW eligible for Net Metering
     
     // Federal Investment Tax Credit (ITC): 30% of eligible project cost
     // For simplicity, applied to gross CAPEX (before HQ subsidy) as per CRA guidelines
@@ -122,10 +146,16 @@ router.post("/api/quick-estimate", async (req, res) => {
     
     // Helper function to calculate scenario metrics
     const calculateScenario = (offsetPercent: number) => {
-      const systemSizeKW = Math.max(10, Math.round((annualKWh * offsetPercent) / SOLAR_YIELD));
-      const annualProductionKWh = systemSizeKW * SOLAR_YIELD;
+      // Size based on target offset using effective (post-loss) yield
+      const systemSizeKW = Math.max(10, Math.round((annualKWh * offsetPercent) / EFFECTIVE_YIELD));
+      
+      // Production calculation matches detailed analysis methodology
+      const annualProductionKWh = Math.round(systemSizeKW * EFFECTIVE_YIELD);
       const annualSavings = Math.round(annualProductionKWh * energyRate);
-      const grossCAPEX = systemSizeKW * COST_PER_KW;
+      
+      // Tiered pricing from detailed analysis (getTieredSolarCostPerW)
+      const costPerW = getTieredSolarCostPerW(systemSizeKW);
+      const grossCAPEX = systemSizeKW * costPerW * 1000; // costPerW is $/W, convert to $/kW
       
       // Hydro-Québec incentive: $1000/kW for first 1MW, capped at 40% of CAPEX
       const eligibleKW = Math.min(systemSizeKW, HQ_MW_LIMIT);
@@ -153,6 +183,9 @@ router.post("/api/quick-estimate", async (req, res) => {
         ? Math.round(((energyRate - lcoePerKWh) / energyRate) * 100) 
         : 0;
       
+      // Check if system exceeds Net Metering limit (1 MW)
+      const exceedsNetMeteringLimit = systemSizeKW > HQ_MW_LIMIT;
+      
       return {
         offsetPercent,
         systemSizeKW,
@@ -166,6 +199,7 @@ router.post("/api/quick-estimate", async (req, res) => {
         paybackYears,
         lcoePerKWh: Math.round(lcoePerKWh * 1000) / 1000,
         lcoeSavingsPercent,
+        exceedsNetMeteringLimit,
       };
     };
     
@@ -204,6 +238,7 @@ router.post("/api/quick-estimate", async (req, res) => {
         paybackYears: number;
         lcoePerKWh: number;
         lcoeSavingsPercent: number;
+        exceedsNetMeteringLimit: boolean;
       }> = [];
       
       const usedOffsets = new Set<number>();
@@ -450,6 +485,13 @@ router.post("/api/quick-estimate", async (req, res) => {
         co2ReductionTons,
       },
       storage: storageRecommendation,
+      warnings: calculatedScenarios.some(s => s.exceedsNetMeteringLimit) ? [{
+        type: 'net_metering_limit',
+        message: {
+          fr: "Un ou plusieurs scénarios dépassent 1 MW. Le programme de mesurage net d'Hydro-Québec est limité aux systèmes de 1 MW et moins. Les projets plus grands nécessitent une entente d'autoproduction ou un contrat spécial avec Hydro-Québec.",
+          en: "One or more scenarios exceed 1 MW. Hydro-Québec's net metering program is limited to systems of 1 MW or less. Larger projects require a self-generation agreement or special contract with Hydro-Québec."
+        }
+      }] : [],
     });
   } catch (error) {
     console.error("Quick estimate error:", error);
