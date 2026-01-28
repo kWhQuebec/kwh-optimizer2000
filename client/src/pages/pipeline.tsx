@@ -643,9 +643,9 @@ export default function PipelinePage() {
     queryKey: ["/api/clients"],
   });
 
-  // Fetch sites for site selection in opportunity form
+  // Fetch minimal sites for site selection in opportunity form (optimized - no heavy JSON data)
   const { data: sites = [] } = useQuery<Array<{ id: string; name: string; city: string | null; clientId: string; isArchived: boolean }>>({
-    queryKey: ["/api/sites"],
+    queryKey: ["/api/sites/minimal"],
   });
 
   const stageChangeMutation = useMutation({

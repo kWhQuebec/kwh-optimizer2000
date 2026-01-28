@@ -265,7 +265,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Ultra-lightweight query for pipeline - only essential fields, no heavy JSON
-  async getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string }>> {
+  async getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>> {
     return db.select({
       id: sites.id,
       name: sites.name,
@@ -273,6 +273,7 @@ export class DatabaseStorage implements IStorage {
       city: sites.city,
       province: sites.province,
       clientId: sites.clientId,
+      isArchived: sites.isArchived,
     }).from(sites);
   }
 

@@ -217,6 +217,21 @@ router.get("/", authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
+router.get("/minimal", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const sites = await storage.getSitesMinimal();
+    if (req.userRole !== "admin" && req.userRole !== "analyst") {
+      const filtered = sites.filter(s => s.clientId === req.userId);
+      res.json(filtered);
+    } else {
+      res.json(sites);
+    }
+  } catch (error) {
+    console.error("Error fetching minimal sites:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const site = await storage.getSite(req.params.id);

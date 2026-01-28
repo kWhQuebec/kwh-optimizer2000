@@ -72,7 +72,7 @@ export interface IStorage {
 
   // Sites
   getSites(): Promise<(Site & { client: Client })[]>;
-  getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string }>>;
+  getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>>;
   getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRunSummary[] }) | undefined>;
   getSimulationRunFull(id: string): Promise<SimulationRun | undefined>;
   getSitesByClient(clientId: string): Promise<Site[]>;
@@ -656,7 +656,7 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string }>> {
+  async getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>> {
     const sites = Array.from(this.sites.values());
     return sites.map(site => ({
       id: site.id,
@@ -665,6 +665,7 @@ export class MemStorage implements IStorage {
       city: site.city,
       province: site.province,
       clientId: site.clientId,
+      isArchived: site.isArchived ?? false,
     }));
   }
 
