@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
@@ -714,7 +715,11 @@ export default function LandingPage() {
                                     variant={calcInputMode === "upload" ? "default" : "ghost"}
                                     size="sm"
                                     className="flex-1 gap-2"
-                                    onClick={() => setCalcInputMode("upload")}
+                                    onClick={() => {
+                                      setCalcInputMode("upload");
+                                      // Trigger file dialog after a short delay to ensure the input is rendered
+                                      setTimeout(() => billFileInputRef.current?.click(), 100);
+                                    }}
                                     data-testid="button-mode-upload"
                                   >
                                     <Upload className="w-4 h-4" />
@@ -990,15 +995,15 @@ export default function LandingPage() {
                                       switch (scenario.key) {
                                         case "bestPayback":
                                           return {
-                                            title: language === "fr" ? "Meilleur retour" : "Best Payback",
+                                            title: language === "fr" ? "Économique" : "Economic",
                                             subtitle: dynamicSubtitle,
                                             tooltip: language === "fr" 
-                                              ? `Retour sur investissement le plus rapide parmi tous les scénarios analysés.` 
-                                              : `Fastest return on investment among all analyzed scenarios.`,
+                                              ? `Option la plus rentable avec le retour sur investissement le plus rapide.` 
+                                              : `Most profitable option with the fastest return on investment.`,
                                           };
                                         case "bestLcoe":
                                           return {
-                                            title: language === "fr" ? "Meilleur LCOE" : "Best LCOE",
+                                            title: language === "fr" ? "Équilibré" : "Balanced",
                                             subtitle: dynamicSubtitle,
                                             tooltip: language === "fr" 
                                               ? `Coût d'énergie le plus bas sur 25 ans.` 
@@ -1006,11 +1011,11 @@ export default function LandingPage() {
                                           };
                                         case "optimal":
                                           return {
-                                            title: language === "fr" ? "Optimal" : "Optimal",
+                                            title: language === "fr" ? "Équilibré" : "Balanced",
                                             subtitle: dynamicSubtitle,
                                             tooltip: language === "fr" 
-                                              ? `Équilibre idéal entre autoconsommation et surplus.` 
-                                              : `Ideal balance between self-consumption and surplus.`,
+                                              ? `Bon équilibre entre investissement initial et couverture énergétique.` 
+                                              : `Good balance between initial investment and energy coverage.`,
                                           };
                                         case "maximum":
                                           return {
@@ -1053,9 +1058,22 @@ export default function LandingPage() {
                                             <div className="flex items-center gap-2 flex-wrap">
                                               <h5 className="font-semibold">{labels.title}</h5>
                                               <span className="text-sm text-muted-foreground">({labels.subtitle})</span>
-                                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 text-xs">
-                                                {lcoeSavingsPercent > 0 ? `-${lcoeSavingsPercent}%` : "0%"} {language === "fr" ? "vs HQ" : "vs HQ"}
-                                              </Badge>
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 text-xs cursor-help">
+                                                      {lcoeSavingsPercent > 0 ? `-${lcoeSavingsPercent}%` : "0%"} {language === "fr" ? "vs Hydro-Québec" : "vs Hydro-Québec"}
+                                                    </Badge>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent className="max-w-xs">
+                                                    <p className="text-sm">
+                                                      {language === "fr" 
+                                                        ? `Votre coût d'énergie solaire sur 25 ans est ${lcoeSavingsPercent}% moins cher que le tarif actuel d'Hydro-Québec.`
+                                                        : `Your solar energy cost over 25 years is ${lcoeSavingsPercent}% cheaper than the current Hydro-Québec rate.`}
+                                                    </p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
                                               {isRecommended && (
                                                 <Badge className="bg-primary text-primary-foreground text-xs">
                                                   {language === "fr" ? "Recommandé" : "Recommended"}
