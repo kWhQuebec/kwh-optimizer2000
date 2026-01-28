@@ -880,23 +880,25 @@ export default function LandingPage() {
                                   </div>
                                 )}
                                 
-                                {/* Building type */}
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium flex items-center gap-2">
-                                    <Building2 className="w-4 h-4 text-primary" />
-                                    {language === "fr" ? "Type de bâtiment" : "Building type"}
-                                  </label>
-                                  <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
-                                    <SelectTrigger className="h-11" data-testid="select-calc-building">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {Object.entries(buildingTypeLabels).map(([value, label]) => (
-                                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
+                                {/* Building type - only show when no bill uploaded (manual entry needs this for estimation) */}
+                                {!calcBillParsed && (
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                      <Building2 className="w-4 h-4 text-primary" />
+                                      {language === "fr" ? "Type de bâtiment" : "Building type"}
+                                    </label>
+                                    <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
+                                      <SelectTrigger className="h-11" data-testid="select-calc-building">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Object.entries(buildingTypeLabels).map(([value, label]) => (
+                                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                )}
                                 
                                 {/* Email */}
                                 <div className="space-y-2">
