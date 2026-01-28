@@ -880,8 +880,8 @@ export default function LandingPage() {
                                   </div>
                                 )}
                                 
-                                {/* Building type - only show when no bill uploaded (manual entry needs this for estimation) */}
-                                {!calcBillParsed && (
+                                {/* Building type - only show when no bill uploaded/parsing (manual entry needs this for estimation) */}
+                                {!calcBillParsed && !calcBillParsing && !calcBillFile && (
                                   <div className="space-y-2">
                                     <label className="text-sm font-medium flex items-center gap-2">
                                       <Building2 className="w-4 h-4 text-primary" />
