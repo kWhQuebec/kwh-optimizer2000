@@ -305,6 +305,43 @@ export class DatabaseStorage implements IStorage {
     }).from(sites);
   }
 
+  // Lightweight query for work queue - includes work queue fields but no heavy JSON
+  async getSitesForWorkQueue(): Promise<Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    province: string | null;
+    clientId: string;
+    isArchived: boolean;
+    roofAreaValidated: boolean | null;
+    quickAnalysisCompletedAt: Date | null;
+    workQueueAssignedToId: string | null;
+    workQueueAssignedAt: Date | null;
+    workQueuePriority: string | null;
+    workQueueDelegatedToEmail: string | null;
+    workQueueDelegatedToName: string | null;
+    workQueueDelegatedAt: Date | null;
+  }>> {
+    return db.select({
+      id: sites.id,
+      name: sites.name,
+      address: sites.address,
+      city: sites.city,
+      province: sites.province,
+      clientId: sites.clientId,
+      isArchived: sites.isArchived,
+      roofAreaValidated: sites.roofAreaValidated,
+      quickAnalysisCompletedAt: sites.quickAnalysisCompletedAt,
+      workQueueAssignedToId: sites.workQueueAssignedToId,
+      workQueueAssignedAt: sites.workQueueAssignedAt,
+      workQueuePriority: sites.workQueuePriority,
+      workQueueDelegatedToEmail: sites.workQueueDelegatedToEmail,
+      workQueueDelegatedToName: sites.workQueueDelegatedToName,
+      workQueueDelegatedAt: sites.workQueueDelegatedAt,
+    }).from(sites).where(eq(sites.isArchived, false));
+  }
+
   // Optimized lightweight query for sites list - excludes heavy JSON columns
   async getSitesListPaginated(options: {
     limit?: number;

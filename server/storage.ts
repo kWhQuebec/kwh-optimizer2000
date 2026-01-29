@@ -77,6 +77,23 @@ export interface IStorage {
   getSitesByIds(ids: string[]): Promise<Site[]>;
   getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>>;
   getSitesMinimalByIds(ids: string[]): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>>;
+  getSitesForWorkQueue(): Promise<Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    province: string | null;
+    clientId: string;
+    isArchived: boolean;
+    roofAreaValidated: boolean | null;
+    quickAnalysisCompletedAt: Date | null;
+    workQueueAssignedToId: string | null;
+    workQueueAssignedAt: Date | null;
+    workQueuePriority: string | null;
+    workQueueDelegatedToEmail: string | null;
+    workQueueDelegatedToName: string | null;
+    workQueueDelegatedAt: Date | null;
+  }>>;
   getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRunSummary[] }) | undefined>;
   getSimulationRunFull(id: string): Promise<SimulationRun | undefined>;
   getSitesByClient(clientId: string): Promise<Site[]>;
@@ -696,6 +713,43 @@ export class MemStorage implements IStorage {
       province: site.province,
       clientId: site.clientId,
       isArchived: site.isArchived ?? false,
+    }));
+  }
+
+  async getSitesForWorkQueue(): Promise<Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    province: string | null;
+    clientId: string;
+    isArchived: boolean;
+    roofAreaValidated: boolean | null;
+    quickAnalysisCompletedAt: Date | null;
+    workQueueAssignedToId: string | null;
+    workQueueAssignedAt: Date | null;
+    workQueuePriority: string | null;
+    workQueueDelegatedToEmail: string | null;
+    workQueueDelegatedToName: string | null;
+    workQueueDelegatedAt: Date | null;
+  }>> {
+    const sites = Array.from(this.sites.values()).filter(s => !s.isArchived);
+    return sites.map(site => ({
+      id: site.id,
+      name: site.name,
+      address: site.address,
+      city: site.city,
+      province: site.province,
+      clientId: site.clientId,
+      isArchived: site.isArchived ?? false,
+      roofAreaValidated: site.roofAreaValidated ?? null,
+      quickAnalysisCompletedAt: site.quickAnalysisCompletedAt ?? null,
+      workQueueAssignedToId: site.workQueueAssignedToId ?? null,
+      workQueueAssignedAt: site.workQueueAssignedAt ?? null,
+      workQueuePriority: site.workQueuePriority ?? null,
+      workQueueDelegatedToEmail: site.workQueueDelegatedToEmail ?? null,
+      workQueueDelegatedToName: site.workQueueDelegatedToName ?? null,
+      workQueueDelegatedAt: site.workQueueDelegatedAt ?? null,
     }));
   }
 

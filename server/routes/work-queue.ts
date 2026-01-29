@@ -7,7 +7,8 @@ const router = Router();
 
 router.get("/api/work-queue/sites", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
   try {
-    const sites = await storage.getSites();
+    // Use lightweight query that excludes heavy googleSolarData blobs
+    const sites = await storage.getSitesForWorkQueue();
     const clients = await storage.getClients();
     const clientsById = new Map(clients.map(c => [c.id, { name: c.name }]));
     

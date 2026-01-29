@@ -1064,8 +1064,8 @@ function AnalysisParametersEditor({
           <CardHeader className="cursor-pointer hover-elevate py-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4 text-muted-foreground" />
-                <CardTitle className="text-sm font-medium">
+                <Settings className="w-5 h-5 text-muted-foreground" />
+                <CardTitle className="text-lg">
                   {language === "fr" ? "Paramètres d'analyse" : "Analysis Parameters"}
                 </CardTitle>
               </div>
@@ -6938,11 +6938,8 @@ export default function SiteDetailPage() {
       for (const polygon of polygons) {
         await apiRequest("POST", `/api/sites/${id}/roof-polygons`, polygon);
       }
-      // Mark roof as validated after saving polygons
-      await apiRequest("PATCH", `/api/sites/${id}`, {
-        roofAreaValidated: true,
-        roofAreaValidatedAt: new Date().toISOString(),
-      });
+      // Note: The server automatically sets roofAreaValidated=true and roofAreaValidatedAt
+      // when creating a non-constraint polygon, so no need to PATCH here
       return polygons;
     },
     onSuccess: (polygons) => {
