@@ -377,7 +377,7 @@ export async function sendPasswordResetEmail(
   const host = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000';
   const baseUrl = `${protocol}://${host}`;
   const loginUrl = `${baseUrl}/login`;
-  const logoUrl = `${baseUrl}/logo-kwh.png`;
+  const logoUrl = `${baseUrl}/assets/${language === 'fr' ? 'logo-fr.png' : 'logo-en.png'}`;
   
   const rendered = renderEmailTemplate('passwordReset', language, {
     tempPassword,
@@ -417,7 +417,7 @@ export async function sendWelcomeEmail(
   language: 'fr' | 'en' = 'fr'
 ): Promise<{ success: boolean; error?: string }> {
   const loginUrl = `${baseUrl}/login`;
-  const logoUrl = `${baseUrl}/logo-kwh.png`;
+  const logoUrl = `${baseUrl}/assets/${language === 'fr' ? 'logo-fr.png' : 'logo-en.png'}`;
   
   const rendered = renderEmailTemplate('userWelcome', language, {
     userName: data.userName || data.userEmail.split('@')[0],

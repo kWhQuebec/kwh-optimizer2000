@@ -704,10 +704,16 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       fs.writeFileSync(pdfPath, pdfBuffer);
       console.log(`[Detailed Analysis] Procuration PDF saved: ${pdfPath}`);
       
-      const testRecipient = 'info@kwh.quebec';
+      const staffRecipient = 'info@kwh.quebec';
+      const pdfAttachment = {
+        filename: `procuration_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+        content: pdfBuffer.toString('base64'),
+        type: 'application/pdf',
+      };
       
-      const emailResult = await sendEmail({
-        to: testRecipient,
+      // Send to kWh staff
+      const staffEmailResult = await sendEmail({
+        to: staffRecipient,
         subject: `Procuration HQ - ${companyName} (${hqClientNumber || 'N/A'})`,
         htmlBody: `
           <p>Bonjour,</p>
@@ -723,17 +729,50 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
           <p>Cordialement,<br>kWh Québec</p>
         `,
         textBody: `Procuration signée pour ${companyName} (${formattedSignerName}) - No client HQ: ${hqClientNumber || 'N/A'}`,
-        attachments: [{
-          filename: `procuration_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
-          content: pdfBuffer.toString('base64'),
-          type: 'application/pdf',
-        }],
+        attachments: [pdfAttachment],
       });
       
-      if (emailResult.success) {
-        console.log(`[Detailed Analysis] Procuration email sent to ${testRecipient}`);
+      if (staffEmailResult.success) {
+        console.log(`[Detailed Analysis] Procuration email sent to staff: ${staffRecipient}`);
       } else {
-        console.error(`[Detailed Analysis] Failed to send procuration email:`, emailResult.error);
+        console.error(`[Detailed Analysis] Failed to send procuration email to staff:`, staffEmailResult.error);
+      }
+      
+      // Send copy to client who signed
+      if (email) {
+        const lang = req.body.language === 'en' ? 'en' : 'fr';
+        const clientSubject = lang === 'fr' 
+          ? `Votre procuration signée - kWh Québec`
+          : `Your signed authorization - kWh Québec`;
+        const clientHtml = lang === 'fr' ? `
+          <p>Bonjour ${formattedSignerName},</p>
+          <p>Merci d'avoir signé la procuration nous autorisant à accéder à vos données de consommation Hydro-Québec.</p>
+          <p>Veuillez trouver ci-joint une copie de votre procuration signée pour vos dossiers.</p>
+          <p>Notre équipe procédera maintenant à l'analyse de votre potentiel solaire et vous contactera prochainement avec les résultats.</p>
+          <p>Cordialement,<br>L'équipe kWh Québec<br>514.427.8871 | info@kwh.quebec</p>
+        ` : `
+          <p>Hello ${formattedSignerName},</p>
+          <p>Thank you for signing the authorization allowing us to access your Hydro-Québec consumption data.</p>
+          <p>Please find attached a copy of your signed authorization for your records.</p>
+          <p>Our team will now proceed with analyzing your solar potential and will contact you shortly with the results.</p>
+          <p>Best regards,<br>The kWh Québec Team<br>514.427.8871 | info@kwh.quebec</p>
+        `;
+        
+        const clientEmailResult = await sendEmail({
+          to: email,
+          subject: clientSubject,
+          htmlBody: clientHtml,
+          textBody: lang === 'fr' 
+            ? `Merci d'avoir signé la procuration. Vous trouverez ci-joint une copie pour vos dossiers.`
+            : `Thank you for signing the authorization. Please find attached a copy for your records.`,
+          attachments: [pdfAttachment],
+        });
+        
+        if (clientEmailResult.success) {
+          console.log(`[Detailed Analysis] Procuration copy sent to client: ${email}`);
+        } else {
+          console.error(`[Detailed Analysis] Failed to send procuration copy to client:`, clientEmailResult.error);
+        }
       }
     } catch (pdfError) {
       console.error('[Detailed Analysis] Error generating/sending procuration PDF:', pdfError);
