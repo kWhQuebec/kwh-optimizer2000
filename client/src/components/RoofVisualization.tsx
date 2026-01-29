@@ -1236,7 +1236,7 @@ export function RoofVisualization({
         setPanelOrientationAngle(defaultAngle);
         setOrientationSource(defaultSource);
         
-        console.log(`[RoofVisualization] Dual layouts generated: Building=${buildingCapacity} panels, TrueSouth=${southCapacity} panels → Optimal: ${optimalOrientation}`);
+        console.log(`[RoofVisualization] Dual layouts generated: Building=${sortedBuildingPanels.length} panels, TrueSouth=${sortedSouthPanels.length} panels → Optimal: ${optimalOrientation}`);
         
         // Track panels per zone for legend display
         const zoneStats: Record<string, { count: number; label: string }> = {};
