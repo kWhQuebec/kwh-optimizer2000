@@ -450,7 +450,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   
   const t = {
     fr: {
-      greeting: 'Bonjour,',
+      greeting: `Bonjour ${clientName},`,
       intro: `Dans le cadre de votre projet d'analyse solaire avec kWh Québec, nous avons besoin d'accéder à vos données de consommation Hydro-Québec pour réaliser une analyse précise et personnalisée.`,
       whyTitle: 'Pourquoi avons-nous besoin de cette autorisation?',
       whyText: 'Les données de consommation horaires nous permettent de:',
@@ -466,7 +466,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
       footer: 'kWh Québec - 514.427.8871 - info@kwh.quebec',
     },
     en: {
-      greeting: 'Hello,',
+      greeting: `Hello ${clientName},`,
       intro: `As part of your solar analysis project with kWh Québec, we need access to your Hydro-Québec consumption data to provide an accurate and personalized analysis.`,
       whyTitle: 'Why do we need this authorization?',
       whyText: 'Hourly consumption data allows us to:',
@@ -555,17 +555,80 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
 </html>`;
 }
 
+function generateHqProcurationTextEmail(clientName: string, lang: 'fr' | 'en', baseUrl: string): string {
+  const procurationUrl = `${baseUrl}/analyse-detaillee`;
+  
+  if (lang === 'fr') {
+    return `Bonjour ${clientName},
+
+Dans le cadre de votre projet d'analyse solaire avec kWh Québec, nous avons besoin d'accéder à vos données de consommation Hydro-Québec pour réaliser une analyse précise et personnalisée.
+
+POURQUOI AVONS-NOUS BESOIN DE CETTE AUTORISATION?
+
+Les données de consommation horaires nous permettent de:
+- Dimensionner précisément votre système solaire
+- Calculer vos économies réelles basées sur votre profil de consommation
+- Optimiser la taille de la batterie si applicable
+- Fournir des projections financières fiables
+
+COMMENT PROCÉDER?
+
+Cliquez sur le lien ci-dessous pour accéder au formulaire. La signature prend moins de 2 minutes.
+
+${procurationUrl}
+
+NOTE DE SÉCURITÉ: Cette autorisation permet uniquement à kWh Québec de consulter vos données de consommation auprès d'Hydro-Québec. Elle peut être révoquée à tout moment.
+
+Des questions? N'hésitez pas à nous contacter.
+
+---
+kWh Québec
+514.427.8871
+info@kwh.quebec`;
+  }
+  
+  return `Hello ${clientName},
+
+As part of your solar analysis project with kWh Québec, we need access to your Hydro-Québec consumption data to provide an accurate and personalized analysis.
+
+WHY DO WE NEED THIS?
+
+Hourly consumption data allows us to:
+- Precisely size your solar system
+- Calculate your actual savings based on your consumption profile
+- Optimize battery size if applicable
+- Provide reliable financial projections
+
+HOW TO PROCEED?
+
+Click the link below to access the form. Signing takes less than 2 minutes.
+
+${procurationUrl}
+
+SECURITY NOTE: This only allows kWh Québec to access your consumption data from Hydro-Québec. It can be revoked at any time.
+
+Questions? Feel free to contact us.
+
+---
+kWh Québec
+514.427.8871
+info@kwh.quebec`;
+}
+
 export async function sendHqProcurationEmail(
   email: string,
   clientName: string,
   language: 'fr' | 'en',
   baseUrl: string
 ): Promise<{ success: boolean; error?: string }> {
+  // Subject without brackets - more personal, less likely to be flagged as spam
   const subject = language === 'fr' 
-    ? '[kWh Québec] Autorisation d\'accès aux données Hydro-Québec' 
-    : '[kWh Québec] Hydro-Québec Data Access Authorization';
+    ? `${clientName}, votre projet solaire avec kWh Québec`
+    : `${clientName}, your solar project with kWh Québec`;
   
   const htmlBody = generateHqProcurationEmailHtml(clientName, language, baseUrl);
+  // Plain text version - multipart emails are less likely to be flagged as spam
+  const textBody = generateHqProcurationTextEmail(clientName, language, baseUrl);
   
   console.log(`[EmailService] Sending HQ procuration email to ${email} for ${clientName} (lang: ${language})`);
   
@@ -573,6 +636,7 @@ export async function sendHqProcurationEmail(
     to: email,
     subject,
     htmlBody,
+    textBody,
   });
   
   if (result.success) {
