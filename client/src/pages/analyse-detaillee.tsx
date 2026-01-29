@@ -368,6 +368,11 @@ export default function AnalyseDetailleePage() {
           if (data.tariffCode) {
             form.setValue('tariffCode', data.tariffCode);
           }
+          
+          // Auto-transition to step 2 after successful parsing
+          setTimeout(() => {
+            setCurrentStep(2);
+          }, 500);
         })
         .catch(() => {
           setIsParsing(false);
@@ -439,6 +444,11 @@ export default function AnalyseDetailleePage() {
       if (data.tariffCode) {
         form.setValue('tariffCode', data.tariffCode);
       }
+      
+      // Auto-transition to step 2 after successful parsing
+      setTimeout(() => {
+        setCurrentStep(2);
+      }, 500);
     },
     onError: (error) => {
       setIsParsing(false);
@@ -1104,21 +1114,11 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   className="mt-4 p-4 bg-green-500/5 rounded-lg border border-green-500/20"
                                   data-testid="parsed-bill-preview"
                                 >
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                      <span className="font-semibold text-sm">
-                                        {language === "fr" ? "Données extraites" : "Extracted Data"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs text-muted-foreground">
-                                        {language === "fr" ? "Confiance:" : "Confidence:"}
-                                      </span>
-                                      <Badge variant="outline" className={getConfidenceColor(parsedBillData.confidence)}>
-                                        {getConfidenceLabel(parsedBillData.confidence)}
-                                      </Badge>
-                                    </div>
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                    <span className="font-semibold text-sm">
+                                      {language === "fr" ? "Données extraites" : "Extracted Data"}
+                                    </span>
                                   </div>
                                   
                                   <div className="space-y-2 text-sm">
