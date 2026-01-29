@@ -1278,10 +1278,12 @@ export function RoofVisualization({
         });
         
         // Renumber arrays sequentially (1, 2, 3...) across all polygons
+        // Filter out small arrays (< 6 panels) as they are likely artifacts
+        const MIN_ARRAY_PANELS = 6;
         let arrayNumber = 1;
         for (const key of sortedKeys) {
           const { panels, polygonId } = arrayStats.get(key)!;
-          if (panels.length === 0) continue;
+          if (panels.length < MIN_ARRAY_PANELS) continue; // Skip small arrays
           
           // Calculate rows and columns from unique row/col indices
           const uniqueRows = new Set(panels.map(p => p.rowIndex).filter(r => r !== undefined));
