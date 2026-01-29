@@ -41,19 +41,32 @@ interface SearchResults {
   opportunities: SearchOpportunity[];
 }
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export function GlobalSearch() {
   const { t, language } = useI18n();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+  
+  const debouncedQuery = useDebounce(searchQuery, 300);
 
   const { data: searchResults, isLoading } = useQuery<SearchResults>({
-    queryKey: ["/api/search", searchQuery],
+    queryKey: ["/api/search", debouncedQuery],
     queryFn: async () => {
-      if (!searchQuery.trim()) {
+      if (!debouncedQuery.trim()) {
         return { clients: [], sites: [], opportunities: [] };
       }
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`, {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -61,7 +74,7 @@ export function GlobalSearch() {
       if (!res.ok) throw new Error("Search failed");
       return res.json();
     },
-    enabled: open && searchQuery.length > 0,
+    enabled: open && debouncedQuery.length > 0,
     staleTime: 1000,
   });
 

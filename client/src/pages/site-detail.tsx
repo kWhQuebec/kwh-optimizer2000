@@ -59,7 +59,8 @@ import {
   Grid3X3,
   Pencil,
   Mail,
-  Presentation
+  Presentation,
+  Gift
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -7541,6 +7542,56 @@ export default function SiteDetailPage() {
                 </div>
               </div>
             </div>
+            
+            {/* Incentives breakdown */}
+            {(quickPotential.financial.hqIncentive || quickPotential.financial.federalItc) && (
+              <div className="mt-4 pt-4 border-t border-border/50" data-testid="quick-analysis-incentives">
+                <div className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                  <Gift className="w-4 h-4 text-green-600" />
+                  {language === "fr" ? "Incitatifs estimés" : "Estimated Incentives"}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  {quickPotential.financial.hqIncentive > 0 && (
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-hq">
+                      <div className="text-xs text-muted-foreground">Hydro-Québec</div>
+                      <div className="text-lg font-semibold text-green-700 dark:text-green-400">
+                        ${(quickPotential.financial.hqIncentive / 1000).toFixed(0)}k
+                      </div>
+                      <div className="text-xs text-muted-foreground">$1000/kW (max 40%)</div>
+                    </div>
+                  )}
+                  {quickPotential.financial.federalItc > 0 && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3" data-testid="incentive-itc">
+                      <div className="text-xs text-muted-foreground">{language === "fr" ? "CII Fédéral" : "Federal ITC"}</div>
+                      <div className="text-lg font-semibold text-blue-700 dark:text-blue-400">
+                        ${(quickPotential.financial.federalItc / 1000).toFixed(0)}k
+                      </div>
+                      <div className="text-xs text-muted-foreground">30% {language === "fr" ? "du coût net" : "of net cost"}</div>
+                    </div>
+                  )}
+                  {quickPotential.financial.netCapex && (
+                    <div className="bg-muted/50 rounded-lg p-3" data-testid="incentive-net-capex">
+                      <div className="text-xs text-muted-foreground">{language === "fr" ? "Coût net" : "Net Cost"}</div>
+                      <div className="text-lg font-semibold">
+                        ${(quickPotential.financial.netCapex / 1000000).toFixed(2)}M
+                      </div>
+                      <div className="text-xs text-muted-foreground">{language === "fr" ? "Après incitatifs" : "After incentives"}</div>
+                    </div>
+                  )}
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3" data-testid="incentive-total-savings">
+                    <div className="text-xs text-muted-foreground">{language === "fr" ? "Économies totales" : "Total Savings"}</div>
+                    <div className="text-lg font-semibold text-amber-700 dark:text-amber-400">
+                      ${((quickPotential.financial.hqIncentive || 0) + (quickPotential.financial.federalItc || 0)).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {quickPotential.financial.estimatedCapex > 0 
+                        ? `${Math.round(((quickPotential.financial.hqIncentive || 0) + (quickPotential.financial.federalItc || 0)) / quickPotential.financial.estimatedCapex * 100)}%`
+                        : "0%"} {language === "fr" ? "du CAPEX" : "of CAPEX"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Roof info */}
             <div className="mt-4 pt-4 border-t border-border/50">

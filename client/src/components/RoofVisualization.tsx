@@ -1208,13 +1208,25 @@ export function RoofVisualization({
         setBuildingAlignedAngle(buildingResult.orientationAngle);
         setTrueSouthAngle(0);
         
-        // Default to building-aligned view
-        const sortedPanels = sortedBuildingPanels;
-        setAllPanelPositions(sortedPanels);
-        setPanelOrientationAngle(buildingResult.orientationAngle);
-        setOrientationSource(buildingResult.orientationSource);
+        // Auto-select OPTIMAL orientation based on estimated annual production (panels × yield factor)
+        const buildingYieldFactor = calculateOrientationYieldFactor(buildingResult.orientationAngle).factor;
+        const southYieldFactor = calculateOrientationYieldFactor(0).factor; // True south = 0 radians = optimal
+        const buildingProduction = sortedBuildingPanels.length * PANEL_KW * buildingYieldFactor;
+        const southProduction = sortedSouthPanels.length * PANEL_KW * southYieldFactor;
+        const optimalOrientation = southProduction > buildingProduction ? "south" : "building";
+        setSelectedOrientation(optimalOrientation);
+        console.log(`[RoofVisualization] Yield comparison: Building=${(buildingYieldFactor*100).toFixed(1)}% (${sortedBuildingPanels.length}×${PANEL_KW}kW×${buildingYieldFactor.toFixed(2)}=${buildingProduction.toFixed(0)}kWh), South=${(southYieldFactor*100).toFixed(1)}% (${sortedSouthPanels.length}×${PANEL_KW}kW×${southYieldFactor.toFixed(2)}=${southProduction.toFixed(0)}kWh)`);
         
-        console.log(`[RoofVisualization] Dual layouts generated: Building=${sortedBuildingPanels.length} panels, TrueSouth=${sortedSouthPanels.length} panels`);
+        // Use optimal orientation as default
+        const sortedPanels = optimalOrientation === "south" ? sortedSouthPanels : sortedBuildingPanels;
+        const defaultAngle = optimalOrientation === "south" ? 0 : buildingResult.orientationAngle;
+        const defaultSource = optimalOrientation === "south" ? "true south" : buildingResult.orientationSource;
+        
+        setAllPanelPositions(sortedPanels);
+        setPanelOrientationAngle(defaultAngle);
+        setOrientationSource(defaultSource);
+        
+        console.log(`[RoofVisualization] Dual layouts generated: Building=${buildingCapacity} panels, TrueSouth=${southCapacity} panels → Optimal: ${optimalOrientation}`);
         
         // Track panels per zone for legend display
         const zoneStats: Record<string, { count: number; label: string }> = {};
@@ -1359,16 +1371,31 @@ export function RoofVisualization({
   useEffect(() => {
     if (buildingAlignedPanels.length === 0 && trueSouthPanels.length === 0) return;
     
+    let newPanels: PanelPosition[] = [];
+    
     if (selectedOrientation === "building" && buildingAlignedPanels.length > 0) {
-      setAllPanelPositions(buildingAlignedPanels);
+      newPanels = buildingAlignedPanels;
+      setAllPanelPositions(newPanels);
       setPanelOrientationAngle(buildingAlignedAngle);
       setOrientationSource("building edge");
     } else if (selectedOrientation === "south" && trueSouthPanels.length > 0) {
-      setAllPanelPositions(trueSouthPanels);
+      newPanels = trueSouthPanels;
+      setAllPanelPositions(newPanels);
       setPanelOrientationAngle(trueSouthAngle);
       setOrientationSource("true south");
     }
-  }, [selectedOrientation, buildingAlignedPanels, trueSouthPanels, buildingAlignedAngle, trueSouthAngle]);
+    
+    // Notify parent of capacity change when orientation switches
+    // Note: Only send panel count/capacity - arrays are recalculated on render, not per-orientation
+    if (onGeometryCalculated && newPanels.length > 0) {
+      onGeometryCalculated({
+        maxCapacityKW: Math.round(newPanels.length * PANEL_KW),
+        panelCount: newPanels.length,
+        realisticCapacityKW: Math.round(newPanels.length * PANEL_KW * 0.9),
+        constraintAreaSqM: constraintArea
+      });
+    }
+  }, [selectedOrientation, buildingAlignedPanels, trueSouthPanels, buildingAlignedAngle, trueSouthAngle, onGeometryCalculated, constraintArea]);
 
   const handleFullscreen = useCallback(() => {
     if (mapContainerRef.current) {
