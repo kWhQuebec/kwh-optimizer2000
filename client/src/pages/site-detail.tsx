@@ -7484,6 +7484,31 @@ export default function SiteDetailPage() {
             )}
           </CardHeader>
           <CardContent>
+            {/* Calculate displayed values based on geometry capacity when available */}
+            {(() => {
+              // Use geometry capacity if available (more accurate from panel placement)
+              const displayedCapacityKW = geometryCapacity?.realisticCapacityKW ?? Math.round(quickPotential.systemSizing.maxCapacityKW * 0.9);
+              const displayedPanelCount = geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels;
+              
+              // Recalculate financials based on displayed capacity
+              const costPerW = quickPotential.financial.costPerW || 2.00;
+              const displayedCapex = Math.round(displayedCapacityKW * 1000 * costPerW);
+              const yieldKWhPerKWp = quickPotential.production.yieldKWhPerKWp || 1039;
+              const displayedProductionKWh = Math.round(displayedCapacityKW * yieldKWhPerKWp);
+              const displayedProductionMWh = displayedProductionKWh / 1000;
+              
+              // Recalculate incentives based on displayed capacity
+              const displayedHqIncentive = Math.min(displayedCapacityKW * 1000, displayedCapex * 0.40); // $1000/kW max 40%
+              const displayedFederalItc = Math.round((displayedCapex - displayedHqIncentive) * 0.30); // 30% of net
+              const displayedNetCapex = displayedCapex - displayedHqIncentive - displayedFederalItc;
+              
+              // Recalculate annual savings and payback
+              const energyRate = 0.06; // ~$0.06/kWh average
+              const displayedAnnualSavings = Math.round(displayedProductionKWh * energyRate);
+              const displayedPaybackYears = displayedAnnualSavings > 0 ? displayedNetCapex / displayedAnnualSavings : 0;
+              
+              return (
+            <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Capacity - use geometry values when available (more accurate) */}
               <div className="space-y-1">
@@ -7492,97 +7517,89 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Capacité estimée" : "Estimated Capacity"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {formatNumber(geometryCapacity?.realisticCapacityKW ?? Math.round(quickPotential.systemSizing.maxCapacityKW * 0.9), language)} kWc
+                  {formatNumber(displayedCapacityKW, language)} kWc
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatNumber(geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels, language)} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
+                  {formatNumber(displayedPanelCount, language)} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
                 </div>
               </div>
               
-              {/* Production - use backend values (based on tiered pricing methodology) */}
+              {/* Production - scaled to displayed capacity */}
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Zap className="w-4 h-4" />
                   {language === "fr" ? "Production annuelle" : "Annual Production"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {formatNumber(quickPotential.production.annualProductionMWh, language, 1)} MWh
+                  {formatNumber(displayedProductionMWh, language, 1)} MWh
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatNumber(quickPotential.production.yieldKWhPerKWp, language)} kWh/kWc
+                  {formatNumber(yieldKWhPerKWp, language)} kWh/kWc
                 </div>
               </div>
               
-              {/* Investment - use backend values (tiered pricing, incentives) */}
+              {/* Investment - scaled to displayed capacity */}
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <DollarSign className="w-4 h-4" />
                   {language === "fr" ? "Investissement estimé" : "Estimated Investment"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {quickPotential.financial.estimatedCapex >= 1000000 
-                    ? `$${Math.round(quickPotential.financial.estimatedCapex / 1000000)}M`
-                    : `$${Math.round(quickPotential.financial.estimatedCapex / 1000)}k`}
+                  {displayedCapex >= 1000000 
+                    ? `$${Math.round(displayedCapex / 1000000)}M`
+                    : `$${Math.round(displayedCapex / 1000)}k`}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  ${quickPotential.financial.costPerW.toFixed(2)}/W
+                  ${costPerW.toFixed(2)}/W
                 </div>
               </div>
               
-              {/* Payback - use backend values */}
+              {/* Payback - scaled to displayed capacity */}
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <TrendingUp className="w-4 h-4" />
                   {language === "fr" ? "Retour simple" : "Simple Payback"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {typeof quickPotential.financial.simplePaybackYears === 'number' 
-                    ? quickPotential.financial.simplePaybackYears.toFixed(1) 
-                    : quickPotential.financial.simplePaybackYears} {language === "fr" ? "ans" : "years"}
+                  {displayedPaybackYears.toFixed(1)} {language === "fr" ? "ans" : "years"}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  ~${(quickPotential.financial.estimatedAnnualSavings / 1000).toFixed(0)}k/{language === "fr" ? "an" : "year"}
+                  ~{displayedAnnualSavings >= 1000000 
+                    ? `$${Math.round(displayedAnnualSavings / 1000000)}M`
+                    : `$${Math.round(displayedAnnualSavings / 1000)}k`}/{language === "fr" ? "an" : "year"}
                 </div>
               </div>
             </div>
             
-            {/* VAN and TRI 25 years */}
-            {(() => {
-              const netCapex = quickPotential.financial.netCapex || 
-                (quickPotential.financial.estimatedCapex - (quickPotential.financial.hqIncentive || 0) - (quickPotential.financial.federalItc || 0));
-              const annualSavings = quickPotential.financial.estimatedAnnualSavings || 0;
-              const discountRate = 0.06; // 6% discount rate
+            {/* VAN and TRI 25 years - using recalculated values */}
+            {displayedNetCapex > 0 && displayedAnnualSavings > 0 && (() => {
+              const discountRate = 0.06;
               const years = 25;
-              
-              // Calculate NPV 25 years
-              let npv = -netCapex;
+              let npv = -displayedNetCapex;
               for (let y = 1; y <= years; y++) {
-                npv += annualSavings / Math.pow(1 + discountRate, y);
+                npv += displayedAnnualSavings / Math.pow(1 + discountRate, y);
               }
-              
-              // Calculate IRR using Newton-Raphson method
-              let irr = 0.10; // Initial guess
+              let irr = 0.10;
               for (let iter = 0; iter < 50; iter++) {
-                let npvCalc = -netCapex;
+                let npvCalc = -displayedNetCapex;
                 let npvDerivative = 0;
                 for (let y = 1; y <= years; y++) {
-                  npvCalc += annualSavings / Math.pow(1 + irr, y);
-                  npvDerivative -= y * annualSavings / Math.pow(1 + irr, y + 1);
+                  npvCalc += displayedAnnualSavings / Math.pow(1 + irr, y);
+                  npvDerivative -= y * displayedAnnualSavings / Math.pow(1 + irr, y + 1);
                 }
                 if (Math.abs(npvCalc) < 1) break;
                 irr = irr - npvCalc / npvDerivative;
                 if (irr < 0) irr = 0.001;
                 if (irr > 1) irr = 0.999;
               }
-              
-              return netCapex > 0 && annualSavings > 0 ? (
+              return (
                 <div className="flex gap-6 mt-3 pt-3 border-t border-border/50">
                   <div className="space-y-0.5">
                     <div className="text-xs text-muted-foreground">
                       {language === "fr" ? "VAN 25 ans (6%)" : "NPV 25 yrs (6%)"}
                     </div>
                     <div className={`text-lg font-bold ${npv >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      ${(npv / 1000).toFixed(0)}k
+                      {npv >= 1000000 ? `$${Math.round(npv / 1000000)}M` : `$${Math.round(npv / 1000)}k`}
                     </div>
                   </div>
                   <div className="space-y-0.5">
@@ -7594,63 +7611,47 @@ export default function SiteDetailPage() {
                     </div>
                   </div>
                 </div>
-              ) : null;
+              );
             })()}
             
-            {/* Incentives breakdown */}
-            {(quickPotential.financial.hqIncentive || quickPotential.financial.federalItc) && (
+            {/* Incentives breakdown - using recalculated values */}
+            {displayedHqIncentive > 0 && (
               <div className="mt-4 pt-4 border-t border-border/50" data-testid="quick-analysis-incentives">
                 <div className="text-sm font-medium mb-2 flex items-center gap-1.5">
                   <Gift className="w-4 h-4 text-green-600" />
                   {language === "fr" ? "Incitatifs estimés" : "Estimated Incentives"}
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  {quickPotential.financial.hqIncentive > 0 && (
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-hq">
-                      <div className="text-xs text-muted-foreground">Hydro-Québec</div>
-                      <div className="text-lg font-semibold text-green-700 dark:text-green-400">
-                        ${(quickPotential.financial.hqIncentive / 1000).toFixed(0)}k
-                      </div>
-                      <div className="text-xs text-muted-foreground">$1000/kW (max 40%)</div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-hq">
+                    <div className="text-xs text-muted-foreground">Hydro-Québec</div>
+                    <div className="font-semibold text-green-700 dark:text-green-400">
+                      {displayedHqIncentive >= 1000000 
+                        ? `$${Math.round(displayedHqIncentive / 1000000)}M`
+                        : `$${Math.round(displayedHqIncentive / 1000)}k`}
                     </div>
-                  )}
-                  {quickPotential.financial.federalItc > 0 && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3" data-testid="incentive-itc">
-                      <div className="text-xs text-muted-foreground">{language === "fr" ? "CII Fédéral" : "Federal ITC"}</div>
-                      <div className="text-lg font-semibold text-blue-700 dark:text-blue-400">
-                        ${(quickPotential.financial.federalItc / 1000).toFixed(0)}k
-                      </div>
-                      <div className="text-xs text-muted-foreground">30% {language === "fr" ? "du coût net" : "of net cost"}</div>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-federal">
+                    <div className="text-xs text-muted-foreground">{language === "fr" ? "Crédit fédéral (30%)" : "Federal ITC (30%)"}</div>
+                    <div className="font-semibold text-green-700 dark:text-green-400">
+                      {displayedFederalItc >= 1000000 
+                        ? `$${Math.round(displayedFederalItc / 1000000)}M`
+                        : `$${Math.round(displayedFederalItc / 1000)}k`}
                     </div>
-                  )}
-                  {quickPotential.financial.netCapex && (
-                    <div className="bg-muted/50 rounded-lg p-3" data-testid="incentive-net-capex">
-                      <div className="text-xs text-muted-foreground">{language === "fr" ? "Coût net" : "Net Cost"}</div>
-                      <div className="text-lg font-semibold">
-                        {quickPotential.financial.netCapex >= 1000000 
-                          ? `$${Math.round(quickPotential.financial.netCapex / 1000000)}M`
-                          : `$${Math.round(quickPotential.financial.netCapex / 1000)}k`}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{language === "fr" ? "Après incitatifs" : "After incentives"}</div>
-                    </div>
-                  )}
-                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3" data-testid="incentive-total-savings">
-                    <div className="text-xs text-muted-foreground">{language === "fr" ? "Économies totales" : "Total Savings"}</div>
-                    <div className="text-lg font-semibold text-amber-700 dark:text-amber-400">
-                      {(() => {
-                        const total = (quickPotential.financial.hqIncentive || 0) + (quickPotential.financial.federalItc || 0);
-                        return total >= 1000000 ? `$${Math.round(total / 1000000)}M` : `$${Math.round(total / 1000)}k`;
-                      })()}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {quickPotential.financial.estimatedCapex > 0 
-                        ? `${Math.round(((quickPotential.financial.hqIncentive || 0) + (quickPotential.financial.federalItc || 0)) / quickPotential.financial.estimatedCapex * 100)}%`
-                        : "0%"} {language === "fr" ? "du CAPEX" : "of CAPEX"}
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3" data-testid="incentive-net">
+                    <div className="text-xs text-muted-foreground">{language === "fr" ? "Investissement net" : "Net Investment"}</div>
+                    <div className="font-semibold text-blue-700 dark:text-blue-400">
+                      {displayedNetCapex >= 1000000 
+                        ? `$${Math.round(displayedNetCapex / 1000000)}M`
+                        : `$${Math.round(displayedNetCapex / 1000)}k`}
                     </div>
                   </div>
                 </div>
               </div>
             )}
+            </>
+              );
+            })()}
             
             {/* Roof info */}
             <div className="mt-4 pt-4 border-t border-border/50">
