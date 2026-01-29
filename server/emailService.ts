@@ -512,7 +512,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
 <body>
   <div class="container">
     <div class="header">
-      <img src="${baseUrl}/logo-kwh.png" alt="kWh Québec" />
+      <img src="${baseUrl}/assets/${lang === 'fr' ? 'logo-fr.png' : 'logo-en.png'}" alt="kWh Québec" />
       <h1>${lang === 'fr' ? 'Autorisation d\'accès aux données Hydro-Québec' : 'Hydro-Québec Data Access Authorization'}</h1>
     </div>
     
