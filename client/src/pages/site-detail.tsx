@@ -6638,6 +6638,10 @@ export default function SiteDetailPage() {
       const annualSavings = site.quickAnalysisAnnualSavings || 0;
       const paybackYears = site.quickAnalysisPaybackYears || 0;
       const grossCapex = site.quickAnalysisGrossCapex || 0;
+      const hqIncentive = site.quickAnalysisHqIncentive || 0;
+      const netCapex = site.quickAnalysisNetCapex || 0;
+      // Federal ITC is 30% of net cost after HQ incentive
+      const federalItc = Math.round((grossCapex - hqIncentive) * 0.30);
       
       // Calculate roof area from polygons if available, otherwise use saved value
       const solarPolygons = roofPolygons.filter((p: RoofPolygon) => {
@@ -6683,6 +6687,9 @@ export default function SiteDetailPage() {
           estimatedCapex: grossCapex,
           estimatedAnnualSavings: annualSavings,
           simplePaybackYears: paybackYears,
+          hqIncentive: hqIncentive,
+          federalItc: federalItc,
+          netCapex: netCapex,
         },
       });
     }
