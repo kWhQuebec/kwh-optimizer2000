@@ -459,7 +459,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
       benefit3: 'Optimiser la taille de la batterie si applicable',
       benefit4: 'Fournir des projections financières fiables',
       actionTitle: 'Comment procéder?',
-      actionText: 'Cliquez sur le bouton ci-dessous pour accéder au formulaire de procuration. La signature prend moins de 2 minutes.',
+      actionText: 'Cliquez sur le bouton ci-dessous pour accéder au formulaire d\'autorisation. Vous devrez téléverser une facture Hydro-Québec récente (moins de 3 mois). Le processus complet prend moins de 2 minutes.',
       ctaButton: 'Signer la procuration',
       securityNote: 'Cette procuration autorise uniquement kWh Québec à consulter vos données de consommation auprès d\'Hydro-Québec. Elle peut être révoquée à tout moment.',
       questions: 'Des questions? N\'hésitez pas à nous contacter.',
@@ -475,7 +475,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
       benefit3: 'Optimize battery size if applicable',
       benefit4: 'Provide reliable financial projections',
       actionTitle: 'How to proceed?',
-      actionText: 'Click the button below to access the authorization form. Signing takes less than 2 minutes.',
+      actionText: 'Click the button below to access the authorization form. You will need to upload a recent (less than 3 month old) Hydro-Québec bill. The whole process should take less than 2 minutes.',
       ctaButton: 'Sign Authorization',
       securityNote: 'This authorization only allows kWh Québec to access your consumption data from Hydro-Québec. It can be revoked at any time.',
       questions: 'Questions? Feel free to contact us.',
@@ -494,20 +494,19 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #1e5a9f 100%); color: white; padding: 30px; text-align: center; }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #1e5a9f 100%); color: white; padding: 20px; text-align: center; }
     .header img { max-width: 180px; height: auto; }
-    .header h1 { margin: 15px 0 0; font-size: 22px; font-weight: 600; }
-    .content { padding: 30px; }
-    .intro { font-size: 15px; color: #555; margin-bottom: 25px; }
-    .section { margin-bottom: 25px; }
-    .section-title { font-size: 16px; font-weight: 600; color: #003DA6; margin-bottom: 12px; }
+    .header h1 { margin: 10px 0 0; font-size: 22px; font-weight: 600; }
+    .content { padding: 20px 30px; }
+    .intro { font-size: 15px; color: #555; margin-bottom: 15px; line-height: 1.4; }
+    .section { margin-bottom: 15px; }
+    .section-title { font-size: 16px; font-weight: 600; color: #003DA6; margin-bottom: 8px; }
     .benefit-list { margin: 0; padding-left: 20px; }
-    .benefit-list li { margin-bottom: 8px; color: #555; }
-    .cta-section { text-align: center; margin: 30px 0; }
+    .benefit-list li { margin-bottom: 4px; color: #555; }
+    .cta-section { text-align: center; margin: 20px 0; }
     .cta-button { display: inline-block; background: #FFB005; color: #003DA6; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 16px; }
-    .security-note { background: #f0f7ff; padding: 15px; border-radius: 6px; font-size: 13px; color: #666; border-left: 4px solid #003DA6; margin: 20px 0; }
-    .questions { font-size: 14px; color: #666; text-align: center; margin-top: 20px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 13px; background: #f0f0f0; border-top: 1px solid #ddd; }
+    .questions { font-size: 14px; color: #666; text-align: center; margin-top: 15px; }
+    .footer { text-align: center; padding: 15px; color: #666; font-size: 13px; background: #f0f0f0; border-top: 1px solid #ddd; }
   </style>
 </head>
 <body>
@@ -518,11 +517,11 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
     </div>
     
     <div class="content">
-      <p class="intro">${txt.greeting}<br><br>${txt.intro}</p>
+      <p class="intro">${txt.greeting}<br>${txt.intro}</p>
       
       <div class="section">
         <div class="section-title">${txt.whyTitle}</div>
-        <p style="color: #555; margin-bottom: 10px;">${txt.whyText}</p>
+        <p style="color: #555; margin-bottom: 6px;">${txt.whyText}</p>
         <ul class="benefit-list">
           <li>${txt.benefit1}</li>
           <li>${txt.benefit2}</li>
@@ -538,10 +537,6 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
       
       <div class="cta-section">
         <a href="${procurationUrl}" class="cta-button">${txt.ctaButton}</a>
-      </div>
-      
-      <div class="security-note">
-        ${txt.securityNote}
       </div>
       
       <p class="questions">${txt.questions}</p>
@@ -573,11 +568,9 @@ Les données de consommation horaires nous permettent de:
 
 COMMENT PROCÉDER?
 
-Cliquez sur le lien ci-dessous pour accéder au formulaire. La signature prend moins de 2 minutes.
+Cliquez sur le lien ci-dessous pour accéder au formulaire d'autorisation. Vous devrez téléverser une facture Hydro-Québec récente (moins de 3 mois). Le processus complet prend moins de 2 minutes.
 
 ${procurationUrl}
-
-NOTE DE SÉCURITÉ: Cette autorisation permet uniquement à kWh Québec de consulter vos données de consommation auprès d'Hydro-Québec. Elle peut être révoquée à tout moment.
 
 Des questions? N'hésitez pas à nous contacter.
 
@@ -601,11 +594,9 @@ Hourly consumption data allows us to:
 
 HOW TO PROCEED?
 
-Click the link below to access the form. Signing takes less than 2 minutes.
+Click the link below to access the authorization form. You will need to upload a recent (less than 3 month old) Hydro-Québec bill. The whole process should take less than 2 minutes.
 
 ${procurationUrl}
-
-SECURITY NOTE: This only allows kWh Québec to access your consumption data from Hydro-Québec. It can be revoked at any time.
 
 Questions? Feel free to contact us.
 
