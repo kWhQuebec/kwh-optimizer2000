@@ -51,6 +51,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, user: Partial<User>): Promise<User | undefined>;
   getUsers(): Promise<User[]>;
+  getUsersByIds(ids: string[]): Promise<User[]>;
   deleteUser(id: string): Promise<boolean>;
 
   // Leads
@@ -61,6 +62,7 @@ export interface IStorage {
 
   // Clients
   getClients(): Promise<(Client & { sites: Site[] })[]>;
+  getClientsByIds(ids: string[]): Promise<Client[]>;
   getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean }): Promise<{
     clients: (Client & { sites: Site[] })[];
     total: number;
@@ -72,6 +74,7 @@ export interface IStorage {
 
   // Sites
   getSites(): Promise<(Site & { client: Client })[]>;
+  getSitesByIds(ids: string[]): Promise<Site[]>;
   getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>>;
   getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRunSummary[] }) | undefined>;
   getSimulationRunFull(id: string): Promise<SimulationRun | undefined>;
@@ -515,6 +518,10 @@ export class MemStorage implements IStorage {
       new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
     );
   }
+
+  async getUsersByIds(ids: string[]): Promise<User[]> {
+    return Array.from(this.users.values()).filter(u => ids.includes(u.id));
+  }
   
   async deleteUser(id: string): Promise<boolean> {
     return this.users.delete(id);
@@ -576,6 +583,10 @@ export class MemStorage implements IStorage {
       ...client,
       sites: Array.from(this.sites.values()).filter(s => s.clientId === client.id),
     })).sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getClientsByIds(ids: string[]): Promise<Client[]> {
+    return Array.from(this.clients.values()).filter(c => ids.includes(c.id));
   }
 
   async getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean } = {}): Promise<{
@@ -654,6 +665,10 @@ export class MemStorage implements IStorage {
     })).filter(s => s.client).sort((a, b) => 
       new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
     );
+  }
+
+  async getSitesByIds(ids: string[]): Promise<Site[]> {
+    return Array.from(this.sites.values()).filter(s => ids.includes(s.id));
   }
 
   async getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>> {

@@ -14,22 +14,31 @@ router.get("/api/opportunities", authMiddleware, requireStaff, async (req: AuthR
     } else {
       opportunities = await storage.getOpportunities();
     }
-    
-    // Enrich opportunities with related data (owner, client, site)
-    // Use lightweight site data - only fields needed for pipeline display (no googleSolarData)
-    const [allUsers, allClients, sitesMinimal] = await Promise.all([
-      storage.getUsers(),
-      storage.getClients(),
-      storage.getSitesMinimal(),
+
+    // Collect only the IDs needed for enrichment
+    const ownerIds = [...new Set(opportunities.filter(o => o.ownerId).map(o => o.ownerId!))];
+    const clientIds = [...new Set(opportunities.filter(o => o.clientId).map(o => o.clientId!))];
+    const siteIds = [...new Set(opportunities.filter(o => o.siteId).map(o => o.siteId!))];
+
+    // Load only the necessary data in parallel (batch queries instead of loading all)
+    const [users, clients, sites] = await Promise.all([
+      ownerIds.length > 0 ? storage.getUsersByIds(ownerIds) : Promise.resolve([]),
+      clientIds.length > 0 ? storage.getClientsByIds(clientIds) : Promise.resolve([]),
+      siteIds.length > 0 ? storage.getSitesByIds(siteIds) : Promise.resolve([]),
     ]);
-    
+
+    // Create maps for fast lookup
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+    const siteMap = new Map(sites.map(s => [s.id, s]));
+
     const enrichedOpportunities = opportunities.map(opp => ({
       ...opp,
-      owner: opp.ownerId ? allUsers.find(u => u.id === opp.ownerId) || null : null,
-      client: opp.clientId ? allClients.find(c => c.id === opp.clientId) || null : null,
-      site: opp.siteId ? sitesMinimal.find(s => s.id === opp.siteId) || null : null,
+      owner: opp.ownerId ? userMap.get(opp.ownerId) || null : null,
+      client: opp.clientId ? clientMap.get(opp.clientId) || null : null,
+      site: opp.siteId ? siteMap.get(opp.siteId) || null : null,
     }));
-    
+
     res.json(enrichedOpportunities);
   } catch (error) {
     console.error("Error fetching opportunities:", error);

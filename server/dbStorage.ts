@@ -143,6 +143,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users).orderBy(desc(users.createdAt));
   }
 
+  async getUsersByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(users).where(inArray(users.id, ids));
+  }
+
   async deleteUser(id: string): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id)).returning();
     return result.length > 0;
@@ -178,6 +183,11 @@ export class DatabaseStorage implements IStorage {
       ...client,
       sites: allSites.filter(s => s.clientId === client.id),
     }));
+  }
+
+  async getClientsByIds(ids: string[]): Promise<Client[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(clients).where(inArray(clients.id, ids));
   }
 
   async getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean } = {}): Promise<{
@@ -262,6 +272,11 @@ export class DatabaseStorage implements IStorage {
       ...site,
       client: clientMap.get(site.clientId)!,
     })).filter(s => s.client);
+  }
+
+  async getSitesByIds(ids: string[]): Promise<Site[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(sites).where(inArray(sites.id, ids));
   }
 
   // Ultra-lightweight query for pipeline - only essential fields, no heavy JSON

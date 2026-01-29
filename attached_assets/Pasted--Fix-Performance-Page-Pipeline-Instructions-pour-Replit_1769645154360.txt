@@ -1,0 +1,393 @@
+# 🔧 Fix Performance — Page Pipeline
+
+## Instructions pour Replit Agent
+
+La page Pipeline est lente à cause de requêtes DB en boucle. Voici les corrections à appliquer.
+
+---
+
+## FIX 1: Batch les requêtes Portfolio (CRITIQUE)
+
+**Fichier:** `server/dbStorage.ts`
+
+**Remplacer la méthode `applyPortfolioAutoSync` (lignes ~1815-1915) par:**
+
+```typescript
+private async applyPortfolioAutoSync(opps: Opportunity[]): Promise<(Opportunity & { rfpBreakdown?: { eligibleSites: number; eligibleCapex: number; eligiblePvKW: number; nonEligibleSites: number; nonEligibleCapex: number; nonEligiblePvKW: number; totalSites: number } })[]> {
+  if (opps.length === 0) return opps;
+
+  const portfolioIds = Array.from(new Set(opps.filter(o => o.portfolioId).map(o => o.portfolioId!)));
+  if (portfolioIds.length === 0) return opps;
+
+  // BATCH: Une seule requête pour TOUS les portfolio sites
+  const allPortfolioSites = await db.select()
+    .from(portfolioSites)
+    .where(inArray(portfolioSites.portfolioId, portfolioIds));
+
+  // Grouper les sites par portfolio
+  const portfolioSitesMap = new Map<string, typeof allPortfolioSites>();
+  for (const ps of allPortfolioSites) {
+    if (!portfolioSitesMap.has(ps.portfolioId)) {
+      portfolioSitesMap.set(ps.portfolioId, []);
+    }
+    portfolioSitesMap.get(ps.portfolioId)!.push(ps);
+  }
+
+  // Collecter tous les siteIds uniques
+  const allSiteIds = Array.from(new Set(allPortfolioSites.map(ps => ps.siteId)));
+
+  if (allSiteIds.length === 0) {
+    return opps.map(o => o);
+  }
+
+  // BATCH: Une requête pour tous les sites + une pour toutes les simulations
+  const [allSitesData, allSims] = await Promise.all([
+    db.select().from(sites).where(inArray(sites.id, allSiteIds)),
+    db.select().from(simulationRuns).where(inArray(simulationRuns.siteId, allSiteIds)),
+  ]);
+
+  // Indexer les sites
+  const siteDetailsMap = new Map<string, typeof sites.$inferSelect>();
+  for (const site of allSitesData) {
+    siteDetailsMap.set(site.id, site);
+  }
+
+  // Trouver la dernière simulation par site
+  const latestSimsMap = new Map<string, typeof simulationRuns.$inferSelect>();
+  for (const sim of allSims) {
+    const existing = latestSimsMap.get(sim.siteId);
+    if (!existing || (sim.createdAt && existing.createdAt && new Date(sim.createdAt) > new Date(existing.createdAt))) {
+      latestSimsMap.set(sim.siteId, sim);
+    }
+  }
+
+  // Calculer les KPIs par portfolio
+  const portfolioKPIs = new Map<string, {
+    totalCapex: number;
+    totalPvKW: number;
+    rfpBreakdown: {
+      eligibleSites: number;
+      eligibleCapex: number;
+      eligiblePvKW: number;
+      nonEligibleSites: number;
+      nonEligibleCapex: number;
+      nonEligiblePvKW: number;
+      totalSites: number;
+    };
+  }>();
+
+  for (const portfolioId of portfolioIds) {
+    const pSites = portfolioSitesMap.get(portfolioId) || [];
+
+    let totalCapex = 0;
+    let totalPvKW = 0;
+    let eligibleSites = 0;
+    let eligibleCapex = 0;
+    let eligiblePvKW = 0;
+    let nonEligibleSites = 0;
+    let nonEligibleCapex = 0;
+    let nonEligiblePvKW = 0;
+
+    for (const ps of pSites) {
+      const latestSim = latestSimsMap.get(ps.siteId);
+      const siteDetail = siteDetailsMap.get(ps.siteId);
+      const isRfpEligible = siteDetail?.isRfpEligible ?? false;
+
+      if (latestSim) {
+        const capex = latestSim.capexNet || 0;
+        const pvKW = latestSim.pvSizeKW || 0;
+
+        totalCapex += capex;
+        totalPvKW += pvKW;
+
+        if (isRfpEligible) {
+          eligibleSites++;
+          eligibleCapex += capex;
+          eligiblePvKW += pvKW;
+        } else {
+          nonEligibleSites++;
+          nonEligibleCapex += capex;
+          nonEligiblePvKW += pvKW;
+        }
+      }
+    }
+
+    portfolioKPIs.set(portfolioId, {
+      totalCapex,
+      totalPvKW,
+      rfpBreakdown: {
+        eligibleSites,
+        eligibleCapex,
+        eligiblePvKW,
+        nonEligibleSites,
+        nonEligibleCapex,
+        nonEligiblePvKW,
+        totalSites: pSites.length,
+      }
+    });
+  }
+
+  return opps.map(o => {
+    if (o.portfolioId && portfolioKPIs.has(o.portfolioId)) {
+      const kpis = portfolioKPIs.get(o.portfolioId)!;
+      return {
+        ...o,
+        estimatedValue: kpis.totalCapex,
+        pvSizeKW: kpis.totalPvKW,
+        rfpBreakdown: kpis.rfpBreakdown,
+      };
+    }
+    return o;
+  });
+}
+```
+
+---
+
+## FIX 2: Optimiser l'endpoint Opportunities
+
+**Fichier:** `server/routes/opportunities.ts`
+
+**Remplacer le handler GET /api/opportunities (lignes ~8-36) par:**
+
+```typescript
+router.get("/api/opportunities", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
+  try {
+    const { stage } = req.query;
+    let opportunities;
+    if (stage && typeof stage === "string") {
+      opportunities = await storage.getOpportunitiesByStage(stage);
+    } else {
+      opportunities = await storage.getOpportunities();
+    }
+
+    // Collecter seulement les IDs nécessaires
+    const ownerIds = [...new Set(opportunities.filter(o => o.ownerId).map(o => o.ownerId!))];
+    const clientIds = [...new Set(opportunities.filter(o => o.clientId).map(o => o.clientId!))];
+    const siteIds = [...new Set(opportunities.filter(o => o.siteId).map(o => o.siteId!))];
+
+    // Charger seulement les données nécessaires en parallèle
+    const [users, clients, sites] = await Promise.all([
+      ownerIds.length > 0 ? storage.getUsersByIds(ownerIds) : Promise.resolve([]),
+      clientIds.length > 0 ? storage.getClientsByIds(clientIds) : Promise.resolve([]),
+      siteIds.length > 0 ? storage.getSitesByIds(siteIds) : Promise.resolve([]),
+    ]);
+
+    // Créer des maps pour lookup rapide
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+    const siteMap = new Map(sites.map(s => [s.id, s]));
+
+    const enrichedOpportunities = opportunities.map(opp => ({
+      ...opp,
+      owner: opp.ownerId ? userMap.get(opp.ownerId) || null : null,
+      client: opp.clientId ? clientMap.get(opp.clientId) || null : null,
+      site: opp.siteId ? siteMap.get(opp.siteId) || null : null,
+    }));
+
+    res.json(enrichedOpportunities);
+  } catch (error) {
+    console.error("Error fetching opportunities:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+```
+
+**Ajouter ces méthodes dans `server/storage.ts` (interface IStorage):**
+
+```typescript
+// Ajouter dans l'interface IStorage:
+getUsersByIds(ids: string[]): Promise<User[]>;
+getClientsByIds(ids: string[]): Promise<Client[]>;
+getSitesByIds(ids: string[]): Promise<Site[]>;
+```
+
+**Ajouter les implémentations dans `server/dbStorage.ts`:**
+
+```typescript
+async getUsersByIds(ids: string[]): Promise<User[]> {
+  if (ids.length === 0) return [];
+  return db.select().from(users).where(inArray(users.id, ids));
+}
+
+async getClientsByIds(ids: string[]): Promise<Client[]> {
+  if (ids.length === 0) return [];
+  return db.select().from(clients).where(inArray(clients.id, ids));
+}
+
+async getSitesByIds(ids: string[]): Promise<Site[]> {
+  if (ids.length === 0) return [];
+  return db.select().from(sites).where(inArray(sites.id, ids));
+}
+```
+
+**Ajouter aussi dans `server/storage.ts` (classe MemStorage) pour le fallback:**
+
+```typescript
+async getUsersByIds(ids: string[]): Promise<User[]> {
+  return Array.from(this.users.values()).filter(u => ids.includes(u.id));
+}
+
+async getClientsByIds(ids: string[]): Promise<Client[]> {
+  return Array.from(this.clients.values()).filter(c => ids.includes(c.id));
+}
+
+async getSitesByIds(ids: string[]): Promise<Site[]> {
+  return Array.from(this.sites.values()).filter(s => ids.includes(s.id));
+}
+```
+
+---
+
+## FIX 3: Ajouter useMemo côté client
+
+**Fichier:** `client/src/pages/pipeline.tsx`
+
+**Ajouter l'import useMemo:**
+
+```typescript
+import { useState, useEffect, useMemo } from "react";
+```
+
+**Remplacer les calculs dérivés (vers ligne ~833-884) par:**
+
+```typescript
+// Split portfolio opportunities with mixed RFP eligibility into two virtual cards
+const splitOpportunities = useMemo((): DisplayOpportunity[] => {
+  return opportunities.flatMap((opp): DisplayOpportunity[] => {
+    const breakdown = opp.rfpBreakdown;
+
+    // Only split if opportunity has a portfolioId and both eligible and non-eligible sites
+    if (opp.portfolioId && breakdown && breakdown.eligibleSites > 0 && breakdown.nonEligibleSites > 0) {
+      const rfpOpp: DisplayOpportunity = {
+        ...opp,
+        id: `${opp.id}-rfp`,
+        isVirtualSplit: true,
+        splitType: 'rfp',
+        displayName: opp.name.replace(/\s*\([^)]*sites?\)$/i, '') + ` - RFP (${breakdown.eligibleSites} sites)`,
+        displayValue: breakdown.eligibleCapex,
+        displaySiteCount: breakdown.eligibleSites,
+        parentOpportunityId: opp.id,
+      };
+
+      const nonRfpOpp: DisplayOpportunity = {
+        ...opp,
+        id: `${opp.id}-non-rfp`,
+        isVirtualSplit: true,
+        splitType: 'non-rfp',
+        displayName: opp.name.replace(/\s*\([^)]*sites?\)$/i, '') + ` - Hors RFP (${breakdown.nonEligibleSites} sites)`,
+        displayValue: breakdown.nonEligibleCapex,
+        displaySiteCount: breakdown.nonEligibleSites,
+        parentOpportunityId: opp.id,
+      };
+
+      return [rfpOpp, nonRfpOpp];
+    }
+
+    return [opp as DisplayOpportunity];
+  });
+}, [opportunities]);
+
+const filteredOpportunities = useMemo(() => {
+  return splitOpportunities.filter((opp) => {
+    if (filterOwner !== "all" && opp.ownerId !== filterOwner) return false;
+    if (filterPriority !== "all" && opp.priority !== filterPriority) return false;
+    if (filterSource !== "all" && opp.source !== filterSource) return false;
+    if (filterStage !== "all" && opp.stage !== filterStage) return false;
+    return true;
+  });
+}, [splitOpportunities, filterOwner, filterPriority, filterSource, filterStage]);
+
+const { activeOpportunities, totalPipelineValue, weightedPipelineValue, wonValue } = useMemo(() => {
+  const active = filteredOpportunities.filter(o => !isWonStage(o.stage) && o.stage !== "lost");
+  const totalValue = active.reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
+  const weighted = active.reduce((sum, o) => {
+    const prob = o.probability ?? STAGE_PROBABILITIES[o.stage as Stage] ?? 0;
+    return sum + ((o.displayValue ?? o.estimatedValue ?? 0) * prob / 100);
+  }, 0);
+  const won = filteredOpportunities
+    .filter(o => isWonStage(o.stage))
+    .reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
+
+  return {
+    activeOpportunities: active,
+    totalPipelineValue: totalValue,
+    weightedPipelineValue: weighted,
+    wonValue: won,
+  };
+}, [filteredOpportunities]);
+
+// Pré-grouper les opportunités par stage pour éviter le filtrage répété
+const opportunitiesByStage = useMemo(() => {
+  const grouped = new Map<Stage, DisplayOpportunity[]>();
+  STAGES.forEach(s => grouped.set(s, []));
+  filteredOpportunities.forEach(opp => {
+    const stage = opp.stage as Stage;
+    if (grouped.has(stage)) {
+      grouped.get(stage)!.push(opp);
+    }
+  });
+  return grouped;
+}, [filteredOpportunities]);
+```
+
+**Puis modifier StageColumn pour utiliser le groupement pré-calculé:**
+
+Dans le JSX, remplacer l'appel à StageColumn:
+
+```tsx
+{viewMode === "kanban" ? (
+  <ScrollArea className="w-full">
+    <div className="flex gap-4 pb-4">
+      {STAGES.map((stage) => (
+        <StageColumn
+          key={stage}
+          stage={stage}
+          opportunities={opportunitiesByStage.get(stage) || []}
+          onStageChange={handleStageChange}
+          onCardClick={handleCardClick}
+        />
+      ))}
+    </div>
+    <ScrollBar orientation="horizontal" />
+  </ScrollArea>
+) : (
+  // ...
+)}
+```
+
+**Et modifier la signature de StageColumn pour recevoir directement les opportunités filtrées:**
+
+```tsx
+function StageColumn({
+  stage,
+  opportunities,  // Déjà filtrées par stage!
+  onStageChange,
+  onCardClick
+}: {
+  stage: Stage;
+  opportunities: DisplayOpportunity[];  // Plus besoin de filtrer
+  onStageChange: (id: string, stage: Stage) => void;
+  onCardClick: (opp: DisplayOpportunity) => void;
+}) {
+  const { language } = useI18n();
+  // Plus besoin de: const stageOpps = opportunities.filter(o => o.stage === stage);
+  const stageOpps = opportunities;  // Déjà filtrées!
+  const stageValue = stageOpps.reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
+
+  // ... reste du composant inchangé, mais utiliser stageOpps au lieu de filtrer
+```
+
+---
+
+## Résumé des Gains Attendus
+
+| Métrique | Avant | Après |
+|----------|-------|-------|
+| Requêtes DB (10 portfolios) | ~35 | ~6 |
+| Temps serveur | 2-5s | 200-500ms |
+| Re-renders client | 6 passes | 1 passe |
+
+---
+
+*Instructions générées le 28 janvier 2026*
