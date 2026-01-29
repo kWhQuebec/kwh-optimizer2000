@@ -1822,7 +1822,7 @@ export default function PipelinePage() {
                               size="sm"
                               onClick={() => {
                                 setIsDetailOpen(false);
-                                window.location.href = `/sites/${selectedOpportunity.site!.id}`;
+                                window.location.href = `/app/sites/${selectedOpportunity.site!.id}`;
                               }}
                               data-testid="button-goto-site"
                             >
