@@ -1748,38 +1748,26 @@ function AnalysisParametersEditor({
                               : "★★★ = Optimal (South, 30-35°) | ★★ = Good | ★ = Acceptable"}
                           </p>
                           
-                          {/* Google production estimate or fallback algorithmic estimate */}
-                          {bestConfig && !hasLimitedGoogleData ? (
+                          {/* Local irradiance data from Google Solar API - only show sunshine/yield, not panel counts (C&I buildings need manual sizing) */}
+                          {maxSunshine ? (
                             <div className="pt-2 border-t border-dashed">
                               <div className="flex items-center gap-2 mb-1">
                                 <Sun className="w-3.5 h-3.5 text-amber-500" />
                                 <span className="text-xs font-medium">
-                                  {language === "fr" ? "Estimation Google Solar" : "Google Solar Estimate"}
+                                  {language === "fr" ? "Irradiance locale" : "Local Irradiance"}
                                 </span>
                               </div>
-                              <div className="grid grid-cols-3 gap-2 text-xs">
-                                <div>
-                                  <span className="text-muted-foreground">{language === "fr" ? "Panneaux" : "Panels"}: </span>
-                                  <span className="font-mono">{bestConfig.panelsCount}</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">{language === "fr" ? "Puissance" : "Capacity"}: </span>
-                                  <span className="font-mono">{((bestConfig.panelsCount * panelWatts) / 1000).toFixed(1)} kWc</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">{language === "fr" ? "Prod. annuelle" : "Annual prod."}: </span>
-                                  <span className="font-mono">{Math.round(bestConfig.yearlyEnergyDcKwh * 0.85).toLocaleString()} kWh</span>
-                                </div>
-                              </div>
-                              {maxSunshine && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {language === "fr" 
-                                    ? `Ensoleillement: ${Math.round(maxSunshine).toLocaleString()} h/an`
-                                    : `Sunshine: ${Math.round(maxSunshine).toLocaleString()} h/year`}
-                                </p>
-                              )}
+                              <p className="text-xs">
+                                <span className="text-muted-foreground">{language === "fr" ? "Ensoleillement" : "Sunshine"}: </span>
+                                <span className="font-mono font-medium">{Math.round(maxSunshine).toLocaleString()} h/{language === "fr" ? "an" : "year"}</span>
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {language === "fr" 
+                                  ? "Données d'irradiance Google Solar. Le dimensionnement C&I utilise la surface de toit tracée."
+                                  : "Google Solar irradiance data. C&I sizing uses manually traced roof area."}
+                              </p>
                             </div>
-                          ) : hasLimitedGoogleData && (
+                          ) : (
                             <div className="pt-2 border-t border-dashed">
                               <div className="flex items-center gap-2 mb-1">
                                 <Grid3X3 className="w-3.5 h-3.5 text-teal-500" />
@@ -1787,18 +1775,11 @@ function AnalysisParametersEditor({
                                   {language === "fr" ? "Estimation algorithmique" : "Algorithmic Estimate"}
                                 </span>
                               </div>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-[10px] text-muted-foreground">
                                 {language === "fr" 
-                                  ? `Google Solar API n'a pas de données de panneaux détaillées pour ce bâtiment commercial. Utilisez les champs Surface de toit et Taux d'utilisation ci-dessous pour une estimation précise.`
-                                  : `Google Solar API doesn't have detailed panel data for this commercial building. Use the Roof Area and Utilization Rate fields below for an accurate estimate.`}
+                                  ? "Données d'irradiance non disponibles. Le dimensionnement utilise le rendement standard de 1035 kWh/kWp pour le Québec."
+                                  : "Irradiance data not available. Sizing uses standard Quebec yield of 1035 kWh/kWp."}
                               </p>
-                              {maxSunshine && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {language === "fr" 
-                                    ? `Ensoleillement disponible: ${Math.round(maxSunshine).toLocaleString()} h/an`
-                                    : `Available sunshine: ${Math.round(maxSunshine).toLocaleString()} h/year`}
-                                </p>
-                              )}
                             </div>
                           )}
                         </div>

@@ -695,32 +695,58 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
 router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req, res) => {
   try {
     const { siteId } = req.params;
-    const { assumptions } = req.body;
+    const { constraintFactor = 0.10, assumptions } = req.body;
 
     const site = await storage.getSite(siteId);
     if (!site) {
       return res.status(404).json({ error: "Site not found" });
     }
 
-    const readings = await storage.getMeterReadingsBySite(siteId);
-    if (readings.length === 0) {
-      return res.status(400).json({ error: "No meter data available for analysis" });
+    // Get roof polygons to calculate total area
+    const polygons = await storage.getRoofPolygonsBySite(siteId);
+    
+    // Filter solar polygons (exclude constraints marked by orange color or constraint labels)
+    const solarPolygons = polygons.filter(p => {
+      if (p.color === "#f97316") return false; // Orange = constraint
+      const label = (p.label || "").toLowerCase();
+      return !label.includes("constraint") && !label.includes("contrainte") && 
+             !label.includes("hvac") && !label.includes("obstacle");
+    });
+    
+    // Calculate total roof area from polygons or fallback to site values
+    const polygonAreaSqM = solarPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+    const totalRoofAreaSqM = polygonAreaSqM > 0 
+      ? polygonAreaSqM 
+      : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+    
+    if (totalRoofAreaSqM <= 0) {
+      return res.status(400).json({ error: "No roof area available. Please draw roof areas first." });
     }
 
-    const { deduplicateMeterReadingsByHour, runPotentialAnalysis, resolveYieldStrategy, getDefaultAnalysisAssumptions } = await import("./siteAnalysisHelpers");
+    // Import pricing functions and yield strategy
+    const { getTieredSolarCostPerW, getSolarPricingTierLabel } = await import("../analysis/potentialAnalysis");
+    const { resolveYieldStrategy } = await import("./siteAnalysisHelpers");
     
+    // Panel specifications (standard 400W panels, ~2 m² per panel)
+    const panelPowerW = 400;
+    const panelAreaSqM = 2.0;
+    
+    // Calculate effective utilization ratio
+    // Base utilization of 85%, reduced by constraint factor (e.g., 10% = 0.90 multiplier)
+    const baseUtilizationRatio = 0.85;
+    const effectiveUtilizationRatio = baseUtilizationRatio * (1 - constraintFactor);
+    const usableRoofAreaSqM = totalRoofAreaSqM * effectiveUtilizationRatio;
+    
+    // Calculate system sizing
+    const numPanels = Math.floor(usableRoofAreaSqM / panelAreaSqM);
+    const maxCapacityKW = (numPanels * panelPowerW) / 1000;
+    
+    // Resolve yield strategy respecting manual yield and bifacial settings
     interface RoofAreaAutoDetails {
       yearlyEnergyDcKwh?: number;
+      solarPotential?: { maxSunshineHoursPerYear?: number };
       [key: string]: unknown;
     }
-
-    const dedupResult = deduplicateMeterReadingsByHour(readings.map(r => ({
-      kWh: r.kWh,
-      kW: r.kW,
-      timestamp: new Date(r.timestamp),
-      granularity: r.granularity || undefined
-    })));
-
     const roofDetails = site.roofAreaAutoDetails as RoofAreaAutoDetails | null;
     const googleYield = roofDetails?.yearlyEnergyDcKwh && site.kbKwDc
       ? Math.round(roofDetails.yearlyEnergyDcKwh / site.kbKwDc)
@@ -729,44 +755,80 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req
     const yieldStrategy = resolveYieldStrategy(
       googleYield,
       assumptions?.manualYield,
-      assumptions?.bifacialEnabled ?? site.bifacialEnabled ?? false
+      assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? false
     );
-
-    const analysisAssumptions: Partial<AnalysisAssumptions> = {
-      ...getDefaultAnalysisAssumptions(),
-      ...assumptions,
-      solarYieldKWhPerKWp: yieldStrategy.effectiveYield,
-      yieldSource: yieldStrategy.yieldSource,
-      _yieldStrategy: yieldStrategy
-    };
-
-    if (site.roofAreaSqM) {
-      analysisAssumptions.roofAreaSqFt = site.roofAreaSqM * 10.764;
-    }
-
-    const result = runPotentialAnalysis(
-      dedupResult.readings,
-      analysisAssumptions,
-      { preCalculatedDataSpanDays: dedupResult.dataSpanDays }
-    );
-
-    const simulation = await storage.createSimulationRun({
-      siteId,
-      type: "QUICK",
-      status: "completed",
-      pvSizeKW: result.pvSizeKW,
-      battEnergyKWh: result.battEnergyKWh,
-      battPowerKW: result.battPowerKW,
-      demandShavingSetpointKW: result.demandShavingSetpointKW,
-      assumptions: result.assumptions,
-      result: result,
-      createdBy: (req as AuthRequest).userId || null
+    
+    const effectiveYield = yieldStrategy.effectiveYield;
+    
+    const annualProductionKWh = maxCapacityKW * effectiveYield;
+    const annualProductionMWh = annualProductionKWh / 1000;
+    
+    // Financial calculations using tiered pricing
+    const costPerW = getTieredSolarCostPerW(maxCapacityKW);
+    const pricingTier = getSolarPricingTierLabel(maxCapacityKW, 'fr');
+    const grossCapex = maxCapacityKW * 1000 * costPerW;
+    
+    // HQ Incentive: $1000/kW, max 40% of CAPEX, max 1 MW eligible
+    const eligibleKW = Math.min(maxCapacityKW, 1000);
+    const potentialHqIncentive = eligibleKW * 1000;
+    const maxHqIncentive = grossCapex * 0.40;
+    const hqIncentive = Math.min(potentialHqIncentive, maxHqIncentive);
+    
+    // Federal ITC: 30% of (CAPEX - HQ incentive)
+    const itcBasis = grossCapex - hqIncentive;
+    const federalItc = itcBasis * 0.30;
+    
+    const netCapex = grossCapex - hqIncentive - federalItc;
+    
+    // Estimate annual savings (using typical HQ M tariff rate of ~$0.06/kWh)
+    const hqEnergyRate = 0.06;
+    const estimatedAnnualSavings = annualProductionKWh * hqEnergyRate;
+    
+    // Simple payback calculation
+    const simplePaybackYears = estimatedAnnualSavings > 0 
+      ? netCapex / estimatedAnnualSavings 
+      : 999;
+    
+    // Save quick analysis results to site record
+    await storage.updateSite(siteId, {
+      quickAnalysisSystemSizeKw: maxCapacityKW,
+      quickAnalysisAnnualProductionKwh: annualProductionKWh,
+      quickAnalysisAnnualSavings: estimatedAnnualSavings,
+      quickAnalysisPaybackYears: simplePaybackYears,
+      quickAnalysisGrossCapex: grossCapex,
+      quickAnalysisNetCapex: netCapex,
+      quickAnalysisHqIncentive: hqIncentive,
+      quickAnalysisConstraintFactor: constraintFactor,
+      quickAnalysisCompletedAt: new Date(),
     });
 
     res.json({
-      simulationId: simulation.id,
-      ...result,
-      yieldStrategy
+      success: true,
+      roofAnalysis: {
+        totalRoofAreaSqM: Math.round(totalRoofAreaSqM),
+        usableRoofAreaSqM: Math.round(usableRoofAreaSqM),
+        utilizationRatio: effectiveUtilizationRatio,
+        constraintFactor,
+        polygonCount: solarPolygons.length > 0 ? solarPolygons.length : 1,
+      },
+      systemSizing: {
+        maxCapacityKW: Math.round(maxCapacityKW * 10) / 10,
+        numPanels,
+        panelPowerW,
+      },
+      production: {
+        annualProductionKWh: Math.round(annualProductionKWh),
+        annualProductionMWh: Math.round(annualProductionMWh * 10) / 10,
+        yieldKWhPerKWp: effectiveYield,
+      },
+      financial: {
+        costPerW,
+        pricingTier,
+        estimatedCapex: Math.round(grossCapex),
+        estimatedAnnualSavings: Math.round(estimatedAnnualSavings),
+        simplePaybackYears: Math.round(simplePaybackYears * 10) / 10,
+      },
+      yieldStrategy,
     });
   } catch (error) {
     console.error("Error running quick potential analysis:", error);
