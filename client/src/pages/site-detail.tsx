@@ -7534,13 +7534,66 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Retour simple" : "Simple Payback"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {quickPotential.financial.simplePaybackYears} {language === "fr" ? "ans" : "years"}
+                  {typeof quickPotential.financial.simplePaybackYears === 'number' 
+                    ? quickPotential.financial.simplePaybackYears.toFixed(1) 
+                    : quickPotential.financial.simplePaybackYears} {language === "fr" ? "ans" : "years"}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   ~${(quickPotential.financial.estimatedAnnualSavings / 1000).toFixed(0)}k/{language === "fr" ? "an" : "year"}
                 </div>
               </div>
             </div>
+            
+            {/* VAN and TRI 25 years */}
+            {(() => {
+              const netCapex = quickPotential.financial.netCapex || 
+                (quickPotential.financial.estimatedCapex - (quickPotential.financial.hqIncentive || 0) - (quickPotential.financial.federalItc || 0));
+              const annualSavings = quickPotential.financial.estimatedAnnualSavings || 0;
+              const discountRate = 0.06; // 6% discount rate
+              const years = 25;
+              
+              // Calculate NPV 25 years
+              let npv = -netCapex;
+              for (let y = 1; y <= years; y++) {
+                npv += annualSavings / Math.pow(1 + discountRate, y);
+              }
+              
+              // Calculate IRR using Newton-Raphson method
+              let irr = 0.10; // Initial guess
+              for (let iter = 0; iter < 50; iter++) {
+                let npvCalc = -netCapex;
+                let npvDerivative = 0;
+                for (let y = 1; y <= years; y++) {
+                  npvCalc += annualSavings / Math.pow(1 + irr, y);
+                  npvDerivative -= y * annualSavings / Math.pow(1 + irr, y + 1);
+                }
+                if (Math.abs(npvCalc) < 1) break;
+                irr = irr - npvCalc / npvDerivative;
+                if (irr < 0) irr = 0.001;
+                if (irr > 1) irr = 0.999;
+              }
+              
+              return netCapex > 0 && annualSavings > 0 ? (
+                <div className="flex gap-6 mt-3 pt-3 border-t border-border/50">
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-muted-foreground">
+                      {language === "fr" ? "VAN 25 ans (6%)" : "NPV 25 yrs (6%)"}
+                    </div>
+                    <div className={`text-lg font-bold ${npv >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      ${(npv / 1000).toFixed(0)}k
+                    </div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-muted-foreground">
+                      {language === "fr" ? "TRI 25 ans" : "IRR 25 yrs"}
+                    </div>
+                    <div className="text-lg font-bold text-primary">
+                      {(irr * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              ) : null;
+            })()}
             
             {/* Incentives breakdown */}
             {(quickPotential.financial.hqIncentive || quickPotential.financial.federalItc) && (
