@@ -341,12 +341,13 @@ function StageColumn({
   onCardClick
 }: { 
   stage: Stage; 
-  opportunities: DisplayOpportunity[];
+  opportunities: DisplayOpportunity[];  // Already filtered by stage!
   onStageChange: (id: string, stage: Stage) => void;
   onCardClick: (opp: DisplayOpportunity) => void;
 }) {
   const { language } = useI18n();
-  const stageOpps = opportunities.filter(o => o.stage === stage);
+  // Opportunities are already pre-filtered by stage via opportunitiesByStage
+  const stageOpps = opportunities;
   // For pipeline value, use displayValue for split opportunities, otherwise estimatedValue
   const stageValue = stageOpps.reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
   
@@ -883,59 +884,88 @@ export default function PipelinePage() {
   };
 
   // Split portfolio opportunities with mixed RFP eligibility into two virtual cards
-  const splitOpportunities: DisplayOpportunity[] = opportunities.flatMap((opp): DisplayOpportunity[] => {
-    const breakdown = opp.rfpBreakdown;
-    
-    // Only split if opportunity has a portfolioId and both eligible and non-eligible sites
-    if (opp.portfolioId && breakdown && breakdown.eligibleSites > 0 && breakdown.nonEligibleSites > 0) {
-      // Create two virtual opportunities
-      const rfpOpp: DisplayOpportunity = {
-        ...opp,
-        id: `${opp.id}-rfp`,
-        isVirtualSplit: true,
-        splitType: 'rfp',
-        displayName: opp.name.replace(/\s*\([^)]*sites?\)$/i, '') + ` - RFP (${breakdown.eligibleSites} sites)`,
-        displayValue: breakdown.eligibleCapex,
-        displaySiteCount: breakdown.eligibleSites,
-        parentOpportunityId: opp.id,
-      };
+  const splitOpportunities = useMemo((): DisplayOpportunity[] => {
+    return opportunities.flatMap((opp): DisplayOpportunity[] => {
+      const breakdown = opp.rfpBreakdown;
       
-      const nonRfpOpp: DisplayOpportunity = {
-        ...opp,
-        id: `${opp.id}-non-rfp`,
-        isVirtualSplit: true,
-        splitType: 'non-rfp',
-        displayName: opp.name.replace(/\s*\([^)]*sites?\)$/i, '') + ` - Hors RFP (${breakdown.nonEligibleSites} sites)`,
-        displayValue: breakdown.nonEligibleCapex,
-        displaySiteCount: breakdown.nonEligibleSites,
-        parentOpportunityId: opp.id,
-      };
+      // Only split if opportunity has a portfolioId and both eligible and non-eligible sites
+      if (opp.portfolioId && breakdown && breakdown.eligibleSites > 0 && breakdown.nonEligibleSites > 0) {
+        // Create two virtual opportunities
+        const rfpOpp: DisplayOpportunity = {
+          ...opp,
+          id: `${opp.id}-rfp`,
+          isVirtualSplit: true,
+          splitType: 'rfp',
+          displayName: opp.name.replace(/\s*\([^)]*sites?\)$/i, '') + ` - RFP (${breakdown.eligibleSites} sites)`,
+          displayValue: breakdown.eligibleCapex,
+          displaySiteCount: breakdown.eligibleSites,
+          parentOpportunityId: opp.id,
+        };
+        
+        const nonRfpOpp: DisplayOpportunity = {
+          ...opp,
+          id: `${opp.id}-non-rfp`,
+          isVirtualSplit: true,
+          splitType: 'non-rfp',
+          displayName: opp.name.replace(/\s*\([^)]*sites?\)$/i, '') + ` - Hors RFP (${breakdown.nonEligibleSites} sites)`,
+          displayValue: breakdown.nonEligibleCapex,
+          displaySiteCount: breakdown.nonEligibleSites,
+          parentOpportunityId: opp.id,
+        };
+        
+        return [rfpOpp, nonRfpOpp];
+      }
       
-      return [rfpOpp, nonRfpOpp];
-    }
-    
-    // Return as-is for non-portfolio or single-type portfolio opportunities
-    return [opp as DisplayOpportunity];
-  });
+      // Return as-is for non-portfolio or single-type portfolio opportunities
+      return [opp as DisplayOpportunity];
+    });
+  }, [opportunities]);
 
-  const filteredOpportunities = splitOpportunities.filter((opp) => {
-    if (filterOwner !== "all" && opp.ownerId !== filterOwner) return false;
-    if (filterPriority !== "all" && opp.priority !== filterPriority) return false;
-    if (filterSource !== "all" && opp.source !== filterSource) return false;
-    if (filterStage !== "all" && opp.stage !== filterStage) return false;
-    return true;
-  });
+  const filteredOpportunities = useMemo(() => {
+    return splitOpportunities.filter((opp) => {
+      if (filterOwner !== "all" && opp.ownerId !== filterOwner) return false;
+      if (filterPriority !== "all" && opp.priority !== filterPriority) return false;
+      if (filterSource !== "all" && opp.source !== filterSource) return false;
+      if (filterStage !== "all" && opp.stage !== filterStage) return false;
+      return true;
+    });
+  }, [splitOpportunities, filterOwner, filterPriority, filterSource, filterStage]);
 
-  const activeOpportunities = filteredOpportunities.filter(o => !isWonStage(o.stage) && o.stage !== "lost");
-  // Use displayValue for split opportunities, otherwise use estimatedValue
-  const totalPipelineValue = activeOpportunities.reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
-  const weightedPipelineValue = activeOpportunities.reduce((sum, o) => {
-    const prob = o.probability ?? STAGE_PROBABILITIES[o.stage as Stage] ?? 0;
-    return sum + ((o.displayValue ?? o.estimatedValue ?? 0) * prob / 100);
-  }, 0);
-  const wonValue = filteredOpportunities.filter(o => isWonStage(o.stage)).reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
+  const { activeOpportunities, totalPipelineValue, weightedPipelineValue, wonValue } = useMemo(() => {
+    const active = filteredOpportunities.filter(o => !isWonStage(o.stage) && o.stage !== "lost");
+    const totalValue = active.reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
+    const weighted = active.reduce((sum, o) => {
+      const prob = o.probability ?? STAGE_PROBABILITIES[o.stage as Stage] ?? 0;
+      return sum + ((o.displayValue ?? o.estimatedValue ?? 0) * prob / 100);
+    }, 0);
+    const won = filteredOpportunities
+      .filter(o => isWonStage(o.stage))
+      .reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
 
-  const owners = users.filter(u => u.role === "admin" || u.role === "analyst");
+    return {
+      activeOpportunities: active,
+      totalPipelineValue: totalValue,
+      weightedPipelineValue: weighted,
+      wonValue: won,
+    };
+  }, [filteredOpportunities]);
+
+  // Pre-group opportunities by stage to avoid repeated filtering in StageColumn
+  const opportunitiesByStage = useMemo(() => {
+    const grouped = new Map<Stage, DisplayOpportunity[]>();
+    STAGES.forEach(s => grouped.set(s, []));
+    filteredOpportunities.forEach(opp => {
+      const stage = opp.stage as Stage;
+      if (grouped.has(stage)) {
+        grouped.get(stage)!.push(opp);
+      }
+    });
+    return grouped;
+  }, [filteredOpportunities]);
+
+  const owners = useMemo(() => {
+    return users.filter(u => u.role === "admin" || u.role === "analyst");
+  }, [users]);
 
   if (isLoading) {
     return (
@@ -1161,7 +1191,7 @@ export default function PipelinePage() {
               <StageColumn
                 key={stage}
                 stage={stage}
-                opportunities={filteredOpportunities}
+                opportunities={opportunitiesByStage.get(stage) || []}
                 onStageChange={handleStageChange}
                 onCardClick={handleCardClick}
               />

@@ -76,6 +76,7 @@ export interface IStorage {
   getSites(): Promise<(Site & { client: Client })[]>;
   getSitesByIds(ids: string[]): Promise<Site[]>;
   getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>>;
+  getSitesMinimalByIds(ids: string[]): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>>;
   getSite(id: string): Promise<(Site & { client: Client; meterFiles: MeterFile[]; simulationRuns: SimulationRunSummary[] }) | undefined>;
   getSimulationRunFull(id: string): Promise<SimulationRun | undefined>;
   getSitesByClient(clientId: string): Promise<Site[]>;
@@ -669,6 +670,20 @@ export class MemStorage implements IStorage {
 
   async getSitesByIds(ids: string[]): Promise<Site[]> {
     return Array.from(this.sites.values()).filter(s => ids.includes(s.id));
+  }
+
+  async getSitesMinimalByIds(ids: string[]): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>> {
+    return Array.from(this.sites.values())
+      .filter(s => ids.includes(s.id))
+      .map(site => ({
+        id: site.id,
+        name: site.name,
+        address: site.address,
+        city: site.city,
+        province: site.province,
+        clientId: site.clientId,
+        isArchived: site.isArchived ?? false,
+      }));
   }
 
   async getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>> {

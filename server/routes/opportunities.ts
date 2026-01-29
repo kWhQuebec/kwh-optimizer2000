@@ -21,10 +21,11 @@ router.get("/api/opportunities", authMiddleware, requireStaff, async (req: AuthR
     const siteIds = [...new Set(opportunities.filter(o => o.siteId).map(o => o.siteId!))];
 
     // Load only the necessary data in parallel (batch queries instead of loading all)
+    // Use minimal site data to avoid heavy googleSolarData blobs
     const [users, clients, sites] = await Promise.all([
       ownerIds.length > 0 ? storage.getUsersByIds(ownerIds) : Promise.resolve([]),
       clientIds.length > 0 ? storage.getClientsByIds(clientIds) : Promise.resolve([]),
-      siteIds.length > 0 ? storage.getSitesByIds(siteIds) : Promise.resolve([]),
+      siteIds.length > 0 ? storage.getSitesMinimalByIds(siteIds) : Promise.resolve([]),
     ]);
 
     // Create maps for fast lookup

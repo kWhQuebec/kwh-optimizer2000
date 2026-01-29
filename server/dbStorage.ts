@@ -279,6 +279,19 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(sites).where(inArray(sites.id, ids));
   }
 
+  async getSitesMinimalByIds(ids: string[]): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>> {
+    if (ids.length === 0) return [];
+    return db.select({
+      id: sites.id,
+      name: sites.name,
+      address: sites.address,
+      city: sites.city,
+      province: sites.province,
+      clientId: sites.clientId,
+      isArchived: sites.isArchived,
+    }).from(sites).where(inArray(sites.id, ids));
+  }
+
   // Ultra-lightweight query for pipeline - only essential fields, no heavy JSON
   async getSitesMinimal(): Promise<Array<{ id: string; name: string; address: string | null; city: string | null; province: string | null; clientId: string; isArchived: boolean }>> {
     return db.select({
