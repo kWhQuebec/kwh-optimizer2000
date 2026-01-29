@@ -17,9 +17,12 @@ import {
 } from "@shared/schema";
 import {
   runMonteCarloAnalysis,
+  createSimplifiedScenarioRunner,
   analyzePeakShaving,
   recommendStandardKit,
   STANDARD_KITS,
+  type MonteCarloConfig,
+  type SiteScenarioParams,
 } from "../analysis";
 import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-engine";
 
@@ -967,18 +970,57 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
 router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async (req, res) => {
   try {
     const { siteId } = req.params;
-    const { baseScenario, iterations = 1000 } = req.body;
+    const { config } = req.body as { config?: MonteCarloConfig };
 
     const site = await storage.getSite(siteId);
     if (!site) {
       return res.status(404).json({ error: "Site not found" });
     }
 
-    const result = runMonteCarloAnalysis(baseScenario, iterations);
-    res.json(result);
+    // Get site's analysis assumptions or use defaults
+    const baseAssumptions: AnalysisAssumptions = site.analysisAssumptions || defaultAnalysisAssumptions();
+    
+    // Get site parameters for the scenario runner
+    // Try to extract from site's analysis data or use reasonable defaults
+    const analyses = await storage.getAnalysesBySite(siteId);
+    const latestAnalysis = analyses.length > 0 ? analyses[analyses.length - 1] : null;
+    
+    const siteParams: SiteScenarioParams = {
+      pvSizeKW: latestAnalysis?.pvSizeKW || site.quickAnalysisSystemSizeKw || 100,
+      annualConsumptionKWh: latestAnalysis?.annualConsumptionKWh || 200000,
+      tariffEnergy: baseAssumptions.tariffEnergy || 0.06,
+      tariffPower: baseAssumptions.tariffPower || 17.573,
+      peakKW: latestAnalysis?.peakDemandKW || 50,
+    };
+    
+    // Create scenario runner with site-specific parameters
+    const runScenario = createSimplifiedScenarioRunner(siteParams);
+    
+    // Use provided config or default
+    const monteCarloConfig: MonteCarloConfig = config || {
+      iterations: 500,
+      variableRanges: {
+        tariffEscalation: [0.025, 0.035],
+        discountRate: [0.06, 0.08],
+        solarYield: [1075, 1225],
+        bifacialBoost: [0.10, 0.20],
+        omPerKwc: [10, 20],
+        solarCostPerW: [1.75, 2.35],
+      },
+    };
+    
+    const monteCarloResult = runMonteCarloAnalysis(baseAssumptions, runScenario, monteCarloConfig);
+    
+    // Return result with monteCarlo wrapper for frontend compatibility
+    res.json({
+      monteCarlo: monteCarloResult,
+      siteParams,
+      baseAssumptions,
+    });
   } catch (error) {
     console.error("Error running Monte Carlo analysis:", error);
-    res.status(500).json({ error: "Internal server error" });
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    res.status(500).json({ error: errorMessage });
   }
 });
 

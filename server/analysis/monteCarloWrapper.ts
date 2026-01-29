@@ -89,6 +89,133 @@ interface ScenarioResult {
   cashflows: Array<{ year: number; netCashflow: number }>;
 }
 
+// Site parameters for simplified scenario runner
+export interface SiteScenarioParams {
+  pvSizeKW: number;
+  annualConsumptionKWh: number;
+  tariffEnergy: number;
+  tariffPower: number;
+  peakKW: number;
+}
+
+// Creates a simplified scenario runner for Monte Carlo analysis
+// Uses simplified cashflow model when hourly data is not available
+export function createSimplifiedScenarioRunner(
+  siteParams: SiteScenarioParams
+): (assumptions: AnalysisAssumptions) => ScenarioResult {
+  return (assumptions: AnalysisAssumptions): ScenarioResult => {
+    const h = assumptions;
+    const { pvSizeKW, annualConsumptionKWh, tariffEnergy, tariffPower, peakKW } = siteParams;
+    
+    // Calculate effective yield with temperature correction
+    const baseYield = h.solarYieldKWhPerKWp || 1150;
+    const tempCoeff = h.temperatureCoefficient || -0.004;
+    const avgTempDelta = 15; // Average operating temp above STC (25°C)
+    const tempLoss = Math.abs(tempCoeff) * avgTempDelta;
+    const wireLoss = h.wireLossPercent || 0.02;
+    const inverterEff = 0.96;
+    const effectiveYield = baseYield * (1 - tempLoss) * (1 - wireLoss) * inverterEff;
+    
+    // Annual production
+    const annualProductionKWh = pvSizeKW * effectiveYield;
+    const selfConsumptionRatio = Math.min(0.95, annualConsumptionKWh / (annualProductionKWh * 1.1));
+    const selfConsumedKWh = annualProductionKWh * selfConsumptionRatio;
+    const exportedKWh = annualProductionKWh - selfConsumedKWh;
+    
+    // CAPEX calculation
+    const solarCostPerW = h.solarCostPerW || 2.00;
+    const capexGross = pvSizeKW * 1000 * solarCostPerW;
+    
+    // Incentives
+    const hqIncentive = Math.min(pvSizeKW * 1000, capexGross * 0.40);
+    const afterHQ = capexGross - hqIncentive;
+    const federalITC = afterHQ * 0.30;
+    const taxShield = afterHQ * (h.taxRate || 0.265);
+    const capexNet = afterHQ - federalITC - taxShield;
+    
+    // Annual savings year 1
+    const energyRate = tariffEnergy || h.tariffEnergy || 0.06;
+    const year1Savings = selfConsumedKWh * energyRate + exportedKWh * (h.hqSurplusCompensationRate || 0.046);
+    
+    // O&M costs
+    const omCost = h.omSolarPercent ? (capexGross * h.omSolarPercent) : (pvSizeKW * 15);
+    
+    // Generate 26-year cashflows (year 0 to 25)
+    const cashflows: Array<{ year: number; netCashflow: number }> = [];
+    const cashflowValues: number[] = [];
+    
+    // Year 0: CAPEX
+    cashflows.push({ year: 0, netCashflow: -capexNet });
+    cashflowValues.push(-capexNet);
+    
+    const degradationRate = h.degradationRatePercent || 0.005;
+    const escalationRate = h.inflationRate || 0.03;
+    
+    for (let year = 1; year <= 25; year++) {
+      const degradationFactor = Math.pow(1 - degradationRate, year);
+      const escalationFactor = Math.pow(1 + escalationRate, year);
+      const yearSavings = year1Savings * degradationFactor * escalationFactor;
+      const yearOm = omCost * Math.pow(1 + (h.omEscalation || 0.025), year);
+      const netCashflow = yearSavings - yearOm;
+      
+      cashflows.push({ year, netCashflow });
+      cashflowValues.push(netCashflow);
+    }
+    
+    // Calculate NPV at different horizons
+    const discountRate = h.discountRate || 0.06;
+    const calculateNPV = (years: number): number => {
+      let npv = 0;
+      for (let y = 0; y <= Math.min(years, cashflowValues.length - 1); y++) {
+        npv += cashflowValues[y] / Math.pow(1 + discountRate, y);
+      }
+      return npv;
+    };
+    
+    // Calculate IRR using bisection
+    const calculateIRR = (years: number): number => {
+      const cf = cashflowValues.slice(0, years + 1);
+      let low = -0.5;
+      let high = 1.0;
+      
+      const npvAtRate = (rate: number): number => {
+        let npv = 0;
+        for (let t = 0; t < cf.length; t++) {
+          npv += cf[t] / Math.pow(1 + rate, t);
+        }
+        return npv;
+      };
+      
+      for (let iter = 0; iter < 50; iter++) {
+        const mid = (low + high) / 2;
+        const npvMid = npvAtRate(mid);
+        
+        if (Math.abs(npvMid) < 100 || (high - low) < 0.0001) {
+          return Math.max(0, Math.min(1, mid));
+        }
+        
+        if (npvAtRate(low) * npvMid < 0) {
+          high = mid;
+        } else {
+          low = mid;
+        }
+      }
+      return (low + high) / 2;
+    };
+    
+    return {
+      npv25: calculateNPV(25),
+      npv10: calculateNPV(10),
+      npv20: calculateNPV(20),
+      irr25: calculateIRR(25),
+      irr10: calculateIRR(10),
+      irr20: calculateIRR(20),
+      capexNet,
+      cashflows,
+    };
+  };
+}
+
 function randomInRange(range: [number, number], random: () => number = Math.random): number {
   const [min, max] = range;
   return min + random() * (max - min);

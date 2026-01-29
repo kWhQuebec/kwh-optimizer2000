@@ -325,7 +325,58 @@ export default function AnalyseDetailleePage() {
     }));
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
-  }, [language]);
+    
+    // Auto-trigger bill parsing after upload (like landing page)
+    if (validFiles.length > 0) {
+      setIsParsing(true);
+      setParseError(null);
+      
+      // Parse the first valid file immediately
+      const fileToparse = validFiles[0];
+      const formData = new FormData();
+      formData.append('file', fileToparse);
+      
+      fetch('/api/parse-hq-bill', {
+        method: 'POST',
+        body: formData,
+      })
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to parse bill');
+          return response.json() as Promise<HQBillData>;
+        })
+        .then(data => {
+          setParsedBillData(data);
+          setIsParsing(false);
+          
+          // Auto-fill form fields
+          if (data.accountNumber) {
+            form.setValue('hqClientNumber', data.accountNumber);
+          }
+          if (data.clientName) {
+            form.setValue('companyName', data.clientName);
+          }
+          if (data.serviceAddress) {
+            const { street, city, postalCode } = parseAddressParts(data.serviceAddress);
+            if (street) form.setValue('streetAddress', street);
+            if (city) form.setValue('city', city);
+            if (city) form.setValue('signatureCity', city);
+            if (postalCode) form.setValue('postalCode', postalCode);
+          }
+          if (data.estimatedMonthlyBill) {
+            form.setValue('estimatedMonthlyBill', data.estimatedMonthlyBill);
+          }
+          if (data.tariffCode) {
+            form.setValue('tariffCode', data.tariffCode);
+          }
+        })
+        .catch(() => {
+          setIsParsing(false);
+          setParseError(language === "fr" 
+            ? "Impossible d'analyser la facture. Veuillez réessayer ou saisir les informations manuellement."
+            : "Unable to analyze the bill. Please try again or enter information manually.");
+        });
+    }
+  }, [language, form]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
