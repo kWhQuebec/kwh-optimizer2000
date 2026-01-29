@@ -7149,10 +7149,10 @@ export default function SiteDetailPage() {
             </div>
             <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
               <span>{site.client?.name}</span>
-              {(site.address || site.city || site.province) && (
+              {(site.address || site.city) && (
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" />
-                  {[site.address, site.city, site.province, site.postalCode].filter(Boolean).join(", ")}
+                  {[site.address, site.city, site.postalCode].filter(Boolean).join(", ")}
                 </span>
               )}
               {/* Roof Estimation Status Badge */}

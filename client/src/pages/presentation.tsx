@@ -321,7 +321,7 @@ function HeroSlide({ site, language }: { site: SiteWithDetails; language: string
           <div className="flex items-center justify-center gap-2 text-white/60">
             <MapPin className="h-5 w-5" />
             <span className="text-xl">
-              {site.address}, {site.city}, {site.province} {site.postalCode}
+              {[site.address, site.city, site.postalCode].filter(Boolean).join(", ")}
             </span>
           </div>
         </div>

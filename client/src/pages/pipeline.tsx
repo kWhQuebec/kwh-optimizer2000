@@ -1783,7 +1783,7 @@ export default function PipelinePage() {
                             <div>
                               <h4 className="font-medium">{selectedOpportunity.site.name}</h4>
                               <p className="text-sm text-muted-foreground">
-                                {selectedOpportunity.site.city}{selectedOpportunity.site.province ? `, ${selectedOpportunity.site.province}` : ''}
+                                {[selectedOpportunity.site.address, selectedOpportunity.site.city].filter(Boolean).join(", ")}
                               </p>
                             </div>
                             <Button 

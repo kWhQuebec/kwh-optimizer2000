@@ -731,7 +731,7 @@ function SignAgreementContent() {
               <div>
                 <p className="font-medium">{t("publicAgreement.site")}: {agreement.site.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {[agreement.site.address, agreement.site.city, agreement.site.province]
+                  {[agreement.site.address, agreement.site.city]
                     .filter(Boolean)
                     .join(", ")}
                 </p>

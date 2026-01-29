@@ -101,7 +101,7 @@ function SiteCard({ site, onEdit, onDelete, onArchive }: { site: SiteListItem; o
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">
-                  {[site.address, site.city, site.province].filter(Boolean).join(", ")}
+                  {[site.address, site.city].filter(Boolean).join(", ")}
                 </span>
               </div>
             )}

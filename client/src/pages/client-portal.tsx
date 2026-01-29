@@ -385,7 +385,7 @@ export default function ClientPortalPage() {
                           <CardDescription className="flex items-center gap-1">
                             <MapPin className="w-3 h-3 shrink-0" />
                             <span className="truncate">
-                              {[site.address, site.city, site.province].filter(Boolean).join(", ")}
+                              {[site.address, site.city].filter(Boolean).join(", ")}
                             </span>
                           </CardDescription>
                         )}
