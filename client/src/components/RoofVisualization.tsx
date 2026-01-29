@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, Camera } from "lucide-react";
+import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, Camera, RefreshCw } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
@@ -544,6 +544,7 @@ export function RoofVisualization({
   
   const [isLoading, setIsLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [allPanelPositions, setAllPanelPositions] = useState<PanelPosition[]>([]);
   const [selectedCapacityKW, setSelectedCapacityKW] = useState(currentPVSizeKW || 100);
   const [hasUserAdjusted, setHasUserAdjusted] = useState(false);
@@ -1089,6 +1090,15 @@ export function RoofVisualization({
           setIsLoading(false);
           return;
         }
+        
+        // Check geometry library is loaded (required for polygon containment checks)
+        if (!google.maps.geometry?.poly?.containsLocation) {
+          setMapError(language === "fr" 
+            ? "Librairie geometry non chargée - réessayez" 
+            : "Geometry library not loaded - please retry");
+          setIsLoading(false);
+          return;
+        }
 
         const map = new google.maps.Map(mapContainerRef.current!, {
           center: { lat: latitude, lng: longitude },
@@ -1323,13 +1333,16 @@ export function RoofVisualization({
         setIsLoading(false);
       } catch (error) {
         console.error("Map initialization error:", error);
-        setMapError(language === "fr" ? "Erreur de chargement de la carte" : "Map loading error");
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        setMapError(language === "fr" 
+          ? `Erreur de chargement: ${errorMsg}` 
+          : `Map loading error: ${errorMsg}`);
         setIsLoading(false);
       }
     };
 
     initMap();
-  }, [latitude, longitude, roofPolygons, language, generateUnifiedPanelPositions, sortPanelsByRowPriority, onGeometryCalculated]);
+  }, [latitude, longitude, roofPolygons, language, generateUnifiedPanelPositions, sortPanelsByRowPriority, onGeometryCalculated, retryKey]);
 
   useEffect(() => {
     if (!mapRef.current || allPanelPositions.length === 0) return;
@@ -1554,9 +1567,22 @@ export function RoofVisualization({
         
         {mapError && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground z-10">
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-3 text-center px-4">
               <AlertTriangle className="w-8 h-8" />
-              <p>{mapError}</p>
+              <p className="text-sm max-w-xs">{mapError}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setMapError(null);
+                  setIsLoading(true);
+                  setRetryKey(k => k + 1);
+                }}
+                data-testid="button-retry-map"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                {language === "fr" ? "Réessayer" : "Retry"}
+              </Button>
             </div>
           </div>
         )}
