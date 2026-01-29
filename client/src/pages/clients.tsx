@@ -850,8 +850,8 @@ export default function ClientsPage() {
     mutationFn: async (id: string) => {
       return apiRequest("DELETE", `/api/clients/${id}`);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clients/list"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/clients/list"], refetchType: 'all' });
       toast({ title: t("clients.clientDeleted") });
     },
     onError: (error: Error) => {

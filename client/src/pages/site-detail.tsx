@@ -7492,14 +7492,14 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Capacité estimée" : "Estimated Capacity"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {formatNumber(geometryCapacity?.realisticCapacityKW ?? Math.round((quickPotential.systemSizing.maxCapacityKW) * 0.9), language)} kWc
+                  {formatNumber(geometryCapacity?.realisticCapacityKW ?? Math.round(quickPotential.systemSizing.maxCapacityKW * 0.9), language)} kWc
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {formatNumber(geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels, language)} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
                 </div>
               </div>
               
-              {/* Production */}
+              {/* Production - use backend values (based on tiered pricing methodology) */}
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Zap className="w-4 h-4" />
@@ -7513,7 +7513,7 @@ export default function SiteDetailPage() {
                 </div>
               </div>
               
-              {/* Investment */}
+              {/* Investment - use backend values (tiered pricing, incentives) */}
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <DollarSign className="w-4 h-4" />
@@ -7527,7 +7527,7 @@ export default function SiteDetailPage() {
                 </div>
               </div>
               
-              {/* Payback */}
+              {/* Payback - use backend values */}
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <TrendingUp className="w-4 h-4" />
