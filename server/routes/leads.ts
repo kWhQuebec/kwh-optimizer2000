@@ -11,6 +11,7 @@ import * as googleSolar from "../googleSolarService";
 import { generateProcurationPDF, createProcurationData } from "../procurationPdfGenerator";
 import { parseHQBill, type HQBillData } from "../hqBillParser";
 import { getTieredSolarCostPerW, BASELINE_YIELD, QUEBEC_MONTHLY_TEMPS } from "../analysis/potentialAnalysis";
+import { objectStorageClient } from "../replit_integrations/object_storage";
 
 const router = express.Router();
 
@@ -1072,10 +1073,14 @@ router.post("/api/parse-hq-bill", billUpload.single('file'), async (req, res) =>
   try {
     let imageBase64: string | undefined;
     let mimeType = 'image/jpeg';
+    let fileBuffer: Buffer | undefined;
+    let originalFilename: string | undefined;
 
     if (req.file) {
+      fileBuffer = req.file.buffer;
       imageBase64 = req.file.buffer.toString('base64');
       mimeType = req.file.mimetype;
+      originalFilename = req.file.originalname;
       console.log(`[HQ Bill Parse] Received file upload: ${req.file.originalname}, ${req.file.mimetype}, ${Math.round(req.file.size / 1024)}KB`);
     } else if (req.body.imageBase64) {
       imageBase64 = req.body.imageBase64;
@@ -1091,9 +1096,48 @@ router.post("/api/parse-hq-bill", billUpload.single('file'), async (req, res) =>
 
     console.log(`[HQ Bill Parse] Extraction complete, confidence: ${result.confidence}, fields: account=${!!result.accountNumber}, tariff=${result.tariffCode}, kWh=${result.annualConsumptionKwh}`);
 
+    // Save the HQ bill to object storage for later access to Espace Client
+    let savedBillPath: string | undefined;
+    if (fileBuffer && process.env.PRIVATE_OBJECT_DIR) {
+      try {
+        const timestamp = Date.now();
+        const sanitizedName = (originalFilename || 'hq-bill').replace(/[^a-zA-Z0-9.-]/g, '_');
+        const extension = mimeType === 'application/pdf' ? '.pdf' : 
+                          mimeType.includes('png') ? '.png' : 
+                          mimeType.includes('gif') ? '.gif' : '.jpg';
+        const objectName = `hq-bills/${timestamp}_${sanitizedName}${sanitizedName.includes('.') ? '' : extension}`;
+        
+        const privateDir = process.env.PRIVATE_OBJECT_DIR;
+        const bucketPath = privateDir.startsWith('/') ? privateDir.slice(1) : privateDir;
+        const [bucketName, ...pathParts] = bucketPath.split('/');
+        const fullObjectPath = [...pathParts, objectName].join('/');
+        
+        const bucket = objectStorageClient.bucket(bucketName);
+        const file = bucket.file(fullObjectPath);
+        
+        await file.save(fileBuffer, {
+          contentType: mimeType,
+          metadata: {
+            originalFilename: originalFilename,
+            uploadedAt: new Date().toISOString(),
+            accountNumber: result.accountNumber || '',
+            clientName: result.clientName || '',
+          }
+        });
+        
+        savedBillPath = `/${bucketName}/${fullObjectPath}`;
+        console.log(`[HQ Bill Parse] Bill saved to object storage: ${savedBillPath}`);
+      } catch (storageError) {
+        console.error("[HQ Bill Parse] Failed to save bill to storage (non-critical):", storageError);
+      }
+    }
+
     res.json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        savedBillPath,
+      },
     });
   } catch (error) {
     console.error("[HQ Bill Parse] Error:", error);
