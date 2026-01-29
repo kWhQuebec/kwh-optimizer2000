@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -228,6 +228,26 @@ function SiteForm({
       notes: site?.notes || "",
     },
   });
+
+  // Reset form when site changes (for editing different sites)
+  useEffect(() => {
+    if (site) {
+      form.reset({
+        name: site.name || "",
+        clientId: site.clientId || "",
+        address: site.address || "",
+        city: site.city || "",
+        province: site.province || (language === "fr" ? "Québec" : "Quebec"),
+        postalCode: site.postalCode || "",
+        buildingType: site.buildingType || "",
+        roofType: site.roofType || "",
+        roofAreaSqM: site.roofAreaSqM ?? "",
+        latitude: site.latitude ?? "",
+        longitude: site.longitude ?? "",
+        notes: site.notes || "",
+      });
+    }
+  }, [site?.id, form, language]);
 
   return (
     <Form {...form}>

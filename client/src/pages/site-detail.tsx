@@ -7141,14 +7141,6 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Estimation toit..." : "Estimating roof..."}
                 </span>
               )}
-              {site.roofEstimateStatus === "success" && site.roofAreaAutoSqM && (
-                <span className="flex items-center gap-1 text-green-600">
-                  <Satellite className="w-3.5 h-3.5" />
-                  {language === "fr" 
-                    ? `Toit: ${Math.round(site.roofAreaAutoSqM)} m²`
-                    : `Roof: ${Math.round(site.roofAreaAutoSqM)} m²`}
-                </span>
-              )}
               {site.roofEstimateStatus === "failed" && (
                 <span className="flex items-center gap-1 text-destructive">
                   <AlertCircle className="w-3.5 h-3.5" />
