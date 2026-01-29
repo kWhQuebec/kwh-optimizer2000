@@ -76,6 +76,9 @@ export const leads = pgTable("leads", {
   qualifiedAt: timestamp("qualified_at"),
   qualifiedBy: varchar("qualified_by"),
   
+  // Hydro-Québec bill storage (transferred to site when lead converts)
+  hqBillPath: text("hq_bill_path"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -213,6 +216,10 @@ export const sites = pgTable("sites", {
   
   // Roof visualization image with solar panel overlay
   roofVisualizationImageUrl: text("roof_visualization_image_url"),
+  
+  // Hydro-Québec bill storage for Espace Client access
+  hqBillPath: text("hq_bill_path"),
+  hqBillUploadedAt: timestamp("hq_bill_uploaded_at"),
   
   // Archive status
   isArchived: boolean("is_archived").notNull().default(false),
