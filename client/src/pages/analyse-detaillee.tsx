@@ -427,32 +427,34 @@ export default function AnalyseDetailleePage() {
       setParsedBillData(data);
       setIsParsing(false);
       
-      // Use shouldDirty and shouldTouch to ensure form fields update visually
-      const setValueOptions = { shouldDirty: true, shouldTouch: true };
-      
-      if (data.accountNumber) {
-        form.setValue('hqClientNumber', data.accountNumber, setValueOptions);
-      }
-      if (data.clientName) {
-        form.setValue('companyName', data.clientName, setValueOptions);
-      }
-      if (data.serviceAddress) {
-        const { street, city, postalCode } = parseAddressParts(data.serviceAddress);
-        if (street) form.setValue('streetAddress', street, setValueOptions);
-        if (city) form.setValue('city', city, setValueOptions);
-        if (city) form.setValue('signatureCity', city, setValueOptions);
-        if (postalCode) form.setValue('postalCode', postalCode, setValueOptions);
-      }
-      if (data.estimatedMonthlyBill) {
-        form.setValue('estimatedMonthlyBill', data.estimatedMonthlyBill, setValueOptions);
-      }
-      if (data.tariffCode) {
-        form.setValue('tariffCode', data.tariffCode, setValueOptions);
-      }
-      
-      // Auto-transition to step 2 after successful parsing
+      // First transition to step 2, then set form values after fields are mounted
       setTimeout(() => {
         setCurrentStep(2);
+        
+        // Set values after step transition with a small delay to ensure fields are mounted
+        setTimeout(() => {
+          const setValueOptions = { shouldDirty: true, shouldTouch: true };
+          
+          if (data.accountNumber) {
+            form.setValue('hqClientNumber', data.accountNumber, setValueOptions);
+          }
+          if (data.clientName) {
+            form.setValue('companyName', data.clientName, setValueOptions);
+          }
+          if (data.serviceAddress) {
+            const { street, city, postalCode } = parseAddressParts(data.serviceAddress);
+            if (street) form.setValue('streetAddress', street, setValueOptions);
+            if (city) form.setValue('city', city, setValueOptions);
+            if (city) form.setValue('signatureCity', city, setValueOptions);
+            if (postalCode) form.setValue('postalCode', postalCode, setValueOptions);
+          }
+          if (data.estimatedMonthlyBill) {
+            form.setValue('estimatedMonthlyBill', data.estimatedMonthlyBill, setValueOptions);
+          }
+          if (data.tariffCode) {
+            form.setValue('tariffCode', data.tariffCode, setValueOptions);
+          }
+        }, 100);
       }, 500);
     },
     onError: (error) => {
