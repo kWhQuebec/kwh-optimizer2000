@@ -7520,7 +7520,9 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Investissement estimé" : "Estimated Investment"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  ${(quickPotential.financial.estimatedCapex / 1000000).toFixed(2)}M
+                  {quickPotential.financial.estimatedCapex >= 1000000 
+                    ? `$${Math.round(quickPotential.financial.estimatedCapex / 1000000)}M`
+                    : `$${Math.round(quickPotential.financial.estimatedCapex / 1000)}k`}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   ${quickPotential.financial.costPerW.toFixed(2)}/W
@@ -7625,7 +7627,9 @@ export default function SiteDetailPage() {
                     <div className="bg-muted/50 rounded-lg p-3" data-testid="incentive-net-capex">
                       <div className="text-xs text-muted-foreground">{language === "fr" ? "Coût net" : "Net Cost"}</div>
                       <div className="text-lg font-semibold">
-                        ${(quickPotential.financial.netCapex / 1000000).toFixed(2)}M
+                        {quickPotential.financial.netCapex >= 1000000 
+                          ? `$${Math.round(quickPotential.financial.netCapex / 1000000)}M`
+                          : `$${Math.round(quickPotential.financial.netCapex / 1000)}k`}
                       </div>
                       <div className="text-xs text-muted-foreground">{language === "fr" ? "Après incitatifs" : "After incentives"}</div>
                     </div>
@@ -7633,7 +7637,10 @@ export default function SiteDetailPage() {
                   <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3" data-testid="incentive-total-savings">
                     <div className="text-xs text-muted-foreground">{language === "fr" ? "Économies totales" : "Total Savings"}</div>
                     <div className="text-lg font-semibold text-amber-700 dark:text-amber-400">
-                      ${((quickPotential.financial.hqIncentive || 0) + (quickPotential.financial.federalItc || 0)).toLocaleString()}
+                      {(() => {
+                        const total = (quickPotential.financial.hqIncentive || 0) + (quickPotential.financial.federalItc || 0);
+                        return total >= 1000000 ? `$${Math.round(total / 1000000)}M` : `$${Math.round(total / 1000)}k`;
+                      })()}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {quickPotential.financial.estimatedCapex > 0 
