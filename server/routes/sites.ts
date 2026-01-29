@@ -723,9 +723,8 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req
       return res.status(400).json({ error: "No roof area available. Please draw roof areas first." });
     }
 
-    // Import pricing functions and yield strategy
+    // Import pricing functions
     const { getTieredSolarCostPerW, getSolarPricingTierLabel } = await import("../analysis/potentialAnalysis");
-    const { resolveYieldStrategy } = await import("./siteAnalysisHelpers");
     
     // Panel specifications (standard 400W panels, ~2 m² per panel)
     const panelPowerW = 400;
@@ -742,23 +741,36 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req
     const maxCapacityKW = (numPanels * panelPowerW) / 1000;
     
     // Resolve yield strategy respecting manual yield and bifacial settings
-    interface RoofAreaAutoDetails {
-      yearlyEnergyDcKwh?: number;
-      solarPotential?: { maxSunshineHoursPerYear?: number };
-      [key: string]: unknown;
-    }
-    const roofDetails = site.roofAreaAutoDetails as RoofAreaAutoDetails | null;
-    const googleYield = roofDetails?.yearlyEnergyDcKwh && site.kbKwDc
-      ? Math.round(roofDetails.yearlyEnergyDcKwh / site.kbKwDc)
-      : null;
-
-    const yieldStrategy = resolveYieldStrategy(
-      googleYield,
-      assumptions?.manualYield,
-      assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? false
-    );
+    // Use unified methodology: BASELINE_YIELD=1150 with loss factors = ~1035 kWh/kWp effective
+    const BASELINE_YIELD = 1150;
+    const tempCoeff = -0.004;
+    const avgSummerTempDelta = 10; // Average summer temp above 25°C
+    const tempLoss = 1 + (tempCoeff * avgSummerTempDelta); // ~0.96
+    const wireLoss = 0.98; // 2% wire losses
+    const inverterEff = 0.96; // 96% inverter efficiency
     
-    const effectiveYield = yieldStrategy.effectiveYield;
+    // Check for manual yield override or bifacial bonus
+    let baseYield = BASELINE_YIELD;
+    let yieldSource: 'google' | 'manual' | 'default' = 'default';
+    
+    if (assumptions?.manualYield && assumptions.manualYield > 0) {
+      baseYield = assumptions.manualYield;
+      yieldSource = 'manual';
+    }
+    
+    // Apply bifacial gain if enabled
+    const bifacialEnabled = assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? false;
+    const bifacialGain = bifacialEnabled ? 1.08 : 1.0; // 8% gain for bifacial
+    
+    const effectiveYield = Math.round(baseYield * tempLoss * wireLoss * inverterEff * bifacialGain);
+    
+    const yieldStrategy = {
+      baseYield,
+      effectiveYield,
+      bifacialGain: bifacialEnabled ? 0.08 : 0,
+      yieldSource,
+      skipTempCorrection: false,
+    };
     
     const annualProductionKWh = maxCapacityKW * effectiveYield;
     const annualProductionMWh = annualProductionKWh / 1000;
