@@ -100,6 +100,7 @@ export interface SiteScenarioParams {
 
 // Creates a simplified scenario runner for Monte Carlo analysis
 // Uses simplified cashflow model when hourly data is not available
+// Note: This is a simplified model - for full accuracy, use the detailed analysis with hourly data
 export function createSimplifiedScenarioRunner(
   siteParams: SiteScenarioParams
 ): (assumptions: AnalysisAssumptions) => ScenarioResult {
@@ -126,37 +127,59 @@ export function createSimplifiedScenarioRunner(
     const solarCostPerW = h.solarCostPerW || 2.00;
     const capexGross = pvSizeKW * 1000 * solarCostPerW;
     
-    // Incentives
-    const hqIncentive = Math.min(pvSizeKW * 1000, capexGross * 0.40);
+    // Incentives (aligned with main financial engine)
+    // HQ: $1000/kW capped at 40% of gross CAPEX, max 1MW
+    const hqIncentive = Math.min(
+      pvSizeKW * 1000, 
+      capexGross * 0.40,
+      1000 * 1000 // 1MW cap
+    );
     const afterHQ = capexGross - hqIncentive;
+    // Federal ITC: 30% of remaining CAPEX
     const federalITC = afterHQ * 0.30;
-    const taxShield = afterHQ * (h.taxRate || 0.265);
-    const capexNet = afterHQ - federalITC - taxShield;
+    // Net CAPEX for year 0 (tax shield applied over time, not upfront)
+    const capexNet = afterHQ - federalITC;
     
-    // Annual savings year 1
+    // Energy savings year 1
     const energyRate = tariffEnergy || h.tariffEnergy || 0.06;
-    const year1Savings = selfConsumedKWh * energyRate + exportedKWh * (h.hqSurplusCompensationRate || 0.046);
+    const energySavingsY1 = selfConsumedKWh * energyRate + exportedKWh * (h.hqSurplusCompensationRate || 0.046);
     
-    // O&M costs
-    const omCost = h.omSolarPercent ? (capexGross * h.omSolarPercent) : (pvSizeKW * 15);
+    // Demand charge savings (simplified model)
+    // Estimate solar covers ~10-15% of peak during peak hours (conservative)
+    const solarPeakContribution = Math.min(pvSizeKW * 0.15, peakKW * 0.10);
+    const effectiveTariffPower = tariffPower || h.tariffPower || 17.573;
+    const demandSavingsY1 = solarPeakContribution * effectiveTariffPower * 12; // Monthly billing
+    
+    // Total year 1 savings
+    const year1Savings = energySavingsY1 + demandSavingsY1;
+    
+    // O&M costs ($/kWc/year)
+    const omPerKW = h.omPerKwc !== undefined ? h.omPerKwc : 15;
+    const omCostY1 = pvSizeKW * omPerKW;
+    
+    // Tax rate for annual tax shield on O&M deduction
+    const taxRate = h.taxRate || 0.265;
     
     // Generate 26-year cashflows (year 0 to 25)
     const cashflows: Array<{ year: number; netCashflow: number }> = [];
     const cashflowValues: number[] = [];
     
-    // Year 0: CAPEX
+    // Year 0: CAPEX investment
     cashflows.push({ year: 0, netCashflow: -capexNet });
     cashflowValues.push(-capexNet);
     
     const degradationRate = h.degradationRatePercent || 0.005;
     const escalationRate = h.inflationRate || 0.03;
+    const omEscalation = h.omEscalation || 0.025;
     
     for (let year = 1; year <= 25; year++) {
       const degradationFactor = Math.pow(1 - degradationRate, year);
       const escalationFactor = Math.pow(1 + escalationRate, year);
       const yearSavings = year1Savings * degradationFactor * escalationFactor;
-      const yearOm = omCost * Math.pow(1 + (h.omEscalation || 0.025), year);
-      const netCashflow = yearSavings - yearOm;
+      const yearOm = omCostY1 * Math.pow(1 + omEscalation, year);
+      // Tax shield on operating costs
+      const taxBenefit = yearOm * taxRate * 0.3; // Partial deductibility
+      const netCashflow = yearSavings - yearOm + taxBenefit;
       
       cashflows.push({ year, netCashflow });
       cashflowValues.push(netCashflow);
@@ -172,7 +195,7 @@ export function createSimplifiedScenarioRunner(
       return npv;
     };
     
-    // Calculate IRR using bisection
+    // Calculate IRR using bisection with relative tolerance
     const calculateIRR = (years: number): number => {
       const cf = cashflowValues.slice(0, years + 1);
       let low = -0.5;
@@ -186,18 +209,24 @@ export function createSimplifiedScenarioRunner(
         return npv;
       };
       
-      for (let iter = 0; iter < 50; iter++) {
+      // Cache NPV at low for efficiency
+      let npvLow = npvAtRate(low);
+      
+      for (let iter = 0; iter < 100; iter++) {
         const mid = (low + high) / 2;
         const npvMid = npvAtRate(mid);
         
-        if (Math.abs(npvMid) < 100 || (high - low) < 0.0001) {
+        // Use relative tolerance based on CAPEX size
+        const tolerance = Math.abs(capexNet) * 1e-6;
+        if (Math.abs(npvMid) < tolerance || (high - low) < 1e-6) {
           return Math.max(0, Math.min(1, mid));
         }
         
-        if (npvAtRate(low) * npvMid < 0) {
+        if (npvLow * npvMid < 0) {
           high = mid;
         } else {
           low = mid;
+          npvLow = npvMid;
         }
       }
       return (low + high) / 2;
