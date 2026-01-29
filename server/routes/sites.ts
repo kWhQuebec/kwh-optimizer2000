@@ -703,7 +703,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req
     }
 
     // Get roof polygons to calculate total area
-    const polygons = await storage.getRoofPolygonsBySite(siteId);
+    const polygons = await storage.getRoofPolygons(siteId);
     
     // Filter solar polygons (exclude constraints marked by orange color or constraint labels)
     const solarPolygons = polygons.filter(p => {
