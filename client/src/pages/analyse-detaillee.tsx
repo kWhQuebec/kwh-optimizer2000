@@ -419,7 +419,9 @@ export default function AnalyseDetailleePage() {
         throw new Error('Failed to parse bill');
       }
 
-      return response.json() as Promise<HQBillData>;
+      const result = await response.json();
+      // API returns { success: true, data: {...} }
+      return result.data as HQBillData;
     },
     onSuccess: (data) => {
       setParsedBillData(data);
