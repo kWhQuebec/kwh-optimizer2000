@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun, Maximize2, Minimize2, Wand2, Sparkles } from 'lucide-react';
+import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun, Maximize2, Minimize2, Wand2, Sparkles, ExternalLink } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -508,6 +508,40 @@ export function RoofDrawingModal({
     }
   }, [isOpen, cleanupMap]);
 
+  // ESC key handler to cancel current drawing
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && drawingManagerRef.current && activeDrawingMode) {
+        // Cancel current drawing by resetting and re-enabling drawing mode
+        const currentMode = activeDrawingMode === 'polygon' 
+          ? google.maps.drawing.OverlayType.POLYGON 
+          : google.maps.drawing.OverlayType.RECTANGLE;
+        
+        // Set to null first to cancel any in-progress drawing
+        drawingManagerRef.current.setDrawingMode(null);
+        
+        // Re-enable the same drawing mode after a brief delay
+        setTimeout(() => {
+          if (drawingManagerRef.current && activeDrawingMode) {
+            drawingManagerRef.current.setDrawingMode(currentMode);
+          }
+        }, 50);
+        
+        toast({
+          title: language === 'fr' ? 'Tracé annulé' : 'Drawing cancelled',
+          description: language === 'fr' 
+            ? 'Le tracé en cours a été annulé. Recommencez à dessiner.' 
+            : 'Current drawing was cancelled. Start drawing again.',
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, activeDrawingMode, language, toast]);
+
   // Keep mounted but hidden to avoid DOM cleanup issues with Google Maps
   return (
     <div 
@@ -534,6 +568,18 @@ export function RoofDrawingModal({
               {language === 'fr' ? 'Dessiner les zones de toit' : 'Draw Roof Areas'}
             </h2>
             <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${latitude},${longitude}`;
+                  window.open(streetViewUrl, '_blank');
+                }}
+                data-testid="button-open-streetview"
+                title={language === 'fr' ? 'Ouvrir Google Street View' : 'Open Google Street View'}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
               <Button
                 size="icon"
                 variant="ghost"
