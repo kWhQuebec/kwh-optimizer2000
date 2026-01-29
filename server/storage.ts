@@ -636,12 +636,16 @@ export class MemStorage implements IStorage {
     const total = clients.length;
     const paginated = clients.slice(offset, offset + limit);
     
-    // Add sites to each client
+    // Add site counts to each client (optimized - only count, not full sites)
     const allSites = Array.from(this.sites.values());
-    const clientsWithSites = paginated.map(client => ({
-      ...client,
-      sites: allSites.filter(s => s.clientId === client.id),
-    }));
+    const clientsWithSites = paginated.map(client => {
+      const clientSites = allSites.filter(s => s.clientId === client.id);
+      return {
+        ...client,
+        sites: [] as Site[],
+        siteCount: clientSites.length,
+      };
+    });
     
     return { clients: clientsWithSites, total };
   }

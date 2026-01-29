@@ -228,16 +228,26 @@ export class DatabaseStorage implements IStorage {
       : db.select().from(clients).orderBy(desc(clients.createdAt)).limit(limit).offset(offset);
     const paginatedClients = await clientsQuery;
     
-    // Get sites for these clients
+    // Get site counts for these clients (optimized - only count, not full sites)
     const clientIds = paginatedClients.map(c => c.id);
-    const clientSites = clientIds.length > 0
-      ? await db.select().from(sites).where(inArray(sites.clientId, clientIds))
+    const siteCounts = clientIds.length > 0
+      ? await db
+          .select({ 
+            clientId: sites.clientId, 
+            siteCount: count() 
+          })
+          .from(sites)
+          .where(inArray(sites.clientId, clientIds))
+          .groupBy(sites.clientId)
       : [];
     
-    // Map sites to clients
+    const siteCountMap = new Map(siteCounts.map(sc => [sc.clientId, Number(sc.siteCount)]));
+    
+    // Map site counts to clients (return empty sites array for backwards compatibility)
     const clientsWithSites = paginatedClients.map(client => ({
       ...client,
-      sites: clientSites.filter(s => s.clientId === client.id),
+      sites: [] as Site[],
+      siteCount: siteCountMap.get(client.id) || 0,
     }));
     
     return { clients: clientsWithSites, total: Number(totalCount) };

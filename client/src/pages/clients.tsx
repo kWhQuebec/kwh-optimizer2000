@@ -38,6 +38,7 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 interface ClientWithSites extends Client {
   sites: Site[];
+  siteCount?: number;
 }
 
 interface ClientsListResponse {
@@ -534,7 +535,7 @@ function ClientCard({ client, onEdit, onDelete, onGrantAccess, onSendHqProcurati
               <Link href={`/app/clients/${client.id}/sites`}>
                 <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-view-sites-${client.id}`}>
                   <Building2 className="w-3.5 h-3.5" />
-                  {client.sites?.length || 0} {t("clients.sites").toLowerCase()}
+                  {client.siteCount ?? client.sites?.length ?? 0} {t("clients.sites").toLowerCase()}
                 </Button>
               </Link>
             </div>

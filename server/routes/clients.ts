@@ -185,8 +185,17 @@ router.get("/api/clients/list", authMiddleware, requireStaff, asyncHandler(async
 }));
 
 router.get("/api/clients", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
-  const clients = await storage.getClients();
-  res.json(clients);
+  const { limit, offset, search, includeArchived } = req.query;
+  
+  // Use paginated method for better performance
+  const result = await storage.getClientsPaginated({
+    limit: limit ? parseInt(limit as string, 10) : 50,
+    offset: offset ? parseInt(offset as string, 10) : 0,
+    search: search as string | undefined,
+    includeArchived: includeArchived === 'true',
+  });
+  
+  res.json(result);
 }));
 
 router.get("/api/clients/:id", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
