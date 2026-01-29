@@ -445,8 +445,10 @@ export async function sendWelcomeEmail(
   return result;
 }
 
-function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', baseUrl: string): string {
-  const procurationUrl = `${baseUrl}/analyse-detaillee`;
+function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', baseUrl: string, clientId?: string): string {
+  const procurationUrl = clientId 
+    ? `${baseUrl}/analyse-detaillee?clientId=${clientId}`
+    : `${baseUrl}/analyse-detaillee`;
   
   const t = {
     fr: {
@@ -550,8 +552,10 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
 </html>`;
 }
 
-function generateHqProcurationTextEmail(clientName: string, lang: 'fr' | 'en', baseUrl: string): string {
-  const procurationUrl = `${baseUrl}/analyse-detaillee`;
+function generateHqProcurationTextEmail(clientName: string, lang: 'fr' | 'en', baseUrl: string, clientId?: string): string {
+  const procurationUrl = clientId 
+    ? `${baseUrl}/analyse-detaillee?clientId=${clientId}`
+    : `${baseUrl}/analyse-detaillee`;
   
   if (lang === 'fr') {
     return `Bonjour ${clientName},
@@ -610,16 +614,17 @@ export async function sendHqProcurationEmail(
   email: string,
   clientName: string,
   language: 'fr' | 'en',
-  baseUrl: string
+  baseUrl: string,
+  clientId?: string
 ): Promise<{ success: boolean; error?: string }> {
   // Subject without brackets - more personal, less likely to be flagged as spam
   const subject = language === 'fr' 
     ? `${clientName}, votre projet solaire avec kWh Québec`
     : `${clientName}, your solar project with kWh Québec`;
   
-  const htmlBody = generateHqProcurationEmailHtml(clientName, language, baseUrl);
+  const htmlBody = generateHqProcurationEmailHtml(clientName, language, baseUrl, clientId);
   // Plain text version - multipart emails are less likely to be flagged as spam
-  const textBody = generateHqProcurationTextEmail(clientName, language, baseUrl);
+  const textBody = generateHqProcurationTextEmail(clientName, language, baseUrl, clientId);
   
   console.log(`[EmailService] Sending HQ procuration email to ${email} for ${clientName} (lang: ${language})`);
   

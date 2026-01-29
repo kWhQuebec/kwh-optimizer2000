@@ -521,10 +521,12 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       procurationAccepted,
       procurationDate,
       language,
+      clientId, // If provided, this is an existing CRM client - skip Lead/Opportunity creation
     } = req.body;
 
     const contactName = `${firstName || ''} ${lastName || ''}`.trim();
     const formattedSignerName = `${lastName || ''}, ${firstName || ''}`.trim().replace(/^,\s*/, '').replace(/,\s*$/, '');
+    const isExistingClient = !!clientId;
 
     if (!companyName || !firstName || !lastName || !email || !streetAddress || !city) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -537,6 +539,16 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
     const files = req.files as Express.Multer.File[];
     if (!files || files.length === 0) {
       return res.status(400).json({ error: "At least one Hydro-Québec bill file is required" });
+    }
+
+    // Verify existing client if clientId is provided
+    let existingClient = null;
+    if (isExistingClient) {
+      existingClient = await storage.getClient(clientId);
+      if (!existingClient) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      console.log(`[Detailed Analysis] Existing client submission for: ${existingClient.name} (${clientId})`);
     }
 
     const procurationInfo = language === 'fr'
@@ -558,50 +570,60 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       notes || ''
     ].filter(Boolean).join('\n').trim();
 
-    const leadData = {
-      companyName,
-      contactName,
-      email,
-      phone: phone || null,
-      streetAddress,
-      city,
-      province: province || 'Québec',
-      postalCode: postalCode || null,
-      estimatedMonthlyBill: estimatedMonthlyBill ? parseFloat(estimatedMonthlyBill) : null,
-      buildingType: buildingType || null,
-      notes: combinedNotes,
-      source: 'detailed-analysis-form',
-      status: 'qualified',
-    };
-
-    const parsed = insertLeadSchema.safeParse(leadData);
-    if (!parsed.success) {
-      console.error("[Detailed Analysis] Validation error:", parsed.error.errors);
-      return res.status(400).json({ error: parsed.error.errors });
-    }
-
-    let lead = await storage.createLead(parsed.data);
+    let lead = null;
     
-    // Auto-create opportunity when lead is submitted
-    try {
-      const opportunityName = `${companyName} - ${streetAddress || city || 'Solar Project'}`;
-      await storage.createOpportunity({
-        name: opportunityName,
-        description: `Auto-created from detailed analysis request. Contact: ${contactName}`,
-        leadId: lead.id,
-        stage: 'qualified', // Detailed analysis = qualified (has procuration)
-        probability: 15,
-        source: 'website',
-        estimatedValue: null,
-        expectedCloseDate: null,
-        ownerId: null,
-      });
-      console.log(`[Detailed Analysis] Auto-created opportunity for lead: ${lead.id}`);
-    } catch (oppError) {
-      console.error(`[Detailed Analysis] Failed to auto-create opportunity:`, oppError);
+    // Only create Lead/Opportunity for NEW website visitors (no clientId)
+    if (!isExistingClient) {
+      const leadData = {
+        companyName,
+        contactName,
+        email,
+        phone: phone || null,
+        streetAddress,
+        city,
+        province: province || 'Québec',
+        postalCode: postalCode || null,
+        estimatedMonthlyBill: estimatedMonthlyBill ? parseFloat(estimatedMonthlyBill) : null,
+        buildingType: buildingType || null,
+        notes: combinedNotes,
+        source: 'detailed-analysis-form',
+        status: 'qualified',
+      };
+
+      const parsed = insertLeadSchema.safeParse(leadData);
+      if (!parsed.success) {
+        console.error("[Detailed Analysis] Validation error:", parsed.error.errors);
+        return res.status(400).json({ error: parsed.error.errors });
+      }
+
+      lead = await storage.createLead(parsed.data);
+      
+      // Auto-create opportunity when lead is submitted
+      try {
+        const opportunityName = `${companyName} - ${streetAddress || city || 'Solar Project'}`;
+        await storage.createOpportunity({
+          name: opportunityName,
+          description: `Auto-created from detailed analysis request. Contact: ${contactName}`,
+          leadId: lead.id,
+          stage: 'qualified', // Detailed analysis = qualified (has procuration)
+          probability: 15,
+          source: 'website',
+          estimatedValue: null,
+          expectedCloseDate: null,
+          ownerId: null,
+        });
+        console.log(`[Detailed Analysis] Auto-created opportunity for lead: ${lead.id}`);
+      } catch (oppError) {
+        console.error(`[Detailed Analysis] Failed to auto-create opportunity:`, oppError);
+      }
+    } else {
+      console.log(`[Detailed Analysis] Skipping Lead/Opportunity creation - existing client: ${clientId}`);
     }
 
-    const uploadDir = path.join('uploads', 'bills', lead.id);
+    // Use lead.id for new leads, or clientId for existing clients
+    const referenceId = lead?.id || clientId;
+
+    const uploadDir = path.join('uploads', 'bills', referenceId);
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -621,13 +643,14 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
         signerEmail: email,
         companyName: companyName,
         hqAccountNumber: hqClientNumber || null,
-        leadId: lead.id,
+        leadId: lead?.id || null,
+        clientId: isExistingClient ? clientId : null,
         status: 'signed',
         language: language === 'en' ? 'en' : 'fr',
         ipAddress: clientIp,
         userAgent: userAgent,
       });
-      console.log(`[Detailed Analysis] Procuration signature recorded for lead: ${lead.id}`);
+      console.log(`[Detailed Analysis] Procuration signature recorded for ${isExistingClient ? 'client' : 'lead'}: ${referenceId}`);
       
       if (signatureImage && typeof signatureImage === 'string') {
         const isValidFormat = signatureImage.startsWith('data:image/png;base64,');
@@ -640,7 +663,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
           if (!fs.existsSync(signatureDir)) {
             fs.mkdirSync(signatureDir, { recursive: true });
           }
-          const signaturePath = path.join(signatureDir, `${lead.id}_signature.png`);
+          const signaturePath = path.join(signatureDir, `${referenceId}_signature.png`);
           fs.writeFileSync(signaturePath, Buffer.from(base64Data, 'base64'));
           console.log(`[Detailed Analysis] Signature image saved: ${signaturePath} (${Math.round(sizeInBytes / 1024)}KB)`);
         } else {
@@ -676,7 +699,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       if (!fs.existsSync(procurationDir)) {
         fs.mkdirSync(procurationDir, { recursive: true });
       }
-      const pdfFilename = `procuration_${lead.id}_${Date.now()}.pdf`;
+      const pdfFilename = `procuration_${referenceId}_${Date.now()}.pdf`;
       const pdfPath = path.join(procurationDir, pdfFilename);
       fs.writeFileSync(pdfPath, pdfBuffer);
       console.log(`[Detailed Analysis] Procuration PDF saved: ${pdfPath}`);
@@ -716,17 +739,39 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       console.error('[Detailed Analysis] Error generating/sending procuration PDF:', pdfError);
     }
 
-    if (streetAddress && city) {
-      triggerRoofEstimation(lead.id, leadData).catch((err) => {
+    // Only trigger roof estimation for new leads (not existing clients)
+    if (streetAddress && city && lead) {
+      // Use the same data structure as lead creation for roof estimation
+      const roofEstimationData = {
+        companyName,
+        contactName,
+        email,
+        phone: phone || null,
+        streetAddress,
+        city,
+        province: province || 'Québec',
+        postalCode: postalCode || null,
+        estimatedMonthlyBill: estimatedMonthlyBill ? parseFloat(estimatedMonthlyBill) : null,
+        buildingType: buildingType || null,
+        notes: combinedNotes,
+        source: 'detailed-analysis-form' as const,
+        status: 'qualified' as const,
+      };
+      triggerRoofEstimation(lead.id, roofEstimationData).catch((err) => {
         console.error(`[Detailed Analysis ${lead.id}] Roof estimation failed:`, err);
       });
     }
 
-    console.log(`[Detailed Analysis] Lead created: ${lead.id}, Files: ${files.length}`);
+    if (isExistingClient) {
+      console.log(`[Detailed Analysis] Procuration received from existing client: ${clientId}, Files: ${files.length}`);
+    } else {
+      console.log(`[Detailed Analysis] Lead created: ${lead?.id}, Files: ${files.length}`);
+    }
     
     res.status(201).json({ 
       success: true, 
-      leadId: lead.id,
+      leadId: lead?.id || null,
+      clientId: isExistingClient ? clientId : null,
       filesUploaded: files.length,
     });
   } catch (error) {

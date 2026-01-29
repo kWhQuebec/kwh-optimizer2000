@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import { useDropzone } from "react-dropzone";
 import useEmblaCarousel from "embla-carousel-react";
@@ -183,6 +183,12 @@ function parseAddressParts(fullAddress: string | null): { street: string; city: 
 
 export default function AnalyseDetailleePage() {
   const { t, language } = useI18n();
+  const searchString = useSearch();
+  
+  // Parse clientId from URL params (for existing CRM clients)
+  const clientId = new URLSearchParams(searchString).get('clientId');
+  const isExistingClient = !!clientId;
+  
   const [submitted, setSubmitted] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -342,36 +348,43 @@ export default function AnalyseDetailleePage() {
       })
         .then(response => {
           if (!response.ok) throw new Error('Failed to parse bill');
-          return response.json() as Promise<HQBillData>;
+          return response.json();
         })
-        .then(data => {
+        .then(result => {
+          // API returns { success: true, data: {...} } - unwrap it
+          if (!result.success || !result.data) {
+            throw new Error('Failed to parse bill data');
+          }
+          const data = result.data as HQBillData;
           setParsedBillData(data);
           setIsParsing(false);
           
-          // Auto-fill form fields
-          if (data.accountNumber) {
-            form.setValue('hqClientNumber', data.accountNumber);
-          }
-          if (data.clientName) {
-            form.setValue('companyName', data.clientName);
-          }
-          if (data.serviceAddress) {
-            const { street, city, postalCode } = parseAddressParts(data.serviceAddress);
-            if (street) form.setValue('streetAddress', street);
-            if (city) form.setValue('city', city);
-            if (city) form.setValue('signatureCity', city);
-            if (postalCode) form.setValue('postalCode', postalCode);
-          }
-          if (data.estimatedMonthlyBill) {
-            form.setValue('estimatedMonthlyBill', data.estimatedMonthlyBill);
-          }
-          if (data.tariffCode) {
-            form.setValue('tariffCode', data.tariffCode);
-          }
-          
-          // Auto-transition to step 2 after successful parsing
+          // Auto-transition to step 2 first, then fill form after fields mount
           setTimeout(() => {
             setCurrentStep(2);
+            
+            // Wait for step 2 fields to mount before setting values
+            setTimeout(() => {
+              if (data.accountNumber) {
+                form.setValue('hqClientNumber', data.accountNumber);
+              }
+              if (data.clientName) {
+                form.setValue('companyName', data.clientName);
+              }
+              if (data.serviceAddress) {
+                const { street, city, postalCode } = parseAddressParts(data.serviceAddress);
+                if (street) form.setValue('streetAddress', street);
+                if (city) form.setValue('city', city);
+                if (city) form.setValue('signatureCity', city);
+                if (postalCode) form.setValue('postalCode', postalCode);
+              }
+              if (data.estimatedMonthlyBill) {
+                form.setValue('estimatedMonthlyBill', data.estimatedMonthlyBill);
+              }
+              if (data.tariffCode) {
+                form.setValue('tariffCode', data.tariffCode);
+              }
+            }, 100);
           }, 500);
         })
         .catch(() => {
@@ -485,6 +498,11 @@ export default function AnalyseDetailleePage() {
 
       formData.append('language', language);
       formData.append('procurationDate', new Date().toISOString());
+      
+      // If this is an existing CRM client, include clientId to skip Lead/Opportunity creation
+      if (clientId) {
+        formData.append('clientId', clientId);
+      }
 
       if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
         const signatureDataUrl = signaturePadRef.current.toDataURL('image/png');

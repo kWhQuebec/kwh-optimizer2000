@@ -686,6 +686,7 @@ export const blogArticles = pgTable("blog_articles", {
 export const procurationSignatures = pgTable("procuration_signatures", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: varchar("lead_id").references(() => leads.id), // Link to lead if from detailed analysis form
+  clientId: varchar("client_id").references(() => clients.id), // Link to client if from CRM email
   
   // Signer info
   signerName: text("signer_name").notNull(),

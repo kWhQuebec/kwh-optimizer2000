@@ -149,7 +149,8 @@ router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requir
     client.email,
     client.name,
     language,
-    baseUrl
+    baseUrl,
+    clientId
   );
   
   if (!emailResult.success) {
