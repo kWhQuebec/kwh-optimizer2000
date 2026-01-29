@@ -183,11 +183,17 @@ router.get("/list", authMiddleware, async (req: AuthRequest, res) => {
       sites: paginated.map(s => ({
         id: s.id,
         name: s.name,
+        address: s.address,
         city: s.city,
         province: s.province,
-        roofEstimateStatus: s.roofEstimateStatus,
+        postalCode: s.postalCode,
+        analysisAvailable: s.analysisAvailable,
         roofAreaValidated: s.roofAreaValidated,
+        createdAt: s.createdAt,
         clientId: s.clientId,
+        clientName: s.client?.name || "",
+        hasSimulation: (s.simulationRuns?.length || 0) > 0,
+        hasDesignAgreement: false,
         isArchived: s.isArchived
       })),
       total
