@@ -112,69 +112,57 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
   
   // === SECTION HAUTE - Client/Mandant ===
   
+  // Helper function to clear and set field value
+  const setFieldValue = (fieldName: string, value: string) => {
+    try {
+      const field = form.getTextField(fieldName);
+      // Clear existing value first, then set new value
+      field.setText('');
+      field.setText(value);
+    } catch (e) { 
+      console.log(`Field ${fieldName} error:`, e); 
+    }
+  };
+  
   // 1. No de client HQ (juste le numéro)
-  try {
-    form.getTextField(HQ_FIELDS.clientNoCompte).setText(data.hqAccountNumber);
-  } catch (e) { console.log("Field clientNoCompte error:", e); }
+  setFieldValue(HQ_FIELDS.clientNoCompte, data.hqAccountNumber);
   
   // 2. Nom, Prénom du client
-  try {
-    form.getTextField(HQ_FIELDS.clientNomPrenom).setText(data.contactName);
-  } catch (e) { console.log("Field clientNomPrenom error:", e); }
+  setFieldValue(HQ_FIELDS.clientNomPrenom, data.contactName);
   
   // 3. Fonction du client
-  try {
-    form.getTextField(HQ_FIELDS.clientFonction).setText(data.signerTitle);
-  } catch (e) { console.log("Field clientFonction error:", e); }
+  setFieldValue(HQ_FIELDS.clientFonction, data.signerTitle);
   
   // === PERSONNE AUTORISÉE (Mandataire - kWh Québec) ===
   
   // 4. Nom de la personne autorisée
-  try {
-    form.getTextField(HQ_FIELDS.mandataireNom).setText(MANDATAIRE.contactName);
-  } catch (e) { console.log("Field mandataireNom error:", e); }
+  setFieldValue(HQ_FIELDS.mandataireNom, MANDATAIRE.contactName);
   
   // 5. Fonction de la personne autorisée
-  try {
-    form.getTextField(HQ_FIELDS.mandataireFonction).setText(MANDATAIRE.title);
-  } catch (e) { console.log("Field mandataireFonction error:", e); }
+  setFieldValue(HQ_FIELDS.mandataireFonction, MANDATAIRE.title);
   
   // 6. Téléphone
-  try {
-    form.getTextField(HQ_FIELDS.mandataireTel).setText(MANDATAIRE.phone);
-  } catch (e) { console.log("Field mandataireTel error:", e); }
+  setFieldValue(HQ_FIELDS.mandataireTel, MANDATAIRE.phone);
   
   // 7. Cellulaire
-  try {
-    form.getTextField(HQ_FIELDS.mandataireCellulaire).setText(MANDATAIRE.cellulaire);
-  } catch (e) { console.log("Field mandataireCellulaire error:", e); }
+  setFieldValue(HQ_FIELDS.mandataireCellulaire, MANDATAIRE.cellulaire);
   
   // === SECTION BASSE - Durée et Signature ===
   
   // 8. Date de signature (début durée)
-  try {
-    form.getTextField(HQ_FIELDS.dureeDebut).setText(formatDateShort(data.procurationDate));
-  } catch (e) { console.log("Field dureeDebut error:", e); }
+  setFieldValue(HQ_FIELDS.dureeDebut, formatDateShort(data.procurationDate));
   
   // 9. Date fin (durée + 15 jours ouvrables)
-  try {
-    form.getTextField(HQ_FIELDS.dureeFin).setText(formatDateShort(data.procurationEndDate));
-  } catch (e) { console.log("Field dureeFin error:", e); }
+  setFieldValue(HQ_FIELDS.dureeFin, formatDateShort(data.procurationEndDate));
   
   // 10. Signée à (ville)
-  try {
-    form.getTextField(HQ_FIELDS.signeeA).setText(data.signatureCity);
-  } catch (e) { console.log("Field signeeA error:", e); }
+  setFieldValue(HQ_FIELDS.signeeA, data.signatureCity);
   
   // 11. "le" (date de signature)
-  try {
-    form.getTextField(HQ_FIELDS.signatureLe).setText(formatDateShort(data.procurationDate));
-  } catch (e) { console.log("Field signatureLe error:", e); }
+  setFieldValue(HQ_FIELDS.signatureLe, formatDateShort(data.procurationDate));
   
   // 12. Nom en lettres moulées du signataire (responsable de l'abonnement)
-  try {
-    form.getTextField(HQ_FIELDS.signataireNom).setText(data.contactName);
-  } catch (e) { console.log("Field signataireNom error:", e); }
+  setFieldValue(HQ_FIELDS.signataireNom, data.contactName);
   
   // === SIGNATURE IMAGE ===
   // Position signature à gauche de "signeeA" (y=189, x avant 99)
@@ -248,6 +236,9 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
       }
     );
   }
+  
+  // Update field appearances to ensure new values are rendered
+  form.updateFieldAppearances();
   
   // Flatten the form to prevent further editing
   form.flatten();
