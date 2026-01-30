@@ -180,14 +180,14 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
   // Position signature à gauche de "signeeA" (y=189, x avant 99)
   const page = pdfDoc.getPage(0);
   
-  // First, cover the example signature "Eric Laberge" from the template with a white rectangle
-  // The signature zone is between y=165 and y=210 (above "Nom en lettres moulées" at y=163)
-  // "Signé à" field is at y=189, signature area is below it
+  // Cover the example signature "Eric Laberge" from the template with a white rectangle
+  // Extended coverage area to fully hide the template signature
+  // The signature zone spans from x:45 to x:385, y:150 to y:220
   page.drawRectangle({
-    x: 45,
-    y: 165,
-    width: 340,
-    height: 45,
+    x: 40,
+    y: 150,
+    width: 350,
+    height: 70,
     color: rgb(1, 1, 1), // White
   });
   
