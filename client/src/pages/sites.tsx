@@ -23,7 +23,7 @@ import type { Client, Site, ProcurationSignature } from "@shared/schema";
 
 // Helper function to download files with authentication
 async function downloadWithAuth(url: string, filename: string): Promise<void> {
-  const token = localStorage.getItem("auth_token");
+  const token = localStorage.getItem("token");
   const response = await fetch(url, {
     headers: {
       "Authorization": `Bearer ${token}`
