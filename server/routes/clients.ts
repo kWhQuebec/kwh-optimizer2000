@@ -282,14 +282,26 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
   let city: string | undefined;
   let signatureCity = 'Montréal';
   
+  // Try to get address from lead first, then from client's first site
   if (procuration.leadId) {
     const lead = await storage.getLead(procuration.leadId);
     if (lead) {
       if (lead.decisionMakerTitle) signerTitle = lead.decisionMakerTitle;
-      if (lead.address) streetAddress = lead.address;
+      if (lead.streetAddress) streetAddress = lead.streetAddress;
       if (lead.city) {
         city = lead.city;
         signatureCity = lead.city;
+      }
+    }
+  } else if (procuration.clientId) {
+    // If linked to client, try to get address from client's first site
+    const sites = await storage.getSitesByClientId(procuration.clientId);
+    if (sites && sites.length > 0) {
+      const site = sites[0];
+      if (site.address) streetAddress = site.address;
+      if (site.city) {
+        city = site.city;
+        signatureCity = site.city;
       }
     }
   }

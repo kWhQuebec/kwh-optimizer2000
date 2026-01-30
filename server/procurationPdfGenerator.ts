@@ -34,14 +34,14 @@ const TEXT_POSITIONS = {
   mandataireNom: { x: 99, y: 566 },
   mandataireFonction: { x: 290, y: 566 },
   mandataireTel: { x: 400, y: 566 },      // Moved right (+31)
-  mandataireCellulaire: { x: 485, y: 566 }, // Moved right (+19)
+  mandataireCellulaire: { x: 510, y: 566 }, // Moved further right (+25 more)
   mandataireAddress: { x: 99, y: 540 },
-  dureeDebut: { x: 157, y: 243 },         // Adjusted to be on the line
-  dureeFin: { x: 382, y: 243 },           // Adjusted position and Y
-  signeeA: { x: 55, y: 189 },
-  signatureLe: { x: 425, y: 189 },        // Moved right
-  signataireNom: { x: 425, y: 163 },      // Aligned with signatureLe
-  signature: { x: 70, y: 150 },
+  dureeDebut: { x: 157, y: 215 },         // Lowered ~1cm to be on line
+  dureeFin: { x: 382, y: 215 },           // Lowered ~1cm to be on line
+  signeeA: { x: 55, y: 161 },             // Lowered ~1cm to be on line
+  signatureLe: { x: 425, y: 161 },        // Lowered ~1cm
+  signataireNom: { x: 425, y: 135 },      // Lowered ~1cm to be on line
+  signature: { x: 70, y: 122 },           // Lowered ~1cm
 };
 
 // Format name as "LASTNAME, Firstname"
