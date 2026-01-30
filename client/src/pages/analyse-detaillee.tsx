@@ -867,8 +867,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {language === "fr"
-                          ? "Votre procuration a été signée électroniquement et enregistrée. Nous sommes maintenant autorisés à récupérer vos données de consommation Hydro-Québec."
-                          : "Your authorization has been electronically signed and recorded. We are now authorized to retrieve your Hydro-Québec consumption data."
+                          ? "Votre procuration a été signée électroniquement et enregistrée. Nous devrions avoir accès à vos données de consommation Hydro-Québec d'ici 3 à 4 jours ouvrables."
+                          : "Your authorization has been electronically signed and recorded. We should have access to your Hydro-Québec consumption data within 3 to 4 business days."
                         }
                       </p>
                     </div>
