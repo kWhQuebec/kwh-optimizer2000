@@ -765,7 +765,11 @@ export default function SitesPage() {
                             <>
                               <span>•</span>
                               <Calendar className="w-3 h-3" />
-                              <span>{new Date(proc.signedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}</span>
+                              <span>
+                                {new Date(proc.signedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
+                                {" "}
+                                {new Date(proc.signedAt).toLocaleTimeString(language === "fr" ? "fr-CA" : "en-CA", { hour: '2-digit', minute: '2-digit' })}
+                              </span>
                             </>
                           )}
                         </div>
@@ -844,7 +848,11 @@ export default function SitesPage() {
                             <>
                               <span>•</span>
                               <Calendar className="w-3 h-3" />
-                              <span>{new Date(bill.uploadedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}</span>
+                              <span>
+                                {new Date(bill.uploadedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
+                                {" "}
+                                {new Date(bill.uploadedAt).toLocaleTimeString(language === "fr" ? "fr-CA" : "en-CA", { hour: '2-digit', minute: '2-digit' })}
+                              </span>
                             </>
                           )}
                         </div>
