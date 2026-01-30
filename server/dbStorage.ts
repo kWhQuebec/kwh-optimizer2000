@@ -1476,6 +1476,12 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getProcurationSignaturesByClient(clientId: string): Promise<ProcurationSignature[]> {
+    return db.select().from(procurationSignatures)
+      .where(eq(procurationSignatures.clientId, clientId))
+      .orderBy(desc(procurationSignatures.createdAt));
+  }
+
   async createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature> {
     const [result] = await db.insert(procurationSignatures).values(signature).returning();
     return result;

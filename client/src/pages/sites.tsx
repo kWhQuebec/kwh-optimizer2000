@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Client, Site } from "@shared/schema";
+import type { Client, Site, ProcurationSignature } from "@shared/schema";
 
 // Lightweight site type for list view
 interface SiteListItem {
@@ -568,6 +568,12 @@ export default function SitesPage() {
     ? clients?.find(c => c.id === clientId)
     : null;
 
+  // Fetch procurations for the current client
+  const { data: procurations } = useQuery<ProcurationSignature[]>({
+    queryKey: [`/api/clients/${clientId}/procurations`],
+    enabled: !!clientId,
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: SiteFormValues) => {
       return apiRequest("POST", "/api/sites", data);
@@ -677,6 +683,76 @@ export default function SitesPage() {
             <span>{currentClient.name}</span>
           </div>
         </div>
+      )}
+
+      {/* Signed Procurations Section - only shown when viewing a specific client */}
+      {currentClient && procurations && procurations.length > 0 && (
+        <Card>
+          <Collapsible defaultOpen={true}>
+            <CollapsibleTrigger asChild>
+              <CardContent className="p-4 cursor-pointer hover-elevate flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                    <FileSignature className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">
+                      {language === "fr" ? "Procurations signées" : "Signed Authorizations"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {procurations.length} {language === "fr" ? "document(s)" : "document(s)"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 space-y-2">
+                {procurations.map((proc) => (
+                  <div 
+                    key={proc.id} 
+                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileSignature className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">
+                          {proc.companyName || proc.signerName}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{proc.hqAccountNumber || (language === "fr" ? "N/A" : "N/A")}</span>
+                          {proc.signedAt && (
+                            <>
+                              <span>•</span>
+                              <Calendar className="w-3 h-3" />
+                              <span>{new Date(proc.signedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Use clientId from the procuration record (for CRM emails) or leadId (for website leads)
+                        const referenceId = proc.clientId || proc.leadId;
+                        if (referenceId) {
+                          window.open(`/api/procurations/${referenceId}/download`, '_blank');
+                        }
+                      }}
+                      data-testid={`button-download-procuration-${proc.id}`}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      PDF
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
       )}
 
       <div className="flex items-center justify-between gap-4 flex-wrap">

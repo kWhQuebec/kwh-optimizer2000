@@ -1,6 +1,8 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
 import { authMiddleware, requireStaff } from "../middleware/auth";
 import { asyncHandler, NotFoundError, BadRequestError, ConflictError, ValidationError } from "../middleware/errorHandler";
 import { storage } from "../storage";
@@ -210,6 +212,33 @@ router.get("/api/clients/:id", authMiddleware, requireStaff, asyncHandler(async 
 router.get("/api/clients/:id/sites", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const sites = await storage.getSitesByClient(req.params.id);
   res.json(sites);
+}));
+
+router.get("/api/clients/:id/procurations", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const procurations = await storage.getProcurationSignaturesByClient(req.params.id);
+  res.json(procurations);
+}));
+
+router.get("/api/procurations/:referenceId/download", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const { referenceId } = req.params;
+  const procurationDir = path.join(process.cwd(), "uploads", "procurations");
+  
+  // Find PDF file matching the referenceId pattern
+  if (!fs.existsSync(procurationDir)) {
+    throw new NotFoundError("Procuration directory");
+  }
+  
+  const files = fs.readdirSync(procurationDir);
+  const matchingFile = files.find(f => f.startsWith(`procuration_${referenceId}_`) && f.endsWith('.pdf'));
+  
+  if (!matchingFile) {
+    throw new NotFoundError("Procuration PDF");
+  }
+  
+  const pdfPath = path.join(procurationDir, matchingFile);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${matchingFile}"`);
+  res.sendFile(pdfPath);
 }));
 
 router.post("/api/clients", authMiddleware, requireStaff, asyncHandler(async (req, res) => {

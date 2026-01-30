@@ -269,6 +269,7 @@ export interface IStorage {
   getProcurationSignatures(): Promise<ProcurationSignature[]>;
   getProcurationSignature(id: string): Promise<ProcurationSignature | undefined>;
   getProcurationSignatureByLead(leadId: string): Promise<ProcurationSignature | undefined>;
+  getProcurationSignaturesByClient(clientId: string): Promise<ProcurationSignature[]>;
   createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature>;
   updateProcurationSignature(id: string, signature: Partial<ProcurationSignature>): Promise<ProcurationSignature | undefined>;
 
@@ -1434,6 +1435,12 @@ export class MemStorage implements IStorage {
 
   async getProcurationSignatureByLead(leadId: string): Promise<ProcurationSignature | undefined> {
     return Array.from(this.procurationSignatures.values()).find(s => s.leadId === leadId);
+  }
+
+  async getProcurationSignaturesByClient(clientId: string): Promise<ProcurationSignature[]> {
+    return Array.from(this.procurationSignatures.values())
+      .filter(s => s.clientId === clientId)
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature> {
