@@ -219,6 +219,50 @@ router.get("/api/clients/:id/procurations", authMiddleware, requireStaff, asyncH
   res.json(procurations);
 }));
 
+router.get("/api/clients/:id/hq-bills", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const bills = await storage.getHQBillsByClient(req.params.id);
+  res.json(bills);
+}));
+
+// Download HQ bill - the path is stored in the lead or site record
+router.get("/api/hq-bills/download", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const { path: billPath } = req.query;
+  
+  if (!billPath || typeof billPath !== 'string') {
+    throw new BadRequestError("Bill path is required");
+  }
+  
+  // Normalize the path - handle both full paths (uploads/hq-bills/file.pdf) and relative paths
+  const uploadsDir = path.resolve(process.cwd(), "uploads");
+  let normalizedPath = billPath;
+  
+  // Strip leading 'uploads/' if present to get the relative path
+  if (normalizedPath.startsWith('uploads/')) {
+    normalizedPath = normalizedPath.substring('uploads/'.length);
+  }
+  if (normalizedPath.startsWith('/uploads/')) {
+    normalizedPath = normalizedPath.substring('/uploads/'.length);
+  }
+  
+  // Resolve the full path within uploads directory
+  const fullPath = path.resolve(uploadsDir, normalizedPath);
+  
+  // Validate the resolved path is within uploads directory (prevent path traversal)
+  const relativePath = path.relative(uploadsDir, fullPath);
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    throw new BadRequestError("Invalid bill path");
+  }
+  
+  if (!fs.existsSync(fullPath)) {
+    throw new NotFoundError("HQ Bill file");
+  }
+  
+  const filename = path.basename(fullPath);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.sendFile(fullPath);
+}));
+
 router.get("/api/procurations/:referenceId/download", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const { referenceId } = req.params;
   const procurationDir = path.join(process.cwd(), "uploads", "procurations");

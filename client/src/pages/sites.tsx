@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -575,6 +575,20 @@ export default function SitesPage() {
     enabled: !!clientId,
   });
 
+  // Fetch HQ bills for the current client
+  type HQBill = {
+    id: string;
+    source: 'lead' | 'site';
+    sourceId: string;
+    sourceName: string;
+    hqBillPath: string;
+    uploadedAt?: string | null;
+  };
+  const { data: hqBills } = useQuery<HQBill[]>({
+    queryKey: [`/api/clients/${clientId}/hq-bills`],
+    enabled: !!clientId,
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: SiteFormValues) => {
       return apiRequest("POST", "/api/sites", data);
@@ -744,6 +758,77 @@ export default function SitesPage() {
                         }
                       }}
                       data-testid={`button-download-procuration-${proc.id}`}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      PDF
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+      )}
+
+      {/* HQ Bills Section - only shown when viewing a specific client */}
+      {currentClient && hqBills && hqBills.length > 0 && (
+        <Card>
+          <Collapsible defaultOpen={true}>
+            <CollapsibleTrigger asChild>
+              <CardContent className="p-4 cursor-pointer hover-elevate flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">
+                      {language === "fr" ? "Factures Hydro-Québec" : "Hydro-Québec Bills"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {hqBills.length} {language === "fr" ? "document(s)" : "document(s)"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </CardContent>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 space-y-2">
+                {hqBills.map((bill) => (
+                  <div 
+                    key={bill.id} 
+                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">
+                          {bill.sourceName}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="secondary" className="text-xs">
+                            {bill.source === 'site' 
+                              ? (language === "fr" ? "Site" : "Site")
+                              : (language === "fr" ? "Prospect" : "Lead")
+                            }
+                          </Badge>
+                          {bill.uploadedAt && (
+                            <>
+                              <span>•</span>
+                              <Calendar className="w-3 h-3" />
+                              <span>{new Date(bill.uploadedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        window.open(`/api/hq-bills/download?path=${encodeURIComponent(bill.hqBillPath)}`, '_blank');
+                      }}
+                      data-testid={`button-download-hq-bill-${bill.id}`}
                     >
                       <Download className="w-4 h-4 mr-1" />
                       PDF

@@ -1520,6 +1520,70 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getHQBillsByClient(clientId: string): Promise<Array<{
+    id: string;
+    source: 'lead' | 'site';
+    sourceId: string;
+    sourceName: string;
+    hqBillPath: string;
+    uploadedAt?: Date | null;
+  }>> {
+    const bills: Array<{
+      id: string;
+      source: 'lead' | 'site';
+      sourceId: string;
+      sourceName: string;
+      hqBillPath: string;
+      uploadedAt?: Date | null;
+    }> = [];
+    
+    // Get bills from sites belonging to this client
+    const clientSites = await db.select().from(sites)
+      .where(eq(sites.clientId, clientId));
+    
+    for (const site of clientSites) {
+      if (site.hqBillPath) {
+        bills.push({
+          id: `site-${site.id}`,
+          source: 'site',
+          sourceId: site.id,
+          sourceName: site.name,
+          hqBillPath: site.hqBillPath,
+          uploadedAt: site.hqBillUploadedAt,
+        });
+      }
+    }
+    
+    // Get bills from leads linked via opportunities
+    const clientOpportunities = await db.select().from(opportunities)
+      .where(and(
+        eq(opportunities.clientId, clientId),
+        isNotNull(opportunities.leadId)
+      ));
+    
+    // Deduplicate leadIds to avoid duplicate bills
+    const leadIds = [...new Set(clientOpportunities.map(o => o.leadId).filter(Boolean) as string[])];
+    if (leadIds.length > 0) {
+      const clientLeads = await db.select().from(leads)
+        .where(inArray(leads.id, leadIds));
+      
+      for (const lead of clientLeads) {
+        if (lead.hqBillPath) {
+          bills.push({
+            id: `lead-${lead.id}`,
+            source: 'lead',
+            sourceId: lead.id,
+            sourceName: lead.companyName || lead.contactName,
+            hqBillPath: lead.hqBillPath,
+            uploadedAt: lead.createdAt, // Use createdAt as proxy for upload date
+          });
+        }
+      }
+    }
+    
+    return bills;
+  }
+
   // Email Logs
   async getEmailLogs(filters?: { siteId?: string; designAgreementId?: string; emailType?: string }): Promise<EmailLog[]> {
     const conditions = [];

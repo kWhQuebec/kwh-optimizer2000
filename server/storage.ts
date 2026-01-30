@@ -272,6 +272,16 @@ export interface IStorage {
   getProcurationSignaturesByClient(clientId: string): Promise<ProcurationSignature[]>;
   createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature>;
   updateProcurationSignature(id: string, signature: Partial<ProcurationSignature>): Promise<ProcurationSignature | undefined>;
+  
+  // HQ Bills - get all HQ bills for a client (from leads via opportunities and from sites)
+  getHQBillsByClient(clientId: string): Promise<Array<{
+    id: string;
+    source: 'lead' | 'site';
+    sourceId: string;
+    sourceName: string;
+    hqBillPath: string;
+    uploadedAt?: Date | null;
+  }>>;
 
   // Email Logs (for tracking sent emails and follow-ups)
   getEmailLogs(filters?: { siteId?: string; designAgreementId?: string; emailType?: string }): Promise<EmailLog[]>;
@@ -1460,6 +1470,65 @@ export class MemStorage implements IStorage {
     return uniqueProcurations.sort((a, b) => 
       new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
     );
+  }
+
+  async getHQBillsByClient(clientId: string): Promise<Array<{
+    id: string;
+    source: 'lead' | 'site';
+    sourceId: string;
+    sourceName: string;
+    hqBillPath: string;
+    uploadedAt?: Date | null;
+  }>> {
+    const bills: Array<{
+      id: string;
+      source: 'lead' | 'site';
+      sourceId: string;
+      sourceName: string;
+      hqBillPath: string;
+      uploadedAt?: Date | null;
+    }> = [];
+    
+    // Get bills from sites belonging to this client
+    const clientSites = Array.from(this.sites.values())
+      .filter(s => s.clientId === clientId);
+    
+    for (const site of clientSites) {
+      if (site.hqBillPath) {
+        bills.push({
+          id: `site-${site.id}`,
+          source: 'site',
+          sourceId: site.id,
+          sourceName: site.name,
+          hqBillPath: site.hqBillPath,
+          uploadedAt: site.hqBillUploadedAt,
+        });
+      }
+    }
+    
+    // Get bills from leads linked via opportunities
+    const clientOpportunities = Array.from(this.opportunities.values())
+      .filter(o => o.clientId === clientId && o.leadId);
+    
+    // Deduplicate leadIds to avoid duplicate bills
+    const leadIds = [...new Set(clientOpportunities.map(o => o.leadId).filter(Boolean) as string[])];
+    const clientLeads = Array.from(this.leads.values())
+      .filter(l => leadIds.includes(l.id));
+    
+    for (const lead of clientLeads) {
+      if (lead.hqBillPath) {
+        bills.push({
+          id: `lead-${lead.id}`,
+          source: 'lead',
+          sourceId: lead.id,
+          sourceName: lead.companyName || lead.contactName,
+          hqBillPath: lead.hqBillPath,
+          uploadedAt: lead.createdAt,
+        });
+      }
+    }
+    
+    return bills;
   }
 
   async createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature> {
