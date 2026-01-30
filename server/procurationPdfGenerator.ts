@@ -28,21 +28,32 @@ const MANDATAIRE = {
 };
 
 const TEXT_POSITIONS = {
-  clientNoCompte: { x: 99, y: 633 },
+  clientNoCompte: { x: 99, y: 638 },      // Moved higher (+5)
   clientNomPrenom: { x: 99, y: 604 },
-  clientFonction: { x: 334, y: 604 },
+  clientFonction: { x: 400, y: 604 },     // Adjusted right for longer titles
   mandataireNom: { x: 99, y: 566 },
   mandataireFonction: { x: 290, y: 566 },
-  mandataireTel: { x: 369, y: 566 },
-  mandataireCellulaire: { x: 466, y: 566 },
+  mandataireTel: { x: 400, y: 566 },      // Moved right (+31)
+  mandataireCellulaire: { x: 485, y: 566 }, // Moved right (+19)
   mandataireAddress: { x: 99, y: 540 },
-  dureeDebut: { x: 157, y: 247 },
-  dureeFin: { x: 337, y: 247 },
-  signeeA: { x: 99, y: 189 },
-  signatureLe: { x: 386, y: 189 },
-  signataireNom: { x: 387, y: 163 },
+  dureeDebut: { x: 157, y: 243 },         // Adjusted to be on the line
+  dureeFin: { x: 382, y: 243 },           // Adjusted position and Y
+  signeeA: { x: 55, y: 189 },
+  signatureLe: { x: 425, y: 189 },        // Moved right
+  signataireNom: { x: 425, y: 163 },      // Aligned with signatureLe
   signature: { x: 70, y: 150 },
 };
+
+// Format name as "LASTNAME, Firstname"
+function formatNameLastFirst(name: string): string {
+  if (!name) return '';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].toUpperCase();
+  // Assume last word is the last name
+  const lastName = parts[parts.length - 1].toUpperCase();
+  const firstName = parts.slice(0, -1).join(' ');
+  return `${lastName}, ${firstName}`;
+}
 
 function addBusinessDays(date: Date, days: number): Date {
   const result = new Date(date);
@@ -92,7 +103,8 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
     color: textColor,
   });
   
-  page.drawText(data.contactName, {
+  // Format name as "LASTNAME, Firstname"
+  page.drawText(formatNameLastFirst(data.contactName), {
     x: TEXT_POSITIONS.clientNomPrenom.x,
     y: TEXT_POSITIONS.clientNomPrenom.y,
     size: fontSize,
@@ -100,6 +112,7 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
     color: textColor,
   });
   
+  // Use signer's title/function from form data
   page.drawText(data.signerTitle || '', {
     x: TEXT_POSITIONS.clientFonction.x,
     y: TEXT_POSITIONS.clientFonction.y,
@@ -140,7 +153,12 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
     color: textColor,
   });
   
-  page.drawText(MANDATAIRE.address, {
+  // Use building address if provided, otherwise use mandataire address
+  const buildingAddress = data.streetAddress 
+    ? `${data.streetAddress}${data.city ? `, ${data.city}` : ''}${data.province ? `, ${data.province}` : ''}${data.postalCode ? ` ${data.postalCode}` : ''}`
+    : MANDATAIRE.address;
+  
+  page.drawText(buildingAddress, {
     x: TEXT_POSITIONS.mandataireAddress.x,
     y: TEXT_POSITIONS.mandataireAddress.y,
     size: smallFontSize,
@@ -180,7 +198,8 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
     color: textColor,
   });
   
-  page.drawText(data.contactName, {
+  // Format signataire name as "LASTNAME, Firstname"
+  page.drawText(formatNameLastFirst(data.contactName), {
     x: TEXT_POSITIONS.signataireNom.x,
     y: TEXT_POSITIONS.signataireNom.y,
     size: fontSize,

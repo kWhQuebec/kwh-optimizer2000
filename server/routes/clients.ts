@@ -276,6 +276,24 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
     throw new NotFoundError("Procuration signature");
   }
   
+  // Try to get additional data from lead if available
+  let signerTitle = 'Représentant autorisé';
+  let streetAddress: string | undefined;
+  let city: string | undefined;
+  let signatureCity = 'Montréal';
+  
+  if (procuration.leadId) {
+    const lead = await storage.getLead(procuration.leadId);
+    if (lead) {
+      if (lead.decisionMakerTitle) signerTitle = lead.decisionMakerTitle;
+      if (lead.address) streetAddress = lead.address;
+      if (lead.city) {
+        city = lead.city;
+        signatureCity = lead.city;
+      }
+    }
+  }
+  
   // Check for signature image
   const signatureDir = path.join(process.cwd(), "uploads", "signatures");
   let signatureImage: string | undefined;
@@ -295,14 +313,16 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
   const pdfBuffer = await generateProcurationPDF({
     hqAccountNumber: procuration.hqAccountNumber || '',
     contactName: procuration.signerName,
-    signerTitle: 'Représentant autorisé',
-    signatureCity: 'Montréal',
+    signerTitle,
+    signatureCity,
     signatureImage,
     procurationDate: signedDate,
     procurationEndDate: endDate,
     ipAddress: procuration.ipAddress || undefined,
     userAgent: procuration.userAgent || undefined,
     companyName: procuration.companyName || undefined,
+    streetAddress,
+    city,
   });
   
   const filename = `procuration_${procuration.companyName || 'document'}.pdf`;
