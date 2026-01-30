@@ -646,6 +646,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
         leadId: lead?.id || null,
         clientId: isExistingClient ? clientId : null,
         status: 'signed',
+        signedAt: new Date(),
         language: language === 'en' ? 'en' : 'fr',
         ipAddress: clientIp,
         userAgent: userAgent,
