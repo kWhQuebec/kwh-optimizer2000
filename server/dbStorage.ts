@@ -1,4 +1,4 @@
-import { eq, desc, and, inArray, count, sum, sql, lt } from "drizzle-orm";
+import { eq, desc, and, inArray, isNotNull, count, sum, sql, lt } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, leads, clients, sites, meterFiles, meterReadings,
@@ -1477,9 +1477,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProcurationSignaturesByClient(clientId: string): Promise<ProcurationSignature[]> {
-    return db.select().from(procurationSignatures)
-      .where(eq(procurationSignatures.clientId, clientId))
-      .orderBy(desc(procurationSignatures.createdAt));
+    // Get procurations directly linked to this client
+    const directProcurations = await db.select().from(procurationSignatures)
+      .where(eq(procurationSignatures.clientId, clientId));
+    
+    // Get opportunities for this client that have a leadId
+    const clientOpportunities = await db.select().from(opportunities)
+      .where(and(
+        eq(opportunities.clientId, clientId),
+        isNotNull(opportunities.leadId)
+      ));
+    
+    // Get procurations from leads linked to this client via opportunities
+    const leadIds = clientOpportunities.map(o => o.leadId).filter(Boolean) as string[];
+    let leadProcurations: ProcurationSignature[] = [];
+    if (leadIds.length > 0) {
+      leadProcurations = await db.select().from(procurationSignatures)
+        .where(inArray(procurationSignatures.leadId, leadIds));
+    }
+    
+    // Combine and deduplicate by id, then sort
+    const allProcurations = [...directProcurations, ...leadProcurations];
+    const uniqueProcurations = allProcurations.filter((proc, index, self) => 
+      index === self.findIndex(p => p.id === proc.id)
+    );
+    
+    return uniqueProcurations.sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
   }
 
   async createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature> {

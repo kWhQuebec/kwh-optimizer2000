@@ -1438,9 +1438,28 @@ export class MemStorage implements IStorage {
   }
 
   async getProcurationSignaturesByClient(clientId: string): Promise<ProcurationSignature[]> {
-    return Array.from(this.procurationSignatures.values())
-      .filter(s => s.clientId === clientId)
-      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    // Get procurations directly linked to this client
+    const directProcurations = Array.from(this.procurationSignatures.values())
+      .filter(s => s.clientId === clientId);
+    
+    // Get opportunities for this client that have a leadId
+    const clientOpportunities = Array.from(this.opportunities.values())
+      .filter(o => o.clientId === clientId && o.leadId);
+    
+    // Get procurations from leads linked to this client via opportunities
+    const leadIds = clientOpportunities.map(o => o.leadId).filter(Boolean) as string[];
+    const leadProcurations = Array.from(this.procurationSignatures.values())
+      .filter(s => s.leadId && leadIds.includes(s.leadId));
+    
+    // Combine and deduplicate by id, then sort
+    const allProcurations = [...directProcurations, ...leadProcurations];
+    const uniqueProcurations = allProcurations.filter((proc, index, self) => 
+      index === self.findIndex(p => p.id === proc.id)
+    );
+    
+    return uniqueProcurations.sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
   }
 
   async createProcurationSignature(signature: InsertProcurationSignature): Promise<ProcurationSignature> {

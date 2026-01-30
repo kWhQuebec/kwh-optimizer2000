@@ -559,9 +559,10 @@ export default function SitesPage() {
   const totalSites = sitesData?.total ?? 0;
   const totalPages = Math.ceil(totalSites / ITEMS_PER_PAGE);
 
-  const { data: clients } = useQuery<Client[]>({
+  const { data: clientsData } = useQuery<{ clients: Client[]; total: number }>({
     queryKey: ["/api/clients"],
   });
+  const clients = clientsData?.clients;
 
   // Get the current client if filtering
   const currentClient = clientId 
