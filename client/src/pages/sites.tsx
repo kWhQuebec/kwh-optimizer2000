@@ -21,6 +21,30 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Client, Site, ProcurationSignature } from "@shared/schema";
 
+// Helper function to download files with authentication
+async function downloadWithAuth(url: string, filename: string): Promise<void> {
+  const token = localStorage.getItem("auth_token");
+  const response = await fetch(url, {
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Download failed: ${response.statusText}`);
+  }
+  
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
 // Lightweight site type for list view
 interface SiteListItem {
   id: string;
@@ -750,11 +774,15 @@ export default function SitesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        // Use clientId from the procuration record (for CRM emails) or leadId (for website leads)
+                      onClick={async () => {
                         const referenceId = proc.clientId || proc.leadId;
                         if (referenceId) {
-                          window.open(`/api/procurations/${referenceId}/download`, '_blank');
+                          try {
+                            const filename = `procuration_${proc.companyName || 'document'}.pdf`;
+                            await downloadWithAuth(`/api/procurations/${referenceId}/download`, filename);
+                          } catch (error) {
+                            console.error('Download failed:', error);
+                          }
                         }
                       }}
                       data-testid={`button-download-procuration-${proc.id}`}
@@ -825,8 +853,13 @@ export default function SitesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        window.open(`/api/hq-bills/download?path=${encodeURIComponent(bill.hqBillPath)}`, '_blank');
+                      onClick={async () => {
+                        try {
+                          const filename = `facture_hq_${bill.sourceName || 'document'}.pdf`;
+                          await downloadWithAuth(`/api/hq-bills/download?path=${encodeURIComponent(bill.hqBillPath)}`, filename);
+                        } catch (error) {
+                          console.error('Download failed:', error);
+                        }
                       }}
                       data-testid={`button-download-hq-bill-${bill.id}`}
                     >
