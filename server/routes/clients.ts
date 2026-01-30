@@ -265,24 +265,50 @@ router.get("/api/hq-bills/download", authMiddleware, requireStaff, asyncHandler(
 
 router.get("/api/procurations/:referenceId/download", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const { referenceId } = req.params;
-  const procurationDir = path.join(process.cwd(), "uploads", "procurations");
   
-  // Find PDF file matching the referenceId pattern
-  if (!fs.existsSync(procurationDir)) {
-    throw new NotFoundError("Procuration directory");
+  // Get the procuration signature data from storage
+  const procurations = await storage.getProcurationSignatures();
+  const procuration = procurations.find(p => 
+    p.clientId === referenceId || p.leadId === referenceId
+  );
+  
+  if (!procuration) {
+    throw new NotFoundError("Procuration signature");
   }
   
-  const files = fs.readdirSync(procurationDir);
-  const matchingFile = files.find(f => f.startsWith(`procuration_${referenceId}_`) && f.endsWith('.pdf'));
-  
-  if (!matchingFile) {
-    throw new NotFoundError("Procuration PDF");
+  // Check for signature image
+  const signatureDir = path.join(process.cwd(), "uploads", "signatures");
+  let signatureImage: string | undefined;
+  const signatureFilePath = path.join(signatureDir, `${referenceId}_signature.png`);
+  if (fs.existsSync(signatureFilePath)) {
+    const imageBuffer = fs.readFileSync(signatureFilePath);
+    signatureImage = `data:image/png;base64,${imageBuffer.toString('base64')}`;
   }
   
-  const pdfPath = path.join(procurationDir, matchingFile);
+  // Calculate dates
+  const signedDate = procuration.signedAt ? new Date(procuration.signedAt) : new Date();
+  const endDate = new Date(signedDate);
+  endDate.setFullYear(endDate.getFullYear() + 2);
+  
+  // Import and generate fresh PDF with current template
+  const { generateProcurationPDF } = await import("../procurationPdfGenerator");
+  const pdfBuffer = await generateProcurationPDF({
+    hqAccountNumber: procuration.hqAccountNumber || '',
+    contactName: procuration.signerName,
+    signerTitle: 'Représentant autorisé',
+    signatureCity: 'Montréal',
+    signatureImage,
+    procurationDate: signedDate,
+    procurationEndDate: endDate,
+    ipAddress: procuration.ipAddress || undefined,
+    userAgent: procuration.userAgent || undefined,
+    companyName: procuration.companyName || undefined,
+  });
+  
+  const filename = `procuration_${procuration.companyName || 'document'}.pdf`;
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${matchingFile}"`);
-  res.sendFile(pdfPath);
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+  res.send(pdfBuffer);
 }));
 
 router.post("/api/clients", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
