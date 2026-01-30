@@ -282,7 +282,7 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
   let city: string | undefined;
   let signatureCity = 'Montréal';
   
-  // Try to get address from lead first, then from client's first site
+  // Try to get address from lead first, then by HQ account number, then from client's first site
   if (procuration.leadId) {
     const lead = await storage.getLead(procuration.leadId);
     if (lead) {
@@ -293,8 +293,30 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
         signatureCity = lead.city;
       }
     }
-  } else if (procuration.clientId) {
-    // If linked to client, try to get address from client's first site
+  } 
+  
+  // If no address yet, try to find lead by HQ account number
+  if (!streetAddress && procuration.hqAccountNumber) {
+    const allLeads = await storage.getLeads();
+    // Find a lead matching by company name or HQ account number that has an address
+    const matchingLead = allLeads.find(l => 
+      l.streetAddress && 
+      (l.companyName === procuration.companyName)
+    );
+    if (matchingLead) {
+      if (matchingLead.streetAddress) streetAddress = matchingLead.streetAddress;
+      if (matchingLead.city) {
+        city = matchingLead.city;
+        signatureCity = matchingLead.city;
+      }
+      if (matchingLead.decisionMakerTitle && signerTitle === 'Représentant autorisé') {
+        signerTitle = matchingLead.decisionMakerTitle;
+      }
+    }
+  }
+  
+  // Finally, try from client's first site
+  if (!streetAddress && procuration.clientId) {
     const sites = await storage.getSitesByClientId(procuration.clientId);
     if (sites && sites.length > 0) {
       const site = sites[0];
