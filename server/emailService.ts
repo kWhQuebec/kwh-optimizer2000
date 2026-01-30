@@ -496,10 +496,10 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #1e5a9f 100%); color: white; padding: 20px; text-align: center; }
+    .header { background: white; padding: 15px 20px 5px; text-align: center; }
     .header img { max-width: 180px; height: auto; }
-    .header h1 { margin: 5px 0 0; font-size: 22px; font-weight: 600; }
-    .content { padding: 20px 30px; }
+    .header h1 { display: none; }
+    .content { padding: 10px 30px 20px; }
     .intro { font-size: 15px; color: #555; margin-bottom: 15px; line-height: 1.4; }
     .section { margin-bottom: 15px; }
     .section-title { font-size: 16px; font-weight: 600; color: #003DA6; margin-bottom: 8px; }
