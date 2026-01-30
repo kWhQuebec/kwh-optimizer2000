@@ -41,6 +41,55 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
     const [hasSignature, setHasSignature] = useState(false);
     const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
+    // Helper function to create transparent signature image
+    const createTransparentSignature = (): string => {
+      const canvas = canvasRef.current;
+      if (!canvas) return "";
+      
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return "";
+      
+      // Get the image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Create a temporary canvas for transparent output
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext("2d");
+      if (!tempCtx) return "";
+      
+      // Create new image data with transparent background
+      const newImageData = tempCtx.createImageData(canvas.width, canvas.height);
+      const newData = newImageData.data;
+      
+      // Process each pixel: if it's white or near-white, make it transparent
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        // Check if pixel is white or near-white (threshold 250)
+        if (r > 250 && g > 250 && b > 250) {
+          // Make transparent
+          newData[i] = 0;
+          newData[i + 1] = 0;
+          newData[i + 2] = 0;
+          newData[i + 3] = 0; // Alpha = 0 (fully transparent)
+        } else {
+          // Keep the original pixel
+          newData[i] = r;
+          newData[i + 1] = g;
+          newData[i + 2] = b;
+          newData[i + 3] = data[i + 3];
+        }
+      }
+      
+      tempCtx.putImageData(newImageData, 0, 0);
+      return tempCanvas.toDataURL("image/png");
+    };
+
     useImperativeHandle(ref, () => ({
       clear: () => {
         const canvas = canvasRef.current;
@@ -56,11 +105,30 @@ const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
       },
       isEmpty: () => !hasSignature,
       toDataURL: (type = "image/png") => {
+        // Return transparent signature for PNG
+        if (type === "image/png") {
+          return createTransparentSignature();
+        }
         const canvas = canvasRef.current;
         return canvas ? canvas.toDataURL(type) : "";
       },
       toBlob: (type = "image/png", quality = 1) => {
         return new Promise((resolve) => {
+          // For PNG, create transparent version
+          if (type === "image/png") {
+            const dataUrl = createTransparentSignature();
+            if (!dataUrl) {
+              resolve(null);
+              return;
+            }
+            // Convert data URL to blob
+            fetch(dataUrl)
+              .then(res => res.blob())
+              .then(blob => resolve(blob))
+              .catch(() => resolve(null));
+            return;
+          }
+          
           const canvas = canvasRef.current;
           if (canvas) {
             canvas.toBlob((blob) => resolve(blob), type, quality);
