@@ -21,6 +21,7 @@ import LoginPage from "@/pages/login";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ChangePasswordPage from "@/pages/change-password";
 import AnalyseDetailleePage from "@/pages/analyse-detaillee";
+import AutorisationHQPage from "@/pages/autorisation-hq";
 import DashboardPage from "@/pages/dashboard";
 import ClientsPage from "@/pages/clients";
 import SitesPage from "@/pages/sites";
@@ -199,6 +200,7 @@ function AppRoutes() {
       <Route path="/blog" component={BlogPage} />
       <Route path="/blog/:slug" component={BlogArticlePage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
+      <Route path="/autorisation-hq" component={AutorisationHQPage} />
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
       <Route path="/privacy" component={PrivacyPage} />

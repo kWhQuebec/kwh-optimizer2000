@@ -447,8 +447,8 @@ export async function sendWelcomeEmail(
 
 function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', baseUrl: string, clientId?: string): string {
   const procurationUrl = clientId 
-    ? `${baseUrl}/analyse-detaillee?clientId=${clientId}`
-    : `${baseUrl}/analyse-detaillee`;
+    ? `${baseUrl}/autorisation-hq?clientId=${clientId}`
+    : `${baseUrl}/autorisation-hq`;
   
   const t = {
     fr: {
@@ -554,8 +554,8 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
 
 function generateHqProcurationTextEmail(clientName: string, lang: 'fr' | 'en', baseUrl: string, clientId?: string): string {
   const procurationUrl = clientId 
-    ? `${baseUrl}/analyse-detaillee?clientId=${clientId}`
-    : `${baseUrl}/analyse-detaillee`;
+    ? `${baseUrl}/autorisation-hq?clientId=${clientId}`
+    : `${baseUrl}/autorisation-hq`;
   
   if (lang === 'fr') {
     return `Bonjour ${clientName},
