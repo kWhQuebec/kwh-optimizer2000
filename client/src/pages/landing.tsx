@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,12 +6,12 @@ import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  FileBarChart, Building2, Factory, School, HelpCircle, 
+  Building2, Factory, School, HelpCircle, 
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
-  TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
+  TrendingUp, Shield, Award, Target, Wrench, HardHat,
   Rocket, BatteryCharging, BadgePercent, MapPin,
-  Sun, Battery, FileText, Hammer, Loader2, FileCheck, ChevronDown, ChevronUp,
-  ClipboardCheck, Phone, Mail, Building, CalendarDays, User, Info
+  Sun, Battery, FileText, Hammer, Loader2,
+  Phone, Mail, Building, CalendarDays, User, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,11 +79,6 @@ export default function LandingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   
-  // Pathway states
-  const [detailedPathExpanded, setDetailedPathExpanded] = useState(false);
-  
-  // Refs for scroll-to-section functionality
-  const detailedPathRef = useRef<HTMLDivElement>(null);
   
   const currentLogo = language === "fr" ? logoFr : logoEn;
   
@@ -291,291 +286,149 @@ export default function LandingPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <a href="#paths">
+          <Link href="/analyse-detaillee">
             <Button size="lg" className="gap-2 text-base px-8" data-testid="button-hero-cta">
-              {language === "fr" ? "Choix de 2 types d'analyses GRATUITES" : "Choose from 2 FREE analysis types"}
-              <ChevronDown className="w-5 h-5" />
+              {language === "fr" ? "Démarrer mon analyse gratuite" : "Start my free analysis"}
+              <ArrowRight className="w-5 h-5" />
             </Button>
-          </a>
+          </Link>
         </motion.div>
       </div>
 
       {/* ========== SOLAR ANALYSIS SECTION ========== */}
       <section id="paths" className="py-12 px-4 sm:px-6 lg:px-8 scroll-mt-24">
-        <div className="max-w-4xl mx-auto">
-          {/* Section header */}
+        <div className="max-w-3xl mx-auto">
+          
+          {/* Single compelling CTA Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-8"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2" data-testid="text-paths-title">
-              {language === "fr" ? "Obtenez votre analyse solaire" : "Get Your Solar Analysis"}
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
-                ? "Une analyse complète basée sur vos données de consommation réelles pour un projet solaire sur mesure"
-                : "A complete analysis based on your real consumption data for a custom solar project"
-              }
-            </p>
-          </motion.div>
-          
-          <div className="relative">
-            
-            {/* ===== DETAILED ANALYSIS ===== */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <Card ref={detailedPathRef} className={`border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
-                {/* Collapsed Header - Always visible */}
-                <div 
-                  className={`p-6 cursor-pointer flex flex-col ${!detailedPathExpanded ? 'hover-elevate' : ''}`}
-                  onClick={() => {
-                    if (!detailedPathExpanded) {
-                      setDetailedPathExpanded(true);
-                      setTimeout(() => {
-                        detailedPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }, 350);
-                    }
-                  }}
-                  data-testid="section-detailed-header"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-xl bg-accent/10 shrink-0">
-                        <FileBarChart className="w-7 h-7 text-accent" />
+            <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-2 gap-0">
+                  {/* Left side - Value proposition */}
+                  <div className="p-8 space-y-6">
+                    <div className="space-y-3">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-600 text-sm font-medium">
+                        <Zap className="w-4 h-4" />
+                        {language === "fr" ? "Propulsé par l'IA" : "AI-Powered"}
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold">
-                          {language === "fr" ? "Analyse solaire détaillée" : "Detailed Solar Analysis"}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className="bg-accent/10 text-accent border-accent/20">
-                            5 {language === "fr" ? "jours" : "days"}
-                          </Badge>
-                          <Badge variant="outline" className="text-muted-foreground">
-                            ~95% {language === "fr" ? "précision" : "accuracy"}
-                          </Badge>
+                      <h2 className="text-2xl sm:text-3xl font-bold leading-tight">
+                        {language === "fr" 
+                          ? <>Téléversez votre facture,<br/><span className="text-primary">on fait le reste</span></>
+                          : <>Upload your bill,<br/><span className="text-primary">we'll do the rest</span></>
+                        }
+                      </h2>
+                      <p className="text-muted-foreground">
+                        {language === "fr" 
+                          ? "Notre IA analyse votre facture Hydro-Québec et remplit automatiquement le formulaire. Obtenez votre rapport personnalisé en quelques clics."
+                          : "Our AI analyzes your Hydro-Québec bill and automatically fills out the form. Get your personalized report in just a few clicks."
+                        }
+                      </p>
+                    </div>
+                    
+                    {/* Simple 4-icon grid for what's included */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="p-1.5 rounded-lg bg-primary/10">
+                          <Sun className="w-4 h-4 text-primary" />
                         </div>
-                        <p className="text-muted-foreground mt-1">
-                          {language === "fr" 
-                            ? "Requis pour recevoir une proposition — basé sur vos données réelles Hydro-Québec"
-                            : "Required for a proposal — based on your real Hydro-Québec data"
-                          }
-                        </p>
+                        <span>{language === "fr" ? "Design optimal" : "Optimal design"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="p-1.5 rounded-lg bg-primary/10">
+                          <DollarSign className="w-4 h-4 text-primary" />
+                        </div>
+                        <span>{language === "fr" ? "Économies 25 ans" : "25-year savings"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="p-1.5 rounded-lg bg-primary/10">
+                          <BarChart3 className="w-4 h-4 text-primary" />
+                        </div>
+                        <span>{language === "fr" ? "Incitatifs inclus" : "Incentives included"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="p-1.5 rounded-lg bg-primary/10">
+                          <FileText className="w-4 h-4 text-primary" />
+                        </div>
+                        <span>{language === "fr" ? "Rapport PDF" : "PDF report"}</span>
                       </div>
                     </div>
-                    {!detailedPathExpanded && (
-                      <Button size="sm" className="shrink-0 gap-1 bg-accent text-accent-foreground" data-testid="button-path-detailed">
-                        {language === "fr" ? "Commencer" : "Start"}
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    )}
+                    
+                    {/* CTA Button */}
+                    <div className="pt-2">
+                      <Link href="/analyse-detaillee">
+                        <Button 
+                          size="lg" 
+                          className="w-full gap-2 text-base"
+                          data-testid="button-path-detailed"
+                        >
+                          {language === "fr" ? "Commencer mon analyse gratuite" : "Start my free analysis"}
+                          <ArrowRight className="w-5 h-5" />
+                        </Button>
+                      </Link>
+                      <p className="text-xs text-muted-foreground text-center mt-3">
+                        {language === "fr" 
+                          ? "Gratuit • Sans engagement • 2 minutes"
+                          : "Free • No commitment • 2 minutes"
+                        }
+                      </p>
+                    </div>
                   </div>
                   
-                  {/* Preview thumbnail when collapsed */}
-                  {!detailedPathExpanded && (
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex gap-4 items-center">
-                        <img 
-                          src={language === "fr" ? screenshotFinancialFr : screenshotFinancialEn} 
-                          alt={language === "fr" ? "Aperçu rapport" : "Report preview"}
-                          className="w-24 h-16 object-cover rounded-lg border shrink-0"
-                        />
-                        <div className="text-sm">
-                          <p className="font-medium text-muted-foreground">
-                            {language === "fr" ? "Vous obtiendrez:" : "You'll get:"}
+                  {/* Right side - Visual/Preview */}
+                  <div className="bg-muted/30 p-6 flex flex-col justify-center border-l">
+                    <div className="space-y-4">
+                      {/* Animated preview carousel */}
+                      <div className="relative aspect-[4/3] rounded-xl overflow-hidden border bg-card shadow-lg">
+                        {analysisSlides.map((slide, index) => (
+                          <div
+                            key={slide.id}
+                            className={`absolute inset-0 transition-opacity duration-500 ${
+                              index === activeSlide ? "opacity-100" : "opacity-0"
+                            }`}
+                          >
+                            <img 
+                              src={slide.image} 
+                              alt={slide.label}
+                              className="w-full h-full object-contain bg-white"
+                            />
+                          </div>
+                        ))}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                          <p className="text-white text-sm font-medium">
+                            {analysisSlides[activeSlide]?.label}
                           </p>
-                          <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                            <li className="flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {language === "fr" ? "Profil de consommation annuel complet" : "Complete annual consumption profile"}
-                            </li>
-                            <li className="flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {language === "fr" ? "Projections financières 25 ans" : "25-year financial projections"}
-                            </li>
-                            <li className="flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {language === "fr" ? "Rapport PDF professionnel" : "Professional PDF report"}
-                            </li>
-                          </ul>
                         </div>
+                      </div>
+                      
+                      {/* Dots */}
+                      <div className="flex justify-center gap-1.5">
+                        {analysisSlides.map((slide, index) => (
+                          <button
+                            key={slide.id}
+                            onClick={() => setActiveSlide(index)}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                              index === activeSlide ? "bg-primary" : "bg-muted-foreground/30"
+                            }`}
+                            data-testid={`carousel-dot-${index}`}
+                          />
+                        ))}
+                      </div>
+                      
+                      {/* Trust indicator */}
+                      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <Shield className="w-3.5 h-3.5" />
+                        <span>{language === "fr" ? "Données sécurisées et confidentielles" : "Secure and confidential data"}</span>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
-                {/* Expanded content */}
-                <AnimatePresence>
-                  {detailedPathExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="border-t">
-                        <div className="grid lg:grid-cols-2 gap-0">
-                          {/* Left: What's included + Process */}
-                          <div className="p-6 bg-muted/30 space-y-6">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-semibold flex items-center gap-2">
-                                <ClipboardCheck className="w-5 h-5 text-accent" />
-                                {language === "fr" ? "Ce qui est inclus" : "What's included"}
-                              </h4>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => setDetailedPathExpanded(false)}
-                                data-testid="button-collapse-detailed"
-                              >
-                                <ChevronUp className="w-4 h-4 mr-1" />
-                                {language === "fr" ? "Réduire" : "Collapse"}
-                              </Button>
-                            </div>
-                            
-                            <ul className="space-y-3 text-sm">
-                              <li className="flex items-start gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Analyse heure par heure basée sur votre consommation réelle" : "Hour-by-hour analysis based on your real consumption"}</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Dimensionnement optimal solaire + stockage" : "Optimal solar + storage sizing"}</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Projections financières sur 25 ans (VAN, TRI, LCOE)" : "25-year financial projections (NPV, IRR, LCOE)"}</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Comparaison des options de financement" : "Financing options comparison"}</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Rapport PDF professionnel" : "Professional PDF report"}</span>
-                              </li>
-                            </ul>
-                            
-                            {/* Process timeline */}
-                            <div className="pt-4 border-t">
-                              <p className="text-sm font-medium mb-3">
-                                {language === "fr" ? "Comment ça fonctionne" : "How it works"}
-                              </p>
-                              <div className="space-y-3">
-                                {[
-                                  { step: 1, text: language === "fr" ? "Vous remplissez le formulaire" : "You fill out the form", icon: FileText },
-                                  { step: 2, text: language === "fr" ? "Vous signez la procuration Hydro-Québec" : "You sign the Hydro-Québec proxy", icon: FileSignature },
-                                  { step: 3, text: language === "fr" ? "Nous analysons vos données" : "We analyze your data", icon: BarChart3 },
-                                  { step: 4, text: language === "fr" ? "Vous recevez votre rapport" : "You receive your report", icon: FileCheck },
-                                ].map((item) => (
-                                  <div key={item.step} className="flex items-center gap-3" data-testid={`step-detailed-${item.step}`}>
-                                    <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent">
-                                      {item.step}
-                                    </div>
-                                    <item.icon className="w-4 h-4 text-muted-foreground" />
-                                    <span className="text-sm">{item.text}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            {/* Preview carousel */}
-                            <div className="pt-4">
-                              <div className="relative aspect-video rounded-lg overflow-hidden border bg-card">
-                                {analysisSlides.map((slide, index) => (
-                                  <div
-                                    key={slide.id}
-                                    className={`absolute inset-0 transition-opacity duration-500 ${
-                                      index === activeSlide ? "opacity-100" : "opacity-0"
-                                    }`}
-                                  >
-                                    <img 
-                                      src={slide.image} 
-                                      alt={slide.label}
-                                      className="w-full h-full object-contain bg-white"
-                                    />
-                                  </div>
-                                ))}
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                                  <p className="text-white text-xs font-medium">
-                                    {analysisSlides[activeSlide]?.label}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex justify-center gap-1.5 mt-2">
-                                {analysisSlides.map((slide, index) => (
-                                  <button
-                                    key={slide.id}
-                                    onClick={() => setActiveSlide(index)}
-                                    className={`w-2 h-2 rounded-full transition-colors ${
-                                      index === activeSlide ? "bg-accent" : "bg-muted-foreground/30"
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Right: CTA to dedicated page */}
-                          <div className="p-6 space-y-5 flex flex-col justify-start">
-                            <h4 className="font-semibold">
-                              {language === "fr" ? "Demander mon analyse" : "Request my analysis"}
-                            </h4>
-                            
-                            <div className="space-y-4">
-                              <p className="text-sm text-muted-foreground">
-                                {language === "fr" 
-                                  ? "L'analyse détaillée nécessite la signature d'une procuration pour accéder à vos données Hydro-Québec. Notre formulaire sécurisé vous guide à travers les étapes."
-                                  : "The detailed analysis requires signing an authorization to access your Hydro-Québec data. Our secure form guides you through the steps."
-                                }
-                              </p>
-                              
-                              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                                <div className="flex items-center gap-2 text-sm">
-                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                  <span>{language === "fr" ? "Formulaire en 3 étapes simples" : "Simple 3-step form"}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                  <span>{language === "fr" ? "Signature électronique sécurisée" : "Secure electronic signature"}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                  <span>{language === "fr" ? "Téléversement de factures Hydro-Québec" : "Hydro-Québec bill upload"}</span>
-                                </div>
-                              </div>
-                              
-                              <Link href="/analyse-detaillee">
-                                <Button 
-                                  size="lg" 
-                                  className="w-full gap-2 bg-accent text-accent-foreground"
-                                  data-testid="button-go-to-detailed-form"
-                                >
-                                  {language === "fr" ? "Commencer ma demande" : "Start my request"}
-                                  <ArrowRight className="w-4 h-4" />
-                                </Button>
-                              </Link>
-                              
-                              <p className="text-xs text-muted-foreground text-center">
-                                {language === "fr" 
-                                  ? "Environ 5 minutes pour compléter"
-                                  : "About 5 minutes to complete"
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Card>
-            </motion.div>
-          </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </section>
 
