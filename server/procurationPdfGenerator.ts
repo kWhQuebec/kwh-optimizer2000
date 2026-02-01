@@ -24,7 +24,7 @@ const MANDATAIRE = {
   title: "Chef des opérations",
   phone: "514-427-8871",
   cellulaire: "514-891-8199",
-  address: "5765, boul. Gouin O., bureau 203, Montréal, Québec, H4J 1E2",
+  address: "1010 William, Suite 715, Montréal, QC H3C 0K8",
 };
 
 const TEXT_POSITIONS = {
@@ -153,12 +153,8 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
     color: textColor,
   });
   
-  // Use building address if provided, otherwise use mandataire address
-  const buildingAddress = data.streetAddress 
-    ? `${data.streetAddress}${data.city ? `, ${data.city}` : ''}${data.province ? `, ${data.province}` : ''}${data.postalCode ? ` ${data.postalCode}` : ''}`
-    : MANDATAIRE.address;
-  
-  page.drawText(buildingAddress, {
+  // Always use kWh Québec address for mandataire
+  page.drawText(MANDATAIRE.address, {
     x: TEXT_POSITIONS.mandataireAddress.x,
     y: TEXT_POSITIONS.mandataireAddress.y,
     size: smallFontSize,
