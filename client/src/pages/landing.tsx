@@ -366,8 +366,101 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ========== HERO SECTION - UPLOAD FIRST ========== */}
-      <section className="relative pt-24 pb-8 overflow-hidden">
+      {/* ========== NEW HERO SECTION ========== */}
+      <section className="relative pt-16 min-h-[85vh] flex items-center overflow-hidden" data-testid="section-hero">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${installationPhoto})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
+        
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <motion.div 
+            className="max-w-3xl"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6" data-testid="hero-headline">
+              {language === "fr" 
+                ? "Énergie solaire pour l'industrie québécoise" 
+                : "Solar energy for Quebec industry"}
+            </h1>
+            
+            <p className="text-xl sm:text-2xl text-white/90 font-medium mb-4" data-testid="hero-value-prop">
+              {language === "fr" 
+                ? "Analyse gratuite • Incitatifs jusqu'à 60% • Accompagnement clé en main" 
+                : "Free analysis • Up to 60% incentives • Turnkey support"}
+            </p>
+            
+            <p className="text-lg text-white/70 mb-8 max-w-2xl" data-testid="hero-description">
+              {language === "fr" 
+                ? "Depuis 2011, kWh Québec accompagne les entreprises commerciales et industrielles du Québec dans leur transition énergétique. Notre expertise en solaire photovoltaïque vous garantit des solutions optimisées et rentables."
+                : "Since 2011, kWh Québec has been supporting Quebec's commercial and industrial businesses in their energy transition. Our photovoltaic solar expertise guarantees optimized and profitable solutions."}
+            </p>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <Button 
+                size="lg" 
+                className="gap-2 text-lg px-8 py-6"
+                onClick={() => {
+                  document.getElementById('analyse')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                data-testid="button-hero-cta"
+              >
+                <Sun className="w-5 h-5" />
+                {language === "fr" ? "Obtenir mon analyse" : "Get my analysis"}
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </motion.div>
+          </motion.div>
+          
+          {/* Partner logos */}
+          <motion.div 
+            className="mt-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            <p className="text-sm text-white/50 mb-4">
+              {language === "fr" ? "Ils nous font confiance" : "They trust us"}
+            </p>
+            <div className="flex flex-wrap items-center gap-8" data-testid="hero-partner-logos">
+              <img 
+                src={dreamIndustrialLogo} 
+                alt="Dream Industrial" 
+                className="h-10 sm:h-12 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                data-testid="logo-dream-industrial"
+              />
+              <img 
+                src={labSpaceLogo} 
+                alt="LabSpace" 
+                className="h-8 sm:h-10 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                data-testid="logo-labspace"
+              />
+              <img 
+                src={scaleCleantechLogo} 
+                alt="Scale Cleantech" 
+                className="h-8 sm:h-10 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                data-testid="logo-scale-cleantech"
+              />
+              <img 
+                src={hqLogo} 
+                alt="Hydro-Québec" 
+                className="h-8 sm:h-10 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                data-testid="logo-hydro-quebec"
+              />
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ========== UPLOAD/ANALYSIS SECTION ========== */}
+      <section id="analyse" className="relative py-16 overflow-hidden" data-testid="section-analyse">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
         
@@ -375,16 +468,17 @@ export default function LandingPage() {
           <motion.div 
             className="text-center space-y-6"
             initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            {/* Headline */}
+            {/* Section Header */}
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" data-testid="analyse-section-title">
                 {language === "fr" 
                   ? "Obtenez votre analyse solaire gratuite" 
                   : "Get your free solar analysis"}
-              </h1>
+              </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 {language === "fr" 
                   ? "Commercial & Industriel • Incitatifs jusqu'à 60%" 
