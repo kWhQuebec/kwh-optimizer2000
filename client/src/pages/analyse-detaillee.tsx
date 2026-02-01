@@ -744,22 +744,40 @@ The data obtained will be used exclusively for solar potential analysis and phot
                 <h2 className="text-xl font-bold mb-4">
                   {language === "fr" ? "Ce qui est inclus" : "What's included"}
                 </h2>
-                <ul className="space-y-3">
-                  {[
-                    language === "fr" ? "Analyse horaire complète de consommation" : "Complete hourly consumption analysis",
-                    language === "fr" ? "Simulation solaire basée sur votre toiture réelle" : "Solar simulation based on your actual roof",
-                    language === "fr" ? "Optimisation stockage peak-shaving" : "Storage peak-shaving optimization",
-                    language === "fr" ? "Calcul incitatifs Hydro-Québec + fédéral (ITC 30%)" : "Hydro-Québec + federal incentives calculation (ITC 30%)",
-                    language === "fr" ? "Comparaison 3 options de financement" : "3 financing options comparison",
-                    language === "fr" ? "Analyse de sensibilité multi-scénario" : "Multi-scenario sensitivity analysis",
-                    language === "fr" ? "Rapport PDF prêt pour décision" : "Decision-ready PDF report",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{item}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+                    <div className="p-2 rounded-lg bg-yellow-500/10">
+                      <Sun className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {language === "fr" ? "Potentiel solaire" : "Solar potential"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {language === "fr" ? "Économies 25 ans" : "25-year savings"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {language === "fr" ? "Analyse financière" : "Financial analysis"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {language === "fr" ? "Rapport PDF" : "PDF report"}
+                    </span>
+                  </div>
+                </div>
               </Card>
 
               <Card className="p-4 overflow-hidden">
@@ -1013,43 +1031,53 @@ The data obtained will be used exclusively for solar potential analysis and phot
                             animate={{ opacity: 1, x: 0 }}
                             className="space-y-4"
                           >
-                            <div className="bg-muted/50 rounded-lg p-4 border">
-                              <div className="flex items-start gap-3 mb-4">
-                                <Sparkles className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
-                                <div>
-                                  <h3 className="font-semibold mb-1">
-                                    {language === "fr" ? "Analyse automatique de votre facture" : "Automatic bill analysis"}
-                                  </h3>
-                                  <p className="text-sm text-muted-foreground">
-                                    {language === "fr" 
-                                      ? "Téléversez votre facture Hydro-Québec et notre IA extraira automatiquement les informations clés pour pré-remplir le formulaire."
-                                      : "Upload your Hydro-Québec bill and our AI will automatically extract key information to pre-fill the form."
-                                    }
-                                  </p>
+                            <div className="text-center mb-6">
+                              <div className="flex items-center justify-center gap-3 mb-4">
+                                <div className="p-3 rounded-xl bg-primary/10">
+                                  <Zap className="w-8 h-8 text-primary" />
                                 </div>
                               </div>
-
-                              <div
-                                {...getRootProps()}
-                                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                                  isDragActive 
-                                    ? 'border-primary bg-primary/5' 
-                                    : 'border-muted-foreground/30 hover:border-primary/50'
-                                }`}
-                                data-testid="dropzone-bill"
-                              >
-                                <input {...getInputProps()} />
-                                <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                                <p className="text-sm font-medium mb-1">
-                                  {isDragActive 
-                                    ? (language === "fr" ? "Déposez le fichier ici..." : "Drop the file here...")
-                                    : (language === "fr" ? "Glissez votre facture Hydro-Québec ici ou cliquez" : "Drag your Hydro-Québec bill here or click")
-                                  }
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  PDF, JPG, PNG (max 10 Mo)
-                                </p>
+                              <h3 className="text-xl font-bold mb-2">
+                                {language === "fr" 
+                                  ? "Téléversez votre facture HQ, on s'occupe du reste!" 
+                                  : "Upload your HQ bill, we'll do the rest!"}
+                              </h3>
+                              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                <Sparkles className="w-4 h-4 text-primary" />
+                                <span>
+                                  {language === "fr" 
+                                    ? "Notre IA remplit automatiquement 90% du formulaire" 
+                                    : "Our AI automatically fills 90% of the form"}
+                                </span>
                               </div>
+                            </div>
+
+                            <div
+                              {...getRootProps()}
+                              className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${
+                                isDragActive 
+                                  ? 'border-primary bg-primary/5 scale-[1.02]' 
+                                  : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30'
+                              }`}
+                              data-testid="dropzone-bill"
+                            >
+                              <input {...getInputProps()} />
+                              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Upload className="w-8 h-8 text-primary" />
+                              </div>
+                              <p className="text-base font-semibold mb-2">
+                                {isDragActive 
+                                  ? (language === "fr" ? "Déposez le fichier ici..." : "Drop the file here...")
+                                  : (language === "fr" ? "Glissez votre facture ici" : "Drag your bill here")
+                                }
+                              </p>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                {language === "fr" ? "ou cliquez pour sélectionner" : "or click to select"}
+                              </p>
+                              <Badge variant="secondary" className="text-xs">
+                                PDF, JPG, PNG (max 10 Mo)
+                              </Badge>
+                            </div>
 
                               {uploadError && (
                                 <div className="flex items-center gap-2 mt-3 p-3 bg-destructive/10 rounded-md text-destructive text-sm">
@@ -1235,229 +1263,439 @@ The data obtained will be used exclusively for solar potential analysis and phot
                             animate={{ opacity: 1, x: 0 }}
                             className="space-y-4"
                           >
-                            {parsedBillData && parsedBillData.annualConsumptionKwh && (
-                              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4" data-testid="consumption-reference">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Zap className="w-5 h-5 text-primary" />
-                                  <span className="font-semibold text-sm">
-                                    {language === "fr" ? "Consommation annuelle détectée" : "Detected Annual Consumption"}
-                                  </span>
+                            {parsedBillData && (
+                              <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4 mb-4" data-testid="parsed-data-summary">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                    <span className="font-semibold text-sm">
+                                      {language === "fr" ? "Données extraites" : "Extracted Data"}
+                                    </span>
+                                  </div>
+                                  <Badge variant="secondary" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                                    {(() => {
+                                      let count = 0;
+                                      if (parsedBillData.accountNumber) count++;
+                                      if (parsedBillData.clientName) count++;
+                                      if (parsedBillData.serviceAddress) count++;
+                                      if (parsedBillData.tariffCode) count++;
+                                      if (parsedBillData.annualConsumptionKwh) count++;
+                                      return `${count} ${language === "fr" ? "champs pré-remplis" : "fields pre-filled"}`;
+                                    })()}
+                                  </Badge>
                                 </div>
-                                <p className="text-2xl font-bold text-primary">
-                                  {parsedBillData.annualConsumptionKwh.toLocaleString()} kWh/{language === "fr" ? "an" : "yr"}
-                                </p>
-                                {parsedBillData.peakDemandKw && (
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {language === "fr" ? "Puissance appelée:" : "Peak demand:"} {parsedBillData.peakDemandKw} kW
-                                  </p>
+                                {parsedBillData.annualConsumptionKwh && (
+                                  <div className="flex items-center gap-3 p-3 bg-background/50 rounded-md">
+                                    <Zap className="w-5 h-5 text-primary" />
+                                    <div>
+                                      <p className="text-xs text-muted-foreground">
+                                        {language === "fr" ? "Consommation annuelle détectée" : "Detected annual consumption"}
+                                      </p>
+                                      <p className="text-lg font-bold text-primary">
+                                        {parsedBillData.annualConsumptionKwh.toLocaleString()} kWh/{language === "fr" ? "an" : "yr"}
+                                      </p>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             )}
 
-                            <div className="grid sm:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="companyName"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <Building2 className="w-3 h-3" />
-                                      {language === "fr" ? "Entreprise" : "Company"} *
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} data-testid="input-company-name" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={form.control}
-                                name="hqClientNumber"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <Zap className="w-3 h-3" />
-                                      {language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} data-testid="input-hq-client" placeholder="Ex: 100142202" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            
-                            <div className="grid sm:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="firstName"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <User className="w-3 h-3" />
-                                      {language === "fr" ? "Prénom du signataire" : "Signer first name"} *
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} data-testid="input-first-name" placeholder={language === "fr" ? "Ex: Jean" : "Ex: John"} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={form.control}
-                                name="lastName"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <User className="w-3 h-3" />
-                                      {language === "fr" ? "Nom de famille" : "Last name"} *
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} data-testid="input-last-name" placeholder={language === "fr" ? "Ex: Tremblay" : "Ex: Smith"} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            
-                            <div className="grid sm:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="signerTitle"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <Award className="w-3 h-3" />
-                                      {language === "fr" ? "Titre / Fonction" : "Title / Position"} *
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input {...field} data-testid="input-signer-title" placeholder={language === "fr" ? "Ex: Président, DG, VP Finances..." : "Ex: President, CEO, VP Finance..."} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <Mail className="w-3 h-3" />
-                                      {language === "fr" ? "Courriel" : "Email"} *
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input type="email" {...field} data-testid="input-email" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
+                            {parsedBillData && (
+                              <div className="bg-muted/30 rounded-lg p-4 mb-2">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  <span className="text-sm font-medium text-muted-foreground">
+                                    {language === "fr" ? "Informations extraites de la facture" : "Information extracted from bill"}
+                                  </span>
+                                </div>
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="companyName"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="flex items-center gap-1">
+                                          <Building2 className="w-3 h-3" />
+                                          {language === "fr" ? "Entreprise" : "Company"} *
+                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto" />}
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            {...field} 
+                                            data-testid="input-company-name"
+                                            className={field.value ? "border-green-500/30 bg-green-500/5" : ""}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="hqClientNumber"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="flex items-center gap-1">
+                                          <Zap className="w-3 h-3" />
+                                          {language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *
+                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto" />}
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            {...field} 
+                                            data-testid="input-hq-client" 
+                                            placeholder="Ex: 100142202"
+                                            className={field.value ? "border-green-500/30 bg-green-500/5" : ""}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
 
-                            <div className="grid sm:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="phone"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <Phone className="w-3 h-3" />
-                                      {language === "fr" ? "Téléphone" : "Phone"}
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input type="tel" {...field} data-testid="input-phone" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              <FormField
-                                control={form.control}
-                                name="tariffCode"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      <Zap className="w-3 h-3" />
-                                      {language === "fr" ? "Code tarifaire" : "Tariff code"}
-                                    </FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
+                                <div className="mt-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="streetAddress"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="flex items-center gap-1">
+                                          <MapPin className="w-3 h-3" />
+                                          {language === "fr" ? "Adresse du bâtiment" : "Building address"} *
+                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto" />}
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            {...field} 
+                                            placeholder={language === "fr" ? "123 rue Principale" : "123 Main Street"}
+                                            data-testid="input-address"
+                                            className={field.value ? "border-green-500/30 bg-green-500/5" : ""}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+
+                                <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="city"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="flex items-center gap-1">
+                                          {language === "fr" ? "Ville" : "City"} *
+                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto" />}
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            {...field} 
+                                            data-testid="input-city"
+                                            className={field.value ? "border-green-500/30 bg-green-500/5" : ""}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="tariffCode"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="flex items-center gap-1">
+                                          <Zap className="w-3 h-3" />
+                                          {language === "fr" ? "Code tarifaire" : "Tariff code"}
+                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto" />}
+                                        </FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                          <FormControl>
+                                            <SelectTrigger 
+                                              data-testid="select-tariff-code"
+                                              className={field.value ? "border-green-500/30 bg-green-500/5" : ""}
+                                            >
+                                              <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {tariffCodes.map((tariff) => (
+                                              <SelectItem key={tariff.value} value={tariff.value}>
+                                                {tariff.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {!parsedBillData && (
+                              <>
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="companyName"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="flex items-center gap-1">
+                                          <Building2 className="w-3 h-3" />
+                                          {language === "fr" ? "Entreprise" : "Company"} *
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input {...field} data-testid="input-company-name" />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="hqClientNumber"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="flex items-center gap-1">
+                                          <Zap className="w-3 h-3" />
+                                          {language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input {...field} data-testid="input-hq-client" placeholder="Ex: 100142202" />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="streetAddress"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        <MapPin className="w-3 h-3" />
+                                        {language === "fr" ? "Adresse du bâtiment" : "Building address"} *
+                                      </FormLabel>
                                       <FormControl>
-                                        <SelectTrigger data-testid="select-tariff-code">
-                                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
-                                        </SelectTrigger>
+                                        <Input 
+                                          {...field} 
+                                          placeholder={language === "fr" ? "123 rue Principale" : "123 Main Street"}
+                                          data-testid="input-address" 
+                                        />
                                       </FormControl>
-                                      <SelectContent>
-                                        {tariffCodes.map((tariff) => (
-                                          <SelectItem key={tariff.value} value={tariff.value}>
-                                            {tariff.label}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
 
-                            <FormField
-                              control={form.control}
-                              name="streetAddress"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {language === "fr" ? "Adresse du bâtiment" : "Building address"} *
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      placeholder={language === "fr" ? "123 rue Principale" : "123 Main Street"}
-                                      data-testid="input-address" 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="city"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>{language === "fr" ? "Ville" : "City"} *</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} data-testid="input-city" />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  <FormField
+                                    control={form.control}
+                                    name="tariffCode"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="flex items-center gap-1">
+                                          <Zap className="w-3 h-3" />
+                                          {language === "fr" ? "Code tarifaire" : "Tariff code"}
+                                        </FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                          <FormControl>
+                                            <SelectTrigger data-testid="select-tariff-code">
+                                              <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {tariffCodes.map((tariff) => (
+                                              <SelectItem key={tariff.value} value={tariff.value}>
+                                                {tariff.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </>
+                            )}
+
+                            <div className={parsedBillData ? "bg-amber-500/5 border border-amber-500/20 rounded-lg p-4" : ""}>
+                              {parsedBillData && (
+                                <div className="flex items-center gap-2 mb-3">
+                                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                                  <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                                    {language === "fr" ? "À compléter" : "To complete"}
+                                  </span>
+                                </div>
                               )}
-                            />
-
-                            <div className="grid sm:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="city"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>{language === "fr" ? "Ville" : "City"} *</FormLabel>
-                                    <FormControl>
-                                      <Input {...field} data-testid="input-city" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
                               
-                              <FormField
-                                control={form.control}
-                                name="postalCode"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>{language === "fr" ? "Code postal" : "Postal code"}</FormLabel>
-                                    <FormControl>
-                                      <Input {...field} placeholder="H2X 1Y4" data-testid="input-postal-code" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                              <div className="grid sm:grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name="firstName"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        <User className="w-3 h-3" />
+                                        {language === "fr" ? "Prénom du signataire" : "Signer first name"} *
+                                        {!field.value && parsedBillData && (
+                                          <Badge variant="outline" className="ml-auto text-xs border-amber-500/30 text-amber-600 dark:text-amber-400">
+                                            {language === "fr" ? "Requis" : "Required"}
+                                          </Badge>
+                                        )}
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          {...field} 
+                                          data-testid="input-first-name" 
+                                          placeholder={language === "fr" ? "Ex: Jean" : "Ex: John"}
+                                          className={!field.value && parsedBillData ? "border-amber-500/30" : ""}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="lastName"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        <User className="w-3 h-3" />
+                                        {language === "fr" ? "Nom de famille" : "Last name"} *
+                                        {!field.value && parsedBillData && (
+                                          <Badge variant="outline" className="ml-auto text-xs border-amber-500/30 text-amber-600 dark:text-amber-400">
+                                            {language === "fr" ? "Requis" : "Required"}
+                                          </Badge>
+                                        )}
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          {...field} 
+                                          data-testid="input-last-name" 
+                                          placeholder={language === "fr" ? "Ex: Tremblay" : "Ex: Smith"}
+                                          className={!field.value && parsedBillData ? "border-amber-500/30" : ""}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              
+                              <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                                <FormField
+                                  control={form.control}
+                                  name="signerTitle"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        <Award className="w-3 h-3" />
+                                        {language === "fr" ? "Titre / Fonction" : "Title / Position"} *
+                                        {!field.value && parsedBillData && (
+                                          <Badge variant="outline" className="ml-auto text-xs border-amber-500/30 text-amber-600 dark:text-amber-400">
+                                            {language === "fr" ? "Requis" : "Required"}
+                                          </Badge>
+                                        )}
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          {...field} 
+                                          data-testid="input-signer-title" 
+                                          placeholder={language === "fr" ? "Ex: Président, DG, VP Finances..." : "Ex: President, CEO, VP Finance..."}
+                                          className={!field.value && parsedBillData ? "border-amber-500/30" : ""}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="email"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        <Mail className="w-3 h-3" />
+                                        {language === "fr" ? "Courriel" : "Email"} *
+                                        {!field.value && parsedBillData && (
+                                          <Badge variant="outline" className="ml-auto text-xs border-amber-500/30 text-amber-600 dark:text-amber-400">
+                                            {language === "fr" ? "Requis" : "Required"}
+                                          </Badge>
+                                        )}
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input 
+                                          type="email" 
+                                          {...field} 
+                                          data-testid="input-email"
+                                          className={!field.value && parsedBillData ? "border-amber-500/30" : ""}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+
+                              <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                                <FormField
+                                  control={form.control}
+                                  name="phone"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        <Phone className="w-3 h-3" />
+                                        {language === "fr" ? "Téléphone" : "Phone"}
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input type="tel" {...field} data-testid="input-phone" />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                <FormField
+                                  control={form.control}
+                                  name="postalCode"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>{language === "fr" ? "Code postal" : "Postal code"}</FormLabel>
+                                      <FormControl>
+                                        <Input {...field} placeholder="H2X 1Y4" data-testid="input-postal-code" />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
                             </div>
 
                             {/* Only show building type and monthly bill fields when no bill was uploaded (manual entry mode) */}
