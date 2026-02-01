@@ -41,7 +41,7 @@ const TEXT_POSITIONS = {
   signeeA: { x: 75, y: 150 },             // Moved right (+20) and lowered more
   signatureLe: { x: 425, y: 150 },        // Lowered more to match
   signataireNom: { x: 425, y: 124 },      // Lowered more to be on line
-  signature: { x: 70, y: 111 },           // Lowered more
+  signature: { x: 70, y: 97 },            // Lowered ~5mm more
 };
 
 // Format name as "LASTNAME, Firstname"
