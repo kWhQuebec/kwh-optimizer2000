@@ -9,10 +9,9 @@ import {
   FileBarChart, Building2, Factory, School, HelpCircle, 
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, FileSignature, Wrench, HardHat,
-  Timer, Rocket, BatteryCharging, BadgePercent, Calculator, MapPin,
+  Rocket, BatteryCharging, BadgePercent, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ChevronDown, ChevronUp,
-  ClipboardCheck, Phone, Mail, Building, CalendarDays, User, Upload, Info,
-  AlertTriangle
+  ClipboardCheck, Phone, Mail, Building, CalendarDays, User, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,7 +55,6 @@ import carouselSlide7Fr from "@assets/Screenshot_2025-12-11_at_9.16.06_PM_176550
 import dreamIndustrialLogo from "@assets/Dream_industrial_logo-removebg-preview_1769529256535.png";
 import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
 import scaleCleantechLogo from "@assets/scale-cleantech-color_small-VSYW5GJE_1769527536419.webp";
-import hqBillUploadIllustration from "@assets/generated_images/hq_bill_upload_illustration.png";
 import hqLogo from "@assets/Screenshot_2026-01-27_at_5.26.14_PM_1769552778826.png";
 
 const leadFormSchema = z.object({
@@ -82,74 +80,10 @@ export default function LandingPage() {
   const [activeSlide, setActiveSlide] = useState(0);
   
   // Pathway states
-  const [quickPathExpanded, setQuickPathExpanded] = useState(false);
   const [detailedPathExpanded, setDetailedPathExpanded] = useState(false);
   
   // Refs for scroll-to-section functionality
-  const quickPathRef = useRef<HTMLDivElement>(null);
   const detailedPathRef = useRef<HTMLDivElement>(null);
-  
-  // Quick calculator states
-  const [calcInputMode, setCalcInputMode] = useState<"upload" | "manual">("upload");
-  const [calcBill, setCalcBill] = useState<string>("");
-  const [calcAnnualConsumption, setCalcAnnualConsumption] = useState<string>("");
-  const [calcAddress, setCalcAddress] = useState<string>("");
-  const [calcEmail, setCalcEmail] = useState<string>("");
-  const [calcClientName, setCalcClientName] = useState<string>("");
-  const [calcBuildingType, setCalcBuildingType] = useState<string>("office");
-  const [calcTariff, setCalcTariff] = useState<string>("M");
-  const [calcLoading, setCalcLoading] = useState(false);
-  const [calcConsent, setCalcConsent] = useState(false);
-  const [calcBillFile, setCalcBillFile] = useState<File | null>(null);
-  const [calcBillParsing, setCalcBillParsing] = useState(false);
-  const [calcBillParsed, setCalcBillParsed] = useState<{
-    annualConsumptionKwh?: number;
-    accountNumber?: string;
-    tariffCode?: string;
-    serviceAddress?: string;
-    clientName?: string;
-  } | null>(null);
-  const [calcResults, setCalcResults] = useState<{
-    success: boolean;
-    inputs: { address: string | null; monthlyBill: number; annualConsumptionKwh: number; buildingType: string; tariffCode: string };
-    system: { sizeKW: number; annualProductionKWh: number };
-    scenarios: Array<{
-      key: string;
-      offsetPercent: number;
-      recommended: boolean;
-      systemSizeKW: number;
-      annualProductionKWh: number;
-      annualSavings: number;
-      grossCAPEX: number;
-      hqIncentive: number;
-      federalITC: number;
-      totalIncentives: number;
-      netCAPEX: number;
-      paybackYears: number;
-      lcoePerKWh: number;
-      lcoeSavingsPercent: number;
-      exceedsNetMeteringLimit?: boolean;
-    }>;
-    financial: { annualSavings: number; paybackYears: number; hqIncentive: number; federalITC: number; totalIncentives: number; netCAPEX: number; grossCAPEX: number };
-    billing: { monthlyBillBefore: number; monthlyBillAfter: number; monthlySavings: number; annualBillBefore?: number; annualBillAfter?: number; annualSavings?: number };
-    consumption: { annualKWh: number; monthlyKWh: number };
-    storage?: {
-      recommended: boolean;
-      reason: string;
-      batteryPowerKW: number;
-      batteryEnergyKWh: number;
-      estimatedCost: number;
-      estimatedAnnualSavings: number;
-      paybackYears: number;
-      tariffHasDemandCharges: boolean;
-    };
-    warnings?: Array<{
-      type: string;
-      message: { fr: string; en: string };
-    }>;
-  } | null>(null);
-  const [calcError, setCalcError] = useState<string>("");
-  const billFileInputRef = useRef<HTMLInputElement>(null);
   
   const currentLogo = language === "fr" ? logoFr : logoEn;
   
@@ -169,129 +103,6 @@ export default function LandingPage() {
         { id: "zones", image: roofZoneOverlay, label: "Solar zone mapping" },
         { id: "measurement", image: roofMeasurementOverlay, label: "Precision measurement" },
       ];
-  
-  // Building type labels
-  const buildingTypeLabels = language === "fr" 
-    ? { office: "Bureau", warehouse: "Entrepôt", retail: "Commerce", industrial: "Industriel", healthcare: "Santé", education: "Éducation" }
-    : { office: "Office", warehouse: "Warehouse", retail: "Retail", industrial: "Industrial", healthcare: "Healthcare", education: "Education" };
-  
-  // Tariff labels
-  const tariffLabels = language === "fr"
-    ? { G: "G - Petite puissance (<65 kW)", M: "M - Moyenne puissance", L: "L - Grande puissance" }
-    : { G: "G - Small power (<65 kW)", M: "M - Medium power", L: "L - Large power" };
-  
-  // Email validation helper
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-  
-  // Handle bill file upload and parsing
-  const handleBillUpload = async (file: File) => {
-    setCalcBillFile(file);
-    setCalcBillParsing(true);
-    setCalcBillParsed(null);
-    setCalcError("");
-    
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      
-      const response = await fetch("/api/parse-hq-bill", {
-        method: "POST",
-        body: formData,
-      });
-      
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        setCalcBillParsed(result.data);
-        if (result.data.annualConsumptionKwh) {
-          setCalcAnnualConsumption(result.data.annualConsumptionKwh.toString());
-        }
-        if (result.data.tariffCode) {
-          setCalcTariff(result.data.tariffCode);
-        }
-        if (result.data.serviceAddress) {
-          setCalcAddress(result.data.serviceAddress);
-        }
-        if (result.data.clientName) {
-          setCalcClientName(result.data.clientName);
-        }
-        toast({
-          title: language === "fr" ? "Facture analysée!" : "Bill analyzed!",
-          description: language === "fr" 
-            ? `Consommation: ${result.data.annualConsumptionKwh?.toLocaleString() || "N/A"} kWh/an` 
-            : `Consumption: ${result.data.annualConsumptionKwh?.toLocaleString() || "N/A"} kWh/yr`,
-        });
-      } else {
-        setCalcError(language === "fr" 
-          ? "Impossible d'extraire les données de la facture. Essayez l'entrée manuelle." 
-          : "Could not extract data from bill. Try manual entry.");
-      }
-    } catch (err) {
-      setCalcError(language === "fr" ? "Erreur lors de l'analyse de la facture" : "Error parsing bill");
-    } finally {
-      setCalcBillParsing(false);
-    }
-  };
-  
-  // Quick estimate function
-  const handleQuickEstimate = async () => {
-    if (!calcEmail.trim() || !isValidEmail(calcEmail)) {
-      setCalcError(language === "fr" ? "Veuillez entrer un courriel valide" : "Please enter a valid email");
-      return;
-    }
-    
-    const annualConsumption = parseInt(calcAnnualConsumption, 10);
-    const billAmount = parseInt(calcBill, 10);
-    
-    // Need either annual consumption or monthly bill
-    if ((!annualConsumption || annualConsumption < 10000) && (!billAmount || billAmount < 200)) {
-      setCalcError(language === "fr" 
-        ? "Veuillez entrer une consommation annuelle (min 10,000 kWh) ou une facture mensuelle (min 200$)" 
-        : "Please enter annual consumption (min 10,000 kWh) or monthly bill (min $200)");
-      return;
-    }
-    
-    setCalcLoading(true);
-    setCalcError("");
-    setCalcResults(null);
-    
-    try {
-      const response = await fetch("/api/quick-estimate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: calcAddress || null,
-          email: calcEmail,
-          clientName: calcClientName || null,
-          monthlyBill: billAmount || null,
-          annualConsumptionKwh: annualConsumption || null,
-          buildingType: calcBuildingType,
-          tariffCode: calcTariff,
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setCalcResults(data);
-        if (data.emailSent) {
-          toast({
-            title: language === "fr" ? "Rapport envoyé!" : "Report sent!",
-            description: language === "fr" ? "Votre analyse a été envoyée par courriel." : "Your analysis has been sent by email.",
-          });
-        }
-      } else {
-        setCalcError(data.error || (language === "fr" ? "Erreur lors de l'analyse" : "Analysis error"));
-      }
-    } catch (err) {
-      setCalcError(language === "fr" ? "Erreur de connexion" : "Connection error");
-    } finally {
-      setCalcLoading(false);
-    }
-  };
   
   useEffect(() => {
     setActiveSlide(0);
@@ -489,9 +300,9 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
-      {/* ========== TWO PATHWAYS SECTION ========== */}
+      {/* ========== SOLAR ANALYSIS SECTION ========== */}
       <section id="paths" className="py-12 px-4 sm:px-6 lg:px-8 scroll-mt-24">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Section header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -500,105 +311,65 @@ export default function LandingPage() {
             className="text-center mb-8"
           >
             <h2 className="text-2xl sm:text-3xl font-bold mb-2" data-testid="text-paths-title">
-              {language === "fr" ? "Votre parcours en 2 étapes" : "Your journey in 2 steps"}
+              {language === "fr" ? "Obtenez votre analyse solaire" : "Get Your Solar Analysis"}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               {language === "fr" 
-                ? "Commencez par une estimation rapide, puis obtenez une analyse complète pour recevoir votre proposition"
-                : "Start with a quick estimate, then get a complete analysis to receive your proposal"
+                ? "Une analyse complète basée sur vos données de consommation réelles pour un projet solaire sur mesure"
+                : "A complete analysis based on your real consumption data for a custom solar project"
               }
             </p>
           </motion.div>
           
-          {/* Timeline connector - visible on desktop */}
-          <div className="hidden lg:flex items-center justify-center mb-6 gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center font-bold text-primary">
-                1
-              </div>
-              <span className="text-sm font-medium text-muted-foreground">
-                {language === "fr" ? "Estimation" : "Estimate"}
-              </span>
-            </div>
-            <div className="flex-1 max-w-32 h-0.5 bg-gradient-to-r from-primary/50 via-muted-foreground/30 to-accent/50 relative">
-              <ArrowRight className="w-5 h-5 text-muted-foreground absolute -right-2 -top-2" />
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center font-bold text-accent">
-                2
-              </div>
-              <span className="text-sm font-medium text-muted-foreground">
-                {language === "fr" ? "Analyse complète" : "Full analysis"}
-              </span>
-            </div>
-          </div>
-          
-          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 relative mt-4 items-stretch">
-            {/* Mobile arrow connector between cards */}
-            <div className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
-              <div className="bg-background border-2 border-muted rounded-full p-2 shadow-sm">
-                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </div>
+          <div className="relative">
             
-            {/* ===== PATH 1: QUICK ANALYSIS (5 min) ===== */}
+            {/* ===== DETAILED ANALYSIS ===== */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className={quickPathExpanded ? "lg:col-span-2" : "h-full"}
             >
-              <Card ref={quickPathRef} className={`border-2 transition-all scroll-mt-24 relative h-full ${quickPathExpanded ? 'border-primary' : 'border-primary/40 hover:border-primary/60'}`}>
-                {/* Step 1 badge - prominent circle */}
-                {!quickPathExpanded && (
-                  <div className="absolute -top-3 left-6 z-10">
-                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shadow-md">
-                      1
-                    </div>
-                  </div>
-                )}
-                {/* Header - Always visible */}
+              <Card ref={detailedPathRef} className={`border-2 transition-all scroll-mt-24 relative ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
+                {/* Collapsed Header - Always visible */}
                 <div 
-                  className={`p-6 cursor-pointer flex flex-col ${!quickPathExpanded ? 'hover-elevate pt-8 h-full' : ''}`}
+                  className={`p-6 cursor-pointer flex flex-col ${!detailedPathExpanded ? 'hover-elevate' : ''}`}
                   onClick={() => {
-                    if (!quickPathExpanded) {
-                      setQuickPathExpanded(true);
-                      setDetailedPathExpanded(false);
-                      // Scroll to the section after expansion animation
+                    if (!detailedPathExpanded) {
+                      setDetailedPathExpanded(true);
                       setTimeout(() => {
-                        quickPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        detailedPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }, 350);
                     }
                   }}
-                  data-testid="section-quick-header"
+                  data-testid="section-detailed-header"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-xl bg-primary/15 shrink-0">
-                        <Timer className="w-7 h-7 text-primary" />
+                      <div className="p-3 rounded-xl bg-accent/10 shrink-0">
+                        <FileBarChart className="w-7 h-7 text-accent" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold">
-                          {language === "fr" ? "Analyse RAPIDE" : "Quick Analysis"}
+                          {language === "fr" ? "Analyse solaire détaillée" : "Detailed Solar Analysis"}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge className="bg-primary/10 text-primary border-primary/20">
-                            2 min
+                          <Badge className="bg-accent/10 text-accent border-accent/20">
+                            5 {language === "fr" ? "jours" : "days"}
                           </Badge>
                           <Badge variant="outline" className="text-muted-foreground">
-                            ~75% {language === "fr" ? "précision" : "accuracy"}
+                            ~95% {language === "fr" ? "précision" : "accuracy"}
                           </Badge>
                         </div>
-                        <p className="text-muted-foreground mt-1 min-h-[2.5rem]">
+                        <p className="text-muted-foreground mt-1">
                           {language === "fr" 
-                            ? "Estimez votre potentiel solaire en quelques clics"
-                            : "Estimate your solar potential in a few clicks"
+                            ? "Requis pour recevoir une proposition — basé sur vos données réelles Hydro-Québec"
+                            : "Required for a proposal — based on your real Hydro-Québec data"
                           }
                         </p>
                       </div>
                     </div>
-                    {!quickPathExpanded && (
-                      <Button size="sm" className="shrink-0 gap-1" data-testid="button-path-quick">
+                    {!detailedPathExpanded && (
+                      <Button size="sm" className="shrink-0 gap-1 bg-accent text-accent-foreground" data-testid="button-path-detailed">
                         {language === "fr" ? "Commencer" : "Start"}
                         <ArrowRight className="w-4 h-4" />
                       </Button>
@@ -606,12 +377,12 @@ export default function LandingPage() {
                   </div>
                   
                   {/* Preview thumbnail when collapsed */}
-                  {!quickPathExpanded && (
+                  {!detailedPathExpanded && (
                     <div className="mt-4 pt-4 border-t">
                       <div className="flex gap-4 items-center">
                         <img 
-                          src={consumptionAnalysis} 
-                          alt={language === "fr" ? "Aperçu analyse" : "Analysis preview"}
+                          src={language === "fr" ? screenshotFinancialFr : screenshotFinancialEn} 
+                          alt={language === "fr" ? "Aperçu rapport" : "Report preview"}
                           className="w-24 h-16 object-cover rounded-lg border shrink-0"
                         />
                         <div className="text-sm">
@@ -621,15 +392,15 @@ export default function LandingPage() {
                           <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
                             <li className="flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {language === "fr" ? "Capacité solaire estimée" : "Estimated solar capacity"}
+                              {language === "fr" ? "Profil de consommation annuel complet" : "Complete annual consumption profile"}
                             </li>
                             <li className="flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {language === "fr" ? "Économies annuelles" : "Annual savings"}
+                              {language === "fr" ? "Projections financières 25 ans" : "25-year financial projections"}
                             </li>
                             <li className="flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-green-500" />
-                              {language === "fr" ? "Retour sur investissement" : "Payback period"}
+                              {language === "fr" ? "Rapport PDF professionnel" : "Professional PDF report"}
                             </li>
                           </ul>
                         </div>
@@ -637,10 +408,9 @@ export default function LandingPage() {
                     </div>
                   )}
                 </div>
-
                 {/* Expanded content */}
                 <AnimatePresence>
-                  {quickPathExpanded && (
+                  {detailedPathExpanded && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
@@ -648,653 +418,155 @@ export default function LandingPage() {
                       transition={{ duration: 0.3 }}
                     >
                       <div className="border-t">
-                        <div className="grid lg:grid-cols-5 gap-0">
-                          {/* Left: What's included */}
-                          <div className="lg:col-span-2 p-6 bg-muted/30 space-y-4">
-                            <h4 className="font-semibold flex items-center gap-2">
-                              <CheckCircle2 className="w-5 h-5 text-primary" />
-                              {language === "fr" ? "Ce que vous obtenez" : "What you get"}
-                            </h4>
-                            
-                            <ul className="space-y-3 text-sm">
-                              <li className="flex items-start gap-2">
-                                <BarChart3 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "3 scénarios de dimensionnement (50%, 75%, 100%)" : "3 sizing scenarios (50%, 75%, 100%)"}</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <Sun className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Production solaire estimée (kWh/an)" : "Estimated solar production (kWh/yr)"}</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <DollarSign className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Économies annuelles estimées" : "Estimated annual savings"}</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <BadgePercent className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Incitatifs directs (Hydro-Québec + ITC fédéral 30%)" : "Direct incentives (Hydro-Québec + Federal ITC 30%)"}</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <TrendingUp className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{language === "fr" ? "Période de retour sur investissement" : "Payback period estimate"}</span>
-                              </li>
-                            </ul>
-                            
-                            {/* Consumption analysis image - reflects the consumption-based approach */}
-                            <div className="pt-2">
-                              <div className="relative">
-                                <img 
-                                  src={consumptionAnalysis} 
-                                  alt={language === "fr" ? "Analyse de consommation énergétique" : "Energy consumption analysis"}
-                                  className="w-full h-40 object-cover rounded-lg border"
-                                />
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1 text-center">
-                                {language === "fr" 
-                                  ? "Dimensionnement basé sur votre consommation réelle" 
-                                  : "Sizing based on your actual consumption"
-                                }
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Right: Calculator form */}
-                          <div className="lg:col-span-3 p-6 space-y-5">
+                        <div className="grid lg:grid-cols-2 gap-0">
+                          {/* Left: What's included + Process */}
+                          <div className="p-6 bg-muted/30 space-y-6">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-semibold">
-                                {language === "fr" ? "Entrez vos informations" : "Enter your information"}
+                              <h4 className="font-semibold flex items-center gap-2">
+                                <ClipboardCheck className="w-5 h-5 text-accent" />
+                                {language === "fr" ? "Ce qui est inclus" : "What's included"}
                               </h4>
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                onClick={() => setQuickPathExpanded(false)}
-                                data-testid="button-collapse-quick"
+                                onClick={() => setDetailedPathExpanded(false)}
+                                data-testid="button-collapse-detailed"
                               >
                                 <ChevronUp className="w-4 h-4 mr-1" />
                                 {language === "fr" ? "Réduire" : "Collapse"}
                               </Button>
                             </div>
                             
-                            {!calcResults ? (
-                              <div className="space-y-4">
-                                {/* Input mode toggle */}
-                                <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg">
-                                  <Button
-                                    type="button"
-                                    variant={calcInputMode === "upload" ? "default" : "ghost"}
-                                    size="sm"
-                                    className="flex-1 gap-2"
-                                    onClick={() => {
-                                      setCalcInputMode("upload");
-                                      // Trigger file dialog after a short delay to ensure the input is rendered
-                                      setTimeout(() => billFileInputRef.current?.click(), 100);
-                                    }}
-                                    data-testid="button-mode-upload"
-                                  >
-                                    <Upload className="w-4 h-4" />
-                                    {language === "fr" ? "Téléverser facture" : "Upload bill"}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant={calcInputMode === "manual" ? "default" : "ghost"}
-                                    size="sm"
-                                    className="flex-1 gap-2"
-                                    onClick={() => setCalcInputMode("manual")}
-                                    data-testid="button-mode-manual"
-                                  >
-                                    <Calculator className="w-4 h-4" />
-                                    {language === "fr" ? "Entrée manuelle" : "Manual entry"}
-                                  </Button>
-                                </div>
-                                
-                                {/* Upload mode */}
-                                {calcInputMode === "upload" && (
-                                  <div className="space-y-3">
-                                    <input
-                                      type="file"
-                                      ref={billFileInputRef}
-                                      accept=".pdf,image/*"
-                                      className="hidden"
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleBillUpload(file);
-                                      }}
-                                    />
-                                    <div
-                                      className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover-elevate transition-colors"
-                                      onClick={() => billFileInputRef.current?.click()}
-                                    >
-                                      {calcBillParsing ? (
-                                        <div className="flex flex-col items-center gap-2">
-                                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                          <p className="text-sm text-muted-foreground">
-                                            {language === "fr" ? "Analyse de la facture..." : "Analyzing bill..."}
-                                          </p>
-                                        </div>
-                                      ) : calcBillParsed ? (
-                                        <div className="flex flex-col items-center gap-2">
-                                          <FileCheck className="w-8 h-8 text-green-600" />
-                                          <p className="text-sm font-medium text-green-600">
-                                            {language === "fr" ? "Facture analysée!" : "Bill analyzed!"}
-                                          </p>
-                                          <p className="text-lg font-bold text-primary">
-                                            {calcBillParsed.annualConsumptionKwh?.toLocaleString()} kWh/{language === "fr" ? "an" : "yr"}
-                                          </p>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setCalcBillFile(null);
-                                              setCalcBillParsed(null);
-                                              setCalcAnnualConsumption("");
-                                            }}
-                                          >
-                                            {language === "fr" ? "Changer de facture" : "Change bill"}
-                                          </Button>
-                                        </div>
-                                      ) : (
-                                        <div className="flex flex-col items-center gap-3">
-                                          <div className="relative">
-                                            <img 
-                                              src={hqBillUploadIllustration} 
-                                              alt="Hydro-Québec bill" 
-                                              className="w-20 h-20 object-contain"
-                                            />
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <img 
-                                              src={hqLogo} 
-                                              alt="Hydro-Québec" 
-                                              className="h-6 object-contain"
-                                            />
-                                          </div>
-                                          <p className="text-sm font-medium text-center">
-                                            {language === "fr" ? "Téléversez votre facture Hydro-Québec" : "Upload your Hydro-Québec bill"}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
-                                            PDF ou image (JPG, PNG)
-                                          </p>
-                                        </div>
-                                      )}
+                            <ul className="space-y-3 text-sm">
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Analyse heure par heure basée sur votre consommation réelle" : "Hour-by-hour analysis based on your real consumption"}</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Dimensionnement optimal solaire + stockage" : "Optimal solar + storage sizing"}</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Projections financières sur 25 ans (VAN, TRI, LCOE)" : "25-year financial projections (NPV, IRR, LCOE)"}</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Comparaison des options de financement" : "Financing options comparison"}</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                <span>{language === "fr" ? "Rapport PDF professionnel" : "Professional PDF report"}</span>
+                              </li>
+                            </ul>
+                            
+                            {/* Process timeline */}
+                            <div className="pt-4 border-t">
+                              <p className="text-sm font-medium mb-3">
+                                {language === "fr" ? "Comment ça fonctionne" : "How it works"}
+                              </p>
+                              <div className="space-y-3">
+                                {[
+                                  { step: 1, text: language === "fr" ? "Vous remplissez le formulaire" : "You fill out the form", icon: FileText },
+                                  { step: 2, text: language === "fr" ? "Vous signez la procuration Hydro-Québec" : "You sign the Hydro-Québec proxy", icon: FileSignature },
+                                  { step: 3, text: language === "fr" ? "Nous analysons vos données" : "We analyze your data", icon: BarChart3 },
+                                  { step: 4, text: language === "fr" ? "Vous recevez votre rapport" : "You receive your report", icon: FileCheck },
+                                ].map((item) => (
+                                  <div key={item.step} className="flex items-center gap-3" data-testid={`step-detailed-${item.step}`}>
+                                    <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent">
+                                      {item.step}
                                     </div>
-                                    <p className="text-xs text-muted-foreground text-center">
-                                      {language === "fr" 
-                                        ? "Nous extrayons automatiquement votre consommation annuelle" 
-                                        : "We automatically extract your annual consumption"}
-                                    </p>
+                                    <item.icon className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-sm">{item.text}</span>
                                   </div>
-                                )}
-                                
-                                {/* Manual entry mode */}
-                                {calcInputMode === "manual" && (
-                                  <div className="space-y-4">
-                                    {/* Annual consumption - primary input */}
-                                    <div className="space-y-2">
-                                      <label className="text-sm font-medium flex items-center gap-2">
-                                        <Zap className="w-4 h-4 text-primary" />
-                                        {language === "fr" ? "Consommation annuelle (kWh)" : "Annual consumption (kWh)"}
-                                        <span className="text-xs text-muted-foreground">
-                                          ({language === "fr" ? "recommandé" : "recommended"})
-                                        </span>
-                                      </label>
-                                      <Input
-                                        type="number"
-                                        value={calcAnnualConsumption}
-                                        onChange={(e) => setCalcAnnualConsumption(e.target.value)}
-                                        className="h-11"
-                                        placeholder={language === "fr" ? "ex: 150000" : "e.g., 150000"}
-                                        min={10000}
-                                        data-testid="input-calc-annual-consumption"
-                                      />
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex-1 h-px bg-border" />
-                                      <span className="text-xs text-muted-foreground px-2">
-                                        {language === "fr" ? "OU" : "OR"}
-                                      </span>
-                                      <div className="flex-1 h-px bg-border" />
-                                    </div>
-                                    
-                                    {/* Monthly bill - alternative input */}
-                                    <div className="grid sm:grid-cols-2 gap-4">
-                                      <div className="space-y-2">
-                                        <label className="text-sm font-medium flex items-center gap-2">
-                                          <DollarSign className="w-4 h-4 text-primary" />
-                                          {language === "fr" ? "Facture mensuelle" : "Monthly bill"}
-                                        </label>
-                                        <Input
-                                          type="number"
-                                          value={calcBill}
-                                          onChange={(e) => setCalcBill(e.target.value)}
-                                          className="h-11"
-                                          placeholder="$"
-                                          min={200}
-                                          data-testid="input-calc-bill"
-                                        />
-                                      </div>
-                                      
-                                      <div className="space-y-2">
-                                        <label className="text-sm font-medium flex items-center gap-2">
-                                          <Zap className="w-4 h-4 text-primary" />
-                                          {language === "fr" ? "Tarif Hydro-Québec" : "Hydro-Québec tariff"}
-                                        </label>
-                                        <Select value={calcTariff} onValueChange={setCalcTariff}>
-                                          <SelectTrigger className="h-11" data-testid="select-calc-tariff">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {Object.entries(tariffLabels).map(([value, label]) => (
-                                              <SelectItem key={value} value={value}>{label}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* Building type - only show in manual entry mode */}
-                                {calcInputMode === "manual" && (
-                                  <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                      <Building2 className="w-4 h-4 text-primary" />
-                                      {language === "fr" ? "Type de bâtiment" : "Building type"}
-                                    </label>
-                                    <Select value={calcBuildingType} onValueChange={setCalcBuildingType}>
-                                      <SelectTrigger className="h-11" data-testid="select-calc-building">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {Object.entries(buildingTypeLabels).map(([value, label]) => (
-                                          <SelectItem key={value} value={value}>{label}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                )}
-                                
-                                {/* Email */}
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium flex items-center gap-2">
-                                    <Mail className="w-4 h-4 text-primary" />
-                                    {language === "fr" ? "Courriel" : "Email"}
-                                  </label>
-                                  <Input
-                                    type="email"
-                                    value={calcEmail}
-                                    onChange={(e) => setCalcEmail(e.target.value)}
-                                    className="h-11"
-                                    placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
-                                    data-testid="input-calc-email"
-                                  />
-                                </div>
-                                
-                                {/* Address */}
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-primary" />
-                                    {language === "fr" ? "Adresse" : "Address"}
-                                  </label>
-                                  <Input
-                                    type="text"
-                                    value={calcAddress}
-                                    onChange={(e) => setCalcAddress(e.target.value)}
-                                    className="h-11"
-                                    placeholder={language === "fr" ? "123 rue Principale, Montréal" : "123 Main Street, Montreal"}
-                                    data-testid="input-calc-address"
-                                  />
-                                </div>
-                                
-                                {calcError && (
-                                  <p className="text-sm text-destructive">{calcError}</p>
-                                )}
-                                
-                                {/* Law 25 Consent Checkbox */}
-                                <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg border">
-                                  <Checkbox 
-                                    id="calc-consent"
-                                    checked={calcConsent}
-                                    onCheckedChange={(checked) => setCalcConsent(checked === true)}
-                                    data-testid="checkbox-consent"
-                                  />
-                                  <label 
-                                    htmlFor="calc-consent" 
-                                    className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
-                                  >
-                                    {language === "fr" ? (
-                                      <>
-                                        J'accepte de recevoir mon analyse par courriel et je consens à ce que kWh Québec conserve mes coordonnées pour me contacter concernant des solutions solaires.{" "}
-                                        <Link href="/privacy" className="text-primary underline hover:no-underline">
-                                          Politique de confidentialité
-                                        </Link>
-                                      </>
-                                    ) : (
-                                      <>
-                                        I agree to receive my analysis by email and consent to kWh Québec storing my contact information to reach out about solar solutions.{" "}
-                                        <Link href="/privacy" className="text-primary underline hover:no-underline">
-                                          Privacy Policy
-                                        </Link>
-                                      </>
-                                    )}
-                                  </label>
-                                </div>
-                                
-                                <Button 
-                                  size="lg" 
-                                  className="w-full gap-2"
-                                  onClick={handleQuickEstimate}
-                                  disabled={calcLoading || !calcConsent || (calcInputMode === "upload" && calcBillParsing)}
-                                  data-testid="button-calc-analyze"
-                                >
-                                  {calcLoading ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Calculator className="w-4 h-4" />
-                                      {language === "fr" ? "Voir 3 scénarios" : "See 3 scenarios"}
-                                    </>
-                                  )}
-                                </Button>
+                                ))}
                               </div>
-                            ) : (
-                              /* Results display - 3 scenarios */
-                              <div className="space-y-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                  <span className="font-semibold text-green-800 dark:text-green-200">
-                                    {language === "fr" ? "Analyse complétée!" : "Analysis complete!"}
-                                  </span>
-                                </div>
-                                
-                                {/* Consumption summary */}
-                                <div className="p-3 bg-muted/50 rounded-lg border mb-2">
-                                  <p className="text-sm">
-                                    <span className="text-muted-foreground">{language === "fr" ? "Consommation annuelle:" : "Annual consumption:"}</span>{" "}
-                                    <span className="font-bold">{calcResults.consumption?.annualKWh?.toLocaleString() || calcResults.inputs.annualConsumptionKwh?.toLocaleString()} kWh</span>
+                            </div>
+                            
+                            {/* Preview carousel */}
+                            <div className="pt-4">
+                              <div className="relative aspect-video rounded-lg overflow-hidden border bg-card">
+                                {analysisSlides.map((slide, index) => (
+                                  <div
+                                    key={slide.id}
+                                    className={`absolute inset-0 transition-opacity duration-500 ${
+                                      index === activeSlide ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  >
+                                    <img 
+                                      src={slide.image} 
+                                      alt={slide.label}
+                                      className="w-full h-full object-contain bg-white"
+                                    />
+                                  </div>
+                                ))}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                  <p className="text-white text-xs font-medium">
+                                    {analysisSlides[activeSlide]?.label}
                                   </p>
                                 </div>
-                                
-                                {/* 3 Optimized Scenario cards */}
-                                <div className="space-y-3">
-                                  {calcResults.scenarios?.map((scenario) => {
-                                    // Dynamic subtitle based on actual offset percentage
-                                    const offsetPct = Math.round((scenario.offsetPercent ?? 0) * 100);
-                                    const dynamicSubtitle = language === "fr" 
-                                      ? `${offsetPct}% de compensation` 
-                                      : `${offsetPct}% offset`;
-                                    
-                                    // Dynamic labels based on scenario key (supports new optimization keys)
-                                    const getScenarioLabel = () => {
-                                      switch (scenario.key) {
-                                        case "bestPayback":
-                                          return {
-                                            title: language === "fr" ? "Économique" : "Economic",
-                                            subtitle: dynamicSubtitle,
-                                            tooltip: language === "fr" 
-                                              ? `Option la plus rentable avec le retour sur investissement le plus rapide.` 
-                                              : `Most profitable option with the fastest return on investment.`,
-                                          };
-                                        case "bestLcoe":
-                                          return {
-                                            title: language === "fr" ? "Équilibré" : "Balanced",
-                                            subtitle: dynamicSubtitle,
-                                            tooltip: language === "fr" 
-                                              ? `Coût d'énergie le plus bas sur 25 ans.` 
-                                              : `Lowest energy cost over 25 years.`,
-                                          };
-                                        case "optimal":
-                                          return {
-                                            title: language === "fr" ? "Équilibré" : "Balanced",
-                                            subtitle: dynamicSubtitle,
-                                            tooltip: language === "fr" 
-                                              ? `Bon équilibre entre investissement initial et couverture énergétique.` 
-                                              : `Good balance between initial investment and energy coverage.`,
-                                          };
-                                        case "maximum":
-                                          return {
-                                            title: "Maximum",
-                                            subtitle: dynamicSubtitle,
-                                            tooltip: language === "fr" 
-                                              ? offsetPct > 100 
-                                                ? `Couverture ${offsetPct}% pour excédent et revenu net.`
-                                                : `Couverture complète de votre consommation annuelle.`
-                                              : offsetPct > 100 
-                                                ? `${offsetPct}% coverage for surplus and net revenue.`
-                                                : `Full coverage of your annual consumption.`,
-                                          };
-                                        case "conservative":
-                                        default:
-                                          return {
-                                            title: language === "fr" ? "Conservateur" : "Conservative",
-                                            subtitle: dynamicSubtitle,
-                                            tooltip: language === "fr" 
-                                              ? `Couvre ${offsetPct}% de votre consommation. Approche prudente.` 
-                                              : `Covers ${offsetPct}% of consumption. Conservative approach.`,
-                                          };
-                                      }
-                                    };
-                                    
-                                    const labels = getScenarioLabel();
-                                    const isRecommended = scenario.recommended === true;
-                                    
-                                    // LCOE savings vs HQ rate (from backend calculation)
-                                    const lcoeSavingsPercent = scenario.lcoeSavingsPercent || 0;
-                                    
-                                    return (
-                                      <div 
-                                        key={scenario.key}
-                                        className={`p-4 rounded-lg border ${isRecommended ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'bg-background'}`}
-                                        data-testid={`scenario-${scenario.key}`}
-                                      >
-                                        <div className="flex items-start justify-between gap-2 mb-3">
-                                          <div>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <h5 className="font-semibold">{labels.title}</h5>
-                                              <TooltipProvider>
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <span className="text-sm text-muted-foreground cursor-help inline-flex items-center gap-1">
-                                                      ({labels.subtitle})
-                                                      <Info className="w-3 h-3" />
-                                                    </span>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent className="max-w-xs">
-                                                    <p className="text-sm">
-                                                      {language === "fr" 
-                                                        ? "Compensation annuelle via le programme de mesurage net d'Hydro-Québec. L'été, votre surplus est crédité; l'hiver, vous tirez du réseau."
-                                                        : "Annual offset via Hydro-Québec's net metering program. Summer surplus is credited; winter draws from the grid."}
-                                                    </p>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </TooltipProvider>
-                                              <TooltipProvider>
-                                                <Tooltip>
-                                                  <TooltipTrigger asChild>
-                                                    <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 text-xs cursor-help">
-                                                      {lcoeSavingsPercent > 0 ? `-${lcoeSavingsPercent}%` : "0%"} {language === "fr" ? "vs Hydro-Québec" : "vs Hydro-Québec"}
-                                                    </Badge>
-                                                  </TooltipTrigger>
-                                                  <TooltipContent className="max-w-xs">
-                                                    <p className="text-sm">
-                                                      {language === "fr" 
-                                                        ? `Votre coût d'énergie solaire sur 25 ans est ${lcoeSavingsPercent}% moins cher que le tarif actuel d'Hydro-Québec.`
-                                                        : `Your solar energy cost over 25 years is ${lcoeSavingsPercent}% cheaper than the current Hydro-Québec rate.`}
-                                                    </p>
-                                                  </TooltipContent>
-                                                </Tooltip>
-                                              </TooltipProvider>
-                                              {isRecommended && (
-                                                <Badge className="bg-primary text-primary-foreground text-xs">
-                                                  {language === "fr" ? "Recommandé" : "Recommended"}
-                                                </Badge>
-                                              )}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                              <Info className="w-3 h-3" />
-                                              {labels.tooltip}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                          <div>
-                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Système" : "System"}</p>
-                                            <p className="text-lg font-bold text-primary">{scenario.systemSizeKW ?? 0} kW</p>
-                                          </div>
-                                          <div>
-                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Production" : "Production"}</p>
-                                            <p className="text-lg font-bold">{((scenario.annualProductionKWh ?? 0) / 1000).toFixed(0)} MWh/{language === "fr" ? "an" : "yr"}</p>
-                                          </div>
-                                          <div>
-                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Économies" : "Savings"}</p>
-                                            <p className="text-lg font-bold text-green-600">${(scenario.annualSavings ?? 0).toLocaleString()}/{language === "fr" ? "an" : "yr"}</p>
-                                          </div>
-                                          <div>
-                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Retour" : "Payback"}</p>
-                                            <p className="text-lg font-bold">{(scenario.paybackYears ?? 0).toFixed(1)} {language === "fr" ? "ans" : "yrs"}</p>
-                                          </div>
-                                        </div>
-                                        
-                                        <div className="mt-3 pt-3 border-t space-y-2">
-                                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                            <span>{language === "fr" ? "Coût brut:" : "Gross cost:"} <span className="font-medium">${(scenario.grossCAPEX ?? 0).toLocaleString()}</span></span>
-                                            <span>{language === "fr" ? "Coût net:" : "Net cost:"} <span className="font-medium">${(scenario.netCAPEX ?? 0).toLocaleString()}</span></span>
-                                          </div>
-                                          <div className="bg-green-50 dark:bg-green-950/30 rounded-md p-2 space-y-1">
-                                            <p className="text-xs font-medium text-green-700 dark:text-green-400">
-                                              {language === "fr" ? "Incitatifs directs inclus:" : "Direct incentives included:"}
-                                            </p>
-                                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                                              <span className="text-green-600 dark:text-green-400">
-                                                Hydro-Québec: <span className="font-medium">-${scenario.hqIncentive?.toLocaleString() || 0}</span>
-                                              </span>
-                                              <span className="text-green-600 dark:text-green-400">
-                                                {language === "fr" ? "ITC Fédéral (30%):" : "Federal ITC (30%):"} <span className="font-medium">-${scenario.federalITC?.toLocaleString() || 0}</span>
-                                              </span>
-                                            </div>
-                                            <p className="text-xs font-semibold text-green-700 dark:text-green-300 pt-1 border-t border-green-200 dark:border-green-800">
-                                              {language === "fr" ? "Total incitatifs:" : "Total incentives:"} -${scenario.totalIncentives?.toLocaleString() || 0}
-                                            </p>
-                                          </div>
-                                          <p className="text-[10px] text-muted-foreground italic">
-                                            {language === "fr" 
-                                              ? "* L'amortissement accéléré (CCA 43.2) offre un avantage fiscal additionnel selon votre situation fiscale." 
-                                              : "* Accelerated depreciation (CCA Class 43.2) provides additional tax benefits based on your tax situation."}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                              </div>
+                              <div className="flex justify-center gap-1.5 mt-2">
+                                {analysisSlides.map((slide, index) => (
+                                  <button
+                                    key={slide.id}
+                                    onClick={() => setActiveSlide(index)}
+                                    className={`w-2 h-2 rounded-full transition-colors ${
+                                      index === activeSlide ? "bg-accent" : "bg-muted-foreground/30"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Right: CTA to dedicated page */}
+                          <div className="p-6 space-y-5 flex flex-col justify-start">
+                            <h4 className="font-semibold">
+                              {language === "fr" ? "Demander mon analyse" : "Request my analysis"}
+                            </h4>
+                            
+                            <div className="space-y-4">
+                              <p className="text-sm text-muted-foreground">
+                                {language === "fr" 
+                                  ? "L'analyse détaillée nécessite la signature d'une procuration pour accéder à vos données Hydro-Québec. Notre formulaire sécurisé vous guide à travers les étapes."
+                                  : "The detailed analysis requires signing an authorization to access your Hydro-Québec data. Our secure form guides you through the steps."
+                                }
+                              </p>
+                              
+                              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  <span>{language === "fr" ? "Formulaire en 3 étapes simples" : "Simple 3-step form"}</span>
                                 </div>
-                                
-                                {/* Storage Recommendation Section */}
-                                {calcResults.storage?.recommended && (
-                                  <div className="mt-4 p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30" data-testid="storage-recommendation">
-                                    <div className="flex items-start gap-3">
-                                      <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50">
-                                        <Battery className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <h5 className="font-semibold flex items-center gap-2">
-                                          {language === "fr" ? "Stockage recommandé" : "Storage Recommended"}
-                                          <Badge variant="outline" className="bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 text-xs">
-                                            {language === "fr" ? "Optionnel" : "Optional"}
-                                          </Badge>
-                                        </h5>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                          {calcResults.storage.tariffHasDemandCharges 
-                                            ? (language === "fr" 
-                                                ? "Votre tarif comporte des frais de puissance. Le stockage peut réduire vos pointes de demande et générer des économies additionnelles." 
-                                                : "Your tariff includes demand charges. Storage can reduce your demand peaks and generate additional savings.")
-                                            : (language === "fr"
-                                                ? "Avec un système solaire de cette taille, le stockage peut maximiser l'autoconsommation et fournir une alimentation de secours."
-                                                : "With a solar system of this size, storage can maximize self-consumption and provide backup power.")}
-                                        </p>
-                                        
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                                          <div>
-                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Puissance" : "Power"}</p>
-                                            <p className="text-base font-bold text-amber-700 dark:text-amber-400">{calcResults.storage.batteryPowerKW} kW</p>
-                                          </div>
-                                          <div>
-                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Capacité" : "Capacity"}</p>
-                                            <p className="text-base font-bold text-amber-700 dark:text-amber-400">{calcResults.storage.batteryEnergyKWh} kWh</p>
-                                          </div>
-                                          <div>
-                                            <p className="text-xs text-muted-foreground">{language === "fr" ? "Coût estimé" : "Est. Cost"}</p>
-                                            <p className="text-base font-bold">${calcResults.storage.estimatedCost.toLocaleString()}</p>
-                                          </div>
-                                          {calcResults.storage.estimatedAnnualSavings > 0 && (
-                                            <div>
-                                              <p className="text-xs text-muted-foreground">{language === "fr" ? "Écon. add." : "Add. Savings"}</p>
-                                              <p className="text-base font-bold text-green-600">${calcResults.storage.estimatedAnnualSavings.toLocaleString()}/{language === "fr" ? "an" : "yr"}</p>
-                                            </div>
-                                          )}
-                                        </div>
-                                        
-                                        <p className="text-xs text-muted-foreground mt-2 italic">
-                                          {language === "fr" 
-                                            ? "* L'analyse détaillée avec données 15-min permettra un dimensionnement précis du stockage." 
-                                            : "* Detailed analysis with 15-min data will enable precise storage sizing."}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* Net Metering Warning for systems > 1 MW */}
-                                {calcResults.warnings && calcResults.warnings.length > 0 && (
-                                  <div className="mt-4 p-4 rounded-lg border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30" data-testid="warning-net-metering">
-                                    <div className="flex items-start gap-3">
-                                      <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
-                                      <div>
-                                        <h5 className="font-semibold text-orange-800 dark:text-orange-300">
-                                          {language === "fr" ? "Important" : "Important"}
-                                        </h5>
-                                        {calcResults.warnings.map((warning, idx) => (
-                                          <p key={idx} className="text-sm text-orange-700 dark:text-orange-400 mt-1">
-                                            {language === "fr" ? warning.message.fr : warning.message.en}
-                                          </p>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                  <Button 
-                                    variant="outline" 
-                                    onClick={() => {
-                                      setCalcResults(null);
-                                      setCalcBillFile(null);
-                                      setCalcBillParsed(null);
-                                    }}
-                                    className="flex-1"
-                                  >
-                                    {language === "fr" ? "Nouvelle analyse" : "New analysis"}
-                                  </Button>
-                                  <Button 
-                                    className="flex-1 gap-2"
-                                    onClick={() => {
-                                      setDetailedPathExpanded(true);
-                                      setQuickPathExpanded(false);
-                                      setTimeout(() => {
-                                        detailedPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                      }, 350);
-                                    }}
-                                    data-testid="button-get-detailed-analysis"
-                                  >
-                                    {language === "fr" ? "Continuer vers l'Étape 2" : "Continue to Step 2"}
-                                    <ArrowRight className="w-4 h-4" />
-                                  </Button>
+                                <div className="flex items-center gap-2 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  <span>{language === "fr" ? "Signature électronique sécurisée" : "Secure electronic signature"}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  <span>{language === "fr" ? "Téléversement de factures Hydro-Québec" : "Hydro-Québec bill upload"}</span>
                                 </div>
                               </div>
-                            )}
+                              
+                              <Link href="/analyse-detaillee">
+                                <Button 
+                                  size="lg" 
+                                  className="w-full gap-2 bg-accent text-accent-foreground"
+                                  data-testid="button-go-to-detailed-form"
+                                >
+                                  {language === "fr" ? "Commencer ma demande" : "Start my request"}
+                                  <ArrowRight className="w-4 h-4" />
+                                </Button>
+                              </Link>
+                              
+                              <p className="text-xs text-muted-foreground text-center">
+                                {language === "fr" 
+                                  ? "Environ 5 minutes pour compléter"
+                                  : "About 5 minutes to complete"
+                                }
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1303,308 +575,7 @@ export default function LandingPage() {
                 </AnimatePresence>
               </Card>
             </motion.div>
-
-            {/* ===== PATH 2: DETAILED ANALYSIS (5 days) ===== */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className={`${detailedPathExpanded ? "lg:col-span-2" : "h-full"} ${quickPathExpanded ? "hidden lg:block lg:col-span-1" : ""}`}
-            >
-                <Card ref={detailedPathRef} className={`border-2 transition-all scroll-mt-24 relative h-full ${detailedPathExpanded ? 'border-accent' : 'border-accent/60 hover:border-accent bg-gradient-to-br from-accent/5 to-transparent'}`}>
-                  {/* Step 2 badge - prominent circle */}
-                  {!detailedPathExpanded && (
-                    <div className="absolute -top-3 left-6 z-10">
-                      <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground text-sm font-bold flex items-center justify-center shadow-md">
-                        2
-                      </div>
-                    </div>
-                  )}
-                  {/* Header - Always visible */}
-                  <div 
-                    className={`p-6 cursor-pointer flex flex-col ${!detailedPathExpanded ? 'hover-elevate pt-8 h-full' : ''}`}
-                    onClick={() => {
-                      if (!detailedPathExpanded) {
-                        setDetailedPathExpanded(true);
-                        setQuickPathExpanded(false);
-                        // Scroll to the section after expansion animation
-                        setTimeout(() => {
-                          detailedPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 350);
-                      }
-                    }}
-                    data-testid="section-detailed-header"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-xl bg-accent/10 shrink-0">
-                          <FileBarChart className="w-7 h-7 text-accent" />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold">
-                            {language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis"}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge className="bg-accent/10 text-accent border-accent/20">
-                              5 {language === "fr" ? "jours" : "days"}
-                            </Badge>
-                            <Badge variant="outline" className="text-muted-foreground">
-                              ~95% {language === "fr" ? "précision" : "accuracy"}
-                            </Badge>
-                          </div>
-                          <p className="text-muted-foreground mt-1 min-h-[2.5rem]">
-                            {language === "fr" 
-                              ? "Requis pour recevoir une proposition — basé sur vos données réelles"
-                              : "Required for a proposal — based on your real data"
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      {!detailedPathExpanded && (
-                        <Button size="sm" variant="outline" className="shrink-0 gap-1 border-accent text-accent" data-testid="button-path-detailed">
-                          {language === "fr" ? "En savoir plus" : "Learn more"}
-                          <ArrowRight className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                    
-                    {/* Preview thumbnail when collapsed */}
-                    {!detailedPathExpanded && (
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="flex gap-4 items-center">
-                          <img 
-                            src={language === "fr" ? screenshotFinancialFr : screenshotFinancialEn} 
-                            alt={language === "fr" ? "Aperçu rapport" : "Report preview"}
-                            className="w-24 h-16 object-cover rounded-lg border shrink-0"
-                          />
-                          <div className="text-sm">
-                            <p className="font-medium text-muted-foreground">
-                              {language === "fr" ? "Vous obtiendrez:" : "You'll get:"}
-                            </p>
-                            <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                              <li className="flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                {language === "fr" ? "Profil de consommation annuel complet" : "Complete annual consumption profile"}
-                              </li>
-                              <li className="flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                {language === "fr" ? "Projections financières 25 ans" : "25-year financial projections"}
-                              </li>
-                              <li className="flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-green-500" />
-                                {language === "fr" ? "Rapport PDF professionnel" : "Professional PDF report"}
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Expanded content */}
-                  <AnimatePresence>
-                    {detailedPathExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <div className="border-t">
-                          <div className="grid lg:grid-cols-2 gap-0">
-                            {/* Left: What's included + Process */}
-                            <div className="p-6 bg-muted/30 space-y-6">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-semibold flex items-center gap-2">
-                                  <ClipboardCheck className="w-5 h-5 text-accent" />
-                                  {language === "fr" ? "Ce qui est inclus" : "What's included"}
-                                </h4>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => setDetailedPathExpanded(false)}
-                                  data-testid="button-collapse-detailed"
-                                >
-                                  <ChevronUp className="w-4 h-4 mr-1" />
-                                  {language === "fr" ? "Réduire" : "Collapse"}
-                                </Button>
-                              </div>
-                              
-                              <ul className="space-y-3 text-sm">
-                                <li className="flex items-start gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                  <span>{language === "fr" ? "Analyse heure par heure basée sur votre consommation réelle" : "Hour-by-hour analysis based on your real consumption"}</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                  <span>{language === "fr" ? "Dimensionnement optimal solaire + stockage" : "Optimal solar + storage sizing"}</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                  <span>{language === "fr" ? "Projections financières sur 25 ans (VAN, TRI, LCOE)" : "25-year financial projections (NPV, IRR, LCOE)"}</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                  <span>{language === "fr" ? "Comparaison des options de financement" : "Financing options comparison"}</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                  <span>{language === "fr" ? "Rapport PDF professionnel" : "Professional PDF report"}</span>
-                                </li>
-                              </ul>
-                              
-                              {/* Process timeline */}
-                              <div className="pt-4 border-t">
-                                <p className="text-sm font-medium mb-3">
-                                  {language === "fr" ? "Comment ça fonctionne" : "How it works"}
-                                </p>
-                                <div className="space-y-3">
-                                  {[
-                                    { step: 1, text: language === "fr" ? "Vous remplissez le formulaire" : "You fill out the form", icon: FileText },
-                                    { step: 2, text: language === "fr" ? "Vous signez la procuration Hydro-Québec" : "You sign the Hydro-Québec proxy", icon: FileSignature },
-                                    { step: 3, text: language === "fr" ? "Nous analysons vos données" : "We analyze your data", icon: BarChart3 },
-                                    { step: 4, text: language === "fr" ? "Vous recevez votre rapport" : "You receive your report", icon: FileCheck },
-                                  ].map((item) => (
-                                    <div key={item.step} className="flex items-center gap-3" data-testid={`step-detailed-${item.step}`}>
-                                      <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent">
-                                        {item.step}
-                                      </div>
-                                      <item.icon className="w-4 h-4 text-muted-foreground" />
-                                      <span className="text-sm">{item.text}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              {/* Preview carousel */}
-                              <div className="pt-4">
-                                <div className="relative aspect-video rounded-lg overflow-hidden border bg-card">
-                                  {analysisSlides.map((slide, index) => (
-                                    <div
-                                      key={slide.id}
-                                      className={`absolute inset-0 transition-opacity duration-500 ${
-                                        index === activeSlide ? "opacity-100" : "opacity-0"
-                                      }`}
-                                    >
-                                      <img 
-                                        src={slide.image} 
-                                        alt={slide.label}
-                                        className="w-full h-full object-contain bg-white"
-                                      />
-                                    </div>
-                                  ))}
-                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                                    <p className="text-white text-xs font-medium">
-                                      {analysisSlides[activeSlide]?.label}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex justify-center gap-1.5 mt-2">
-                                  {analysisSlides.map((slide, index) => (
-                                    <button
-                                      key={slide.id}
-                                      onClick={() => setActiveSlide(index)}
-                                      className={`w-2 h-2 rounded-full transition-colors ${
-                                        index === activeSlide ? "bg-accent" : "bg-muted-foreground/30"
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Right: CTA to dedicated page */}
-                            <div className="p-6 space-y-5 flex flex-col justify-start">
-                              <h4 className="font-semibold">
-                                {language === "fr" ? "Demander mon analyse" : "Request my analysis"}
-                              </h4>
-                              
-                              <div className="space-y-4">
-                                <p className="text-sm text-muted-foreground">
-                                  {language === "fr" 
-                                    ? "L'analyse détaillée nécessite la signature d'une procuration pour accéder à vos données Hydro-Québec. Notre formulaire sécurisé vous guide à travers les étapes."
-                                    : "The detailed analysis requires signing an authorization to access your Hydro-Québec data. Our secure form guides you through the steps."
-                                  }
-                                </p>
-                                
-                                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                    <span>{language === "fr" ? "Formulaire en 3 étapes simples" : "Simple 3-step form"}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                    <span>{language === "fr" ? "Signature électronique sécurisée" : "Secure electronic signature"}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                    <span>{language === "fr" ? "Téléversement de factures Hydro-Québec" : "Hydro-Québec bill upload"}</span>
-                                  </div>
-                                </div>
-                                
-                                <Link href="/analyse-detaillee">
-                                  <Button 
-                                    size="lg" 
-                                    className="w-full gap-2 bg-accent text-accent-foreground"
-                                    data-testid="button-go-to-detailed-form"
-                                    onClick={() => {
-                                      // Transfer parsed bill data to localStorage for use on detailed analysis page
-                                      if (calcBillParsed) {
-                                        localStorage.setItem('kwhquebec_bill_data', JSON.stringify({
-                                          accountNumber: calcBillParsed.accountNumber || null,
-                                          clientName: calcBillParsed.clientName || calcClientName || null,
-                                          serviceAddress: calcBillParsed.serviceAddress || calcAddress || null,
-                                          annualConsumptionKwh: calcBillParsed.annualConsumptionKwh || null,
-                                          tariffCode: calcBillParsed.tariffCode || null,
-                                          email: calcEmail || null,
-                                        }));
-                                      }
-                                    }}
-                                  >
-                                    {language === "fr" ? "Commencer ma demande" : "Start my request"}
-                                    <ArrowRight className="w-4 h-4" />
-                                  </Button>
-                                </Link>
-                                
-                                <p className="text-xs text-muted-foreground text-center">
-                                  {language === "fr" 
-                                    ? "Environ 5 minutes pour compléter"
-                                    : "About 5 minutes to complete"
-                                  }
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Card>
-            </motion.div>
           </div>
-          
-          {/* Collapsed state hint */}
-          {(quickPathExpanded || detailedPathExpanded) && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-4 text-center"
-            >
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setQuickPathExpanded(false);
-                  setDetailedPathExpanded(false);
-                }}
-                className="text-muted-foreground"
-                data-testid="button-view-both-options"
-              >
-                <ChevronUp className="w-4 h-4 mr-1" />
-                {language === "fr" ? "Voir les deux options" : "View both options"}
-              </Button>
-            </motion.div>
-          )}
         </div>
       </section>
 
@@ -1633,8 +604,8 @@ export default function LandingPage() {
             {/* Connection line - centered between icons and duration badges */}
             <div className="hidden md:block absolute top-[68px] left-0 right-0 h-0.5 bg-border z-0" />
             
-            <div className="grid md:grid-cols-5 gap-6 relative z-10">
-              {/* Step 1: Quick Analysis */}
+            <div className="grid md:grid-cols-4 gap-6 relative z-10">
+              {/* Step 1: Detailed Analysis */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1642,34 +613,6 @@ export default function LandingPage() {
                 transition={{ delay: 0 }}
                 className="text-center"
                 data-testid="process-step-1"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 border-4 border-background flex items-center justify-center mb-6">
-                    <Timer className="w-6 h-6 text-primary" />
-                  </div>
-                  <Badge className="mb-3 bg-primary/10 text-primary border-primary/20">
-                    2 min
-                  </Badge>
-                  <h3 className="font-semibold text-sm mb-1">
-                    {language === "fr" ? "Analyse RAPIDE" : "Quick Analysis"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "fr" 
-                      ? "Estimation satellite instantanée"
-                      : "Instant satellite estimate"
-                    }
-                  </p>
-                </div>
-              </motion.div>
-              
-              {/* Step 2: Detailed Analysis */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="text-center"
-                data-testid="process-step-2"
               >
                 <div className="flex flex-col items-center">
                   <div className="w-14 h-14 rounded-full bg-accent/10 border-4 border-background flex items-center justify-center mb-6">
@@ -1690,14 +633,14 @@ export default function LandingPage() {
                 </div>
               </motion.div>
               
-              {/* Step 3: Design */}
+              {/* Step 2: Design */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.1 }}
                 className="text-center"
-                data-testid="process-step-3"
+                data-testid="process-step-2"
               >
                 <div className="flex flex-col items-center">
                   <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
@@ -1718,14 +661,14 @@ export default function LandingPage() {
                 </div>
               </motion.div>
               
-              {/* Step 4: Construction */}
+              {/* Step 3: Construction */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.2 }}
                 className="text-center"
-                data-testid="process-step-4"
+                data-testid="process-step-3"
               >
                 <div className="flex flex-col items-center">
                   <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
@@ -1746,14 +689,14 @@ export default function LandingPage() {
                 </div>
               </motion.div>
               
-              {/* Step 5: O&M */}
+              {/* Step 4: O&M */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.3 }}
                 className="text-center"
-                data-testid="process-step-5"
+                data-testid="process-step-4"
               >
                 <div className="flex flex-col items-center">
                   <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
