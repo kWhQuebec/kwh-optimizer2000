@@ -10,7 +10,7 @@ import {
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, Wrench, HardHat,
   Rocket, BatteryCharging, BadgePercent, MapPin,
-  Sun, Battery, FileText, Hammer, Loader2,
+  Sun, Battery, FileText, Hammer, Loader2, FileCheck, ClipboardCheck, ChevronUp,
   Phone, Mail, Building, CalendarDays, User, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
