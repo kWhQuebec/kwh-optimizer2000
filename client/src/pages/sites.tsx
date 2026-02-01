@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -593,23 +593,17 @@ export default function SitesPage() {
     ? clients?.find(c => c.id === clientId)
     : null;
 
-  // Fetch procurations for the current client
-  const { data: procurations } = useQuery<ProcurationSignature[]>({
-    queryKey: [`/api/clients/${clientId}/procurations`],
-    enabled: !!clientId,
-  });
-
-  // Fetch HQ bills for the current client
-  type HQBill = {
+  // Fetch all documents (HQ bills + procurations) for the current client
+  type DocumentItem = {
     id: string;
-    source: 'lead' | 'site';
-    sourceId: string;
-    sourceName: string;
-    hqBillPath: string;
-    uploadedAt?: string | null;
+    type: 'hq_bill' | 'procuration';
+    name: string;
+    downloadPath: string;
+    uploadedAt: string | null;
+    metadata?: Record<string, string>;
   };
-  const { data: hqBills } = useQuery<HQBill[]>({
-    queryKey: [`/api/clients/${clientId}/hq-bills`],
+  const { data: documents } = useQuery<DocumentItem[]>({
+    queryKey: [`/api/clients/${clientId}/documents`],
     enabled: !!clientId,
   });
 
@@ -724,22 +718,22 @@ export default function SitesPage() {
         </div>
       )}
 
-      {/* Signed Procurations Section - only shown when viewing a specific client */}
-      {currentClient && procurations && procurations.length > 0 && (
+      {/* Unified Documents Section - HQ Bills + Procurations */}
+      {currentClient && documents && documents.length > 0 && (
         <Card>
           <Collapsible defaultOpen={true}>
             <CollapsibleTrigger asChild>
               <CardContent className="p-4 cursor-pointer hover-elevate flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
-                    <FileSignature className="w-5 h-5 text-green-600" />
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <FolderOpen className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold">
-                      {language === "fr" ? "Procurations signées" : "Signed Authorizations"}
+                      {language === "fr" ? "Documents" : "Documents"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {procurations.length} {language === "fr" ? "document(s)" : "document(s)"}
+                      {documents.length} {language === "fr" ? "document(s)" : "document(s)"}
                     </p>
                   </div>
                 </div>
@@ -748,110 +742,42 @@ export default function SitesPage() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="px-4 pb-4 space-y-2">
-                {procurations.map((proc) => (
+                {documents.map((doc) => (
                   <div 
-                    key={proc.id} 
+                    key={doc.id} 
                     className="flex items-center justify-between p-3 rounded-lg border bg-card"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <FileSignature className="w-4 h-4 text-muted-foreground shrink-0" />
+                      {doc.type === 'procuration' ? (
+                        <FileSignature className="w-4 h-4 text-green-600 shrink-0" />
+                      ) : (
+                        <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                      )}
                       <div className="min-w-0">
                         <p className="font-medium truncate">
-                          {proc.companyName || proc.signerName}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{proc.hqAccountNumber || (language === "fr" ? "N/A" : "N/A")}</span>
-                          {proc.signedAt && (
-                            <>
-                              <span>•</span>
-                              <Calendar className="w-3 h-3" />
-                              <span>
-                                {new Date(proc.signedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
-                                {" "}
-                                {new Date(proc.signedAt).toLocaleTimeString(language === "fr" ? "fr-CA" : "en-CA", { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        const referenceId = proc.clientId || proc.leadId;
-                        if (referenceId) {
-                          try {
-                            const filename = `procuration_${proc.companyName || 'document'}.pdf`;
-                            await downloadWithAuth(`/api/procurations/${referenceId}/download`, filename);
-                          } catch (error) {
-                            console.error('Download failed:', error);
-                          }
-                        }
-                      }}
-                      data-testid={`button-download-procuration-${proc.id}`}
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      PDF
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
-      )}
-
-      {/* HQ Bills Section - only shown when viewing a specific client */}
-      {currentClient && hqBills && hqBills.length > 0 && (
-        <Card>
-          <Collapsible defaultOpen={true}>
-            <CollapsibleTrigger asChild>
-              <CardContent className="p-4 cursor-pointer hover-elevate flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">
-                      {language === "fr" ? "Factures Hydro-Québec" : "Hydro-Québec Bills"}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {hqBills.length} {language === "fr" ? "document(s)" : "document(s)"}
-                    </p>
-                  </div>
-                </div>
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="px-4 pb-4 space-y-2">
-                {hqBills.map((bill) => (
-                  <div 
-                    key={bill.id} 
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {bill.sourceName}
+                          {doc.name}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Badge variant="secondary" className="text-xs">
-                            {bill.source === 'site' 
-                              ? (language === "fr" ? "Site" : "Site")
-                              : (language === "fr" ? "Prospect" : "Lead")
+                            {doc.type === 'procuration' 
+                              ? (language === "fr" ? "Procuration" : "Authorization")
+                              : (language === "fr" ? "Facture HQ" : "HQ Bill")
                             }
                           </Badge>
-                          {bill.uploadedAt && (
+                          {doc.metadata?.hqAccountNumber && (
+                            <>
+                              <span>•</span>
+                              <span>{doc.metadata.hqAccountNumber}</span>
+                            </>
+                          )}
+                          {doc.uploadedAt && (
                             <>
                               <span>•</span>
                               <Calendar className="w-3 h-3" />
                               <span>
-                                {new Date(bill.uploadedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
+                                {new Date(doc.uploadedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
                                 {" "}
-                                {new Date(bill.uploadedAt).toLocaleTimeString(language === "fr" ? "fr-CA" : "en-CA", { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(doc.uploadedAt).toLocaleTimeString(language === "fr" ? "fr-CA" : "en-CA", { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </>
                           )}
@@ -863,13 +789,18 @@ export default function SitesPage() {
                       size="sm"
                       onClick={async () => {
                         try {
-                          const filename = `facture_hq_${bill.sourceName || 'document'}.pdf`;
-                          await downloadWithAuth(`/api/hq-bills/download?path=${encodeURIComponent(bill.hqBillPath)}`, filename);
+                          if (doc.type === 'procuration') {
+                            const filename = `${doc.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+                            await downloadWithAuth(doc.downloadPath, filename);
+                          } else {
+                            const filename = doc.name;
+                            await downloadWithAuth(`/api/hq-bills/download?path=${encodeURIComponent(doc.downloadPath)}`, filename);
+                          }
                         } catch (error) {
                           console.error('Download failed:', error);
                         }
                       }}
-                      data-testid={`button-download-hq-bill-${bill.id}`}
+                      data-testid={`button-download-doc-${doc.id}`}
                     >
                       <Download className="w-4 h-4 mr-1" />
                       PDF

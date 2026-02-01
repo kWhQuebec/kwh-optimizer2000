@@ -224,6 +224,68 @@ router.get("/api/clients/:id/hq-bills", authMiddleware, requireStaff, asyncHandl
   res.json(bills);
 }));
 
+// Get all documents for a client (HQ bills from filesystem + procurations)
+router.get("/api/clients/:id/documents", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const clientId = req.params.id;
+  
+  interface DocumentItem {
+    id: string;
+    type: 'hq_bill' | 'procuration';
+    name: string;
+    downloadPath: string;
+    uploadedAt: string | null;
+    metadata?: Record<string, string>;
+  }
+  
+  const documents: DocumentItem[] = [];
+  
+  // 1. Scan uploads/bills/{clientId} folder for HQ bills
+  const billsDir = path.join(process.cwd(), 'uploads', 'bills', clientId);
+  if (fs.existsSync(billsDir)) {
+    const files = fs.readdirSync(billsDir);
+    for (const file of files) {
+      if (file.endsWith('.pdf') || file.endsWith('.PDF')) {
+        const filePath = path.join(billsDir, file);
+        const stats = fs.statSync(filePath);
+        documents.push({
+          id: `bill-${Buffer.from(file).toString('base64').replace(/[/+=]/g, '_')}`,
+          type: 'hq_bill',
+          name: file,
+          downloadPath: `uploads/bills/${clientId}/${file}`,
+          uploadedAt: stats.mtime.toISOString(),
+        });
+      }
+    }
+  }
+  
+  // 2. Get procurations from database
+  const procurations = await storage.getProcurationSignatures();
+  const clientProcurations = procurations.filter(p => p.clientId === clientId && p.status === 'signed');
+  
+  for (const proc of clientProcurations) {
+    documents.push({
+      id: `proc-${proc.id}`,
+      type: 'procuration',
+      name: `Procuration - ${proc.companyName || proc.signerName}`,
+      downloadPath: `/api/procurations/${clientId}/download`,
+      uploadedAt: proc.signedAt?.toISOString() || proc.createdAt?.toISOString() || null,
+      metadata: {
+        signerName: proc.signerName,
+        hqAccountNumber: proc.hqAccountNumber || '',
+      },
+    });
+  }
+  
+  // Sort by date (newest first)
+  documents.sort((a, b) => {
+    const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+    const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+    return dateB - dateA;
+  });
+  
+  res.json(documents);
+}));
+
 // Download HQ bill - the path is stored in the lead or site record
 router.get("/api/hq-bills/download", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const { path: billPath } = req.query;
