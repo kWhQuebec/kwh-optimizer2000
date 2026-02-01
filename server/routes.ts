@@ -200,7 +200,7 @@ export async function registerRoutes(
   });
   
   app.get("/assets/logo-en.png", (req, res) => {
-    const logoPath = path.resolve("attached_assets/kWh_Quebec_Logo_Black_Eng-01_1764778562808.png");
+    const logoPath = path.resolve("attached_assets/kwh_logo_color_en.png");
     if (fs.existsSync(logoPath)) {
       res.sendFile(logoPath);
     } else {
