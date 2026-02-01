@@ -628,9 +628,26 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
+    let firstBillPath: string | undefined;
     for (const file of files) {
       const destPath = path.join(uploadDir, file.originalname);
       fs.renameSync(file.path, destPath);
+      if (!firstBillPath) {
+        firstBillPath = destPath;
+      }
+    }
+    
+    // Save the HQ bill path to the lead record so it appears in the CRM
+    if (firstBillPath && lead) {
+      try {
+        await storage.updateLead(lead.id, { 
+          hqBillPath: firstBillPath,
+          hqBillUploadedAt: new Date()
+        });
+        console.log(`[Detailed Analysis] HQ bill path saved to lead: ${firstBillPath}`);
+      } catch (billError) {
+        console.error("[Detailed Analysis] Failed to save HQ bill path:", billError);
+      }
     }
 
     const signatureImage = req.body.signatureImage;
