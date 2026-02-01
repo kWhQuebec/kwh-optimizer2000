@@ -691,6 +691,8 @@ export const procurationSignatures = pgTable("procuration_signatures", {
   // Signer info
   signerName: text("signer_name").notNull(),
   signerEmail: text("signer_email").notNull(),
+  signerTitle: text("signer_title"), // Function/title of the signer
+  signatureCity: text("signature_city"), // City where signed
   companyName: text("company_name"),
   hqAccountNumber: text("hq_account_number"),
   

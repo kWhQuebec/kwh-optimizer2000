@@ -641,6 +641,8 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       await storage.createProcurationSignature({
         signerName: contactName,
         signerEmail: email,
+        signerTitle: req.body.signerTitle || null,
+        signatureCity: req.body.signatureCity || city || null,
         companyName: companyName,
         hqAccountNumber: hqClientNumber || null,
         leadId: lead?.id || null,

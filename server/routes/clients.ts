@@ -276,21 +276,21 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
     throw new NotFoundError("Procuration signature");
   }
   
-  // Try to get additional data from lead if available
-  let signerTitle = 'Représentant autorisé';
+  // Use values from the procuration record first, then fallback to leads/sites
+  let signerTitle = procuration.signerTitle || '';
   let streetAddress: string | undefined;
   let city: string | undefined;
-  let signatureCity = 'Montréal';
+  let signatureCity = procuration.signatureCity || '';
   
   // Try to get address from lead first, then by HQ account number, then from client's first site
   if (procuration.leadId) {
     const lead = await storage.getLead(procuration.leadId);
     if (lead) {
-      if (lead.decisionMakerTitle) signerTitle = lead.decisionMakerTitle;
+      if (!signerTitle && lead.decisionMakerTitle) signerTitle = lead.decisionMakerTitle;
       if (lead.streetAddress) streetAddress = lead.streetAddress;
       if (lead.city) {
         city = lead.city;
-        signatureCity = lead.city;
+        if (!signatureCity) signatureCity = lead.city;
       }
     }
   } 
@@ -307,9 +307,9 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
       if (matchingLead.streetAddress) streetAddress = matchingLead.streetAddress;
       if (matchingLead.city) {
         city = matchingLead.city;
-        signatureCity = matchingLead.city;
+        if (!signatureCity) signatureCity = matchingLead.city;
       }
-      if (matchingLead.decisionMakerTitle && signerTitle === 'Représentant autorisé') {
+      if (!signerTitle && matchingLead.decisionMakerTitle) {
         signerTitle = matchingLead.decisionMakerTitle;
       }
     }
@@ -323,7 +323,7 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
       if (site.address) streetAddress = site.address;
       if (site.city) {
         city = site.city;
-        signatureCity = site.city;
+        if (!signatureCity) signatureCity = site.city;
       }
     }
   }
@@ -337,10 +337,10 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
     signatureImage = `data:image/png;base64,${imageBuffer.toString('base64')}`;
   }
   
-  // Calculate dates
+  // Calculate dates - procuration valid for 30 days from signature
   const signedDate = procuration.signedAt ? new Date(procuration.signedAt) : new Date();
   const endDate = new Date(signedDate);
-  endDate.setFullYear(endDate.getFullYear() + 2);
+  endDate.setDate(endDate.getDate() + 30);
   
   // Import and generate fresh PDF with current template
   const { generateProcurationPDF } = await import("../procurationPdfGenerator");

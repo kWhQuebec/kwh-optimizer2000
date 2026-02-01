@@ -280,7 +280,9 @@ export function createProcurationData(
     ? new Date(formData.procurationDate) 
     : new Date();
   
-  const endDate = addBusinessDays(signatureDate, 15);
+  // Procuration valid for 30 calendar days from signature
+  const endDate = new Date(signatureDate);
+  endDate.setDate(endDate.getDate() + 30);
   
   return {
     hqAccountNumber: formData.hqAccountNumber,
