@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDropzone } from "react-dropzone";
 import { 
   Building2, Factory, School, HelpCircle, 
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, Wrench, HardHat,
   Rocket, BatteryCharging, BadgePercent, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ClipboardCheck, ChevronUp,
-  Phone, Mail, Building, CalendarDays, User, Info
+  Phone, Mail, Building, CalendarDays, User, Info, Upload, Sparkles, FileSignature
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -73,11 +74,35 @@ const leadFormSchema = z.object({
 
 type LeadFormValues = z.infer<typeof leadFormSchema>;
 
+interface HQBillData {
+  accountNumber: string | null;
+  clientName: string | null;
+  serviceAddress: string | null;
+  annualConsumptionKwh: number | null;
+  peakDemandKw: number | null;
+  tariffCode: string | null;
+  billingPeriod: string | null;
+  estimatedMonthlyBill: number | null;
+  confidence: number;
+}
+
+type FlowStep = 'upload' | 'parsing' | 'extracted' | 'quickForm' | 'quickResult' | 'manualEntry' | 'submitted';
+
 export default function LandingPage() {
   const { t, language } = useI18n();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+  
+  // Upload-first flow state
+  const [flowStep, setFlowStep] = useState<FlowStep>('upload');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [parsedBillData, setParsedBillData] = useState<HQBillData | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [quickEmail, setQuickEmail] = useState('');
+  const [manualKwh, setManualKwh] = useState('');
+  const [quickAnalysisResult, setQuickAnalysisResult] = useState<any>(null);
   
   
   const currentLogo = language === "fr" ? logoFr : logoEn;
@@ -147,6 +172,151 @@ export default function LandingPage() {
     { value: "other", label: t("form.buildingType.other"), icon: HelpCircle },
   ];
 
+  // Dropzone for bill upload
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+    
+    const file = acceptedFiles[0];
+    const isValidType = file.type === 'application/pdf' || file.type.startsWith('image/');
+    const isValidSize = file.size <= 10 * 1024 * 1024;
+    
+    if (!isValidType) {
+      setParseError(language === "fr" 
+        ? "Format invalide. Utilisez PDF ou image (JPG, PNG)." 
+        : "Invalid format. Use PDF or image (JPG, PNG).");
+      return;
+    }
+    if (!isValidSize) {
+      setParseError(language === "fr" 
+        ? "Fichier trop volumineux. Maximum 10 Mo." 
+        : "File too large. Maximum 10 MB.");
+      return;
+    }
+    
+    setUploadedFile(file);
+    setParseError(null);
+    setFlowStep('parsing');
+    
+    // Parse the bill with AI
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    fetch('/api/parse-hq-bill', {
+      method: 'POST',
+      body: formData,
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to parse bill');
+        return response.json();
+      })
+      .then(result => {
+        if (!result.success || !result.data) {
+          throw new Error('Failed to parse bill data');
+        }
+        setParsedBillData(result.data as HQBillData);
+        setFlowStep('extracted');
+      })
+      .catch(() => {
+        setFlowStep('upload');
+        setParseError(language === "fr" 
+          ? "Impossible d'analyser la facture. Réessayez ou entrez votre consommation manuellement."
+          : "Unable to analyze the bill. Try again or enter your consumption manually.");
+      });
+  }, [language]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    },
+    maxFiles: 1
+  });
+
+  // Quick analysis mutation
+  const quickAnalysisMutation = useMutation({
+    mutationFn: async (data: { email: string; annualKwh: number; clientName?: string; address?: string }) => {
+      const response = await fetch('/api/quick-estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          annualConsumptionKwh: data.annualKwh,
+          email: data.email,
+          clientName: data.clientName || '',
+          address: data.address || '',
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to get quick analysis');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setQuickAnalysisResult(data);
+      setFlowStep('quickResult');
+    },
+    onError: () => {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr" 
+          ? "Impossible de générer l'analyse. Veuillez réessayer."
+          : "Unable to generate analysis. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleQuickAnalysis = () => {
+    if (!quickEmail || !quickEmail.includes('@')) {
+      toast({
+        title: language === "fr" ? "Courriel requis" : "Email required",
+        description: language === "fr" 
+          ? "Veuillez entrer une adresse courriel valide."
+          : "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const annualKwh = parsedBillData?.annualConsumptionKwh || parseInt(manualKwh) || 0;
+    if (annualKwh < 1000) {
+      toast({
+        title: language === "fr" ? "Consommation invalide" : "Invalid consumption",
+        description: language === "fr" 
+          ? "La consommation annuelle doit être d'au moins 1,000 kWh."
+          : "Annual consumption must be at least 1,000 kWh.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    quickAnalysisMutation.mutate({
+      email: quickEmail,
+      annualKwh,
+      clientName: parsedBillData?.clientName || undefined,
+      address: parsedBillData?.serviceAddress || undefined,
+    });
+  };
+
+  const handleDetailedPath = () => {
+    // Store parsed data in localStorage for analyse-detaillee to pick up
+    if (parsedBillData) {
+      localStorage.setItem('kwhquebec_bill_data', JSON.stringify({
+        ...parsedBillData,
+        email: quickEmail,
+      }));
+    }
+    navigate('/analyse-detaillee');
+  };
+
+  const resetFlow = () => {
+    setFlowStep('upload');
+    setUploadedFile(null);
+    setParsedBillData(null);
+    setParseError(null);
+    setQuickEmail('');
+    setManualKwh('');
+    setQuickAnalysisResult(null);
+  };
+
   const seo = language === "fr" ? seoContent.home.fr : seoContent.home.en;
 
   return (
@@ -196,238 +366,424 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ========== HERO SECTION - SPLIT LAYOUT ========== */}
-      <section className="relative pt-24 pb-16 overflow-hidden">
+      {/* ========== HERO SECTION - UPLOAD FIRST ========== */}
+      <section className="relative pt-24 pb-8 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
         
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-5 gap-6 lg:gap-10 items-center">
-            {/* Left: Text content - narrower */}
-            <motion.div 
-              className="lg:col-span-2 space-y-4 text-center lg:text-left"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="space-y-1">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-[1.15]">
-                  <span className="font-bold">
-                    {language === "fr" ? "Panneaux solaires + stockage" : "Solar panels + storage"}
-                  </span>
-                  <br />
-                  <span className="font-normal">
-                    {language === "fr" ? "Commercial & Industriel" : "Commercial & Industrial"}
-                  </span>
-                  <br />
-                  <span className="font-normal">
-                    {language === "fr" ? "Partout au Québec" : "Across Quebec"}
-                  </span>
-                </h1>
-                <p className="text-lg sm:text-xl text-primary font-bold pt-2">
-                  {language === "fr" 
-                    ? "Incitatifs financiers jusqu'à 60% du projet." 
-                    : "Financial incentives up to 60% of the project."}
-                </p>
-              </div>
-
-              {/* Trust badges - stacked */}
-              <div className="flex flex-col gap-2 pt-2">
-                <div className="flex items-center gap-2 justify-center lg:justify-start" data-testid="badge-trust-certified">
-                  <Shield className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">{t("landing.trust.certified")}</span>
-                </div>
-                <div className="flex items-center gap-2 justify-center lg:justify-start" data-testid="badge-trust-experience">
-                  <Award className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">{t("landing.trust.experience")}</span>
-                </div>
-                <div className="flex items-center gap-2 justify-center lg:justify-start" data-testid="badge-trust-datadriven">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">{t("landing.trust.datadriven")}</span>
-                </div>
-              </div>
-              
-              </motion.div>
-            
-            {/* Right: Visual - wider */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="lg:col-span-3 space-y-3"
-            >
-              <div className="rounded-2xl overflow-hidden shadow-2xl border">
-                <img 
-                  src={language === "fr" ? heroOptimization : screenshotOptimizationEn} 
-                  alt={language === "fr" ? "Analyse d'optimisation" : "Optimization analysis"}
-                  className="w-full h-auto"
-                  data-testid="img-hero-analysis"
-                />
-              </div>
-              
-              {/* Blue box below image */}
-              <div className="bg-primary text-primary-foreground rounded-xl p-4 shadow-lg">
-                <p className="text-base font-semibold text-center">
-                  {language === "fr" 
-                    ? <>GRATUIT: design du système <span className="underline">le plus rentable</span> pour votre immeuble</> 
-                    : <>FREE: design of <span className="underline">the most profitable</span> system for your building</>}
-                </p>
-              </div>
-            </motion.div>
-          </div>
-          
-          </div>
-      </section>
-      
-      {/* CTA Button - Centered between Hero and Pathways */}
-      <div className="flex justify-center py-10">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <Link href="/analyse-detaillee">
-            <Button size="lg" className="gap-2 text-base px-8" data-testid="button-hero-cta">
-              {language === "fr" ? "Démarrer mon analyse gratuite" : "Start my free analysis"}
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
-        </motion.div>
-      </div>
-
-      {/* ========== SOLAR ANALYSIS SECTION ========== */}
-      <section id="paths" className="py-12 px-4 sm:px-6 lg:px-8 scroll-mt-24">
-        <div className="max-w-3xl mx-auto">
-          
-          {/* Single compelling CTA Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center space-y-6"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
-              <CardContent className="p-0">
-                <div className="grid md:grid-cols-2 gap-0">
-                  {/* Left side - Value proposition */}
-                  <div className="p-8 space-y-6">
-                    <div className="space-y-3">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-600 text-sm font-medium">
-                        <Zap className="w-4 h-4" />
-                        {language === "fr" ? "Propulsé par l'IA" : "AI-Powered"}
-                      </div>
-                      <h2 className="text-2xl sm:text-3xl font-bold leading-tight">
-                        {language === "fr" 
-                          ? <>Téléversez votre facture,<br/><span className="text-primary">on fait le reste</span></>
-                          : <>Upload your bill,<br/><span className="text-primary">we'll do the rest</span></>
-                        }
-                      </h2>
-                      <p className="text-muted-foreground">
-                        {language === "fr" 
-                          ? "Notre IA analyse votre facture Hydro-Québec et remplit automatiquement le formulaire. Obtenez votre rapport personnalisé en quelques clics."
-                          : "Our AI analyzes your Hydro-Québec bill and automatically fills out the form. Get your personalized report in just a few clicks."
-                        }
-                      </p>
-                    </div>
-                    
-                    {/* Simple 4-icon grid for what's included */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="p-1.5 rounded-lg bg-primary/10">
-                          <Sun className="w-4 h-4 text-primary" />
+            {/* Headline */}
+            <div className="space-y-2">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+                {language === "fr" 
+                  ? "Obtenez votre analyse solaire gratuite" 
+                  : "Get your free solar analysis"}
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                {language === "fr" 
+                  ? "Commercial & Industriel • Incitatifs jusqu'à 60%" 
+                  : "Commercial & Industrial • Incentives up to 60%"}
+              </p>
+            </div>
+
+            {/* Main Flow Card */}
+            <Card className="max-w-2xl mx-auto border-2 border-primary/20 shadow-xl">
+              <CardContent className="p-6 sm:p-8">
+                <AnimatePresence mode="wait">
+                  {/* Step 1: Upload */}
+                  {flowStep === 'upload' && (
+                    <motion.div
+                      key="upload"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-4"
+                    >
+                      <div className="space-y-2 text-center">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-600 text-sm font-medium">
+                          <Sparkles className="w-4 h-4" />
+                          {language === "fr" ? "Propulsé par l'IA" : "AI-Powered"}
                         </div>
-                        <span>{language === "fr" ? "Design optimal" : "Optimal design"}</span>
+                        <h2 className="text-xl sm:text-2xl font-semibold">
+                          {language === "fr" 
+                            ? "Téléversez votre facture Hydro-Québec" 
+                            : "Upload your Hydro-Québec bill"}
+                        </h2>
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="p-1.5 rounded-lg bg-primary/10">
-                          <DollarSign className="w-4 h-4 text-primary" />
-                        </div>
-                        <span>{language === "fr" ? "Économies 25 ans" : "25-year savings"}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="p-1.5 rounded-lg bg-primary/10">
-                          <BarChart3 className="w-4 h-4 text-primary" />
-                        </div>
-                        <span>{language === "fr" ? "Incitatifs inclus" : "Incentives included"}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="p-1.5 rounded-lg bg-primary/10">
-                          <FileText className="w-4 h-4 text-primary" />
-                        </div>
-                        <span>{language === "fr" ? "Rapport PDF" : "PDF report"}</span>
-                      </div>
-                    </div>
-                    
-                    {/* CTA Button */}
-                    <div className="pt-2">
-                      <Link href="/analyse-detaillee">
-                        <Button 
-                          size="lg" 
-                          className="w-full gap-2 text-base"
-                          data-testid="button-path-detailed"
-                        >
-                          {language === "fr" ? "Commencer mon analyse gratuite" : "Start my free analysis"}
-                          <ArrowRight className="w-5 h-5" />
-                        </Button>
-                      </Link>
-                      <p className="text-xs text-muted-foreground text-center mt-3">
-                        {language === "fr" 
-                          ? "Gratuit • Sans engagement • 2 minutes"
-                          : "Free • No commitment • 2 minutes"
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Right side - Visual/Preview */}
-                  <div className="bg-muted/30 p-6 flex flex-col justify-center border-l">
-                    <div className="space-y-4">
-                      {/* Animated preview carousel */}
-                      <div className="relative aspect-[4/3] rounded-xl overflow-hidden border bg-card shadow-lg">
-                        {analysisSlides.map((slide, index) => (
-                          <div
-                            key={slide.id}
-                            className={`absolute inset-0 transition-opacity duration-500 ${
-                              index === activeSlide ? "opacity-100" : "opacity-0"
-                            }`}
-                          >
-                            <img 
-                              src={slide.image} 
-                              alt={slide.label}
-                              className="w-full h-full object-contain bg-white"
-                            />
+                      
+                      {/* Dropzone */}
+                      <div
+                        {...getRootProps()}
+                        data-testid="dropzone-bill"
+                        className={`border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${
+                          isDragActive 
+                            ? "border-primary bg-primary/5" 
+                            : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
+                        }`}
+                      >
+                        <input {...getInputProps()} />
+                        <div className="flex flex-col items-center gap-3 text-center">
+                          <div className="p-4 rounded-full bg-primary/10">
+                            <Upload className="w-8 h-8 text-primary" />
                           </div>
-                        ))}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                          <p className="text-white text-sm font-medium">
-                            {analysisSlides[activeSlide]?.label}
+                          <div>
+                            <p className="font-medium">
+                              {isDragActive 
+                                ? (language === "fr" ? "Déposez ici..." : "Drop here...")
+                                : (language === "fr" ? "Glissez votre facture ici" : "Drag your bill here")}
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {language === "fr" ? "ou cliquez pour sélectionner" : "or click to select"}
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            PDF, JPG, PNG • Max 10 Mo
                           </p>
                         </div>
                       </div>
                       
-                      {/* Dots */}
-                      <div className="flex justify-center gap-1.5">
-                        {analysisSlides.map((slide, index) => (
-                          <button
-                            key={slide.id}
-                            onClick={() => setActiveSlide(index)}
-                            className={`w-2 h-2 rounded-full transition-colors ${
-                              index === activeSlide ? "bg-primary" : "bg-muted-foreground/30"
-                            }`}
-                            data-testid={`carousel-dot-${index}`}
-                          />
-                        ))}
+                      {parseError && (
+                        <p className="text-sm text-destructive text-center">{parseError}</p>
+                      )}
+                      
+                      {/* Manual entry fallback */}
+                      <div className="text-center pt-2">
+                        <button
+                          onClick={() => setFlowStep('manualEntry')}
+                          className="text-sm text-muted-foreground hover:text-primary underline"
+                          data-testid="link-manual-entry"
+                        >
+                          {language === "fr" 
+                            ? "Pas de facture? Entrez votre consommation" 
+                            : "No bill? Enter your consumption"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 1b: Parsing */}
+                  {flowStep === 'parsing' && (
+                    <motion.div
+                      key="parsing"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="py-12 text-center space-y-4"
+                    >
+                      <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+                      <div>
+                        <p className="font-medium">
+                          {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {language === "fr" 
+                            ? "Notre IA lit votre facture" 
+                            : "Our AI is reading your bill"}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 2: Extracted - Show data + two paths */}
+                  {flowStep === 'extracted' && parsedBillData && (
+                    <motion.div
+                      key="extracted"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-6"
+                    >
+                      {/* Success header */}
+                      <div className="text-center space-y-2">
+                        <div className="inline-flex items-center gap-2 text-green-600">
+                          <CheckCircle2 className="w-5 h-5" />
+                          <span className="font-medium">
+                            {language === "fr" ? "Facture analysée!" : "Bill analyzed!"}
+                          </span>
+                        </div>
                       </div>
                       
-                      {/* Trust indicator */}
-                      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                        <Shield className="w-3.5 h-3.5" />
-                        <span>{language === "fr" ? "Données sécurisées et confidentielles" : "Secure and confidential data"}</span>
+                      {/* Extracted data preview */}
+                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                        {parsedBillData.clientName && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">{language === "fr" ? "Client" : "Client"}</span>
+                            <span className="font-medium">{parsedBillData.clientName}</span>
+                          </div>
+                        )}
+                        {parsedBillData.serviceAddress && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">{language === "fr" ? "Adresse" : "Address"}</span>
+                            <span className="font-medium truncate max-w-[200px]">{parsedBillData.serviceAddress}</span>
+                          </div>
+                        )}
+                        {parsedBillData.annualConsumptionKwh && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">{language === "fr" ? "Consommation" : "Consumption"}</span>
+                            <span className="font-medium text-primary">{parsedBillData.annualConsumptionKwh.toLocaleString()} kWh/an</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </div>
+                      
+                      {/* Two path choice */}
+                      <div className="space-y-3">
+                        <p className="text-center font-medium">
+                          {language === "fr" ? "Choisissez votre analyse:" : "Choose your analysis:"}
+                        </p>
+                        
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          {/* Quick path */}
+                          <button
+                            onClick={() => setFlowStep('quickForm')}
+                            className="p-4 border-2 rounded-xl text-left hover:border-primary/50 hover:bg-muted/30 transition-all group"
+                            data-testid="button-quick-path"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+                                <Zap className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="font-semibold group-hover:text-primary">
+                                  {language === "fr" ? "Estimation rapide" : "Quick Estimate"}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {language === "fr" ? "2 min • Courriel seulement" : "2 min • Email only"}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                          
+                          {/* Detailed path */}
+                          <button
+                            onClick={handleDetailedPath}
+                            className="p-4 border-2 border-primary/30 bg-primary/5 rounded-xl text-left hover:border-primary hover:bg-primary/10 transition-all group"
+                            data-testid="button-detailed-path"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                <FileSignature className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-primary">
+                                  {language === "fr" ? "Analyse complète" : "Complete Analysis"}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {language === "fr" ? "5 jours • Avec procuration" : "5 days • With authorization"}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Reset link */}
+                      <div className="text-center">
+                        <button onClick={resetFlow} className="text-xs text-muted-foreground hover:underline">
+                          {language === "fr" ? "← Recommencer" : "← Start over"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 3a: Quick form - just email */}
+                  {flowStep === 'quickForm' && (
+                    <motion.div
+                      key="quickForm"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-4"
+                    >
+                      <div className="text-center space-y-1">
+                        <h3 className="text-lg font-semibold">
+                          {language === "fr" ? "Recevez votre estimation" : "Get your estimate"}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {language === "fr" 
+                            ? "Entrez votre courriel pour recevoir les résultats" 
+                            : "Enter your email to receive the results"}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <Input
+                          type="email"
+                          placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
+                          value={quickEmail}
+                          onChange={(e) => setQuickEmail(e.target.value)}
+                          className="text-center"
+                          data-testid="input-quick-email"
+                        />
+                        <Button 
+                          onClick={handleQuickAnalysis}
+                          disabled={quickAnalysisMutation.isPending}
+                          className="w-full gap-2"
+                          data-testid="button-submit-quick"
+                        >
+                          {quickAnalysisMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ArrowRight className="w-4 h-4" />
+                          )}
+                          {language === "fr" ? "Voir mon estimation" : "See my estimate"}
+                        </Button>
+                      </div>
+                      
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <button onClick={() => setFlowStep('extracted')} className="hover:underline">
+                          ← {language === "fr" ? "Retour" : "Back"}
+                        </button>
+                        <button onClick={handleDetailedPath} className="hover:underline text-primary">
+                          {language === "fr" ? "Analyse complète →" : "Complete analysis →"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 3b: Quick results */}
+                  {flowStep === 'quickResult' && quickAnalysisResult && (
+                    <motion.div
+                      key="quickResult"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-4"
+                    >
+                      <div className="text-center space-y-2">
+                        <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
+                        <h3 className="text-lg font-semibold">
+                          {language === "fr" ? "Votre estimation est prête!" : "Your estimate is ready!"}
+                        </h3>
+                      </div>
+                      
+                      {quickAnalysisResult.recommendedScenario && (
+                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2">
+                          <p className="text-sm text-muted-foreground text-center">
+                            {language === "fr" ? "Configuration recommandée" : "Recommended configuration"}
+                          </p>
+                          <p className="text-2xl font-bold text-center text-primary">
+                            {quickAnalysisResult.recommendedScenario.systemSizeKw?.toFixed(0) || '—'} kWc
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="text-center">
+                              <p className="text-muted-foreground">{language === "fr" ? "Économies/an" : "Savings/yr"}</p>
+                              <p className="font-semibold">${(quickAnalysisResult.recommendedScenario.annualSavings || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-muted-foreground">{language === "fr" ? "Retour" : "Payback"}</p>
+                              <p className="font-semibold">{quickAnalysisResult.recommendedScenario.simplePaybackYears?.toFixed(1) || '—'} {language === "fr" ? "ans" : "yrs"}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <p className="text-sm text-muted-foreground text-center">
+                        {language === "fr" 
+                          ? "Résultats envoyés à votre courriel" 
+                          : "Results sent to your email"}
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <Button onClick={handleDetailedPath} className="w-full gap-2" data-testid="button-upgrade-detailed">
+                          <FileSignature className="w-4 h-4" />
+                          {language === "fr" ? "Obtenir l'analyse complète" : "Get the complete analysis"}
+                        </Button>
+                        <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
+                          {language === "fr" ? "Nouvelle analyse" : "New analysis"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Manual entry */}
+                  {flowStep === 'manualEntry' && (
+                    <motion.div
+                      key="manualEntry"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-4"
+                    >
+                      <div className="text-center space-y-1">
+                        <h3 className="text-lg font-semibold">
+                          {language === "fr" ? "Entrez votre consommation" : "Enter your consumption"}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {language === "fr" 
+                            ? "Trouvez cette info sur votre facture Hydro-Québec" 
+                            : "Find this on your Hydro-Québec bill"}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm text-muted-foreground">
+                            {language === "fr" ? "Consommation annuelle (kWh)" : "Annual consumption (kWh)"}
+                          </label>
+                          <Input
+                            type="number"
+                            placeholder="ex: 150000"
+                            value={manualKwh}
+                            onChange={(e) => setManualKwh(e.target.value)}
+                            className="text-center text-lg"
+                            data-testid="input-manual-kwh"
+                          />
+                        </div>
+                        <Input
+                          type="email"
+                          placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
+                          value={quickEmail}
+                          onChange={(e) => setQuickEmail(e.target.value)}
+                          className="text-center"
+                          data-testid="input-manual-email"
+                        />
+                        <Button 
+                          onClick={handleQuickAnalysis}
+                          disabled={quickAnalysisMutation.isPending || !manualKwh}
+                          className="w-full gap-2"
+                          data-testid="button-submit-manual"
+                        >
+                          {quickAnalysisMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ArrowRight className="w-4 h-4" />
+                          )}
+                          {language === "fr" ? "Obtenir mon estimation" : "Get my estimate"}
+                        </Button>
+                      </div>
+                      
+                      <div className="text-center">
+                        <button onClick={() => setFlowStep('upload')} className="text-sm text-muted-foreground hover:underline">
+                          ← {language === "fr" ? "Téléverser une facture" : "Upload a bill"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </CardContent>
             </Card>
+            
+            {/* Trust badges below card */}
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-primary" />
+                <span>{language === "fr" ? "Données sécurisées" : "Secure data"}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-primary" />
+                <span>{language === "fr" ? "20+ ans d'expérience" : "20+ years experience"}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span>{language === "fr" ? "100% gratuit" : "100% free"}</span>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
