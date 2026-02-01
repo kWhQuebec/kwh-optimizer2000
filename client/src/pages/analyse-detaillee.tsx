@@ -1227,7 +1227,6 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   </p>
                                 </motion.div>
                               )}
-                            </div>
 
                             <div className="flex flex-col gap-3 pt-4">
                               <Button 
