@@ -329,7 +329,7 @@ export default function LandingPage() {
         locale={language}
       />
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-background backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
             <Link href="/">
@@ -399,7 +399,7 @@ export default function LandingPage() {
                 : "Across Quebec"}
             </p>
             
-            <p className="text-xl text-primary font-semibold mb-8" data-testid="hero-value-prop">
+            <p className="text-xl text-yellow-400 font-semibold mb-8" data-testid="hero-value-prop">
               {language === "fr" 
                 ? "Incitatifs financiers jusqu'à 60% du projet." 
                 : "Financial incentives up to 60% of project."}
@@ -439,26 +439,20 @@ export default function LandingPage() {
               <img 
                 src={dreamIndustrialLogo} 
                 alt="Dream Industrial" 
-                className="h-10 sm:h-12 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                className="h-8 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 data-testid="logo-dream-industrial"
               />
               <img 
                 src={labSpaceLogo} 
                 alt="LabSpace" 
-                className="h-8 sm:h-10 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                className="h-8 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 data-testid="logo-labspace"
               />
               <img 
                 src={scaleCleantechLogo} 
                 alt="Scale Cleantech" 
-                className="h-8 sm:h-10 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                className="h-8 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 data-testid="logo-scale-cleantech"
-              />
-              <img 
-                src={hqLogo} 
-                alt="Hydro-Québec" 
-                className="h-8 sm:h-10 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
-                data-testid="logo-hydro-quebec"
               />
             </div>
           </motion.div>
