@@ -1,5 +1,6 @@
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Sun, MapPin, Zap, Building2, ArrowRight } from "lucide-react";
+import { Sun, MapPin, Zap, Building2, ArrowRight, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,18 +20,59 @@ interface PortfolioSite {
   visualization_url: string | null;
 }
 
+const ITEMS_PER_PAGE = 6;
 
+function LazyImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imgRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100px" }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={imgRef} className="w-full h-full relative">
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
+          <Building2 className="w-8 h-8 text-muted-foreground/50" />
+        </div>
+      )}
+      {isInView && (
+        <img
+          src={src}
+          alt={alt}
+          className={`${className} ${isLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+          onLoad={() => setIsLoaded(true)}
+        />
+      )}
+    </div>
+  );
+}
 
 function ProjectCard({ site }: { site: PortfolioSite }) {
   const { language } = useI18n();
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   
-  // Use visualization URL (with roof polygons) if available, otherwise fall back to plain satellite
-  // Note: visualization_url from API does not contain API key for security - we add it here
+  // Use smaller image size for faster loading (300x225 instead of 400x300)
   const imageUrl = apiKey 
     ? (site.visualization_url 
-        ? `${site.visualization_url}&key=${apiKey}` 
-        : `https://maps.googleapis.com/maps/api/staticmap?center=${site.latitude},${site.longitude}&zoom=19&size=400x300&maptype=satellite&key=${apiKey}`)
+        ? `${site.visualization_url}&key=${apiKey}&size=300x225` 
+        : `https://maps.googleapis.com/maps/api/staticmap?center=${site.latitude},${site.longitude}&zoom=19&size=300x225&maptype=satellite&key=${apiKey}`)
     : null;
 
   const hasSystemSize = site.kb_kw_dc != null && site.kb_kw_dc > 0;
@@ -39,11 +81,10 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
     <Card className="overflow-hidden hover-elevate transition-all" data-testid={`card-project-${site.id}`}>
       <div className="aspect-[4/3] relative bg-muted">
         {imageUrl ? (
-          <img 
+          <LazyImage 
             src={imageUrl} 
             alt={`${language === "fr" ? "Vue satellite" : "Satellite view"} - ${site.city}`}
             className="w-full h-full object-cover"
-            loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -109,8 +150,14 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
   );
 }
 
-function PortfolioGrid({ sites }: { sites: PortfolioSite[] }) {
+function PortfolioGrid({ sites, visibleCount, onLoadMore }: { 
+  sites: PortfolioSite[]; 
+  visibleCount: number;
+  onLoadMore: () => void;
+}) {
   const { language } = useI18n();
+  const visibleSites = sites.slice(0, visibleCount);
+  const hasMore = visibleCount < sites.length;
 
   if (sites.length === 0) {
     return (
@@ -124,10 +171,29 @@ function PortfolioGrid({ sites }: { sites: PortfolioSite[] }) {
   }
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {sites.map((site) => (
-        <ProjectCard key={site.id} site={site} />
-      ))}
+    <div className="space-y-8">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {visibleSites.map((site) => (
+          <ProjectCard key={site.id} site={site} />
+        ))}
+      </div>
+      
+      {hasMore && (
+        <div className="text-center">
+          <Button 
+            variant="outline" 
+            size="lg" 
+            onClick={onLoadMore}
+            className="gap-2"
+            data-testid="button-load-more"
+          >
+            <ChevronDown className="w-4 h-4" />
+            {language === "fr" 
+              ? `Voir plus (${sites.length - visibleCount} restants)` 
+              : `Load more (${sites.length - visibleCount} remaining)`}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -153,10 +219,15 @@ function LoadingSkeleton() {
 
 export default function Portfolio() {
   const { language } = useI18n();
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   
   const { data: sites, isLoading, error } = useQuery<PortfolioSite[]>({
     queryKey: ["/api/public/portfolio"],
   });
+
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+  };
 
   const totalCapacity = sites?.reduce((sum, site) => sum + (site.kb_kw_dc || 0), 0) || 0;
   const projectCount = sites?.length || 0;
@@ -219,7 +290,11 @@ export default function Portfolio() {
                 </p>
               </div>
             ) : (
-              <PortfolioGrid sites={sites || []} />
+              <PortfolioGrid 
+                sites={sites || []} 
+                visibleCount={visibleCount}
+                onLoadMore={handleLoadMore}
+              />
             )}
           </div>
         </section>
