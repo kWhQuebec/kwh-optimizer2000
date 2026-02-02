@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SEOHead, seoContent, getLocalBusinessSchema } from "@/components/seo-head";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
-import installationPhoto from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
+import installationPhoto from "@assets/hero-optimized.jpg";
 import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
 import consumptionAnalysis from "@assets/generated_images/consumption_analysis_hq_branded.png";
 import heroRoofAnalysis from "@assets/generated_images/industrial_roof_solar_potential_overlay.png";
