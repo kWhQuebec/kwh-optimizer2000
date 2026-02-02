@@ -435,23 +435,23 @@ export default function LandingPage() {
             <p className="text-sm text-white/50 mb-4">
               {language === "fr" ? "Ils nous font confiance" : "They trust us"}
             </p>
-            <div className="flex flex-wrap items-center gap-12" data-testid="hero-partner-logos">
+            <div className="flex flex-wrap items-center gap-10" data-testid="hero-partner-logos">
               <img 
                 src={dreamIndustrialLogo} 
                 alt="Dream Industrial" 
-                className="h-6 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                className="h-auto w-24 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 data-testid="logo-dream-industrial"
               />
               <img 
                 src={labSpaceLogo} 
                 alt="LabSpace" 
-                className="h-6 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                className="h-auto w-28 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 data-testid="logo-labspace"
               />
               <img 
                 src={scaleCleantechLogo} 
                 alt="Scale Cleantech" 
-                className="h-6 w-auto opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                className="h-auto w-28 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 data-testid="logo-scale-cleantech"
               />
             </div>
