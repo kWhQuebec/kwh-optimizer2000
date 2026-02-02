@@ -5,7 +5,7 @@ import fs from "fs";
 import { authMiddleware, requireStaff, type AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertLeadSchema } from "@shared/schema";
-import { sendQuickAnalysisEmail, sendProcurationCompletedNotification } from "../emailService";
+import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLeadNotification } from "../emailService";
 import { sendEmail } from "../gmail";
 import * as googleSolar from "../googleSolarService";
 import { generateProcurationPDF, createProcurationData } from "../procurationPdfGenerator";
@@ -484,6 +484,28 @@ router.post("/api/quick-estimate", async (req, res) => {
         ownerId: null,
       });
       console.log(`[Quick Estimate] Created lead ${lead.id}, client ${client.id}, site ${site.id}, and opportunity for: ${companyName}`);
+      
+      // Send notification to Account Manager about new lead (only if email was provided - real lead)
+      if (email && typeof email === "string" && email.includes("@")) {
+        sendNewLeadNotification(
+          'malabarre@kwh.quebec',
+          {
+            companyName,
+            contactName,
+            email,
+            address: address || undefined,
+            annualConsumptionKWh: annualKWh,
+            estimatedMonthlyBill: estimatedMonthlyBill || undefined,
+            buildingType: buildingType || undefined,
+            formType: 'quick_estimate',
+            roofAgeYears: roofAgeYears || undefined,
+            ownershipType: ownershipType || undefined,
+          },
+          'fr'
+        ).catch(err => {
+          console.error("[Quick Estimate] Failed to send manager notification:", err);
+        });
+      }
     } catch (leadErr) {
       console.error("[Quick Estimate] Lead creation failed (non-blocking):", leadErr);
       // Continue - lead creation failure should not block the estimate response

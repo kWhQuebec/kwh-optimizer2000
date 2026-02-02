@@ -331,6 +331,177 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
 </html>`;
 }
 
+// Notification to Account Manager when a new lead submits a form (Quick Estimate or Detailed Analysis)
+export async function sendNewLeadNotification(
+  accountManagerEmail: string,
+  leadData: {
+    companyName: string;
+    contactName: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    annualConsumptionKWh?: number;
+    estimatedMonthlyBill?: number;
+    buildingType?: string;
+    formType: 'quick_estimate' | 'detailed_analysis';
+    roofAgeYears?: number;
+    ownershipType?: string;
+  },
+  language: 'fr' | 'en' = 'fr'
+): Promise<{ success: boolean; error?: string }> {
+  const formLabel = language === 'fr' 
+    ? (leadData.formType === 'quick_estimate' ? 'Estimation Rapide' : 'Analyse Détaillée')
+    : (leadData.formType === 'quick_estimate' ? 'Quick Estimate' : 'Detailed Analysis');
+  
+  const subject = language === 'fr'
+    ? `Nouveau lead - ${leadData.companyName} (${formLabel})`
+    : `New Lead - ${leadData.companyName} (${formLabel})`;
+  
+  const ownerLabel = leadData.ownershipType === 'owner' 
+    ? (language === 'fr' ? 'Propriétaire' : 'Owner')
+    : leadData.ownershipType === 'tenant' 
+      ? (language === 'fr' ? 'Locataire' : 'Tenant')
+      : (language === 'fr' ? 'Non spécifié' : 'Not specified');
+  
+  const roofAgeLabel = leadData.roofAgeYears 
+    ? (leadData.roofAgeYears <= 5 ? (language === 'fr' ? '< 5 ans' : '< 5 years')
+      : leadData.roofAgeYears <= 10 ? '5-10 ' + (language === 'fr' ? 'ans' : 'years')
+      : leadData.roofAgeYears <= 15 ? '10-15 ' + (language === 'fr' ? 'ans' : 'years')
+      : leadData.roofAgeYears <= 20 ? '15-20 ' + (language === 'fr' ? 'ans' : 'years')
+      : '> 20 ' + (language === 'fr' ? 'ans' : 'years'))
+    : (language === 'fr' ? 'Non spécifié' : 'Not specified');
+  
+  const htmlBody = `
+<!DOCTYPE html>
+<html lang="${language}">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #0052CC 100%); color: white; padding: 20px 25px; }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+    .header .badge { display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; margin-top: 8px; }
+    .content { padding: 25px; }
+    .section { margin-bottom: 15px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .info-item { background: #f8f9fa; padding: 10px 12px; border-radius: 6px; border-left: 3px solid #003DA6; }
+    .info-item.full-width { grid-column: span 2; }
+    .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+    .value { font-size: 14px; color: #1a1a1a; font-weight: 500; }
+    .highlight { border-left-color: #22c55e; background: #f0fdf4; }
+    .warning { border-left-color: #f59e0b; background: #fffbeb; }
+    .footer { background: #f8f9fa; padding: 12px 25px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #e5e7eb; }
+    .logo { font-weight: 700; color: #003DA6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${language === 'fr' ? 'Nouveau Lead' : 'New Lead'}</h1>
+      <span class="badge">${formLabel}</span>
+    </div>
+    
+    <div class="content">
+      <div class="section">
+        <div class="info-grid">
+          <div class="info-item full-width highlight">
+            <div class="label">${language === 'fr' ? 'Entreprise / Contact' : 'Company / Contact'}</div>
+            <div class="value">${leadData.companyName}</div>
+          </div>
+          ${leadData.email ? `
+          <div class="info-item">
+            <div class="label">${language === 'fr' ? 'Courriel' : 'Email'}</div>
+            <div class="value">${leadData.email}</div>
+          </div>
+          ` : ''}
+          ${leadData.phone ? `
+          <div class="info-item">
+            <div class="label">${language === 'fr' ? 'Téléphone' : 'Phone'}</div>
+            <div class="value">${leadData.phone}</div>
+          </div>
+          ` : ''}
+          ${leadData.address ? `
+          <div class="info-item full-width">
+            <div class="label">${language === 'fr' ? 'Adresse' : 'Address'}</div>
+            <div class="value">${leadData.address}</div>
+          </div>
+          ` : ''}
+          ${leadData.annualConsumptionKWh ? `
+          <div class="info-item">
+            <div class="label">${language === 'fr' ? 'Consommation annuelle' : 'Annual Consumption'}</div>
+            <div class="value">${Math.round(leadData.annualConsumptionKWh).toLocaleString()} kWh</div>
+          </div>
+          ` : ''}
+          ${leadData.estimatedMonthlyBill ? `
+          <div class="info-item">
+            <div class="label">${language === 'fr' ? 'Facture mensuelle' : 'Monthly Bill'}</div>
+            <div class="value">$${leadData.estimatedMonthlyBill.toFixed(2)}</div>
+          </div>
+          ` : ''}
+          <div class="info-item ${leadData.ownershipType === 'owner' ? 'highlight' : leadData.ownershipType === 'tenant' ? 'warning' : ''}">
+            <div class="label">${language === 'fr' ? 'Propriétaire?' : 'Owner?'}</div>
+            <div class="value">${ownerLabel}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">${language === 'fr' ? 'Âge toiture' : 'Roof Age'}</div>
+            <div class="value">${roofAgeLabel}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <span class="logo">kWh Québec</span> | 514.427.8871 | info@kwh.quebec
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textBody = language === 'fr'
+    ? `NOUVEAU LEAD - ${formLabel}
+
+Entreprise: ${leadData.companyName}
+${leadData.email ? `Courriel: ${leadData.email}` : ''}
+${leadData.phone ? `Téléphone: ${leadData.phone}` : ''}
+${leadData.address ? `Adresse: ${leadData.address}` : ''}
+${leadData.annualConsumptionKWh ? `Consommation: ${Math.round(leadData.annualConsumptionKWh).toLocaleString()} kWh/an` : ''}
+Propriétaire: ${ownerLabel}
+Âge toiture: ${roofAgeLabel}
+
+---
+kWh Québec | 514.427.8871 | info@kwh.quebec`
+    : `NEW LEAD - ${formLabel}
+
+Company: ${leadData.companyName}
+${leadData.email ? `Email: ${leadData.email}` : ''}
+${leadData.phone ? `Phone: ${leadData.phone}` : ''}
+${leadData.address ? `Address: ${leadData.address}` : ''}
+${leadData.annualConsumptionKWh ? `Consumption: ${Math.round(leadData.annualConsumptionKWh).toLocaleString()} kWh/year` : ''}
+Owner: ${ownerLabel}
+Roof Age: ${roofAgeLabel}
+
+---
+kWh Québec | 514.427.8871 | info@kwh.quebec`;
+
+  console.log(`[EmailService] Sending new lead notification to ${accountManagerEmail} for ${leadData.companyName}`);
+  
+  const result = await sendEmail({
+    to: accountManagerEmail,
+    subject,
+    htmlBody,
+    textBody,
+  });
+  
+  if (result.success) {
+    console.log(`[EmailService] New lead notification sent to ${accountManagerEmail}`);
+  } else {
+    console.error(`[EmailService] Failed to send new lead notification: ${result.error}`);
+  }
+  
+  return result;
+}
+
 export async function sendQuickAnalysisEmail(
   email: string,
   data: QuickAnalysisData,
