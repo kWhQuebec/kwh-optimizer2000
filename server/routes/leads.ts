@@ -685,6 +685,24 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       } catch (oppError) {
         console.error(`[Detailed Analysis] Failed to auto-create opportunity:`, oppError);
       }
+      
+      // Send notification to Account Manager about new lead
+      sendNewLeadNotification(
+        'malabarre@kwh.quebec',
+        {
+          companyName,
+          contactName,
+          email,
+          phone: phone || undefined,
+          address: streetAddress ? `${streetAddress}, ${city || ''}${province ? ', ' + province : ''}` : undefined,
+          estimatedMonthlyBill: estimatedMonthlyBill ? parseFloat(estimatedMonthlyBill) : undefined,
+          buildingType: buildingType || undefined,
+          formType: 'detailed_analysis',
+        },
+        language === 'en' ? 'en' : 'fr'
+      ).catch(err => {
+        console.error("[Detailed Analysis] Failed to send new lead notification:", err);
+      });
     } else {
       console.log(`[Detailed Analysis] Skipping Lead/Opportunity creation - existing client: ${clientId}`);
     }
