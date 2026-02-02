@@ -381,16 +381,28 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6" data-testid="hero-headline">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-4" data-testid="hero-headline">
               {language === "fr" 
-                ? "Obtenez votre analyse solaire gratuite" 
-                : "Get your free solar analysis"}
+                ? "Panneaux solaires + stockage" 
+                : "Solar panels + storage"}
             </h1>
             
-            <p className="text-xl sm:text-2xl text-white/90 font-medium mb-8" data-testid="hero-value-prop">
+            <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-2" data-testid="hero-subtitle">
               {language === "fr" 
-                ? "Commercial & Industriel • Incitatifs jusqu'à 60%" 
-                : "Commercial & Industrial • Incentives up to 60%"}
+                ? "Commercial & Industriel" 
+                : "Commercial & Industrial"}
+            </p>
+            
+            <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-6" data-testid="hero-location">
+              {language === "fr" 
+                ? "Partout au Québec" 
+                : "Across Quebec"}
+            </p>
+            
+            <p className="text-xl text-primary font-semibold mb-8" data-testid="hero-value-prop">
+              {language === "fr" 
+                ? "Incitatifs financiers jusqu'à 60% du projet." 
+                : "Financial incentives up to 60% of project."}
             </p>
             
             <motion.div
