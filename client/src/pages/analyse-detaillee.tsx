@@ -153,15 +153,30 @@ function parseAddressParts(fullAddress: string | null): { street: string; city: 
   let addressWithoutPostal = fullAddress.replace(/[A-Z]\d[A-Z]\s*\d[A-Z]\d/i, "").trim();
   addressWithoutPostal = addressWithoutPostal.replace(/\s+(QC|Quebec|Québec)\s*$/i, "").trim();
   
-  // Common Quebec cities to detect
+  // Common Quebec cities and Montreal boroughs to detect
   const quebecCities = [
+    // Montreal boroughs/arrondissements
+    "Saint-Laurent", "St-Laurent", "Anjou", "Côte-des-Neiges", "Notre-Dame-de-Grâce", "NDG",
+    "Outremont", "Plateau Mont-Royal", "Plateau-Mont-Royal", "Rosemont", "Petite-Patrie",
+    "Villeray", "Saint-Michel", "St-Michel", "Ahuntsic", "Cartierville", "Verdun",
+    "LaSalle", "Lachine", "Mercier", "Hochelaga", "Maisonneuve", "Pointe-aux-Trembles",
+    "Rivière-des-Prairies", "Saint-Léonard", "St-Léonard", "Ville-Marie",
+    "Sud-Ouest", "Île-Bizard", "Pierrefonds", "Roxboro", "Beaconsfield",
+    "Pointe-Claire", "Dorval", "Mont-Royal", "Hampstead", "Westmount",
+    // Major cities
     "Montréal", "Montreal", "Québec", "Quebec", "Laval", "Gatineau", "Longueuil", 
     "Sherbrooke", "Saguenay", "Lévis", "Levis", "Trois-Rivières", "Trois-Rivieres",
     "Terrebonne", "Saint-Jean-sur-Richelieu", "Repentigny", "Brossard", "Drummondville",
     "Saint-Jérôme", "Saint-Jerome", "Granby", "Blainville", "Saint-Hyacinthe",
     "Châteauguay", "Chateauguay", "Dollard-des-Ormeaux", "Rimouski", "Victoriaville",
     "Saint-Eustache", "Mascouche", "Rouyn-Noranda", "Shawinigan", "Côte Saint-Luc",
-    "Boucherville", "Vaudreuil-Dorion", "Mirabel", "Sainte-Julie", "Varennes"
+    "Boucherville", "Vaudreuil-Dorion", "Mirabel", "Sainte-Julie", "Varennes",
+    // South Shore
+    "Candiac", "La Prairie", "Sainte-Catherine", "Saint-Constant", "Saint-Bruno",
+    "Saint-Basile-le-Grand", "Chambly", "Carignan", "Saint-Lambert", "Greenfield Park",
+    // North Shore  
+    "Boisbriand", "Rosemère", "Lorraine", "Sainte-Thérèse", "Sainte-Anne-des-Plaines",
+    "Saint-Lin-Laurentides", "L'Assomption", "Joliette", "Rawdon"
   ];
   
   // Try to find a city name in the address
