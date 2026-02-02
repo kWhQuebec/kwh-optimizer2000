@@ -383,20 +383,14 @@ export default function LandingPage() {
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6" data-testid="hero-headline">
               {language === "fr" 
-                ? "Énergie solaire pour l'industrie québécoise" 
-                : "Solar energy for Quebec industry"}
+                ? "Obtenez votre analyse solaire gratuite" 
+                : "Get your free solar analysis"}
             </h1>
             
-            <p className="text-xl sm:text-2xl text-white/90 font-medium mb-4" data-testid="hero-value-prop">
+            <p className="text-xl sm:text-2xl text-white/90 font-medium mb-8" data-testid="hero-value-prop">
               {language === "fr" 
-                ? "Analyse gratuite • Incitatifs jusqu'à 60% • Accompagnement clé en main" 
-                : "Free analysis • Up to 60% incentives • Turnkey support"}
-            </p>
-            
-            <p className="text-lg text-white/70 mb-8 max-w-2xl" data-testid="hero-description">
-              {language === "fr" 
-                ? "Depuis 2011, kWh Québec accompagne les entreprises commerciales et industrielles du Québec dans leur transition énergétique. Notre expertise en solaire photovoltaïque vous garantit des solutions optimisées et rentables."
-                : "Since 2011, kWh Québec has been supporting Quebec's commercial and industrial businesses in their energy transition. Our photovoltaic solar expertise guarantees optimized and profitable solutions."}
+                ? "Commercial & Industriel • Incitatifs jusqu'à 60%" 
+                : "Commercial & Industrial • Incentives up to 60%"}
             </p>
             
             <motion.div
