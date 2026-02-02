@@ -5,7 +5,7 @@ import fs from "fs";
 import { authMiddleware, requireStaff, type AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertLeadSchema } from "@shared/schema";
-import { sendQuickAnalysisEmail } from "../emailService";
+import { sendQuickAnalysisEmail, sendProcurationCompletedNotification } from "../emailService";
 import { sendEmail } from "../gmail";
 import * as googleSolar from "../googleSolarService";
 import { generateProcurationPDF, createProcurationData } from "../procurationPdfGenerator";
@@ -840,6 +840,33 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
         } else {
           console.error(`[Detailed Analysis] Failed to send procuration copy to client:`, clientEmailResult.error);
         }
+      }
+      
+      // Send notification to Account Manager that procuration is COMPLETED and ready for HQ
+      const accountManagerEmail = existingClient?.accountManagerEmail || 'malabarre@kwh.quebec';
+      const notificationResult = await sendProcurationCompletedNotification(
+        accountManagerEmail,
+        {
+          companyName,
+          contactName: formattedSignerName,
+          signerTitle: req.body.signerTitle || undefined,
+          email,
+          phone: phone || undefined,
+          hqAccountNumber: hqClientNumber || undefined,
+          streetAddress: streetAddress || undefined,
+          city: city || undefined,
+          province: province || 'Québec',
+          postalCode: postalCode || undefined,
+          signedAt: new Date(),
+        },
+        language === 'en' ? 'en' : 'fr',
+        pdfAttachment
+      );
+      
+      if (notificationResult.success) {
+        console.log(`[Detailed Analysis] Procuration completed notification sent to account manager: ${accountManagerEmail}`);
+      } else {
+        console.error(`[Detailed Analysis] Failed to send procuration completed notification:`, notificationResult.error);
       }
     } catch (pdfError) {
       console.error('[Detailed Analysis] Error generating/sending procuration PDF:', pdfError);

@@ -166,18 +166,7 @@ router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requir
   
   console.log(`[HQ Procuration] Successfully sent procuration email to ${client.email} for client ${client.name}`);
   
-  // Send notification to account manager
-  const accountManagerEmail = client.accountManagerEmail || "malabarre@kwh.quebec";
-  const notificationResult = await sendProcurationNotificationToAccountManager(
-    accountManagerEmail,
-    client.name,
-    client.email,
-    language
-  );
-  
-  if (!notificationResult.success) {
-    console.warn(`[HQ Procuration] Failed to send notification to account manager ${accountManagerEmail}: ${notificationResult.error}`);
-  }
+  // Note: Notification to account manager is sent when client COMPLETES the procuration, not when request is sent
   
   res.json({ success: true });
 }));

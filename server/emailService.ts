@@ -647,6 +647,190 @@ export async function sendHqProcurationEmail(
   return result;
 }
 
+// Notification when client COMPLETES/SIGNS the procuration (ready for HQ submission)
+export async function sendProcurationCompletedNotification(
+  accountManagerEmail: string,
+  clientData: {
+    companyName: string;
+    contactName: string;
+    signerTitle?: string;
+    email: string;
+    phone?: string;
+    hqAccountNumber?: string;
+    streetAddress?: string;
+    city?: string;
+    province?: string;
+    postalCode?: string;
+    signedAt: Date;
+  },
+  language: 'fr' | 'en',
+  pdfAttachment?: { filename: string; content: string; type: string }
+): Promise<{ success: boolean; error?: string }> {
+  const signedDate = clientData.signedAt.toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+  
+  const subject = language === 'fr'
+    ? `Procuration signée - ${clientData.companyName} - Prête pour HQ`
+    : `Signed Authorization - ${clientData.companyName} - Ready for HQ`;
+  
+  const htmlBody = `
+<!DOCTYPE html>
+<html lang="${language}">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #0052CC 100%); color: white; padding: 25px; text-align: center; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 600; }
+    .header .badge { display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 10px; text-transform: uppercase; }
+    .content { padding: 25px; }
+    .section { margin-bottom: 20px; }
+    .section-title { font-size: 14px; font-weight: 600; color: #003DA6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .info-item { background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 3px solid #003DA6; }
+    .info-item.full-width { grid-column: span 2; }
+    .label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .value { font-size: 15px; color: #1a1a1a; font-weight: 500; }
+    .highlight { background: #fffbeb; border-left-color: #f59e0b; }
+    .action-box { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; border: 1px solid #0284c7; margin-top: 20px; }
+    .action-title { font-weight: 600; color: #0369a1; margin-bottom: 8px; }
+    .action-steps { margin: 0; padding-left: 20px; color: #0c4a6e; }
+    .action-steps li { margin-bottom: 6px; }
+    .footer { background: #f8f9fa; padding: 15px 25px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e5e7eb; }
+    .logo { font-weight: 700; color: #003DA6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${language === 'fr' ? 'Procuration HQ Signée' : 'HQ Authorization Signed'}</h1>
+      <span class="badge">${language === 'fr' ? 'Action requise' : 'Action Required'}</span>
+    </div>
+    
+    <div class="content">
+      <div class="section">
+        <div class="section-title">${language === 'fr' ? 'Informations du client' : 'Client Information'}</div>
+        <div class="info-grid">
+          <div class="info-item full-width">
+            <div class="label">${language === 'fr' ? 'Entreprise' : 'Company'}</div>
+            <div class="value">${clientData.companyName}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">${language === 'fr' ? 'Signataire' : 'Signatory'}</div>
+            <div class="value">${clientData.contactName}${clientData.signerTitle ? ` - ${clientData.signerTitle}` : ''}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">${language === 'fr' ? 'Courriel' : 'Email'}</div>
+            <div class="value">${clientData.email}</div>
+          </div>
+          ${clientData.phone ? `
+          <div class="info-item">
+            <div class="label">${language === 'fr' ? 'Téléphone' : 'Phone'}</div>
+            <div class="value">${clientData.phone}</div>
+          </div>
+          ` : ''}
+          <div class="info-item highlight">
+            <div class="label">${language === 'fr' ? 'No de client HQ' : 'HQ Account Number'}</div>
+            <div class="value">${clientData.hqAccountNumber || (language === 'fr' ? 'Non fourni' : 'Not provided')}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">${language === 'fr' ? 'Adresse' : 'Address'}</div>
+        <div class="info-grid">
+          <div class="info-item full-width">
+            <div class="label">${language === 'fr' ? 'Adresse complète' : 'Full Address'}</div>
+            <div class="value">${[clientData.streetAddress, clientData.city, clientData.province, clientData.postalCode].filter(Boolean).join(', ') || (language === 'fr' ? 'Non fournie' : 'Not provided')}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">${language === 'fr' ? 'Signature' : 'Signature'}</div>
+        <div class="info-grid">
+          <div class="info-item full-width">
+            <div class="label">${language === 'fr' ? 'Date et heure de signature' : 'Signature Date & Time'}</div>
+            <div class="value">${signedDate}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="action-box">
+        <div class="action-title">${language === 'fr' ? 'Prochaines étapes' : 'Next Steps'}</div>
+        <ol class="action-steps">
+          <li>${language === 'fr' ? 'Vérifier les informations ci-dessus' : 'Review the information above'}</li>
+          <li>${language === 'fr' ? 'Télécharger la procuration PDF ci-jointe' : 'Download the attached PDF authorization'}</li>
+          <li>${language === 'fr' ? 'Soumettre à Hydro-Québec pour obtenir les données de consommation' : 'Submit to Hydro-Québec to obtain consumption data'}</li>
+        </ol>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <span class="logo">kWh Québec</span> | 514.427.8871 | info@kwh.quebec
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textBody = language === 'fr'
+    ? `PROCURATION HQ SIGNÉE - ACTION REQUISE
+
+Entreprise: ${clientData.companyName}
+Signataire: ${clientData.contactName}${clientData.signerTitle ? ` - ${clientData.signerTitle}` : ''}
+Courriel: ${clientData.email}
+${clientData.phone ? `Téléphone: ${clientData.phone}` : ''}
+No de client HQ: ${clientData.hqAccountNumber || 'Non fourni'}
+Adresse: ${[clientData.streetAddress, clientData.city, clientData.province, clientData.postalCode].filter(Boolean).join(', ') || 'Non fournie'}
+Date de signature: ${signedDate}
+
+PROCHAINES ÉTAPES:
+1. Vérifier les informations ci-dessus
+2. Télécharger la procuration PDF ci-jointe
+3. Soumettre à Hydro-Québec pour obtenir les données de consommation
+
+---
+kWh Québec | 514.427.8871 | info@kwh.quebec`
+    : `HQ AUTHORIZATION SIGNED - ACTION REQUIRED
+
+Company: ${clientData.companyName}
+Signatory: ${clientData.contactName}${clientData.signerTitle ? ` - ${clientData.signerTitle}` : ''}
+Email: ${clientData.email}
+${clientData.phone ? `Phone: ${clientData.phone}` : ''}
+HQ Account Number: ${clientData.hqAccountNumber || 'Not provided'}
+Address: ${[clientData.streetAddress, clientData.city, clientData.province, clientData.postalCode].filter(Boolean).join(', ') || 'Not provided'}
+Signature Date: ${signedDate}
+
+NEXT STEPS:
+1. Review the information above
+2. Download the attached PDF authorization
+3. Submit to Hydro-Québec to obtain consumption data
+
+---
+kWh Québec | 514.427.8871 | info@kwh.quebec`;
+
+  console.log(`[EmailService] Sending procuration COMPLETED notification to account manager ${accountManagerEmail}`);
+  
+  const result = await sendEmail({
+    to: accountManagerEmail,
+    subject,
+    htmlBody,
+    textBody,
+    attachments: pdfAttachment ? [pdfAttachment] : undefined,
+  });
+  
+  if (result.success) {
+    console.log(`[EmailService] Procuration completed notification sent to ${accountManagerEmail}`);
+  } else {
+    console.error(`[EmailService] Failed to send procuration completed notification: ${result.error}`);
+  }
+  
+  return result;
+}
+
+// Legacy function - notification when procuration REQUEST is sent (no longer used)
 export async function sendProcurationNotificationToAccountManager(
   accountManagerEmail: string,
   clientName: string,
