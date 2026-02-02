@@ -1324,16 +1324,16 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                     {language === "fr" ? "Informations extraites de la facture" : "Information extracted from bill"}
                                   </span>
                                 </div>
-                                <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="grid sm:grid-cols-2 gap-4 items-end">
                                   <FormField
                                     control={form.control}
                                     name="companyName"
                                     render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel className="flex items-center gap-1">
-                                          <Building2 className="w-3 h-3" />
-                                          {language === "fr" ? "Entreprise" : "Company"} *
-                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto" />}
+                                        <FormLabel className="flex items-center gap-1 min-h-[2.5rem]">
+                                          <Building2 className="w-3 h-3 flex-shrink-0" />
+                                          <span>{language === "fr" ? "Entreprise" : "Company"} *</span>
+                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto flex-shrink-0" />}
                                         </FormLabel>
                                         <FormControl>
                                           <Input 
@@ -1352,10 +1352,10 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                     name="hqClientNumber"
                                     render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel className="flex items-center gap-1">
-                                          <Zap className="w-3 h-3" />
-                                          {language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *
-                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto" />}
+                                        <FormLabel className="flex items-center gap-1 min-h-[2.5rem]">
+                                          <Zap className="w-3 h-3 flex-shrink-0" />
+                                          <span>{language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *</span>
+                                          {field.value && <CheckCircle2 className="w-3 h-3 text-green-500 ml-auto flex-shrink-0" />}
                                         </FormLabel>
                                         <FormControl>
                                           <Input 
@@ -1455,15 +1455,15 @@ The data obtained will be used exclusively for solar potential analysis and phot
 
                             {!parsedBillData && (
                               <>
-                                <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="grid sm:grid-cols-2 gap-4 items-end">
                                   <FormField
                                     control={form.control}
                                     name="companyName"
                                     render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel className="flex items-center gap-1">
-                                          <Building2 className="w-3 h-3" />
-                                          {language === "fr" ? "Entreprise" : "Company"} *
+                                        <FormLabel className="flex items-center gap-1 min-h-[2.5rem]">
+                                          <Building2 className="w-3 h-3 flex-shrink-0" />
+                                          <span>{language === "fr" ? "Entreprise" : "Company"} *</span>
                                         </FormLabel>
                                         <FormControl>
                                           <Input {...field} data-testid="input-company-name" />
@@ -1478,9 +1478,9 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                     name="hqClientNumber"
                                     render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel className="flex items-center gap-1">
-                                          <Zap className="w-3 h-3" />
-                                          {language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *
+                                        <FormLabel className="flex items-center gap-1 min-h-[2.5rem]">
+                                          <Zap className="w-3 h-3 flex-shrink-0" />
+                                          <span>{language === "fr" ? "No de client Hydro-Québec" : "Hydro-Québec Client No"} *</span>
                                         </FormLabel>
                                         <FormControl>
                                           <Input {...field} data-testid="input-hq-client" placeholder="Ex: 100142202" />
