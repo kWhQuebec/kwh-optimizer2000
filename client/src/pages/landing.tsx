@@ -103,6 +103,9 @@ export default function LandingPage() {
   const [quickEmail, setQuickEmail] = useState('');
   const [manualKwh, setManualKwh] = useState('');
   const [quickAnalysisResult, setQuickAnalysisResult] = useState<any>(null);
+  // Qualification fields
+  const [roofAgeYears, setRoofAgeYears] = useState<string>('');
+  const [ownershipType, setOwnershipType] = useState<'owner' | 'tenant' | ''>('');
   
   
   const currentLogo = language === "fr" ? logoFr : logoEn;
@@ -235,7 +238,14 @@ export default function LandingPage() {
 
   // Quick analysis mutation
   const quickAnalysisMutation = useMutation({
-    mutationFn: async (data: { email: string; annualKwh: number; clientName?: string; address?: string }) => {
+    mutationFn: async (data: { 
+      email: string; 
+      annualKwh: number; 
+      clientName?: string; 
+      address?: string;
+      roofAgeYears?: number;
+      ownershipType?: string;
+    }) => {
       const response = await fetch('/api/quick-estimate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -244,6 +254,8 @@ export default function LandingPage() {
           email: data.email,
           clientName: data.clientName || '',
           address: data.address || '',
+          roofAgeYears: data.roofAgeYears,
+          ownershipType: data.ownershipType,
         }),
       });
       if (!response.ok) throw new Error('Failed to get quick analysis');
@@ -293,6 +305,8 @@ export default function LandingPage() {
       annualKwh,
       clientName: parsedBillData?.clientName || undefined,
       address: parsedBillData?.serviceAddress || undefined,
+      roofAgeYears: roofAgeYears ? parseInt(roofAgeYears) : undefined,
+      ownershipType: ownershipType || undefined,
     });
   };
 
@@ -315,6 +329,8 @@ export default function LandingPage() {
     setQuickEmail('');
     setManualKwh('');
     setQuickAnalysisResult(null);
+    setRoofAgeYears('');
+    setOwnershipType('');
   };
 
   const seo = language === "fr" ? seoContent.home.fr : seoContent.home.en;
@@ -715,6 +731,58 @@ export default function LandingPage() {
                           className="text-center"
                           data-testid="input-quick-email"
                         />
+                        
+                        {/* Qualification Questions */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Roof Age */}
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">
+                              {language === "fr" ? "Âge de la toiture" : "Roof age"}
+                            </label>
+                            <Select value={roofAgeYears} onValueChange={setRoofAgeYears}>
+                              <SelectTrigger data-testid="select-roof-age">
+                                <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="5">{language === "fr" ? "< 5 ans" : "< 5 years"}</SelectItem>
+                                <SelectItem value="10">5-10 {language === "fr" ? "ans" : "years"}</SelectItem>
+                                <SelectItem value="15">10-15 {language === "fr" ? "ans" : "years"}</SelectItem>
+                                <SelectItem value="20">15-20 {language === "fr" ? "ans" : "years"}</SelectItem>
+                                <SelectItem value="25">{language === "fr" ? "> 20 ans" : "> 20 years"}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* Ownership */}
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">
+                              {language === "fr" ? "Propriétaire?" : "Owner?"}
+                            </label>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant={ownershipType === 'owner' ? 'default' : 'outline'}
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => setOwnershipType('owner')}
+                                data-testid="button-owner"
+                              >
+                                {language === "fr" ? "Oui" : "Yes"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={ownershipType === 'tenant' ? 'default' : 'outline'}
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => setOwnershipType('tenant')}
+                                data-testid="button-tenant"
+                              >
+                                {language === "fr" ? "Non" : "No"}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        
                         <Button 
                           onClick={handleQuickAnalysis}
                           disabled={quickAnalysisMutation.isPending}

@@ -222,6 +222,10 @@ export const sites = pgTable("sites", {
   hqBillPath: text("hq_bill_path"),
   hqBillUploadedAt: timestamp("hq_bill_uploaded_at"),
   
+  // Lead Qualification Fields (transferred from landing page form)
+  roofAgeYears: integer("roof_age_years"), // Approximate roof age in years
+  ownershipType: text("ownership_type"), // "owner" | "tenant"
+  
   // Archive status
   isArchived: boolean("is_archived").notNull().default(false),
   archivedAt: timestamp("archived_at"),

@@ -32,6 +32,7 @@ const clientFormSchema = z.object({
   province: z.string().optional(),
   postalCode: z.string().optional(),
   notes: z.string().optional(),
+  accountManagerEmail: z.string().email("Courriel invalide").optional().or(z.literal("")),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -604,6 +605,7 @@ function ClientForm({
       province: client?.province || "QC",
       postalCode: client?.postalCode || "",
       notes: client?.notes || "",
+      accountManagerEmail: client?.accountManagerEmail || "malabarre@kwh.quebec",
     },
   });
 
@@ -660,6 +662,20 @@ function ClientForm({
               <FormLabel>{t("form.phone")}</FormLabel>
               <FormControl>
                 <Input type="tel" {...field} data-testid="input-client-phone" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="accountManagerEmail"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{language === "fr" ? "Responsable du compte" : "Account Manager"}</FormLabel>
+              <FormControl>
+                <Input type="email" {...field} placeholder="malabarre@kwh.quebec" data-testid="input-client-account-manager" />
               </FormControl>
               <FormMessage />
             </FormItem>

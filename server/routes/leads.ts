@@ -45,7 +45,7 @@ const upload = multer({
 // Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
 router.post("/api/quick-estimate", async (req, res) => {
   try {
-    const { address, email, clientName, monthlyBill, buildingType, tariffCode, annualConsumptionKwh } = req.body;
+    const { address, email, clientName, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType } = req.body;
     
     // Either annualConsumptionKwh or monthlyBill is required
     if (!annualConsumptionKwh && !monthlyBill) {
@@ -401,8 +401,10 @@ router.post("/api/quick-estimate", async (req, res) => {
       emailSent = true;
     }
     
-    // Create lead and opportunity for CRM tracking (nurturing)
+    // Create lead, client, site, and opportunity for CRM tracking
     let leadId: string | null = null;
+    let clientId: string | null = null;
+    let siteId: string | null = null;
     try {
       // Create lead with available information - use fallbacks for required fields
       const companyName = clientName || (address ? `Quick Estimate - ${address}` : `Quick Estimate - ${email || 'Anonymous'}`);
@@ -422,15 +424,58 @@ router.post("/api/quick-estimate", async (req, res) => {
         buildingType: buildingType || "office",
         notes: `Quick Estimate: ${Math.round(annualKWh).toLocaleString()} kWh/year, ${primaryScenario.systemSizeKW} kW system, ${tariff} tariff`,
         source: "quick_estimate",
+        // Add qualification fields to lead
+        roofAge: roofAgeYears ? (roofAgeYears <= 5 ? 'new' : roofAgeYears <= 10 ? 'recent' : roofAgeYears <= 15 ? 'mature' : 'old') : 'unknown',
+        roofAgeYears: roofAgeYears || null,
+        propertyRelationship: ownershipType === 'owner' ? 'owner' : ownershipType === 'tenant' ? 'tenant_pending' : 'unknown',
       });
       leadId = lead.id;
       
-      // Auto-create opportunity as prospect (for nurturing)
+      // Create client for CRM management
+      const client = await storage.createClient({
+        name: companyName,
+        mainContactName: contactName,
+        email: leadEmail !== 'quick-estimate@placeholder.local' ? leadEmail : null,
+        phone: null,
+        address: address || null,
+        city: null,
+        province: "Québec",
+        postalCode: null,
+        notes: `Auto-created from Quick Estimate`,
+      });
+      clientId = client.id;
+      
+      // Create site with address and qualification fields
+      const site = await storage.createSite({
+        clientId: client.id,
+        name: address || `Site - ${companyName}`,
+        address: address || null,
+        city: null,
+        province: "Québec",
+        postalCode: null,
+        buildingType: buildingType || "commercial",
+        roofAgeYears: roofAgeYears || null,
+        ownershipType: ownershipType || null,
+        quickAnalysisSystemSizeKw: primaryScenario.systemSizeKW,
+        quickAnalysisAnnualProductionKwh: primaryScenario.annualProductionKWh,
+        quickAnalysisAnnualSavings: primaryScenario.annualSavings,
+        quickAnalysisPaybackYears: primaryScenario.paybackYears,
+        quickAnalysisGrossCapex: primaryScenario.grossCAPEX,
+        quickAnalysisNetCapex: primaryScenario.netCAPEX,
+        quickAnalysisHqIncentive: primaryScenario.hqIncentive,
+        quickAnalysisMonthlyBill: estimatedMonthlyBill || null,
+        quickAnalysisCompletedAt: new Date(),
+      });
+      siteId = site.id;
+      
+      // Auto-create opportunity linked to client and site
       const opportunityName = clientName || address || email || 'Quick Estimate Lead';
       await storage.createOpportunity({
         name: opportunityName,
         description: `Auto-created from Quick Estimate. ${Math.round(annualKWh).toLocaleString()} kWh/year, ${primaryScenario.systemSizeKW} kW potential.`,
         leadId: lead.id,
+        clientId: client.id,
+        siteId: site.id,
         stage: 'prospect', // Start as prospect for nurturing
         probability: 5,
         source: 'quick_estimate',
@@ -438,7 +483,7 @@ router.post("/api/quick-estimate", async (req, res) => {
         expectedCloseDate: null,
         ownerId: null,
       });
-      console.log(`[Quick Estimate] Created lead ${lead.id} and opportunity for: ${companyName}`);
+      console.log(`[Quick Estimate] Created lead ${lead.id}, client ${client.id}, site ${site.id}, and opportunity for: ${companyName}`);
     } catch (leadErr) {
       console.error("[Quick Estimate] Lead creation failed (non-blocking):", leadErr);
       // Continue - lead creation failure should not block the estimate response
@@ -448,6 +493,8 @@ router.post("/api/quick-estimate", async (req, res) => {
       success: true,
       emailSent,
       leadId,
+      clientId,
+      siteId,
       inputs: {
         address: address || null,
         monthlyBill: estimatedMonthlyBill,
