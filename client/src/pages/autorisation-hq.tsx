@@ -234,12 +234,11 @@ export default function AutorisationHQPage() {
                           ? "ou cliquez pour sélectionner (PDF, JPG, PNG)" 
                           : "or click to select (PDF, JPG, PNG)"}
                       </p>
-                      <div className="flex items-center justify-center gap-2 mt-4">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        <span className="text-sm text-primary font-medium">
-                          {language === "fr" ? "Analyse IA automatique" : "AI-powered analysis"}
-                        </span>
-                      </div>
+                      <p className="text-sm text-muted-foreground mt-4">
+                        {language === "fr" 
+                          ? "Notre outil va automatiquement remplir le formulaire avec vos données" 
+                          : "Our tool will automatically fill the form with your data"}
+                      </p>
                     </div>
 
                     {parseError && (
