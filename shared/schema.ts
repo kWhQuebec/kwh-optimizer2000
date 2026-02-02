@@ -94,6 +94,7 @@ export const clients = pgTable("clients", {
   province: text("province"),
   postalCode: text("postal_code"),
   notes: text("notes"),
+  accountManagerEmail: text("account_manager_email").default("malabarre@kwh.quebec"),
   isArchived: boolean("is_archived").notNull().default(false),
   archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow(),

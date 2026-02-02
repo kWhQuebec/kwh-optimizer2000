@@ -453,7 +453,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   const t = {
     fr: {
       greeting: `Bonjour ${clientName},`,
-      intro: `Dans le cadre de votre projet d'analyse solaire avec kWh Québec, nous avons besoin d'accéder à vos données de consommation Hydro-Québec pour réaliser une analyse précise et personnalisée.`,
+      intro: `Dans le cadre de votre projet d'analyse solaire avec kWh Québec, nous avons besoin d'accéder à vos données de consommation Hydro-Québec pour réaliser une analyse précise et personnalisée à votre bâtiment.`,
       whyTitle: 'Pourquoi avons-nous besoin de cette autorisation?',
       whyText: 'Les données de consommation horaires nous permettent de:',
       benefit1: 'Dimensionner précisément votre système solaire',
@@ -469,7 +469,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
     },
     en: {
       greeting: `Hello ${clientName},`,
-      intro: `As part of your solar analysis project with kWh Québec, we need access to your Hydro-Québec consumption data to provide an accurate and personalized analysis.`,
+      intro: `As part of your solar analysis project with kWh Québec, we need access to your Hydro-Québec consumption data to provide an accurate and personalized analysis for your building.`,
       whyTitle: 'Why do we need this authorization?',
       whyText: 'Hourly consumption data allows us to:',
       benefit1: 'Precisely size your solar system',
@@ -500,11 +500,13 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
     .header img { max-width: 180px; height: auto; }
     .header h1 { display: none; }
     .content { padding: 10px 30px 20px; }
-    .intro { font-size: 15px; color: #555; margin-bottom: 15px; line-height: 1.4; }
+    .greeting { font-size: 14px; color: #555; margin-bottom: 12px; }
+    .intro { font-size: 14px; color: #555; margin-bottom: 15px; line-height: 1.5; }
     .section { margin-bottom: 15px; }
-    .section-title { font-size: 16px; font-weight: 600; color: #003DA6; margin-bottom: 8px; }
-    .benefit-list { margin: 0; padding-left: 20px; }
-    .benefit-list li { margin-bottom: 4px; color: #555; }
+    .section-title { font-size: 15px; font-weight: 600; color: #003DA6; margin-bottom: 8px; }
+    .section-text { font-size: 14px; color: #555; margin-bottom: 6px; }
+    .benefit-list { margin: 0; padding-left: 20px; font-size: 14px; }
+    .benefit-list li { margin-bottom: 2px; color: #555; line-height: 1.4; }
     .cta-section { text-align: center; margin: 20px 0; }
     .cta-button { display: inline-block; background: #FFB005; color: #003DA6; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 16px; }
     .questions { font-size: 14px; color: #666; text-align: center; margin-top: 15px; }
@@ -519,11 +521,12 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
     </div>
     
     <div class="content">
-      <p class="intro">${txt.greeting}<br>${txt.intro}</p>
+      <p class="greeting">${txt.greeting}</p>
+      <p class="intro">${txt.intro}</p>
       
       <div class="section">
         <div class="section-title">${txt.whyTitle}</div>
-        <p style="color: #555; margin-bottom: 6px;">${txt.whyText}</p>
+        <p class="section-text">${txt.whyText}</p>
         <ul class="benefit-list">
           <li>${txt.benefit1}</li>
           <li>${txt.benefit2}</li>
@@ -534,7 +537,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
       
       <div class="section">
         <div class="section-title">${txt.actionTitle}</div>
-        <p style="color: #555;">${txt.actionText}</p>
+        <p class="section-text">${txt.actionText}</p>
       </div>
       
       <div class="cta-section">
@@ -560,7 +563,7 @@ function generateHqProcurationTextEmail(clientName: string, lang: 'fr' | 'en', b
   if (lang === 'fr') {
     return `Bonjour ${clientName},
 
-Dans le cadre de votre projet d'analyse solaire avec kWh Québec, nous avons besoin d'accéder à vos données de consommation Hydro-Québec pour réaliser une analyse précise et personnalisée.
+Dans le cadre de votre projet d'analyse solaire avec kWh Québec, nous avons besoin d'accéder à vos données de consommation Hydro-Québec pour réaliser une analyse précise et personnalisée à votre bâtiment.
 
 POURQUOI AVONS-NOUS BESOIN DE CETTE AUTORISATION?
 
@@ -586,7 +589,7 @@ info@kwh.quebec`;
   
   return `Hello ${clientName},
 
-As part of your solar analysis project with kWh Québec, we need access to your Hydro-Québec consumption data to provide an accurate and personalized analysis.
+As part of your solar analysis project with kWh Québec, we need access to your Hydro-Québec consumption data to provide an accurate and personalized analysis for your building.
 
 WHY DO WE NEED THIS?
 
@@ -639,6 +642,74 @@ export async function sendHqProcurationEmail(
     console.log(`[EmailService] HQ procuration email sent successfully to ${email}`);
   } else {
     console.error(`[EmailService] Failed to send HQ procuration email: ${result.error}`);
+  }
+  
+  return result;
+}
+
+export async function sendProcurationNotificationToAccountManager(
+  accountManagerEmail: string,
+  clientName: string,
+  clientEmail: string,
+  language: 'fr' | 'en'
+): Promise<{ success: boolean; error?: string }> {
+  const subject = language === 'fr'
+    ? `Procuration HQ envoyée - ${clientName}`
+    : `HQ Procuration Sent - ${clientName}`;
+  
+  const htmlBody = `
+<!DOCTYPE html>
+<html lang="${language}">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
+    .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; }
+    .header { color: #003DA6; font-size: 18px; font-weight: 600; margin-bottom: 15px; }
+    .info { margin: 10px 0; padding: 12px; background: #f8f9fa; border-radius: 4px; }
+    .label { font-size: 12px; color: #666; text-transform: uppercase; }
+    .value { font-size: 15px; color: #333; font-weight: 500; }
+    .footer { margin-top: 20px; font-size: 13px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">${language === 'fr' ? 'Notification: Procuration HQ envoyée' : 'Notification: HQ Procuration Sent'}</div>
+    <p>${language === 'fr' 
+      ? 'Un courriel de demande de procuration Hydro-Québec a été envoyé au client suivant:'
+      : 'An HQ procuration request email has been sent to the following client:'}</p>
+    <div class="info">
+      <div class="label">${language === 'fr' ? 'Client' : 'Client'}</div>
+      <div class="value">${clientName}</div>
+    </div>
+    <div class="info">
+      <div class="label">${language === 'fr' ? 'Courriel' : 'Email'}</div>
+      <div class="value">${clientEmail}</div>
+    </div>
+    <p class="footer">${language === 'fr' 
+      ? 'Vous recevrez une notification lorsque le client aura signé la procuration.'
+      : 'You will receive a notification when the client signs the procuration.'}</p>
+  </div>
+</body>
+</html>`;
+
+  const textBody = language === 'fr'
+    ? `Notification: Procuration HQ envoyée\n\nUn courriel de demande de procuration Hydro-Québec a été envoyé au client suivant:\n\nClient: ${clientName}\nCourriel: ${clientEmail}\n\nVous recevrez une notification lorsque le client aura signé la procuration.`
+    : `Notification: HQ Procuration Sent\n\nAn HQ procuration request email has been sent to the following client:\n\nClient: ${clientName}\nEmail: ${clientEmail}\n\nYou will receive a notification when the client signs the procuration.`;
+
+  console.log(`[EmailService] Sending procuration notification to account manager ${accountManagerEmail}`);
+  
+  const result = await sendEmail({
+    to: accountManagerEmail,
+    subject,
+    htmlBody,
+    textBody,
+  });
+  
+  if (result.success) {
+    console.log(`[EmailService] Procuration notification sent to ${accountManagerEmail}`);
+  } else {
+    console.error(`[EmailService] Failed to send notification to account manager: ${result.error}`);
   }
   
   return result;
