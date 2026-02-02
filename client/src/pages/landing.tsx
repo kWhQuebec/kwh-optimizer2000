@@ -500,15 +500,16 @@ export default function LandingPage() {
                       className="space-y-4"
                     >
                       <div className="space-y-2 text-center">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-600 text-sm font-medium">
-                          <Sparkles className="w-4 h-4" />
-                          {language === "fr" ? "Propulsé par l'IA" : "AI-Powered"}
-                        </div>
                         <h2 className="text-xl sm:text-2xl font-semibold">
                           {language === "fr" 
                             ? "Téléversez votre facture Hydro-Québec" 
                             : "Upload your Hydro-Québec bill"}
                         </h2>
+                        <p className="text-sm text-muted-foreground">
+                          {language === "fr" 
+                            ? "Notre outil va automatiquement remplir le formulaire avec vos données" 
+                            : "Our tool will automatically fill the form with your data"}
+                        </p>
                       </div>
                       
                       {/* Dropzone */}
