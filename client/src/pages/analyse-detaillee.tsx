@@ -1039,7 +1039,9 @@ The data obtained will be used exclusively for solar potential analysis and phot
                     </div>
                     
                     <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                        console.log('[Form Validation Errors]', errors);
+                      })} className="space-y-4">
                         {currentStep === 1 && (
                           <motion.div
                             initial={{ opacity: 0, x: 20 }}
@@ -1847,7 +1849,12 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                             height={150}
                                             onSignatureChange={(hasSig) => {
                                               setHasSignature(hasSig);
-                                              field.onChange(hasSig);
+                                              // Use form.setValue with shouldValidate to ensure form state is properly updated
+                                              form.setValue('procurationAccepted', hasSig, { 
+                                                shouldValidate: true, 
+                                                shouldDirty: true,
+                                                shouldTouch: true 
+                                              });
                                             }}
                                             clearButtonText={language === "fr" ? "Effacer" : "Clear"}
                                             signedText={language === "fr" ? "Signature capturée" : "Signature captured"}
