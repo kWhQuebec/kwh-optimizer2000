@@ -353,25 +353,15 @@ export default function AutorisationHQPage() {
                       </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button 
-                        size="lg" 
-                        className="flex-1 gap-2"
-                        onClick={handleProceedToAuthorization}
-                        data-testid="button-proceed-authorization"
-                      >
-                        {language === "fr" ? "Continuer vers l'autorisation" : "Continue to authorization"}
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="lg"
-                        onClick={resetFlow}
-                        data-testid="button-upload-different"
-                      >
-                        {language === "fr" ? "Autre facture" : "Different bill"}
-                      </Button>
-                    </div>
+                    <Button 
+                      size="lg" 
+                      className="w-full sm:w-auto gap-2"
+                      onClick={handleProceedToAuthorization}
+                      data-testid="button-proceed-authorization"
+                    >
+                      {language === "fr" ? "Continuer vers l'autorisation" : "Continue to authorization"}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
                   </motion.div>
                 )}
               </AnimatePresence>
