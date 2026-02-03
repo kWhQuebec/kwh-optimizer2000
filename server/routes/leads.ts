@@ -722,12 +722,20 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
     }
 
     let firstBillPath: string | undefined;
-    for (const file of files) {
-      const destPath = path.join(uploadDir, file.originalname);
-      fs.renameSync(file.path, destPath);
-      if (!firstBillPath) {
-        firstBillPath = destPath;
+    
+    // Process newly uploaded files
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const destPath = path.join(uploadDir, file.originalname);
+        fs.renameSync(file.path, destPath);
+        if (!firstBillPath) {
+          firstBillPath = destPath;
+        }
       }
+    } else if (savedBillPath) {
+      // Use the pre-saved bill path from AI parsing
+      firstBillPath = savedBillPath;
+      console.log(`[Detailed Analysis] Using pre-saved bill path: ${savedBillPath}`);
     }
     
     // Save the HQ bill path to the lead record so it appears in the CRM
@@ -941,17 +949,21 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       });
     }
 
+    const fileCount = files?.length || 0;
+    const billSource = fileCount > 0 ? `${fileCount} new file(s)` : (savedBillPath ? 'pre-saved bill' : 'none');
+    
     if (isExistingClient) {
-      console.log(`[Detailed Analysis] Procuration received from existing client: ${clientId}, Files: ${files.length}`);
+      console.log(`[Detailed Analysis] Procuration received from existing client: ${clientId}, Bill source: ${billSource}`);
     } else {
-      console.log(`[Detailed Analysis] Lead created: ${lead?.id}, Files: ${files.length}`);
+      console.log(`[Detailed Analysis] Lead created: ${lead?.id}, Bill source: ${billSource}`);
     }
     
     res.status(201).json({ 
       success: true, 
       leadId: lead?.id || null,
       clientId: isExistingClient ? clientId : null,
-      filesUploaded: files.length,
+      filesUploaded: fileCount,
+      usedSavedBillPath: !fileCount && !!savedBillPath,
     });
   } catch (error) {
     console.error("[Detailed Analysis] Error:", error);
