@@ -1059,15 +1059,15 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               </div>
                               <h3 className="text-xl font-bold mb-2">
                                 {language === "fr" 
-                                  ? "Téléversez votre facture HQ, on s'occupe du reste!" 
-                                  : "Upload your HQ bill, we'll do the rest!"}
+                                  ? "Téléversez votre facture Hydro-Québec" 
+                                  : "Upload your Hydro-Québec bill"}
                               </h3>
                               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                                 <Sparkles className="w-4 h-4 text-primary" />
                                 <span>
                                   {language === "fr" 
-                                    ? "Notre IA extrait automatiquement vos informations" 
-                                    : "Our AI automatically extracts your information"}
+                                    ? "Notre outil va automatiquement remplir le formulaire avec vos données" 
+                                    : "Our tool will automatically fill the form with your data"}
                                 </span>
                               </div>
                             </div>
