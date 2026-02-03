@@ -941,9 +941,44 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
       _yieldStrategy: yieldStrategy
     };
 
-    if (site.roofAreaSqM) {
-      analysisAssumptions.roofAreaSqFt = site.roofAreaSqM * 10.764;
+    // CRITICAL: Use manually traced roof polygons as source of truth (not site.roofAreaSqM)
+    // Per methodology: "Manual roof tracing: Source of truth for roof surfaces (Google not reliable for C&I)"
+    const polygons = await storage.getRoofPolygons(siteId);
+    const solarPolygons = polygons.filter(p => {
+      if (p.color === "#f97316") return false; // Orange = constraint
+      const label = (p.label || "").toLowerCase();
+      return !label.includes("constraint") && !label.includes("contrainte") && 
+             !label.includes("hvac") && !label.includes("obstacle");
+    });
+    
+    // Calculate total traced solar area
+    const tracedSolarAreaSqM = solarPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+    
+    // Use traced area if available, otherwise fallback to site values
+    const effectiveRoofAreaSqM = tracedSolarAreaSqM > 0 
+      ? tracedSolarAreaSqM 
+      : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+    
+    // Guard: require roof area to prevent NaN in calculations
+    if (effectiveRoofAreaSqM <= 0) {
+      return res.status(400).json({ 
+        error: "No roof area available. Please draw roof areas in site parameters first.",
+        details: "Analysis requires traced roof polygons or site roof area data."
+      });
     }
+    
+    analysisAssumptions.roofAreaSqFt = effectiveRoofAreaSqM * 10.764;
+    
+    // Calculate max PV capacity using KB Racking formula:
+    // maxPV = (usable_area / 3.71 m²) × 0.625 kW per panel
+    const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
+    const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
+    const kbMaxPvKw = (usableAreaSqM / 3.71) * 0.625;
+    analysisAssumptions.maxPVFromRoofKw = kbMaxPvKw; // Keep as float for precision
+    
+    console.log(`[Analysis] Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
+      `tracedArea=${tracedSolarAreaSqM.toFixed(0)}m², effectiveArea=${effectiveRoofAreaSqM.toFixed(0)}m², ` +
+      `maxPV=${kbMaxPvKw.toFixed(1)}kW (KB Racking formula)`);
 
     const result = runPotentialAnalysis(
       dedupResult.readings,
