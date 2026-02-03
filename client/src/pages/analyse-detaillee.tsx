@@ -1066,8 +1066,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 <Sparkles className="w-4 h-4 text-primary" />
                                 <span>
                                   {language === "fr" 
-                                    ? "Notre IA remplit automatiquement 90% du formulaire" 
-                                    : "Our AI automatically fills 90% of the form"}
+                                    ? "Notre IA extrait automatiquement vos informations" 
+                                    : "Our AI automatically extracts your information"}
                                 </span>
                               </div>
                             </div>
