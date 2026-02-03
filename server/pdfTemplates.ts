@@ -1,10 +1,10 @@
 import PDFDocument from "pdfkit";
 
 export const BRAND_COLORS = {
-  primary: "#0054A8",
-  primaryDark: "#003d7a",
-  primaryLight: "#1a6fc2",
-  accent: "#FFBE0D",
+  primary: "#003DA6",
+  primaryDark: "#002B75",
+  primaryLight: "#1a5fc2",
+  accent: "#FFB005",
   accentLight: "#FFD54F",
   dark: "#1a1a2e",
   darkText: "#2d3748",

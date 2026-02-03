@@ -508,7 +508,10 @@ export function generateProfessionalPDF(
   
   // Try to load brand installation image as background
   const coverImagePath = path.join(process.cwd(), "attached_assets", "kWh__Quebec_Brand_Guideline_1764967501349.jpg");
-  const logoPath = path.join(process.cwd(), "attached_assets", "solaire_fr-removebg-preview_1767985380511.png");
+  const logoFilename = lang === "fr" 
+    ? "solaire_fr-removebg-preview_1767985380511.png" 
+    : "solaire_en-removebg-preview_1767985380510.png";
+  const logoPath = path.join(process.cwd(), "attached_assets", logoFilename);
   
   // Full page background image with dark overlay
   if (fs.existsSync(coverImagePath)) {
