@@ -734,10 +734,6 @@ The data obtained will be used exclusively for solar potential analysis and phot
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-12"
           >
-            <Badge className="mb-4 bg-accent/20 text-accent-foreground border-accent/30">
-              <FileCheck className="w-3 h-3 mr-1" />
-              {language === "fr" ? "Analyse premium" : "Premium analysis"}
-            </Badge>
             <h1 className="text-3xl sm:text-4xl font-bold mb-4">
               {language === "fr" ? "Analyse Détaillée" : "Detailed Analysis"}
             </h1>
