@@ -2165,11 +2165,13 @@ export class MemStorage implements IStorage {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
     return Array.from(this.sitesMap.values())
-      .filter(s => 
-        s.name.toLowerCase().includes(q) ||
-        (s.city && s.city.toLowerCase().includes(q)) ||
-        (s.address && s.address.toLowerCase().includes(q))
-      )
+      .filter(s => {
+        const client = s.clientId ? this.clientsMap.get(s.clientId) : null;
+        return s.name.toLowerCase().includes(q) ||
+          (s.city && s.city.toLowerCase().includes(q)) ||
+          (s.address && s.address.toLowerCase().includes(q)) ||
+          (client?.name && client.name.toLowerCase().includes(q));
+      })
       .slice(0, limit)
       .map(s => {
         const client = s.clientId ? this.clientsMap.get(s.clientId) : null;
