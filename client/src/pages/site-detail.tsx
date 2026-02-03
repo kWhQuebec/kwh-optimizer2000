@@ -6847,7 +6847,7 @@ export default function SiteDetailPage() {
       setRefreshPhase('pdf');
       const token = localStorage.getItem("token");
       
-      const pdfResponse = await fetch(`/api/simulation-runs/${newSimId}/pdf?lang=${language}`, {
+      const pdfResponse = await fetch(`/api/simulation-runs/${newSimId}/report-pdf?lang=${language}`, {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
