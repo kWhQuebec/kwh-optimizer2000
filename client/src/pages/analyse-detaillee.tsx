@@ -551,12 +551,15 @@ export default function AnalyseDetailleePage() {
   });
 
   const onSubmit = (data: DetailedFormValues) => {
+    console.log('[Form onSubmit] Validation passed, data:', data);
     if (uploadedFiles.length === 0) {
+      console.log('[Form onSubmit] No uploaded files, showing error');
       setUploadError(language === "fr" 
         ? "Veuillez téléverser au moins une facture Hydro-Québec" 
         : "Please upload at least one Hydro-Québec bill");
       return;
     }
+    console.log('[Form onSubmit] Calling mutation.mutate');
     mutation.mutate(data);
   };
 
@@ -1906,6 +1909,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 className="flex-1 gap-2"
                                 disabled={mutation.isPending}
                                 data-testid="button-submit-form"
+                                onClick={() => console.log('[Button onClick] Submit button clicked')}
                               >
                                 {mutation.isPending ? (
                                   <>
