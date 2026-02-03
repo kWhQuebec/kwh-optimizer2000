@@ -598,6 +598,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
     const contactName = `${firstName || ''} ${lastName || ''}`.trim();
     const formattedSignerName = `${lastName || ''}, ${firstName || ''}`.trim().replace(/^,\s*/, '').replace(/,\s*$/, '');
     const isExistingClient = !!clientId;
+    let createdOpportunityId: string | null = null;
 
     if (!companyName || !firstName || !lastName || !email || !streetAddress || !city) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -688,7 +689,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       // Auto-create opportunity when lead is submitted
       try {
         const opportunityName = `${companyName} - ${streetAddress || city || 'Solar Project'}`;
-        await storage.createOpportunity({
+        const newOpportunity = await storage.createOpportunity({
           name: opportunityName,
           description: `Auto-created from detailed analysis request. Contact: ${contactName}`,
           leadId: lead.id,
@@ -699,28 +700,13 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
           expectedCloseDate: null,
           ownerId: null,
         });
-        console.log(`[Detailed Analysis] Auto-created opportunity for lead: ${lead.id}`);
+        createdOpportunityId = newOpportunity.id;
+        console.log(`[Detailed Analysis] Auto-created opportunity ${createdOpportunityId} for lead: ${lead.id}`);
       } catch (oppError) {
         console.error(`[Detailed Analysis] Failed to auto-create opportunity:`, oppError);
       }
       
-      // Send notification to Account Manager about new lead
-      sendNewLeadNotification(
-        'malabarre@kwh.quebec',
-        {
-          companyName,
-          contactName,
-          email,
-          phone: phone || undefined,
-          address: streetAddress ? `${streetAddress}, ${city || ''}${province ? ', ' + province : ''}` : undefined,
-          estimatedMonthlyBill: estimatedMonthlyBill ? parseFloat(estimatedMonthlyBill) : undefined,
-          buildingType: buildingType || undefined,
-          formType: 'detailed_analysis',
-        },
-        language === 'en' ? 'en' : 'fr'
-      ).catch(err => {
-        console.error("[Detailed Analysis] Failed to send new lead notification:", err);
-      });
+      // Note: Lead notification is now combined with procuration email below
     } else {
       console.log(`[Detailed Analysis] Skipping Lead/Opportunity creation - existing client: ${clientId}`);
     }
@@ -844,31 +830,109 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
         type: 'application/pdf',
       };
       
-      // Send to kWh staff
+      // Build CRM link - use the opportunity if created, otherwise link to pipeline
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : 'https://kwh.quebec';
+      const crmLink = createdOpportunityId 
+        ? `${baseUrl}/pipeline?opportunityId=${createdOpportunityId}`
+        : `${baseUrl}/pipeline`;
+      
+      // Combined staff email: Lead info + Procuration + CRM link (only one email instead of two)
+      const isNewLead = !isExistingClient;
+      const emailSubject = isNewLead
+        ? `Nouveau Lead + Procuration - ${companyName}`
+        : `Procuration HQ - ${companyName} (Client existant)`;
+      
       const staffEmailResult = await sendEmail({
         to: staffRecipient,
-        subject: `Procuration HQ - ${companyName} (${hqClientNumber || 'N/A'})`,
+        subject: emailSubject,
         htmlBody: `
-          <p>Bonjour,</p>
-          <p>Veuillez trouver ci-joint la procuration signée électroniquement par le client suivant :</p>
-          <ul>
-            <li><strong>Entreprise :</strong> ${companyName}</li>
-            <li><strong>Contact :</strong> ${formattedSignerName}</li>
-            <li><strong>Titre :</strong> ${req.body.signerTitle || 'Non spécifié'}</li>
-            <li><strong>No de client HQ :</strong> ${hqClientNumber || 'Non fourni'}</li>
-            <li><strong>Courriel :</strong> ${email}</li>
-          </ul>
-          <p>Cette procuration autorise kWh Québec à obtenir les données de consommation détaillées du client.</p>
-          <p>Cordialement,<br>kWh Québec</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px;">
+            ${isNewLead ? `
+              <div style="background: linear-gradient(135deg, #003366 0%, #0066cc 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0; font-size: 24px;">🎯 Nouveau Lead</h2>
+                <span style="display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">Analyse Détaillée</span>
+              </div>
+            ` : `
+              <div style="background: #003366; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0; font-size: 24px;">📋 Procuration Signée</h2>
+                <span style="display: inline-block; background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">Client Existant</span>
+              </div>
+            `}
+            
+            <div style="border: 1px solid #e5e7eb; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
+              <div style="border-left: 4px solid #003366; padding-left: 16px; margin-bottom: 20px;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Entreprise / Contact</p>
+                <p style="margin: 0; font-size: 18px; font-weight: bold;">${companyName}</p>
+                <p style="margin: 4px 0 0 0; color: #374151;">${contactName}${req.body.signerTitle ? ` (${req.body.signerTitle})` : ''}</p>
+              </div>
+              
+              <div style="border-left: 4px solid #e5e7eb; padding-left: 16px; margin-bottom: 16px;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Courriel</p>
+                <p style="margin: 0;"><a href="mailto:${email}" style="color: #0066cc;">${email}</a></p>
+              </div>
+              
+              ${phone ? `
+                <div style="border-left: 4px solid #e5e7eb; padding-left: 16px; margin-bottom: 16px;">
+                  <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Téléphone</p>
+                  <p style="margin: 0;"><a href="tel:${phone}" style="color: #0066cc;">${phone}</a></p>
+                </div>
+              ` : ''}
+              
+              <div style="border-left: 4px solid #e5e7eb; padding-left: 16px; margin-bottom: 16px;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Adresse</p>
+                <p style="margin: 0;">${streetAddress}, ${city}${province ? ', ' + province : ''}</p>
+              </div>
+              
+              <div style="display: flex; gap: 24px; margin-bottom: 16px;">
+                <div style="border-left: 4px solid #e5e7eb; padding-left: 16px;">
+                  <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">No client HQ</p>
+                  <p style="margin: 0; font-weight: 500;">${hqClientNumber || 'Non fourni'}</p>
+                </div>
+                ${tariffCode ? `
+                  <div style="border-left: 4px solid #e5e7eb; padding-left: 16px;">
+                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Tarif</p>
+                    <p style="margin: 0; font-weight: 500;">${tariffCode}</p>
+                  </div>
+                ` : ''}
+              </div>
+              
+              <div style="display: flex; gap: 24px; margin-bottom: 20px;">
+                <div style="border-left: 4px solid #e5e7eb; padding-left: 16px;">
+                  <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Propriétaire?</p>
+                  <p style="margin: 0;">${ownershipType === 'owner' ? 'Oui' : ownershipType === 'tenant' ? 'Non (locataire)' : 'Non spécifié'}</p>
+                </div>
+                <div style="border-left: 4px solid #e5e7eb; padding-left: 16px;">
+                  <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Âge toiture</p>
+                  <p style="margin: 0;">${roofAgeYears ? roofAgeYears + ' ans' : 'Non spécifié'}</p>
+                </div>
+              </div>
+              
+              <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #166534;"><strong>✓ Procuration signée</strong> - PDF en pièce jointe</p>
+              </div>
+              
+              <div style="text-align: center; margin-top: 24px;">
+                <a href="${crmLink}" style="display: inline-block; background: #003366; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                  Voir le dossier →
+                </a>
+              </div>
+            </div>
+            
+            <p style="text-align: center; margin-top: 20px; font-size: 14px; color: #6b7280;">
+              <a href="https://kwh.quebec" style="color: #003366; font-weight: 600;">kWh Québec</a> | 514.427.8871 | info@kwh.quebec
+            </p>
+          </div>
         `,
-        textBody: `Procuration signée pour ${companyName} (${formattedSignerName}) - No client HQ: ${hqClientNumber || 'N/A'}`,
+        textBody: `${isNewLead ? 'Nouveau Lead' : 'Procuration signée'}: ${companyName}\nContact: ${contactName}\nCourriel: ${email}\nNo client HQ: ${hqClientNumber || 'N/A'}\n\nVoir le dossier: ${crmLink}`,
         attachments: [pdfAttachment],
       });
       
       if (staffEmailResult.success) {
-        console.log(`[Detailed Analysis] Procuration email sent to staff: ${staffRecipient}`);
+        console.log(`[Detailed Analysis] Combined notification email sent to staff: ${staffRecipient}`);
       } else {
-        console.error(`[Detailed Analysis] Failed to send procuration email to staff:`, staffEmailResult.error);
+        console.error(`[Detailed Analysis] Failed to send combined notification email to staff:`, staffEmailResult.error);
       }
       
       // Send copy to client who signed
