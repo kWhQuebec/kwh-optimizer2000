@@ -557,58 +557,70 @@ export class DatabaseStorage implements IStorage {
   async deleteSite(id: string): Promise<boolean> {
     // Cascade delete: delete all related data first
     
-    // 1. Delete O&M performance snapshots for this site
+    // 1. Delete activities for this site
+    await db.delete(activities).where(eq(activities.siteId, id));
+    
+    // 2. Delete competitor proposal analysis for this site
+    await db.delete(competitorProposalAnalysis).where(eq(competitorProposalAnalysis.siteId, id));
+    
+    // 3. Delete email logs for this site
+    await db.delete(emailLogs).where(eq(emailLogs.siteId, id));
+    
+    // 4. Delete opportunities for this site (set siteId to null instead of delete)
+    await db.update(opportunities).set({ siteId: null }).where(eq(opportunities.siteId, id));
+    
+    // 5. Delete O&M performance snapshots for this site
     await db.delete(omPerformanceSnapshots).where(eq(omPerformanceSnapshots.siteId, id));
     
-    // 2. Delete O&M visits for this site
+    // 6. Delete O&M visits for this site
     await db.delete(omVisits).where(eq(omVisits.siteId, id));
     
-    // 3. Delete O&M contracts for this site
+    // 7. Delete O&M contracts for this site
     await db.delete(omContracts).where(eq(omContracts.siteId, id));
     
-    // 4. Delete construction projects for this site
+    // 8. Delete construction projects for this site
     await db.delete(constructionProjects).where(eq(constructionProjects.siteId, id));
     
-    // 5. Delete construction agreements for this site
+    // 9. Delete construction agreements for this site
     await db.delete(constructionAgreements).where(eq(constructionAgreements.siteId, id));
     
-    // 6. Delete design agreements for this site
+    // 10. Delete design agreements for this site
     await db.delete(designAgreements).where(eq(designAgreements.siteId, id));
     
-    // 7. Delete site visits for this site
+    // 11. Delete site visits for this site
     await db.delete(siteVisits).where(eq(siteVisits.siteId, id));
     
-    // 8. Get all simulation runs for this site
+    // 12. Get all simulation runs for this site
     const simRuns = await db.select().from(simulationRuns).where(eq(simulationRuns.siteId, id));
     
-    // 9. Get all designs linked to those simulation runs and delete their BOM items first
+    // 13. Get all designs linked to those simulation runs and delete their BOM items first
     for (const run of simRuns) {
       const designsForRun = await db.select().from(designs).where(eq(designs.simulationRunId, run.id));
       for (const design of designsForRun) {
         await db.delete(bomItems).where(eq(bomItems.designId, design.id));
       }
-      // 10. Now delete the designs
+      // Delete the designs
       await db.delete(designs).where(eq(designs.simulationRunId, run.id));
     }
     
-    // 11. Delete all simulation runs for this site
+    // 14. Delete all simulation runs for this site
     await db.delete(simulationRuns).where(eq(simulationRuns.siteId, id));
     
-    // 12. Get all meter files for this site
+    // 15. Get all meter files for this site
     const files = await db.select().from(meterFiles).where(eq(meterFiles.siteId, id));
     
-    // 13. Delete meter readings linked to those files
+    // 16. Delete meter readings linked to those files
     for (const file of files) {
       await db.delete(meterReadings).where(eq(meterReadings.meterFileId, file.id));
     }
     
-    // 14. Delete all meter files for this site
+    // 17. Delete all meter files for this site
     await db.delete(meterFiles).where(eq(meterFiles.siteId, id));
     
-    // 15. Delete roof polygons for this site
+    // 18. Delete roof polygons for this site (has CASCADE but delete explicitly for clarity)
     await db.delete(roofPolygons).where(eq(roofPolygons.siteId, id));
     
-    // 16. Finally delete the site
+    // 19. Finally delete the site
     const result = await db.delete(sites).where(eq(sites.id, id)).returning();
     return result.length > 0;
   }
