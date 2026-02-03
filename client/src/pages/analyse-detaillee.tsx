@@ -379,19 +379,26 @@ export default function AnalyseDetailleePage() {
           return response.json();
         })
         .then(result => {
+          console.log('[Bill Parse] Result received:', result);
           // API returns { success: true, data: {...} } - unwrap it
           if (!result.success || !result.data) {
             throw new Error('Failed to parse bill data');
           }
           const data = result.data as HQBillData;
+          console.log('[Bill Parse] Parsed data:', data);
+          console.log('[Bill Parse] savedBillPath from server:', data.savedBillPath);
           setParsedBillData(data);
           setIsParsing(false);
           
           // Store savedBillPath in ref AND sessionStorage (survives HMR reloads)
           if (data.savedBillPath) {
+            console.log('[Bill Parse] Storing savedBillPath:', data.savedBillPath);
             savedBillPathRef.current = data.savedBillPath;
             sessionStorage.setItem('kwhquebec_savedBillPath', data.savedBillPath);
             form.setValue('savedBillPath', data.savedBillPath);
+            console.log('[Bill Parse] SessionStorage after set:', sessionStorage.getItem('kwhquebec_savedBillPath'));
+          } else {
+            console.log('[Bill Parse] WARNING: No savedBillPath in response!');
           }
           
           // Auto-transition to step 2 first, then fill form after fields mount
