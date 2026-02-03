@@ -1274,59 +1274,18 @@ router.get("/api/dashboard/pipeline-stats", authMiddleware, requireStaff, async 
 // Global search across clients, sites, and opportunities
 router.get("/api/search", authMiddleware, requireStaff, async (req, res) => {
   try {
-    const query = (req.query.q as string || "").toLowerCase().trim();
+    const query = (req.query.q as string || "").trim();
     
     if (!query) {
       return res.json({ clients: [], sites: [], opportunities: [] });
     }
 
-    const [allClients, allSites, allOpportunities] = await Promise.all([
-      storage.getClients(),
-      storage.getSites(),
-      storage.getOpportunities(),
+    // Optimized: Use SQL queries with ILIKE instead of loading all data
+    const [clients, sites, opportunities] = await Promise.all([
+      storage.searchClients(query, 5),
+      storage.searchSites(query, 5),
+      storage.searchOpportunities(query, 5),
     ]);
-
-    const clients = allClients
-      .filter(client => 
-        client.name.toLowerCase().includes(query) ||
-        (client.mainContactName && client.mainContactName.toLowerCase().includes(query)) ||
-        (client.email && client.email.toLowerCase().includes(query))
-      )
-      .slice(0, 5)
-      .map(c => ({
-        id: c.id,
-        name: c.name,
-        mainContactName: c.mainContactName,
-        email: c.email,
-      }));
-
-    const sites = allSites
-      .filter(site =>
-        site.name.toLowerCase().includes(query) ||
-        (site.city && site.city.toLowerCase().includes(query)) ||
-        (site.address && site.address.toLowerCase().includes(query)) ||
-        (site.client && site.client.name.toLowerCase().includes(query))
-      )
-      .slice(0, 5)
-      .map(s => ({
-        id: s.id,
-        name: s.name,
-        city: s.city,
-        clientName: s.client?.name || null,
-      }));
-
-    const opportunities = allOpportunities
-      .filter(opp =>
-        opp.name.toLowerCase().includes(query) ||
-        (opp.description && opp.description.toLowerCase().includes(query))
-      )
-      .slice(0, 5)
-      .map(o => ({
-        id: o.id,
-        name: o.name,
-        stage: o.stage,
-        estimatedValue: o.estimatedValue,
-      }));
 
     res.json({ clients, sites, opportunities });
   } catch (error) {

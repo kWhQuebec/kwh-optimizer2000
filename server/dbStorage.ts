@@ -2228,6 +2228,83 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  // Global Search (optimized SQL queries with ILIKE)
+  async searchClients(query: string, limit: number = 5): Promise<Array<{ id: string; name: string; mainContactName: string | null; email: string | null }>> {
+    if (!query.trim()) return [];
+    const searchPattern = `%${query.toLowerCase()}%`;
+    return db.select({
+      id: clients.id,
+      name: clients.name,
+      mainContactName: clients.mainContactName,
+      email: clients.email,
+    })
+    .from(clients)
+    .where(
+      sql`(
+        LOWER(${clients.name}) LIKE ${searchPattern} OR
+        LOWER(${clients.mainContactName}) LIKE ${searchPattern} OR
+        LOWER(${clients.email}) LIKE ${searchPattern}
+      )`
+    )
+    .limit(limit);
+  }
+
+  async searchSites(query: string, limit: number = 5): Promise<Array<{ id: string; name: string; city: string | null; clientName: string | null }>> {
+    if (!query.trim()) return [];
+    const searchPattern = `%${query.toLowerCase()}%`;
+    const results = await db.select({
+      id: sites.id,
+      name: sites.name,
+      city: sites.city,
+      clientId: sites.clientId,
+    })
+    .from(sites)
+    .where(
+      sql`(
+        LOWER(${sites.name}) LIKE ${searchPattern} OR
+        LOWER(${sites.city}) LIKE ${searchPattern} OR
+        LOWER(${sites.address}) LIKE ${searchPattern}
+      )`
+    )
+    .limit(limit);
+    
+    // Get client names for matched sites
+    const clientIds = [...new Set(results.filter(r => r.clientId).map(r => r.clientId!))];
+    const clientMap = new Map<string, string>();
+    if (clientIds.length > 0) {
+      const clientData = await db.select({ id: clients.id, name: clients.name })
+        .from(clients)
+        .where(inArray(clients.id, clientIds));
+      clientData.forEach(c => clientMap.set(c.id, c.name));
+    }
+    
+    return results.map(r => ({
+      id: r.id,
+      name: r.name,
+      city: r.city,
+      clientName: r.clientId ? (clientMap.get(r.clientId) || null) : null,
+    }));
+  }
+
+  async searchOpportunities(query: string, limit: number = 5): Promise<Array<{ id: string; name: string; stage: string; estimatedValue: number | null }>> {
+    if (!query.trim()) return [];
+    const searchPattern = `%${query.toLowerCase()}%`;
+    return db.select({
+      id: opportunities.id,
+      name: opportunities.name,
+      stage: opportunities.stage,
+      estimatedValue: opportunities.estimatedValue,
+    })
+    .from(opportunities)
+    .where(
+      sql`(
+        LOWER(${opportunities.name}) LIKE ${searchPattern} OR
+        LOWER(${opportunities.description}) LIKE ${searchPattern}
+      )`
+    )
+    .limit(limit);
+  }
+
   // Activities (Calls, Emails, Meetings Log)
   async getActivities(): Promise<Activity[]> {
     return db.select().from(activities).orderBy(desc(activities.createdAt));

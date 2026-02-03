@@ -378,6 +378,11 @@ export interface IStorage {
   deleteOpportunity(id: string): Promise<boolean>;
   updateOpportunityStage(id: string, stage: string, probability?: number, lostReason?: string, lostNotes?: string): Promise<Opportunity | undefined>;
 
+  // Global Search (optimized SQL queries)
+  searchClients(query: string, limit?: number): Promise<Array<{ id: string; name: string; mainContactName: string | null; email: string | null }>>;
+  searchSites(query: string, limit?: number): Promise<Array<{ id: string; name: string; city: string | null; clientName: string | null }>>;
+  searchOpportunities(query: string, limit?: number): Promise<Array<{ id: string; name: string; stage: string; estimatedValue: number | null }>>;
+
   // Activities (Calls, Emails, Meetings Log)
   getActivities(): Promise<Activity[]>;
   getActivity(id: string): Promise<Activity | undefined>;
@@ -2140,6 +2145,48 @@ export class MemStorage implements IStorage {
     };
     this.opportunitiesMap.set(id, updated);
     return updated;
+  }
+
+  // Global Search (optimized in-memory filtering)
+  async searchClients(query: string, limit: number = 5): Promise<Array<{ id: string; name: string; mainContactName: string | null; email: string | null }>> {
+    if (!query.trim()) return [];
+    const q = query.toLowerCase();
+    return Array.from(this.clientsMap.values())
+      .filter(c => 
+        c.name.toLowerCase().includes(q) ||
+        (c.mainContactName && c.mainContactName.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q))
+      )
+      .slice(0, limit)
+      .map(c => ({ id: c.id, name: c.name, mainContactName: c.mainContactName, email: c.email }));
+  }
+
+  async searchSites(query: string, limit: number = 5): Promise<Array<{ id: string; name: string; city: string | null; clientName: string | null }>> {
+    if (!query.trim()) return [];
+    const q = query.toLowerCase();
+    return Array.from(this.sitesMap.values())
+      .filter(s => 
+        s.name.toLowerCase().includes(q) ||
+        (s.city && s.city.toLowerCase().includes(q)) ||
+        (s.address && s.address.toLowerCase().includes(q))
+      )
+      .slice(0, limit)
+      .map(s => {
+        const client = s.clientId ? this.clientsMap.get(s.clientId) : null;
+        return { id: s.id, name: s.name, city: s.city, clientName: client?.name || null };
+      });
+  }
+
+  async searchOpportunities(query: string, limit: number = 5): Promise<Array<{ id: string; name: string; stage: string; estimatedValue: number | null }>> {
+    if (!query.trim()) return [];
+    const q = query.toLowerCase();
+    return Array.from(this.opportunitiesMap.values())
+      .filter(o => 
+        o.name.toLowerCase().includes(q) ||
+        (o.description && o.description.toLowerCase().includes(q))
+      )
+      .slice(0, limit)
+      .map(o => ({ id: o.id, name: o.name, stage: o.stage, estimatedValue: o.estimatedValue }));
   }
 
   // Activities (Calls, Emails, Meetings Log)
