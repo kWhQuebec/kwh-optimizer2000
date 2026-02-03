@@ -1726,6 +1726,62 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   )}
                                 />
                               </div>
+                              
+                              {/* Qualification Questions */}
+                              <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                                {/* Roof Age */}
+                                <FormField
+                                  control={form.control}
+                                  name="roofAgeYears"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        {language === "fr" ? "Âge de la toiture" : "Roof age"}
+                                      </FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger data-testid="select-roof-age">
+                                            <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="5">{language === "fr" ? "< 5 ans" : "< 5 years"}</SelectItem>
+                                          <SelectItem value="10">5-10 {language === "fr" ? "ans" : "years"}</SelectItem>
+                                          <SelectItem value="15">10-15 {language === "fr" ? "ans" : "years"}</SelectItem>
+                                          <SelectItem value="20">15-20 {language === "fr" ? "ans" : "years"}</SelectItem>
+                                          <SelectItem value="25">{language === "fr" ? "> 20 ans" : "> 20 years"}</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                
+                                {/* Ownership */}
+                                <FormField
+                                  control={form.control}
+                                  name="ownershipType"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-1">
+                                        {language === "fr" ? "Propriétaire du bâtiment?" : "Building owner?"}
+                                      </FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger data-testid="select-ownership">
+                                            <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="owner">{language === "fr" ? "Oui, propriétaire" : "Yes, owner"}</SelectItem>
+                                          <SelectItem value="tenant">{language === "fr" ? "Non, locataire" : "No, tenant"}</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
                             </div>
 
                             {/* Only show building type and monthly bill fields when no bill was uploaded (manual entry mode) */}
@@ -1782,62 +1838,6 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 />
                               </div>
                             )}
-
-                            {/* Qualification Questions - Always visible */}
-                            <div className="grid sm:grid-cols-2 gap-4">
-                              {/* Roof Age */}
-                              <FormField
-                                control={form.control}
-                                name="roofAgeYears"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      {language === "fr" ? "Âge de la toiture" : "Roof age"}
-                                    </FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                      <FormControl>
-                                        <SelectTrigger data-testid="select-roof-age">
-                                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="5">{language === "fr" ? "< 5 ans" : "< 5 years"}</SelectItem>
-                                        <SelectItem value="10">5-10 {language === "fr" ? "ans" : "years"}</SelectItem>
-                                        <SelectItem value="15">10-15 {language === "fr" ? "ans" : "years"}</SelectItem>
-                                        <SelectItem value="20">15-20 {language === "fr" ? "ans" : "years"}</SelectItem>
-                                        <SelectItem value="25">{language === "fr" ? "> 20 ans" : "> 20 years"}</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              
-                              {/* Ownership */}
-                              <FormField
-                                control={form.control}
-                                name="ownershipType"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="flex items-center gap-1">
-                                      {language === "fr" ? "Propriétaire du bâtiment?" : "Building owner?"}
-                                    </FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                      <FormControl>
-                                        <SelectTrigger data-testid="select-ownership">
-                                          <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="owner">{language === "fr" ? "Oui, propriétaire" : "Yes, owner"}</SelectItem>
-                                        <SelectItem value="tenant">{language === "fr" ? "Non, locataire" : "No, tenant"}</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
 
                             <div className="border-t pt-6 mt-6">
                               <div className="bg-muted/50 rounded-lg p-4 border mb-4">
