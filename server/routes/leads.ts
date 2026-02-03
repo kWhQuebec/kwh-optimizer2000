@@ -610,7 +610,12 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
     const files = req.files as Express.Multer.File[];
     const savedBillPath = req.body.savedBillPath as string | undefined;
     
-    if ((!files || files.length === 0) && !savedBillPath) {
+    // Accept if: files uploaded OR savedBillPath provided OR hqClientNumber exists (bill was already parsed and saved)
+    const hasFiles = files && files.length > 0;
+    const hasSavedPath = !!savedBillPath;
+    const hasParsedBillData = !!(hqClientNumber && hqClientNumber.length > 5);
+    
+    if (!hasFiles && !hasSavedPath && !hasParsedBillData) {
       return res.status(400).json({ error: "At least one Hydro-Québec bill file is required" });
     }
 
@@ -632,7 +637,9 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       ? files.map((f, i) => `Fichier ${i + 1}: ${f.originalname}`).join('\n')
       : savedBillPath 
         ? `Facture pré-téléversée: ${savedBillPath.split('/').pop()}`
-        : '';
+        : hasParsedBillData
+          ? `Facture déjà analysée (No client HQ: ${hqClientNumber})`
+          : '';
     
     const combinedNotes = [
       '[Analyse Détaillée avec Procuration]',
