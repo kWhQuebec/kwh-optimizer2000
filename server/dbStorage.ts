@@ -2253,30 +2253,23 @@ export class DatabaseStorage implements IStorage {
     if (!query.trim()) return [];
     const searchPattern = `%${query.toLowerCase()}%`;
     
-    // Join with clients to also search by client name
-    const results = await db.select({
-      id: sites.id,
-      name: sites.name,
-      city: sites.city,
-      clientName: clients.name,
-    })
-    .from(sites)
-    .leftJoin(clients, eq(sites.clientId, clients.id))
-    .where(
-      sql`(
-        LOWER(${sites.name}) LIKE ${searchPattern} OR
-        LOWER(${sites.city}) LIKE ${searchPattern} OR
-        LOWER(${sites.address}) LIKE ${searchPattern} OR
-        LOWER(${clients.name}) LIKE ${searchPattern}
-      )`
-    )
-    .limit(limit);
+    // Join with clients to also search by client name - use raw SQL for reliable LIKE matching
+    const results = await db.execute(sql`
+      SELECT s.id, s.name, s.city, c.name as client_name
+      FROM sites s
+      LEFT JOIN clients c ON s.client_id = c.id
+      WHERE LOWER(s.name) LIKE ${searchPattern}
+         OR LOWER(s.city) LIKE ${searchPattern}
+         OR LOWER(s.address) LIKE ${searchPattern}
+         OR LOWER(c.name) LIKE ${searchPattern}
+      LIMIT ${limit}
+    `);
     
-    return results.map(r => ({
+    return (results.rows as any[]).map(r => ({
       id: r.id,
       name: r.name,
       city: r.city,
-      clientName: r.clientName,
+      clientName: r.client_name,
     }));
   }
 
