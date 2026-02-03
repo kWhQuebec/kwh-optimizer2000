@@ -910,19 +910,32 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     })));
 
     const roofDetailsScenario = site.roofAreaAutoDetails as RoofAreaAutoDetails | null;
-    const googleYield = roofDetailsScenario?.yearlyEnergyDcKwh && site.kbKwDc
-      ? Math.round(roofDetailsScenario.yearlyEnergyDcKwh / site.kbKwDc)
-      : null;
+    
+    // Build googleData object for resolveYieldStrategy
+    const googleData = roofDetailsScenario?.yearlyEnergyDcKwh && site.kbKwDc
+      ? {
+          googleProductionEstimate: {
+            yearlyEnergyAcKwh: roofDetailsScenario.yearlyEnergyDcKwh,
+            systemSizeKw: site.kbKwDc
+          }
+        }
+      : undefined;
+
+    // Build base assumptions for yield strategy
+    const baseAssumptions = {
+      ...getDefaultAnalysisAssumptions(),
+      ...assumptions,
+      bifacialEnabled: assumptions?.bifacialEnabled ?? site.bifacialEnabled ?? false
+    };
 
     const yieldStrategy = resolveYieldStrategy(
-      googleYield,
-      assumptions?.manualYield,
-      assumptions?.bifacialEnabled ?? site.bifacialEnabled ?? false
+      baseAssumptions,
+      googleData,
+      site.roofColorType as any
     );
 
     const analysisAssumptions: Partial<AnalysisAssumptions> = {
-      ...getDefaultAnalysisAssumptions(),
-      ...assumptions,
+      ...baseAssumptions,
       solarYieldKWhPerKWp: yieldStrategy.effectiveYield,
       yieldSource: yieldStrategy.yieldSource,
       _yieldStrategy: yieldStrategy
