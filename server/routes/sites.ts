@@ -412,8 +412,8 @@ router.post("/:id/geocode", authMiddleware, requireStaff, async (req: AuthReques
     }
 
     const result = await googleSolar.geocodeAddress(fullAddress);
-    if (!result.success) {
-      return res.status(400).json({ error: result.error || "Geocoding failed" });
+    if (!result) {
+      return res.status(400).json({ error: "Geocoding failed" });
     }
 
     await storage.updateSite(site.id, {
@@ -553,21 +553,19 @@ router.get("/:id/solar-mockup", authMiddleware, async (req: AuthRequest, res) =>
 
     const panelCount = parseInt(req.query.panelCount as string) || 0;
 
-    const result = await googleSolar.getSolarMockup({
-      latitude: site.latitude,
-      longitude: site.longitude,
+    const result = await googleSolar.getSolarMockupData(
+      { latitude: site.latitude, longitude: site.longitude },
       panelCount
-    });
+    );
 
     if (!result.success) {
       return res.status(400).json({ error: result.error || "Could not generate mockup" });
     }
 
     res.json({
-      mockupUrl: result.mockupUrl,
-      baseImageUrl: result.baseImageUrl,
-      panelCount: result.panelCount,
-      estimatedKW: result.estimatedKW
+      ...result,
+      siteId: site.id,
+      siteName: site.name
     });
   } catch (error) {
     console.error("Error generating mockup:", error);
@@ -1060,7 +1058,7 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
     
     // Get site parameters for the scenario runner
     // Try to extract from site's analysis data or use reasonable defaults
-    const analyses = await storage.getAnalysesBySite(siteId);
+    const analyses = await storage.getSimulationRunsBySite(siteId);
     const latestAnalysis = analyses.length > 0 ? analyses[analyses.length - 1] : null;
     
     const siteParams: SiteScenarioParams = {
@@ -1197,10 +1195,10 @@ router.get("/:siteId/construction-estimate", authMiddleware, async (req, res) =>
       return res.status(404).json({ error: "Site not found" });
     }
     
-    const simulations = await storage.getSimulationRuns(siteId);
+    const simulations = await storage.getSimulationRunsBySite(siteId);
     const latestSim = simulations.find(s => s.type === "SCENARIO") || simulations[0];
-    
-    const visits = await storage.getSiteVisits(siteId);
+
+    const visits = await storage.getSiteVisitsBySite(siteId);
     const completedVisit = visits.find(v => v.status === "completed") || visits[0] || null;
     
     const pvSizeKW = latestSim?.pvSizeKW || 100;

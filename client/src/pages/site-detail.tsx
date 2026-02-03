@@ -6613,7 +6613,12 @@ export default function SiteDetailPage() {
   const { data: designAgreement } = useQuery<{ id: string; status: string } | null>({
     queryKey: ["/api/sites", id, "design-agreement"],
     queryFn: async () => {
-      const res = await fetch(`/api/sites/${id}/design-agreement`, { credentials: "include" });
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/sites/${id}/design-agreement`, {
+        credentials: "include",
+        headers
+      });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("Failed to fetch agreement");
       return res.json();
