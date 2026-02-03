@@ -71,6 +71,7 @@ const detailedFormSchema = z.object({
   tariffCode: z.string().optional(),
   signatureCity: z.string().min(1, "Ce champ est requis"),
   notes: z.string().optional(),
+  savedBillPath: z.string().optional(),
   procurationAccepted: z.boolean().refine(val => val === true, {
     message: "Vous devez accepter la procuration pour continuer"
   }),
@@ -259,6 +260,7 @@ export default function AnalyseDetailleePage() {
       tariffCode: "",
       signatureCity: "",
       notes: "",
+      savedBillPath: "",
       procurationAccepted: false,
     },
   });
@@ -379,6 +381,11 @@ export default function AnalyseDetailleePage() {
           setParsedBillData(data);
           setIsParsing(false);
           
+          // Store savedBillPath in form state immediately (survives HMR)
+          if (data.savedBillPath) {
+            form.setValue('savedBillPath', data.savedBillPath);
+          }
+          
           // Auto-transition to step 2 first, then fill form after fields mount
           setTimeout(() => {
             setCurrentStep(2);
@@ -460,6 +467,11 @@ export default function AnalyseDetailleePage() {
       setParsedBillData(data);
       setIsParsing(false);
       
+      // Store savedBillPath in form state immediately (survives HMR)
+      if (data.savedBillPath) {
+        form.setValue('savedBillPath', data.savedBillPath);
+      }
+      
       // First transition to step 2, then set form values after fields are mounted
       setTimeout(() => {
         setCurrentStep(2);
@@ -533,8 +545,10 @@ export default function AnalyseDetailleePage() {
         formData.append(`billFile_${index}`, uploadedFile.file);
       });
 
-      if (parsedBillData?.savedBillPath) {
-        formData.append('savedBillPath', parsedBillData.savedBillPath);
+      // Use form value for savedBillPath (survives HMR) or fall back to parsedBillData
+      const savedPath = data.savedBillPath || parsedBillData?.savedBillPath;
+      if (savedPath) {
+        formData.append('savedBillPath', savedPath);
       }
 
       const response = await fetch('/api/detailed-analysis-request', {
@@ -561,9 +575,11 @@ export default function AnalyseDetailleePage() {
 
   const onSubmit = (data: DetailedFormValues) => {
     console.log('[Form onSubmit] Validation passed, data:', data);
-    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', parsedBillData?.savedBillPath);
+    // Check form value (survives HMR) and fallback to state
+    const savedPath = data.savedBillPath || parsedBillData?.savedBillPath;
+    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', savedPath);
     
-    if (uploadedFiles.length === 0 && !parsedBillData?.savedBillPath) {
+    if (uploadedFiles.length === 0 && !savedPath) {
       console.log('[Form onSubmit] No uploaded files and no saved bill path, showing error');
       setUploadError(language === "fr" 
         ? "Veuillez téléverser au moins une facture Hydro-Québec" 
