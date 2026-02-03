@@ -599,10 +599,13 @@ export default function AnalyseDetailleePage() {
     // Read directly from sessionStorage (most reliable for HMR), then ref, then form, then state
     const sessionPath = sessionStorage.getItem('kwhquebec_savedBillPath');
     const savedPath = sessionPath || savedBillPathRef.current || data.savedBillPath || parsedBillData?.savedBillPath;
-    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', savedPath, 'session:', sessionPath);
+    // If form has HQ account number, the bill was already parsed/saved - trust that
+    // (form values persist through HMR, useState doesn't)
+    const formHasHQData = !!(data.hqClientNumber && data.hqClientNumber.length > 5);
+    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', savedPath, 'session:', sessionPath, 'formHasHQData:', formHasHQData);
     
-    if (uploadedFiles.length === 0 && !savedPath) {
-      console.log('[Form onSubmit] No uploaded files and no saved bill path, showing error');
+    if (uploadedFiles.length === 0 && !savedPath && !formHasHQData) {
+      console.log('[Form onSubmit] No uploaded files, no saved bill path, no HQ data, showing error');
       setUploadError(language === "fr" 
         ? "Veuillez téléverser au moins une facture Hydro-Québec" 
         : "Please upload at least one Hydro-Québec bill");
