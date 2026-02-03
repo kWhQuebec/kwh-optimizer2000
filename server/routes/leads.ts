@@ -823,7 +823,8 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       fs.writeFileSync(pdfPath, pdfBuffer);
       console.log(`[Detailed Analysis] Procuration PDF saved: ${pdfPath}`);
       
-      const staffRecipient = 'info@kwh.quebec';
+      // Send to both info@ (for records) and account manager for action
+      const staffRecipient = 'info@kwh.quebec, malabarre@kwh.quebec';
       const pdfAttachment = {
         filename: `procuration_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
         content: pdfBuffer.toString('base64'),
@@ -972,32 +973,8 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
         }
       }
       
-      // Send notification to Account Manager that procuration is COMPLETED and ready for HQ
-      const accountManagerEmail = existingClient?.accountManagerEmail || 'malabarre@kwh.quebec';
-      const notificationResult = await sendProcurationCompletedNotification(
-        accountManagerEmail,
-        {
-          companyName,
-          contactName: formattedSignerName,
-          signerTitle: req.body.signerTitle || undefined,
-          email,
-          phone: phone || undefined,
-          hqAccountNumber: hqClientNumber || undefined,
-          streetAddress: streetAddress || undefined,
-          city: city || undefined,
-          province: province || 'Québec',
-          postalCode: postalCode || undefined,
-          signedAt: new Date(),
-        },
-        language === 'en' ? 'en' : 'fr',
-        pdfAttachment
-      );
-      
-      if (notificationResult.success) {
-        console.log(`[Detailed Analysis] Procuration completed notification sent to account manager: ${accountManagerEmail}`);
-      } else {
-        console.error(`[Detailed Analysis] Failed to send procuration completed notification:`, notificationResult.error);
-      }
+      // Note: Combined notification (lead info + procuration + CRM link) already sent to info@kwh.quebec above
+      // No separate account manager notification needed
     } catch (pdfError) {
       console.error('[Detailed Analysis] Error generating/sending procuration PDF:', pdfError);
     }
