@@ -823,8 +823,8 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       fs.writeFileSync(pdfPath, pdfBuffer);
       console.log(`[Detailed Analysis] Procuration PDF saved: ${pdfPath}`);
       
-      // Send to both info@ (for records) and account manager for action
-      const staffRecipient = 'info@kwh.quebec, malabarre@kwh.quebec';
+      // Send only to Account Manager
+      const staffRecipient = 'malabarre@kwh.quebec';
       const pdfAttachment = {
         filename: `procuration_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
         content: pdfBuffer.toString('base64'),
