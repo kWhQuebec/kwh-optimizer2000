@@ -838,7 +838,8 @@ export async function sendProcurationCompletedNotification(
   pdfAttachment?: { filename: string; content: string; type: string }
 ): Promise<{ success: boolean; error?: string }> {
   const signedDate = clientData.signedAt.toLocaleDateString(language === 'fr' ? 'fr-CA' : 'en-CA', {
-    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Montreal'
   });
   
   const subject = language === 'fr'

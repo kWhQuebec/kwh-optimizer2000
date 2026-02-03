@@ -69,17 +69,27 @@ function addBusinessDays(date: Date, days: number): Date {
 }
 
 function formatDateFr(date: Date): string {
-  const months = [
-    "janvier", "février", "mars", "avril", "mai", "juin",
-    "juillet", "août", "septembre", "octobre", "novembre", "décembre"
-  ];
-  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  // Use Eastern Time (Quebec timezone)
+  return date.toLocaleDateString('fr-CA', {
+    year: 'numeric',
+    month: 'long', 
+    day: 'numeric',
+    timeZone: 'America/Montreal'
+  });
 }
 
 function formatDateShort(date: Date): string {
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
+  // Use Eastern Time (Quebec timezone) for consistent date formatting
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'America/Montreal'
+  };
+  const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+  const year = parts.find(p => p.type === 'year')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const day = parts.find(p => p.type === 'day')?.value || '';
   return `${year}-${month}-${day}`;
 }
 
