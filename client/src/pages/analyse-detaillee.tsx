@@ -841,36 +841,38 @@ The data obtained will be used exclusively for solar potential analysis and phot
                       ))}
                     </div>
                   </div>
+                </div>
+                <div className="flex justify-center items-center gap-3 mt-4">
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="absolute left-2 top-1/3 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                    className="h-8 w-8"
                     onClick={scrollPrev}
                     data-testid="carousel-prev"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
+                  <div className="flex gap-1.5">
+                    {carouselSlides.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          selectedSlide === index ? 'bg-primary' : 'bg-muted-foreground/30'
+                        }`}
+                        onClick={() => emblaApi?.scrollTo(index)}
+                        data-testid={`carousel-dot-${index}`}
+                      />
+                    ))}
+                  </div>
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="absolute right-2 top-1/3 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                    className="h-8 w-8"
                     onClick={scrollNext}
                     data-testid="carousel-next"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </Button>
-                </div>
-                <div className="flex justify-center gap-1.5 mt-4">
-                  {carouselSlides.map((_, index) => (
-                    <button
-                      key={index}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        selectedSlide === index ? 'bg-primary' : 'bg-muted-foreground/30'
-                      }`}
-                      onClick={() => emblaApi?.scrollTo(index)}
-                      data-testid={`carousel-dot-${index}`}
-                    />
-                  ))}
                 </div>
               </Card>
 
