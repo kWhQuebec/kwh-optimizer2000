@@ -618,8 +618,8 @@ export async function sendWelcomeEmail(
 
 function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', baseUrl: string, clientId?: string): string {
   const procurationUrl = clientId 
-    ? `${baseUrl}/autorisation-hq?clientId=${clientId}`
-    : `${baseUrl}/autorisation-hq`;
+    ? `${baseUrl}/autorisation-hq?clientId=${clientId}&lang=${lang}`
+    : `${baseUrl}/autorisation-hq?lang=${lang}`;
   
   const t = {
     fr: {
@@ -728,8 +728,8 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
 
 function generateHqProcurationTextEmail(clientName: string, lang: 'fr' | 'en', baseUrl: string, clientId?: string): string {
   const procurationUrl = clientId 
-    ? `${baseUrl}/autorisation-hq?clientId=${clientId}`
-    : `${baseUrl}/autorisation-hq`;
+    ? `${baseUrl}/autorisation-hq?clientId=${clientId}&lang=${lang}`
+    : `${baseUrl}/autorisation-hq?lang=${lang}`;
   
   if (lang === 'fr') {
     return `Bonjour ${clientName},

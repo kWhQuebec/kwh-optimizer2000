@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
@@ -31,12 +31,19 @@ interface HQBillData {
 type FlowStep = 'upload' | 'parsing' | 'extracted';
 
 export default function AutorisationHQPage() {
-  const { language } = useI18n();
+  const { language, setLanguage } = useI18n();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   
   const urlParams = new URLSearchParams(window.location.search);
   const clientId = urlParams.get('clientId');
+  const langParam = urlParams.get('lang');
+  
+  useEffect(() => {
+    if (langParam === 'en' || langParam === 'fr') {
+      setLanguage(langParam);
+    }
+  }, [langParam, setLanguage]);
   
   const [flowStep, setFlowStep] = useState<FlowStep>('upload');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
