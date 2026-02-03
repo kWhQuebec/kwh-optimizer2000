@@ -221,6 +221,12 @@ export default function AnalyseDetailleePage() {
   const [parsedBillData, setParsedBillData] = useState<HQBillData | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  
+  // Use ref to store savedBillPath - survives HMR and component remounts
+  const savedBillPathRef = useRef<string | null>(
+    // Initialize from sessionStorage to survive HMR reloads during development
+    typeof window !== 'undefined' ? sessionStorage.getItem('kwhquebec_savedBillPath') : null
+  );
 
   const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
@@ -381,8 +387,10 @@ export default function AnalyseDetailleePage() {
           setParsedBillData(data);
           setIsParsing(false);
           
-          // Store savedBillPath in form state immediately (survives HMR)
+          // Store savedBillPath in ref AND sessionStorage (survives HMR reloads)
           if (data.savedBillPath) {
+            savedBillPathRef.current = data.savedBillPath;
+            sessionStorage.setItem('kwhquebec_savedBillPath', data.savedBillPath);
             form.setValue('savedBillPath', data.savedBillPath);
           }
           
@@ -467,8 +475,10 @@ export default function AnalyseDetailleePage() {
       setParsedBillData(data);
       setIsParsing(false);
       
-      // Store savedBillPath in form state immediately (survives HMR)
+      // Store savedBillPath in ref AND sessionStorage (survives HMR reloads)
       if (data.savedBillPath) {
+        savedBillPathRef.current = data.savedBillPath;
+        sessionStorage.setItem('kwhquebec_savedBillPath', data.savedBillPath);
         form.setValue('savedBillPath', data.savedBillPath);
       }
       
@@ -545,8 +555,8 @@ export default function AnalyseDetailleePage() {
         formData.append(`billFile_${index}`, uploadedFile.file);
       });
 
-      // Use form value for savedBillPath (survives HMR) or fall back to parsedBillData
-      const savedPath = data.savedBillPath || parsedBillData?.savedBillPath;
+      // Use ref (most reliable), then form value, then state as fallbacks
+      const savedPath = savedBillPathRef.current || data.savedBillPath || parsedBillData?.savedBillPath;
       if (savedPath) {
         formData.append('savedBillPath', savedPath);
       }
@@ -569,15 +579,18 @@ export default function AnalyseDetailleePage() {
         if (f.preview) URL.revokeObjectURL(f.preview);
       });
       setUploadedFiles([]);
+      // Clear sessionStorage after successful submission
+      sessionStorage.removeItem('kwhquebec_savedBillPath');
+      savedBillPathRef.current = null;
       setSubmitted(true);
     },
   });
 
   const onSubmit = (data: DetailedFormValues) => {
     console.log('[Form onSubmit] Validation passed, data:', data);
-    // Check form value (survives HMR) and fallback to state
-    const savedPath = data.savedBillPath || parsedBillData?.savedBillPath;
-    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', savedPath);
+    // Check ref (most reliable), then form value, then state as fallbacks
+    const savedPath = savedBillPathRef.current || data.savedBillPath || parsedBillData?.savedBillPath;
+    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', savedPath, 'ref:', savedBillPathRef.current);
     
     if (uploadedFiles.length === 0 && !savedPath) {
       console.log('[Form onSubmit] No uploaded files and no saved bill path, showing error');
