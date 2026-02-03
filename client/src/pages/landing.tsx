@@ -399,8 +399,8 @@ export default function LandingPage() {
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-4" data-testid="hero-headline">
               {language === "fr" 
-                ? <>Panneaux solaires <span className="inline-flex items-center justify-center bg-yellow-400 text-black w-[0.9em] h-[0.9em] rounded-sm text-[0.8em] font-bold align-middle">+</span> stockage</> 
-                : <>Solar panels <span className="inline-flex items-center justify-center bg-yellow-400 text-black w-[0.9em] h-[0.9em] rounded-sm text-[0.8em] font-bold align-middle">+</span> storage</>}
+                ? <>Panneaux solaires <span className="inline-flex items-center justify-center bg-yellow-400 text-white w-[0.9em] h-[0.9em] rounded-sm text-[0.8em] font-bold align-middle">+</span> stockage</> 
+                : <>Solar panels <span className="inline-flex items-center justify-center bg-yellow-400 text-white w-[0.9em] h-[0.9em] rounded-sm text-[0.8em] font-bold align-middle">+</span> storage</>}
             </h1>
             
             <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-2" data-testid="hero-subtitle">
