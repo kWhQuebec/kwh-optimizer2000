@@ -49,6 +49,7 @@ interface HQBillData {
   billingPeriod: string | null;
   estimatedMonthlyBill: number | null;
   confidence: number;
+  savedBillPath?: string;
 }
 
 const detailedFormSchema = z.object({
@@ -528,6 +529,10 @@ export default function AnalyseDetailleePage() {
         formData.append(`billFile_${index}`, uploadedFile.file);
       });
 
+      if (parsedBillData?.savedBillPath) {
+        formData.append('savedBillPath', parsedBillData.savedBillPath);
+      }
+
       const response = await fetch('/api/detailed-analysis-request', {
         method: 'POST',
         body: formData,
@@ -552,8 +557,10 @@ export default function AnalyseDetailleePage() {
 
   const onSubmit = (data: DetailedFormValues) => {
     console.log('[Form onSubmit] Validation passed, data:', data);
-    if (uploadedFiles.length === 0) {
-      console.log('[Form onSubmit] No uploaded files, showing error');
+    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', parsedBillData?.savedBillPath);
+    
+    if (uploadedFiles.length === 0 && !parsedBillData?.savedBillPath) {
+      console.log('[Form onSubmit] No uploaded files and no saved bill path, showing error');
       setUploadError(language === "fr" 
         ? "Veuillez téléverser au moins une facture Hydro-Québec" 
         : "Please upload at least one Hydro-Québec bill");
