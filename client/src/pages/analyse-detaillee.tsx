@@ -555,8 +555,9 @@ export default function AnalyseDetailleePage() {
         formData.append(`billFile_${index}`, uploadedFile.file);
       });
 
-      // Use ref (most reliable), then form value, then state as fallbacks
-      const savedPath = savedBillPathRef.current || data.savedBillPath || parsedBillData?.savedBillPath;
+      // Read directly from sessionStorage (most reliable for HMR)
+      const sessionPath = sessionStorage.getItem('kwhquebec_savedBillPath');
+      const savedPath = sessionPath || savedBillPathRef.current || data.savedBillPath || parsedBillData?.savedBillPath;
       if (savedPath) {
         formData.append('savedBillPath', savedPath);
       }
@@ -588,9 +589,10 @@ export default function AnalyseDetailleePage() {
 
   const onSubmit = (data: DetailedFormValues) => {
     console.log('[Form onSubmit] Validation passed, data:', data);
-    // Check ref (most reliable), then form value, then state as fallbacks
-    const savedPath = savedBillPathRef.current || data.savedBillPath || parsedBillData?.savedBillPath;
-    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', savedPath, 'ref:', savedBillPathRef.current);
+    // Read directly from sessionStorage (most reliable for HMR), then ref, then form, then state
+    const sessionPath = sessionStorage.getItem('kwhquebec_savedBillPath');
+    const savedPath = sessionPath || savedBillPathRef.current || data.savedBillPath || parsedBillData?.savedBillPath;
+    console.log('[Form onSubmit] uploadedFiles:', uploadedFiles.length, 'savedBillPath:', savedPath, 'session:', sessionPath);
     
     if (uploadedFiles.length === 0 && !savedPath) {
       console.log('[Form onSubmit] No uploaded files and no saved bill path, showing error');
