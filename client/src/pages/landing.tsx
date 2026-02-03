@@ -1019,15 +1019,15 @@ export default function LandingPage() {
                     <FileText className="w-6 h-6 text-muted-foreground" />
                   </div>
                   <Badge variant="outline" className="mb-3">
-                    2-4 {language === "fr" ? "sem." : "wks"}
+                    8-16 {language === "fr" ? "sem." : "wks"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
-                    {language === "fr" ? "Conception" : "Design"}
+                    {language === "fr" ? "Conception & Planification" : "Design & Planning"}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {language === "fr" 
-                      ? "Plans d'ingénierie, permis"
-                      : "Engineering plans, permits"
+                      ? "Ingénierie, permis, approvisionnement"
+                      : "Engineering, permits, procurement"
                     }
                   </p>
                 </div>
@@ -1047,7 +1047,7 @@ export default function LandingPage() {
                     <HardHat className="w-6 h-6 text-muted-foreground" />
                   </div>
                   <Badge variant="outline" className="mb-3">
-                    4-12 {language === "fr" ? "sem." : "wks"}
+                    8-16 {language === "fr" ? "sem." : "wks"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
                     {language === "fr" ? "Construction" : "Construction"}
