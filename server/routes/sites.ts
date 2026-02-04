@@ -1026,6 +1026,12 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
       lcoe: result.lcoe,
       co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
       assumptions: result.assumptions,
+      cashflows: result.cashflows,
+      breakdown: result.breakdown,
+      hourlyProfile: result.hourlyProfile,
+      peakWeekData: result.peakWeekData,
+      sensitivity: result.sensitivity,
+      interpolatedMonths: result.interpolatedMonths,
       result: result,
       createdBy: (req as AuthRequest).userId || null
     });
