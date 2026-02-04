@@ -1699,10 +1699,10 @@ const en = {
     },
     googleValidation: {
       title: "Google Solar API Validation",
-      description: "The system performs cross-validation with Google Solar API data to validate yield estimates.",
+      description: "Google Solar API is used ONLY for yield estimation (kWh/kWp at location). Roof area and sizing come from manually traced polygons.",
       method: {
         title: "Comparison Methodology",
-        description: "Comparison is based on specific yield (kWh/kWp) rather than total production, as Google Solar API is optimized for residential installations and may underestimate C&I system sizes.",
+        description: "Comparison is based on specific yield (kWh/kWp) only. Roof area and system sizing are calculated from manual roof tracing, not from Google Solar API.",
       },
       thresholds: [
         { range: "±10%", status: "Validated", color: "green", description: "Yield consistent with satellite data" },
@@ -1710,11 +1710,11 @@ const en = {
         { range: ">20%", status: "Review needed", color: "red", description: "Recommendation to revise parameters" },
       ],
       limitations: {
-        title: "Known Limitations",
+        title: "Usage Scope",
         list: [
-          "Google Solar API often caps at ~50kWp (residential scale)",
-          "Large C&I buildings may exceed API capabilities",
-          "Specific yield comparison remains valid even when sizes differ",
+          "Google Solar API provides yield (kWh/kWp) at location only",
+          "Roof area comes from manually traced polygons (source of truth)",
+          "System sizing uses KB Racking formula from traced area",
         ],
       },
     },

@@ -1845,31 +1845,6 @@ function AnalysisParametersEditor({
                 </div>
               </div>
               
-              {/* Manual Override Guidance for Large C&I Buildings */}
-              {merged.roofAreaSqFt > 5000 && (
-                <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs">
-                  <div className="flex items-start gap-2">
-                    <Info className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-blue-800">
-                      <span className="font-medium">
-                        {language === "fr" ? "Grand bâtiment commercial ou industriel" : "Large C&I building"}
-                      </span>
-                      <p className="text-blue-700 mt-0.5">
-                        {language === "fr" 
-                          ? "Pour les grands bâtiments, entrez la superficie réelle de toiture. Google Solar API est optimisé pour les toitures résidentielles et peut sous-estimer les grands toits commerciaux."
-                          : "For large buildings, enter actual roof area. Google Solar API is optimized for residential rooftops and may underestimate large commercial roofs."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="w-3 h-3" />
-                {language === "fr" 
-                  ? `Capacité max solaire estimée: ${Math.round((merged.roofAreaSqFt * merged.roofUtilizationRatio) / 100)} kWc` 
-                  : `Estimated max solar capacity: ${Math.round((merged.roofAreaSqFt * merged.roofUtilizationRatio) / 100)} kWp`}
-              </p>
             </div>
 
             {/* Reset Button */}
@@ -5051,31 +5026,6 @@ function AnalysisResults({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* System Size Mismatch Warning */}
-              {hasSignificantSizeMismatch && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm">
-                      <p className="font-medium text-blue-800">
-                        {language === "fr" 
-                          ? "Différence de taille de système importante" 
-                          : "Significant System Size Difference"}
-                      </p>
-                      <p className="text-blue-700 mt-1">
-                        {language === "fr" 
-                          ? `Votre système de ${ourPvKw.toFixed(0)} kW est ${sizeMismatchRatio.toFixed(1)}× plus grand que la configuration max de Google (${googleMaxPvKw.toFixed(1)} kW). Google Solar API est optimisé pour les toitures résidentielles et plafonne généralement à 25-50 kW.`
-                          : `Your ${ourPvKw.toFixed(0)} kW system is ${sizeMismatchRatio.toFixed(1)}× larger than Google's max config (${googleMaxPvKw.toFixed(1)} kW). Google Solar API is optimized for residential rooftops and typically caps at 25-50 kW.`}
-                      </p>
-                      <p className="text-blue-600 mt-2 font-medium">
-                        {language === "fr" 
-                          ? "→ Comparez le rendement spécifique (kWh/kWc), pas la production totale."
-                          : "→ Compare specific yield (kWh/kWp), not total production."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Primary Metric: Specific Yield Comparison */}
               <div className="grid grid-cols-3 gap-4">
