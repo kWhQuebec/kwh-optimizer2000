@@ -1,4 +1,5 @@
 import PptxGenJS from "pptxgenjs";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString } from "./brandContent";
 
 const COLORS = {
   blue: "003DA6",
@@ -406,6 +407,63 @@ export async function generatePresentationPPTX(
   slide5.addText("info@kwh.quebec | www.kwh.quebec", {
     x: 0.5, y: 4.95, w: 9, h: 0.2,
     fontSize: 11, color: COLORS.gold, align: "center"
+  });
+
+  // ================= SLIDE: REFERENCES =================
+  const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  // Titre - utilise brandContent
+  slideRef.addText(getTitle("trustUs", lang), {
+    x: 0.5, y: 0.9, w: 9, h: 0.5,
+    fontSize: 26, bold: true, color: COLORS.blue
+  });
+
+  // Ligne décorative
+  slideRef.addShape("rect", {
+    x: 0.5, y: 1.4, w: 2, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  // Stats de crédibilité - utilise brandContent
+  const credStats = getAllStats(lang);
+  if (credStats.length === 0) {
+    slideRef.addText(lang === "fr" ? "Statistiques non disponibles" : "Statistics not available", {
+      x: 1.2, y: 1.8, w: 7, h: 0.5,
+      fontSize: 14, color: COLORS.mediumGray, align: "center"
+    });
+  }
+  credStats.forEach((stat, i) => {
+    const xPos = 1.2 + i * 2.6;
+    slideRef.addText(stat.value, {
+      x: xPos, y: 1.8, w: 2.2, h: 0.7,
+      fontSize: 36, bold: true, color: COLORS.blue, align: "center"
+    });
+    slideRef.addText(stat.label, {
+      x: xPos, y: 2.5, w: 2.2, h: 0.4,
+      fontSize: 12, color: COLORS.mediumGray, align: "center"
+    });
+  });
+
+  // Témoignage - utilise brandContent
+  const testimonialPptx = getFirstTestimonial(lang);
+  slideRef.addText(`« ${testimonialPptx.quote} »`, {
+    x: 1, y: 3.3, w: 8, h: 0.7,
+    fontSize: 18, italic: true, color: COLORS.darkGray, align: "center"
+  });
+
+  slideRef.addText(`— ${testimonialPptx.author}`, {
+    x: 1, y: 4, w: 8, h: 0.35,
+    fontSize: 11, color: COLORS.mediumGray, align: "center"
+  });
+
+  // CTA Box
+  slideRef.addShape("rect", {
+    x: 2.5, y: 4.6, w: 5, h: 0.65,
+    fill: { color: COLORS.blue }
+  });
+
+  slideRef.addText(getContactString(), {
+    x: 2.5, y: 4.72, w: 5, h: 0.4,
+    fontSize: 14, bold: true, color: COLORS.gold, align: "center"
   });
 
   const pptxData = await pptx.write({ outputType: "nodebuffer" });

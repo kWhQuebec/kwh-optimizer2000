@@ -95,6 +95,8 @@ export function drawModernFooter(
     pageWidth: number;
     pageHeight: number;
     theme?: PDFTheme;
+    pageNumber?: number;
+    totalPages?: number;
   }
 ): void {
   const theme = options.theme || DEFAULT_THEME;
@@ -121,6 +123,18 @@ export function drawModernFooter(
     doc.font("Helvetica-Bold");
     doc.text(options.rightText, theme.margin, textY, { width: contentWidth, align: "right" });
     doc.font("Helvetica");
+  }
+
+  // Page number
+  if (options.pageNumber) {
+    const pageText = options.totalPages 
+      ? `Page ${options.pageNumber} / ${options.totalPages}`
+      : `Page ${options.pageNumber}`;
+    doc.fontSize(8).fillColor(BRAND_COLORS.white);
+    doc.text(pageText, pageWidth - theme.margin - 80, textY, {
+      width: 80,
+      align: "right"
+    });
   }
 }
 
