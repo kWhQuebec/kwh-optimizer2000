@@ -1976,8 +1976,14 @@ function runHourlySimulation(
     }
   }
   
+  // CRITICAL FIX: Cap self-consumption at total production
+  // Self-consumption cannot exceed what was produced by the solar system.
+  // This can happen when battery discharges energy that was charged from the grid (night charging).
+  // Only solar energy should count toward self-consumption.
+  const cappedSelfConsumption = Math.min(totalSelfConsumption, totalProductionKWh);
+  
   return {
-    totalSelfConsumption,
+    totalSelfConsumption: cappedSelfConsumption,
     totalProductionKWh,
     totalExportedKWh,
     peakAfter,
