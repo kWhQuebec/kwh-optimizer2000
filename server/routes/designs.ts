@@ -87,7 +87,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req: Au
     const allSimulations = await storage.getSimulationRuns();
     const siteSimulations = allSimulations.filter(s => s.siteId === simulation.siteId);
 
-    const roofPolygons = await storage.getRoofPolygonsBySite(simulation.siteId);
+    const roofPolygons = await storage.getRoofPolygons(simulation.siteId);
     
     let roofVisualizationBuffer: Buffer | undefined;
     if (roofPolygons.length > 0 && simulation.site.latitude && simulation.site.longitude) {
@@ -163,7 +163,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
       }
     }
 
-    const roofPolygons = await storage.getRoofPolygonsBySite(simulation.siteId);
+    const roofPolygons = await storage.getRoofPolygons(simulation.siteId);
     
     let roofVisualizationBuffer: Buffer | undefined;
     if (roofPolygons.length > 0 && simulation.site.latitude && simulation.site.longitude) {
@@ -233,7 +233,7 @@ router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, async (
       }
     }
 
-    const roofPolygons = await storage.getRoofPolygonsBySite(simulation.siteId);
+    const roofPolygons = await storage.getRoofPolygons(simulation.siteId);
     
     let roofVisualizationBuffer: Buffer | undefined;
     if (roofPolygons.length > 0 && simulation.site.latitude && simulation.site.longitude) {

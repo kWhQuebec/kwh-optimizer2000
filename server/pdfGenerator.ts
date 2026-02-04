@@ -146,7 +146,7 @@ export function generateProfessionalPDF(
     doc.text(label.toUpperCase(), x + 10, y + 12, { width: width - 20, align: "center" });
 
     // Value
-    doc.fontSize(22).fillColor(highlight ? COLORS.gold : COLORS.blue).font("Helvetica-Bold");
+    const valueFontSize = value.length > 12 ? 14 : value.length > 9 ? 16 : value.length > 6 ? 18 : 22; doc.fontSize(valueFontSize).fillColor(highlight ? COLORS.gold : COLORS.blue).font("Helvetica-Bold");
     doc.text(value, x + 10, y + 32, { width: width - 20, align: "center" });
     doc.font("Helvetica");
 

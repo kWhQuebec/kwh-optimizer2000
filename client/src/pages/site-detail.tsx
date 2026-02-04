@@ -6834,7 +6834,7 @@ export default function SiteDetailPage() {
       delete (mergedAssumptions as any).yieldSource;
       
       const result = await apiRequest<{ id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions: mergedAssumptions });
-      const newSimId = result?.id;
+      const newSimId = (result as any)?.simulationId || result?.id;
       
       if (!newSimId) {
         throw new Error("No simulation ID returned");

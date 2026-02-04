@@ -1,0 +1,345 @@
+Voici le **prompt complet et mis à jour** pour l'Agent Replit:
+
+---
+
+## PROMPT POUR L'AGENT REPLIT
+
+---
+
+Implémente ces améliorations pour les générateurs PDF/PPTX. **IMPORTANT:** Commence par créer le fichier de contenu centralisé, puis modifie les générateurs pour l'utiliser.
+
+---
+
+## ÉTAPE 1: CRÉER LE FICHIER CENTRALISÉ
+
+**Crée le fichier:** `server/brandContent.ts`
+
+```typescript
+// ============================================
+// SINGLE SOURCE OF TRUTH - CONTENU MARKETING
+// Modifier ici = mise à jour partout (PDF, PPTX, Web)
+// ============================================
+
+export const BRAND_CONTENT = {
+  // === STATS DE CRÉDIBILITÉ ===
+  stats: {
+    yearsExperience: { value: "15+", labelFr: "Années d'expérience", labelEn: "Years of experience" },
+    mwInstalled: { value: "120", labelFr: "MW installés", labelEn: "MW installed" },
+    projectsCI: { value: "25+", labelFr: "Projets C&I", labelEn: "C&I Projects" },
+  },
+
+  // === TÉMOIGNAGES ===
+  testimonials: [
+    {
+      id: "manufacturing-director",
+      quoteFr: "L'analyse détaillée nous a permis de prendre une décision éclairée. Le retour sur investissement prévu s'est avéré exact à 2% près.",
+      quoteEn: "The detailed analysis allowed us to make an informed decision. The expected ROI proved accurate within 2%.",
+      authorFr: "Directeur des opérations, Entreprise manufacturière",
+      authorEn: "Operations Director, Manufacturing Company",
+    },
+    {
+      id: "warehouse-manager", 
+      quoteFr: "Réduction de 35% de notre facture énergétique dès la première année.",
+      quoteEn: "35% reduction in our energy bill from the first year.",
+      authorFr: "Gestionnaire d'entrepôt, Logistique Québec",
+      authorEn: "Warehouse Manager, Quebec Logistics",
+    },
+  ],
+
+  // === CONTACT ===
+  contact: {
+    email: "info@kwh.quebec",
+    website: "www.kwh.quebec",
+  },
+
+  // === TITRES DE SECTIONS ===
+  sectionTitles: {
+    trustUs: { fr: "ILS NOUS FONT CONFIANCE", en: "THEY TRUST US" },
+    nextStep: { fr: "PROCHAINE ÉTAPE", en: "NEXT STEP" },
+    freeVisit: { 
+      fr: "Contactez-nous pour planifier votre visite de site gratuite", 
+      en: "Contact us to schedule your free site visit" 
+    },
+  },
+
+  // === FORMAT DES KPIs ===
+  kpiConfig: {
+    npv: { labelFr: "Profit Net (VAN)", labelEn: "Net Profit (NPV)", highlight: true },
+    irr: { labelFr: "Rendement (TRI)", labelEn: "Return (IRR)", highlight: true },
+    savings: { labelFr: "Économies An 1", labelEn: "Year 1 Savings", highlight: false },
+    capexNet: { labelFr: "Investissement Net", labelEn: "Net Investment", highlight: false },
+    payback: { labelFr: "Retour simple", labelEn: "Simple Payback", highlight: false },
+    pvSize: { labelFr: "Puissance PV", labelEn: "PV Power", highlight: false },
+    batterySize: { labelFr: "Stockage", labelEn: "Storage", highlight: false },
+  },
+};
+
+// === HELPER FUNCTIONS ===
+
+type Lang = "fr" | "en";
+
+export function getAllStats(lang: Lang) {
+  return Object.values(BRAND_CONTENT.stats).map(stat => ({
+    value: stat.value,
+    label: lang === "fr" ? stat.labelFr : stat.labelEn,
+  }));
+}
+
+export function getTestimonial(id: string, lang: Lang) {
+  const t = BRAND_CONTENT.testimonials.find(item => item.id === id);
+  if (!t) return null;
+  return {
+    quote: lang === "fr" ? t.quoteFr : t.quoteEn,
+    author: lang === "fr" ? t.authorFr : t.authorEn,
+  };
+}
+
+export function getFirstTestimonial(lang: Lang) {
+  const t = BRAND_CONTENT.testimonials[0];
+  return {
+    quote: lang === "fr" ? t.quoteFr : t.quoteEn,
+    author: lang === "fr" ? t.authorFr : t.authorEn,
+  };
+}
+
+export function getTitle(key: keyof typeof BRAND_CONTENT.sectionTitles, lang: Lang): string {
+  return BRAND_CONTENT.sectionTitles[key][lang];
+}
+
+export function getContact() {
+  return BRAND_CONTENT.contact;
+}
+
+export function getContactString(): string {
+  const c = BRAND_CONTENT.contact;
+  return `${c.email}  |  ${c.website}`;
+}
+
+export function getKpiLabel(key: keyof typeof BRAND_CONTENT.kpiConfig, lang: Lang): string {
+  const kpi = BRAND_CONTENT.kpiConfig[key];
+  return lang === "fr" ? kpi.labelFr : kpi.labelEn;
+}
+
+export function isKpiHighlighted(key: keyof typeof BRAND_CONTENT.kpiConfig): boolean {
+  return BRAND_CONTENT.kpiConfig[key].highlight;
+}
+```
+
+---
+
+## ÉTAPE 2: MODIFIER pdfGenerator.ts
+
+### 2.1 Ajouter l'import en haut du fichier
+
+```typescript
+import { getAllStats, getFirstTestimonial, getTitle, getContactString } from "./brandContent";
+```
+
+### 2.2 Remplacer les logos (lignes ~511-514)
+
+**Remplace:**
+```typescript
+const logoFilename = lang === "fr" 
+  ? "solaire_fr-removebg-preview_1767985380511.png" 
+  : "solaire_en-removebg-preview_1767985380510.png";
+```
+
+**Par:**
+```typescript
+const logoFilename = lang === "fr" 
+  ? "kWh_Quebec_Logo-01_1764778562811.png" 
+  : "kwh_logo_color_en.png";
+```
+
+### 2.3 Ajouter la page Références
+
+**Position:** Dans la fonction `generateProfessionalPDF()`, juste AVANT la dernière accolade `}` de la fonction.
+
+**Ajoute ce code:**
+```typescript
+// ================= REFERENCES PAGE =================
+doc.addPage();
+
+// Header bleu
+doc.rect(0, 0, pageWidth, 80).fillColor(COLORS.blue).fill();
+doc.rect(0, 80, pageWidth, 4).fillColor(COLORS.gold).fill();
+
+doc.fontSize(24).fillColor(COLORS.white).font("Helvetica-Bold");
+doc.text(getTitle("trustUs", lang), margin, 30, {
+  width: contentWidth,
+  align: "center"
+});
+doc.font("Helvetica");
+
+let refY = 120;
+
+// Stats de crédibilité - utilise brandContent
+const credibilityStats = getAllStats(lang);
+const statColWidth = contentWidth / credibilityStats.length;
+
+credibilityStats.forEach((stat, i) => {
+  const statX = margin + i * statColWidth;
+  doc.fontSize(42).fillColor(COLORS.blue).font("Helvetica-Bold");
+  doc.text(stat.value, statX, refY, { width: statColWidth, align: "center" });
+  doc.fontSize(11).fillColor(COLORS.mediumGray).font("Helvetica");
+  doc.text(stat.label, statX, refY + 50, { width: statColWidth, align: "center" });
+});
+
+refY += 120;
+
+// Témoignage - utilise brandContent
+const testimonial = getFirstTestimonial(lang);
+doc.fontSize(14).fillColor(COLORS.darkGray).font("Helvetica-Oblique");
+doc.text(`« ${testimonial.quote} »`, margin + 40, refY, { 
+  width: contentWidth - 80, 
+  align: "center" 
+});
+
+doc.fontSize(11).fillColor(COLORS.mediumGray).font("Helvetica");
+doc.text(`— ${testimonial.author}`, margin, refY + 70, { 
+  width: contentWidth, 
+  align: "center" 
+});
+
+refY += 140;
+
+// Call to action
+doc.fontSize(18).fillColor(COLORS.blue).font("Helvetica-Bold");
+doc.text(getTitle("nextStep", lang), margin, refY, { 
+  width: contentWidth, 
+  align: "center" 
+});
+
+doc.fontSize(12).fillColor(COLORS.darkGray).font("Helvetica");
+doc.text(getTitle("freeVisit", lang), margin, refY + 28, { 
+  width: contentWidth, 
+  align: "center" 
+});
+
+doc.fontSize(16).fillColor(COLORS.gold).font("Helvetica-Bold");
+doc.text(getContactString(), margin, refY + 55, { 
+  width: contentWidth, 
+  align: "center" 
+});
+```
+
+---
+
+## ÉTAPE 3: MODIFIER pptxGenerator.ts
+
+### 3.1 Ajouter l'import en haut du fichier
+
+```typescript
+import { getAllStats, getFirstTestimonial, getTitle, getContactString } from "./brandContent";
+```
+
+### 3.2 Ajouter la slide Références
+
+**Position:** Juste AVANT la ligne `const buffer = await pptx.write("nodebuffer");`
+
+**Ajoute ce code:**
+```typescript
+// ================= SLIDE: REFERENCES =================
+const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
+
+// Titre - utilise brandContent
+slideRef.addText(getTitle("trustUs", lang), {
+  x: 0.5, y: 0.9, w: 9, h: 0.5,
+  fontSize: 26, bold: true, color: COLORS.blue
+});
+
+// Ligne décorative
+slideRef.addShape("rect", {
+  x: 0.5, y: 1.4, w: 2, h: 0.06, fill: { color: COLORS.gold }
+});
+
+// Stats de crédibilité - utilise brandContent
+const credStats = getAllStats(lang);
+credStats.forEach((stat, i) => {
+  const xPos = 1.2 + i * 2.6;
+  slideRef.addText(stat.value, {
+    x: xPos, y: 1.8, w: 2.2, h: 0.7,
+    fontSize: 36, bold: true, color: COLORS.blue, align: "center"
+  });
+  slideRef.addText(stat.label, {
+    x: xPos, y: 2.5, w: 2.2, h: 0.4,
+    fontSize: 12, color: COLORS.mediumGray, align: "center"
+  });
+});
+
+// Témoignage - utilise brandContent
+const testimonial = getFirstTestimonial(lang);
+slideRef.addText(`« ${testimonial.quote} »`, {
+  x: 1, y: 3.3, w: 8, h: 0.7,
+  fontSize: 18, italic: true, color: COLORS.darkGray, align: "center"
+});
+
+slideRef.addText(`— ${testimonial.author}`, {
+  x: 1, y: 4, w: 8, h: 0.35,
+  fontSize: 11, color: COLORS.mediumGray, align: "center"
+});
+
+// CTA Box
+slideRef.addShape("rect", {
+  x: 2.5, y: 4.6, w: 5, h: 0.65,
+  fill: { color: COLORS.blue }
+});
+
+slideRef.addText(getContactString(), {
+  x: 2.5, y: 4.72, w: 5, h: 0.4,
+  fontSize: 14, bold: true, color: COLORS.gold, align: "center"
+});
+```
+
+---
+
+## ÉTAPE 4: NUMÉROTATION DES PAGES (pdfTemplates.ts)
+
+### 4.1 Modifier l'interface des options de drawModernFooter
+
+Trouve la fonction `drawModernFooter` et ajoute ces paramètres à l'interface options:
+```typescript
+pageNumber?: number;
+totalPages?: number;
+```
+
+### 4.2 Ajouter la logique de numérotation
+
+À la fin de la fonction `drawModernFooter`, AVANT la dernière accolade `}`, ajoute:
+```typescript
+// Page number
+if (options.pageNumber) {
+  const pageText = options.totalPages 
+    ? `Page ${options.pageNumber} / ${options.totalPages}`
+    : `Page ${options.pageNumber}`;
+  doc.fontSize(8).fillColor(BRAND_COLORS.lightText);
+  doc.text(pageText, options.pageWidth - theme.margin - 80, options.pageHeight - 25, {
+    width: 80,
+    align: "right"
+  });
+}
+```
+
+---
+
+## VALIDATION
+
+Après toutes les modifications:
+1. Vérifie qu'il n'y a pas d'erreurs TypeScript
+2. Redémarre le serveur
+3. Sur un site, clique "Analyze + Deliverables"
+4. Vérifie dans le PDF:
+   - Logo visible sur la couverture
+   - Nouvelle page "Ils nous font confiance" à la fin
+5. Vérifie dans le PPTX:
+   - Nouvelle slide "Ils nous font confiance"
+
+---
+
+## BÉNÉFICE
+
+Maintenant, pour modifier un témoignage ou une statistique, il suffit de modifier le fichier `server/brandContent.ts` et tous les documents (PDF, PPTX) seront automatiquement mis à jour.
+
+---
+
+**Copie ce prompt complet et colle-le à l'Agent Replit.** Il contient tout ce qu'il faut pour implémenter correctement les améliorations avec une architecture maintenable.
