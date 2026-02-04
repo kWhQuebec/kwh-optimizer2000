@@ -1076,7 +1076,23 @@ function runSensitivityAnalysis(
     });
   }
   
-  const solarSizes = [25, 50, 100, 150, 200, 300, 500, 750, 1000];
+  // CRITICAL: Limit solar sweep to roof's actual capacity from traced polygons
+  // Use maxPVFromRoofKw if available, otherwise fallback to a reasonable max
+  const maxPVFromRoofKw = (assumptions as AnalysisAssumptions & { maxPVFromRoofKw?: number }).maxPVFromRoofKw;
+  const roofMaxKw = maxPVFromRoofKw !== undefined && maxPVFromRoofKw > 0 
+    ? Math.round(maxPVFromRoofKw) 
+    : 500; // Fallback if no roof data
+  
+  // Generate solar sizes up to roof max capacity, with finer granularity for smaller roofs
+  const allSolarSizes = [10, 25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000];
+  const solarSizes = allSolarSizes.filter(size => size <= roofMaxKw * 1.1); // Allow 10% buffer
+  
+  // Ensure roof max is included in sweep
+  if (roofMaxKw > 0 && !solarSizes.includes(roofMaxKw)) {
+    solarSizes.push(roofMaxKw);
+    solarSizes.sort((a, b) => a - b);
+  }
+  
   for (const pvSize of solarSizes) {
     const result = runScenarioWithSizing(
       hourlyData, pvSize, 0, 0,
@@ -1271,8 +1287,11 @@ export function runPotentialAnalysis(
   const annualizationFactor = 365 / Math.max(dataSpanDays, 1);
   const annualConsumptionKWh = totalKWh * annualizationFactor;
   
-  const usableRoofSqFt = h.roofAreaSqFt * h.roofUtilizationRatio;
-  const maxPVFromRoof = usableRoofSqFt / 100;
+  // Use pre-calculated maxPVFromRoofKw from traced polygons (KB Racking formula)
+  // Fallback: calculate locally using KB Racking formula: (usable_area_m² / 3.71) × 0.625
+  const maxPVFromRoof = (h as AnalysisAssumptions & { maxPVFromRoofKw?: number }).maxPVFromRoofKw !== undefined
+    ? (h as AnalysisAssumptions & { maxPVFromRoofKw?: number }).maxPVFromRoofKw!
+    : ((h.roofAreaSqFt / 10.764) * h.roofUtilizationRatio / 3.71) * 0.625;
   
   const storedYieldStrategy = (h as AnalysisAssumptions & { _yieldStrategy?: YieldStrategy })._yieldStrategy;
   let effectiveYield: number;

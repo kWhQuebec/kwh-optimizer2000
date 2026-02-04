@@ -754,13 +754,11 @@ function runPotentialAnalysis(
   console.log(`Analysis: totalKWh=${totalKWh.toFixed(0)}, dataSpanDays=${dataSpanDays.toFixed(1)}, annualizationFactor=${annualizationFactor.toFixed(3)}, annualConsumptionKWh=${annualConsumptionKWh.toFixed(0)}`);
   
   // ========== STEP 2: System sizing with roof constraint ==========
-  // Use KB Racking-calculated maxPV if provided (from traced polygons), otherwise fallback
-  const usableRoofSqFt = h.roofAreaSqFt * h.roofUtilizationRatio;
+  // Use KB Racking-calculated maxPV if provided (from traced polygons), otherwise calculate locally
   // KB Racking formula: (usable_area_m² / 3.71) × 0.625 kW
-  // Fallback formula: usableRoofSqFt / 100 (~0.108 kW/m²)
   const maxPVFromRoof = (h as any).maxPVFromRoofKw !== undefined
     ? (h as any).maxPVFromRoofKw
-    : usableRoofSqFt / 100;
+    : ((h.roofAreaSqFt / 10.764) * h.roofUtilizationRatio / 3.71) * 0.625;
   
   // SIMPLIFIED YIELD CALCULATION (Jan 2026)
   // PRIORITY 1: Use pre-resolved yieldStrategy from caller (already includes bifacial if applicable)
@@ -2431,16 +2429,19 @@ function runSensitivityAnalysis(
   }
   
   // Calculate max roof capacity for solar sweep
-  // Use KB Racking-calculated maxPV if provided (from traced polygons), otherwise fallback
-  const usableRoofSqFt = assumptions.roofAreaSqFt * assumptions.roofUtilizationRatio;
+  // Use KB Racking-calculated maxPV if provided (from traced polygons), otherwise calculate locally
+  // KB Racking formula: (usable_area_m² / 3.71) × 0.625 kW
   const maxPVFromRoof = (assumptions as any).maxPVFromRoofKw !== undefined
     ? (assumptions as any).maxPVFromRoofKw
-    : Math.round(usableRoofSqFt / 100);
+    : ((assumptions.roofAreaSqFt / 10.764) * assumptions.roofUtilizationRatio / 3.71) * 0.625;
   
   // Solar sweep: 0 to max PV capacity in ~20 steps, with configured battery
-  // Increased from 10 to 20 steps for smoother optimization curves
+  // CRITICAL: Limit to roof's actual capacity from traced polygons (not arbitrary large values)
   const solarSteps = 20;
-  const solarMax = Math.max(configuredPvSizeKW * 1.5, maxPVFromRoof);
+  const solarMax = Math.min(
+    Math.max(configuredPvSizeKW * 1.5, maxPVFromRoof * 0.5), // Explore around configured size
+    maxPVFromRoof * 1.1 // But never exceed roof capacity + 10% buffer
+  );
   const solarStep = Math.max(5, Math.round(solarMax / solarSteps / 5) * 5);
   
   // Build set of solar sizes to sweep, ensuring configured size is always included

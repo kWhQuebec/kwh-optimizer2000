@@ -1285,15 +1285,43 @@ export function RoofVisualization({
           const { panels, polygonId } = arrayStats.get(key)!;
           if (panels.length < MIN_ARRAY_PANELS) continue; // Skip small arrays
           
-          // Calculate rows and columns from unique row/col indices
-          const uniqueRows = new Set(panels.map(p => p.rowIndex).filter(r => r !== undefined));
-          const uniqueCols = new Set(panels.map(p => p.colIndex).filter(c => c !== undefined));
+          // Calculate LOCAL rows and columns for this array
+          // Use min/max of indices to get actual array dimensions, not global grid
+          const rowIndices = panels.map(p => p.rowIndex).filter(r => r !== undefined) as number[];
+          const colIndices = panels.map(p => p.colIndex).filter(c => c !== undefined) as number[];
+          
+          let rows = 1;
+          let columns = panels.length;
+          
+          if (rowIndices.length > 0 && colIndices.length > 0) {
+            // Calculate local dimensions from index ranges
+            const minRow = Math.min(...rowIndices);
+            const maxRow = Math.max(...rowIndices);
+            const minCol = Math.min(...colIndices);
+            const maxCol = Math.max(...colIndices);
+            
+            rows = maxRow - minRow + 1;
+            columns = maxCol - minCol + 1;
+            
+            // Verify: rows × columns should be close to panel count (allow for irregular shapes)
+            const gridSize = rows * columns;
+            const fillRate = panels.length / gridSize;
+            
+            // If fill rate is very low (< 30%), the grid dimensions are misleading
+            // In that case, estimate based on panel count
+            if (fillRate < 0.3) {
+              // Estimate more compact dimensions
+              const sqrtPanels = Math.sqrt(panels.length);
+              rows = Math.ceil(sqrtPanels);
+              columns = Math.ceil(panels.length / rows);
+            }
+          }
           
           arrays.push({
             id: arrayNumber++,
             panelCount: panels.length,
-            rows: uniqueRows.size || 1,
-            columns: uniqueCols.size || Math.ceil(panels.length / (uniqueRows.size || 1)),
+            rows,
+            columns,
             capacityKW: Math.round(panels.length * PANEL_KW * 10) / 10,
             polygonId
           });

@@ -57,8 +57,25 @@ The backend uses a centralized error handling system (`server/middleware/errorHa
 ## External Dependencies
 
 ### Third-Party Services
--   **Google Solar API**: Used for roof area estimation, solar production potential, and imagery.
+-   **Google Solar API**: Used **ONLY for solar yield estimation** (kWh/kWp at location). Roof area and sizing come from manually traced polygons (see Methodology below).
 -   **Neon Database**: Serverless PostgreSQL solution.
+
+### Roof Area & Sizing Methodology
+**Source of Truth**: Manual roof tracing via RoofDrawingModal is the authoritative source for roof surfaces in C&I projects. Google Solar API is NOT used for area/sizing.
+
+**Workflow**:
+1. Technician traces roof polygons using satellite imagery overlay
+2. Polygons with label "Constraint" or color orange (#f97316) are excluded from usable area
+3. Total usable area = sum of solar polygon areas (stored in `roof_polygons.area_sq_m`)
+4. Max PV capacity calculated using KB Racking formula: `(usable_area_m² × utilization_ratio / 3.71) × 0.625 kW`
+5. Sensitivity analysis limits scenarios to roof's actual capacity (no arbitrary 1000+ kWc)
+
+**Yield Calculation** (Google Solar used here only):
+- Google Solar provides base yield (kWh/kWp) for the location if available
+- Default baseline: 1150 kWh/kWp (Quebec average)
+- Adjustments: temperature correction (-0.4%/°C), wire losses (2%), inverter efficiency (96%)
+- Bifacial bonus: +15% if enabled
+- Effective yield typically ~1035-1100 kWh/kWp after corrections
 
 ### Key npm Packages
 -   **Backend**: `express`, `drizzle-orm`, `drizzle-kit`, `@neondatabase/serverless`, `bcrypt`, `jsonwebtoken`, `multer`, `zod`.
