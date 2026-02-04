@@ -75,6 +75,33 @@ function generateId(): string {
   return `polygon-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Calculate approximate dimensions (bounding box) from polygon coordinates
+function calculatePolygonDimensions(coordinates: [number, number][]): { width: number; height: number } {
+  if (coordinates.length < 3) return { width: 0, height: 0 };
+  
+  // Find bounding box
+  const lngs = coordinates.map(c => c[0]);
+  const lats = coordinates.map(c => c[1]);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  
+  // Calculate center latitude for longitude correction
+  const centerLat = (minLat + maxLat) / 2;
+  
+  // Convert to meters using haversine approximation
+  // 1 degree latitude ≈ 111,320 meters
+  // 1 degree longitude ≈ 111,320 * cos(latitude) meters
+  const latMetersPerDegree = 111320;
+  const lngMetersPerDegree = 111320 * Math.cos(centerLat * Math.PI / 180);
+  
+  const width = (maxLng - minLng) * lngMetersPerDegree;
+  const height = (maxLat - minLat) * latMetersPerDegree;
+  
+  return { width, height };
+}
+
 export function RoofDrawingModal({
   isOpen,
   onClose,
@@ -801,6 +828,17 @@ export function RoofDrawingModal({
                         )}
                         <p className="text-xs text-muted-foreground mt-1" data-testid={`text-area-${index}`}>
                           {polygon.areaSqM.toFixed(1)} m²
+                          {(() => {
+                            const dims = calculatePolygonDimensions(polygon.coordinates);
+                            if (dims.width > 0 && dims.height > 0) {
+                              return (
+                                <span className="ml-1 text-muted-foreground/70">
+                                  ({dims.width.toFixed(1)} × {dims.height.toFixed(1)} m)
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </p>
                       </div>
                       <Button
