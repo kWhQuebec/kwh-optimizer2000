@@ -177,11 +177,12 @@ export default function PresentationPage() {
       >
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
-            {/* kWh Québec Logo */}
+            {/* kWh Québec Logo - inverted for dark background */}
             <img 
               src={currentLogo} 
               alt="kWh Québec" 
               className="h-10 w-auto"
+              style={{ filter: 'brightness(0) invert(1)' }}
               data-testid="logo-kwh-quebec"
             />
             <div className="h-8 w-px bg-white/20" />
