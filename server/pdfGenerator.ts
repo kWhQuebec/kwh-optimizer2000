@@ -509,11 +509,7 @@ export function generateProfessionalPDF(
   
   // Try to load brand installation image as background
   const coverImagePath = path.join(process.cwd(), "attached_assets", "kWh__Quebec_Brand_Guideline_1764967501349.jpg");
-  const logoFilename = lang === "fr" 
-    ? "kWh_Quebec_Logo-01_1764778562811.png" 
-    : "kwh_logo_color_en.png";
-  const logoPath = path.join(process.cwd(), "attached_assets", logoFilename);
-  
+    
   // Full page background image with dark overlay
   if (fs.existsSync(coverImagePath)) {
     try {
@@ -534,20 +530,16 @@ export function generateProfessionalPDF(
   doc.rect(0, 0, pageWidth, pageHeight).fillColor("black").fillOpacity(0.55).fill();
   doc.fillOpacity(1);
   
-  // Logo at top
-  if (fs.existsSync(logoPath)) {
-    try {
-      doc.image(logoPath, margin, margin, { width: 180 });
-    } catch (e) {
-      doc.fontSize(32).fillColor(COLORS.white).font("Helvetica-Bold");
-      doc.text("kWh Québec", margin, margin);
-      doc.font("Helvetica");
-    }
-  } else {
-    doc.fontSize(32).fillColor(COLORS.white).font("Helvetica-Bold");
-    doc.text("kWh Québec", margin, margin);
-    doc.font("Helvetica");
-  }
+  // Logo at top - use white text for dark backgrounds (no white logo image available)
+  // Draw kWh Québec branding in white with gold accent
+  doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
+  doc.text("kWh", margin, margin, { continued: true });
+  doc.fillColor(COLORS.gold).text(" Québec", { continued: false });
+  doc.font("Helvetica");
+  
+  // Tagline
+  doc.fontSize(12).fillColor(COLORS.white);
+  doc.text(t("SOLAIRE + STOCKAGE", "SOLAR + STORAGE"), margin, margin + 32);
   
   // Main title - centered in middle of page
   const centerY = pageHeight / 2 - 80;
