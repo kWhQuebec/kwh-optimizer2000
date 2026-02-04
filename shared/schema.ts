@@ -2191,9 +2191,9 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   wireLossPercent: 0.0, // 0% for free analysis stage (re-enable for detailed design)
   degradationRatePercent: 0.005, // 0.5% annual degradation
   
-  // Updated Jan 2026 per James (solar expert) - realistic 25-year assumptions
-  // Historic Quebec rates: 2.6-3.1% CAGR over 20 years
-  inflationRate: 0.03, // 3% HQ tariff inflation (realistic long-term)
+  // Updated Feb 2026 - realistic 25-year assumptions
+  // Historic Quebec rates: 2.6-3.5% CAGR over 20 years
+  inflationRate: 0.035, // 3.5% HQ tariff inflation (realistic long-term)
   discountRate: 0.07, // 7% WACC (midpoint of 6-8% range)
   taxRate: 0.265, // 26.5% corporate tax
   solarCostPerW: 2.25, // $2.25/Wc

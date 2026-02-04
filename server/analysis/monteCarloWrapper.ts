@@ -169,7 +169,7 @@ export function createSimplifiedScenarioRunner(
     cashflowValues.push(-capexNet);
     
     const degradationRate = h.degradationRatePercent || 0.005;
-    const escalationRate = h.inflationRate || 0.03;
+    const escalationRate = h.inflationRate || 0.035;
     const omEscalation = h.omEscalation || 0.025;
     
     for (let year = 1; year <= 25; year++) {
