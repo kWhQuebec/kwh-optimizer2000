@@ -580,6 +580,61 @@ export function RoofVisualization({
     return Math.min(targetPanels, allPanelPositions.length);
   }, [selectedCapacityKW, allPanelPositions.length]);
 
+  const visiblePanelArrays = useMemo(() => {
+    const visiblePanels = allPanelPositions.slice(0, panelsToShow);
+    const MIN_ARRAY_PANELS = 6;
+    const arrayStats = new Map<string, { panels: PanelPosition[]; polygonId: string; localArrayId: number }>();
+    for (const panel of visiblePanels) {
+      if (panel.arrayId !== undefined) {
+        const compositeKey = `${panel.polygonId}:${panel.arrayId}`;
+        if (!arrayStats.has(compositeKey)) {
+          arrayStats.set(compositeKey, { panels: [], polygonId: panel.polygonId, localArrayId: panel.arrayId });
+        }
+        arrayStats.get(compositeKey)!.panels.push(panel);
+      }
+    }
+    const sortedKeys = Array.from(arrayStats.keys()).sort((a, b) => {
+      const [polyA, idA] = a.split(':');
+      const [polyB, idB] = b.split(':');
+      if (polyA !== polyB) return polyA.localeCompare(polyB);
+      return parseInt(idA) - parseInt(idB);
+    });
+    const arrays: ArrayInfo[] = [];
+    let arrayNumber = 1;
+    for (const key of sortedKeys) {
+      const { panels, polygonId } = arrayStats.get(key)!;
+      if (panels.length < MIN_ARRAY_PANELS) continue;
+      const rowIndices = panels.map(p => p.rowIndex).filter(r => r !== undefined) as number[];
+      const colIndices = panels.map(p => p.colIndex).filter(c => c !== undefined) as number[];
+      let rows = 1;
+      let columns = panels.length;
+      if (rowIndices.length > 0 && colIndices.length > 0) {
+        const minRow = Math.min(...rowIndices);
+        const maxRow = Math.max(...rowIndices);
+        const minCol = Math.min(...colIndices);
+        const maxCol = Math.max(...colIndices);
+        rows = maxRow - minRow + 1;
+        columns = maxCol - minCol + 1;
+        const gridSize = rows * columns;
+        const fillRate = panels.length / gridSize;
+        if (fillRate < 0.3) {
+          const sqrtPanels = Math.sqrt(panels.length);
+          rows = Math.ceil(sqrtPanels);
+          columns = Math.ceil(panels.length / rows);
+        }
+      }
+      arrays.push({
+        id: arrayNumber++,
+        panelCount: panels.length,
+        rows,
+        columns,
+        capacityKW: Math.round(panels.length * PANEL_KW * 10) / 10,
+        polygonId
+      });
+    }
+    return arrays;
+  }, [allPanelPositions, panelsToShow]);
+
   useEffect(() => {
     if (!hasUserAdjusted && currentPVSizeKW) {
       setSelectedCapacityKW(currentPVSizeKW);
@@ -1820,16 +1875,16 @@ export function RoofVisualization({
               )}
               
               {/* Panel Arrays count */}
-              {panelArrays.length > 0 && (
+              {visiblePanelArrays.length > 0 && (
                 <Badge variant="outline" className="text-xs font-normal gap-1 border-teal-500 text-teal-700" data-testid="badge-arrays">
                   <Layers className="w-3 h-3" />
-                  {panelArrays.length} arrays
+                  {visiblePanelArrays.length} arrays
                 </Badge>
               )}
             </div>
             
             {/* Panel Arrays Detail Panel */}
-            {panelArrays.length > 1 && (
+            {visiblePanelArrays.length > 1 && (
               <div className="mt-3 p-3 bg-teal-50 dark:bg-teal-950/30 rounded-lg border border-teal-200 dark:border-teal-800" data-testid="arrays-panel">
                 <div className="flex items-center gap-2 mb-2">
                   <Layers className="w-4 h-4 text-teal-600" />
@@ -1841,7 +1896,7 @@ export function RoofVisualization({
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                  {panelArrays.map((array) => (
+                  {visiblePanelArrays.map((array) => (
                     <div 
                       key={array.id} 
                       className="bg-white dark:bg-teal-900/50 rounded px-2 py-1 border border-teal-200 dark:border-teal-700"

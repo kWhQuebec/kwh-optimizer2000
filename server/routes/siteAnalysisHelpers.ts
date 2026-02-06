@@ -1249,9 +1249,9 @@ function runSensitivityAnalysis(
     };
   };
   
-  // Filter to only profitable scenarios (NPV > 0) for most objectives
-  const profitablePoints = frontier.filter(p => p.npv25 > 0 && p.pvSizeKW > 0);
-  const allValidPoints = frontier.filter(p => p.pvSizeKW > 0); // At least has PV
+  // Filter to only profitable scenarios (NPV > 0) — includes battery-only scenarios
+  const profitablePoints = frontier.filter(p => p.npv25 > 0);
+  const allValidPoints = frontier.filter(p => p.pvSizeKW > 0 || p.battEnergyKWh > 0);
   
   // 1. Best NPV (already found above)
   const bestNPVPoint = frontier.find(p => p.id === optimalScenarioId);

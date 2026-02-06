@@ -4415,7 +4415,7 @@ function AnalysisResults({
               </p>
             </div>
             <div className="p-3 bg-background rounded-lg border text-center">
-              <p className="text-xs text-muted-foreground mb-1">TRI</p>
+              <p className="text-xs text-muted-foreground mb-1">{language === "fr" ? "TRI" : "IRR"}</p>
               <p className="text-lg font-bold font-mono" data-testid="text-irr">
                 {((displayedScenario.irr25 || 0) * 100).toFixed(1)}%
               </p>
