@@ -12,6 +12,9 @@ import { generateProcurationPDF, createProcurationData } from "../procurationPdf
 import { parseHQBill, type HQBillData } from "../hqBillParser";
 import { getTieredSolarCostPerW, BASELINE_YIELD, QUEBEC_MONTHLY_TEMPS } from "../analysis/potentialAnalysis";
 import { objectStorageClient } from "../replit_integrations/object_storage";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("Leads");
 
 const router = express.Router();
 
@@ -310,7 +313,7 @@ router.post("/api/quick-estimate", async (req, res) => {
     // Primary scenario is the recommended one (best payback)
     const primaryScenario = calculatedScenarios.find(s => s.recommended) || calculatedScenarios[0];
     
-    console.log(`[Quick Estimate] Consumption: ${Math.round(annualKWh)} kWh/yr, Dynamic optimization: Best Payback @ ${Math.round(bestPaybackScenario.offsetPercent * 100)}%, Best LCOE @ ${Math.round(bestLcoeScenario.offsetPercent * 100)}%`);
+    log.info(`Consumption: ${Math.round(annualKWh)} kWh/yr, Dynamic optimization: Best Payback @ ${Math.round(bestPaybackScenario.offsetPercent * 100)}%, Best LCOE @ ${Math.round(bestLcoeScenario.offsetPercent * 100)}%`);
     
     // Storage (Battery) Recommendation
     // Storage is most valuable for:
@@ -396,7 +399,7 @@ router.post("/api/quick-estimate", async (req, res) => {
         hasRoofData: false,
         roofAreaM2: undefined,
       }, baseUrl).catch(err => {
-        console.error("[Quick Estimate] Email sending failed:", err);
+        log.error("Email sending failed:", err);
       });
       emailSent = true;
     }
@@ -483,7 +486,7 @@ router.post("/api/quick-estimate", async (req, res) => {
         expectedCloseDate: null,
         ownerId: null,
       });
-      console.log(`[Quick Estimate] Created lead ${lead.id}, client ${client.id}, site ${site.id}, and opportunity for: ${companyName}`);
+      log.info(`Created lead ${lead.id}, client ${client.id}, site ${site.id}, and opportunity for: ${companyName}`);
       
       // Send notification to Account Manager about new lead (only if email was provided - real lead)
       if (email && typeof email === "string" && email.includes("@")) {
@@ -503,11 +506,11 @@ router.post("/api/quick-estimate", async (req, res) => {
           },
           'fr'
         ).catch(err => {
-          console.error("[Quick Estimate] Failed to send manager notification:", err);
+          log.error("Failed to send manager notification:", err);
         });
       }
     } catch (leadErr) {
-      console.error("[Quick Estimate] Lead creation failed (non-blocking):", leadErr);
+      log.error("Lead creation failed (non-blocking):", leadErr);
       // Continue - lead creation failure should not block the estimate response
     }
     
@@ -564,7 +567,7 @@ router.post("/api/quick-estimate", async (req, res) => {
       }] : [],
     });
   } catch (error) {
-    console.error("Quick estimate error:", error);
+    log.error("Quick estimate error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -627,7 +630,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       if (!existingClient) {
         return res.status(404).json({ error: "Client not found" });
       }
-      console.log(`[Detailed Analysis] Existing client submission for: ${existingClient.name} (${clientId})`);
+      log.info(`Existing client submission for: ${existingClient.name} (${clientId})`);
     }
 
     const procurationInfo = language === 'fr'
@@ -680,7 +683,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
 
       const parsed = insertLeadSchema.safeParse(leadData);
       if (!parsed.success) {
-        console.error("[Detailed Analysis] Validation error:", parsed.error.errors);
+        log.error("Validation error:", parsed.error.errors);
         return res.status(400).json({ error: parsed.error.errors });
       }
 
@@ -701,14 +704,14 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
           ownerId: null,
         });
         createdOpportunityId = newOpportunity.id;
-        console.log(`[Detailed Analysis] Auto-created opportunity ${createdOpportunityId} for lead: ${lead.id}`);
+        log.info(`Auto-created opportunity ${createdOpportunityId} for lead: ${lead.id}`);
       } catch (oppError) {
-        console.error(`[Detailed Analysis] Failed to auto-create opportunity:`, oppError);
+        log.error(`Failed to auto-create opportunity:`, oppError);
       }
       
       // Note: Lead notification is now combined with procuration email below
     } else {
-      console.log(`[Detailed Analysis] Skipping Lead/Opportunity creation - existing client: ${clientId}`);
+      log.info(`Skipping Lead/Opportunity creation - existing client: ${clientId}`);
     }
 
     // Use lead.id for new leads, or clientId for existing clients
@@ -733,7 +736,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
     } else if (savedBillPath) {
       // Use the pre-saved bill path from AI parsing
       firstBillPath = savedBillPath;
-      console.log(`[Detailed Analysis] Using pre-saved bill path: ${savedBillPath}`);
+      log.info(`Using pre-saved bill path: ${savedBillPath}`);
     }
     
     // Save the HQ bill path to the lead record so it appears in the CRM
@@ -743,9 +746,9 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
           hqBillPath: firstBillPath,
           hqBillUploadedAt: new Date()
         });
-        console.log(`[Detailed Analysis] HQ bill path saved to lead: ${firstBillPath}`);
+        log.info(`HQ bill path saved to lead: ${firstBillPath}`);
       } catch (billError) {
-        console.error("[Detailed Analysis] Failed to save HQ bill path:", billError);
+        log.error("Failed to save HQ bill path:", billError);
       }
     }
 
@@ -769,7 +772,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
         ipAddress: clientIp,
         userAgent: userAgent,
       });
-      console.log(`[Detailed Analysis] Procuration signature recorded for ${isExistingClient ? 'client' : 'lead'}: ${referenceId}`);
+      log.info(`Procuration signature recorded for ${isExistingClient ? 'client' : 'lead'}: ${referenceId}`);
       
       if (signatureImage && typeof signatureImage === 'string') {
         const isValidFormat = signatureImage.startsWith('data:image/png;base64,');
@@ -784,13 +787,13 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
           }
           const signaturePath = path.join(signatureDir, `${referenceId}_signature.png`);
           fs.writeFileSync(signaturePath, Buffer.from(base64Data, 'base64'));
-          console.log(`[Detailed Analysis] Signature image saved: ${signaturePath} (${Math.round(sizeInBytes / 1024)}KB)`);
+          log.info(`Signature image saved: ${signaturePath} (${Math.round(sizeInBytes / 1024)}KB)`);
         } else {
-          console.warn(`[Detailed Analysis] Invalid signature format or size: format=${isValidFormat}, size=${Math.round(sizeInBytes / 1024)}KB`);
+          log.warn(`Invalid signature format or size: format=${isValidFormat}, size=${Math.round(sizeInBytes / 1024)}KB`);
         }
       }
     } catch (sigError) {
-      console.error("[Detailed Analysis] Failed to create signature record:", sigError);
+      log.error("Failed to create signature record:", sigError);
     }
 
     try {
@@ -821,7 +824,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       const pdfFilename = `procuration_${referenceId}_${Date.now()}.pdf`;
       const pdfPath = path.join(procurationDir, pdfFilename);
       fs.writeFileSync(pdfPath, pdfBuffer);
-      console.log(`[Detailed Analysis] Procuration PDF saved: ${pdfPath}`);
+      log.info(`Procuration PDF saved: ${pdfPath}`);
       
       // Send only to Account Manager
       const staffRecipient = 'malabarre@kwh.quebec';
@@ -931,9 +934,9 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       });
       
       if (staffEmailResult.success) {
-        console.log(`[Detailed Analysis] Combined notification email sent to staff: ${staffRecipient}`);
+        log.info(`Combined notification email sent to staff: ${staffRecipient}`);
       } else {
-        console.error(`[Detailed Analysis] Failed to send combined notification email to staff:`, staffEmailResult.error);
+        log.error(`Failed to send combined notification email to staff:`, staffEmailResult.error);
       }
       
       // Send copy to client who signed
@@ -967,16 +970,16 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
         });
         
         if (clientEmailResult.success) {
-          console.log(`[Detailed Analysis] Procuration copy sent to client: ${email}`);
+          log.info(`Procuration copy sent to client: ${email}`);
         } else {
-          console.error(`[Detailed Analysis] Failed to send procuration copy to client:`, clientEmailResult.error);
+          log.error(`Failed to send procuration copy to client:`, clientEmailResult.error);
         }
       }
       
       // Note: Combined notification (lead info + procuration + CRM link) already sent to info@kwh.quebec above
       // No separate account manager notification needed
     } catch (pdfError) {
-      console.error('[Detailed Analysis] Error generating/sending procuration PDF:', pdfError);
+      log.error('Error generating/sending procuration PDF:', pdfError);
     }
 
     // Only trigger roof estimation for new leads (not existing clients)
@@ -998,7 +1001,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
         status: 'qualified' as const,
       };
       triggerRoofEstimation(lead.id, roofEstimationData).catch((err) => {
-        console.error(`[Detailed Analysis ${lead.id}] Roof estimation failed:`, err);
+        log.error(`Roof estimation failed for lead ${lead.id}:`, err);
       });
     }
 
@@ -1006,9 +1009,9 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
     const billSource = fileCount > 0 ? `${fileCount} new file(s)` : (savedBillPath ? 'pre-saved bill' : 'none');
     
     if (isExistingClient) {
-      console.log(`[Detailed Analysis] Procuration received from existing client: ${clientId}, Bill source: ${billSource}`);
+      log.info(`Procuration received from existing client: ${clientId}, Bill source: ${billSource}`);
     } else {
-      console.log(`[Detailed Analysis] Lead created: ${lead?.id}, Bill source: ${billSource}`);
+      log.info(`Lead created: ${lead?.id}, Bill source: ${billSource}`);
     }
     
     res.status(201).json({ 
@@ -1019,7 +1022,7 @@ router.post("/api/detailed-analysis-request", upload.any(), async (req, res) => 
       usedSavedBillPath: !fileCount && !!savedBillPath,
     });
   } catch (error) {
-    console.error("[Detailed Analysis] Error:", error);
+    log.error("Detailed analysis error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1047,20 +1050,20 @@ router.post("/api/leads", async (req, res) => {
         expectedCloseDate: null,
         ownerId: null,
       });
-      console.log(`[Lead] Auto-created opportunity for lead: ${lead.id}`);
+      log.info(`Auto-created opportunity for lead: ${lead.id}`);
     } catch (oppError) {
-      console.error(`[Lead] Failed to auto-create opportunity:`, oppError);
+      log.error(`Failed to auto-create opportunity:`, oppError);
     }
     
     if (parsed.data.streetAddress && parsed.data.city) {
       triggerRoofEstimation(lead.id, parsed.data).catch((err) => {
-        console.error(`[Lead ${lead.id}] Roof estimation failed:`, err);
+        log.error(`Roof estimation failed for lead ${lead.id}:`, err);
       });
     }
     
     res.status(201).json(lead);
   } catch (error) {
-    console.error("Create lead error:", error);
+    log.error("Create lead error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1085,7 +1088,7 @@ async function triggerRoofEstimation(leadId: string, data: {
     ].filter(Boolean);
     const fullAddress = addressParts.join(", ");
     
-    console.log(`[Lead ${leadId}] Starting roof estimation for: ${fullAddress}`);
+    log.info(`Lead ${leadId}: Starting roof estimation for: ${fullAddress}`);
     
     const roofEstimate = await googleSolar.estimateRoofFromAddress(fullAddress, storage);
     
@@ -1104,7 +1107,7 @@ async function triggerRoofEstimation(leadId: string, data: {
         estimateCompletedAt: new Date(),
       });
       
-      console.log(`[Lead ${leadId}] Roof estimate complete: ${roofEstimate.roofAreaSqM.toFixed(0)} m², potential ${roofPotentialKw} kW`);
+      log.info(`Lead ${leadId}: Roof estimate complete: ${roofEstimate.roofAreaSqM.toFixed(0)} m², potential ${roofPotentialKw} kW`);
       
       await sendRoofEstimateEmail(data.email, data.contactName, data.companyName, {
         address: fullAddress,
@@ -1119,10 +1122,10 @@ async function triggerRoofEstimation(leadId: string, data: {
         estimateCompletedAt: new Date(),
       });
       
-      console.warn(`[Lead ${leadId}] Roof estimation failed: ${roofEstimate.error}`);
+      log.warn(`Lead ${leadId}: Roof estimation failed: ${roofEstimate.error}`);
     }
   } catch (error) {
-    console.error(`[Lead ${leadId}] Error during roof estimation:`, error);
+    log.error(`Lead ${leadId}: Error during roof estimation:`, error);
     await storage.updateLead(leadId, {
       status: "estimate_failed",
       estimateError: String(error),
@@ -1227,12 +1230,12 @@ async function sendRoofEstimateEmail(
     });
     
     if (result.success) {
-      console.log(`[Email] Roof estimate sent to ${toEmail}`);
+      log.info(`Roof estimate sent to ${toEmail}`);
     } else {
-      console.error(`[Email] Failed to send roof estimate to ${toEmail}:`, result.error);
+      log.error(`Failed to send roof estimate to ${toEmail}:`, result.error);
     }
   } catch (error) {
-    console.error(`[Email] Error sending roof estimate:`, error);
+    log.error(`Error sending roof estimate:`, error);
   }
 }
 
@@ -1264,7 +1267,7 @@ router.get("/api/dashboard/pipeline-stats", authMiddleware, requireStaff, async 
     const stats = await storage.getPipelineStats();
     res.json(stats);
   } catch (error) {
-    console.error("Error fetching pipeline stats:", error);
+    log.error("Error fetching pipeline stats:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1289,7 +1292,7 @@ router.get("/api/search", authMiddleware, requireStaff, async (req, res) => {
 
     res.json({ clients, sites, opportunities });
   } catch (error) {
-    console.error("Error in global search:", error);
+    log.error("Error in global search:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1329,11 +1332,11 @@ router.post("/api/parse-hq-bill", billUpload.single('file'), async (req, res) =>
       imageBase64 = req.file.buffer.toString('base64');
       mimeType = req.file.mimetype;
       originalFilename = req.file.originalname;
-      console.log(`[HQ Bill Parse] Received file upload: ${req.file.originalname}, ${req.file.mimetype}, ${Math.round(req.file.size / 1024)}KB`);
+      log.info(`Received file upload: ${req.file.originalname}, ${req.file.mimetype}, ${Math.round(req.file.size / 1024)}KB`);
     } else if (req.body.imageBase64) {
       imageBase64 = req.body.imageBase64;
       mimeType = req.body.mimeType || 'image/jpeg';
-      console.log(`[HQ Bill Parse] Received base64 image, mimeType: ${mimeType}`);
+      log.info(`Received base64 image, mimeType: ${mimeType}`);
     } else {
       return res.status(400).json({ 
         error: "No image provided. Send a file upload or imageBase64 in body." 
@@ -1342,7 +1345,7 @@ router.post("/api/parse-hq-bill", billUpload.single('file'), async (req, res) =>
 
     const result = await parseHQBill(imageBase64, mimeType);
 
-    console.log(`[HQ Bill Parse] Extraction complete, confidence: ${result.confidence}, fields: account=${!!result.accountNumber}, tariff=${result.tariffCode}, kWh=${result.annualConsumptionKwh}`);
+    log.info(`Extraction complete, confidence: ${result.confidence}, fields: account=${!!result.accountNumber}, tariff=${result.tariffCode}, kWh=${result.annualConsumptionKwh}`);
 
     // Save the HQ bill to object storage for later access to Espace Client
     let savedBillPath: string | undefined;
@@ -1374,9 +1377,9 @@ router.post("/api/parse-hq-bill", billUpload.single('file'), async (req, res) =>
         });
         
         savedBillPath = `/${bucketName}/${fullObjectPath}`;
-        console.log(`[HQ Bill Parse] Bill saved to object storage: ${savedBillPath}`);
+        log.info(`Bill saved to object storage: ${savedBillPath}`);
       } catch (storageError) {
-        console.error("[HQ Bill Parse] Failed to save bill to storage (non-critical):", storageError);
+        log.error("Failed to save bill to storage (non-critical):", storageError);
       }
     }
 
@@ -1388,7 +1391,7 @@ router.post("/api/parse-hq-bill", billUpload.single('file'), async (req, res) =>
       },
     });
   } catch (error) {
-    console.error("[HQ Bill Parse] Error:", error);
+    log.error("Error:", error);
     res.status(500).json({ 
       error: "Failed to parse bill",
       details: error instanceof Error ? error.message : String(error),

@@ -4,7 +4,10 @@ import { storage } from "../storage";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendWelcomeEmail, sendPasswordResetEmail } from "../emailService";
+import { generateSecurePassword } from "../lib/secureRandom";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Users");
 const router = Router();
 
 // List all users (admin only)
@@ -47,17 +50,7 @@ router.post("/api/users", authMiddleware, requireStaff, async (req: AuthRequest,
       return res.status(400).json({ error: "Client users must be linked to a client" });
     }
     
-    // Generate a cryptographically secure random temporary password
-    const generateTempPassword = () => {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-      const randomBytes = crypto.randomBytes(12);
-      let password = '';
-      for (let i = 0; i < 12; i++) {
-        password += chars.charAt(randomBytes[i] % chars.length);
-      }
-      return password;
-    };
-    const tempPassword = generateTempPassword();
+    const tempPassword = generateSecurePassword();
     
     // Hash password
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
@@ -83,14 +76,14 @@ router.post("/api/users", authMiddleware, requireStaff, async (req: AuthRequest,
       userRole: role || "client",
       tempPassword: tempPassword,
     }, baseUrl, emailLang).catch(err => {
-      console.error("Failed to send welcome email:", err);
+      log.error("Failed to send welcome email:", err);
     });
     
     // Return user without password hash
     const { passwordHash: _, ...safeUser } = user;
     res.status(201).json(safeUser);
   } catch (error) {
-    console.error("Create user error:", error);
+    log.error("Create user error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -171,7 +164,7 @@ router.patch("/api/users/:id", authMiddleware, requireStaff, async (req: AuthReq
     const { passwordHash: _, ...safeUser } = updated;
     res.json(safeUser);
   } catch (error) {
-    console.error("Update user error:", error);
+    log.error("Update user error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -224,7 +217,7 @@ router.post("/api/users/:id/reset-password", authMiddleware, requireStaff, async
     
     res.json({ success: true, emailSent: true, message: "Password reset and emailed successfully" });
   } catch (error) {
-    console.error("Reset password error:", error);
+    log.error("Reset password error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -282,7 +275,7 @@ router.post("/api/users/:id/resend-welcome", authMiddleware, requireStaff, async
     
     res.json({ success: true, emailSent: true, message: "Welcome email resent successfully" });
   } catch (error) {
-    console.error("Resend welcome email error:", error);
+    log.error("Resend welcome email error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

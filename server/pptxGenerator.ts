@@ -4,6 +4,9 @@ import fs from "fs";
 import path from "path";
 import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "./brandContent";
 import type { DocumentSimulationData } from "./documentDataProvider";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("PPTXGenerator");
 
 const COLORS = {
   blue: "003DA6",
@@ -130,7 +133,7 @@ export async function generatePresentationPPTX(
         x: 5, y: 1.8, w: 4.5, h: 2.8
       });
     } catch (imgError) {
-      console.error("Failed to add roof image to PPTX:", imgError);
+      log.error("Failed to add roof image to PPTX:", imgError);
     }
   }
 

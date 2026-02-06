@@ -3,7 +3,9 @@ import { z } from "zod";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertPartnershipSchema } from "@shared/schema";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Partnerships");
 const router = Router();
 
 function preprocessPartnershipDates(body: Record<string, unknown>) {
@@ -22,7 +24,7 @@ router.get("/api/partnerships", authMiddleware, async (req: AuthRequest, res) =>
     const partnerships = await storage.getPartnerships();
     res.json(partnerships);
   } catch (error) {
-    console.error("Error fetching partnerships:", error);
+    log.error("Error fetching partnerships:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -35,7 +37,7 @@ router.get("/api/partnerships/:id", authMiddleware, async (req: AuthRequest, res
     }
     res.json(partnership);
   } catch (error) {
-    console.error("Error fetching partnership:", error);
+    log.error("Error fetching partnership:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -50,7 +52,7 @@ router.post("/api/partnerships", authMiddleware, requireStaff, async (req: AuthR
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
     }
-    console.error("Error creating partnership:", error);
+    log.error("Error creating partnership:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -69,7 +71,7 @@ router.patch("/api/partnerships/:id", authMiddleware, requireStaff, async (req: 
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
     }
-    console.error("Error updating partnership:", error);
+    log.error("Error updating partnership:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -83,7 +85,7 @@ router.delete("/api/partnerships/:id", authMiddleware, requireStaff, async (req:
     await storage.deletePartnership(req.params.id);
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting partnership:", error);
+    log.error("Error deleting partnership:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

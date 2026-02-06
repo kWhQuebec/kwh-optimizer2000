@@ -20,6 +20,9 @@
  */
 
 import type { AnalysisAssumptions } from "@shared/schema";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("MonteCarlo");
 
 export interface MonteCarloConfig {
   iterations: number;
@@ -356,7 +359,7 @@ export function runMonteCarloAnalysis(
         totalSavings25,
       });
     } catch (err) {
-      console.warn(`Monte Carlo iteration ${i} failed:`, err);
+      log.warn(`Monte Carlo iteration ${i} failed:`, err);
     }
   }
 

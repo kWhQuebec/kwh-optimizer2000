@@ -4,7 +4,9 @@ import { GoogleGenAI } from "@google/genai";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { Lead } from "@shared/schema";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Import");
 const router = Router();
 
 const uploadMemory = multer({
@@ -111,7 +113,7 @@ ${fileContent}`
         throw new Error("No JSON array found in response");
       }
     } catch (parseError) {
-      console.error("Failed to parse AI response:", responseText);
+      log.error("Failed to parse AI response:", responseText);
       return res.status(422).json({ 
         error: "Failed to parse file content",
         details: "The AI could not extract structured data from the file. Please ensure the file contains prospect data in a recognizable format."
@@ -132,7 +134,7 @@ ${fileContent}`
         : `Successfully parsed ${validProspects.length} prospects from the file`
     });
   } catch (error) {
-    console.error("Error in AI batch import:", error);
+    log.error("Error in AI batch import:", error);
     res.status(500).json({ error: "Failed to process file" });
   }
 });
@@ -182,7 +184,7 @@ router.post("/api/import/prospects/batch", authMiddleware, requireStaff, async (
       leads: created
     });
   } catch (error) {
-    console.error("Error in batch prospect creation:", error);
+    log.error("Error in batch prospect creation:", error);
     res.status(500).json({ error: "Failed to create prospects" });
   }
 });
@@ -268,7 +270,7 @@ router.post("/api/import/clients", authMiddleware, requireStaff, async (req: Aut
       errorDetails: errors,
     });
   } catch (error) {
-    console.error("Error in batch client import:", error);
+    log.error("Error in batch client import:", error);
     res.status(500).json({ error: "Failed to import clients" });
   }
 });
@@ -361,7 +363,7 @@ router.post("/api/import/catalog", authMiddleware, requireStaff, async (req: Aut
       errorDetails: errors,
     });
   } catch (error) {
-    console.error("Error in batch catalog import:", error);
+    log.error("Error in batch catalog import:", error);
     res.status(500).json({ error: "Failed to import catalog items" });
   }
 });

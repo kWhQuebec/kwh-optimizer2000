@@ -8,6 +8,9 @@ import {
   insertConstructionAgreementSchema,
   insertConstructionMilestoneSchema,
 } from "@shared/schema";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("Construction");
 
 interface DesignQuotedCosts {
   designFees?: {
@@ -48,7 +51,7 @@ router.get("/api/design-agreements", authMiddleware, requireStaff, async (req: A
     const agreements = await storage.getDesignAgreements();
     res.json(agreements);
   } catch (error) {
-    console.error("Error fetching design agreements:", error);
+    log.error("Error fetching design agreements:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -61,7 +64,7 @@ router.get("/api/sites/:siteId/design-agreement", authMiddleware, async (req: Au
     }
     res.json(agreement);
   } catch (error) {
-    console.error("Error fetching design agreement:", error);
+    log.error("Error fetching design agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -74,7 +77,7 @@ router.get("/api/design-agreements/:id", authMiddleware, async (req: AuthRequest
     }
     res.json(agreement);
   } catch (error) {
-    console.error("Error fetching design agreement:", error);
+    log.error("Error fetching design agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -100,7 +103,7 @@ router.post("/api/design-agreements", authMiddleware, requireStaff, async (req: 
     const agreement = await storage.createDesignAgreement(parsed.data);
     res.status(201).json(agreement);
   } catch (error) {
-    console.error("Error creating design agreement:", error);
+    log.error("Error creating design agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -127,7 +130,7 @@ router.patch("/api/design-agreements/:id", authMiddleware, requireStaff, async (
     }
     res.json(agreement);
   } catch (error) {
-    console.error("Error updating design agreement:", error);
+    log.error("Error updating design agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -140,7 +143,7 @@ router.delete("/api/design-agreements/:id", authMiddleware, requireStaff, async 
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting design agreement:", error);
+    log.error("Error deleting design agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -224,7 +227,7 @@ router.post("/api/sites/:siteId/generate-design-agreement", authMiddleware, requ
     
     res.status(201).json(agreement);
   } catch (error) {
-    console.error("Error generating design agreement:", error);
+    log.error("Error generating design agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -256,7 +259,7 @@ router.get("/api/design-agreements/:id/pdf", authMiddleware, async (req: AuthReq
     
     doc.pipe(res);
     
-    const { generateDesignAgreementPDF } = await import("../pdfGenerator");
+    const { generateDesignAgreementPDF } = await import("../pdf");
     
     const quotedCosts: QuotedCostsForPDF = (agreement.quotedCosts as QuotedCostsForPDF) || {
       siteVisit: { travel: 0, visit: 0, evaluation: 0, diagrams: 0, sldSupplement: 0, total: 0 },
@@ -288,7 +291,7 @@ router.get("/api/design-agreements/:id/pdf", authMiddleware, async (req: AuthReq
     
     doc.end();
   } catch (error) {
-    console.error("Design agreement PDF generation error:", error);
+    log.error("Design agreement PDF generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -328,7 +331,7 @@ router.post("/api/design-agreements/:id/send-email", authMiddleware, requireStaf
       doc.on('error', reject);
     });
     
-    const { generateDesignAgreementPDF } = await import("../pdfGenerator");
+    const { generateDesignAgreementPDF } = await import("../pdf");
     
     const quotedCostsForEmail: QuotedCostsForPDF = (agreement.quotedCosts as QuotedCostsForPDF) || {
       siteVisit: { travel: 0, visit: 0, evaluation: 0, diagrams: 0, sldSupplement: 0, total: 0 },
@@ -422,7 +425,7 @@ router.post("/api/design-agreements/:id/send-email", authMiddleware, requireStaf
       });
     }
     
-    console.log(`[Design Agreement] Email sent to ${recipientEmail} for agreement ${id}`);
+    log.info(`Email sent to ${recipientEmail} for agreement ${id}`);
     
     res.json({ 
       success: true, 
@@ -432,7 +435,7 @@ router.post("/api/design-agreements/:id/send-email", authMiddleware, requireStaf
         : "Email sent successfully"
     });
   } catch (error) {
-    console.error("Error sending design agreement email:", error);
+    log.error("Error sending design agreement email:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -443,7 +446,7 @@ router.get("/api/design-agreements/:id/email-logs", authMiddleware, requireStaff
     const logs = await storage.getEmailLogs({ designAgreementId: id });
     res.json(logs);
   } catch (error) {
-    console.error("Error fetching email logs:", error);
+    log.error("Error fetching email logs:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -466,7 +469,7 @@ router.get("/api/construction-agreements", authMiddleware, requireStaff, async (
     
     res.json(enrichedAgreements);
   } catch (error) {
-    console.error("Error fetching construction agreements:", error);
+    log.error("Error fetching construction agreements:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -477,14 +480,14 @@ router.get("/api/construction-agreements/:id", authMiddleware, requireStaff, asy
     if (!agreement) {
       return res.status(404).json({ error: "Construction agreement not found" });
     }
-    
+
     const site = await storage.getSite(agreement.siteId);
     const milestones = await storage.getConstructionMilestonesByAgreementId(agreement.id);
     let design = null;
     if (agreement.designId) {
       design = await storage.getDesign(agreement.designId);
     }
-    
+
     res.json({
       ...agreement,
       site,
@@ -492,7 +495,7 @@ router.get("/api/construction-agreements/:id", authMiddleware, requireStaff, asy
       milestones,
     });
   } catch (error) {
-    console.error("Error fetching construction agreement:", error);
+    log.error("Error fetching construction agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -502,7 +505,7 @@ router.get("/api/construction-agreements/site/:siteId", authMiddleware, requireS
     const agreements = await storage.getConstructionAgreementsBySiteId(req.params.siteId);
     res.json(agreements);
   } catch (error) {
-    console.error("Error fetching construction agreements by site:", error);
+    log.error("Error fetching construction agreements by site:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -520,7 +523,7 @@ router.post("/api/construction-agreements", authMiddleware, requireStaff, async 
     });
     res.status(201).json(agreement);
   } catch (error) {
-    console.error("Error creating construction agreement:", error);
+    log.error("Error creating construction agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -533,7 +536,7 @@ router.patch("/api/construction-agreements/:id", authMiddleware, requireStaff, a
     }
     res.json(agreement);
   } catch (error) {
-    console.error("Error updating construction agreement:", error);
+    log.error("Error updating construction agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -546,7 +549,7 @@ router.delete("/api/construction-agreements/:id", authMiddleware, requireStaff, 
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting construction agreement:", error);
+    log.error("Error deleting construction agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -565,7 +568,7 @@ router.post("/api/construction-agreements/:id/send", authMiddleware, requireStaf
     
     res.json(updated);
   } catch (error) {
-    console.error("Error sending construction agreement:", error);
+    log.error("Error sending construction agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -594,7 +597,7 @@ router.post("/api/construction-agreements/:id/accept", authMiddleware, async (re
     
     res.json(updated);
   } catch (error) {
-    console.error("Error accepting construction agreement:", error);
+    log.error("Error accepting construction agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -682,7 +685,7 @@ router.get("/api/construction-agreements/:id/proposal-pdf", authMiddleware, requ
 
     doc.end();
   } catch (error) {
-    console.error("Error generating construction proposal PDF:", error);
+    log.error("Error generating construction proposal PDF:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -692,7 +695,7 @@ router.get("/api/construction-milestones/agreement/:agreementId", authMiddleware
     const milestones = await storage.getConstructionMilestonesByAgreementId(req.params.agreementId);
     res.json(milestones);
   } catch (error) {
-    console.error("Error fetching construction milestones:", error);
+    log.error("Error fetching construction milestones:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -707,7 +710,7 @@ router.post("/api/construction-milestones", authMiddleware, requireStaff, async 
     const milestone = await storage.createConstructionMilestone(parsed.data);
     res.status(201).json(milestone);
   } catch (error) {
-    console.error("Error creating construction milestone:", error);
+    log.error("Error creating construction milestone:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -720,7 +723,7 @@ router.patch("/api/construction-milestones/:id", authMiddleware, requireStaff, a
     }
     res.json(milestone);
   } catch (error) {
-    console.error("Error updating construction milestone:", error);
+    log.error("Error updating construction milestone:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -733,7 +736,7 @@ router.delete("/api/construction-milestones/:id", authMiddleware, requireStaff, 
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting construction milestone:", error);
+    log.error("Error deleting construction milestone:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -752,7 +755,7 @@ router.post("/api/construction-milestones/:id/complete", authMiddleware, require
     
     res.json(updated);
   } catch (error) {
-    console.error("Error completing construction milestone:", error);
+    log.error("Error completing construction milestone:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

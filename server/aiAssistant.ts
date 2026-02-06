@@ -3,6 +3,9 @@ import { GoogleGenAI } from "@google/genai";
 import { storage } from "./storage";
 import type { AuthRequest } from "./routes";
 import type { Site, Client, Opportunity } from "@shared/schema";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("AIAssistant");
 
 const ai = new GoogleGenAI({
   apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
@@ -162,7 +165,7 @@ async function getDataContext(userId: string, userRole: string, query: string, p
       }));
     }
   } catch (error) {
-    console.error("Error fetching context data:", error);
+    log.error("Error fetching context data:", error);
   }
   
   return context;
@@ -305,7 +308,7 @@ export function registerAIAssistantRoutes(app: Express, authMiddleware: any, req
       res.end();
       
     } catch (error) {
-      console.error("AI Assistant error:", error);
+      log.error("Chat error:", error);
       if (res.headersSent) {
         res.write(`data: ${JSON.stringify({ error: "An error occurred" })}\n\n`);
         res.end();
@@ -366,7 +369,7 @@ export function registerAIAssistantRoutes(app: Express, authMiddleware: any, req
       });
       
     } catch (error) {
-      console.error("Update field error:", error);
+      log.error("Update field error:", error);
       res.status(500).json({ error: "Failed to update field" });
     }
   });
@@ -395,7 +398,7 @@ export function registerAIAssistantRoutes(app: Express, authMiddleware: any, req
       });
       
     } catch (error) {
-      console.error("Quick stats error:", error);
+      log.error("Quick stats error:", error);
       res.status(500).json({ error: "Failed to fetch stats" });
     }
   });

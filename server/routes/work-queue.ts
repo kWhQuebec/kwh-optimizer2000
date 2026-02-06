@@ -2,7 +2,9 @@ import { Router, Response } from "express";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { sendEmail } from "../gmail";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("WorkQueue");
 const router = Router();
 
 router.get("/api/work-queue/sites", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
@@ -19,7 +21,7 @@ router.get("/api/work-queue/sites", authMiddleware, requireStaff, async (req: Au
     
     res.json(sitesWithClient);
   } catch (error) {
-    console.error("Error fetching work queue sites:", error);
+    log.error("Error fetching work queue sites:", error);
     res.status(500).json({ error: "Failed to fetch work queue sites" });
   }
 });
@@ -149,7 +151,7 @@ router.post("/api/work-queue/delegate", authMiddleware, requireStaff, async (req
     });
 
     if (!result.success) {
-      console.error("Failed to send delegation email:", result.error);
+      log.error("Failed to send delegation email:", result.error);
       return res.status(500).json({ error: result.error || "Failed to send email" });
     }
 
@@ -161,10 +163,10 @@ router.post("/api/work-queue/delegate", authMiddleware, requireStaff, async (req
       })
     ));
 
-    console.log(`Work queue delegation: ${validSites.length} sites delegated to ${recipientEmail}`);
+    log.info(`Work queue delegation: ${validSites.length} sites delegated to ${recipientEmail}`);
     res.json({ success: true, messageId: result.messageId });
   } catch (error) {
-    console.error("Work queue delegation error:", error);
+    log.error("Work queue delegation error:", error);
     res.status(500).json({ error: "Failed to delegate tasks" });
   }
 });

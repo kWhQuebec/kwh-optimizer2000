@@ -6,6 +6,9 @@
  */
 
 import { storage } from "./storage";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("KBGoogleSolar");
 
 const GOOGLE_SOLAR_API_KEY = process.env.GOOGLE_SOLAR_API_KEY;
 const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -56,7 +59,7 @@ interface ComparisonResult {
 async function geocodeAddress(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
   const apiKey = GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
-    console.error("No Google Maps API key available");
+    log.error("No Google Maps API key available");
     return null;
   }
   
@@ -71,10 +74,10 @@ async function geocodeAddress(address: string, city: string): Promise<{ lat: num
       const location = data.results[0].geometry.location;
       return { lat: location.lat, lng: location.lng };
     }
-    console.log(`Geocoding failed for ${fullAddress}: ${data.status}`);
+    log.info(`Geocoding failed for ${fullAddress}: ${data.status}`);
     return null;
   } catch (error) {
-    console.error(`Geocoding error for ${fullAddress}:`, error);
+    log.error(`Geocoding error for ${fullAddress}:`, error);
     return null;
   }
 }
@@ -85,7 +88,7 @@ async function geocodeAddress(address: string, city: string): Promise<{ lat: num
 async function getGoogleSolarData(lat: number, lng: number): Promise<GoogleSolarData | null> {
   const apiKey = GOOGLE_SOLAR_API_KEY || GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
-    console.error("No Google Solar/Maps API key available");
+    log.error("No Google Solar/Maps API key available");
     return null;
   }
   
@@ -96,14 +99,14 @@ async function getGoogleSolarData(lat: number, lng: number): Promise<GoogleSolar
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.log(`Google Solar API error (${response.status}): ${errorText}`);
+      log.info(`Google Solar API error (${response.status}): ${errorText}`);
       return null;
     }
     
     const data = await response.json();
     
     if (!data.solarPotential) {
-      console.log("No solar potential data in response");
+      log.info("No solar potential data in response");
       return null;
     }
     
@@ -117,7 +120,7 @@ async function getGoogleSolarData(lat: number, lng: number): Promise<GoogleSolar
       carbonOffsetKg: sp.carbonOffsetFactorKgPerMwh || 0,
     };
   } catch (error) {
-    console.error(`Google Solar API error:`, error);
+    log.error(`Google Solar API error:`, error);
     return null;
   }
 }
@@ -157,13 +160,13 @@ export async function runKBGoogleSolarComparison(): Promise<{
   const allSites = await storage.getSites();
   const kbSites = allSites.filter((s: any) => s.kbDesignStatus === 'complete');
   
-  console.log(`Found ${kbSites.length} KB Racking sites to compare`);
+  log.info(`Found ${kbSites.length} KB Racking sites to compare`);
   
   const results: ComparisonResult[] = [];
   
   for (const site of kbSites) {
     const s = site as any;
-    console.log(`\nProcessing: ${s.name}`);
+    log.info(`Processing: ${s.name}`);
     
     const result: ComparisonResult = {
       siteId: s.id,
@@ -191,14 +194,14 @@ export async function runKBGoogleSolarComparison(): Promise<{
     let lng = s.longitude;
     
     if (!lat || !lng) {
-      console.log(`  Geocoding address: ${s.address}, ${s.city}`);
+      log.info(`Geocoding address: ${s.address}, ${s.city}`);
       const coords = await geocodeAddress(s.address || '', s.city || 'Montreal');
       if (coords) {
         lat = coords.lat;
         lng = coords.lng;
         result.latitude = lat;
         result.longitude = lng;
-        console.log(`  Found coordinates: ${lat}, ${lng}`);
+        log.info(`Found coordinates: ${lat}, ${lng}`);
         
         // Update database with coordinates
         await storage.updateSite(s.id, { latitude: lat, longitude: lng });
@@ -211,7 +214,7 @@ export async function runKBGoogleSolarComparison(): Promise<{
     }
     
     // Step 2: Get Google Solar data
-    console.log(`  Fetching Google Solar data...`);
+    log.info(`Fetching Google Solar data...`);
     const solarData = await getGoogleSolarData(lat, lng);
     
     if (!solarData || solarData.maxPanelCount === 0) {
@@ -246,10 +249,10 @@ export async function runKBGoogleSolarComparison(): Promise<{
     result.status = 'success';
     results.push(result);
     
-    console.log(`  KB: ${result.kbPanelCount} panels (${result.kbKwDc} kW)`);
-    console.log(`  Google: ${result.googlePanelCount} panels (${result.googleKwDc?.toFixed(1)} kW)`);
-    console.log(`  Quick Analysis: ${result.quickAnalysisPanelCount} panels (${result.quickAnalysisKwDc?.toFixed(1)} kW)`);
-    console.log(`  KB/Google ratio: ${result.kbVsGooglePanelRatio?.toFixed(2)}`);
+    log.info(`KB: ${result.kbPanelCount} panels (${result.kbKwDc} kW)`);
+    log.info(`Google: ${result.googlePanelCount} panels (${result.googleKwDc?.toFixed(1)} kW)`);
+    log.info(`Quick Analysis: ${result.quickAnalysisPanelCount} panels (${result.quickAnalysisKwDc?.toFixed(1)} kW)`);
+    log.info(`KB/Google ratio: ${result.kbVsGooglePanelRatio?.toFixed(2)}`);
     
     // Rate limiting - wait 500ms between API calls
     await new Promise(resolve => setTimeout(resolve, 500));

@@ -7,7 +7,9 @@ import {
   insertSupplierSchema,
   insertPriceHistorySchema,
 } from "@shared/schema";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Catalog");
 const router = Router();
 
 router.get("/api/catalog", authMiddleware, requireStaff, async (req, res) => {
@@ -290,7 +292,7 @@ router.post("/api/price-history/:id/promote-to-catalog", authMiddleware, require
       });
     }
   } catch (error) {
-    console.error("Error promoting price to catalog:", error);
+    log.error("Error promoting price to catalog:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

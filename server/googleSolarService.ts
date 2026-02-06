@@ -1,4 +1,7 @@
 import type { IStorage } from "./storage";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("GoogleSolar");
 
 const GOOGLE_SOLAR_API_KEY = process.env.GOOGLE_SOLAR_API_KEY;
 const GOOGLE_SOLAR_API_BASE = "https://solar.googleapis.com/v1";
@@ -157,12 +160,12 @@ export interface RoofEstimateResult {
 
 export async function geocodeAddress(address: string): Promise<GeoLocation | null> {
   if (!GOOGLE_SOLAR_API_KEY) {
-    console.error("GOOGLE_SOLAR_API_KEY not configured");
+    log.error("GOOGLE_SOLAR_API_KEY not configured");
     return null;
   }
 
   try {
-    console.log(`[Geocoding] Starting geocode for address: ${address}`);
+    log.info(`Starting geocode for address: ${address}`);
     const encodedAddress = encodeURIComponent(address);
     const url = `${GOOGLE_GEOCODING_API_BASE}?address=${encodedAddress}&key=${GOOGLE_SOLAR_API_KEY}`;
     
@@ -171,24 +174,24 @@ export async function geocodeAddress(address: string): Promise<GeoLocation | nul
     
     if (data.status === "OK" && data.results && data.results.length > 0) {
       const location = data.results[0].geometry.location;
-      console.log(`[Geocoding] Success: lat=${location.lat}, lng=${location.lng}`);
+      log.info(`Success: lat=${location.lat}, lng=${location.lng}`);
       return {
         latitude: location.lat,
         longitude: location.lng
       };
     }
     
-    console.error("[Geocoding] Failed:", data.status, data.error_message);
+    log.error("Failed:", data.status, data.error_message);
     return null;
   } catch (error) {
-    console.error("[Geocoding] Error:", error instanceof Error ? error.message : error);
+    log.error("Error:", error instanceof Error ? error.message : error);
     return null;
   }
 }
 
 export async function getBuildingInsights(location: GeoLocation, storage?: IStorage): Promise<BuildingInsights | null> {
   if (!GOOGLE_SOLAR_API_KEY) {
-    console.error("GOOGLE_SOLAR_API_KEY not configured");
+    log.error("GOOGLE_SOLAR_API_KEY not configured");
     return null;
   }
 
@@ -204,28 +207,28 @@ export async function getBuildingInsights(location: GeoLocation, storage?: IStor
           const now = new Date();
           if (cached.expiresAt && new Date(cached.expiresAt) > now) {
             // Cache hit and not expired
-            console.log(`[BuildingInsights] Cache HIT for lat=${roundedLat}, lng=${roundedLng}, hit count: ${(cached.hitCount || 0) + 1}`);
+            log.info(`Cache HIT for lat=${roundedLat}, lng=${roundedLng}, hit count: ${(cached.hitCount || 0) + 1}`);
             
             // Increment hit count asynchronously (don't await to avoid blocking response)
-            storage.incrementCacheHitCount(cached.id).catch(err => 
-              console.error("[BuildingInsights] Failed to increment hit count:", err)
+            storage.incrementCacheHitCount(cached.id).catch(err =>
+              log.error("Failed to increment hit count:", err)
             );
             
             return cached.buildingInsights as BuildingInsights;
           } else {
-            console.log(`[BuildingInsights] Cache EXPIRED for lat=${roundedLat}, lng=${roundedLng}`);
+            log.info(`Cache EXPIRED for lat=${roundedLat}, lng=${roundedLng}`);
           }
         } else {
-          console.log(`[BuildingInsights] Cache MISS for lat=${roundedLat}, lng=${roundedLng}`);
+          log.info(`Cache MISS for lat=${roundedLat}, lng=${roundedLng}`);
         }
       } catch (cacheError) {
-        console.error("[BuildingInsights] Cache read error (will try API):", cacheError instanceof Error ? cacheError.message : cacheError);
+        log.error("Cache read error (will try API):", cacheError instanceof Error ? cacheError.message : cacheError);
         // Continue with API call if cache fails
       }
     }
 
     // Call Google Solar API
-    console.log(`[BuildingInsights] Starting API request for lat=${location.latitude}, lng=${location.longitude}`);
+    log.info(`Starting API request for lat=${location.latitude}, lng=${location.longitude}`);
     const url = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=HIGH&key=${GOOGLE_SOLAR_API_KEY}`;
     
     const response = await fetchWithTimeout(url);
@@ -234,15 +237,15 @@ export async function getBuildingInsights(location: GeoLocation, storage?: IStor
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[BuildingInsights] Solar API error:", response.status, errorText);
+      log.error("Solar API error:", response.status, errorText);
       
       if (response.status === 404) {
-        console.log("[BuildingInsights] Trying MEDIUM quality...");
+        log.info("Trying MEDIUM quality...");
         const mediumQualityUrl = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=MEDIUM&key=${GOOGLE_SOLAR_API_KEY}`;
         const mediumResponse = await fetchWithTimeout(mediumQualityUrl);
         
         if (mediumResponse.ok) {
-          console.log("[BuildingInsights] MEDIUM quality success");
+          log.info("MEDIUM quality success");
           buildingInsights = await mediumResponse.json();
         }
       }
@@ -251,7 +254,7 @@ export async function getBuildingInsights(location: GeoLocation, storage?: IStor
         return null;
       }
     } else {
-      console.log("[BuildingInsights] HIGH quality success");
+      log.info("HIGH quality success");
       buildingInsights = await response.json();
     }
 
@@ -303,16 +306,16 @@ export async function getBuildingInsights(location: GeoLocation, storage?: IStor
           hitCount: 1,
         });
 
-        console.log(`[BuildingInsights] Cached result for lat=${roundedLat}, lng=${roundedLng}`);
+        log.info(`Cached result for lat=${roundedLat}, lng=${roundedLng}`);
       } catch (cacheError) {
-        console.error("[BuildingInsights] Cache write error (API result still returned):", cacheError instanceof Error ? cacheError.message : cacheError);
+        log.error("Cache write error (API result still returned):", cacheError instanceof Error ? cacheError.message : cacheError);
         // Continue - we still have the API result
       }
     }
 
     return buildingInsights;
   } catch (error) {
-    console.error("[BuildingInsights] Error:", error instanceof Error ? error.message : error);
+    log.error("Error:", error instanceof Error ? error.message : error);
     return null;
   }
 }
@@ -587,15 +590,15 @@ export async function getDataLayers(location: GeoLocation, radiusMeters: number 
     });
 
     const url = `${GOOGLE_SOLAR_API_BASE}/dataLayers:get?${params}`;
-    console.log(`[DataLayers] Starting request for lat=${location.latitude}, lng=${location.longitude}`);
+    log.info(`DataLayers starting request for lat=${location.latitude}, lng=${location.longitude}`);
     const response = await fetchWithTimeout(url);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[DataLayers] Solar API error:", response.status, errorText);
+      log.error("DataLayers Solar API error:", response.status, errorText);
       
       if (response.status === 404) {
-        console.log("[DataLayers] Trying MEDIUM quality...");
+        log.info("DataLayers trying MEDIUM quality...");
         const mediumParams = new URLSearchParams({
           "location.latitude": location.latitude.toFixed(6),
           "location.longitude": location.longitude.toFixed(6),
@@ -622,7 +625,7 @@ export async function getDataLayers(location: GeoLocation, radiusMeters: number 
     const data = await response.json();
     return formatDataLayersResponse(data);
   } catch (error) {
-    console.error("DataLayers error:", error);
+    log.error("DataLayers error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error"
@@ -718,7 +721,7 @@ export async function getSolarMockupData(location: GeoLocation, panelCount?: num
   }
 
   try {
-    console.log(`[SolarMockup] Fetching data for lat=${location.latitude}, lng=${location.longitude}`);
+    log.info(`SolarMockup fetching data for lat=${location.latitude}, lng=${location.longitude}`);
     
     // Get building insights with full panel data
     const insights = await getBuildingInsights(location);
@@ -797,7 +800,7 @@ export async function getSolarMockupData(location: GeoLocation, panelCount?: num
       roofAreaSqM: totalRoofAreaSqM > 0 ? totalRoofAreaSqM : undefined
     };
   } catch (error) {
-    console.error("[SolarMockup] Error:", error);
+    log.error("SolarMockup error:", error);
     return {
       success: false,
       buildingCenter: location,
@@ -855,11 +858,11 @@ export async function analyzeRoofColor(location: GeoLocation): Promise<RoofColor
       ? dataLayers.rgbUrl 
       : `${dataLayers.rgbUrl}&key=${GOOGLE_SOLAR_API_KEY}`;
     
-    console.log("[RoofColor] Fetching RGB imagery...");
+    log.info("RoofColor fetching RGB imagery...");
     const response = await fetchWithTimeout(rgbUrlWithKey, 30000); // 30s for image download
     
     if (!response.ok) {
-      console.error("[RoofColor] Failed to fetch RGB imagery:", response.status);
+      log.error("RoofColor failed to fetch RGB imagery:", response.status);
       return {
         success: false,
         colorType: "unknown",
@@ -943,7 +946,7 @@ export async function analyzeRoofColor(location: GeoLocation): Promise<RoofColor
       suggestBifacial = false; // Not suitable
     }
     
-    console.log(`Roof color analysis: avg brightness ${averageBrightness.toFixed(1)}, type: ${colorType}, suggest bifacial: ${suggestBifacial}`);
+    log.info(`Roof color analysis: avg brightness ${averageBrightness.toFixed(1)}, type: ${colorType}, suggest bifacial: ${suggestBifacial}`);
     
     return {
       success: true,
@@ -953,7 +956,7 @@ export async function analyzeRoofColor(location: GeoLocation): Promise<RoofColor
       suggestBifacial
     };
   } catch (error) {
-    console.error("Roof color analysis error:", error);
+    log.error("Roof color analysis error:", error);
     return {
       success: false,
       colorType: "unknown",

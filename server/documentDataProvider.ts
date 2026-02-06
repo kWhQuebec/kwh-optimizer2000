@@ -1,11 +1,16 @@
 import type { IStorage } from "./storage";
 import type { SimulationRun, Site, Client, CashflowEntry, FinancialBreakdown, HourlyProfileEntry, PeakWeekEntry, SensitivityAnalysis, OptimalScenario } from "@shared/schema";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("DocumentData");
 
 export interface RoofPolygonData {
   coordinates: [number, number][];
   color: string;
   label?: string;
   areaSqM: number;
+  orientation?: number;    // Azimuth degrees (0=N, 90=E, 180=S, 270=W)
+  tiltDegrees?: number;    // Tilt degrees (0=flat, 90=vertical)
 }
 
 export interface DocumentSimulationData {
@@ -60,6 +65,19 @@ export interface DocumentSimulationData {
   hourlyProfile?: HourlyProfileEntry[];
   peakWeekData?: PeakWeekEntry[];
   sensitivity?: SensitivityAnalysis;
+  // Dynamic data for PDF sections 8 & 9
+  catalogEquipment?: Array<{
+    name: string;
+    manufacturer: string;
+    warranty: string;
+    spec: string;
+    category: string;
+  }>;
+  constructionTimeline?: Array<{
+    step: string;
+    duration: string;
+    status?: string;
+  }>;
 }
 
 export interface DocumentData {
@@ -67,6 +85,18 @@ export interface DocumentData {
   roofPolygons: RoofPolygonData[];
   roofVisualizationBuffer?: Buffer;
   siteSimulations: (SimulationRun & { site: Site & { client: Client } })[];
+  catalogEquipment?: Array<{
+    name: string;
+    manufacturer: string;
+    warranty: string;
+    spec: string;
+    category: string;
+  }>;
+  constructionTimeline?: Array<{
+    step: string;
+    duration: string;
+    status?: string;
+  }>;
 }
 
 export async function prepareDocumentData(simulationId: string, storage: IStorage): Promise<DocumentData> {
@@ -88,6 +118,8 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     color: p.color || "#3b82f6",
     label: p.label || undefined,
     areaSqM: p.areaSqM,
+    orientation: p.orientation ?? undefined,
+    tiltDegrees: p.tiltDegrees ?? undefined,
   }));
 
   let roofVisualizationBuffer: Buffer | undefined;
@@ -116,8 +148,61 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
         });
       }
     } catch (imgError) {
-      console.error("Failed to fetch roof visualization:", imgError);
+      log.error("Failed to fetch roof visualization:", imgError);
     }
+  }
+
+  // Fetch dynamic equipment data from BOM + catalog (for PDF Section 8)
+  let catalogEquipment: DocumentData["catalogEquipment"];
+  try {
+    const designs = await storage.getDesigns();
+    const design = designs.find(d => d.simulationRun.id === simulationId);
+    if (design) {
+      const fullDesign = await storage.getDesign(design.id);
+      if (fullDesign && fullDesign.bomItems.length > 0) {
+        const equipmentItems: NonNullable<DocumentData["catalogEquipment"]> = [];
+        for (const bom of fullDesign.bomItems) {
+          const specs = bom.description || "";
+          equipmentItems.push({
+            name: bom.description,
+            manufacturer: specs,
+            warranty: "",
+            spec: `${bom.quantity} ${bom.unit}`,
+            category: bom.category,
+          });
+        }
+        if (equipmentItems.length > 0) {
+          catalogEquipment = equipmentItems;
+        }
+      }
+    }
+  } catch (e) {
+    // Fallback: sections will use brandContent defaults
+  }
+
+  // Fetch dynamic construction timeline (for PDF Section 9)
+  let constructionTimeline: DocumentData["constructionTimeline"];
+  try {
+    const projects = await storage.getConstructionProjectsBySiteId(simulation.siteId);
+    if (projects.length > 0) {
+      const tasks = await storage.getConstructionTasksByProjectId(projects[0].id);
+      if (tasks.length > 0) {
+        constructionTimeline = tasks.map(t => {
+          let duration = "";
+          if (t.plannedStartDate && t.plannedEndDate) {
+            const days = Math.ceil((new Date(t.plannedEndDate).getTime() - new Date(t.plannedStartDate).getTime()) / (1000 * 60 * 60 * 24));
+            duration = days <= 7 ? `${days} days` : `${Math.ceil(days / 7)} weeks`;
+          }
+          return {
+            step: t.name,
+            duration,
+            status: t.status || undefined,
+          };
+        });
+      }
+    }
+  } catch (e) {
+    // Fallback: sections will use brandContent defaults
   }
 
   return {
@@ -125,6 +210,8 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     roofPolygons,
     roofVisualizationBuffer,
     siteSimulations,
+    catalogEquipment,
+    constructionTimeline,
   };
 }
 
@@ -196,7 +283,7 @@ export function applyOptimalScenario(
     }
   }
 
-  console.log(`[DocumentDataProvider] Applied bestNPV optimal scenario: PV=${optimal.pvSizeKW}kW, Batt=${optimal.battEnergyKWh}kWh, NPV25=${optimal.npv25}, IRR=${optimal.irr25}`);
+  log.info(`Applied bestNPV optimal scenario: PV=${optimal.pvSizeKW}kW, Batt=${optimal.battEnergyKWh}kWh, NPV25=${optimal.npv25}, IRR=${optimal.irr25}`);
 
   return merged;
 }

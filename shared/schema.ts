@@ -1602,7 +1602,11 @@ export const roofPolygons = pgTable("roof_polygons", {
   
   // Visual styling
   color: text("color").default("#0d9488"), // Teal by default
-  
+
+  // Roof orientation and tilt (optional, for per-zone sizing)
+  orientation: integer("orientation"),        // Azimuth in degrees (0=N, 90=E, 180=S, 270=W)
+  tiltDegrees: integer("tilt_degrees"),       // Roof tilt in degrees (0=flat, 90=vertical)
+
   // Metadata
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),

@@ -5,7 +5,9 @@ import { storage } from "../storage";
 import { STANDARD_KITS } from "../analysis";
 import { calculatePricingFromSiteVisit, getSiteVisitCompleteness, estimateConstructionCost } from "../pricing-engine";
 import { prepareDocumentData, applyOptimalScenario } from "../documentDataProvider";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Designs");
 const router = Router();
 
 router.get("/api/standard-kits", authMiddleware, async (_req, res) => {
@@ -64,7 +66,7 @@ router.get("/api/simulation-runs/:id/full", authMiddleware, async (req: AuthRequ
     }
     res.json(run);
   } catch (error) {
-    console.error("Error fetching full simulation run:", error);
+    log.error("Error fetching full simulation run:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -95,7 +97,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req: Au
       roofVisualizationBuffer: docData.roofVisualizationBuffer,
     };
 
-    const { generateProfessionalPDF } = await import("../pdfGenerator");
+    const { generateProfessionalPDF } = await import("../pdf");
     generateProfessionalPDF(doc, simulationWithRoof, lang, docData.siteSimulations);
 
     doc.end();
@@ -103,7 +105,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req: Au
     if (error.message === "Simulation not found") {
       return res.status(404).json({ error: "Simulation not found" });
     }
-    console.error("PDF generation error:", error);
+    log.error("PDF generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -133,7 +135,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
       roofVisualizationBuffer: docData.roofVisualizationBuffer,
     };
 
-    const { generateExecutiveSummaryPDF } = await import("../pdfGenerator");
+    const { generateExecutiveSummaryPDF } = await import("../pdf");
     generateExecutiveSummaryPDF(doc, simulationWithRoof, lang);
 
     doc.end();
@@ -141,7 +143,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
     if (error.message === "Simulation not found") {
       return res.status(404).json({ error: "Simulation not found" });
     }
-    console.error("Executive summary PDF generation error:", error);
+    log.error("Executive summary PDF generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -169,7 +171,7 @@ router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, async (
     if (error.message === "Simulation not found") {
       return res.status(404).json({ error: "Simulation not found" });
     }
-    console.error("PPTX generation error:", error);
+    log.error("PPTX generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -185,12 +187,12 @@ router.get("/api/methodology/pdf", authMiddleware, async (req, res) => {
     
     doc.pipe(res);
 
-    const { generateMethodologyPDF } = await import("../pdfGenerator");
+    const { generateMethodologyPDF } = await import("../pdf");
     generateMethodologyPDF(doc, lang);
 
     doc.end();
   } catch (error) {
-    console.error("Methodology PDF generation error:", error);
+    log.error("Methodology PDF generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -325,7 +327,7 @@ router.post("/api/designs", authMiddleware, async (req, res) => {
 
     res.status(201).json({ ...design, bomItems });
   } catch (error) {
-    console.error("Design creation error:", error);
+    log.error("Design creation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -363,7 +365,7 @@ router.get("/api/designs/:id/pricing", authMiddleware, async (req, res) => {
       pricing: pricingBreakdown,
     });
   } catch (error) {
-    console.error("Pricing calculation error:", error);
+    log.error("Pricing calculation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -399,7 +401,7 @@ router.get("/api/sites/:siteId/construction-estimate", authMiddleware, async (re
       estimate,
     });
   } catch (error) {
-    console.error("Construction estimate error:", error);
+    log.error("Construction estimate error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -597,7 +599,7 @@ router.post("/api/designs/:designId/generate-preliminary-schedule", authMiddlewa
       message: `Generated ${createdTasks.length} preliminary tasks`,
     });
   } catch (error) {
-    console.error("Error generating preliminary schedule:", error);
+    log.error("Error generating preliminary schedule:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

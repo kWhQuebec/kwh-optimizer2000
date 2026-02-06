@@ -2,38 +2,41 @@ import { sendEmail as sendEmailViaGmail } from "./gmail";
 import { sendEmailViaOutlook } from "./outlook";
 import { sendEmailViaResend } from "./resend";
 import { renderEmailTemplate } from "./emailTemplates";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("EmailService");
 
 // Primary: Resend (more reliable for transactional emails)
 // Fallback chain: Resend -> Gmail -> Outlook
 async function sendEmail(options: { to: string; subject: string; htmlBody: string; textBody?: string }): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  console.log('[EmailService] Attempting to send via Resend (primary)...');
+  log.info('Attempting to send via Resend (primary)...');
   
   // Primary: Resend
   try {
     const resendResult = await sendEmailViaResend(options);
     if (resendResult.success) {
-      console.log('[EmailService] Email sent successfully via Resend');
+      log.info('Email sent successfully via Resend');
       return resendResult;
     }
-    console.log('[EmailService] Resend failed, trying Gmail...');
-    console.log('[EmailService] Resend error:', resendResult.error);
+    log.info('Resend failed, trying Gmail...');
+    log.info('Resend error:', resendResult.error);
   } catch (error: any) {
-    console.log('[EmailService] Resend threw exception, trying Gmail...');
-    console.log('[EmailService] Exception:', error.message);
+    log.info('Resend threw exception, trying Gmail...');
+    log.info('Exception:', error.message);
   }
   
   // Fallback: Gmail
   try {
     const gmailResult = await sendEmailViaGmail(options);
     if (gmailResult.success) {
-      console.log('[EmailService] Email sent successfully via Gmail (fallback)');
+      log.info('Email sent successfully via Gmail (fallback)');
       return gmailResult;
     }
-    console.log('[EmailService] Gmail also failed, trying Outlook...');
-    console.log('[EmailService] Gmail error:', gmailResult.error);
+    log.info('Gmail also failed, trying Outlook...');
+    log.info('Gmail error:', gmailResult.error);
   } catch (error: any) {
-    console.log('[EmailService] Gmail threw exception, trying Outlook...');
-    console.log('[EmailService] Exception:', error.message);
+    log.info('Gmail threw exception, trying Outlook...');
+    log.info('Exception:', error.message);
   }
   
   // Final fallback: Outlook
@@ -484,7 +487,7 @@ Roof Age: ${roofAgeLabel}
 ---
 kWh Québec | 514.427.8871 | info@kwh.quebec`;
 
-  console.log(`[EmailService] Sending new lead notification to ${accountManagerEmail} for ${leadData.companyName}`);
+  log.info(`Sending new lead notification to ${accountManagerEmail} for ${leadData.companyName}`);
   
   const result = await sendEmail({
     to: accountManagerEmail,
@@ -494,9 +497,9 @@ kWh Québec | 514.427.8871 | info@kwh.quebec`;
   });
   
   if (result.success) {
-    console.log(`[EmailService] New lead notification sent to ${accountManagerEmail}`);
+    log.info(`New lead notification sent to ${accountManagerEmail}`);
   } else {
-    console.error(`[EmailService] Failed to send new lead notification: ${result.error}`);
+    log.error(`Failed to send new lead notification: ${result.error}`);
   }
   
   return result;
@@ -515,7 +518,7 @@ export async function sendQuickAnalysisEmail(
   
   const htmlBody = generateQuickAnalysisEmailHtml(data, lang, baseUrl);
   
-  console.log(`[EmailService] Sending quick analysis email to ${email} (lang: ${lang})`);
+  log.info(`Sending quick analysis email to ${email} (lang: ${lang})`);
   
   const result = await sendEmail({
     to: email,
@@ -524,9 +527,9 @@ export async function sendQuickAnalysisEmail(
   });
   
   if (result.success) {
-    console.log(`[EmailService] Quick analysis email sent successfully to ${email}`);
+    log.info(`Quick analysis email sent successfully to ${email}`);
   } else {
-    console.error(`[EmailService] Failed to send quick analysis email: ${result.error}`);
+    log.error(`Failed to send quick analysis email: ${result.error}`);
   }
   
   return result;
@@ -556,7 +559,7 @@ export async function sendPasswordResetEmail(
     logoUrl,
   });
   
-  console.log(`[EmailService] Sending password reset email to ${email} (lang: ${language})`);
+  log.info(`Sending password reset email to ${email} (lang: ${language})`);
   
   const result = await sendEmail({
     to: email,
@@ -565,9 +568,9 @@ export async function sendPasswordResetEmail(
   });
   
   if (result.success) {
-    console.log(`[EmailService] Password reset email sent successfully to ${email}`);
+    log.info(`Password reset email sent successfully to ${email}`);
   } else {
-    console.error(`[EmailService] Failed to send password reset email: ${result.error}`);
+    log.error(`Failed to send password reset email: ${result.error}`);
   }
   
   return result;
@@ -599,7 +602,7 @@ export async function sendWelcomeEmail(
     logoUrl,
   });
   
-  console.log(`[EmailService] Sending welcome email to ${data.userEmail} (lang: ${language})`);
+  log.info(`Sending welcome email to ${data.userEmail} (lang: ${language})`);
   
   const result = await sendEmail({
     to: data.userEmail,
@@ -608,9 +611,9 @@ export async function sendWelcomeEmail(
   });
   
   if (result.success) {
-    console.log(`[EmailService] Welcome email sent successfully to ${data.userEmail}`);
+    log.info(`Welcome email sent successfully to ${data.userEmail}`);
   } else {
-    console.error(`[EmailService] Failed to send welcome email: ${result.error}`);
+    log.error(`Failed to send welcome email: ${result.error}`);
   }
   
   return result;
@@ -800,7 +803,7 @@ export async function sendHqProcurationEmail(
   // Plain text version - multipart emails are less likely to be flagged as spam
   const textBody = generateHqProcurationTextEmail(clientName, language, baseUrl, clientId);
   
-  console.log(`[EmailService] Sending HQ procuration email to ${email} for ${clientName} (lang: ${language})`);
+  log.info(`Sending HQ procuration email to ${email} for ${clientName} (lang: ${language})`);
   
   const result = await sendEmail({
     to: email,
@@ -810,9 +813,9 @@ export async function sendHqProcurationEmail(
   });
   
   if (result.success) {
-    console.log(`[EmailService] HQ procuration email sent successfully to ${email}`);
+    log.info(`HQ procuration email sent successfully to ${email}`);
   } else {
-    console.error(`[EmailService] Failed to send HQ procuration email: ${result.error}`);
+    log.error(`Failed to send HQ procuration email: ${result.error}`);
   }
   
   return result;
@@ -983,7 +986,7 @@ NEXT STEPS:
 ---
 kWh Québec | 514.427.8871 | info@kwh.quebec`;
 
-  console.log(`[EmailService] Sending procuration COMPLETED notification to account manager ${accountManagerEmail}`);
+  log.info(`Sending procuration COMPLETED notification to account manager ${accountManagerEmail}`);
   
   const result = await sendEmail({
     to: accountManagerEmail,
@@ -994,9 +997,9 @@ kWh Québec | 514.427.8871 | info@kwh.quebec`;
   });
   
   if (result.success) {
-    console.log(`[EmailService] Procuration completed notification sent to ${accountManagerEmail}`);
+    log.info(`Procuration completed notification sent to ${accountManagerEmail}`);
   } else {
-    console.error(`[EmailService] Failed to send procuration completed notification: ${result.error}`);
+    log.error(`Failed to send procuration completed notification: ${result.error}`);
   }
   
   return result;
@@ -1053,7 +1056,7 @@ export async function sendProcurationNotificationToAccountManager(
     ? `Notification: Procuration HQ envoyée\n\nUn courriel de demande de procuration Hydro-Québec a été envoyé au client suivant:\n\nClient: ${clientName}\nCourriel: ${clientEmail}\n\nVous recevrez une notification lorsque le client aura signé la procuration.`
     : `Notification: HQ Procuration Sent\n\nAn HQ procuration request email has been sent to the following client:\n\nClient: ${clientName}\nEmail: ${clientEmail}\n\nYou will receive a notification when the client signs the procuration.`;
 
-  console.log(`[EmailService] Sending procuration notification to account manager ${accountManagerEmail}`);
+  log.info(`Sending procuration notification to account manager ${accountManagerEmail}`);
   
   const result = await sendEmail({
     to: accountManagerEmail,
@@ -1063,9 +1066,9 @@ export async function sendProcurationNotificationToAccountManager(
   });
   
   if (result.success) {
-    console.log(`[EmailService] Procuration notification sent to ${accountManagerEmail}`);
+    log.info(`Procuration notification sent to ${accountManagerEmail}`);
   } else {
-    console.error(`[EmailService] Failed to send notification to account manager: ${result.error}`);
+    log.error(`Failed to send notification to account manager: ${result.error}`);
   }
   
   return result;

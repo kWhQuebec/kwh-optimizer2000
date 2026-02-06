@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { ZodError } from "zod";
 import { AuthRequest } from "./auth";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("ErrorHandler");
 
 export class AppError extends Error {
   public details?: unknown[];
@@ -93,7 +96,7 @@ export function errorHandler(
 
   if (err instanceof AppError) {
     if (!err.isOperational) {
-      console.error("Non-operational error:", logContext);
+      log.error("Non-operational error:", logContext);
     }
     const response: { error: string; details?: unknown[] } = { error: err.message };
     if (err.details) {
@@ -109,7 +112,7 @@ export function errorHandler(
     });
   }
 
-  console.error("Unhandled error:", logContext);
+  log.error("Unhandled error:", logContext);
 
   res.status(500).json({ error: "Internal server error" });
 }

@@ -5,7 +5,9 @@ import multer from "multer";
 import fs from "fs";
 import PDFDocument from "pdfkit";
 import { insertSiteVisitSchema, insertSiteVisitPhotoSchema } from "@shared/schema";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("SiteVisits");
 const router = Router();
 
 const upload = multer({ 
@@ -37,7 +39,7 @@ router.get("/api/site-visits", authMiddleware, requireStaff, async (req: AuthReq
     const visits = await storage.getSiteVisits();
     res.json(visits);
   } catch (error) {
-    console.error("Error fetching site visits:", error);
+    log.error("Error fetching site visits:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -47,7 +49,7 @@ router.get("/api/sites/:siteId/visits", authMiddleware, requireStaff, async (req
     const visits = await storage.getSiteVisitsBySite(req.params.siteId);
     res.json(visits);
   } catch (error) {
-    console.error("Error fetching site visits:", error);
+    log.error("Error fetching site visits:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -60,7 +62,7 @@ router.get("/api/site-visits/:id", authMiddleware, requireStaff, async (req: Aut
     }
     res.json(visit);
   } catch (error) {
-    console.error("Error fetching site visit:", error);
+    log.error("Error fetching site visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -80,7 +82,7 @@ router.post("/api/site-visits", authMiddleware, requireStaff, async (req: AuthRe
     const visit = await storage.createSiteVisit(parsed.data);
     res.status(201).json(visit);
   } catch (error) {
-    console.error("Error creating site visit:", error);
+    log.error("Error creating site visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -98,7 +100,7 @@ router.patch("/api/site-visits/:id", authMiddleware, requireStaff, async (req: A
     }
     res.json(visit);
   } catch (error) {
-    console.error("Error updating site visit:", error);
+    log.error("Error updating site visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -111,7 +113,7 @@ router.delete("/api/site-visits/:id", authMiddleware, requireStaff, async (req: 
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting site visit:", error);
+    log.error("Error deleting site visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -401,7 +403,7 @@ router.get("/api/site-visits/:id/pdf", authMiddleware, requireStaff, async (req:
     doc.end();
     
   } catch (error) {
-    console.error("Error generating site visit PDF:", error);
+    log.error("Error generating site visit PDF:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -435,7 +437,7 @@ router.post("/api/site-visits/calculate-cost", authMiddleware, requireStaff, asy
       currency: "CAD",
     });
   } catch (error) {
-    console.error("Error calculating site visit cost:", error);
+    log.error("Error calculating site visit cost:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -492,7 +494,7 @@ router.post("/api/site-visits/photos", authMiddleware, requireStaff, upload.sing
       },
     });
   } catch (error) {
-    console.error("Error uploading photo:", error);
+    log.error("Error uploading photo:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -503,7 +505,7 @@ router.get("/api/sites/:siteId/photos", authMiddleware, async (req: AuthRequest,
     const photos = await storage.getSiteVisitPhotos(siteId);
     res.json(photos);
   } catch (error) {
-    console.error("Error fetching photos:", error);
+    log.error("Error fetching photos:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -514,7 +516,7 @@ router.get("/api/site-visits/:visitId/photos", authMiddleware, async (req: AuthR
     const photos = await storage.getSiteVisitPhotosByVisit(visitId);
     res.json(photos);
   } catch (error) {
-    console.error("Error fetching visit photos:", error);
+    log.error("Error fetching visit photos:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -528,7 +530,7 @@ router.delete("/api/site-visits/photos/:photoId", authMiddleware, requireStaff, 
     }
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting photo:", error);
+    log.error("Error deleting photo:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

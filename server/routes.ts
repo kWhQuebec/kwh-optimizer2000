@@ -1,6 +1,9 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("Routes");
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import multer from "multer";
@@ -701,9 +704,9 @@ function runPotentialAnalysis(
   options?: AnalysisOptions
 ): AnalysisResult {
   // DEBUG: Log incoming yieldSource BEFORE merge
-  console.log(`[runPotentialAnalysis] ======================================`);
-  console.log(`[runPotentialAnalysis] INCOMING customAssumptions.yieldSource = '${customAssumptions?.yieldSource}'`);
-  console.log(`[runPotentialAnalysis] defaultAnalysisAssumptions.yieldSource = '${defaultAnalysisAssumptions.yieldSource}'`);
+  log.info(`======================================`);
+  log.info(`INCOMING customAssumptions.yieldSource = '${customAssumptions?.yieldSource}'`);
+  log.info(`defaultAnalysisAssumptions.yieldSource = '${defaultAnalysisAssumptions.yieldSource}'`);
   
   // Merge custom assumptions with defaults
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
@@ -712,17 +715,17 @@ function runPotentialAnalysis(
   const incomingStrategy = (customAssumptions as any)?._yieldStrategy;
   if (incomingStrategy) {
     (h as any)._yieldStrategy = incomingStrategy;
-    console.log(`[runPotentialAnalysis] COPIED _yieldStrategy: skipTempCorrection=${incomingStrategy.skipTempCorrection}`);
+    log.info(`COPIED _yieldStrategy: skipTempCorrection=${incomingStrategy.skipTempCorrection}`);
   }
   
   // CRITICAL: If customAssumptions had yieldSource set, ensure it's preserved after merge
   if (customAssumptions?.yieldSource) {
     h.yieldSource = customAssumptions.yieldSource;
-    console.log(`[runPotentialAnalysis] yieldSource from customAssumptions: '${h.yieldSource}'`);
+    log.info(`yieldSource from customAssumptions: '${h.yieldSource}'`);
   }
   
   // DEBUG: Verify yieldSource and strategy are correct
-  console.log(`[runPotentialAnalysis] AFTER MERGE: yieldSource='${h.yieldSource}', hasStrategy=${!!(h as any)._yieldStrategy}`);
+  log.info(`AFTER MERGE: yieldSource='${h.yieldSource}', hasStrategy=${!!(h as any)._yieldStrategy}`);
   
   // ========== STEP 1: Build 8760-hour simulation data ==========
   // Aggregate readings into hourly consumption and peak power (with interpolation for missing months)
@@ -751,7 +754,7 @@ function runPotentialAnalysis(
   const annualizationFactor = 365 / Math.max(dataSpanDays, 1);
   const annualConsumptionKWh = totalKWh * annualizationFactor;
   
-  console.log(`Analysis: totalKWh=${totalKWh.toFixed(0)}, dataSpanDays=${dataSpanDays.toFixed(1)}, annualizationFactor=${annualizationFactor.toFixed(3)}, annualConsumptionKWh=${annualConsumptionKWh.toFixed(0)}`);
+  log.info(`Analysis: totalKWh=${totalKWh.toFixed(0)}, dataSpanDays=${dataSpanDays.toFixed(1)}, annualizationFactor=${annualizationFactor.toFixed(3)}, annualConsumptionKWh=${annualConsumptionKWh.toFixed(0)}`);
   
   // ========== STEP 2: System sizing with roof constraint ==========
   // Use KB Racking-calculated maxPV if provided (from traced polygons), otherwise calculate locally
@@ -770,20 +773,20 @@ function runPotentialAnalysis(
     // Use pre-resolved yield strategy - this is the SINGLE source of truth
     // effectiveYield already includes bifacial boost if bifacialEnabled was true
     effectiveYield = storedYieldStrategy.effectiveYield;
-    console.log(`[Stored Strategy] effectiveYield=${effectiveYield.toFixed(0)}, source=${storedYieldStrategy.yieldSource}, bifacialBoost=${storedYieldStrategy.bifacialBoost}`);
+    log.info(`Stored Strategy: effectiveYield=${effectiveYield.toFixed(0)}, source=${storedYieldStrategy.yieldSource}, bifacialBoost=${storedYieldStrategy.bifacialBoost}`);
   } else if (h.yieldSource === 'google') {
     // Fallback for direct calls without strategy: Google yield with optional bifacial
     const googleBaseYield = h.solarYieldKWhPerKWp || 1079;
     const bifacialMultiplier = h.bifacialEnabled === true ? 1.15 : 1.0;
     effectiveYield = googleBaseYield * bifacialMultiplier;
-    console.log(`[Google Fallback] Base=${googleBaseYield}, bifacial=${h.bifacialEnabled === true ? 'ON (+15%)' : 'OFF'}, effectiveYield=${effectiveYield.toFixed(0)}`);
+    log.info(`Google Fallback: Base=${googleBaseYield}, bifacial=${h.bifacialEnabled === true ? 'ON (+15%)' : 'OFF'}, effectiveYield=${effectiveYield.toFixed(0)}`);
   } else {
     // Fallback: Manual calculation for non-Google sources
     const baseYield = h.solarYieldKWhPerKWp || 1150;
     const orientationFactor = Math.max(0.6, Math.min(1.0, h.orientationFactor || 1.0));
     const bifacialMultiplier = h.bifacialEnabled === true ? 1.15 : 1.0;
     effectiveYield = baseYield * orientationFactor * bifacialMultiplier;
-    console.log(`[Manual Fallback] Base=${baseYield}, orientation=${orientationFactor.toFixed(2)}, bifacial=${h.bifacialEnabled}, effectiveYield=${effectiveYield.toFixed(0)}`);
+    log.info(`Manual Fallback: Base=${baseYield}, orientation=${orientationFactor.toFixed(2)}, bifacial=${h.bifacialEnabled}, effectiveYield=${effectiveYield.toFixed(0)}`);
   }
   const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
   
@@ -813,7 +816,7 @@ function runPotentialAnalysis(
   
   // Get yieldSource for bulletproof temperature correction check (passed directly to runHourlySimulation)
   const currentYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
-  console.log(`[runPotentialAnalysis] yieldSource='${currentYieldSource}', skipTempCorrection=${skipTempCorrection}, effectiveYield=${effectiveYield.toFixed(1)}`);
+  log.info(`yieldSource='${currentYieldSource}', skipTempCorrection=${skipTempCorrection}, effectiveYield=${effectiveYield.toFixed(1)}`);
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.2,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
@@ -1497,7 +1500,7 @@ function runPotentialAnalysis(
       };
     }
     
-    console.log(`[ANALYSIS] Returning RECALCULATED result: pvSizeKW=${optPvSizeKW}, optimalId=${optimalScenario.id}`);
+    log.info(`Returning RECALCULATED result: pvSizeKW=${optPvSizeKW}, optimalId=${optimalScenario.id}`);
     
     return {
       pvSizeKW: optPvSizeKW,
@@ -2649,7 +2652,7 @@ function runSensitivityAnalysis(
     const correctType = hasPV && hasBatt ? 'hybrid' : hasPV ? 'solar' : 'battery';
     
     if (point.type !== correctType) {
-      console.warn(`Frontier point ${point.id} type mismatch: was '${point.type}', corrected to '${correctType}'`);
+      log.warn(`Frontier point ${point.id} type mismatch: was '${point.type}', corrected to '${correctType}'`);
       point.type = correctType;
       
       // Update label to match corrected type

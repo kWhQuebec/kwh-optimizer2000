@@ -3,6 +3,9 @@ import fs from "fs";
 import path from "path";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("Admin");
 
 const router = Router();
 
@@ -11,7 +14,7 @@ router.get("/api/admin/blog", authMiddleware, requireStaff, async (req: AuthRequ
     const articles = await storage.getBlogArticles();
     res.json(articles);
   } catch (error) {
-    console.error("Error fetching blog articles:", error);
+    log.error("Error fetching blog articles:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -21,7 +24,7 @@ router.post("/api/admin/blog", authMiddleware, requireStaff, async (req: AuthReq
     const article = await storage.createBlogArticle(req.body);
     res.status(201).json(article);
   } catch (error) {
-    console.error("Error creating blog article:", error);
+    log.error("Error creating blog article:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -34,7 +37,7 @@ router.patch("/api/admin/blog/:id", authMiddleware, requireStaff, async (req: Au
     }
     res.json(article);
   } catch (error) {
-    console.error("Error updating blog article:", error);
+    log.error("Error updating blog article:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -47,7 +50,7 @@ router.delete("/api/admin/blog/:id", authMiddleware, requireStaff, async (req: A
     }
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting blog article:", error);
+    log.error("Error deleting blog article:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -57,7 +60,7 @@ router.get("/api/admin/competitors", authMiddleware, requireStaff, async (req: A
     const competitorsList = await storage.getCompetitors();
     res.json(competitorsList);
   } catch (error) {
-    console.error("Error fetching competitors:", error);
+    log.error("Error fetching competitors:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -70,7 +73,7 @@ router.get("/api/admin/competitors/:id", authMiddleware, requireStaff, async (re
     }
     res.json(competitor);
   } catch (error) {
-    console.error("Error fetching competitor:", error);
+    log.error("Error fetching competitor:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -80,7 +83,7 @@ router.post("/api/admin/competitors", authMiddleware, requireStaff, async (req: 
     const competitor = await storage.createCompetitor(req.body);
     res.status(201).json(competitor);
   } catch (error) {
-    console.error("Error creating competitor:", error);
+    log.error("Error creating competitor:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -93,7 +96,7 @@ router.patch("/api/admin/competitors/:id", authMiddleware, requireStaff, async (
     }
     res.json(competitor);
   } catch (error) {
-    console.error("Error updating competitor:", error);
+    log.error("Error updating competitor:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -106,7 +109,7 @@ router.delete("/api/admin/competitors/:id", authMiddleware, requireStaff, async 
     }
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting competitor:", error);
+    log.error("Error deleting competitor:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -117,7 +120,7 @@ router.get("/api/admin/battle-cards", authMiddleware, requireStaff, async (req: 
     const cards = await storage.getBattleCards(competitorId);
     res.json(cards);
   } catch (error) {
-    console.error("Error fetching battle cards:", error);
+    log.error("Error fetching battle cards:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -130,7 +133,7 @@ router.get("/api/admin/battle-cards/:id", authMiddleware, requireStaff, async (r
     }
     res.json(card);
   } catch (error) {
-    console.error("Error fetching battle card:", error);
+    log.error("Error fetching battle card:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -140,7 +143,7 @@ router.post("/api/admin/battle-cards", authMiddleware, requireStaff, async (req:
     const card = await storage.createBattleCard(req.body);
     res.status(201).json(card);
   } catch (error) {
-    console.error("Error creating battle card:", error);
+    log.error("Error creating battle card:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -153,7 +156,7 @@ router.patch("/api/admin/battle-cards/:id", authMiddleware, requireStaff, async 
     }
     res.json(card);
   } catch (error) {
-    console.error("Error updating battle card:", error);
+    log.error("Error updating battle card:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -166,7 +169,7 @@ router.delete("/api/admin/battle-cards/:id", authMiddleware, requireStaff, async
     }
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting battle card:", error);
+    log.error("Error deleting battle card:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -177,7 +180,7 @@ router.get("/api/admin/market-notes", authMiddleware, requireStaff, async (req: 
     const notes = await storage.getMarketNotes(category);
     res.json(notes);
   } catch (error) {
-    console.error("Error fetching market notes:", error);
+    log.error("Error fetching market notes:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -190,7 +193,7 @@ router.get("/api/admin/market-notes/:id", authMiddleware, requireStaff, async (r
     }
     res.json(note);
   } catch (error) {
-    console.error("Error fetching market note:", error);
+    log.error("Error fetching market note:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -200,7 +203,7 @@ router.post("/api/admin/market-notes", authMiddleware, requireStaff, async (req:
     const note = await storage.createMarketNote(req.body);
     res.status(201).json(note);
   } catch (error) {
-    console.error("Error creating market note:", error);
+    log.error("Error creating market note:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -213,7 +216,7 @@ router.patch("/api/admin/market-notes/:id", authMiddleware, requireStaff, async 
     }
     res.json(note);
   } catch (error) {
-    console.error("Error updating market note:", error);
+    log.error("Error updating market note:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -226,7 +229,7 @@ router.delete("/api/admin/market-notes/:id", authMiddleware, requireStaff, async
     }
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting market note:", error);
+    log.error("Error deleting market note:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -237,7 +240,7 @@ router.get("/api/admin/market-documents", authMiddleware, requireStaff, async (r
     const documents = await storage.getMarketDocuments(entityType);
     res.json(documents);
   } catch (error) {
-    console.error("Error fetching market documents:", error);
+    log.error("Error fetching market documents:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -250,7 +253,7 @@ router.get("/api/admin/market-documents/:id", authMiddleware, requireStaff, asyn
     }
     res.json(document);
   } catch (error) {
-    console.error("Error fetching market document:", error);
+    log.error("Error fetching market document:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -260,7 +263,7 @@ router.post("/api/admin/market-documents", authMiddleware, requireStaff, async (
     const document = await storage.createMarketDocument(req.body);
     res.status(201).json(document);
   } catch (error) {
-    console.error("Error creating market document:", error);
+    log.error("Error creating market document:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -273,7 +276,7 @@ router.patch("/api/admin/market-documents/:id", authMiddleware, requireStaff, as
     }
     res.json(document);
   } catch (error) {
-    console.error("Error updating market document:", error);
+    log.error("Error updating market document:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -286,7 +289,7 @@ router.delete("/api/admin/market-documents/:id", authMiddleware, requireStaff, a
     }
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting market document:", error);
+    log.error("Error deleting market document:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -296,7 +299,7 @@ router.get("/api/admin/procurations", authMiddleware, requireStaff, async (req: 
     const signatures = await storage.getProcurationSignatures();
     res.json(signatures);
   } catch (error) {
-    console.error("Error fetching procuration signatures:", error);
+    log.error("Error fetching procuration signatures:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -326,7 +329,7 @@ router.get("/api/admin/procuration-pdfs", authMiddleware, requireStaff, async (r
     
     res.json(files);
   } catch (error) {
-    console.error("Error listing procuration PDFs:", error);
+    log.error("Error listing procuration PDFs:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -359,7 +362,7 @@ router.get("/api/admin/procuration-pdfs/:filename", authMiddleware, requireStaff
     res.setHeader("Content-Disposition", `attachment; filename=${safeFilename}`);
     res.sendFile(filePath);
   } catch (error) {
-    console.error("Error downloading procuration PDF:", error);
+    log.error("Error downloading procuration PDF:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -449,7 +452,7 @@ router.post("/api/admin/seed-blog", authMiddleware, requireStaff, async (req: Au
       articles: createdArticles 
     });
   } catch (error) {
-    console.error("Error seeding blog articles:", error);
+    log.error("Error seeding blog articles:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

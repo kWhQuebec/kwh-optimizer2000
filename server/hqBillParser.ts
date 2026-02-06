@@ -1,4 +1,7 @@
 import { ai } from "./replit_integrations/image/client";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("HQBillParser");
 
 export interface HQBillData {
   accountNumber: string | null;
@@ -110,16 +113,16 @@ export async function parseHQBill(
     );
 
     if (!textPart?.text) {
-      console.error("[HQ Bill Parser] No text response from Gemini");
+      log.error("No text response from Gemini");
       return { ...defaultResult, rawExtraction: "No response from AI model" };
     }
 
     const rawText = textPart.text;
-    console.log("[HQ Bill Parser] Raw Gemini response:", rawText.substring(0, 500));
+    log.info("Raw Gemini response:", rawText.substring(0, 500));
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("[HQ Bill Parser] No JSON found in response");
+      log.error("No JSON found in response");
       return { ...defaultResult, rawExtraction: rawText };
     }
 
@@ -151,11 +154,11 @@ export async function parseHQBill(
       result.confidence = Math.min(result.confidence, 0.3);
     }
 
-    console.log(`[HQ Bill Parser] Extracted ${fieldsFound}/6 key fields, confidence: ${result.confidence}`);
+    log.info(`Extracted ${fieldsFound}/6 key fields, confidence: ${result.confidence}`);
     return result;
 
   } catch (error) {
-    console.error("[HQ Bill Parser] Error parsing bill:", error);
+    log.error("Error parsing bill:", error);
     return {
       ...defaultResult,
       rawExtraction: `Error: ${error instanceof Error ? error.message : String(error)}`,

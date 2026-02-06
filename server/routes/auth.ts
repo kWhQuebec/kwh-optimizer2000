@@ -6,7 +6,9 @@ import { z } from "zod";
 import { sendPasswordResetEmail } from "../emailService";
 import { generateSecurePassword } from "../lib/secureRandom";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Auth");
 const router = Router();
 
 const emailSchema = z.string().email().transform(e => e.toLowerCase().trim());
@@ -69,7 +71,7 @@ router.post("/api/auth/login", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    log.error("Login error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -133,7 +135,7 @@ router.post("/api/auth/change-password", authMiddleware, async (req: AuthRequest
     
     res.json({ success: true, message: "Password changed successfully" });
   } catch (error) {
-    console.error("Change password error:", error);
+    log.error("Change password error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -158,7 +160,7 @@ router.post("/api/auth/forgot-password", asyncHandler(async (req, res) => {
   // Rate limiting
   if (!checkRateLimit(normalizedEmail)) {
     // Return success anyway to prevent timing attacks
-    console.log(`[Forgot Password] Rate limited: ${normalizedEmail}`);
+    log.info(`Rate limited: ${normalizedEmail}`);
     res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
     return;
   }
@@ -166,7 +168,7 @@ router.post("/api/auth/forgot-password", asyncHandler(async (req, res) => {
   const user = await storage.getUserByEmail(normalizedEmail);
   
   if (!user) {
-    console.log(`[Forgot Password] No user found for email: ${normalizedEmail}`);
+    log.info(`No user found for email: ${normalizedEmail}`);
     // Return success anyway to prevent email enumeration
     res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
     return;
@@ -184,7 +186,7 @@ router.post("/api/auth/forgot-password", asyncHandler(async (req, res) => {
   
   await sendPasswordResetEmail(user.email, tempPassword, language);
   
-  console.log(`[Forgot Password] Password reset email sent to: ${normalizedEmail}`);
+  log.info(`Password reset email sent to: ${normalizedEmail}`);
   
   res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
 }));

@@ -25,6 +25,9 @@ import {
   type SiteScenarioParams,
 } from "../analysis";
 import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-engine";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("Sites");
 
 const router = Router();
 
@@ -37,7 +40,7 @@ const roofEstimationLocks = new Set<string>();
 async function triggerRoofEstimation(siteId: string): Promise<void> {
   // Prevent concurrent estimations for the same site
   if (roofEstimationLocks.has(siteId)) {
-    console.log(`Roof estimation already in progress for site ${siteId}, skipping`);
+    log.info(`Roof estimation already in progress for site ${siteId}, skipping`);
     return;
   }
   
@@ -46,7 +49,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
   try {
     const site = await storage.getSite(siteId);
     if (!site) {
-      console.error(`Roof estimation: Site ${siteId} not found`);
+      log.error(`Roof estimation: Site ${siteId} not found`);
       return;
     }
 
@@ -86,7 +89,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
         longitude: result.longitude || null,
         roofEstimatePendingAt: null
       });
-      console.log(`Roof estimation failed for site ${siteId}: ${result.error}`);
+      log.info(`Roof estimation failed for site ${siteId}: ${result.error}`);
       return;
     }
 
@@ -111,7 +114,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
       roofEstimatePendingAt: null
     });
 
-    console.log(`Roof estimation success for site ${siteId}: ${result.roofAreaSqM.toFixed(1)} m²`);
+    log.info(`Roof estimation success for site ${siteId}: ${result.roofAreaSqM.toFixed(1)} m²`);
     
     try {
       const colorResult = await googleSolar.analyzeRoofColor({
@@ -125,13 +128,13 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
           roofColorConfidence: colorResult.confidence,
           roofColorDetectedAt: new Date(),
         });
-        console.log(`Roof color analysis for site ${siteId}: ${colorResult.colorType} (confidence: ${(colorResult.confidence * 100).toFixed(0)}%, suggest bifacial: ${colorResult.suggestBifacial})`);
+        log.info(`Roof color analysis for site ${siteId}: ${colorResult.colorType} (confidence: ${(colorResult.confidence * 100).toFixed(0)}%, suggest bifacial: ${colorResult.suggestBifacial})`);
       }
     } catch (colorError) {
-      console.error(`Roof color analysis failed for site ${siteId}:`, colorError);
+      log.error(`Roof color analysis failed for site ${siteId}:`, colorError);
     }
   } catch (error) {
-    console.error(`Roof estimation error for site ${siteId}:`, error);
+    log.error(`Roof estimation error for site ${siteId}:`, error);
     await storage.updateSite(siteId, {
       roofEstimateStatus: "failed",
       roofEstimateError: error instanceof Error ? error.message : "Unknown error",
@@ -202,7 +205,7 @@ router.get("/list", authMiddleware, async (req: AuthRequest, res) => {
       total
     });
   } catch (error) {
-    console.error("Error fetching sites list:", error);
+    log.error("Error fetching sites list:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -221,7 +224,7 @@ router.get("/", authMiddleware, async (req: AuthRequest, res) => {
     }
     res.json(sites);
   } catch (error) {
-    console.error("Error fetching sites:", error);
+    log.error("Error fetching sites:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -236,7 +239,7 @@ router.get("/minimal", authMiddleware, async (req: AuthRequest, res) => {
       res.json(sites);
     }
   } catch (error) {
-    console.error("Error fetching minimal sites:", error);
+    log.error("Error fetching minimal sites:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -277,7 +280,7 @@ router.post("/", authMiddleware, requireStaff, async (req: AuthRequest, res) => 
     const updatedSite = await storage.getSite(site.id);
     res.status(201).json(updatedSite);
   } catch (error) {
-    console.error("Error creating site:", error);
+    log.error("Error creating site:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -299,7 +302,7 @@ router.patch("/:id", authMiddleware, requireStaff, async (req, res) => {
     delete updateData.roofAreaAutoDetails;
 
     if (updateData.ownerName !== undefined && updateData.ownerName !== existingSite.ownerName) {
-      console.log(`Site ${req.params.id}: Owner changed from "${existingSite.ownerName}" to "${updateData.ownerName}"`);
+      log.info(`Site ${req.params.id}: Owner changed from "${existingSite.ownerName}" to "${updateData.ownerName}"`);
     }
 
     const addressChanged =
@@ -326,7 +329,7 @@ router.patch("/:id", authMiddleware, requireStaff, async (req, res) => {
 
     res.json(site);
   } catch (error) {
-    console.error("Error updating site:", error);
+    log.error("Error updating site:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -364,7 +367,7 @@ router.delete("/:id", authMiddleware, requireStaff, async (req, res) => {
     }
     res.status(204).send();
   } catch (error) {
-    console.error("[Site Delete] Error:", error);
+    log.error("Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -387,7 +390,7 @@ router.post("/:id/reset-roof-status", authMiddleware, requireStaff, async (req: 
     const updatedSite = await storage.getSite(req.params.id);
     res.json(updatedSite);
   } catch (error) {
-    console.error("Error resetting roof status:", error);
+    log.error("Error resetting roof status:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -424,7 +427,7 @@ router.post("/:id/geocode", authMiddleware, requireStaff, async (req: AuthReques
     const updatedSite = await storage.getSite(site.id);
     res.json(updatedSite);
   } catch (error) {
-    console.error("Error geocoding:", error);
+    log.error("Error geocoding:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -496,7 +499,7 @@ router.post("/:id/roof-estimate", authMiddleware, async (req: AuthRequest, res) 
     const updatedSite = await storage.getSite(site.id);
     res.json(updatedSite);
   } catch (error) {
-    console.error("Error estimating roof:", error);
+    log.error("Error estimating roof:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -535,7 +538,7 @@ router.get("/:id/roof-imagery", authMiddleware, async (req: AuthRequest, res) =>
       longitude: site.longitude
     });
   } catch (error) {
-    console.error("Error getting roof imagery:", error);
+    log.error("Error getting roof imagery:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -568,7 +571,7 @@ router.get("/:id/solar-mockup", authMiddleware, async (req: AuthRequest, res) =>
       siteName: site.name
     });
   } catch (error) {
-    console.error("Error generating mockup:", error);
+    log.error("Error generating mockup:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -595,7 +598,7 @@ router.post("/:id/bifacial-response", authMiddleware, requireStaff, async (req: 
     const updatedSite = await storage.getSite(site.id);
     res.json(updatedSite);
   } catch (error) {
-    console.error("Error saving bifacial response:", error);
+    log.error("Error saving bifacial response:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -632,7 +635,7 @@ router.post("/:id/suggest-constraints", authMiddleware, requireStaff, async (req
       analysisNotes: result.analysisNotes
     });
   } catch (error) {
-    console.error("Error suggesting constraints:", error);
+    log.error("Error suggesting constraints:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -688,13 +691,13 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
       try {
         fs.unlinkSync(file.path);
       } catch (e) {
-        console.error("Could not delete temp file:", file.path);
+        log.error("Could not delete temp file:", file.path);
       }
     }
 
     res.json({ files: results });
   } catch (error) {
-    console.error("Error uploading meters:", error);
+    log.error("Error uploading meters:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -853,7 +856,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, async (req
       yieldStrategy,
     });
   } catch (error) {
-    console.error("Error running quick potential analysis:", error);
+    log.error("Error running quick potential analysis:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -878,7 +881,7 @@ router.post("/:siteId/save-visualization", authMiddleware, requireStaff, async (
 
     res.json({ success: true });
   } catch (error) {
-    console.error("Error saving visualization:", error);
+    log.error("Error saving visualization:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -974,7 +977,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     const kbMaxPvKw = (usableAreaSqM / 3.71) * 0.625;
     analysisAssumptions.maxPVFromRoofKw = kbMaxPvKw; // Keep as float for precision
     
-    console.log(`[Analysis] Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
+    log.info(`Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
       `tracedArea=${tracedSolarAreaSqM.toFixed(0)}m², effectiveArea=${effectiveRoofAreaSqM.toFixed(0)}m², ` +
       `maxPV=${kbMaxPvKw.toFixed(1)}kW (KB Racking formula)`);
 
@@ -1042,7 +1045,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
       yieldStrategy
     });
   } catch (error) {
-    console.error("Error running potential analysis:", error);
+    log.error("Error running potential analysis:", error);
     // Provide more specific error message to frontend
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     res.status(500).json({ error: errorMessage });
@@ -1100,7 +1103,7 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
       baseAssumptions,
     });
   } catch (error) {
-    console.error("Error running Monte Carlo analysis:", error);
+    log.error("Error running Monte Carlo analysis:", error);
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     res.status(500).json({ error: errorMessage });
   }
@@ -1133,7 +1136,7 @@ router.post("/:siteId/peak-shaving-analysis", authMiddleware, requireStaff, asyn
 
     res.json(result);
   } catch (error) {
-    console.error("Error running peak shaving analysis:", error);
+    log.error("Error running peak shaving analysis:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1188,7 +1191,7 @@ router.post("/:siteId/kit-recommendation", authMiddleware, requireStaff, async (
       recommendation,
     });
   } catch (error) {
-    console.error("Error generating kit recommendations:", error);
+    log.error("Error generating kit recommendations:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1224,7 +1227,7 @@ router.get("/:siteId/construction-estimate", authMiddleware, async (req, res) =>
       estimate,
     });
   } catch (error) {
-    console.error("Construction estimate error:", error);
+    log.error("Construction estimate error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1320,7 +1323,7 @@ router.get("/:siteId/price-breakdown", authMiddleware, async (req, res) => {
       componentCount: components.length,
     });
   } catch (error) {
-    console.error("Error calculating price breakdown:", error);
+    log.error("Error calculating price breakdown:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1330,7 +1333,7 @@ router.get("/:siteId/visits", authMiddleware, requireStaff, async (req: AuthRequ
     const visits = await storage.getSiteVisitsBySite(req.params.siteId);
     res.json(visits);
   } catch (error) {
-    console.error("Error fetching site visits:", error);
+    log.error("Error fetching site visits:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1341,7 +1344,7 @@ router.get("/:siteId/photos", authMiddleware, async (req: AuthRequest, res) => {
     const photos = await storage.getSiteVisitPhotos(siteId);
     res.json(photos);
   } catch (error) {
-    console.error("Error fetching photos:", error);
+    log.error("Error fetching photos:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1354,7 +1357,7 @@ router.get("/:siteId/design-agreement", authMiddleware, async (req: AuthRequest,
     }
     res.json(agreement);
   } catch (error) {
-    console.error("Error fetching design agreement:", error);
+    log.error("Error fetching design agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1460,7 +1463,7 @@ router.post("/:siteId/generate-design-agreement", authMiddleware, requireStaff, 
     
     res.status(201).json(agreement);
   } catch (error) {
-    console.error("Error generating design agreement:", error);
+    log.error("Error generating design agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1471,7 +1474,7 @@ router.get("/:siteId/roof-polygons", authMiddleware, async (req: AuthRequest, re
     const polygons = await storage.getRoofPolygons(siteId);
     res.json(polygons);
   } catch (error) {
-    console.error("Error fetching roof polygons:", error);
+    log.error("Error fetching roof polygons:", error);
     res.status(500).json({ error: "Failed to fetch roof polygons" });
   }
 });
@@ -1508,7 +1511,7 @@ router.post("/:siteId/roof-polygons", authMiddleware, async (req: AuthRequest, r
     
     res.status(201).json(polygon);
   } catch (error) {
-    console.error("Error creating roof polygon:", error);
+    log.error("Error creating roof polygon:", error);
     res.status(500).json({ error: "Failed to create roof polygon" });
   }
 });
@@ -1519,7 +1522,7 @@ router.delete("/:siteId/roof-polygons", authMiddleware, async (req: AuthRequest,
     const deletedCount = await storage.deleteRoofPolygonsBySite(siteId);
     res.status(200).json({ success: true, deleted: deletedCount });
   } catch (error) {
-    console.error("Error deleting roof polygons:", error);
+    log.error("Error deleting roof polygons:", error);
     res.status(500).json({ error: "Failed to delete roof polygons" });
   }
 });
@@ -1547,7 +1550,7 @@ router.put("/roof-polygons/:id", authMiddleware, async (req: AuthRequest, res) =
     const polygon = await storage.updateRoofPolygon(id, validationResult.data);
     res.json(polygon);
   } catch (error) {
-    console.error("Error updating roof polygon:", error);
+    log.error("Error updating roof polygon:", error);
     res.status(500).json({ error: "Failed to update roof polygon" });
   }
 });
@@ -1563,7 +1566,7 @@ router.delete("/roof-polygons/:id", authMiddleware, async (req: AuthRequest, res
     await storage.deleteRoofPolygon(id);
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting roof polygon:", error);
+    log.error("Error deleting roof polygon:", error);
     res.status(500).json({ error: "Failed to delete roof polygon" });
   }
 });
@@ -1641,7 +1644,7 @@ router.get("/:siteId/project-info-sheet", authMiddleware, async (req: AuthReques
     res.setHeader("Content-Length", pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error("Error generating project info sheet:", error);
+    log.error("Error generating project info sheet:", error);
     res.status(500).json({ error: "Failed to generate project info sheet PDF" });
   }
 });
@@ -1664,7 +1667,7 @@ router.post("/:id/archive", authMiddleware, requireStaff, async (req, res) => {
     
     res.json(updatedSite);
   } catch (error) {
-    console.error("[Site Archive] Error:", error);
+    log.error("Archive error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1686,7 +1689,7 @@ router.post("/:id/unarchive", authMiddleware, requireStaff, async (req, res) => 
     
     res.json(updatedSite);
   } catch (error) {
-    console.error("[Site Unarchive] Error:", error);
+    log.error("Unarchive error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

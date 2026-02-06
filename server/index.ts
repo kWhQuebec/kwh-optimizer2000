@@ -6,6 +6,9 @@ import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { errorHandler } from "./middleware/errorHandler";
+import { createLogger } from "./lib/logger";
+
+const serverLog = createLogger("Server");
 
 const app = express();
 const httpServer = createServer(app);
@@ -20,21 +23,21 @@ async function initStripe() {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
-    console.log('DATABASE_URL not set, skipping Stripe initialization');
+    serverLog.info('DATABASE_URL not set, skipping Stripe initialization');
     return;
   }
 
   try {
-    console.log('Initializing Stripe schema...');
+    serverLog.info('Initializing Stripe schema...');
     await runMigrations({ 
       databaseUrl,
       schema: 'stripe'
     });
-    console.log('Stripe schema ready');
+    serverLog.info('Stripe schema ready');
 
     const stripeSync = await getStripeSync();
 
-    console.log('Setting up managed webhook...');
+    serverLog.info('Setting up managed webhook...');
     const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
     const { webhook, uuid } = await stripeSync.findOrCreateManagedWebhook(
       `${webhookBaseUrl}/api/stripe/webhook`,
@@ -43,18 +46,18 @@ async function initStripe() {
         description: 'kWh Québec design agreement payments',
       }
     );
-    console.log(`Webhook configured: ${webhook.url} (UUID: ${uuid})`);
+    serverLog.info(`Webhook configured: ${webhook.url} (UUID: ${uuid})`);
 
-    console.log('Syncing Stripe data...');
+    serverLog.info('Syncing Stripe data...');
     stripeSync.syncBackfill()
       .then(() => {
-        console.log('Stripe data synced');
+        serverLog.info('Stripe data synced');
       })
       .catch((err: any) => {
-        console.error('Error syncing Stripe data:', err);
+        serverLog.error('Error syncing Stripe data:', err);
       });
   } catch (error) {
-    console.error('Failed to initialize Stripe:', error);
+    serverLog.error('Failed to initialize Stripe:', error);
   }
 }
 
@@ -74,7 +77,7 @@ app.post(
       const sig = Array.isArray(signature) ? signature[0] : signature;
 
       if (!Buffer.isBuffer(req.body)) {
-        console.error('STRIPE WEBHOOK ERROR: req.body is not a Buffer');
+        serverLog.error('STRIPE WEBHOOK ERROR: req.body is not a Buffer');
         return res.status(500).json({ error: 'Webhook processing error' });
       }
 
@@ -83,7 +86,7 @@ app.post(
 
       res.status(200).json({ received: true });
     } catch (error: any) {
-      console.error('Webhook error:', error.message);
+      serverLog.error('Webhook error:', error.message);
       res.status(400).json({ error: 'Webhook processing error' });
     }
   }
@@ -101,14 +104,8 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 
 export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
+  const sourceLog = createLogger(source);
+  sourceLog.info(message);
 }
 
 app.use((req, res, next) => {

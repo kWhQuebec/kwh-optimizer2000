@@ -2,7 +2,9 @@ import { Router, Response } from "express";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertCompetitorProposalAnalysisSchema } from "@shared/schema";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("MarketIntel");
 const router = Router();
 
 router.get("/api/market-intelligence/price-trends", authMiddleware, requireStaff, async (req, res) => {
@@ -132,7 +134,7 @@ router.get("/api/market-intelligence/proposal-analyses", authMiddleware, require
     const analyses = await storage.getCompetitorProposalAnalyses();
     res.json(analyses);
   } catch (error) {
-    console.error("Error fetching competitor proposal analyses:", error);
+    log.error("Error fetching competitor proposal analyses:", error);
     res.status(500).json({ error: "Failed to fetch competitor proposal analyses" });
   }
 });
@@ -145,7 +147,7 @@ router.get("/api/market-intelligence/proposal-analyses/:id", authMiddleware, req
     }
     res.json(analysis);
   } catch (error) {
-    console.error("Error fetching competitor proposal analysis:", error);
+    log.error("Error fetching competitor proposal analysis:", error);
     res.status(500).json({ error: "Failed to fetch competitor proposal analysis" });
   }
 });
@@ -159,7 +161,7 @@ router.post("/api/market-intelligence/proposal-analyses", authMiddleware, requir
     const analysis = await storage.createCompetitorProposalAnalysis(parsed.data);
     res.status(201).json(analysis);
   } catch (error) {
-    console.error("Error creating competitor proposal analysis:", error);
+    log.error("Error creating competitor proposal analysis:", error);
     res.status(500).json({ error: "Failed to create competitor proposal analysis" });
   }
 });
@@ -177,7 +179,7 @@ router.patch("/api/market-intelligence/proposal-analyses/:id", authMiddleware, r
     const updated = await storage.updateCompetitorProposalAnalysis(req.params.id, parsed.data);
     res.json(updated);
   } catch (error) {
-    console.error("Error updating competitor proposal analysis:", error);
+    log.error("Error updating competitor proposal analysis:", error);
     res.status(500).json({ error: "Failed to update competitor proposal analysis" });
   }
 });
@@ -191,7 +193,7 @@ router.delete("/api/market-intelligence/proposal-analyses/:id", authMiddleware, 
     await storage.deleteCompetitorProposalAnalysis(req.params.id);
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting competitor proposal analysis:", error);
+    log.error("Error deleting competitor proposal analysis:", error);
     res.status(500).json({ error: "Failed to delete competitor proposal analysis" });
   }
 });

@@ -109,6 +109,7 @@ export function GlobalSearch() {
         className="relative h-9 w-full justify-start text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64"
         onClick={() => setOpen(true)}
         data-testid="button-global-search"
+        aria-label={language === "fr" ? "Rechercher" : "Search"}
       >
         <Search className="mr-2 h-4 w-4" />
         <span className="hidden lg:inline-flex">

@@ -3,6 +3,9 @@ import PDFDocument from "pdfkit";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertPortfolioSchema, insertPortfolioSiteSchema } from "@shared/schema";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("Portfolios");
 
 const router = Router();
 
@@ -11,7 +14,7 @@ router.get("/api/portfolios", authMiddleware, requireStaff, async (req: AuthRequ
     const portfolios = await storage.getPortfolios();
     res.json(portfolios);
   } catch (error) {
-    console.error("Error fetching portfolios:", error);
+    log.error("Error fetching portfolios:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -27,7 +30,7 @@ router.get("/api/clients/:clientId/portfolios", authMiddleware, async (req: Auth
     const portfolios = await storage.getPortfoliosByClient(clientId);
     res.json(portfolios);
   } catch (error) {
-    console.error("Error fetching client portfolios:", error);
+    log.error("Error fetching client portfolios:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -46,7 +49,7 @@ router.get("/api/portfolios/:id", authMiddleware, async (req: AuthRequest, res) 
     
     res.json(portfolio);
   } catch (error) {
-    console.error("Error fetching portfolio:", error);
+    log.error("Error fetching portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -54,19 +57,19 @@ router.get("/api/portfolios/:id", authMiddleware, async (req: AuthRequest, res) 
 router.get("/api/portfolios/:id/sites", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const portfolio = await storage.getPortfolio(req.params.id);
-    
+
     if (!portfolio) {
       return res.status(404).json({ error: "Portfolio not found" });
     }
-    
+
     if (req.userRole === "client" && req.userClientId !== portfolio.clientId) {
       return res.status(403).json({ error: "Access denied" });
     }
-    
+
     const sites = await storage.getPortfolioSites(req.params.id);
     res.json(sites);
   } catch (error) {
-    console.error("Error fetching portfolio sites:", error);
+    log.error("Error fetching portfolio sites:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -169,7 +172,7 @@ router.get("/api/portfolios/:id/full", authMiddleware, async (req: AuthRequest, 
       kpis: aggregatedKpis,
     });
   } catch (error) {
-    console.error("Error fetching full portfolio:", error);
+    log.error("Error fetching full portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -210,12 +213,12 @@ router.post("/api/portfolios", authMiddleware, requireStaff, async (req: AuthReq
         });
       }
     } catch (oppError) {
-      console.error("Failed to auto-create portfolio opportunity:", oppError);
+      log.error("Failed to auto-create portfolio opportunity:", oppError);
     }
     
     res.status(201).json(portfolio);
   } catch (error) {
-    console.error("Error creating portfolio:", error);
+    log.error("Error creating portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -230,7 +233,7 @@ router.patch("/api/portfolios/:id", authMiddleware, requireStaff, async (req: Au
     
     res.json(portfolio);
   } catch (error) {
-    console.error("Error updating portfolio:", error);
+    log.error("Error updating portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -245,7 +248,7 @@ router.delete("/api/portfolios/:id", authMiddleware, requireStaff, async (req: A
     
     res.json({ success: true });
   } catch (error) {
-    console.error("Error deleting portfolio:", error);
+    log.error("Error deleting portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -308,7 +311,7 @@ router.post("/api/portfolios/:id/sites", authMiddleware, requireStaff, async (re
       totalInPortfolio: currentSites.length 
     });
   } catch (error) {
-    console.error("Error adding site to portfolio:", error);
+    log.error("Error adding site to portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -330,7 +333,7 @@ router.delete("/api/portfolios/:portfolioId/sites/:siteId", authMiddleware, requ
     
     res.json({ success: true });
   } catch (error) {
-    console.error("Error removing site from portfolio:", error);
+    log.error("Error removing site from portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -364,7 +367,7 @@ router.patch("/api/portfolio-sites/:id", authMiddleware, requireStaff, async (re
 
     res.json(updated);
   } catch (error) {
-    console.error("Error updating portfolio site:", error);
+    log.error("Error updating portfolio site:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -397,7 +400,7 @@ router.get("/api/portfolios/:id/pdf", authMiddleware, async (req: AuthRequest, r
     
     doc.pipe(res);
     
-    const { generatePortfolioSummaryPDF } = await import("../pdfGenerator");
+    const { generatePortfolioSummaryPDF } = await import("../pdf");
     
     const quotedCosts = (portfolio.quotedCosts as Record<string, unknown>) || {};
     
@@ -433,7 +436,7 @@ router.get("/api/portfolios/:id/pdf", authMiddleware, async (req: AuthRequest, r
     
     doc.end();
   } catch (error) {
-    console.error("Portfolio PDF generation error:", error);
+    log.error("Portfolio PDF generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -544,7 +547,7 @@ router.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, asy
     
     res.json(updated);
   } catch (error) {
-    console.error("Error recalculating portfolio:", error);
+    log.error("Error recalculating portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

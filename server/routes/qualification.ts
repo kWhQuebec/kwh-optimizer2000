@@ -7,7 +7,9 @@ import {
   calculateEconomicStatus,
   QualificationData,
 } from "@shared/qualification";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Qualification");
 const router = Router();
 
 /**
@@ -67,7 +69,7 @@ router.get("/api/leads/:id/qualification", authMiddleware, requireStaff, async (
       },
     });
   } catch (error) {
-    console.error("Error fetching lead qualification:", error);
+    log.error("Error fetching lead qualification:", error);
     res.status(500).json({ error: "Failed to fetch qualification data" });
   }
 });
@@ -157,7 +159,7 @@ router.put("/api/leads/:id/qualification", authMiddleware, requireStaff, async (
       result,
     });
   } catch (error) {
-    console.error("Error updating lead qualification:", error);
+    log.error("Error updating lead qualification:", error);
     res.status(500).json({ error: "Failed to update qualification" });
   }
 });

@@ -2,7 +2,9 @@ import { Router, Response } from "express";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import type { Site } from "@shared/schema";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("KBRacking");
 const router = Router();
 
 interface KBRackingEstimate {
@@ -78,7 +80,7 @@ router.get("/api/kb-racking/estimate", authMiddleware, requireStaff, async (req:
     const estimate = estimateKBRackingCost(panelCount);
     res.json(estimate);
   } catch (error) {
-    console.error("Error estimating KB Racking cost:", error);
+    log.error("Error estimating KB Racking cost:", error);
     res.status(500).json({ error: "Failed to estimate racking cost" });
   }
 });
@@ -98,7 +100,7 @@ router.get("/api/kb-racking/estimate-from-area", authMiddleware, requireStaff, a
       ...estimate,
     });
   } catch (error) {
-    console.error("Error estimating from area:", error);
+    log.error("Error estimating from area:", error);
     res.status(500).json({ error: "Failed to estimate from area" });
   }
 });
@@ -120,7 +122,7 @@ router.get("/api/kb-racking/bom/:panelCount", authMiddleware, requireStaff, asyn
       specs: KB_RACKING_SPECS,
     });
   } catch (error) {
-    console.error("Error generating BOM:", error);
+    log.error("Error generating BOM:", error);
     res.status(500).json({ error: "Failed to generate BOM" });
   }
 });
@@ -130,7 +132,7 @@ router.get("/api/kb-racking/specs", authMiddleware, async (req: AuthRequest, res
     const { KB_RACKING_SPECS } = await getKBRackingModule();
     res.json(KB_RACKING_SPECS);
   } catch (error) {
-    console.error("Error fetching specs:", error);
+    log.error("Error fetching specs:", error);
     res.status(500).json({ error: "Failed to fetch specs" });
   }
 });
@@ -191,7 +193,7 @@ router.get("/api/kb-racking/portfolio-stats", authMiddleware, requireStaff, asyn
       quotesExpired,
     });
   } catch (error) {
-    console.error("Error fetching portfolio KB stats:", error);
+    log.error("Error fetching portfolio KB stats:", error);
     res.status(500).json({ error: "Failed to fetch portfolio statistics" });
   }
 });
@@ -252,7 +254,7 @@ router.post("/api/kb-racking/proposal-pdf/:siteId", authMiddleware, requireStaff
     res.setHeader('Content-Disposition', `attachment; filename="KB_Proposal_${site.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error("Error generating KB Racking proposal PDF:", error);
+    log.error("Error generating KB Racking proposal PDF:", error);
     res.status(500).json({ error: "Failed to generate proposal PDF" });
   }
 });
@@ -261,7 +263,7 @@ router.get("/api/kb-racking/google-solar-comparison", authMiddleware, requireSta
   try {
     const { runKBGoogleSolarComparison, generateComparisonReport } = await import("../kbGoogleSolarComparison");
     
-    console.log("Starting KB vs Google Solar comparison...");
+    log.info("Starting KB vs Google Solar comparison...");
     const comparison = await runKBGoogleSolarComparison();
     
     const format = req.query.format as string;
@@ -273,7 +275,7 @@ router.get("/api/kb-racking/google-solar-comparison", authMiddleware, requireSta
       res.json(comparison);
     }
   } catch (error) {
-    console.error("Error running KB/Google Solar comparison:", error);
+    log.error("Error running KB/Google Solar comparison:", error);
     res.status(500).json({ error: "Failed to run comparison", details: String(error) });
   }
 });
@@ -309,7 +311,7 @@ router.get("/api/kb-racking/expiring-quotes", authMiddleware, requireStaff, asyn
       sites: expiringSites.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry),
     });
   } catch (error) {
-    console.error("Error fetching expiring quotes:", error);
+    log.error("Error fetching expiring quotes:", error);
     res.status(500).json({ error: "Failed to fetch expiring quotes" });
   }
 });

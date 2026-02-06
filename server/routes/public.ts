@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { storage } from "../storage";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Public");
 const router = Router();
 
 router.get("/api/public/agreements/:token", async (req, res) => {
@@ -45,7 +47,7 @@ router.get("/api/public/agreements/:token", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching public agreement:", error);
+    log.error("Error fetching public agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -84,7 +86,7 @@ router.post("/api/public/agreements/:token/sign", async (req, res) => {
     
     res.json({ success: true, agreement: updated });
   } catch (error) {
-    console.error("Error signing agreement:", error);
+    log.error("Error signing agreement:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -180,7 +182,7 @@ router.post("/api/public/agreements/:token/create-checkout", async (req, res) =>
       sessionId: session.id,
     });
   } catch (error) {
-    console.error("Error creating checkout session:", error);
+    log.error("Error creating checkout session:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -218,7 +220,7 @@ router.post("/api/public/agreements/:token/confirm-payment", async (req, res) =>
 
     res.json({ success: true, agreement: updated });
   } catch (error) {
-    console.error("Error confirming payment:", error);
+    log.error("Error confirming payment:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -229,7 +231,7 @@ router.get("/api/public/stripe-key", async (req, res) => {
     const key = await getStripePublishableKey();
     res.json({ publishableKey: key });
   } catch (error) {
-    console.error("Error getting Stripe key:", error);
+    log.error("Error getting Stripe key:", error);
     res.status(500).json({ error: "Stripe not configured" });
   }
 });
@@ -317,7 +319,7 @@ router.get("/api/public/portfolio", async (req, res) => {
     
     res.json(portfolioSites);
   } catch (error) {
-    console.error("Error fetching public portfolio:", error);
+    log.error("Error fetching public portfolio:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -381,7 +383,7 @@ router.get("/api/public/portfolio/:id", async (req, res) => {
       electricityOfftake: { fr: "Hydro-Québec", en: "Hydro-Québec" },
     });
   } catch (error) {
-    console.error("Error fetching public portfolio project:", error);
+    log.error("Error fetching public portfolio project:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -391,7 +393,7 @@ router.get("/api/blog", async (req: Request, res: Response) => {
     const articles = await storage.getBlogArticles("published");
     res.json(articles);
   } catch (error) {
-    console.error("Error fetching blog articles:", error);
+    log.error("Error fetching blog articles:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -405,7 +407,7 @@ router.get("/api/blog/:slug", async (req: Request, res: Response) => {
     await storage.incrementArticleViews(article.id);
     res.json(article);
   } catch (error) {
-    console.error("Error fetching blog article:", error);
+    log.error("Error fetching blog article:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

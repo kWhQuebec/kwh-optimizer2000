@@ -11,6 +11,7 @@ export function LanguageToggle() {
       onClick={() => setLanguage(language === "fr" ? "en" : "fr")}
       className="font-medium"
       data-testid="button-language-toggle"
+      aria-label={language === "fr" ? "Switch to English" : "Passer au français"}
     >
       {language === "fr" ? "EN" : "FR"}
     </Button>

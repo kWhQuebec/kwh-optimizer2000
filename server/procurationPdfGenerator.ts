@@ -1,6 +1,9 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("ProcurationPDF");
 
 interface ProcurationData {
   hqAccountNumber: string;
@@ -230,7 +233,7 @@ export async function generateProcurationPDF(data: ProcurationData): Promise<Buf
         height: signatureHeight,
       });
     } catch (e) {
-      console.log("Error adding signature image:", e);
+      log.info("Error adding signature image:", e);
     }
   }
   
@@ -312,5 +315,5 @@ export function generateProcurationPDFLegacy(
   doc: any,
   data: ProcurationData
 ): void {
-  console.warn("Legacy generateProcurationPDF called - use async version instead");
+  log.warn("Legacy generateProcurationPDF called - use async version instead");
 }

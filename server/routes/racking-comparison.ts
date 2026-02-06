@@ -2,7 +2,9 @@ import { Router, Response } from "express";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { getAllRackingConfigs, RackingConfig, RoofColorType } from "@shared/schema";
 import { z } from "zod";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("RackingComparison");
 const router = Router();
 
 const TOTAL_COST_PER_WATT = {
@@ -36,7 +38,7 @@ router.get("/api/racking/configs", authMiddleware, async (req: AuthRequest, res:
     const configs = getAllRackingConfigs();
     res.json(configs);
   } catch (error) {
-    console.error("Error fetching racking configs:", error);
+    log.error("Error fetching racking configs:", error);
     res.status(500).json({ error: "Failed to fetch racking configurations" });
   }
 });
@@ -85,7 +87,7 @@ router.post("/api/racking/compare", authMiddleware, async (req: AuthRequest, res
       winnerType: results.length > 0 ? results[0].config.type : null,
     });
   } catch (error) {
-    console.error("Error comparing racking options:", error);
+    log.error("Error comparing racking options:", error);
     res.status(500).json({ error: "Failed to compare racking options" });
   }
 });

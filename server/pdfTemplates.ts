@@ -1,4 +1,7 @@
 import PDFDocument from "pdfkit";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("PDFTemplates");
 
 export const BRAND_COLORS = {
   primary: "#003DA6",
@@ -275,7 +278,7 @@ export function drawImageWithBorder(
     
     return y + height;
   } catch (e) {
-    console.error("Failed to draw image:", e);
+    log.error("Failed to draw image:", e);
     return y;
   }
 }

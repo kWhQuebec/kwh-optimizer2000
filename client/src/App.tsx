@@ -105,28 +105,33 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
-        <AppSidebar />
-        <div className="flex flex-col flex-1 min-w-0">
-          <header className="flex items-center justify-between gap-4 px-4 h-14 border-b shrink-0">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <div className="flex-1 flex items-center justify-center max-w-xl">
-              <GlobalSearch />
-            </div>
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-            </div>
-          </header>
-          <main className="flex-1 overflow-auto p-6">
-            {children}
-          </main>
+    <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground focus:border">
+        Skip to main content
+      </a>
+      <SidebarProvider style={style as React.CSSProperties}>
+        <div className="flex h-screen w-full">
+          <AppSidebar />
+          <div className="flex flex-col flex-1 min-w-0">
+            <header className="flex items-center justify-between gap-4 px-4 h-14 border-b shrink-0" aria-label="Top bar">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <div className="flex-1 flex items-center justify-center max-w-xl">
+                <GlobalSearch />
+              </div>
+              <div className="flex items-center gap-2">
+                <LanguageToggle />
+                <ThemeToggle />
+              </div>
+            </header>
+            <main id="main-content" className="flex-1 overflow-auto p-6">
+              {children}
+            </main>
         </div>
       </div>
-      <GlobalActionBar />
-      <AIChatWidget />
-    </SidebarProvider>
+        <GlobalActionBar />
+        <AIChatWidget />
+      </SidebarProvider>
+    </>
   );
 }
 

@@ -13,6 +13,9 @@
 
 import type { AnalysisAssumptions, BifacialConfig } from "@shared/schema";
 import { getBifacialConfigFromRoofColor, type RoofColorType } from "@shared/schema";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("PotentialAnalysis");
 
 // ==================== TIERED PRICING ====================
 
@@ -237,7 +240,7 @@ export function resolveYieldStrategy(
   }
   
   const bifacialBoost = bifacialConfig.boost;
-  console.log(`[resolveYieldStrategy] roofColorType=${roofColorType}, bifacialBoost=${bifacialBoost}, reason=${bifacialConfig.reason.en}`);
+  log.info(`roofColorType=${roofColorType}, bifacialBoost=${bifacialBoost}, reason=${bifacialConfig.reason.en}`);
   
   // Orientation factor - ONLY apply for default yield
   // Google yield already accounts for roof orientation and shading

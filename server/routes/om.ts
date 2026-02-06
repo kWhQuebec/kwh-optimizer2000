@@ -2,6 +2,9 @@ import { Router } from "express";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertOmContractSchema, insertOmVisitSchema, insertOmPerformanceSnapshotSchema } from "@shared/schema";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("OM");
 
 const router = Router();
 
@@ -10,7 +13,7 @@ router.get("/api/om-contracts", authMiddleware, requireStaff, async (req: AuthRe
     const contracts = await storage.getOmContracts();
     res.json(contracts);
   } catch (error) {
-    console.error("Error fetching O&M contracts:", error);
+    log.error("Error fetching O&M contracts:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -21,11 +24,11 @@ router.get("/api/om-contracts/:id", authMiddleware, requireStaff, async (req: Au
     if (!contract) {
       return res.status(404).json({ error: "O&M contract not found" });
     }
-    
+
     const site = await storage.getSite(contract.siteId);
     const client = await storage.getClient(contract.clientId);
     const visits = await storage.getOmVisitsByContractId(contract.id);
-    
+
     res.json({
       ...contract,
       site,
@@ -33,7 +36,7 @@ router.get("/api/om-contracts/:id", authMiddleware, requireStaff, async (req: Au
       visits,
     });
   } catch (error) {
-    console.error("Error fetching O&M contract:", error);
+    log.error("Error fetching O&M contract:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -43,7 +46,7 @@ router.get("/api/om-contracts/client/:clientId", authMiddleware, requireStaff, a
     const contracts = await storage.getOmContractsByClientId(req.params.clientId);
     res.json(contracts);
   } catch (error) {
-    console.error("Error fetching O&M contracts by client:", error);
+    log.error("Error fetching O&M contracts by client:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -53,7 +56,7 @@ router.get("/api/om-contracts/site/:siteId", authMiddleware, requireStaff, async
     const contracts = await storage.getOmContractsBySiteId(req.params.siteId);
     res.json(contracts);
   } catch (error) {
-    console.error("Error fetching O&M contracts by site:", error);
+    log.error("Error fetching O&M contracts by site:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -71,7 +74,7 @@ router.post("/api/om-contracts", authMiddleware, requireStaff, async (req: AuthR
     });
     res.status(201).json(contract);
   } catch (error) {
-    console.error("Error creating O&M contract:", error);
+    log.error("Error creating O&M contract:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -84,7 +87,7 @@ router.patch("/api/om-contracts/:id", authMiddleware, requireStaff, async (req: 
     }
     res.json(contract);
   } catch (error) {
-    console.error("Error updating O&M contract:", error);
+    log.error("Error updating O&M contract:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -97,7 +100,7 @@ router.delete("/api/om-contracts/:id", authMiddleware, requireStaff, async (req:
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting O&M contract:", error);
+    log.error("Error deleting O&M contract:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -116,7 +119,7 @@ router.post("/api/om-contracts/:id/activate", authMiddleware, requireStaff, asyn
     
     res.json(updated);
   } catch (error) {
-    console.error("Error activating O&M contract:", error);
+    log.error("Error activating O&M contract:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -126,7 +129,7 @@ router.get("/api/om-visits", authMiddleware, requireStaff, async (req: AuthReque
     const visits = await storage.getOmVisits();
     res.json(visits);
   } catch (error) {
-    console.error("Error fetching O&M visits:", error);
+    log.error("Error fetching O&M visits:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -139,7 +142,7 @@ router.get("/api/om-visits/:id", authMiddleware, requireStaff, async (req: AuthR
     }
     res.json(visit);
   } catch (error) {
-    console.error("Error fetching O&M visit:", error);
+    log.error("Error fetching O&M visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -149,7 +152,7 @@ router.get("/api/om-visits/contract/:contractId", authMiddleware, requireStaff, 
     const visits = await storage.getOmVisitsByContractId(req.params.contractId);
     res.json(visits);
   } catch (error) {
-    console.error("Error fetching O&M visits by contract:", error);
+    log.error("Error fetching O&M visits by contract:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -164,7 +167,7 @@ router.post("/api/om-visits", authMiddleware, requireStaff, async (req: AuthRequ
     const visit = await storage.createOmVisit(parsed.data);
     res.status(201).json(visit);
   } catch (error) {
-    console.error("Error creating O&M visit:", error);
+    log.error("Error creating O&M visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -177,7 +180,7 @@ router.patch("/api/om-visits/:id", authMiddleware, requireStaff, async (req: Aut
     }
     res.json(visit);
   } catch (error) {
-    console.error("Error updating O&M visit:", error);
+    log.error("Error updating O&M visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -190,7 +193,7 @@ router.delete("/api/om-visits/:id", authMiddleware, requireStaff, async (req: Au
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting O&M visit:", error);
+    log.error("Error deleting O&M visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -217,7 +220,7 @@ router.post("/api/om-visits/:id/complete", authMiddleware, requireStaff, async (
     
     res.json(updated);
   } catch (error) {
-    console.error("Error completing O&M visit:", error);
+    log.error("Error completing O&M visit:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -227,7 +230,7 @@ router.get("/api/om-performance/contract/:contractId", authMiddleware, requireSt
     const snapshots = await storage.getOmPerformanceSnapshotsByContractId(req.params.contractId);
     res.json(snapshots);
   } catch (error) {
-    console.error("Error fetching O&M performance snapshots:", error);
+    log.error("Error fetching O&M performance snapshots:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -242,7 +245,7 @@ router.post("/api/om-performance", authMiddleware, requireStaff, async (req: Aut
     const snapshot = await storage.createOmPerformanceSnapshot(parsed.data);
     res.status(201).json(snapshot);
   } catch (error) {
-    console.error("Error creating O&M performance snapshot:", error);
+    log.error("Error creating O&M performance snapshot:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -261,7 +264,7 @@ router.get("/api/om-performance/sites", authMiddleware, requireStaff, async (req
     
     res.json(sites.filter(Boolean));
   } catch (error) {
-    console.error("Error fetching O&M sites:", error);
+    log.error("Error fetching O&M sites:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -315,7 +318,7 @@ router.get("/api/om-performance/dashboard/:siteId", authMiddleware, requireStaff
       },
     });
   } catch (error) {
-    console.error("Error fetching O&M performance dashboard:", error);
+    log.error("Error fetching O&M performance dashboard:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

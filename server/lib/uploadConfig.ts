@@ -2,6 +2,9 @@ import multer from "multer";
 import path from "path";
 import crypto from "crypto";
 import fs from "fs";
+import { createLogger } from "./logger";
+
+const log = createLogger("UploadConfig");
 
 // Ensure upload directories exist
 const UPLOAD_BASE = process.cwd();
@@ -78,7 +81,7 @@ export async function safeDeleteFile(filePath: string): Promise<void> {
     await fs.promises.unlink(filePath);
   } catch (error) {
     // Log but don't throw - file might already be deleted
-    console.warn(`Could not delete file ${filePath}:`, error);
+    log.warn(`Could not delete file ${filePath}:`, error);
   }
 }
 
@@ -103,7 +106,7 @@ export async function cleanupOldUploads(maxAgeMs: number = 24 * 60 * 60 * 1000):
         }
       }
     } catch (error) {
-      console.error(`Error cleaning up ${dir}:`, error);
+      log.error(`Error cleaning up ${dir}:`, error);
     }
   }
 

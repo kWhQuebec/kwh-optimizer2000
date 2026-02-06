@@ -8,6 +8,9 @@ import {
   createDocument,
   collectBuffer,
 } from "./pdfTemplates";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("ProjectInfoSheet");
 
 interface RoofPolygonData {
   coordinates: [number, number][];
@@ -90,7 +93,7 @@ function calculateZoomForPolygons(
   const widthMeters = lngSpan * metersPerDegreeLng;
   const maxSpanMeters = Math.max(heightMeters, widthMeters);
   
-  console.log(`[ProjectInfoSheet] Polygon bounds: ${maxSpanMeters.toFixed(0)}m span`);
+  log.info(`Polygon bounds: ${maxSpanMeters.toFixed(0)}m span`);
   
   if (maxSpanMeters > 350) return 16;
   if (maxSpanMeters > 200) return 17;
@@ -201,21 +204,21 @@ export async function generateProjectInfoSheetPDF(
   if (fs.existsSync(logoPath)) {
     try {
       logoBuffer = fs.readFileSync(logoPath);
-      console.log(`[ProjectInfoSheet] Loaded rectangular logo from: ${logoPath}`);
+      log.info(`Loaded rectangular logo from: ${logoPath}`);
     } catch (e) {
-      console.error("Failed to read logo:", e);
+      log.error("Failed to read logo:", e);
     }
   } else {
-    console.log(`[ProjectInfoSheet] Logo not found: ${logoPath}`);
+    log.info(`Logo not found: ${logoPath}`);
   }
 
   let scaleLogoBuffer: Buffer | null = null;
   if (fs.existsSync(scaleLogoPath)) {
     try {
       scaleLogoBuffer = fs.readFileSync(scaleLogoPath);
-      console.log(`[ProjectInfoSheet] Loaded Scale Cleantech logo from: ${scaleLogoPath}`);
+      log.info(`Loaded Scale Cleantech logo from: ${scaleLogoPath}`);
     } catch (e) {
-      console.error("Failed to read Scale Cleantech logo:", e);
+      log.error("Failed to read Scale Cleantech logo:", e);
     }
   }
 
@@ -246,7 +249,7 @@ export async function generateProjectInfoSheetPDF(
     try {
       doc.image(scaleLogoBuffer, margin + 175, yPos + 15, { width: 150 });
     } catch (e) {
-      console.error("Failed to render Scale Cleantech logo:", e);
+      log.error("Failed to render Scale Cleantech logo:", e);
     }
   }
 
@@ -426,12 +429,12 @@ export async function fetchRoofImageBuffer(
   try {
     // If we have a saved visualization image (base64 from html2canvas), use it
     if (savedVisualizationImage && savedVisualizationImage.startsWith('data:image/')) {
-      console.log(`[ProjectInfoSheet] Using saved visualization image (${savedVisualizationImage.length} chars)`);
+      log.info(`Using saved visualization image (${savedVisualizationImage.length} chars)`);
       // Extract base64 data from data URL
       const base64Data = savedVisualizationImage.split(',')[1];
       if (base64Data) {
         const buffer = Buffer.from(base64Data, 'base64');
-        console.log(`[ProjectInfoSheet] Decoded base64 image: ${buffer.length} bytes`);
+        log.info(`Decoded base64 image: ${buffer.length} bytes`);
         return buffer;
       }
     }
@@ -446,7 +449,7 @@ export async function fetchRoofImageBuffer(
       const centerLat = polygonCenter?.lat ?? latitude;
       const centerLng = polygonCenter?.lng ?? longitude;
       
-      console.log(`[ProjectInfoSheet] Generating roof image: center=${centerLat},${centerLng}, zoom=${zoom}, polygons=${roofPolygons.length}`);
+      log.info(`Generating roof image: center=${centerLat},${centerLng}, zoom=${zoom}, polygons=${roofPolygons.length}`);
       
       imageUrl = getRoofVisualizationUrl(
         { latitude: centerLat, longitude: centerLng },
@@ -454,7 +457,7 @@ export async function fetchRoofImageBuffer(
         { width: 1000, height: 600, zoom }
       );
     } else {
-      console.log(`[ProjectInfoSheet] No polygons, using satellite image: ${latitude},${longitude}`);
+      log.info(`No polygons, using satellite image: ${latitude},${longitude}`);
       imageUrl = getSatelliteImageUrl(
         { latitude, longitude },
         { width: 800, height: 400, zoom: 18 }
@@ -462,23 +465,23 @@ export async function fetchRoofImageBuffer(
     }
 
     if (!imageUrl) {
-      console.log("[ProjectInfoSheet] No image URL generated (API key missing?)");
+      log.info("No image URL generated (API key missing?)");
       return null;
     }
 
-    console.log(`[ProjectInfoSheet] Fetching image from Google Maps API...`);
+    log.info(`Fetching image from Google Maps API...`);
     const response = await fetch(imageUrl);
     if (!response.ok) {
-      console.log(`[ProjectInfoSheet] Image fetch failed: ${response.status} ${response.statusText}`);
+      log.info(`Image fetch failed: ${response.status} ${response.statusText}`);
       return null;
     }
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    console.log(`[ProjectInfoSheet] Image fetched successfully: ${buffer.length} bytes`);
+    log.info(`Image fetched successfully: ${buffer.length} bytes`);
     return buffer;
   } catch (error) {
-    console.error("[ProjectInfoSheet] Failed to fetch roof image:", error);
+    log.error("Failed to fetch roof image:", error);
     return null;
   }
 }

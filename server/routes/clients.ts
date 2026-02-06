@@ -9,17 +9,11 @@ import { storage } from "../storage";
 import { insertClientSchema } from "@shared/schema";
 import { sendEmail, generatePortalInvitationEmail } from "../gmail";
 import { sendHqProcurationEmail, sendProcurationNotificationToAccountManager } from "../emailService";
+import { generateSecurePassword } from "../lib/secureRandom";
+import { createLogger } from "../lib/logger";
 
+const log = createLogger("Clients");
 const router = Router();
-
-function generateTempPassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
 
 const grantPortalAccessSchema = z.object({
   email: z.string().email("Invalid email format").transform(e => e.toLowerCase().trim()),
@@ -48,7 +42,7 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
     throw new BadRequestError("A user with this email already exists");
   }
   
-  const tempPassword = generateTempPassword();
+  const tempPassword = generateSecurePassword();
   const hashedPassword = await bcrypt.hash(tempPassword, 10);
   
   const user = await storage.createUser({
@@ -91,8 +85,8 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
   });
   
   if (!emailResult.success) {
-    console.error(`[Portal Access] Email failed for user ${user.email} (client: ${client.name}): ${emailResult.error}`);
-    console.warn(`[Portal Access] Temporary password was generated but email not delivered. Manual credential sharing required.`);
+    log.error(`Email failed for user ${user.email} (client: ${client.name}): ${emailResult.error}`);
+    log.warn(`Temporary password was generated but email not delivered. Manual credential sharing required.`);
     
     return res.status(201).json({
       success: true,
@@ -106,7 +100,7 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
     });
   }
   
-  console.log(`[Portal Access] Successfully created account and sent invitation to ${user.email} for client ${client.name}`);
+  log.info(`Successfully created account and sent invitation to ${user.email} for client ${client.name}`);
   
   res.status(201).json({
     success: true,
@@ -156,7 +150,7 @@ router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requir
   );
   
   if (!emailResult.success) {
-    console.error(`[HQ Procuration] Email failed for client ${client.name}: ${emailResult.error}`);
+    log.error(`Email failed for client ${client.name}: ${emailResult.error}`);
     throw new BadRequestError(
       language === 'fr' 
         ? "L'envoi du courriel a échoué. Veuillez réessayer."
@@ -164,7 +158,7 @@ router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requir
     );
   }
   
-  console.log(`[HQ Procuration] Successfully sent procuration email to ${client.email} for client ${client.name}`);
+  log.info(`Successfully sent procuration email to ${client.email} for client ${client.name}`);
   
   // Note: Notification to account manager is sent when client COMPLETES the procuration, not when request is sent
   

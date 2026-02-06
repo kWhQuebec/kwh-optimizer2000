@@ -2,6 +2,9 @@ import { Router } from "express";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertOpportunitySchema, insertActivitySchema } from "@shared/schema";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("Opportunities");
 
 const router = Router();
 
@@ -42,7 +45,7 @@ router.get("/api/opportunities", authMiddleware, requireStaff, async (req: AuthR
 
     res.json(enrichedOpportunities);
   } catch (error) {
-    console.error("Error fetching opportunities:", error);
+    log.error("Error fetching opportunities:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -67,7 +70,7 @@ router.get("/api/opportunities/:id", authMiddleware, requireStaff, async (req: A
       site: site || null,
     });
   } catch (error) {
-    console.error("Error fetching opportunity:", error);
+    log.error("Error fetching opportunity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -77,7 +80,7 @@ router.get("/api/opportunities/lead/:leadId", authMiddleware, requireStaff, asyn
     const opportunities = await storage.getOpportunitiesByLeadId(req.params.leadId);
     res.json(opportunities);
   } catch (error) {
-    console.error("Error fetching opportunities by lead:", error);
+    log.error("Error fetching opportunities by lead:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -87,7 +90,7 @@ router.get("/api/opportunities/client/:clientId", authMiddleware, requireStaff, 
     const opportunities = await storage.getOpportunitiesByClientId(req.params.clientId);
     res.json(opportunities);
   } catch (error) {
-    console.error("Error fetching opportunities by client:", error);
+    log.error("Error fetching opportunities by client:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -97,25 +100,25 @@ router.get("/api/opportunities/site/:siteId", authMiddleware, requireStaff, asyn
     const opportunities = await storage.getOpportunitiesBySiteId(req.params.siteId);
     res.json(opportunities);
   } catch (error) {
-    console.error("Error fetching opportunities by site:", error);
+    log.error("Error fetching opportunities by site:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 router.post("/api/opportunities", authMiddleware, requireStaff, async (req: AuthRequest, res) => {
   try {
-    console.log("Creating opportunity with body:", JSON.stringify(req.body, null, 2));
+    log.info("Creating opportunity with body:", JSON.stringify(req.body, null, 2));
     const parseResult = insertOpportunitySchema.safeParse(req.body);
     if (!parseResult.success) {
-      console.error("Opportunity validation errors:", parseResult.error.errors);
+      log.error("Opportunity validation errors:", parseResult.error.errors);
       return res.status(400).json({ error: "Validation error", details: parseResult.error.errors });
     }
     
-    console.log("Parsed opportunity data:", JSON.stringify(parseResult.data, null, 2));
+    log.info("Parsed opportunity data:", JSON.stringify(parseResult.data, null, 2));
     const opportunity = await storage.createOpportunity(parseResult.data);
     res.status(201).json(opportunity);
   } catch (error) {
-    console.error("Error creating opportunity:", error);
+    log.error("Error creating opportunity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -128,7 +131,7 @@ router.patch("/api/opportunities/:id", authMiddleware, requireStaff, async (req:
     }
     res.json(opportunity);
   } catch (error) {
-    console.error("Error updating opportunity:", error);
+    log.error("Error updating opportunity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -141,7 +144,7 @@ router.delete("/api/opportunities/:id", authMiddleware, requireStaff, async (req
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting opportunity:", error);
+    log.error("Error deleting opportunity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -167,7 +170,7 @@ router.post("/api/opportunities/:id/stage", authMiddleware, requireStaff, async 
     }
     res.json(opportunity);
   } catch (error) {
-    console.error("Error updating opportunity stage:", error);
+    log.error("Error updating opportunity stage:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -195,7 +198,7 @@ router.get("/api/activities", authMiddleware, requireStaff, async (req: AuthRequ
     
     res.json(activities);
   } catch (error) {
-    console.error("Error fetching activities:", error);
+    log.error("Error fetching activities:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -208,7 +211,7 @@ router.get("/api/activities/:id", authMiddleware, requireStaff, async (req: Auth
     }
     res.json(activity);
   } catch (error) {
-    console.error("Error fetching activity:", error);
+    log.error("Error fetching activity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -218,7 +221,7 @@ router.get("/api/activities/lead/:leadId", authMiddleware, requireStaff, async (
     const activities = await storage.getActivitiesByLeadId(req.params.leadId);
     res.json(activities);
   } catch (error) {
-    console.error("Error fetching activities by lead:", error);
+    log.error("Error fetching activities by lead:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -228,7 +231,7 @@ router.get("/api/activities/client/:clientId", authMiddleware, requireStaff, asy
     const activities = await storage.getActivitiesByClientId(req.params.clientId);
     res.json(activities);
   } catch (error) {
-    console.error("Error fetching activities by client:", error);
+    log.error("Error fetching activities by client:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -238,7 +241,7 @@ router.get("/api/activities/opportunity/:opportunityId", authMiddleware, require
     const activities = await storage.getActivitiesByOpportunityId(req.params.opportunityId);
     res.json(activities);
   } catch (error) {
-    console.error("Error fetching activities by opportunity:", error);
+    log.error("Error fetching activities by opportunity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -258,7 +261,7 @@ router.post("/api/activities", authMiddleware, requireStaff, async (req: AuthReq
     const activity = await storage.createActivity(activityData);
     res.status(201).json(activity);
   } catch (error) {
-    console.error("Error creating activity:", error);
+    log.error("Error creating activity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -271,7 +274,7 @@ router.patch("/api/activities/:id", authMiddleware, requireStaff, async (req: Au
     }
     res.json(activity);
   } catch (error) {
-    console.error("Error updating activity:", error);
+    log.error("Error updating activity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -284,7 +287,7 @@ router.delete("/api/activities/:id", authMiddleware, requireStaff, async (req: A
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting activity:", error);
+    log.error("Error deleting activity:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

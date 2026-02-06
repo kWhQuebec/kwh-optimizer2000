@@ -1,4 +1,7 @@
 import { randomUUID } from "crypto";
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("Storage");
 import type {
   User, InsertUser,
   Lead, InsertLead,
@@ -2300,4 +2303,4 @@ import { DatabaseStorage } from "./dbStorage";
 export const storage = new DatabaseStorage();
 
 // Initialize default data
-storage.initializeDefaultData().catch(console.error);
+storage.initializeDefaultData().catch((err) => log.error("Failed to initialize default data:", err));

@@ -1,25 +1,28 @@
 // Gmail integration for sending emails via Replit connector
 import { google } from 'googleapis';
+import { createLogger } from "./lib/logger";
+
+const log = createLogger("Gmail");
 
 let connectionSettings: any;
 
 async function getAccessToken() {
-  console.log('[Gmail] Checking for cached access token...');
+  log.info('Checking for cached access token...');
   if (connectionSettings && connectionSettings.settings?.expires_at) {
     const expiresAt = new Date(connectionSettings.settings.expires_at).getTime();
     const remainingMs = expiresAt - Date.now();
     if (remainingMs > 0) {
-      console.log(`[Gmail] Using cached access token (expires in ${Math.round(remainingMs / 1000)}s)`);
+      log.info(`Using cached access token (expires in ${Math.round(remainingMs / 1000)}s)`);
       return connectionSettings.settings.access_token;
     }
-    console.log('[Gmail] Cached token expired, fetching new one...');
+    log.info('Cached token expired, fetching new one...');
   } else {
-    console.log('[Gmail] No cached token available');
+    log.info('No cached token available');
   }
   
-  console.log('[Gmail] Fetching new access token from Replit connector...');
+  log.info('Fetching new access token from Replit connector...');
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  console.log(`[Gmail] Connector hostname: ${hostname}`);
+  log.info(`Connector hostname: ${hostname}`);
   
   const tokenSource = process.env.REPL_IDENTITY 
     ? 'repl' 
@@ -33,15 +36,15 @@ async function getAccessToken() {
     ? 'depl ' + process.env.WEB_REPL_RENEWAL
     : null;
   
-  console.log(`[Gmail] Token source: ${tokenSource}`);
+  log.info(`Token source: ${tokenSource}`);
 
   if (!xReplitToken) {
-    console.error('[Gmail] No repl/depl identity token found');
+    log.error('No repl/depl identity token found');
     throw new Error('X_REPLIT_TOKEN not found for repl/depl');
   }
 
   const connectorUrl = 'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=google-mail';
-  console.log(`[Gmail] Fetching from: ${connectorUrl}`);
+  log.info(`Fetching from: ${connectorUrl}`);
   
   try {
     const response = await fetch(connectorUrl, {
@@ -51,45 +54,45 @@ async function getAccessToken() {
       }
     });
     
-    console.log(`[Gmail] Connector response status: ${response.status} ${response.statusText}`);
+    log.info(`Connector response status: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[Gmail] Connector error response: ${errorText}`);
+      log.error(`Connector error response: ${errorText}`);
       throw new Error(`Connector returned ${response.status}: ${errorText}`);
     }
     
     const data = await response.json();
-    console.log(`[Gmail] Connector returned ${data.items?.length || 0} connection(s)`);
+    log.info(`Connector returned ${data.items?.length || 0} connection(s)`);
     
     if (!data.items || data.items.length === 0) {
-      console.error('[Gmail] No Gmail connections found in connector response');
+      log.error('No Gmail connections found in connector response');
       throw new Error('Gmail not connected - no connections returned');
     }
     
     connectionSettings = data.items[0];
-    console.log(`[Gmail] Connection ID: ${connectionSettings.id}`);
-    console.log(`[Gmail] Connection name: ${connectionSettings.name}`);
+    log.info(`Connection ID: ${connectionSettings.id}`);
+    log.info(`Connection name: ${connectionSettings.name}`);
     
     if (connectionSettings.settings?.expires_at) {
       const expiresAt = new Date(connectionSettings.settings.expires_at);
-      console.log(`[Gmail] Token expires at: ${expiresAt.toISOString()}`);
+      log.info(`Token expires at: ${expiresAt.toISOString()}`);
     }
     
   } catch (fetchError: any) {
-    console.error('[Gmail] Failed to fetch from connector:', fetchError.message);
+    log.error('Failed to fetch from connector:', fetchError.message);
     throw fetchError;
   }
 
   const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
 
   if (!connectionSettings || !accessToken) {
-    console.error('[Gmail] No access token found in connection settings');
-    console.error('[Gmail] Connection settings keys:', Object.keys(connectionSettings?.settings || {}));
+    log.error('No access token found in connection settings');
+    log.error('Connection settings keys:', Object.keys(connectionSettings?.settings || {}));
     throw new Error('Gmail not connected - no access token');
   }
   
-  console.log('[Gmail] Access token obtained successfully');
+  log.info('Access token obtained successfully');
   return accessToken;
 }
 
@@ -121,13 +124,13 @@ interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  console.log(`[Gmail] Attempting to send email to: ${options.to}`);
-  console.log(`[Gmail] Subject: ${options.subject}`);
+  log.info(`Attempting to send email to: ${options.to}`);
+  log.info(`Subject: ${options.subject}`);
   
   try {
-    console.log('[Gmail] Getting Gmail client...');
+    log.info('Getting Gmail client...');
     const gmail = await getGmailClient();
-    console.log('[Gmail] Gmail client obtained successfully');
+    log.info('Gmail client obtained successfully');
     
     // Build the email message in RFC 2822 format
     const boundary = '----=_Part_' + Date.now();
@@ -209,8 +212,8 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
-    console.log('[Gmail] Sending email via Gmail API...');
-    console.log(`[Gmail] Message payload size: ${encodedMessage.length} bytes`);
+    log.info('Sending email via Gmail API...');
+    log.info(`Message payload size: ${encodedMessage.length} bytes`);
     const response = await gmail.users.messages.send({
       userId: 'me',
       requestBody: {
@@ -218,24 +221,24 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
       }
     });
 
-    console.log('[Gmail] Email sent successfully!');
-    console.log(`[Gmail] Response status: ${response.status}`);
-    console.log(`[Gmail] Message ID: ${response.data.id}`);
-    console.log(`[Gmail] Thread ID: ${response.data.threadId}`);
-    console.log(`[Gmail] Labels: ${JSON.stringify(response.data.labelIds)}`);
+    log.info('Email sent successfully!');
+    log.info(`Response status: ${response.status}`);
+    log.info(`Message ID: ${response.data.id}`);
+    log.info(`Thread ID: ${response.data.threadId}`);
+    log.info(`Labels: ${JSON.stringify(response.data.labelIds)}`);
 
     return {
       success: true,
       messageId: response.data.id || undefined
     };
   } catch (error: any) {
-    console.error('[Gmail] ERROR sending email:', error);
-    console.error('[Gmail] Error name:', error.name);
-    console.error('[Gmail] Error message:', error.message);
-    console.error('[Gmail] Error code:', error.code);
+    log.error('ERROR sending email:', error);
+    log.error('Error name:', error.name);
+    log.error('Error message:', error.message);
+    log.error('Error code:', error.code);
     if (error.response) {
-      console.error('[Gmail] API Response status:', error.response.status);
-      console.error('[Gmail] API Response data:', JSON.stringify(error.response.data));
+      log.error('API Response status:', error.response.status);
+      log.error('API Response data:', JSON.stringify(error.response.data));
     }
     return {
       success: false,
