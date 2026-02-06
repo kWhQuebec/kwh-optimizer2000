@@ -2346,6 +2346,13 @@ export interface ScenarioBreakdown {
   peakDemandAfterKW: number;
   annualEnergySavingsKWh: number;
   cashflows: Array<{ year: number; netCashflow: number }>;
+  hourlyProfileSummary?: Array<{
+    hour: string;
+    consumptionBefore: number;
+    consumptionAfter: number;
+    peakBefore: number;
+    peakAfter: number;
+  }>;
 }
 
 // Optimal scenario for a specific objective

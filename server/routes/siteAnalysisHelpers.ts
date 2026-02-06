@@ -536,6 +536,9 @@ function runHourlySimulation(
   hourlyProfile: HourlyProfileEntry[];
   peakWeekData: PeakWeekEntry[];
   clippingLossKWh: number;
+  monthlyPeaksBefore: number[];
+  monthlyPeaksAfter: number[];
+  totalGridChargingKWh: number;
 } {
   const hourlyProfile: HourlyProfileEntry[] = [];
   let soc = battEnergyKWh * 0.5;
@@ -546,6 +549,9 @@ function runHourlySimulation(
   let maxPeakIndex = 0;
   let maxPeakValue = 0;
   let clippingLossKWh = 0;
+  const monthlyPeaksBefore: number[] = new Array(12).fill(0);
+  const monthlyPeaksAfter: number[] = new Array(12).fill(0);
+  let totalGridChargingKWh = 0;
   
   const inverterACCapacityKW = pvSizeKW / systemParams.inverterLoadRatio;
   
@@ -558,6 +564,9 @@ function runHourlySimulation(
       hourlyProfile: [],
       peakWeekData: [],
       clippingLossKWh: 0,
+      monthlyPeaksBefore: new Array(12).fill(0),
+      monthlyPeaksAfter: new Array(12).fill(0),
+      totalGridChargingKWh: 0,
     };
   }
   
@@ -616,6 +625,7 @@ function runHourlySimulation(
     let battAction = 0;
     const peakBefore = peak;
     let peakFinal = peak;
+    let isGridCharging = false;
     
     if (battPowerKW > 0 && battEnergyKWh > 0) {
       const isPriorityPeak = priorityPeakIndices.has(i);
@@ -641,11 +651,25 @@ function runHourlySimulation(
         battAction = Math.min(Math.abs(net), battPowerKW, battEnergyKWh - soc);
       } else if (hour >= 22 && soc < battEnergyKWh) {
         battAction = Math.min(battPowerKW, battEnergyKWh - soc);
+        isGridCharging = true;
       }
       
       soc += battAction;
-      peakFinal = Math.max(0, peak + (battAction < 0 ? battAction : 0));
+      if (battAction < 0) {
+        peakFinal = Math.max(0, peak + battAction);
+      } else if (isGridCharging) {
+        peakFinal = peak + battAction;
+      } else {
+        peakFinal = peak;
+      }
+      
+      if (isGridCharging && battAction > 0) {
+        totalGridChargingKWh += battAction;
+      }
     }
+    
+    monthlyPeaksBefore[month - 1] = Math.max(monthlyPeaksBefore[month - 1], peak);
+    monthlyPeaksAfter[month - 1] = Math.max(monthlyPeaksAfter[month - 1], peakFinal);
     
     if (peak > maxPeakValue) {
       maxPeakValue = peak;
@@ -704,6 +728,9 @@ function runHourlySimulation(
     hourlyProfile,
     peakWeekData,
     clippingLossKWh,
+    monthlyPeaksBefore,
+    monthlyPeaksAfter,
+    totalGridChargingKWh,
   };
 }
 
@@ -864,6 +891,7 @@ function runScenarioWithSizing(
   peakAfterKW: number;
   selfConsumptionKWh: number;
   lcoe: number;
+  hourlyProfileSummary: Array<{ hour: string; consumptionBefore: number; consumptionAfter: number; peakBefore: number; peakAfter: number }>;
 } {
   const h = assumptions;
   
@@ -894,15 +922,46 @@ function runScenarioWithSizing(
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource);
   
+  const byHourAgg = new Map<number, { consumptionSum: number; productionSum: number; peakBeforeSum: number; peakAfterSum: number; count: number }>();
+  for (const entry of simResult.hourlyProfile) {
+    const existing = byHourAgg.get(entry.hour) || { consumptionSum: 0, productionSum: 0, peakBeforeSum: 0, peakAfterSum: 0, count: 0 };
+    existing.consumptionSum += entry.consumption;
+    existing.productionSum += entry.production;
+    existing.peakBeforeSum += entry.peakBefore;
+    existing.peakAfterSum += entry.peakAfter;
+    existing.count++;
+    byHourAgg.set(entry.hour, existing);
+  }
+  const hourlyProfileSummary: Array<{ hour: string; consumptionBefore: number; consumptionAfter: number; peakBefore: number; peakAfter: number }> = [];
+  for (let hIdx = 0; hIdx < 24; hIdx++) {
+    const data = byHourAgg.get(hIdx);
+    if (data && data.count > 0) {
+      const consumptionAfter = (data.consumptionSum - data.productionSum) / data.count;
+      hourlyProfileSummary.push({
+        hour: `${hIdx}h`,
+        consumptionBefore: Math.round(data.consumptionSum / data.count),
+        consumptionAfter: Math.max(0, Math.round(consumptionAfter)),
+        peakBefore: Math.round(data.peakBeforeSum / data.count),
+        peakAfter: Math.round(data.peakAfterSum / data.count),
+      });
+    }
+  }
+  
   const selfConsumptionKWh = simResult.totalSelfConsumption;
   const peakAfterKW = simResult.peakAfter;
   const annualDemandReductionKW = peakKW - peakAfterKW;
   const annualExportedKWh = simResult.totalExportedKWh;
   
-  const annualCostBefore = annualConsumptionKWh * h.tariffEnergy + peakKW * h.tariffPower * 12;
+  let annualDemandCostBefore = 0;
+  let demandSavings = 0;
+  for (let m = 0; m < 12; m++) {
+    annualDemandCostBefore += simResult.monthlyPeaksBefore[m] * h.tariffPower;
+    demandSavings += Math.max(0, simResult.monthlyPeaksBefore[m] - simResult.monthlyPeaksAfter[m]) * h.tariffPower;
+  }
+  const annualCostBefore = annualConsumptionKWh * h.tariffEnergy + annualDemandCostBefore;
   const energySavings = selfConsumptionKWh * h.tariffEnergy;
-  const demandSavings = annualDemandReductionKW * h.tariffPower * 12;
-  const annualSavings = energySavings + demandSavings;
+  const gridChargingCost = simResult.totalGridChargingKWh * h.tariffEnergy;
+  const annualSavings = (energySavings - gridChargingCost) + demandSavings;
   
   const scenarioHqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454;
   const annualSurplusRevenue = annualExportedKWh * scenarioHqSurplusRate;
@@ -938,6 +997,7 @@ function runScenarioWithSizing(
       peakAfterKW: 0,
       selfConsumptionKWh: 0,
       lcoe: 0,
+      hourlyProfileSummary: [],
     };
   }
   
@@ -1058,6 +1118,7 @@ function runScenarioWithSizing(
     peakAfterKW,
     selfConsumptionKWh,
     lcoe,
+    hourlyProfileSummary,
   };
 }
 
@@ -1245,6 +1306,7 @@ function runSensitivityAnalysis(
         peakDemandAfterKW: result.peakAfterKW,
         annualEnergySavingsKWh: result.selfConsumptionKWh,
         cashflows: result.cashflows,
+        hourlyProfileSummary: result.hourlyProfileSummary,
       },
     };
   };
@@ -1391,10 +1453,16 @@ export function runPotentialAnalysis(
   const annualDemandReductionKW = peakKW - peakAfterKW;
   const selfSufficiencyPercent = annualConsumptionKWh > 0 ? (selfConsumptionKWh / annualConsumptionKWh) * 100 : 0;
   
-  const annualCostBefore = annualConsumptionKWh * h.tariffEnergy + peakKW * h.tariffPower * 12;
+  let annualDemandCostBeforePotential = 0;
+  let demandSavings = 0;
+  for (let m = 0; m < 12; m++) {
+    annualDemandCostBeforePotential += simResult.monthlyPeaksBefore[m] * h.tariffPower;
+    demandSavings += Math.max(0, simResult.monthlyPeaksBefore[m] - simResult.monthlyPeaksAfter[m]) * h.tariffPower;
+  }
+  const annualCostBefore = annualConsumptionKWh * h.tariffEnergy + annualDemandCostBeforePotential;
   const energySavings = selfConsumptionKWh * h.tariffEnergy;
-  const demandSavings = annualDemandReductionKW * h.tariffPower * 12;
-  const annualSavings = energySavings + demandSavings;
+  const gridChargingCost = simResult.totalGridChargingKWh * h.tariffEnergy;
+  const annualSavings = (energySavings - gridChargingCost) + demandSavings;
   const annualCostAfter = annualCostBefore - annualSavings;
   const savingsYear1 = annualSavings;
   

@@ -4035,14 +4035,17 @@ function AnalysisResults({
   const maxPVFromRoof = usableRoofSqFt / 100;
   const isRoofLimited = (simulation.pvSizeKW || 0) >= maxPVFromRoof * 0.95;
 
-  // Memoize expensive hourly profile aggregation (8760 entries -> 24 hourly averages)
   const hourlyProfileData = useMemo(() => {
+    const scenarioProfile = displayedScenario?.scenarioBreakdown?.hourlyProfileSummary;
+    if (scenarioProfile && scenarioProfile.length > 0) {
+      return scenarioProfile;
+    }
+    
     const rawProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
     if (!rawProfile || rawProfile.length === 0) {
       return null;
     }
     
-    // Aggregate by hour of day (average across all days for "Profil moyen")
     const byHour: Map<number, { 
       consumptionSum: number; 
       productionSum: number; 
@@ -4067,7 +4070,6 @@ function AnalysisResults({
       byHour.set(entry.hour, existing);
     }
     
-    // Convert to array sorted by hour (all values are averages)
     const result = [];
     for (let h = 0; h < 24; h++) {
       const data = byHour.get(h);
@@ -4076,14 +4078,14 @@ function AnalysisResults({
         result.push({
           hour: `${h}h`,
           consumptionBefore: Math.round(data.consumptionSum / data.count),
-          consumptionAfter: Math.max(0, Math.round(consumptionAfter)), // Clamp negative (exports)
+          consumptionAfter: Math.max(0, Math.round(consumptionAfter)),
           peakBefore: Math.round(data.peakBeforeSum / data.count),
           peakAfter: Math.round(data.peakAfterSum / data.count),
         });
       }
     }
     return result;
-  }, [simulation.hourlyProfile]);
+  }, [simulation.hourlyProfile, displayedScenario]);
 
   // Section Divider component for visual hierarchy
   const SectionDivider = ({ title, icon: Icon }: { title: string; icon?: any }) => (
@@ -5061,8 +5063,9 @@ function AnalysisResults({
           <CardTitle className="text-lg">
             {language === "fr" ? "Profil moyen (Avant vs Après)" : "Average Profile (Before vs After)"}
           </CardTitle>
-          {(displayedScenario.pvSizeKW !== (simulation.pvSizeKW || 0) || 
-            displayedScenario.battEnergyKWh !== (simulation.battEnergyKWh || 0)) && (
+          {(!displayedScenario?.scenarioBreakdown?.hourlyProfileSummary) && 
+            (displayedScenario.pvSizeKW !== (simulation.pvSizeKW || 0) || 
+             displayedScenario.battEnergyKWh !== (simulation.battEnergyKWh || 0)) && (
             <p className="text-xs text-muted-foreground mt-1">
               {language === "fr" 
                 ? `Profil basé sur la configuration initiale (${simulation.pvSizeKW || 0} kWc PV + ${simulation.battEnergyKWh || 0} kWh stockage)`
