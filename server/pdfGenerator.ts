@@ -4,7 +4,7 @@ import fs from "fs";
 import { CashflowEntry, FinancialBreakdown, HourlyProfileEntry, PeakWeekEntry, SensitivityAnalysis, FrontierPoint, SolarSweepPoint, BatterySweepPoint } from "@shared/schema";
 import { getRoofVisualizationUrl } from "./googleSolarService";
 import { BRAND_COLORS } from "./pdfTemplates";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives } from "./brandContent";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "./brandContent";
 
 // Brand colors - using unified BRAND_COLORS for consistency
 const COLORS = {
@@ -144,11 +144,12 @@ export function generateProfessionalPDF(
 
     // Label
     doc.fontSize(9).fillColor(highlight ? COLORS.white : COLORS.mediumGray);
-    doc.text(label.toUpperCase(), x + 10, y + 12, { width: width - 20, align: "center" });
+    doc.text(label.toUpperCase(), x + 10, y + 12, { width: width - 20, align: "center", lineBreak: false });
 
     // Value
-    const valueFontSize = value.length > 12 ? 14 : value.length > 9 ? 16 : value.length > 6 ? 18 : 22; doc.fontSize(valueFontSize).fillColor(highlight ? COLORS.gold : COLORS.blue).font("Helvetica-Bold");
-    doc.text(value, x + 10, y + 32, { width: width - 20, align: "center" });
+    const valueFontSize = value.length > 15 ? 11 : value.length > 12 ? 13 : value.length > 9 ? 15 : value.length > 6 ? 17 : 20;
+    doc.fontSize(valueFontSize).fillColor(highlight ? COLORS.gold : COLORS.blue).font("Helvetica-Bold");
+    doc.text(value, x + 10, y + 32, { width: width - 20, align: "center", lineBreak: false });
     doc.font("Helvetica");
 
     // Subtitle
@@ -530,16 +531,18 @@ export function generateProfessionalPDF(
   doc.rect(0, 0, pageWidth, pageHeight).fillColor("black").fillOpacity(0.55).fill();
   doc.fillOpacity(1);
   
-  // Logo at top - use white text for dark backgrounds (no white logo image available)
-  // Draw kWh Québec branding in white with gold accent
-  doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text("kWh", margin, margin, { continued: true });
-  doc.fillColor(COLORS.gold).text(" Québec", { continued: false });
-  doc.font("Helvetica");
-  
-  // Tagline
-  doc.fontSize(12).fillColor(COLORS.white);
-  doc.text(t("SOLAIRE + STOCKAGE", "SOLAR + STORAGE"), margin, margin + 32);
+  // Logo at top - use white logo PNG for dark backgrounds
+  try {
+    const coverLogoPath = path.join(process.cwd(), "client", "public", "assets", lang === "fr" ? "logo-fr-white.png" : "logo-en-white.png");
+    doc.image(coverLogoPath, margin, margin, { width: 160 });
+  } catch (e) {
+    doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text("kWh", margin, margin, { continued: true });
+    doc.fillColor(COLORS.gold).text(" Québec", { continued: false });
+    doc.font("Helvetica");
+    doc.fontSize(12).fillColor(COLORS.white);
+    doc.text(t("SOLAIRE + STOCKAGE", "SOLAR + STORAGE"), margin, margin + 32);
+  }
   
   // Main title - centered in middle of page
   const centerY = pageHeight / 2 - 80;
@@ -614,13 +617,27 @@ export function generateProfessionalPDF(
 
   const headerHeight = 80;
 
+  // ================= ACT 1: THE ENERGY CHALLENGE =================
+  const act1 = getNarrativeAct("act1_challenge", lang);
+  doc.fontSize(9).fillColor(COLORS.gold).font("Helvetica-Bold");
+  doc.text(act1.title, margin, doc.y, { width: contentWidth });
+  doc.font("Helvetica");
+  doc.fontSize(8).fillColor(COLORS.mediumGray);
+  doc.text(act1.subtitle, margin, doc.y + 2, { width: contentWidth });
+  doc.moveDown(0.8);
+
   // ================= PROJECT SNAPSHOT =================
   // Blue header bar
   doc.rect(0, 0, pageWidth, headerHeight).fillColor(COLORS.blue).fill();
   doc.rect(0, headerHeight - 4, pageWidth, 4).fillColor(COLORS.gold).fill();
-  doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text("kWh Québec", margin, 20);
-  doc.font("Helvetica");
+  try {
+    const snapLogoPath = path.join(process.cwd(), "client", "public", "assets", lang === "fr" ? "logo-fr-white.png" : "logo-en-white.png");
+    doc.image(snapLogoPath, margin, 8, { width: 120 });
+  } catch (e) {
+    doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text("kWh Québec", margin, 20);
+    doc.font("Helvetica");
+  }
   doc.fontSize(10).fillColor(COLORS.gold);
   doc.text(t("APERÇU DU PROJET", "PROJECT SNAPSHOT"), margin, 52);
 
@@ -695,10 +712,15 @@ export function generateProfessionalPDF(
   // Gold accent line at bottom of header
   doc.rect(0, headerHeight - 4, pageWidth, 4).fillColor(COLORS.gold).fill();
   
-  // Company name in header
-  doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text("kWh Québec", margin, 20);
-  doc.font("Helvetica");
+  // Company logo in header
+  try {
+    const headerLogoPath = path.join(process.cwd(), "client", "public", "assets", lang === "fr" ? "logo-fr-white.png" : "logo-en-white.png");
+    doc.image(headerLogoPath, margin, 8, { width: 120 });
+  } catch (e) {
+    doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text("kWh Québec", margin, 20);
+    doc.font("Helvetica");
+  }
   
   // Document type label
   doc.fontSize(10).fillColor(COLORS.gold);
@@ -731,6 +753,14 @@ export function generateProfessionalPDF(
     doc.fontSize(11).fillColor(COLORS.lightGray);
     doc.text(simulation.site.client.name, margin, doc.y);
   }
+
+  // ================= ACT 2: OUR SOLUTION =================
+  const act2 = getNarrativeAct("act2_solution", lang);
+  doc.moveDown(0.5);
+  doc.fontSize(9).fillColor(COLORS.gold).font("Helvetica-Bold");
+  doc.text(act2.subtitle, margin, doc.y);
+  doc.font("Helvetica");
+  doc.moveDown(0.5);
 
   doc.moveDown(1.5);
 
@@ -919,6 +949,21 @@ export function generateProfessionalPDF(
   doc.fontSize(14).fillColor(COLORS.blue);
   doc.text(formatCurrency(simulation.totalIncentives + simulation.taxShield), margin + 280, doc.y - 2);
   doc.font("Helvetica");
+
+  // ================= ACT 3: YOUR RESULTS =================
+  const transition1 = getNarrativeTransition("solutionToResults", lang);
+  doc.fontSize(8).fillColor(COLORS.mediumGray).font("Helvetica-Oblique");
+  doc.text(transition1, margin, doc.y, { width: contentWidth, align: "center" });
+  doc.font("Helvetica");
+  doc.moveDown(0.5);
+
+  const act3 = getNarrativeAct("act3_results", lang);
+  doc.fontSize(10).fillColor(COLORS.gold).font("Helvetica-Bold");
+  doc.text(act3.title, margin, doc.y);
+  doc.font("Helvetica");
+  doc.fontSize(8).fillColor(COLORS.mediumGray);
+  doc.text(act3.subtitle, margin, doc.y + 2, { width: contentWidth });
+  doc.moveDown(0.8);
 
   // ================= FINANCIAL WATERFALL =================
   doc.y += 25;
@@ -1928,9 +1973,14 @@ export function generateProfessionalPDF(
   // Header
   doc.rect(0, 0, pageWidth, headerHeight).fillColor(COLORS.blue).fill();
   doc.rect(0, headerHeight - 4, pageWidth, 4).fillColor(COLORS.gold).fill();
-  doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text("kWh Québec", margin, 20);
-  doc.font("Helvetica");
+  try {
+    const assumLogoPath = path.join(process.cwd(), "client", "public", "assets", lang === "fr" ? "logo-fr-white.png" : "logo-en-white.png");
+    doc.image(assumLogoPath, margin, 8, { width: 120 });
+  } catch (e) {
+    doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text("kWh Québec", margin, 20);
+    doc.font("Helvetica");
+  }
   doc.fontSize(10).fillColor(COLORS.gold);
   doc.text(t("HYPOTHÈSES ET EXCLUSIONS", "ASSUMPTIONS & EXCLUSIONS"), margin, 52);
 
@@ -2007,9 +2057,14 @@ export function generateProfessionalPDF(
   // Header
   doc.rect(0, 0, pageWidth, headerHeight).fillColor(COLORS.blue).fill();
   doc.rect(0, headerHeight - 4, pageWidth, 4).fillColor(COLORS.gold).fill();
-  doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text("kWh Québec", margin, 20);
-  doc.font("Helvetica");
+  try {
+    const equipLogoPath = path.join(process.cwd(), "client", "public", "assets", lang === "fr" ? "logo-fr-white.png" : "logo-en-white.png");
+    doc.image(equipLogoPath, margin, 8, { width: 120 });
+  } catch (e) {
+    doc.fontSize(28).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text("kWh Québec", margin, 20);
+    doc.font("Helvetica");
+  }
   doc.fontSize(10).fillColor(COLORS.gold);
   doc.text(t("ÉQUIPEMENT, ÉCHÉANCIER ET PROCHAINES ÉTAPES", "EQUIPMENT, TIMELINE & NEXT STEPS"), margin, 52);
 
@@ -2092,6 +2147,21 @@ export function generateProfessionalPDF(
   doc.text(t("Délais sujets à approbation Hydro-Québec et conditions structurelles", "Timelines subject to Hydro-Québec approval and structural conditions"), margin, doc.y, { width: contentWidth, align: "center" });
 
   doc.y += 30;
+
+  // ================= ACT 4: TAKE ACTION =================
+  const transition3 = getNarrativeTransition("resultsToAction", lang);
+  doc.fontSize(8).fillColor(COLORS.mediumGray).font("Helvetica-Oblique");
+  doc.text(transition3, margin, doc.y, { width: contentWidth, align: "center" });
+  doc.font("Helvetica");
+  doc.moveDown(0.5);
+
+  const act4 = getNarrativeAct("act4_action", lang);
+  doc.fontSize(10).fillColor(COLORS.gold).font("Helvetica-Bold");
+  doc.text(act4.title, margin, doc.y);
+  doc.font("Helvetica");
+  doc.fontSize(8).fillColor(COLORS.mediumGray);
+  doc.text(act4.subtitle, margin, doc.y + 2, { width: contentWidth });
+  doc.moveDown(0.8);
 
   // === NEXT STEPS SECTION ===
   doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
@@ -3426,19 +3496,25 @@ export function generateExecutiveSummaryPDF(
     doc.roundedRect(x, y, width, height, 4).fill(bgColor);
     
     doc.fontSize(8).fillColor(COLORS.mediumGray).font("Helvetica");
-    doc.text(label, x + 8, y + 8, { width: width - 16 });
+    doc.text(label, x + 8, y + 8, { width: width - 16, lineBreak: false });
     
-    doc.fontSize(14).fillColor(highlight ? COLORS.blue : COLORS.darkGray).font("Helvetica-Bold");
-    doc.text(value, x + 8, y + 24, { width: width - 16 });
+    const kpiValueFontSize = value.length > 12 ? 11 : value.length > 9 ? 12 : 14;
+    doc.fontSize(kpiValueFontSize).fillColor(highlight ? COLORS.blue : COLORS.darkGray).font("Helvetica-Bold");
+    doc.text(value, x + 8, y + 24, { width: width - 16, lineBreak: false });
     doc.font("Helvetica");
   };
 
   const dateStr = new Date().toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA");
 
   // ================= HEADER =================
-  doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text("kWh Québec", margin, margin - 5);
-  doc.font("Helvetica");
+  try {
+    const execLogoPath = path.join(process.cwd(), "client", "public", "assets", lang === "fr" ? "logo-fr.png" : "logo-en.png");
+    doc.image(execLogoPath, margin, margin - 5, { width: 100 });
+  } catch (e) {
+    doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text("kWh Québec", margin, margin - 5);
+    doc.font("Helvetica");
+  }
   doc.fontSize(8).fillColor(COLORS.mediumGray);
   doc.text(dateStr, margin, margin - 5, { align: "right", width: contentWidth });
 

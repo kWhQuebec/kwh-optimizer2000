@@ -128,6 +128,48 @@ export const BRAND_CONTENT = {
     { labelFr: "Portée et exclusions clarifiées", labelEn: "Clarified scope and exclusions" },
     { labelFr: "Dossier prêt pour demande HQ", labelEn: "File ready for HQ application" },
   ],
+
+  // === STORYTELLING - ARC NARRATIF ===
+  narrativeArc: {
+    act1_challenge: {
+      titleFr: "LE DÉFI ÉNERGÉTIQUE",
+      titleEn: "THE ENERGY CHALLENGE",
+      subtitleFr: "Vos coûts énergétiques augmentent chaque année. Voici votre situation actuelle.",
+      subtitleEn: "Your energy costs rise every year. Here is your current situation.",
+    },
+    act2_solution: {
+      titleFr: "NOTRE SOLUTION",
+      titleEn: "OUR SOLUTION",
+      subtitleFr: "Reprenez le contrôle avec un système solaire + stockage sur mesure.",
+      subtitleEn: "Take back control with a custom solar + storage system.",
+    },
+    act3_results: {
+      titleFr: "VOS RÉSULTATS",
+      titleEn: "YOUR RESULTS",
+      subtitleFr: "Les chiffres parlent d'eux-mêmes : économies, rendement et valeur à long terme.",
+      subtitleEn: "The numbers speak for themselves: savings, returns, and long-term value.",
+    },
+    act4_action: {
+      titleFr: "PASSEZ À L'ACTION",
+      titleEn: "TAKE ACTION",
+      subtitleFr: "Tout est en place. Voici comment démarrer votre projet.",
+      subtitleEn: "Everything is in place. Here's how to start your project.",
+    },
+    transitions: {
+      challengeToSolution: {
+        fr: "Face à ces défis, nous avons conçu une solution adaptée à votre bâtiment.",
+        en: "Facing these challenges, we designed a solution tailored to your building.",
+      },
+      solutionToResults: {
+        fr: "Voici l'impact concret de cette solution sur vos finances.",
+        en: "Here is the concrete impact of this solution on your finances.",
+      },
+      resultsToAction: {
+        fr: "Ces résultats sont à votre portée. Voici les prochaines étapes.",
+        en: "These results are within your reach. Here are the next steps.",
+      },
+    },
+  },
 };
 
 // === HELPER FUNCTIONS ===
@@ -226,4 +268,19 @@ export function getClientProvides(lang: Lang) {
 
 export function getClientReceives(lang: Lang) {
   return BRAND_CONTENT.clientReceives.map(d => (lang === "fr" ? d.labelFr : d.labelEn));
+}
+
+export function getNarrativeAct(act: keyof typeof BRAND_CONTENT.narrativeArc, lang: Lang): { title: string; subtitle: string } {
+  const a = BRAND_CONTENT.narrativeArc[act];
+  if ("titleFr" in a) {
+    return {
+      title: lang === "fr" ? a.titleFr : a.titleEn,
+      subtitle: lang === "fr" ? a.subtitleFr : a.subtitleEn,
+    };
+  }
+  return { title: "", subtitle: "" };
+}
+
+export function getNarrativeTransition(key: keyof typeof BRAND_CONTENT.narrativeArc.transitions, lang: Lang): string {
+  return BRAND_CONTENT.narrativeArc.transitions[key][lang];
 }

@@ -1,6 +1,8 @@
 import PptxGenJSModule from "pptxgenjs";
 const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives } from "./brandContent";
+import fs from "fs";
+import path from "path";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "./brandContent";
 
 const COLORS = {
   blue: "003DA6",
@@ -88,31 +90,47 @@ export async function generatePresentationPPTX(
   pptx.title = `${t("Étude Solaire", "Solar Study")} - ${simulation.site.name}`;
   pptx.subject = t("Proposition commerciale solaire + stockage", "Solar + Storage Commercial Proposal");
   
+  let masterLogoBase64: string | null = null;
+  try {
+    const masterLogoPath = path.join(process.cwd(), "client", "public", "assets", lang === "fr" ? "logo-fr-white.png" : "logo-en-white.png");
+    const masterLogoBuffer = fs.readFileSync(masterLogoPath);
+    masterLogoBase64 = `data:image/png;base64,${masterLogoBuffer.toString("base64")}`;
+  } catch (e) {
+    // Fallback to text if logo file not found
+  }
+
+  const masterObjects: any[] = [
+    { rect: { x: 0, y: 0, w: "100%", h: 0.6, fill: { color: COLORS.blue } } },
+    { rect: { x: 0, y: 0.55, w: 1.5, h: 0.05, fill: { color: COLORS.gold } } },
+    { 
+      text: { 
+        text: new Date().toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA"), 
+        options: { x: 8, y: 0.15, w: 1.5, h: 0.3, fontSize: 10, color: COLORS.white, align: "right" }
+      }
+    },
+    {
+      text: {
+        text: t("Document confidentiel | kWh Québec", "Confidential | kWh Québec"),
+        options: { x: 0.3, y: 5.3, w: 9.4, h: 0.2, fontSize: 8, color: COLORS.mediumGray, align: "center" }
+      }
+    }
+  ];
+
+  if (masterLogoBase64) {
+    masterObjects.push({ image: { data: masterLogoBase64, x: 0.15, y: 0.05, w: 1.8, h: 0.5 } });
+  } else {
+    masterObjects.push({ 
+      text: { 
+        text: "kWh Québec", 
+        options: { x: 0.3, y: 0.15, w: 2, h: 0.3, fontSize: 14, color: COLORS.white, bold: true }
+      }
+    });
+  }
+
   pptx.defineSlideMaster({
     title: "KWHMAIN",
     background: { color: COLORS.white },
-    objects: [
-      { rect: { x: 0, y: 0, w: "100%", h: 0.6, fill: { color: COLORS.blue } } },
-      { rect: { x: 0, y: 0.55, w: 1.5, h: 0.05, fill: { color: COLORS.gold } } },
-      { 
-        text: { 
-          text: "kWh Québec", 
-          options: { x: 0.3, y: 0.15, w: 2, h: 0.3, fontSize: 14, color: COLORS.white, bold: true }
-        }
-      },
-      { 
-        text: { 
-          text: new Date().toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA"), 
-          options: { x: 8, y: 0.15, w: 1.5, h: 0.3, fontSize: 10, color: COLORS.white, align: "right" }
-        }
-      },
-      {
-        text: {
-          text: t("Document confidentiel | kWh Québec", "Confidential | kWh Québec"),
-          options: { x: 0.3, y: 5.3, w: 9.4, h: 0.2, fontSize: 8, color: COLORS.mediumGray, align: "center" }
-        }
-      }
-    ],
+    objects: masterObjects,
     margin: [0.8, 0.5, 0.5, 0.5]
   });
 
@@ -143,6 +161,12 @@ export async function generatePresentationPPTX(
     fontSize: 16, bold: true, color: COLORS.darkGray
   });
 
+  const act2 = getNarrativeAct("act2_solution", lang);
+  slide1.addText(act2.subtitle, {
+    x: 0.5, y: 3.1, w: 4, h: 0.3,
+    fontSize: 10, italic: true, color: COLORS.mediumGray
+  });
+
   if (roofImageBuffer) {
     try {
       const base64Image = roofImageBuffer.toString("base64");
@@ -170,11 +194,12 @@ export async function generatePresentationPPTX(
     });
     slide1.addText(kpi.label, {
       x, y: 3.55, w: 2.2, h: 0.3,
-      fontSize: 10, color: COLORS.mediumGray, align: "center"
+      fontSize: 10, color: COLORS.mediumGray, align: "center", shrinkText: true
     });
+    const kpiValueFontSize = kpi.value.length > 12 ? 12 : kpi.value.length > 9 ? 14 : 16;
     slide1.addText(kpi.value, {
       x, y: 3.85, w: 2.2, h: 0.5,
-      fontSize: 16, bold: true, color: kpi.highlight ? COLORS.blue : COLORS.darkGray, align: "center"
+      fontSize: kpiValueFontSize, bold: true, color: kpi.highlight ? COLORS.blue : COLORS.darkGray, align: "center", shrinkText: true
     });
   });
 
@@ -186,8 +211,14 @@ export async function generatePresentationPPTX(
     fontSize: 22, bold: true, color: COLORS.blue
   });
 
+  const act1 = getNarrativeAct("act1_challenge", lang);
+  slideSnap.addText(act1.subtitle, {
+    x: 0.5, y: 1.2, w: 9, h: 0.3,
+    fontSize: 10, italic: true, color: COLORS.mediumGray
+  });
+
   slideSnap.addShape("rect", {
-    x: 0.5, y: 1.25, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+    x: 0.5, y: 1.55, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
   });
 
   const snapLabels = getProjectSnapshotLabels(lang);
@@ -204,7 +235,7 @@ export async function generatePresentationPPTX(
     const col = i % 2;
     const row = Math.floor(i / 2);
     const x = 0.5 + col * 4.8;
-    const y = 1.5 + row * 0.85;
+    const y = 1.8 + row * 0.85;
 
     slideSnap.addShape("rect", {
       x, y, w: 4.5, h: 0.7,
@@ -212,11 +243,12 @@ export async function generatePresentationPPTX(
     });
     slideSnap.addText(item.label, {
       x: x + 0.15, y, w: 4.2, h: 0.3,
-      fontSize: 9, color: COLORS.mediumGray
+      fontSize: 9, color: COLORS.mediumGray, shrinkText: true
     });
+    const snapValueFontSize = item.value.length > 12 ? 11 : item.value.length > 9 ? 12 : 14;
     slideSnap.addText(item.value, {
       x: x + 0.15, y: y + 0.3, w: 4.2, h: 0.35,
-      fontSize: 14, bold: true, color: COLORS.blue
+      fontSize: snapValueFontSize, bold: true, color: COLORS.blue, shrinkText: true
     });
   });
 
@@ -225,6 +257,12 @@ export async function generatePresentationPPTX(
   slide2.addText(t("INDICATEURS FINANCIERS", "FINANCIAL HIGHLIGHTS"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  const act3 = getNarrativeAct("act3_results", lang);
+  slide2.addText(act3.subtitle, {
+    x: 0.5, y: 1.2, w: 9, h: 0.3,
+    fontSize: 10, italic: true, color: COLORS.mediumGray
   });
 
   const financialData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
@@ -261,7 +299,7 @@ export async function generatePresentationPPTX(
   ];
   
   slide2.addTable(financialData, {
-    x: 0.5, y: 1.5, w: 9.0,
+    x: 0.5, y: 1.6, w: 9.0,
     fill: { color: COLORS.white },
     border: { pt: 0.5, color: COLORS.lightGray },
     fontFace: "Arial",
@@ -524,6 +562,13 @@ export async function generatePresentationPPTX(
   slide5.addText(t("PROCHAINES ÉTAPES", "NEXT STEPS"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  const act4 = getNarrativeAct("act4_action", lang);
+  const transition3 = getNarrativeTransition("resultsToAction", lang);
+  slide5.addText(transition3, {
+    x: 0.5, y: 1.15, w: 9, h: 0.3,
+    fontSize: 9, italic: true, color: COLORS.mediumGray
   });
 
   slide5.addShape("rect", {
