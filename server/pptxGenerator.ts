@@ -3,6 +3,7 @@ const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import fs from "fs";
 import path from "path";
 import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "./brandContent";
+import type { DocumentSimulationData } from "./documentDataProvider";
 
 const COLORS = {
   blue: "003DA6",
@@ -14,53 +15,7 @@ const COLORS = {
   white: "FFFFFF",
 };
 
-interface SimulationData {
-  id: string;
-  site: {
-    name: string;
-    address?: string;
-    city?: string;
-    province?: string;
-    latitude?: number;
-    longitude?: number;
-    client: {
-      name: string;
-    };
-  };
-  pvSizeKW: number;
-  battEnergyKWh: number;
-  battPowerKW: number;
-  demandShavingSetpointKW: number;
-  annualConsumptionKWh: number;
-  peakDemandKW: number;
-  annualSavings: number;
-  savingsYear1: number;
-  capexGross: number;
-  capexNet: number;
-  totalIncentives: number;
-  incentivesHQ: number;
-  incentivesHQSolar: number;
-  incentivesHQBattery: number;
-  incentivesFederal: number;
-  taxShield: number;
-  npv25: number;
-  npv10: number;
-  npv20: number;
-  irr25: number;
-  irr10: number;
-  irr20: number;
-  simplePaybackYears: number;
-  lcoe: number;
-  co2AvoidedTonnesPerYear: number;
-  selfSufficiencyPercent: number;
-  annualCostBefore: number;
-  annualCostAfter: number;
-  cashflows?: Array<{
-    year: number;
-    cumulativeCashflow: number;
-    netCashflow: number;
-  }>;
-}
+type SimulationData = DocumentSimulationData;
 
 export async function generatePresentationPPTX(
   simulation: SimulationData,
@@ -400,7 +355,7 @@ export async function generatePresentationPPTX(
     
     const chartData = simulation.cashflows.slice(0, 26).map(cf => ({
       year: cf.year,
-      value: Math.round((cf.cumulativeCashflow || 0) / 1000)
+      value: Math.round(((cf as any).cumulative || (cf as any).cumulativeCashflow || 0) / 1000)
     }));
     
     const maxVal = Math.max(...chartData.map(d => Math.abs(d.value)), 1); // Minimum of 1 to avoid division by zero

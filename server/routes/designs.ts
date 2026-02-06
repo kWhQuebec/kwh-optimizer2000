@@ -4,6 +4,7 @@ import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { STANDARD_KITS } from "../analysis";
 import { calculatePricingFromSiteVisit, getSiteVisitCompleteness, estimateConstructionCost } from "../pricing-engine";
+import { prepareDocumentData, applyOptimalScenario } from "../documentDataProvider";
 
 const router = Router();
 
@@ -71,77 +72,37 @@ router.get("/api/simulation-runs/:id/full", authMiddleware, async (req: AuthRequ
 router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const lang = (req.query.lang as string) === "en" ? "en" : "fr";
-    const simulation = await storage.getSimulationRun(req.params.id);
-    
-    if (!simulation) {
-      return res.status(404).json({ error: "Simulation not found" });
-    }
-    
+    const docData = await prepareDocumentData(req.params.id, storage);
+
     if (req.userRole === "client" && req.userClientId) {
-      const site = await storage.getSite(simulation.siteId);
+      const site = await storage.getSite(docData.simulation.siteId);
       if (!site || site.clientId !== req.userClientId) {
         return res.status(403).json({ error: "Access denied" });
-      }
-    }
-    
-    const allSimulations = await storage.getSimulationRuns();
-    const siteSimulations = allSimulations.filter(s => s.siteId === simulation.siteId);
-
-    const roofPolygons = await storage.getRoofPolygons(simulation.siteId);
-    
-    let roofVisualizationBuffer: Buffer | undefined;
-    if (roofPolygons.length > 0 && simulation.site.latitude && simulation.site.longitude) {
-      try {
-        const { getRoofVisualizationUrl } = await import("../googleSolarService");
-        const roofImageUrl = getRoofVisualizationUrl(
-          { latitude: simulation.site.latitude, longitude: simulation.site.longitude },
-          roofPolygons.map(p => ({
-            coordinates: p.coordinates as [number, number][],
-            color: p.color || "#3b82f6",
-            label: p.label || undefined
-          })),
-          { width: 640, height: 400, zoom: 18 }
-        );
-        
-        if (roofImageUrl) {
-          const https = await import("https");
-          roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
-            https.get(roofImageUrl, (response) => {
-              const chunks: Buffer[] = [];
-              response.on("data", (chunk: Buffer) => chunks.push(chunk));
-              response.on("end", () => resolve(Buffer.concat(chunks)));
-              response.on("error", reject);
-            }).on("error", reject);
-          });
-        }
-      } catch (imgError) {
-        console.error("Failed to fetch roof visualization for PDF:", imgError);
       }
     }
 
     const doc = new PDFDocument({ size: "LETTER", margin: 50 });
     
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="etude-solaire-stockage-${simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
+    res.setHeader("Content-Disposition", `attachment; filename="etude-solaire-stockage-${docData.simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
     
     doc.pipe(res);
 
+    const optimizedSimulation = applyOptimalScenario(docData.simulation);
     const simulationWithRoof = {
-      ...simulation,
-      roofPolygons: roofPolygons.map(p => ({
-        coordinates: p.coordinates as [number, number][],
-        color: p.color || "#3b82f6",
-        label: p.label || undefined,
-        areaSqM: p.areaSqM
-      })),
-      roofVisualizationBuffer
+      ...optimizedSimulation,
+      roofPolygons: docData.roofPolygons,
+      roofVisualizationBuffer: docData.roofVisualizationBuffer,
     };
 
     const { generateProfessionalPDF } = await import("../pdfGenerator");
-    generateProfessionalPDF(doc, simulationWithRoof, lang, siteSimulations);
+    generateProfessionalPDF(doc, simulationWithRoof, lang, docData.siteSimulations);
 
     doc.end();
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "Simulation not found") {
+      return res.status(404).json({ error: "Simulation not found" });
+    }
     console.error("PDF generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -150,68 +111,36 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, async (req: Au
 router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const lang = (req.query.lang as string) === "en" ? "en" : "fr";
-    const simulation = await storage.getSimulationRun(req.params.id);
-    
-    if (!simulation) {
-      return res.status(404).json({ error: "Simulation not found" });
-    }
-    
+    const docData = await prepareDocumentData(req.params.id, storage);
+
     if (req.userRole === "client" && req.userClientId) {
-      const site = await storage.getSite(simulation.siteId);
+      const site = await storage.getSite(docData.simulation.siteId);
       if (!site || site.clientId !== req.userClientId) {
         return res.status(403).json({ error: "Access denied" });
-      }
-    }
-
-    const roofPolygons = await storage.getRoofPolygons(simulation.siteId);
-    
-    let roofVisualizationBuffer: Buffer | undefined;
-    if (roofPolygons.length > 0 && simulation.site.latitude && simulation.site.longitude) {
-      try {
-        const { getRoofVisualizationUrl } = await import("../googleSolarService");
-        const roofImageUrl = getRoofVisualizationUrl(
-          { latitude: simulation.site.latitude, longitude: simulation.site.longitude },
-          roofPolygons.map(p => ({
-            coordinates: p.coordinates as [number, number][],
-            color: p.color || "#3b82f6",
-            label: p.label || undefined
-          })),
-          { width: 640, height: 400, zoom: 18 }
-        );
-        
-        if (roofImageUrl) {
-          const https = await import("https");
-          roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
-            https.get(roofImageUrl, (response) => {
-              const chunks: Buffer[] = [];
-              response.on("data", (chunk: Buffer) => chunks.push(chunk));
-              response.on("end", () => resolve(Buffer.concat(chunks)));
-              response.on("error", reject);
-            }).on("error", reject);
-          });
-        }
-      } catch (imgError) {
-        console.error("Failed to fetch roof visualization for executive summary:", imgError);
       }
     }
 
     const doc = new PDFDocument({ size: "LETTER", margin: 40 });
     
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="resume-executif-${simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
+    res.setHeader("Content-Disposition", `attachment; filename="resume-executif-${docData.simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
     
     doc.pipe(res);
 
+    const optimizedSimulation = applyOptimalScenario(docData.simulation);
     const simulationWithRoof = {
-      ...simulation,
-      roofVisualizationBuffer
+      ...optimizedSimulation,
+      roofVisualizationBuffer: docData.roofVisualizationBuffer,
     };
 
     const { generateExecutiveSummaryPDF } = await import("../pdfGenerator");
     generateExecutiveSummaryPDF(doc, simulationWithRoof, lang);
 
     doc.end();
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "Simulation not found") {
+      return res.status(404).json({ error: "Simulation not found" });
+    }
     console.error("Executive summary PDF generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -220,58 +149,26 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
 router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const lang = (req.query.lang as string) === "en" ? "en" : "fr";
-    const simulation = await storage.getSimulationRun(req.params.id);
-    
-    if (!simulation) {
-      return res.status(404).json({ error: "Simulation not found" });
-    }
-    
+    const docData = await prepareDocumentData(req.params.id, storage);
+
     if (req.userRole === "client" && req.userClientId) {
-      const site = await storage.getSite(simulation.siteId);
+      const site = await storage.getSite(docData.simulation.siteId);
       if (!site || site.clientId !== req.userClientId) {
         return res.status(403).json({ error: "Access denied" });
       }
     }
 
-    const roofPolygons = await storage.getRoofPolygons(simulation.siteId);
-    
-    let roofVisualizationBuffer: Buffer | undefined;
-    if (roofPolygons.length > 0 && simulation.site.latitude && simulation.site.longitude) {
-      try {
-        const { getRoofVisualizationUrl } = await import("../googleSolarService");
-        const roofImageUrl = getRoofVisualizationUrl(
-          { latitude: simulation.site.latitude, longitude: simulation.site.longitude },
-          roofPolygons.map(p => ({
-            coordinates: p.coordinates as [number, number][],
-            color: p.color || "#3b82f6",
-            label: p.label || undefined
-          })),
-          { width: 640, height: 400, zoom: 18 }
-        );
-        
-        if (roofImageUrl) {
-          const https = await import("https");
-          roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
-            https.get(roofImageUrl, (response) => {
-              const chunks: Buffer[] = [];
-              response.on("data", (chunk: Buffer) => chunks.push(chunk));
-              response.on("end", () => resolve(Buffer.concat(chunks)));
-              response.on("error", reject);
-            }).on("error", reject);
-          });
-        }
-      } catch (imgError) {
-        console.error("Failed to fetch roof visualization for PPTX:", imgError);
-      }
-    }
-
+    const optimizedSimulation = applyOptimalScenario(docData.simulation);
     const { generatePresentationPPTX } = await import("../pptxGenerator");
-    const pptxBuffer = await generatePresentationPPTX(simulation, roofVisualizationBuffer, lang);
+    const pptxBuffer = await generatePresentationPPTX(optimizedSimulation, docData.roofVisualizationBuffer, lang);
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
-    res.setHeader("Content-Disposition", `attachment; filename="proposition-${simulation.site.name.replace(/\s+/g, '-')}.pptx"`);
+    res.setHeader("Content-Disposition", `attachment; filename="proposition-${docData.simulation.site.name.replace(/\s+/g, '-')}.pptx"`);
     res.send(pptxBuffer);
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "Simulation not found") {
+      return res.status(404).json({ error: "Simulation not found" });
+    }
     console.error("PPTX generation error:", error);
     res.status(500).json({ error: "Internal server error" });
   }

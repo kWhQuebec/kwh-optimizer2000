@@ -5,8 +5,8 @@ import { CashflowEntry, FinancialBreakdown, HourlyProfileEntry, PeakWeekEntry, S
 import { getRoofVisualizationUrl } from "./googleSolarService";
 import { BRAND_COLORS } from "./pdfTemplates";
 import { getAllStats, getFirstTestimonial, getTitle, getContactString, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "./brandContent";
+import type { DocumentSimulationData, RoofPolygonData } from "./documentDataProvider";
 
-// Brand colors - using unified BRAND_COLORS for consistency
 const COLORS = {
   blue: BRAND_COLORS.primary,
   gold: BRAND_COLORS.accent,
@@ -19,66 +19,7 @@ const COLORS = {
   background: BRAND_COLORS.ultraLight,
 };
 
-interface RoofPolygonData {
-  coordinates: [number, number][];
-  color: string;
-  label?: string;
-  areaSqM: number;
-}
-
-interface SimulationData {
-  id: string;
-  site: {
-    name: string;
-    address?: string;
-    city?: string;
-    province?: string;
-    latitude?: number;
-    longitude?: number;
-    client: {
-      name: string;
-    };
-  };
-  roofPolygons?: RoofPolygonData[];
-  roofVisualizationBuffer?: Buffer; // Pre-fetched roof visualization image
-  pvSizeKW: number;
-  battEnergyKWh: number;
-  battPowerKW: number;
-  demandShavingSetpointKW: number;
-  annualConsumptionKWh: number;
-  peakDemandKW: number;
-  annualSavings: number;
-  savingsYear1: number;
-  capexGross: number;
-  capexNet: number;
-  totalIncentives: number;
-  incentivesHQ: number;
-  incentivesHQSolar: number;
-  incentivesHQBattery: number;
-  incentivesFederal: number;
-  taxShield: number;
-  npv25: number;
-  npv10: number;
-  npv20: number;
-  irr25: number;
-  irr10: number;
-  irr20: number;
-  simplePaybackYears: number;
-  lcoe: number;
-  co2AvoidedTonnesPerYear: number;
-  selfSufficiencyPercent: number;
-  annualCostBefore: number;
-  annualCostAfter: number;
-  assumptions: {
-    roofAreaSqFt: number;
-    roofUtilizationRatio: number;
-  };
-  cashflows: CashflowEntry[];
-  breakdown: FinancialBreakdown;
-  hourlyProfile?: HourlyProfileEntry[];
-  peakWeekData?: PeakWeekEntry[];
-  sensitivity?: SensitivityAnalysis;
-}
+type SimulationData = DocumentSimulationData;
 
 export function generateProfessionalPDF(
   doc: PDFKit.PDFDocument,
@@ -222,7 +163,15 @@ export function generateProfessionalPDF(
 
     if (!cashflows || cashflows.length === 0) return;
 
-    const years = cashflows.filter((c) => c.year >= 0);
+    const years = cashflows
+      .filter((c) => c.year >= 0)
+      .map(c => ({
+        ...c,
+        netCashflow: isFinite(c.netCashflow) ? c.netCashflow : 0,
+        cumulative: isFinite(c.cumulative) ? c.cumulative : 0,
+      }));
+    if (years.length === 0) return;
+
     const maxCumul = Math.max(...years.map((c) => c.cumulative));
     const minCumul = Math.min(...years.map((c) => c.cumulative));
     const range = maxCumul - minCumul || 1;
