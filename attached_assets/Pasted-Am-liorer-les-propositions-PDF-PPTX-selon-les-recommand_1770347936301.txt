@@ -1,0 +1,131 @@
+Améliorer les propositions PDF/PPTX selon les recommandations d'un expert solaire commercial.
+
+=== FICHIERS À MODIFIER ===
+1. server/brandContent.ts - Ajouter nouvelles données (SSOT)
+2. server/pdfGenerator.ts - Ajouter nouvelles sections
+3. server/pptxGenerator.ts - Ajouter slides correspondantes
+
+=== P1 - CRITIQUE ===
+
+### 1. ASSUMPTIONS & EXCLUSIONS (NOUVELLE PAGE après "INCENTIVES BREAKDOWN" ligne 764)
+
+Ajouter dans brandContent.ts après kpiConfig:
+
+assumptions: {
+  utilityEscalation: { value: "3%/an", labelFr: "Escalade prix électricité", labelEn: "Utility price escalation" },
+  pvDegradation: { value: "0.5%/an", labelFr: "Dégradation panneaux", labelEn: "Panel degradation" },
+  systemLife: { value: "25 ans", labelFr: "Durée de vie", labelEn: "System lifespan" },
+  program: { value: "Autoproduction", labelFr: "Programme HQ", labelEn: "HQ Program" },
+  selfConsumption: { value: "~90%", labelFr: "Autoconsommation estimée", labelEn: "Est. self-consumption" },
+},
+exclusions: [
+  { labelFr: "Travaux de toiture préalables", labelEn: "Prior roof work" },
+  { labelFr: "Mise à niveau électrique (si requise)", labelEn: "Electrical upgrades (if required)" },
+  { labelFr: "Frais interconnexion HQ (à confirmer)", labelEn: "HQ interconnection fees (TBC)" },
+  { labelFr: "Stockage batterie (optionnel)", labelEn: "Battery storage (optional)" },
+  { labelFr: "Contrat O&M (optionnel)", labelEn: "O&M contract (optional)" },
+],
+
+Créer fonction drawAssumptionsPage() avec:
+- Titre: "HYPOTHÈSES ET EXCLUSIONS" / "ASSUMPTIONS & EXCLUSIONS"
+- Tableau 2 colonnes pour assumptions (Hypothèse | Valeur)
+- Liste des exclusions avec icône ✗ rouge
+
+### 2. FINANCIAL BREAKDOWN AMÉLIORÉ (Modifier section ligne 764)
+
+Ajouter AVANT la section "DÉTAIL DES INCITATIFS" un bloc "waterfall":
+
+Coût EPC avant incitatifs:     $XXX,XXX (= simulation.estimatedCost)
+- Incitatif HQ Solaire:        -$XX,XXX (= simulation.incentivesHQSolar)
+- Incitatif HQ Batterie:       -$XX,XXX (= simulation.incentivesHQBattery)  
+- Crédit ITC fédéral (30%):    -$XX,XXX (= simulation.incentivesITC)
+────────────────────────────────────────
+INVESTISSEMENT NET:            $XXX,XXX (= simulation.netInvestment)
+
+Utiliser flèches descendantes ou format visuel clair montrant la déduction.
+
+=== P2 - DIFFÉRENCIATION ===
+
+### 3. PROJECT SNAPSHOT (NOUVELLE PAGE après Cover Page, avant les KPIs)
+
+Ajouter dans brandContent.ts:
+
+projectSnapshotLabels: {
+  annualConsumption: { labelFr: "Consommation annuelle", labelEn: "Annual consumption" },
+  peakDemand: { labelFr: "Demande de pointe", labelEn: "Peak demand" },
+  currentTariff: { labelFr: "Tarif HQ actuel", labelEn: "Current HQ tariff" },
+  estimatedProduction: { labelFr: "Production solaire Year-1", labelEn: "Year-1 solar production" },
+  selfConsumptionRate: { labelFr: "Taux autoconsommation", labelEn: "Self-consumption rate" },
+},
+
+Créer fonction drawProjectSnapshot() avec:
+- Titre: "APERÇU DU PROJET" / "PROJECT SNAPSHOT"
+- Données du site (depuis simulation/site):
+  * Consommation annuelle (kWh)
+  * Demande de pointe (kW) si disponible
+  * Tarif HQ (M, G, etc.)
+  * Production PV estimée Year-1
+  * Taux d'autoconsommation
+- Placeholder image: "[Image aérienne - à insérer lors visite site]"
+
+### 4. NEXT STEPS AMÉLIORÉS (Modifier section Design Agreement ligne 2630)
+
+Restructurer en 3 blocs visuels:
+
+BLOC A - "Ce que couvre le Design Fee ($2,500 + taxes)":
+✓ Visite de site complète
+✓ Ingénierie préliminaire
+✓ Préparation dossier HQ
+✓ Soumission ferme détaillée
+
+BLOC B - "Ce que vous devez fournir":
+□ Factures Hydro-Québec (12-24 mois)
+□ Informations toiture (âge, état)
+□ One-line électrique (si disponible)
+□ Confirmation propriété/bail
+
+BLOC C - "Ce que vous recevez":
+→ Soumission ferme avec prix garantis
+→ Échéancier de réalisation détaillé
+→ Portée et exclusions clarifiées
+
+=== P3 - NICE TO HAVE ===
+
+### 5. EQUIPMENT & WARRANTIES (NOUVELLE SECTION courte)
+
+Ajouter dans brandContent.ts:
+
+equipment: {
+  panels: { labelFr: "Panneaux solaires Tier-1", labelEn: "Tier-1 solar panels", warranty: "25 ans/years" },
+  inverters: { labelFr: "Onduleurs certifiés", labelEn: "Certified inverters", warranty: "10-15 ans/years" },
+  mounting: { labelFr: "Structure de montage", labelEn: "Mounting structure", warranty: "25 ans/years" },
+  workmanship: { labelFr: "Main d'œuvre", labelEn: "Workmanship", warranty: "10 ans/years" },
+},
+
+Note en bas: "Équipement indicatif - sélection finale après conception détaillée"
+
+### 6. TIMELINE SIMPLIFIÉ
+
+Ajouter dans brandContent.ts:
+
+timeline: [
+  { stepFr: "Signature", stepEn: "Contract", duration: "" },
+  { stepFr: "Conception", stepEn: "Design", duration: "2-4 sem" },
+  { stepFr: "Permis & HQ", stepEn: "Permits & HQ", duration: "8-12 sem" },
+  { stepFr: "Installation", stepEn: "Installation", duration: "2-4 sem" },
+  { stepFr: "Mise en service", stepEn: "Commissioning", duration: "1-2 sem" },
+],
+
+Créer timeline horizontale avec flèches entre les étapes.
+Note: "Délais sujets à approbation HQ et conditions structurelles"
+
+=== HELPERS À AJOUTER DANS brandContent.ts ===
+
+export function getAssumptions(lang: Lang) { ... }
+export function getExclusions(lang: Lang) { ... }
+export function getEquipment(lang: Lang) { ... }
+export function getTimeline(lang: Lang) { ... }
+export function getProjectSnapshotLabels(lang: Lang) { ... }
+
+=== TEST ===
+Générer un PDF de test sur un site existant pour valider les nouvelles sections.

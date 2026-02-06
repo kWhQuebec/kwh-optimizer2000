@@ -1,0 +1,77 @@
+Marc-Andre, Etienne,
+
+Following our first two sessions, where we discussed the premise behind the kWh estimator tool and the broader origination scaling objective ('closing more deals, faster'), I have been reviewing the estimator output/proposal (ref: Vieux Quebec proposal attached) and benchmarked it against other commercial solar proposals I have seen... 
+
+Below is a "punch list" I have created to summarize findings and recommendations for enhancement.
+
+Punch list: Vieux Québec proposal improvements
+
+1. Make the proposal feel "more real” --> project-specific grounding
+While the proposal output is sleek, it reads like a dashboard screenshot.
+Whereas, to make this feel real, it should read like project plan. 
+For e.g., we could add a “Project Snapshot” block (1 page, max), that shows:
+key equipment, site load/usage and demand context, all of which we already obtain/capture through the lead capture/bill uploads,
+This adds immediate value to the engagement, where clients might be initially curious / skeptical to answer the most fundamental question: 'what is the solar potential on my building?'
+Show a clear Year-1 PV production estimate (ideally, also methodology and expected seasonable variance)
+Provide a simple site aerial + layout image (basic super-imposed “solar layout” visual that frames many relevant commercial discussion points. 
+2. Add an “Assumptions & Exclusions” table (this is a must!)
+The proposal already shows “Important Notices” (validity 30 days, preliminary nature, site visit required etc.) — it now also needs a table highlighting the assumptions that ground our analysis/findings. This will instill a level of clarity in how we arrive at specific (and credible) outputs. 
+By showing a table with key inputs (i.e. current hutility rate/HQ tariff, inflation, degradation, change in electricity needs, etc.) the proposal and calculations creates immediate credibility and traceable for parallel analysis by the client. This same section is also a good place to identify explicit exclusions! 
+Tariff code + export/self-consumption program assumptions (HQ)
+Utility price escalation assumption (if any)
+PV degradation assumption
+Battery degradation / augmentation assumption (or explicitly excluded)
+O&M cost assumptions (included / excluded / optional)
+Electrical upgrades inclusions/exclusion (i.e. service upgrades, switchgear, protection, metering etc.)
+Roof work cost exclusions (*in fact, this might point to an entire separate section, like an Appendix, especially where roof repair work is needed prior to installation AND/OR requires consideration during solar system's service life)
+Assumptions around interconnection costs and timelines, which should always be shown as 'preliminary', pending HQ requirements clarifications 
+3. Show equipment details & warranties (even if preliminary)
+Another key "trust builder" in commercial solar proposals is the listing of assumed component list:
+Solar panel type and quantity (+ warranty duration)
+Inverter manufacturer and (+ std. warranty duration)
+Workmanship warranty 
+Add (“indicative”):
+PV module and inverter type class (and optional “final selection after detailed design”)
+storage system class (manufacturer TBD is fine, but specify warranty targets)
+workmanship / performance warranty intent (even if “standard EPC warranty”)
+4. Financial section improvements: clarify “net investment” and what it includes
+The proposal currently highlights 
+25-year savings ~$1.7M,
+net investment $601k (after incentives),
+payback 8.7 years,
+IRR 9.7%.
+That’s good, but prospects will immediately wonder/ask “What’s inside those numbers?”
+Add:
+Clear, pre-incentive EPC price ($ amount that will also be in the EPC contract)
+Incentives broken out (ITC, HQ incentives, depreciation, etc.)
+Net cost calculation (so the “$601k” is very traceable)
+A quick “Does/does not include” box (another place to clarify key exclusions, like electrical upgrades, roof work, crane rental, etc.)
+This could read: “Preincentive Cost” → incentive stack → “NET SYSTEM COST” --> payback/IRR. 
+5. Add a simple project timeline + responsibilities table
+A basic timeline with “kWh tasks vs client's tasks,” as an effective way to reduce uncertainty (drives confidence = conversions). 
+Add a QC/HQ-appropriate version:
+Contract execution → Preliminary design & Site visit → Engineering → Permit & Interconnection application submission → Installation → commissioning
+Highlight “potential revision points” (HQ response, engineering/structural findings, electrical constraints)
+6. Make “Next Steps” more conversion-optimized (without overcommitting)
+The proposal already has a “Design Agreement” next step, with Design Fee ($2,500 + taxes) credited if they proceed. Now, tighten it to clearly explain what happens next, AND make the first step low-friction.
+Add:
+What the design fee covers (site visit + prelim engineering + HQ interconnection package prep + firm quote)
+What the customer must provide (12–24 months bills, roof info, lease info, electrical one-line if available)
+What the customer gets (firm quote, schedule, clarified scope + exclusions)
+7. Add “Qualification flags” to prevent proposal churn
+Given commercial realities, kWh should proactively include a “Conditions to Confirm” checklist (also helps lead qualification workflow):
+Real estate ownership/authority (i.e. whether it’s a triple-net lease etc.)
+Roof condition and re-roof timeline
+Tenant approvals / lien holder approvals
+Structural review requirement
+Electrical service constraints/upgrade requirements
+This is how we preserve the “fast quote/turnaround” differentiator (without risking "death-by-revision"!) 
+8. “About kWh” claims need to be more-defensible
+The “About kWh Québec” section states 10+ years experience, 500+ completed projects, 50MW+ installed capacity. This risks scrutiny, unless we show partner credentials (i.e. MA's construction/EPC history, Etienne's LCAB solar asset management perspective, my 15yrs in solar EPC etc.)
+In conclusion, IMO addressing the above 'punch list' would help us bring the kWh proposal (estimator output) up to a needed standard in order to accelerate lead-to-opportunity/contract conversions.  
+I suspect that MA's Riplet-proficiency will help rework these changes quickly. We can then review the updated output. 
+The output changes should also help consider how to tighten/prioritize the other lead journey and estimator process improvements. For e.g. adding process gates that lead to more meaning/relevant outputs that minimize human error when reviewing and assessing leads and opportunities (i.e. flag for "needs roof info", "likely lease complexity", clarifying near-term load change validations etc.).  
+We can review and discuss these in greater detail during our next call tomorrow. 
+We should also align on the next steps & area of focus - i.e. defining key qualifier questions (i.e. can be for the estimator and/or for a sales call script to validate site/opportunity viability) so that we are setting-up for the desired project pilots to further validate effective process steps. 
+Thanks,   
+Oleg. 
