@@ -4215,6 +4215,8 @@ function AnalysisResults({
         simplePaybackYears: optScenarios.bestNPV.simplePaybackYears,
         capexNet: optScenarios.bestNPV.capexNet,
         annualSavings: optScenarios.bestNPV.annualSavings,
+        totalProductionKWh: optScenarios.bestNPV.totalProductionKWh,
+        co2AvoidedTonnesPerYear: optScenarios.bestNPV.co2AvoidedTonnesPerYear,
       } : null,
       irr: optScenarios.bestIRR ? {
         pvSizeKW: optScenarios.bestIRR.pvSizeKW,
@@ -4226,6 +4228,8 @@ function AnalysisResults({
         simplePaybackYears: optScenarios.bestIRR.simplePaybackYears,
         capexNet: optScenarios.bestIRR.capexNet,
         annualSavings: optScenarios.bestIRR.annualSavings,
+        totalProductionKWh: optScenarios.bestIRR.totalProductionKWh,
+        co2AvoidedTonnesPerYear: optScenarios.bestIRR.co2AvoidedTonnesPerYear,
       } : null,
       selfSufficiency: optScenarios.maxSelfSufficiency ? {
         pvSizeKW: optScenarios.maxSelfSufficiency.pvSizeKW,
@@ -4237,6 +4241,8 @@ function AnalysisResults({
         simplePaybackYears: optScenarios.maxSelfSufficiency.simplePaybackYears,
         capexNet: optScenarios.maxSelfSufficiency.capexNet,
         annualSavings: optScenarios.maxSelfSufficiency.annualSavings,
+        totalProductionKWh: optScenarios.maxSelfSufficiency.totalProductionKWh,
+        co2AvoidedTonnesPerYear: optScenarios.maxSelfSufficiency.co2AvoidedTonnesPerYear,
       } : null,
       payback: optScenarios.fastPayback ? {
         pvSizeKW: optScenarios.fastPayback.pvSizeKW,
@@ -4248,6 +4254,8 @@ function AnalysisResults({
         simplePaybackYears: optScenarios.fastPayback.simplePaybackYears,
         capexNet: optScenarios.fastPayback.capexNet,
         annualSavings: optScenarios.fastPayback.annualSavings,
+        totalProductionKWh: optScenarios.fastPayback.totalProductionKWh,
+        co2AvoidedTonnesPerYear: optScenarios.fastPayback.co2AvoidedTonnesPerYear,
       } : null,
     };
   }, [simulation.sensitivity]);
@@ -4291,7 +4299,7 @@ function AnalysisResults({
   // Use displayed scenario KPIs based on selected optimization target (updates all page data)
   const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
   const dashboardBattEnergyKWh = displayedScenario.battEnergyKWh ?? 0;
-  const dashboardProductionMWh = displayedScenario.totalProductionKWh 
+  const dashboardProductionMWh = displayedScenario.totalProductionKWh != null 
     ? displayedScenario.totalProductionKWh / 1000
     : (dashboardPvSizeKW * (assumptions.solarYieldKWhPerKWp || 1150)) / 1000;
   const dashboardCoveragePercent = displayedScenario.selfSufficiencyPercent 
@@ -4355,7 +4363,7 @@ function AnalysisResults({
       />
 
       {/* Interactive Roof Visualization with Drawn Polygons */}
-      {site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+      {site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && dashboardPvSizeKW > 0 && (
         <RoofVisualization
           siteId={site.id}
           siteName={site.name}
@@ -4525,7 +4533,7 @@ function AnalysisResults({
           </div>
           
           {/* Surplus Revenue Info (HQ Net Metering Dec 2024) - More Prominent */}
-          {(simulation.totalExportedKWh || 0) > 0 && (simulation.annualSurplusRevenue || 0) > 0 && (
+          {displayedScenario.pvSizeKW > 0 && (simulation.totalExportedKWh || 0) > 0 && (simulation.annualSurplusRevenue || 0) > 0 && (
             <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/40 dark:to-cyan-950/40 rounded-lg border-2 border-blue-300 dark:border-blue-700">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
@@ -4714,7 +4722,9 @@ function AnalysisResults({
                 {/* After */}
                 <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-200 dark:border-green-800">
                   <p className="text-sm text-muted-foreground mb-1">
-                    {language === "fr" ? "Facture après solaire" : "Bill after solar"}
+                    {language === "fr" 
+                      ? `Facture après ${displayedScenario.pvSizeKW > 0 && displayedScenario.battEnergyKWh > 0 ? 'solaire + stockage' : displayedScenario.pvSizeKW > 0 ? 'solaire' : 'stockage'}`
+                      : `Bill after ${displayedScenario.pvSizeKW > 0 && displayedScenario.battEnergyKWh > 0 ? 'solar + storage' : displayedScenario.pvSizeKW > 0 ? 'solar' : 'storage'}`}
                   </p>
                   <p className="text-3xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-annual-bill-after">
                     ${(estimatedBillAfter / 1000).toFixed(0)}k
@@ -4770,11 +4780,11 @@ function AnalysisResults({
                 </p>
               </div>
               <p className="text-2xl font-bold font-mono text-primary" data-testid="text-npv">
-                ${((showExtendedLifeAnalysis ? (simulation.npv30 || simulation.npv25 || 0) : (simulation.npv25 || 0)) / 1000).toFixed(0)}k
+                ${((showExtendedLifeAnalysis ? (simulation.npv30 || displayedScenario.npv25 || 0) : (displayedScenario.npv25 || 0)) / 1000).toFixed(0)}k
               </p>
-              {showExtendedLifeAnalysis && simulation.npv30 && simulation.npv25 && (
+              {showExtendedLifeAnalysis && simulation.npv30 && displayedScenario.npv25 && (
                 <p className="text-xs text-green-600 mt-1">
-                  +${(((simulation.npv30 || 0) - (simulation.npv25 || 0)) / 1000).toFixed(0)}k {language === "fr" ? "vs 25 ans" : "vs 25 yrs"}
+                  +${(((simulation.npv30 || 0) - (displayedScenario.npv25 || 0)) / 1000).toFixed(0)}k {language === "fr" ? "vs 25 ans" : "vs 25 yrs"}
                 </p>
               )}
             </CardContent>
@@ -4790,7 +4800,7 @@ function AnalysisResults({
                 </p>
               </div>
               <p className="text-2xl font-bold font-mono text-primary" data-testid="text-irr">
-                {((showExtendedLifeAnalysis ? (simulation.irr30 || simulation.irr25 || 0) : (simulation.irr25 || 0)) * 100).toFixed(1)}%
+                {((showExtendedLifeAnalysis ? (simulation.irr30 || displayedScenario.irr25 || 0) : (displayedScenario.irr25 || 0)) * 100).toFixed(1)}%
               </p>
             </CardContent>
           </Card>
@@ -4822,7 +4832,7 @@ function AnalysisResults({
                 <p className="text-sm text-muted-foreground">CO₂ {language === "fr" ? "évité" : "avoided"}</p>
               </div>
               <p className="text-2xl font-bold font-mono text-green-600" data-testid="text-co2">
-                {((simulation.co2AvoidedTonnesPerYear || 0) * (showExtendedLifeAnalysis ? 30 : 25)).toFixed(0)} 
+                {((displayedScenario.co2AvoidedTonnesPerYear || 0) * (showExtendedLifeAnalysis ? 30 : 25)).toFixed(0)} 
                 <span className="text-sm font-normal"> t/{showExtendedLifeAnalysis ? "30" : "25"} {language === "fr" ? "ans" : "yrs"}</span>
               </p>
             </CardContent>
@@ -4888,7 +4898,7 @@ function AnalysisResults({
             <div className="text-center p-4 bg-background rounded-xl border">
               <Leaf className="w-8 h-8 text-green-500 mx-auto mb-2" />
               <p className="text-3xl font-bold font-mono text-green-600">
-                {((simulation.co2AvoidedTonnesPerYear || 0) * 25).toFixed(0)}
+                {((displayedScenario.co2AvoidedTonnesPerYear || 0) * 25).toFixed(0)}
               </p>
               <p className="text-sm text-muted-foreground">
                 {language === "fr" ? "tonnes CO₂ évitées" : "tonnes CO₂ avoided"}
@@ -4898,7 +4908,7 @@ function AnalysisResults({
             <div className="text-center p-4 bg-background rounded-xl border">
               <Car className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
               <p className="text-3xl font-bold font-mono text-emerald-600">
-                {(((simulation.co2AvoidedTonnesPerYear || 0) / 4.6) * 25).toFixed(0)}
+                {(((displayedScenario.co2AvoidedTonnesPerYear || 0) / 4.6) * 25).toFixed(0)}
               </p>
               <p className="text-sm text-muted-foreground">
                 {language === "fr" ? "années-auto retirées" : "car-years removed"}
@@ -4908,7 +4918,7 @@ function AnalysisResults({
             <div className="text-center p-4 bg-background rounded-xl border">
               <TreePine className="w-8 h-8 text-green-600 mx-auto mb-2" />
               <p className="text-3xl font-bold font-mono text-green-700">
-                {Math.round(((simulation.co2AvoidedTonnesPerYear || 0) * 25) / 0.022)}
+                {Math.round(((displayedScenario.co2AvoidedTonnesPerYear || 0) * 25) / 0.022)}
               </p>
               <p className="text-sm text-muted-foreground">
                 {language === "fr" ? "arbres équivalents" : "trees equivalent"}
@@ -4918,7 +4928,7 @@ function AnalysisResults({
             <div className="text-center p-4 bg-background rounded-xl border">
               <Award className="w-8 h-8 text-amber-500 mx-auto mb-2" />
               <p className="text-3xl font-bold font-mono text-amber-600">
-                {(simulation.selfSufficiencyPercent || 0).toFixed(0)}%
+                {(displayedScenario.selfSufficiencyPercent || 0).toFixed(0)}%
               </p>
               <p className="text-sm text-muted-foreground">
                 {language === "fr" ? "énergie verte" : "green energy"}
@@ -4944,7 +4954,7 @@ function AnalysisResults({
       />
 
       {/* Cross-Validation with Google Solar - Yield-Based Comparison */}
-      {site && site.roofAreaAutoDetails && (() => {
+      {dashboardPvSizeKW > 0 && site && site.roofAreaAutoDetails && (() => {
         const details = site.roofAreaAutoDetails as any;
         const solarPotential = details?.solarPotential;
         const panelConfigs = solarPotential?.solarPanelConfigs;
@@ -4953,7 +4963,7 @@ function AnalysisResults({
         if (!panelConfigs || panelConfigs.length === 0) return null;
         
         // Find the MAX config from Google (their largest possible)
-        const ourPvKw = simulation.pvSizeKW || 0;
+        const ourPvKw = dashboardPvSizeKW;
         const maxConfig = panelConfigs.reduce((max: any, config: any) => 
           config.panelsCount > (max?.panelsCount || 0) ? config : max, panelConfigs[0]);
         
@@ -5291,7 +5301,7 @@ function AnalysisResults({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div>
                     <p className="text-xs text-muted-foreground">{language === "fr" ? "Autosuffisance" : "Self-sufficiency"}</p>
-                    <p className="text-lg font-bold font-mono">{(simulation.selfSufficiencyPercent || 0).toFixed(1)}%</p>
+                    <p className="text-lg font-bold font-mono">{(displayedScenario.selfSufficiencyPercent || 0).toFixed(1)}%</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">LCOE</p>
@@ -5299,11 +5309,11 @@ function AnalysisResults({
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25 years"}</p>
-                    <p className="text-lg font-bold font-mono">${((simulation.npv25 || 0) / 1000).toFixed(0)}k</p>
+                    <p className="text-lg font-bold font-mono">${((displayedScenario.npv25 || 0) / 1000).toFixed(0)}k</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 years"}</p>
-                    <p className="text-lg font-bold font-mono">{((simulation.irr25 || 0) * 100).toFixed(1)}%</p>
+                    <p className="text-lg font-bold font-mono">{((displayedScenario.irr25 || 0) * 100).toFixed(1)}%</p>
                   </div>
                 </div>
               </div>
