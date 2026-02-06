@@ -58,15 +58,16 @@ export const BRAND_CONTENT = {
   },
 
   // === HYPOTHÈSES FINANCIÈRES ===
+  // IMPORTANT: Ces valeurs doivent correspondre à shared/schema.ts > defaultAnalysisAssumptions
   assumptions: {
-    utilityEscalation: { value: "3%/an", labelFr: "Escalade prix électricité", labelEn: "Utility price escalation" },
+    utilityEscalation: { value: "3.5%/an", labelFr: "Escalade prix électricité", labelEn: "Utility price escalation" },
     pvDegradation: { value: "0.5%/an", labelFr: "Dégradation panneaux", labelEn: "Panel degradation" },
     systemLife: { value: "25 ans", labelFr: "Durée de vie système", labelEn: "System lifespan" },
     program: { value: "Autoproduction", labelFr: "Programme HQ", labelEn: "HQ Program" },
     selfConsumption: { value: "~90%", labelFr: "Autoconsommation estimée", labelEn: "Est. self-consumption" },
-    discountRate: { value: "6%", labelFr: "Taux d'actualisation", labelEn: "Discount rate" },
-    omCostSolar: { value: "0.5%/an", labelFr: "O&M solaire (% CAPEX)", labelEn: "Solar O&M (% CAPEX)" },
-    omCostBattery: { value: "1.0%/an", labelFr: "O&M stockage (% CAPEX)", labelEn: "Storage O&M (% CAPEX)" },
+    discountRate: { value: "7%", labelFr: "Taux d'actualisation (WACC)", labelEn: "Discount rate (WACC)" },
+    omCostSolar: { value: "1.0%/an", labelFr: "O&M solaire (% CAPEX)", labelEn: "Solar O&M (% CAPEX)" },
+    omCostBattery: { value: "0.5%/an", labelFr: "O&M stockage (% CAPEX)", labelEn: "Storage O&M (% CAPEX)" },
   },
 
   // === EXCLUSIONS ===

@@ -617,7 +617,7 @@ export function generateProfessionalPDF(
     [snapLabels.solarCapacity.label, `${simulation.pvSizeKW.toFixed(0)} kWc`],
     [snapLabels.batteryCapacity.label, simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : t("Non inclus", "Not included")],
     [snapLabels.estimatedProduction.label, `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh`],
-    [snapLabels.selfConsumptionRate.label, `${((simulation.selfSufficiencyPercent || 0) * 100).toFixed(0)}%`],
+    [snapLabels.selfConsumptionRate.label, `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`],
   ];
 
   // Draw snapshot cards in a grid

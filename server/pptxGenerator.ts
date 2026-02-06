@@ -183,7 +183,7 @@ export async function generatePresentationPPTX(
     { label: snapLabels.solarCapacity.label, value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
     { label: snapLabels.batteryCapacity.label, value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : t("Non inclus", "Not included") },
     { label: snapLabels.estimatedProduction.label, value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
-    { label: snapLabels.selfConsumptionRate.label, value: `${((simulation.selfSufficiencyPercent || 0) * 100).toFixed(0)}%` },
+    { label: snapLabels.selfConsumptionRate.label, value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
   ];
 
   snapItems.forEach((item, i) => {
