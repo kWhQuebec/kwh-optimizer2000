@@ -6426,10 +6426,8 @@ export default function SiteDetailPage() {
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
   const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency'>('npv');
   
-  // Smart "Refresh + Deliverables" state machine
-  type RefreshPhase = 'idle' | 'analyzing' | 'pdf' | 'pptx' | 'complete' | 'error';
-  const [refreshPhase, setRefreshPhase] = useState<RefreshPhase>('idle');
-  const [refreshError, setRefreshError] = useState<string | null>(null);
+  type DeliverablePhase = 'idle' | 'pdf' | 'pptx' | 'complete' | 'error';
+  const [deliverablePhase, setDeliverablePhase] = useState<DeliverablePhase>('idle');
   
   // Quick potential analysis state
   interface QuickPotentialResult {
@@ -6699,41 +6697,14 @@ export default function SiteDetailPage() {
     },
   });
 
-  // Smart "Refresh + Deliverables" handler - chains analysis → PDF → PPTX
-  const handleRefreshAndDeliverables = async () => {
-    if (!site || !site.roofAreaValidated) return;
+  const handleDownloadDeliverables = async (simId: string) => {
+    if (!site) return;
     
-    setRefreshPhase('analyzing');
-    setRefreshError(null);
+    setDeliverablePhase('pdf');
+    const token = localStorage.getItem("token");
     
     try {
-      // Phase 1: Run analysis
-      const mergedAssumptions: AnalysisAssumptions = { 
-        ...defaultAnalysisAssumptions, 
-        ...customAssumptions 
-      };
-      delete (mergedAssumptions as any).yieldSource;
-      
-      const result = await apiRequest<{ id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions: mergedAssumptions });
-      const newSimId = (result as any)?.simulationId || result?.id;
-      
-      if (!newSimId) {
-        throw new Error("No simulation ID returned");
-      }
-      
-      // Refresh site data
-      await queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
-      
-      toast({ 
-        title: language === "fr" ? "Analyse terminée" : "Analysis complete",
-        description: language === "fr" ? "Génération des livrables..." : "Generating deliverables..."
-      });
-      
-      // Phase 2: Download PDF
-      setRefreshPhase('pdf');
-      const token = localStorage.getItem("token");
-      
-      const pdfResponse = await fetch(`/api/simulation-runs/${newSimId}/report-pdf?lang=${language}`, {
+      const pdfResponse = await fetch(`/api/simulation-runs/${simId}/report-pdf?lang=${language}`, {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -6752,9 +6723,8 @@ export default function SiteDetailPage() {
         console.warn("PDF generation failed:", pdfResponse.status);
       }
       
-      // Phase 3: Download PPTX
-      setRefreshPhase('pptx');
-      const pptxResponse = await fetch(`/api/simulation-runs/${newSimId}/presentation-pptx?lang=${language}`, {
+      setDeliverablePhase('pptx');
+      const pptxResponse = await fetch(`/api/simulation-runs/${simId}/presentation-pptx?lang=${language}`, {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -6773,25 +6743,21 @@ export default function SiteDetailPage() {
         console.warn("PPTX generation failed:", pptxResponse.status);
       }
       
-      setRefreshPhase('complete');
+      setDeliverablePhase('complete');
       toast({ 
         title: language === "fr" ? "Livrables générés" : "Deliverables generated",
         description: language === "fr" ? "PDF et PowerPoint téléchargés" : "PDF and PowerPoint downloaded"
       });
       
-      setActiveTab("analysis");
-      
-      // Reset phase after a short delay
-      setTimeout(() => setRefreshPhase('idle'), 2000);
+      setTimeout(() => setDeliverablePhase('idle'), 2000);
       
     } catch (error) {
-      setRefreshPhase('error');
-      setRefreshError(error instanceof Error ? error.message : "Unknown error");
+      setDeliverablePhase('error');
       toast({ 
-        title: language === "fr" ? "Erreur" : "Error", 
+        title: language === "fr" ? "Erreur de génération" : "Generation error", 
         variant: "destructive" 
       });
-      setTimeout(() => setRefreshPhase('idle'), 3000);
+      setTimeout(() => setDeliverablePhase('idle'), 3000);
     }
   };
 
@@ -7084,7 +7050,7 @@ export default function SiteDetailPage() {
               )}
               <Button 
                 onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated || refreshPhase !== 'idle'}
+                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated || deliverablePhase !== 'idle'}
                 className="gap-2"
                 data-testid="button-run-analysis-header"
               >
@@ -7095,40 +7061,37 @@ export default function SiteDetailPage() {
                 )}
                 {language === "fr" ? "Lancer analyse" : "Run Analysis"}
               </Button>
-              <Button 
-                variant="outline"
-                onClick={handleRefreshAndDeliverables}
-                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated || refreshPhase !== 'idle'}
-                className="gap-2"
-                data-testid="button-refresh-deliverables"
-              >
-                {refreshPhase === 'analyzing' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {language === "fr" ? "Analyse..." : "Analyzing..."}
-                  </>
-                ) : refreshPhase === 'pdf' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    PDF...
-                  </>
-                ) : refreshPhase === 'pptx' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    PPTX...
-                  </>
-                ) : refreshPhase === 'complete' ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    {language === "fr" ? "Terminé" : "Done"}
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    {language === "fr" ? "Analyse + Livrables" : "Analyze + Deliverables"}
-                  </>
-                )}
-              </Button>
+              {latestSimulation && (
+                <Button 
+                  variant="outline"
+                  onClick={() => handleDownloadDeliverables(latestSimulation.id)}
+                  disabled={runAnalysisMutation.isPending || deliverablePhase !== 'idle'}
+                  className="gap-2"
+                  data-testid="button-download-deliverables"
+                >
+                  {deliverablePhase === 'pdf' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      PDF...
+                    </>
+                  ) : deliverablePhase === 'pptx' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      PPTX...
+                    </>
+                  ) : deliverablePhase === 'complete' ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      {language === "fr" ? "Terminé" : "Done"}
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      {language === "fr" ? "Télécharger livrables" : "Download Deliverables"}
+                    </>
+                  )}
+                </Button>
+              )}
             </>
           )}
           {/* Presentation Mode Button */}
