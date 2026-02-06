@@ -28,7 +28,7 @@ The backend uses a centralized error handling system (`server/middleware/errorHa
 -   See `server/routes/clients.ts` as the reference implementation
 
 ### Key Features
--   **Data Processing & Analysis**: Processes Hydro-Québec consumption data, performs solar production simulations, battery peak-shaving, calculates incentives, and generates 25-year cashflows.
+-   **Data Processing & Analysis**: Processes Hydro-Québec consumption data, performs solar production simulations, battery peak-shaving, calculates incentives, and generates 25-year cashflows. Financial engine uses monthly peak demand tracking (not annual average) for accurate demand savings, accounts for battery grid charging costs, and models charging demand impact on utility meter readings.
 -   **System Design Module**: Enables detailed equipment specifications and Bill of Materials creation.
 -   **Multi-Scenario Analysis**: Offers a Scenario Comparison Dashboard and a Financing Calculator.
 -   **Role-Based Access Control (RBAC)**: Supports Admin, Analyst, and Client roles.
