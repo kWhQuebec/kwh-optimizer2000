@@ -3996,7 +3996,7 @@ function AnalysisResults({
     const sizingLabel = actualType === 'hybrid'
       ? `${pvKW}kW + ${battKWh}kWh`
       : actualType === 'solar'
-        ? `${pvKW}kW PV`
+        ? `${pvKW}kW Solar`
         : `${battKWh}kWh`;
     
     setVariantPreset({
@@ -4022,7 +4022,7 @@ function AnalysisResults({
       if (mismatchRatio > 0.1) { // More than 10% mismatch
         console.warn(
           `[BREAKDOWN MISMATCH] Financial breakdown may be stale!\n` +
-          `  PV Size: ${simulation.pvSizeKW} kW\n` +
+          `  Solar Size: ${simulation.pvSizeKW} kW\n` +
           `  Expected CAPEX Solar: $${expectedCapexSolar.toFixed(0)}\n` +
           `  Actual CAPEX Solar: $${actualCapexSolar.toFixed(0)}\n` +
           `  Mismatch: ${(mismatchRatio * 100).toFixed(1)}%`
@@ -4249,7 +4249,7 @@ function AnalysisResults({
                       : `Selected Configuration (${optimizationLabels[optimizationTarget].en.toLowerCase()})`}
                   </p>
                   <p className="text-lg font-bold text-foreground" data-testid="text-recommended-system">
-                    {dashboardPvSizeKW > 0 && `${Math.round(dashboardPvSizeKW)} kWc PV`}
+                    {dashboardPvSizeKW > 0 && `${Math.round(dashboardPvSizeKW)} kWc ${language === "fr" ? "Solaire" : "Solar"}`}
                     {dashboardPvSizeKW > 0 && dashboardBattEnergyKWh > 0 && " + "}
                     {dashboardBattEnergyKWh > 0 && `${Math.round(dashboardBattEnergyKWh)} kWh ${language === "fr" ? "stockage" : "storage"}`}
                   </p>
@@ -5068,8 +5068,8 @@ function AnalysisResults({
              displayedScenario.battEnergyKWh !== (simulation.battEnergyKWh || 0)) && (
             <p className="text-xs text-muted-foreground mt-1">
               {language === "fr" 
-                ? `Profil basé sur la configuration initiale (${simulation.pvSizeKW || 0} kWc PV + ${simulation.battEnergyKWh || 0} kWh stockage)`
-                : `Profile based on initial configuration (${simulation.pvSizeKW || 0} kWp PV + ${simulation.battEnergyKWh || 0} kWh storage)`}
+                ? `Profil basé sur la configuration initiale (${simulation.pvSizeKW || 0} kWc Solaire + ${simulation.battEnergyKWh || 0} kWh stockage)`
+                : `Profile based on initial configuration (${simulation.pvSizeKW || 0} kWp Solar + ${simulation.battEnergyKWh || 0} kWh storage)`}
             </p>
           )}
         </CardHeader>
@@ -5340,9 +5340,9 @@ function AnalysisResults({
                             : (language === "fr" ? "Stockage" : "Storage");
                         
                         const sizingLabel = actualType === 'hybrid'
-                          ? `${pvKW}kW PV + ${battKWh}kWh`
+                          ? `${pvKW}kW Solar + ${battKWh}kWh`
                           : actualType === 'solar'
-                            ? `${pvKW}kW PV`
+                            ? `${pvKW}kW Solar`
                             : `${battKWh}kWh`;
                         
                         return (
@@ -5433,7 +5433,7 @@ function AnalysisResults({
                     />
                     {/* Hybrid points - PV sweep (varies PV at fixed battery) */}
                     <Scatter
-                      name={language === "fr" ? "PV variable" : "PV sweep"}
+                      name={language === "fr" ? "Solaire variable" : "Solar sweep"}
                       data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal && p.sweepSource === 'pvSweep')}
                       fill="#22C55E"
                       shape={(props: any) => {

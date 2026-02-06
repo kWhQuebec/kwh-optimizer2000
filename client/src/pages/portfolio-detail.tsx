@@ -568,7 +568,7 @@ export default function PortfolioDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard 
           icon={Zap} 
-          label={language === "fr" ? "Puissance PV totale" : "Total PV Size"}
+          label={language === "fr" ? "Puissance Solaire totale" : "Total Solar Size"}
           value={`${formatNumber(totalPvSizeKW)} kW`}
           color="text-yellow-600 dark:text-yellow-400"
         />

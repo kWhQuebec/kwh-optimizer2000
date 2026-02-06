@@ -1590,7 +1590,7 @@ export default function PipelinePage() {
                     name="pvSizeKW"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{language === "fr" ? "Taille PV (kW)" : "PV Size (kW)"}</FormLabel>
+                        <FormLabel>{language === "fr" ? "Taille Solaire (kW)" : "Solar Size (kW)"}</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} data-testid="input-opportunity-pv" />
                         </FormControl>
@@ -1877,7 +1877,7 @@ export default function PipelinePage() {
                       name="pvSizeKW"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{language === "fr" ? "Taille PV (kW)" : "PV Size (kW)"}</FormLabel>
+                          <FormLabel>{language === "fr" ? "Taille Solaire (kW)" : "Solar Size (kW)"}</FormLabel>
                           <FormControl>
                             <Input type="number" {...field} data-testid="input-edit-pv" />
                           </FormControl>
