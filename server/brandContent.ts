@@ -32,6 +32,7 @@ export const BRAND_CONTENT = {
   // === CONTACT ===
   contact: {
     email: "info@kwh.quebec",
+    phone: "514.427.8871",
     website: "www.kwh.quebec",
   },
 
@@ -52,9 +53,81 @@ export const BRAND_CONTENT = {
     savings: { labelFr: "Économies An 1", labelEn: "Year 1 Savings", highlight: false },
     capexNet: { labelFr: "Investissement Net", labelEn: "Net Investment", highlight: false },
     payback: { labelFr: "Retour simple", labelEn: "Simple Payback", highlight: false },
-    pvSize: { labelFr: "Puissance PV", labelEn: "PV Power", highlight: false },
+    pvSize: { labelFr: "Puissance Solaire", labelEn: "Solar Power", highlight: false },
     batterySize: { labelFr: "Stockage", labelEn: "Storage", highlight: false },
   },
+
+  // === HYPOTHÈSES FINANCIÈRES ===
+  assumptions: {
+    utilityEscalation: { value: "3%/an", labelFr: "Escalade prix électricité", labelEn: "Utility price escalation" },
+    pvDegradation: { value: "0.5%/an", labelFr: "Dégradation panneaux", labelEn: "Panel degradation" },
+    systemLife: { value: "25 ans", labelFr: "Durée de vie système", labelEn: "System lifespan" },
+    program: { value: "Autoproduction", labelFr: "Programme HQ", labelEn: "HQ Program" },
+    selfConsumption: { value: "~90%", labelFr: "Autoconsommation estimée", labelEn: "Est. self-consumption" },
+    discountRate: { value: "6%", labelFr: "Taux d'actualisation", labelEn: "Discount rate" },
+    omCostSolar: { value: "0.5%/an", labelFr: "O&M solaire (% CAPEX)", labelEn: "Solar O&M (% CAPEX)" },
+    omCostBattery: { value: "1.0%/an", labelFr: "O&M stockage (% CAPEX)", labelEn: "Storage O&M (% CAPEX)" },
+  },
+
+  // === EXCLUSIONS ===
+  exclusions: [
+    { labelFr: "Travaux de toiture préalables", labelEn: "Prior roof work" },
+    { labelFr: "Mise à niveau électrique (si requise)", labelEn: "Electrical upgrades (if required)" },
+    { labelFr: "Frais d'interconnexion HQ (à confirmer)", labelEn: "HQ interconnection fees (TBC)" },
+    { labelFr: "Stockage batterie (optionnel, si non inclus)", labelEn: "Battery storage (optional, if not included)" },
+    { labelFr: "Contrat O&M (optionnel)", labelEn: "O&M contract (optional)" },
+    { labelFr: "Frais de grue ou levage spécialisé", labelEn: "Crane or specialized lifting fees" },
+  ],
+
+  // === ÉQUIPEMENT INDICATIF ===
+  equipment: [
+    { labelFr: "Panneaux solaires Tier-1", labelEn: "Tier-1 solar panels", warranty: "25 ans/years", iconCode: "panel" },
+    { labelFr: "Onduleurs certifiés CSA/UL", labelEn: "CSA/UL certified inverters", warranty: "10-15 ans/years", iconCode: "inverter" },
+    { labelFr: "Structure de montage KB Racking", labelEn: "KB Racking mounting structure", warranty: "25 ans/years", iconCode: "mounting" },
+    { labelFr: "Main d'œuvre certifiée", labelEn: "Certified workmanship", warranty: "10 ans/years", iconCode: "workmanship" },
+  ],
+
+  // === ÉCHÉANCIER TYPE ===
+  timeline: [
+    { stepFr: "Signature", stepEn: "Contract", duration: "", iconCode: "contract" },
+    { stepFr: "Conception", stepEn: "Design", duration: "2-4 sem.", iconCode: "design" },
+    { stepFr: "Permis & HQ", stepEn: "Permits & HQ", duration: "8-12 sem.", iconCode: "permits" },
+    { stepFr: "Installation", stepEn: "Installation", duration: "2-4 sem.", iconCode: "install" },
+    { stepFr: "Mise en service", stepEn: "Commissioning", duration: "1-2 sem.", iconCode: "commissioning" },
+  ],
+
+  // === PROJECT SNAPSHOT LABELS ===
+  projectSnapshotLabels: {
+    annualConsumption: { labelFr: "Consommation annuelle", labelEn: "Annual consumption", unit: "kWh" },
+    peakDemand: { labelFr: "Demande de pointe", labelEn: "Peak demand", unit: "kW" },
+    currentTariff: { labelFr: "Tarif HQ actuel", labelEn: "Current HQ tariff", unit: "" },
+    estimatedProduction: { labelFr: "Production solaire An 1", labelEn: "Year-1 solar production", unit: "kWh" },
+    selfConsumptionRate: { labelFr: "Taux d'autoconsommation", labelEn: "Self-consumption rate", unit: "%" },
+    solarCapacity: { labelFr: "Puissance solaire proposée", labelEn: "Proposed solar capacity", unit: "kWc" },
+    batteryCapacity: { labelFr: "Stockage proposé", labelEn: "Proposed storage", unit: "kWh" },
+  },
+
+  // === NEXT STEPS AMÉLIORÉS ===
+  designFeeCovers: [
+    { labelFr: "Visite de site complète", labelEn: "Complete site visit" },
+    { labelFr: "Ingénierie préliminaire", labelEn: "Preliminary engineering" },
+    { labelFr: "Préparation dossier interconnexion HQ", labelEn: "HQ interconnection application prep" },
+    { labelFr: "Soumission ferme détaillée", labelEn: "Detailed firm quote" },
+  ],
+
+  clientProvides: [
+    { labelFr: "Factures Hydro-Québec (12-24 mois)", labelEn: "Hydro-Québec bills (12-24 months)" },
+    { labelFr: "Informations toiture (âge, état)", labelEn: "Roof information (age, condition)" },
+    { labelFr: "Schéma unifilaire (si disponible)", labelEn: "Single-line diagram (if available)" },
+    { labelFr: "Confirmation propriété / bail", labelEn: "Ownership / lease confirmation" },
+  ],
+
+  clientReceives: [
+    { labelFr: "Soumission ferme avec prix garantis", labelEn: "Firm quote with guaranteed pricing" },
+    { labelFr: "Échéancier de réalisation détaillé", labelEn: "Detailed implementation schedule" },
+    { labelFr: "Portée et exclusions clarifiées", labelEn: "Clarified scope and exclusions" },
+    { labelFr: "Dossier prêt pour demande HQ", labelEn: "File ready for HQ application" },
+  ],
 };
 
 // === HELPER FUNCTIONS ===
@@ -95,7 +168,7 @@ export function getContact() {
 
 export function getContactString(): string {
   const c = BRAND_CONTENT.contact;
-  return `${c.email}  |  ${c.website}`;
+  return `${c.email}  |  ${c.phone}  |  ${c.website}`;
 }
 
 export function getKpiLabel(key: keyof typeof BRAND_CONTENT.kpiConfig, lang: Lang): string {
@@ -105,4 +178,52 @@ export function getKpiLabel(key: keyof typeof BRAND_CONTENT.kpiConfig, lang: Lan
 
 export function isKpiHighlighted(key: keyof typeof BRAND_CONTENT.kpiConfig): boolean {
   return BRAND_CONTENT.kpiConfig[key].highlight;
+}
+
+export function getAssumptions(lang: Lang) {
+  return Object.values(BRAND_CONTENT.assumptions).map(a => ({
+    label: lang === "fr" ? a.labelFr : a.labelEn,
+    value: a.value,
+  }));
+}
+
+export function getExclusions(lang: Lang) {
+  return BRAND_CONTENT.exclusions.map(e => (lang === "fr" ? e.labelFr : e.labelEn));
+}
+
+export function getEquipment(lang: Lang) {
+  return BRAND_CONTENT.equipment.map(e => ({
+    label: lang === "fr" ? e.labelFr : e.labelEn,
+    warranty: e.warranty,
+  }));
+}
+
+export function getTimeline(lang: Lang) {
+  return BRAND_CONTENT.timeline.map(t => ({
+    step: lang === "fr" ? t.stepFr : t.stepEn,
+    duration: t.duration,
+  }));
+}
+
+export function getProjectSnapshotLabels(lang: Lang) {
+  const labels: Record<string, { label: string; unit: string }> = {};
+  for (const [key, val] of Object.entries(BRAND_CONTENT.projectSnapshotLabels)) {
+    labels[key] = {
+      label: lang === "fr" ? val.labelFr : val.labelEn,
+      unit: val.unit,
+    };
+  }
+  return labels;
+}
+
+export function getDesignFeeCovers(lang: Lang) {
+  return BRAND_CONTENT.designFeeCovers.map(d => (lang === "fr" ? d.labelFr : d.labelEn));
+}
+
+export function getClientProvides(lang: Lang) {
+  return BRAND_CONTENT.clientProvides.map(d => (lang === "fr" ? d.labelFr : d.labelEn));
+}
+
+export function getClientReceives(lang: Lang) {
+  return BRAND_CONTENT.clientReceives.map(d => (lang === "fr" ? d.labelFr : d.labelEn));
 }

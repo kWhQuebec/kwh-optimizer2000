@@ -1,5 +1,6 @@
-import PptxGenJS from "pptxgenjs";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString } from "./brandContent";
+import PptxGenJSModule from "pptxgenjs";
+const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
+import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives } from "./brandContent";
 
 const COLORS = {
   blue: "003DA6",
@@ -155,10 +156,10 @@ export async function generatePresentationPPTX(
   }
 
   const kpis = [
-    { label: t("Puissance PV", "PV Power"), value: `${simulation.pvSizeKW.toFixed(0)} kWc`, highlight: false },
-    { label: t("Batterie", "Battery"), value: `${simulation.battEnergyKWh.toFixed(0)} kWh`, highlight: false },
-    { label: t("Économies An 1", "Year 1 Savings"), value: formatCurrency(simulation.savingsYear1), highlight: true },
-    { label: t("VAN 25 ans", "NPV 25 yrs"), value: formatCurrency(simulation.npv25), highlight: true },
+    { label: getKpiLabel("pvSize", lang), value: `${simulation.pvSizeKW.toFixed(0)} kWc`, highlight: isKpiHighlighted("pvSize") },
+    { label: getKpiLabel("batterySize", lang), value: `${simulation.battEnergyKWh.toFixed(0)} kWh`, highlight: isKpiHighlighted("batterySize") },
+    { label: getKpiLabel("savings", lang), value: formatCurrency(simulation.savingsYear1), highlight: isKpiHighlighted("savings") },
+    { label: getKpiLabel("npv", lang), value: formatCurrency(simulation.npv25), highlight: isKpiHighlighted("npv") },
   ];
   
   kpis.forEach((kpi, i) => {
@@ -174,6 +175,48 @@ export async function generatePresentationPPTX(
     slide1.addText(kpi.value, {
       x, y: 3.85, w: 2.2, h: 0.5,
       fontSize: 16, bold: true, color: kpi.highlight ? COLORS.blue : COLORS.darkGray, align: "center"
+    });
+  });
+
+  // ================= SLIDE: PROJECT SNAPSHOT =================
+  const slideSnap = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideSnap.addText(t("APERÇU DU PROJET", "PROJECT SNAPSHOT"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideSnap.addShape("rect", {
+    x: 0.5, y: 1.25, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  const snapLabels = getProjectSnapshotLabels(lang);
+  const snapItems = [
+    { label: snapLabels.annualConsumption.label, value: `${(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh` },
+    { label: snapLabels.peakDemand.label, value: `${(simulation.peakDemandKW || 0).toFixed(0)} kW` },
+    { label: snapLabels.solarCapacity.label, value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
+    { label: snapLabels.batteryCapacity.label, value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : t("Non inclus", "Not included") },
+    { label: snapLabels.estimatedProduction.label, value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
+    { label: snapLabels.selfConsumptionRate.label, value: `${((simulation.selfSufficiencyPercent || 0) * 100).toFixed(0)}%` },
+  ];
+
+  snapItems.forEach((item, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = 0.5 + col * 4.8;
+    const y = 1.5 + row * 0.85;
+
+    slideSnap.addShape("rect", {
+      x, y, w: 4.5, h: 0.7,
+      fill: { color: COLORS.lightGray }
+    });
+    slideSnap.addText(item.label, {
+      x: x + 0.15, y, w: 4.2, h: 0.3,
+      fontSize: 9, color: COLORS.mediumGray
+    });
+    slideSnap.addText(item.value, {
+      x: x + 0.15, y: y + 0.3, w: 4.2, h: 0.35,
+      fontSize: 14, bold: true, color: COLORS.blue
     });
   });
 
@@ -362,38 +405,172 @@ export async function generatePresentationPPTX(
     });
   }
 
+  // ================= SLIDE: ASSUMPTIONS & EXCLUSIONS =================
+  const slideAssump = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideAssump.addText(t("HYPOTHÈSES ET EXCLUSIONS", "ASSUMPTIONS & EXCLUSIONS"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  const assumptions = getAssumptions(lang);
+  const assTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
+    [
+      { text: t("Hypothèse", "Assumption"), options: { bold: true, color: COLORS.white } },
+      { text: t("Valeur", "Value"), options: { bold: true, color: COLORS.white } }
+    ],
+    ...assumptions.map(a => [
+      { text: a.label },
+      { text: a.value, options: { bold: true, color: COLORS.blue } }
+    ])
+  ];
+
+  slideAssump.addTable(assTableData, {
+    x: 0.5, y: 1.4, w: 5.5,
+    fill: { color: COLORS.white },
+    border: { pt: 0.5, color: COLORS.lightGray },
+    fontFace: "Arial",
+    fontSize: 10,
+    color: COLORS.darkGray,
+    valign: "middle",
+    colW: [3.5, 2],
+    rowH: 0.3
+  });
+
+  slideAssump.addText(t("EXCLUSIONS", "EXCLUSIONS"), {
+    x: 6.5, y: 1.4, w: 3, h: 0.35,
+    fontSize: 14, bold: true, color: "DC2626"
+  });
+
+  const exclusions = getExclusions(lang);
+  exclusions.forEach((excl, i) => {
+    slideAssump.addText(`✕  ${excl}`, {
+      x: 6.5, y: 1.85 + i * 0.35, w: 3.2, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
+    });
+  });
+
+  // ================= SLIDE: EQUIPMENT & TIMELINE =================
+  const slideEquip = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideEquip.addText(t("ÉQUIPEMENT ET ÉCHÉANCIER", "EQUIPMENT & TIMELINE"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  const equipment = getEquipment(lang);
+  equipment.forEach((eq, i) => {
+    const x = 0.5 + i * 2.4;
+    slideEquip.addShape("rect", {
+      x, y: 1.5, w: 2.2, h: 1.2,
+      fill: { color: COLORS.lightGray }
+    });
+    slideEquip.addText(eq.label, {
+      x, y: 1.55, w: 2.2, h: 0.5,
+      fontSize: 10, color: COLORS.darkGray, align: "center", valign: "middle"
+    });
+    slideEquip.addText(eq.warranty, {
+      x, y: 2.05, w: 2.2, h: 0.4,
+      fontSize: 14, bold: true, color: COLORS.blue, align: "center"
+    });
+    slideEquip.addText(t("garantie", "warranty"), {
+      x, y: 2.4, w: 2.2, h: 0.25,
+      fontSize: 8, color: COLORS.mediumGray, align: "center"
+    });
+  });
+
+  slideEquip.addText(t("ÉCHÉANCIER TYPE", "TYPICAL TIMELINE"), {
+    x: 0.5, y: 3.1, w: 9, h: 0.4,
+    fontSize: 16, bold: true, color: COLORS.blue
+  });
+
+  const timeline = getTimeline(lang);
+  timeline.forEach((tl, i) => {
+    const x = 0.5 + i * 1.9;
+    const bgColor = i === 0 ? COLORS.blue : (i === timeline.length - 1 ? COLORS.green : COLORS.lightGray);
+    const txtColor = (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.darkGray;
+
+    slideEquip.addShape("rect", {
+      x, y: 3.6, w: 1.7, h: 0.9,
+      fill: { color: bgColor }
+    });
+    slideEquip.addText(tl.step, {
+      x, y: 3.65, w: 1.7, h: 0.45,
+      fontSize: 10, bold: true, color: txtColor, align: "center", valign: "middle"
+    });
+    if (tl.duration) {
+      slideEquip.addText(tl.duration, {
+        x, y: 4.1, w: 1.7, h: 0.35,
+        fontSize: 9, color: (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.mediumGray, align: "center"
+      });
+    }
+    
+    if (i < timeline.length - 1) {
+      slideEquip.addText("▶", {
+        x: x + 1.7, y: 3.85, w: 0.2, h: 0.3,
+        fontSize: 10, color: COLORS.gold
+      });
+    }
+  });
+
+  slideEquip.addText(t("Délais sujets à approbation Hydro-Québec", "Timelines subject to Hydro-Québec approval"), {
+    x: 0.5, y: 4.7, w: 9, h: 0.3,
+    fontSize: 8, color: COLORS.mediumGray, align: "center"
+  });
+
+  // ================= SLIDE: NEXT STEPS =================
   const slide5 = pptx.addSlide({ masterName: "KWHMAIN" });
-  
+
   slide5.addText(t("PROCHAINES ÉTAPES", "NEXT STEPS"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
   });
 
-  const steps = [
-    { num: "1", title: t("Visite de site", "Site visit"), desc: t("Évaluation technique sur place", "On-site technical assessment") },
-    { num: "2", title: t("Conception détaillée", "Detailed design"), desc: t("Plans finaux et sélection d'équipement", "Final plans and equipment selection") },
-    { num: "3", title: t("Proposition commerciale", "Commercial proposal"), desc: t("Contrat et échéancier de réalisation", "Contract and implementation schedule") },
-    { num: "4", title: t("Installation", "Installation"), desc: t("Construction et mise en service", "Construction and commissioning") }
-  ];
-  
-  steps.forEach((step, i) => {
-    const y = 1.5 + i * 0.9;
-    
-    slide5.addShape("ellipse", {
-      x: 0.5, y, w: 0.5, h: 0.5, fill: { color: COLORS.blue }
+  slide5.addShape("rect", {
+    x: 0.3, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.blue }
+  });
+  slide5.addText(t("Le Design Fee couvre", "The design fee covers"), {
+    x: 0.3, y: 1.45, w: 3.1, h: 0.35,
+    fontSize: 11, bold: true, color: COLORS.white, align: "center"
+  });
+
+  const designCovers = getDesignFeeCovers(lang);
+  designCovers.forEach((item, i) => {
+    slide5.addText(`✓  ${item}`, {
+      x: 0.4, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
     });
-    slide5.addText(step.num, {
-      x: 0.5, y, w: 0.5, h: 0.5,
-      fontSize: 16, bold: true, color: COLORS.white, align: "center", valign: "middle"
+  });
+
+  slide5.addShape("rect", {
+    x: 3.5, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.gold }
+  });
+  slide5.addText(t("Le client fournit", "The client provides"), {
+    x: 3.5, y: 1.45, w: 3.1, h: 0.35,
+    fontSize: 11, bold: true, color: COLORS.darkGray, align: "center"
+  });
+
+  const clientProvides = getClientProvides(lang);
+  clientProvides.forEach((item, i) => {
+    slide5.addText(`□  ${item}`, {
+      x: 3.6, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
     });
-    
-    slide5.addText(step.title, {
-      x: 1.2, y: y + 0.05, w: 8, h: 0.25,
-      fontSize: 14, bold: true, color: COLORS.darkGray
-    });
-    slide5.addText(step.desc, {
-      x: 1.2, y: y + 0.3, w: 8, h: 0.2,
-      fontSize: 11, color: COLORS.mediumGray
+  });
+
+  slide5.addShape("rect", {
+    x: 6.7, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.green }
+  });
+  slide5.addText(t("Le client reçoit", "The client receives"), {
+    x: 6.7, y: 1.45, w: 3.1, h: 0.35,
+    fontSize: 11, bold: true, color: COLORS.white, align: "center"
+  });
+
+  const clientReceives = getClientReceives(lang);
+  clientReceives.forEach((item, i) => {
+    slide5.addText(`→  ${item}`, {
+      x: 6.8, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
     });
   });
 
@@ -404,7 +581,7 @@ export async function generatePresentationPPTX(
     x: 0.5, y: 4.65, w: 9, h: 0.25,
     fontSize: 14, bold: true, color: COLORS.white, align: "center"
   });
-  slide5.addText("info@kwh.quebec | www.kwh.quebec", {
+  slide5.addText("info@kwh.quebec | 514.427.8871 | www.kwh.quebec", {
     x: 0.5, y: 4.95, w: 9, h: 0.2,
     fontSize: 11, color: COLORS.gold, align: "center"
   });
