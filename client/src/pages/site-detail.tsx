@@ -5768,7 +5768,7 @@ function AnalysisResults({
                         strokeDasharray="5 5" 
                         strokeWidth={1.5}
                         label={{ 
-                          value: language === "fr" ? "Seuil rentabilité" : "Breakeven", 
+                          value: language === "fr" ? "Taux d'actualisation" : "Discount Rate", 
                           position: "right",
                           fontSize: 10,
                           fill: "hsl(var(--muted-foreground))"
@@ -5875,7 +5875,7 @@ function AnalysisResults({
                         strokeDasharray="5 5" 
                         strokeWidth={1.5}
                         label={{ 
-                          value: language === "fr" ? "Seuil rentabilité" : "Breakeven", 
+                          value: language === "fr" ? "Taux d'actualisation" : "Discount Rate", 
                           position: "right",
                           fontSize: 10,
                           fill: "hsl(var(--muted-foreground))"
