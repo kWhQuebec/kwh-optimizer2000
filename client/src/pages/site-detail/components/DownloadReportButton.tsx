@@ -79,8 +79,9 @@ export function DownloadReportButton({
     setDownloadPhase("generating");
     try {
       // Download executive summary PDF from server
+      const token = localStorage.getItem("token");
       const response = await fetch(`/api/simulation-runs/${simulationId}/executive-summary-pdf?lang=${language}`, {
-        credentials: "include"
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       if (!response.ok) {
@@ -112,8 +113,9 @@ export function DownloadReportButton({
     setDownloadType("full");
     setDownloadPhase("generating");
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`/api/simulation-runs/${simulationId}/presentation-pptx?lang=${language}`, {
-        credentials: "include"
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       if (!response.ok) {
