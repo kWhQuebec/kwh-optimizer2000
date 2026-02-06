@@ -4035,58 +4035,6 @@ function AnalysisResults({
   const maxPVFromRoof = usableRoofSqFt / 100;
   const isRoofLimited = (simulation.pvSizeKW || 0) >= maxPVFromRoof * 0.95;
 
-  const hourlyProfileData = useMemo(() => {
-    const scenarioProfile = displayedScenario?.scenarioBreakdown?.hourlyProfileSummary;
-    if (scenarioProfile && scenarioProfile.length > 0) {
-      return scenarioProfile;
-    }
-    
-    const rawProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
-    if (!rawProfile || rawProfile.length === 0) {
-      return null;
-    }
-    
-    const byHour: Map<number, { 
-      consumptionSum: number; 
-      productionSum: number; 
-      peakBeforeSum: number; 
-      peakAfterSum: number; 
-      count: number 
-    }> = new Map();
-    
-    for (const entry of rawProfile) {
-      const existing = byHour.get(entry.hour) || { 
-        consumptionSum: 0, 
-        productionSum: 0, 
-        peakBeforeSum: 0, 
-        peakAfterSum: 0, 
-        count: 0 
-      };
-      existing.consumptionSum += entry.consumption;
-      existing.productionSum += entry.production;
-      existing.peakBeforeSum += entry.peakBefore;
-      existing.peakAfterSum += entry.peakAfter;
-      existing.count++;
-      byHour.set(entry.hour, existing);
-    }
-    
-    const result = [];
-    for (let h = 0; h < 24; h++) {
-      const data = byHour.get(h);
-      if (data && data.count > 0) {
-        const consumptionAfter = (data.consumptionSum - data.productionSum) / data.count;
-        result.push({
-          hour: `${h}h`,
-          consumptionBefore: Math.round(data.consumptionSum / data.count),
-          consumptionAfter: Math.max(0, Math.round(consumptionAfter)),
-          peakBefore: Math.round(data.peakBeforeSum / data.count),
-          peakAfter: Math.round(data.peakAfterSum / data.count),
-        });
-      }
-    }
-    return result;
-  }, [simulation.hourlyProfile, displayedScenario]);
-
   // Section Divider component for visual hierarchy
   const SectionDivider = ({ title, icon: Icon }: { title: string; icon?: any }) => (
     <div className="flex items-center gap-3 py-2">
@@ -4201,6 +4149,58 @@ function AnalysisResults({
     }
     return { ...fallbackScenario, ...selected };
   }, [optimizationScenarios, optimizationTarget, simulation, breakdown, assumptions]);
+
+  const hourlyProfileData = useMemo(() => {
+    const scenarioProfile = displayedScenario?.scenarioBreakdown?.hourlyProfileSummary;
+    if (scenarioProfile && scenarioProfile.length > 0) {
+      return scenarioProfile;
+    }
+    
+    const rawProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
+    if (!rawProfile || rawProfile.length === 0) {
+      return null;
+    }
+    
+    const byHour: Map<number, { 
+      consumptionSum: number; 
+      productionSum: number; 
+      peakBeforeSum: number; 
+      peakAfterSum: number; 
+      count: number 
+    }> = new Map();
+    
+    for (const entry of rawProfile) {
+      const existing = byHour.get(entry.hour) || { 
+        consumptionSum: 0, 
+        productionSum: 0, 
+        peakBeforeSum: 0, 
+        peakAfterSum: 0, 
+        count: 0 
+      };
+      existing.consumptionSum += entry.consumption;
+      existing.productionSum += entry.production;
+      existing.peakBeforeSum += entry.peakBefore;
+      existing.peakAfterSum += entry.peakAfter;
+      existing.count++;
+      byHour.set(entry.hour, existing);
+    }
+    
+    const result = [];
+    for (let h = 0; h < 24; h++) {
+      const data = byHour.get(h);
+      if (data && data.count > 0) {
+        const consumptionAfter = (data.consumptionSum - data.productionSum) / data.count;
+        result.push({
+          hour: `${h}h`,
+          consumptionBefore: Math.round(data.consumptionSum / data.count),
+          consumptionAfter: Math.max(0, Math.round(consumptionAfter)),
+          peakBefore: Math.round(data.peakBeforeSum / data.count),
+          peakAfter: Math.round(data.peakAfterSum / data.count),
+        });
+      }
+    }
+    return result;
+  }, [simulation.hourlyProfile, displayedScenario]);
 
   // Optimization target labels
   const optimizationLabels = {
