@@ -92,7 +92,8 @@ import type {
   BatterySweepPoint,
   HourlyProfileEntry,
   OptimalScenario,
-  OptimalScenarios
+  OptimalScenarios,
+  ScenarioBreakdown
 } from "@shared/schema";
 import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -2189,12 +2190,6 @@ function ScenarioComparison({
       bgClass: 'bg-purple-500 border-purple-500',
       borderClass: 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20'
     },
-    payback: { 
-      labelFr: 'Retour le plus rapide', 
-      labelEn: 'Fastest Payback',
-      bgClass: 'bg-orange-500 border-orange-500',
-      borderClass: 'border-orange-500 bg-orange-50/50 dark:bg-orange-950/20'
-    },
   };
   
   // Compute unique badge assignments across ALL scenarios (not just displayed ones)
@@ -2213,7 +2208,7 @@ function ScenarioComparison({
     // Find champion for each metric across ALL scenarios
     // For ties, use secondary metrics or index as tiebreaker
     const findChampion = (
-      metric: 'npv' | 'irr' | 'selfSufficiency' | 'payback',
+      metric: 'npv' | 'irr' | 'selfSufficiency',
       getValue: (s: typeof allScenarios[0]) => number,
       isHigherBetter: boolean
     ) => {
@@ -2248,7 +2243,6 @@ function ScenarioComparison({
       { key: 'npv', getValue: s => s.npv25, higherBetter: true },
       { key: 'irr', getValue: s => s.irr25, higherBetter: true },
       { key: 'selfSufficiency', getValue: s => s.selfSufficiency, higherBetter: true },
-      { key: 'payback', getValue: s => s.payback, higherBetter: false },
     ];
     
     for (const { key, getValue, higherBetter } of metrics) {
@@ -2268,7 +2262,7 @@ function ScenarioComparison({
   // This ensures that champions are always visible in the top 3 cards
   const displayedScenarios = useMemo(() => {
     // Badge priority order (same as assignment order)
-    const badgePriority: Array<keyof typeof badgeConfigs> = ['npv', 'irr', 'selfSufficiency', 'payback'];
+    const badgePriority: Array<keyof typeof badgeConfigs> = ['npv', 'irr', 'selfSufficiency'];
     
     // Separate scenarios with badges from those without
     const withBadges: typeof comparisonData = [];
@@ -2376,20 +2370,6 @@ function ScenarioComparison({
           paybackYears: optimalScenarios.maxSelfSufficiency.simplePaybackYears,
           capexNet: optimalScenarios.maxSelfSufficiency.capexNet,
         } : null,
-        payback: optimalScenarios.fastPayback ? {
-          pvSize: optimalScenarios.fastPayback.pvSizeKW,
-          batterySize: optimalScenarios.fastPayback.battEnergyKWh,
-          batteryPower: optimalScenarios.fastPayback.battPowerKW,
-          label: language === "fr" ? "Retour rapide" : "Fast Payback",
-          description: language === "fr"
-            ? "Récupération de l'investissement la plus rapide"
-            : "Fastest investment recovery",
-          npv25: optimalScenarios.fastPayback.npv25,
-          irr25: optimalScenarios.fastPayback.irr25,
-          selfSufficiency: optimalScenarios.fastPayback.selfSufficiencyPercent,
-          paybackYears: optimalScenarios.fastPayback.simplePaybackYears,
-          capexNet: optimalScenarios.fastPayback.capexNet,
-        } : null,
       };
     }
     
@@ -2416,20 +2396,11 @@ function ScenarioComparison({
           ? "Système agrandi + stockage = moins de dépendance au réseau"
           : "Larger system + storage = less grid dependence"
       },
-      payback: {
-        pvSize: Math.round(refPV * 0.5),
-        batterySize: 0,
-        batteryPower: 0,
-        label: language === "fr" ? "Retour rapide" : "Fast Payback",
-        description: language === "fr"
-          ? "Investissement minimal = récupération plus rapide"
-          : "Minimal investment = faster break-even"
-      }
     };
   }, [referenceSimulation, optimalScenarios, language]);
   
   // Handler for opening optimization dialog with preset
-  const handleOptimizationClick = (presetType: 'irr' | 'selfSufficiency' | 'payback') => {
+  const handleOptimizationClick = (presetType: 'irr' | 'selfSufficiency') => {
     if (!optimizationPresets || !referenceSimulation) {
       toast({ 
         title: language === "fr" ? "Erreur" : "Error",
@@ -2847,47 +2818,6 @@ function ScenarioComparison({
                     </TableRow>
                   )}
                   
-                  {/* Fast Payback Row */}
-                  {optimalScenarios.fastPayback && optimalScenarios.fastPayback.id !== optimalScenarios.bestNPV?.id && optimalScenarios.fastPayback.id !== optimalScenarios.bestIRR?.id && (
-                    <TableRow className="hover-elevate" data-testid="row-strategy-payback">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-orange-600" />
-                          <div>
-                            <span className="font-medium text-orange-700 dark:text-orange-400">
-                              {language === "fr" ? "Retour rapide" : "Fast Payback"}
-                            </span>
-                            <p className="text-xs text-muted-foreground">
-                              {language === "fr" ? "ROI le plus rapide" : "Fastest ROI"}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.fastPayback.pvSizeKW, 0)}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        {optimalScenarios.fastPayback.battEnergyKWh > 0 
-                          ? `${formatNumber(optimalScenarios.fastPayback.battEnergyKWh, 0)} kWh`
-                          : <span className="text-muted-foreground">-</span>
-                        }
-                      </TableCell>
-                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.fastPayback.capexNet)}</TableCell>
-                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.fastPayback.npv25)}</TableCell>
-                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.fastPayback.irr25 * 100, 1)}%</TableCell>
-                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.fastPayback.selfSufficiencyPercent, 1)}%</TableCell>
-                      <TableCell className="text-right font-mono font-bold text-orange-600">{formatNumber(optimalScenarios.fastPayback.simplePaybackYears, 1)} {language === "fr" ? "ans" : "yrs"}</TableCell>
-                      <TableCell className="text-center">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleOptimizationClick('payback')}
-                          data-testid="button-create-payback-variant"
-                        >
-                          <Plus className="w-3 h-3 mr-1" />
-                          {language === "fr" ? "Variante" : "Variant"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )}
                 </TableBody>
               </Table>
             </div>
@@ -2905,9 +2835,7 @@ function ScenarioComparison({
               {/* Note about shared configurations */}
               {optimalScenarios && (
                 (optimalScenarios.bestIRR?.id === optimalScenarios.bestNPV?.id ||
-                 optimalScenarios.maxSelfSufficiency?.id === optimalScenarios.bestNPV?.id ||
-                 optimalScenarios.fastPayback?.id === optimalScenarios.bestNPV?.id ||
-                 optimalScenarios.fastPayback?.id === optimalScenarios.bestIRR?.id) && (
+                 optimalScenarios.maxSelfSufficiency?.id === optimalScenarios.bestNPV?.id) && (
                 <div className="flex items-start gap-2 border-t border-muted pt-2">
                   <span className="text-xs text-muted-foreground">
                     {language === "fr" 
@@ -3321,6 +3249,7 @@ interface DisplayedScenarioType {
   annualSavings: number;
   totalProductionKWh?: number;
   co2AvoidedTonnesPerYear?: number;
+  scenarioBreakdown?: ScenarioBreakdown;
 }
 
 function FinancingCalculator({ simulation, displayedScenario }: { simulation: SimulationRun; displayedScenario: DisplayedScenarioType }) {
@@ -3338,49 +3267,24 @@ function FinancingCalculator({ simulation, displayedScenario }: { simulation: Si
   const [ppaYear1Rate, setPpaYear1Rate] = useState(100); // Year 1: 100% of HQ rate (no savings)
   const [ppaYear2Rate, setPpaYear2Rate] = useState(75); // Year 2+: 75% of HQ rate (25% savings - realistic)
   
-  const breakdown = simulation.breakdown as FinancialBreakdown | null;
+  const scenarioBreakdown = displayedScenario.scenarioBreakdown;
   const assumptions = simulation.assumptions as AnalysisAssumptions | null;
   
-  // Use displayedScenario values to scale incentives proportionally
   const baseCapexNet = simulation.capexNet || 0;
-  const baseCapexGross = breakdown?.capexGross || baseCapexNet;
   
-  // Calculate scaling ratio: if displayed scenario has different system size, scale capex
-  const basePvKW = simulation.pvSizeKW || 1;
-  const baseBattKWh = simulation.battEnergyKWh || 0;
-  const displayedPvKW = displayedScenario.pvSizeKW || 0;
-  const displayedBattKWh = displayedScenario.battEnergyKWh || 0;
-  
-  // Scale CAPEX based on system size ratio (simplified linear scaling)
-  const pvRatio = basePvKW > 0 ? displayedPvKW / basePvKW : 1;
-  const battRatio = baseBattKWh > 0 ? displayedBattKWh / baseBattKWh : (displayedBattKWh > 0 ? 1 : 0);
-  
-  // Use displayedScenario capexNet directly (already calculated for that scenario)
   const capexNet = displayedScenario.capexNet || 0;
-  // Scale capexGross proportionally
-  const capexGross = baseCapexGross > 0 && baseCapexNet > 0 
-    ? (baseCapexGross / baseCapexNet) * capexNet 
-    : capexNet;
+  const capexGross = scenarioBreakdown?.capexGross || baseCapexNet;
   const annualSavings = displayedScenario.annualSavings || simulation.annualSavings || 0;
-  const selfConsumptionKWh = simulation.annualEnergySavingsKWh || 0;
+  const selfConsumptionKWh = scenarioBreakdown?.annualEnergySavingsKWh || simulation.annualEnergySavingsKWh || 0;
   
-  // Calculate total annual solar production = PV size × solar yield
-  // This is what the system actually produces (different from self-consumption)
-  const pvSizeKW = displayedPvKW; // Use displayed scenario PV size
-  const solarYield = assumptions?.solarYieldKWhPerKWp || 1150; // kWh/kWp/year
+  const pvSizeKW = displayedScenario.pvSizeKW || 0;
+  const solarYield = assumptions?.solarYieldKWhPerKWp || 1150;
   const totalAnnualProductionKWh = pvSizeKW * solarYield;
   
-  // Incentive breakdown with timing - scale proportionally to displayed scenario
-  const baseHqSolar = breakdown?.actualHQSolar || 0;
-  const baseHqBattery = breakdown?.actualHQBattery || 0;
-  const baseFederalITC = breakdown?.itcAmount || 0;
-  const baseTaxShield = breakdown?.taxShield || 0;
-  
-  // Scale incentives proportionally
-  const hqSolar = baseHqSolar * pvRatio;
-  const hqBattery = baseHqBattery * battRatio;
-  const federalITC = baseFederalITC * pvRatio; // Federal ITC is 30% of net CAPEX, scales with PV
-  const taxShield = baseTaxShield * pvRatio; // Tax shield scales similarly
+  const hqSolar = scenarioBreakdown?.actualHQSolar || 0;
+  const hqBattery = scenarioBreakdown?.actualHQBattery || 0;
+  const federalITC = scenarioBreakdown?.itcAmount || 0;
+  const taxShield = scenarioBreakdown?.taxShield || 0;
   
   // Realistic cash flow timing for cash purchase:
   // Day 0: Pay Gross CAPEX, receive HQ Solar rebate immediately (often direct to installer)
@@ -4059,8 +3963,8 @@ function AnalysisResults({
   isStaff?: boolean; 
   onNavigateToDesignAgreement?: () => void; 
   isLoadingFullData?: boolean;
-  optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency' | 'payback';
-  onOptimizationTargetChange?: (target: 'npv' | 'irr' | 'selfSufficiency' | 'payback') => void;
+  optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency';
+  onOptimizationTargetChange?: (target: 'npv' | 'irr' | 'selfSufficiency') => void;
 }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
@@ -4217,6 +4121,7 @@ function AnalysisResults({
         annualSavings: optScenarios.bestNPV.annualSavings,
         totalProductionKWh: optScenarios.bestNPV.totalProductionKWh,
         co2AvoidedTonnesPerYear: optScenarios.bestNPV.co2AvoidedTonnesPerYear,
+        scenarioBreakdown: optScenarios.bestNPV.scenarioBreakdown,
       } : null,
       irr: optScenarios.bestIRR ? {
         pvSizeKW: optScenarios.bestIRR.pvSizeKW,
@@ -4230,6 +4135,7 @@ function AnalysisResults({
         annualSavings: optScenarios.bestIRR.annualSavings,
         totalProductionKWh: optScenarios.bestIRR.totalProductionKWh,
         co2AvoidedTonnesPerYear: optScenarios.bestIRR.co2AvoidedTonnesPerYear,
+        scenarioBreakdown: optScenarios.bestIRR.scenarioBreakdown,
       } : null,
       selfSufficiency: optScenarios.maxSelfSufficiency ? {
         pvSizeKW: optScenarios.maxSelfSufficiency.pvSizeKW,
@@ -4243,26 +4149,15 @@ function AnalysisResults({
         annualSavings: optScenarios.maxSelfSufficiency.annualSavings,
         totalProductionKWh: optScenarios.maxSelfSufficiency.totalProductionKWh,
         co2AvoidedTonnesPerYear: optScenarios.maxSelfSufficiency.co2AvoidedTonnesPerYear,
-      } : null,
-      payback: optScenarios.fastPayback ? {
-        pvSizeKW: optScenarios.fastPayback.pvSizeKW,
-        battEnergyKWh: optScenarios.fastPayback.battEnergyKWh,
-        battPowerKW: optScenarios.fastPayback.battPowerKW,
-        npv25: optScenarios.fastPayback.npv25,
-        irr25: optScenarios.fastPayback.irr25,
-        selfSufficiencyPercent: optScenarios.fastPayback.selfSufficiencyPercent,
-        simplePaybackYears: optScenarios.fastPayback.simplePaybackYears,
-        capexNet: optScenarios.fastPayback.capexNet,
-        annualSavings: optScenarios.fastPayback.annualSavings,
-        totalProductionKWh: optScenarios.fastPayback.totalProductionKWh,
-        co2AvoidedTonnesPerYear: optScenarios.fastPayback.co2AvoidedTonnesPerYear,
+        scenarioBreakdown: optScenarios.maxSelfSufficiency.scenarioBreakdown,
       } : null,
     };
   }, [simulation.sensitivity]);
 
   // Get displayed scenario based on optimization target
   const displayedScenario = useMemo(() => {
-    const fallbackScenario = {
+    const estimatedAnnualBillFallback = (simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06);
+    const fallbackScenario: DisplayedScenarioType = {
       pvSizeKW: simulation.pvSizeKW || 0,
       battEnergyKWh: simulation.battEnergyKWh || 0,
       battPowerKW: simulation.battPowerKW || 0,
@@ -4274,6 +4169,23 @@ function AnalysisResults({
       annualSavings: simulation.annualSavings || 0,
       totalProductionKWh: simulation.totalProductionKWh || 0,
       co2AvoidedTonnesPerYear: simulation.co2AvoidedTonnesPerYear || 0,
+      scenarioBreakdown: breakdown ? {
+        capexSolar: breakdown.capexSolar || 0,
+        capexBattery: breakdown.capexBattery || 0,
+        capexGross: breakdown.capexGross || 0,
+        actualHQSolar: breakdown.actualHQSolar || 0,
+        actualHQBattery: breakdown.actualHQBattery || 0,
+        itcAmount: breakdown.itcAmount || 0,
+        taxShield: breakdown.taxShield || 0,
+        totalExportedKWh: simulation.totalExportedKWh || 0,
+        annualSurplusRevenue: simulation.annualSurplusRevenue || 0,
+        estimatedAnnualBillBefore: estimatedAnnualBillFallback,
+        estimatedAnnualBillAfter: Math.max(0, estimatedAnnualBillFallback - (simulation.annualSavings || 0)),
+        lcoe: simulation.lcoe || 0,
+        peakDemandAfterKW: simulation.peakDemandKW || 0,
+        annualEnergySavingsKWh: simulation.annualEnergySavingsKWh || 0,
+        cashflows: ((simulation.cashflows || []) as Array<{year: number; netCashflow: number}>),
+      } : undefined,
     };
     
     if (!optimizationScenarios) {
@@ -4286,14 +4198,13 @@ function AnalysisResults({
       return { ...fallbackScenario, ...(optimizationScenarios.npv || {}) };
     }
     return { ...fallbackScenario, ...selected };
-  }, [optimizationScenarios, optimizationTarget, simulation]);
+  }, [optimizationScenarios, optimizationTarget, simulation, breakdown, assumptions]);
 
   // Optimization target labels
   const optimizationLabels = {
     npv: { fr: "Meilleur VAN", en: "Best NPV", icon: DollarSign },
     irr: { fr: "Meilleur TRI", en: "Best IRR", icon: TrendingUp },
     selfSufficiency: { fr: "Autonomie max", en: "Max Independence", icon: Battery },
-    payback: { fr: "Retour rapide", en: "Fast Payback", icon: Clock },
   };
 
   // Use displayed scenario KPIs based on selected optimization target (updates all page data)
@@ -4408,13 +4319,13 @@ function AnalysisResults({
                   value={optimizationTarget}
                   onValueChange={(value) => {
                     if (value && onOptimizationTargetChange) {
-                      onOptimizationTargetChange(value as 'npv' | 'irr' | 'selfSufficiency' | 'payback');
+                      onOptimizationTargetChange(value as 'npv' | 'irr' | 'selfSufficiency');
                     }
                   }}
                   className="flex-wrap justify-start sm:justify-end border rounded-lg p-1 bg-muted/30"
                   data-testid="toggle-optimization-target"
                 >
-                  {(['npv', 'irr', 'selfSufficiency', 'payback'] as const).map((target) => {
+                  {(['npv', 'irr', 'selfSufficiency'] as const).map((target) => {
                     const label = optimizationLabels[target];
                     const scenario = optimizationScenarios[target];
                     if (!scenario) return null;
@@ -4533,7 +4444,7 @@ function AnalysisResults({
           </div>
           
           {/* Surplus Revenue Info (HQ Net Metering Dec 2024) - More Prominent */}
-          {displayedScenario.pvSizeKW > 0 && (simulation.totalExportedKWh || 0) > 0 && (simulation.annualSurplusRevenue || 0) > 0 && (
+          {displayedScenario.pvSizeKW > 0 && (displayedScenario.scenarioBreakdown?.totalExportedKWh || 0) > 0 && (displayedScenario.scenarioBreakdown?.annualSurplusRevenue || 0) > 0 && (
             <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/40 dark:to-cyan-950/40 rounded-lg border-2 border-blue-300 dark:border-blue-700">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
@@ -4554,7 +4465,7 @@ function AnalysisResults({
                     {language === "fr" ? "Surplus annuel exporté" : "Annual surplus exported"}
                   </p>
                   <p className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">
-                    {Math.round(simulation.totalExportedKWh || 0).toLocaleString()} kWh
+                    {Math.round(displayedScenario.scenarioBreakdown?.totalExportedKWh || 0).toLocaleString()} kWh
                   </p>
                 </div>
                 <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
@@ -4562,7 +4473,7 @@ function AnalysisResults({
                     {language === "fr" ? "Revenu annuel (après 24 mois)" : "Annual revenue (after 24 months)"}
                   </p>
                   <p className="text-lg font-bold font-mono text-green-600 dark:text-green-400">
-                    ${Math.round(simulation.annualSurplusRevenue || 0).toLocaleString()}
+                    ${Math.round(displayedScenario.scenarioBreakdown?.annualSurplusRevenue || 0).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -4676,10 +4587,9 @@ function AnalysisResults({
 
       {/* Before/After HQ Bill Comparison - High Impact Visual (uses displayedScenario with fallback) */}
       {(() => {
-        // Calculate estimated annual bill from consumption data - use displayedScenario with fallback to simulation
-        const estimatedAnnualBill = (simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06);
+        const estimatedAnnualBill = displayedScenario.scenarioBreakdown?.estimatedAnnualBillBefore || ((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06));
         const annualSavings = (displayedScenario.annualSavings ?? simulation.annualSavings) || 0;
-        const estimatedBillAfter = Math.max(0, estimatedAnnualBill - annualSavings);
+        const estimatedBillAfter = displayedScenario.scenarioBreakdown?.estimatedAnnualBillAfter ?? Math.max(0, estimatedAnnualBill - annualSavings);
         const savingsPercent = estimatedAnnualBill > 0 ? Math.round((annualSavings / estimatedAnnualBill) * 100) : 0;
         
         return (
@@ -4815,12 +4725,12 @@ function AnalysisResults({
                 </p>
               </div>
               <p className="text-2xl font-bold font-mono" data-testid="text-lcoe">
-                ${(showExtendedLifeAnalysis ? (simulation.lcoe30 || simulation.lcoe || 0) : (simulation.lcoe || 0)).toFixed(3)}
+                ${(showExtendedLifeAnalysis ? (simulation.lcoe30 || displayedScenario.scenarioBreakdown?.lcoe || simulation.lcoe || 0) : (displayedScenario.scenarioBreakdown?.lcoe || simulation.lcoe || 0)).toFixed(3)}
                 <span className="text-sm font-normal text-muted-foreground">/kWh</span>
               </p>
-              {showExtendedLifeAnalysis && simulation.lcoe30 && simulation.lcoe && (
+              {showExtendedLifeAnalysis && simulation.lcoe30 && (displayedScenario.scenarioBreakdown?.lcoe || simulation.lcoe) && (
                 <p className="text-xs text-green-600 mt-1">
-                  -{((simulation.lcoe - simulation.lcoe30) * 100 / simulation.lcoe).toFixed(0)}% {language === "fr" ? "vs 25 ans" : "vs 25 yrs"}
+                  -{(((displayedScenario.scenarioBreakdown?.lcoe || simulation.lcoe || 0) - simulation.lcoe30) * 100 / (displayedScenario.scenarioBreakdown?.lcoe || simulation.lcoe || 1)).toFixed(0)}% {language === "fr" ? "vs 25 ans" : "vs 25 yrs"}
                 </p>
               )}
             </CardContent>
@@ -5151,6 +5061,14 @@ function AnalysisResults({
           <CardTitle className="text-lg">
             {language === "fr" ? "Profil moyen (Avant vs Après)" : "Average Profile (Before vs After)"}
           </CardTitle>
+          {(displayedScenario.pvSizeKW !== (simulation.pvSizeKW || 0) || 
+            displayedScenario.battEnergyKWh !== (simulation.battEnergyKWh || 0)) && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {language === "fr" 
+                ? `Profil basé sur la configuration initiale (${simulation.pvSizeKW || 0} kWc PV + ${simulation.battEnergyKWh || 0} kWh stockage)`
+                : `Profile based on initial configuration (${simulation.pvSizeKW || 0} kWp PV + ${simulation.battEnergyKWh || 0} kWh storage)`}
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           {hourlyProfileData && hourlyProfileData.length > 0 ? (
@@ -5231,7 +5149,7 @@ function AnalysisResults({
       </Card>
       
       {/* Financial Breakdown */}
-      {breakdown && (
+      {displayedScenario.scenarioBreakdown && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-lg">
@@ -5251,15 +5169,15 @@ function AnalysisResults({
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm">{language === "fr" ? "Solaire" : "Solar"}</span>
-                      <span className="font-mono text-sm">${((breakdown.capexSolar || 0) / 1000).toFixed(1)}k</span>
+                      <span className="font-mono text-sm">${((displayedScenario.scenarioBreakdown.capexSolar || 0) / 1000).toFixed(1)}k</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">{language === "fr" ? "Stockage" : "Storage"}</span>
-                      <span className="font-mono text-sm">${((breakdown.capexBattery || 0) / 1000).toFixed(1)}k</span>
+                      <span className="font-mono text-sm">${((displayedScenario.scenarioBreakdown.capexBattery || 0) / 1000).toFixed(1)}k</span>
                     </div>
                     <div className="flex justify-between border-t pt-2">
                       <span className="text-sm font-medium">{language === "fr" ? "CAPEX brut" : "Gross CAPEX"}</span>
-                      <span className="font-mono text-sm font-bold">${((breakdown.capexGross || 0) / 1000).toFixed(1)}k</span>
+                      <span className="font-mono text-sm font-bold">${((displayedScenario.scenarioBreakdown.capexGross || 0) / 1000).toFixed(1)}k</span>
                     </div>
                   </div>
                 </div>
@@ -5271,27 +5189,27 @@ function AnalysisResults({
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm">{language === "fr" ? "Hydro-Québec (solaire)" : "Hydro-Québec Solar"}</span>
-                      <span className="font-mono text-sm text-primary">-${((breakdown.actualHQSolar || 0) / 1000).toFixed(1)}k</span>
+                      <span className="font-mono text-sm text-primary">-${((displayedScenario.scenarioBreakdown.actualHQSolar || 0) / 1000).toFixed(1)}k</span>
                     </div>
-                    {(breakdown.actualHQBattery || 0) > 0 && (
+                    {(displayedScenario.scenarioBreakdown.actualHQBattery || 0) > 0 && (
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">
                           {language === "fr" ? "Hydro-Québec (crédit stockage jumelé)" : "Hydro-Québec (paired storage credit)"}
                         </span>
-                        <span className="font-mono text-sm text-primary">-${((breakdown.actualHQBattery || 0) / 1000).toFixed(1)}k</span>
+                        <span className="font-mono text-sm text-primary">-${((displayedScenario.scenarioBreakdown.actualHQBattery || 0) / 1000).toFixed(1)}k</span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span className="text-sm">{language === "fr" ? "CII fédéral (30%)" : "Federal ITC (30%)"}</span>
-                      <span className="font-mono text-sm text-primary">-${((breakdown.itcAmount || 0) / 1000).toFixed(1)}k</span>
+                      <span className="font-mono text-sm text-primary">-${((displayedScenario.scenarioBreakdown.itcAmount || 0) / 1000).toFixed(1)}k</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">{language === "fr" ? "Bouclier fiscal (DPA)" : "Tax Shield (CCA)"}</span>
-                      <span className="font-mono text-sm text-primary">-${((breakdown.taxShield || 0) / 1000).toFixed(1)}k</span>
+                      <span className="font-mono text-sm text-primary">-${((displayedScenario.scenarioBreakdown.taxShield || 0) / 1000).toFixed(1)}k</span>
                     </div>
                     <div className="flex justify-between border-t pt-2">
                       <span className="text-sm font-medium">{language === "fr" ? "CAPEX net" : "Net CAPEX"}</span>
-                      <span className="font-mono text-sm font-bold">${((breakdown.capexNet || 0) / 1000).toFixed(1)}k</span>
+                      <span className="font-mono text-sm font-bold">${((displayedScenario.capexNet || 0) / 1000).toFixed(1)}k</span>
                     </div>
                   </div>
                 </div>
@@ -5305,7 +5223,7 @@ function AnalysisResults({
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">LCOE</p>
-                    <p className="text-lg font-bold font-mono">${(simulation.lcoe || 0).toFixed(3)}/kWh</p>
+                    <p className="text-lg font-bold font-mono">${(displayedScenario.scenarioBreakdown?.lcoe || simulation.lcoe || 0).toFixed(3)}/kWh</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25 years"}</p>
@@ -6503,7 +6421,7 @@ export default function SiteDetailPage() {
   const [isRoofDrawingModalOpen, setIsRoofDrawingModalOpen] = useState(false);
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
-  const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency' | 'payback'>('npv');
+  const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency'>('npv');
   
   // Smart "Refresh + Deliverables" state machine
   type RefreshPhase = 'idle' | 'analyzing' | 'pdf' | 'pptx' | 'complete' | 'error';

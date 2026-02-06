@@ -603,7 +603,7 @@ export default function MarketIntelligencePricingPage() {
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder={language === "fr" ? "Rechercher..." : "Search..."}
+                  placeholder={language === "fr" ? "Filtrer..." : "Filter..."}
                   value={priceHistorySearchQuery}
                   onChange={(e) => setPriceHistorySearchQuery(e.target.value)}
                   className="pl-8 w-[180px]"

@@ -854,6 +854,16 @@ function runScenarioWithSizing(
   totalProductionKWh: number;
   selfSufficiencyPercent: number;
   co2AvoidedTonnesPerYear: number;
+  capexSolar: number;
+  capexBattery: number;
+  capexGross: number;
+  totalExportedKWh: number;
+  annualSurplusRevenue: number;
+  annualCostBefore: number;
+  annualCostAfter: number;
+  peakAfterKW: number;
+  selfConsumptionKWh: number;
+  lcoe: number;
 } {
   const h = assumptions;
   
@@ -918,6 +928,16 @@ function runScenarioWithSizing(
       totalProductionKWh: 0,
       selfSufficiencyPercent: 0,
       co2AvoidedTonnesPerYear: 0,
+      capexSolar: 0,
+      capexBattery: 0,
+      capexGross: 0,
+      totalExportedKWh: 0,
+      annualSurplusRevenue: 0,
+      annualCostBefore: 0,
+      annualCostAfter: 0,
+      peakAfterKW: 0,
+      selfConsumptionKWh: 0,
+      lcoe: 0,
     };
   }
   
@@ -1013,6 +1033,9 @@ function runScenarioWithSizing(
     : 0;
   const co2AvoidedTonnesPerYear = (selfConsumptionKWh * 0.0005) / 1000;
   
+  const annualCostAfter = annualCostBefore - annualSavings;
+  const lcoe = totalProductionKWh > 0 ? capexNet / (totalProductionKWh * 25) : 0;
+  
   return { 
     npv25, npv10, npv20,
     capexNet, 
@@ -1025,6 +1048,16 @@ function runScenarioWithSizing(
     totalProductionKWh,
     selfSufficiencyPercent,
     co2AvoidedTonnesPerYear,
+    capexSolar: capexPV,
+    capexBattery,
+    capexGross,
+    totalExportedKWh: annualExportedKWh,
+    annualSurplusRevenue,
+    annualCostBefore,
+    annualCostAfter,
+    peakAfterKW,
+    selfConsumptionKWh,
+    lcoe,
   };
 }
 
@@ -1177,21 +1210,44 @@ function runSensitivityAnalysis(
   // ==================== MULTI-OBJECTIVE OPTIMIZATION ====================
   // Find optimal scenarios for different objectives from the frontier data
   
-  // Helper to convert FrontierPoint to OptimalScenario
-  const toOptimalScenario = (point: FrontierPoint): OptimalScenario => ({
-    id: point.id,
-    pvSizeKW: point.pvSizeKW,
-    battEnergyKWh: point.battEnergyKWh,
-    battPowerKW: point.battPowerKW,
-    capexNet: point.capexNet,
-    npv25: point.npv25,
-    irr25: point.irr25 || 0,
-    simplePaybackYears: point.simplePaybackYears || 0,
-    selfSufficiencyPercent: point.selfSufficiencyPercent || 0,
-    annualSavings: point.annualSavings || 0,
-    totalProductionKWh: point.totalProductionKWh || 0,
-    co2AvoidedTonnesPerYear: point.co2AvoidedTonnesPerYear || 0,
-  });
+  const toOptimalScenarioWithBreakdown = (point: FrontierPoint): OptimalScenario => {
+    const result = runScenarioWithSizing(
+      hourlyData, point.pvSizeKW, point.battEnergyKWh, point.battPowerKW,
+      peakKW, annualConsumptionKWh, assumptions
+    );
+    
+    return {
+      id: point.id,
+      pvSizeKW: point.pvSizeKW,
+      battEnergyKWh: point.battEnergyKWh,
+      battPowerKW: point.battPowerKW,
+      capexNet: result.capexNet,
+      npv25: result.npv25,
+      irr25: result.irr25 || 0,
+      simplePaybackYears: result.simplePaybackYears || 0,
+      selfSufficiencyPercent: result.selfSufficiencyPercent || 0,
+      annualSavings: result.annualSavings || 0,
+      totalProductionKWh: result.totalProductionKWh || 0,
+      co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear || 0,
+      scenarioBreakdown: {
+        capexSolar: result.capexSolar,
+        capexBattery: result.capexBattery,
+        capexGross: result.capexGross,
+        actualHQSolar: result.incentivesHQSolar,
+        actualHQBattery: result.incentivesHQBattery,
+        itcAmount: result.incentivesFederal,
+        taxShield: result.taxShield,
+        totalExportedKWh: result.totalExportedKWh,
+        annualSurplusRevenue: result.annualSurplusRevenue,
+        estimatedAnnualBillBefore: result.annualCostBefore,
+        estimatedAnnualBillAfter: result.annualCostAfter,
+        lcoe: result.lcoe,
+        peakDemandAfterKW: result.peakAfterKW,
+        annualEnergySavingsKWh: result.selfConsumptionKWh,
+        cashflows: result.cashflows,
+      },
+    };
+  };
   
   // Filter to only profitable scenarios (NPV > 0) for most objectives
   const profitablePoints = frontier.filter(p => p.npv25 > 0 && p.pvSizeKW > 0);
@@ -1222,22 +1278,10 @@ function runSensitivityAnalysis(
     }
   }
   
-  // 4. Fast Payback (minimize years, must be profitable and have valid payback)
-  let fastPaybackPoint: FrontierPoint | null = null;
-  let minPayback = Infinity;
-  for (const point of profitablePoints) {
-    const payback = point.simplePaybackYears || Infinity;
-    if (payback > 0 && payback < minPayback && isFinite(payback)) {
-      minPayback = payback;
-      fastPaybackPoint = point;
-    }
-  }
-  
   const optimalScenarios: OptimalScenarios = {
-    bestNPV: bestNPVPoint ? toOptimalScenario(bestNPVPoint) : null,
-    bestIRR: bestIRRPoint ? toOptimalScenario(bestIRRPoint) : null,
-    maxSelfSufficiency: maxSelfSuffPoint ? toOptimalScenario(maxSelfSuffPoint) : null,
-    fastPayback: fastPaybackPoint ? toOptimalScenario(fastPaybackPoint) : null,
+    bestNPV: bestNPVPoint ? toOptimalScenarioWithBreakdown(bestNPVPoint) : null,
+    bestIRR: bestIRRPoint ? toOptimalScenarioWithBreakdown(bestIRRPoint) : null,
+    maxSelfSufficiency: maxSelfSuffPoint ? toOptimalScenarioWithBreakdown(maxSelfSuffPoint) : null,
   };
   
   return {

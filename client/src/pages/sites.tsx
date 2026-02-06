@@ -1,10 +1,10 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, Search, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -542,32 +542,17 @@ export default function SitesPage() {
   const clientId = params.clientId;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<SiteListItem | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
 
-  // Debounce search input
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value);
-    setPage(0); // Reset to first page on search
-    // Debounce the actual API call
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearch(value);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Build query params
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
     params.set("limit", String(ITEMS_PER_PAGE));
     params.set("offset", String(page * ITEMS_PER_PAGE));
-    if (debouncedSearch) params.set("search", debouncedSearch);
     if (clientId) params.set("clientId", clientId);
     if (showArchived) params.set("includeArchived", "true");
     return params.toString();
-  }, [page, debouncedSearch, clientId, showArchived]);
+  }, [page, clientId, showArchived]);
 
   // Fetch sites with optimized endpoint using apiRequest (handles auth properly)
   const { data: sitesData, isLoading, error, isError } = useQuery<SitesListResponse>({
@@ -832,18 +817,6 @@ export default function SitesPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Search input */}
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={language === "fr" ? "Rechercher..." : "Search..."}
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-9 w-48"
-              data-testid="input-search-sites"
-            />
-          </div>
-          
           <Button
             variant={showArchived ? "default" : "outline"}
             size="sm"

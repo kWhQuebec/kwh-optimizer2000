@@ -886,7 +886,7 @@ export default function ConstructionTasksPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder={language === "fr" ? "Rechercher par nom..." : "Search by name..."}
+              placeholder={language === "fr" ? "Filtrer par nom..." : "Filter by name..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"

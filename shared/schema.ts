@@ -2330,6 +2330,24 @@ export interface BatterySweepPoint {
   isOptimal?: boolean;   // Mark optimal point
 }
 
+export interface ScenarioBreakdown {
+  capexSolar: number;
+  capexBattery: number;
+  capexGross: number;
+  actualHQSolar: number;
+  actualHQBattery: number;
+  itcAmount: number;
+  taxShield: number;
+  totalExportedKWh: number;
+  annualSurplusRevenue: number;
+  estimatedAnnualBillBefore: number;
+  estimatedAnnualBillAfter: number;
+  lcoe: number;
+  peakDemandAfterKW: number;
+  annualEnergySavingsKWh: number;
+  cashflows: Array<{ year: number; netCashflow: number }>;
+}
+
 // Optimal scenario for a specific objective
 export interface OptimalScenario {
   id: string;
@@ -2344,6 +2362,7 @@ export interface OptimalScenario {
   annualSavings: number;
   totalProductionKWh: number;
   co2AvoidedTonnesPerYear: number;
+  scenarioBreakdown?: ScenarioBreakdown;
 }
 
 // Multi-objective optimization results
@@ -2351,7 +2370,6 @@ export interface OptimalScenarios {
   bestNPV: OptimalScenario | null;      // Maximum NPV25
   bestIRR: OptimalScenario | null;       // Maximum IRR (with NPV > 0 constraint)
   maxSelfSufficiency: OptimalScenario | null;  // Maximum self-consumption %
-  fastPayback: OptimalScenario | null;   // Minimum payback years (with NPV > 0 constraint)
 }
 
 // Complete sensitivity analysis result

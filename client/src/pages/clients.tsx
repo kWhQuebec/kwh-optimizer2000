@@ -1,10 +1,10 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown, Search, ChevronLeft, ChevronRight, FileSignature } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown, ChevronLeft, ChevronRight, FileSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -798,28 +798,14 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [portalAccessClient, setPortalAccessClient] = useState<ClientWithSites | null>(null);
   const [hqProcurationClient, setHqProcurationClient] = useState<ClientWithSites | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
 
-  // Debounce search input
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value);
-    setPage(0); // Reset to first page on search
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearch(value);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Build query params
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
     params.set("limit", String(ITEMS_PER_PAGE));
     params.set("offset", String(page * ITEMS_PER_PAGE));
-    if (debouncedSearch) params.set("search", debouncedSearch);
     return params.toString();
-  }, [page, debouncedSearch]);
+  }, [page]);
 
   const { data: clientsData, isLoading } = useQuery<ClientsListResponse>({
     queryKey: ["/api/clients/list", queryParams],
@@ -923,18 +909,6 @@ export default function ClientsPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Search input */}
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={language === "fr" ? "Rechercher..." : "Search..."}
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-9 w-48"
-              data-testid="input-search-clients"
-            />
-          </div>
-          
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2" data-testid="button-add-client">

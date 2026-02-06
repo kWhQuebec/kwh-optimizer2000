@@ -13,7 +13,6 @@ import {
   BarChart3,
   Pencil,
   Key,
-  Search,
   CheckCircle2,
   XCircle,
   MoreHorizontal,
@@ -133,7 +132,6 @@ export default function UsersPage() {
   const [resendWelcomeUser, setResendWelcomeUser] = useState<UserInfo | null>(null);
   const [resendWelcomeResult, setResendWelcomeResult] = useState<ResetPasswordResult | null>(null);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [copiedPassword, setCopiedPassword] = useState(false);
   
@@ -157,13 +155,10 @@ export default function UsersPage() {
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      const matchesSearch = !searchQuery || 
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
-      return matchesSearch && matchesRole;
+      return matchesRole;
     });
-  }, [users, searchQuery, roleFilter]);
+  }, [users, roleFilter]);
 
   const createForm = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
@@ -430,16 +425,6 @@ export default function UsersPage() {
               </CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={language === "fr" ? "Rechercher..." : "Search..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-48"
-                  data-testid="input-search-users"
-                />
-              </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger className="w-32" data-testid="select-role-filter">
                   <SelectValue />
