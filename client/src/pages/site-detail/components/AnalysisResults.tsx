@@ -3,7 +3,7 @@ import {
   Zap, Battery, BarChart3, DollarSign, Leaf, TrendingUp, TrendingDown,
   Sun, Shield, Car, Award, Sparkles, MousePointerClick, Plus, FileSignature,
   TreePine, Phone, ArrowRight, Star, AlertTriangle, CheckCircle2, CreditCard,
-  Home, Calculator, Info, Settings, Loader2
+  Home, Calculator, Info, Settings, Loader2, Clock, Quote, Wrench, ListChecks, Users
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,6 +15,7 @@ import type {
   FrontierPoint, HourlyProfileEntry, SimulationRun
 } from "@shared/schema";
 import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@shared/schema";
+import { getAssumptions, getExclusions, getEquipment, getTimeline, getAllStats, getFirstTestimonial } from "@shared/brandContent";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -854,7 +855,208 @@ export function AnalysisResults({
         </CardContent>
       </Card>
 
-      {/* ========== SECTION 5: ENVIRONMENTAL IMPACT ========== */}
+      {/* ========== SECTION: ASSUMPTIONS & EXCLUSIONS ========== */}
+      <SectionDivider title={t("analysis.assumptions")} icon={ListChecks} />
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold text-sm text-primary mb-3">{t("analysis.assumptions.title")}</h4>
+              <div className="space-y-2">
+                {getAssumptions(language as "fr" | "en").map((a, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm py-1 border-b border-border/50 last:border-0">
+                    <span className="text-muted-foreground">{a.label}</span>
+                    <span className="font-mono font-medium">{a.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm text-destructive mb-3">{t("analysis.exclusions.title")}</h4>
+              <div className="space-y-2">
+                {getExclusions(language as "fr" | "en").map((excl, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm py-1">
+                    <span className="text-destructive font-bold mt-0.5">✕</span>
+                    <span className="text-muted-foreground">{excl}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ========== SECTION: EQUIPMENT & WARRANTIES ========== */}
+      <SectionDivider title={t("analysis.equipment")} icon={Wrench} />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {getEquipment(language as "fr" | "en").map((eq, i) => (
+          <Card key={i} className="text-center">
+            <CardContent className="pt-6 pb-4">
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-sm font-medium mb-1">{eq.label}</p>
+              <p className="text-lg font-bold text-primary font-mono">{eq.warranty}</p>
+              <p className="text-xs text-muted-foreground">{language === "fr" ? "garantie" : "warranty"}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground text-center">{t("analysis.equipment.note")}</p>
+
+      {/* ========== SECTION: TIMELINE ========== */}
+      <SectionDivider title={t("analysis.timeline")} icon={Clock} />
+
+      <Card>
+        <CardContent className="pt-6 pb-4">
+          <div className="flex items-center justify-between gap-2">
+            {getTimeline(language as "fr" | "en").map((tl, i, arr) => (
+              <React.Fragment key={i}>
+                <div className={`flex-1 text-center p-3 rounded-lg ${
+                  i === 0 ? "bg-primary text-primary-foreground" :
+                  i === arr.length - 1 ? "bg-green-600 text-white" :
+                  "bg-muted"
+                }`}>
+                  <p className="font-semibold text-sm">{tl.step}</p>
+                  {tl.duration && <p className="text-xs opacity-80 mt-1">{tl.duration}</p>}
+                </div>
+                {i < arr.length - 1 && (
+                  <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground text-center mt-3">{t("analysis.timeline.note")}</p>
+        </CardContent>
+      </Card>
+
+      {/* ========== SECTION: NEXT STEPS CTA ========== */}
+      <SectionDivider
+        title={language === "fr" ? "Prochaines étapes" : "Next Steps"}
+        icon={FileSignature}
+      />
+
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent" id="next-steps-cta">
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <FileSignature className="w-6 h-6 text-primary" />
+            {language === "fr" ? "Prêt à passer à l'action?" : "Ready to Take Action?"}
+          </CardTitle>
+          <CardDescription>
+            {language === "fr"
+              ? "Signez l'entente de conception et d'ingénierie pour démarrer votre projet solaire"
+              : "Sign the Design & Engineering Agreement to start your solar project"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">1</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Entente de conception" : "Design Agreement"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr"
+                    ? "Notre équipe prépare les plans détaillés et la liste d'équipements"
+                    : "Our team prepares detailed plans and equipment specifications"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">2</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Soumission finale" : "Final Quote"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr"
+                    ? "Vous recevez une soumission détaillée avec prix fermes garantis"
+                    : "You receive a detailed quote with guaranteed firm pricing"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-bold">3</span>
+              </div>
+              <div>
+                <h4 className="font-medium">{language === "fr" ? "Installation" : "Installation"}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr"
+                    ? "Nous gérons l'installation clé en main et les demandes de subventions"
+                    : "We manage turnkey installation and incentive applications"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {isStaff ? (
+              <Button
+                size="lg"
+                className="gap-2 px-8"
+                onClick={onNavigateToDesignAgreement}
+                data-testid="button-cta-create-design"
+              >
+                <FileSignature className="w-5 h-5" />
+                {language === "fr" ? "Créer l'entente de design" : "Create Design Agreement"}
+              </Button>
+            ) : (
+              <Button size="lg" className="gap-2 px-8" data-testid="button-cta-sign-agreement">
+                <FileSignature className="w-5 h-5" />
+                {language === "fr" ? "Signer l'entente" : "Sign Agreement"}
+              </Button>
+            )}
+            <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
+              <Phone className="w-5 h-5" />
+              {language === "fr" ? "Nous contacter" : "Contact Us"}
+            </Button>
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            {language === "fr"
+              ? "L'entente de conception est sans engagement pour le projet complet. Frais de conception: 2 500$ + taxes (crédité si vous procédez)."
+              : "The design agreement is non-binding for the full project. Design fee: $2,500 + taxes (credited if you proceed)."}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* ========== SECTION: CREDIBILITY / THEY TRUST US ========== */}
+      <SectionDivider title={t("analysis.credibility")} icon={Users} />
+
+      <Card className="border-primary/20">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-3 gap-6 mb-6">
+            {getAllStats(language as "fr" | "en").map((stat, i) => (
+              <div key={i} className="text-center">
+                <p className="text-4xl font-bold text-primary font-mono">{stat.value}</p>
+                <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {(() => {
+            const testimonial = getFirstTestimonial(language as "fr" | "en");
+            return (
+              <blockquote className="border-l-4 border-primary/30 pl-4 py-2 bg-muted/30 rounded-r-lg">
+                <p className="text-sm italic text-foreground/80">
+                  &laquo; {testimonial.quote} &raquo;
+                </p>
+                <footer className="mt-2 text-xs text-muted-foreground">
+                  &mdash; {testimonial.author}
+                </footer>
+              </blockquote>
+            );
+          })()}
+        </CardContent>
+      </Card>
+
+      {/* ========== ADVANCED / STAFF SECTIONS (below fold) ========== */}
+
+      {/* ========== SECTION: ENVIRONMENTAL IMPACT ========== */}
       <SectionDivider
         title={language === "fr" ? "Impact environnemental" : "Environmental Impact"}
         icon={Leaf}
@@ -1918,289 +2120,6 @@ export function AnalysisResults({
         </Card>
       )}
 
-      {/* ========== FINAL SECTION: NEXT STEPS CTA ========== */}
-      <SectionDivider
-        title={language === "fr" ? "Prochaines étapes" : "Next Steps"}
-        icon={FileSignature}
-      />
-
-      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent" id="next-steps-cta">
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2">
-            <FileSignature className="w-6 h-6 text-primary" />
-            {language === "fr" ? "Prêt à passer à l'action?" : "Ready to Take Action?"}
-          </CardTitle>
-          <CardDescription>
-            {language === "fr"
-              ? "Signez l'entente de conception et d'ingénierie pour démarrer votre projet solaire"
-              : "Sign the Design & Engineering Agreement to start your solar project"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">1</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Entente de conception" : "Design Agreement"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr"
-                    ? "Notre équipe prépare les plans détaillés et la liste d'équipements"
-                    : "Our team prepares detailed plans and equipment specifications"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">2</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Soumission finale" : "Final Quote"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr"
-                    ? "Vous recevez une soumission détaillée avec prix fermes garantis"
-                    : "You receive a detailed quote with guaranteed firm pricing"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">3</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Installation" : "Installation"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr"
-                    ? "Nous gérons l'installation clé en main et les demandes de subventions"
-                    : "We manage turnkey installation and incentive applications"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
-            {isStaff ? (
-              <Button
-                size="lg"
-                className="gap-2 px-8"
-                onClick={onNavigateToDesignAgreement}
-                data-testid="button-cta-create-design"
-              >
-                <FileSignature className="w-5 h-5" />
-                {language === "fr" ? "Créer l'entente de design" : "Create Design Agreement"}
-              </Button>
-            ) : (
-              <Button size="lg" className="gap-2 px-8" data-testid="button-cta-sign-agreement">
-                <FileSignature className="w-5 h-5" />
-                {language === "fr" ? "Signer l'entente" : "Sign Agreement"}
-              </Button>
-            )}
-            <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
-              <Phone className="w-5 h-5" />
-              {language === "fr" ? "Nous contacter" : "Contact Us"}
-            </Button>
-          </div>
-
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            {language === "fr"
-              ? "L'entente de conception est sans engagement pour le projet complet. Frais de conception: 2 500$ + taxes (crédité si vous procédez)."
-              : "The design agreement is non-binding for the full project. Design fee: $2,500 + taxes (credited if you proceed)."}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* PDF-only Environmental Impact Section */}
-      <div id="pdf-section-environment" aria-hidden="true" tabIndex={-1} data-testid="pdf-section-environment" className="bg-white p-6 rounded-lg" style={{ position: 'absolute', left: '-9999px', top: '0', pointerEvents: 'none' }}>
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-green-700 mb-2">
-            {language === "fr" ? "Impact environnemental" : "Environmental Impact"}
-          </h2>
-          <p className="text-gray-600">
-            {language === "fr" ? "Votre contribution à un avenir durable" : "Your contribution to a sustainable future"}
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-6 mb-6">
-          <div className="text-center p-5 bg-green-50 rounded-xl border border-green-200">
-            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-100 flex items-center justify-center">
-              <Leaf className="w-7 h-7 text-green-600" />
-            </div>
-            <p className="text-3xl font-bold text-green-700 mb-1" data-testid="text-co2-avoided-total">
-              {((simulation.co2AvoidedTonnesPerYear || 0) * 25).toFixed(0)}
-            </p>
-            <p className="text-sm font-medium text-green-800">{language === "fr" ? "tonnes CO₂" : "tonnes CO₂"}</p>
-            <p className="text-xs text-gray-600 mt-1">{language === "fr" ? "évitées sur 25 ans" : "avoided over 25 years"}</p>
-          </div>
-          <div className="text-center p-5 bg-green-50 rounded-xl border border-green-200">
-            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-100 flex items-center justify-center">
-              <TreePine className="w-7 h-7 text-green-600" />
-            </div>
-            <p className="text-3xl font-bold text-green-700 mb-1" data-testid="text-trees-equivalent">
-              {Math.round((simulation.co2AvoidedTonnesPerYear || 0) * 25 * 45)}
-            </p>
-            <p className="text-sm font-medium text-green-800">{language === "fr" ? "arbres équivalents" : "equivalent trees"}</p>
-            <p className="text-xs text-gray-600 mt-1">{language === "fr" ? "plantés pendant 10 ans" : "planted for 10 years"}</p>
-          </div>
-          <div className="text-center p-5 bg-green-50 rounded-xl border border-green-200">
-            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-100 flex items-center justify-center">
-              <Car className="w-7 h-7 text-green-600" />
-            </div>
-            <p className="text-3xl font-bold text-green-700 mb-1" data-testid="text-cars-off-road">
-              {Math.round((simulation.co2AvoidedTonnesPerYear || 0) * 25 / 4.6)}
-            </p>
-            <p className="text-sm font-medium text-green-800">{language === "fr" ? "voitures retirées" : "cars off the road"}</p>
-            <p className="text-xs text-gray-600 mt-1">{language === "fr" ? "pendant un an" : "for one year"}</p>
-          </div>
-        </div>
-        <div className="bg-green-700 text-white p-5 rounded-lg">
-          <p className="text-center text-sm">
-            {language === "fr"
-              ? "En choisissant l'énergie solaire, vous contribuez activement à la transition énergétique du Québec et à la réduction des émissions de gaz à effet de serre."
-              : "By choosing solar energy, you are actively contributing to Quebec's energy transition and the reduction of greenhouse gas emissions."}
-          </p>
-        </div>
-      </div>
-
-      {/* PDF-only About kWh Québec Section */}
-      <div id="pdf-section-about" aria-hidden="true" tabIndex={-1} data-testid="pdf-section-about" className="bg-white p-6 rounded-lg" style={{ position: 'absolute', left: '-9999px', top: '0', pointerEvents: 'none' }}>
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-[#003DA6] mb-2">
-            {language === "fr" ? "À propos de kWh Québec" : "About kWh Québec"}
-          </h2>
-          <p className="text-gray-600">
-            {language === "fr" ? "Votre partenaire de confiance en énergie solaire" : "Your trusted solar energy partner"}
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-6 mb-6">
-          <div className="text-center p-4 border rounded-lg">
-            <p className="text-3xl font-bold text-[#003DA6]">10+</p>
-            <p className="text-sm text-gray-600 mt-1">{language === "fr" ? "années d'expérience" : "years of experience"}</p>
-          </div>
-          <div className="text-center p-4 border rounded-lg">
-            <p className="text-3xl font-bold text-[#003DA6]">500+</p>
-            <p className="text-sm text-gray-600 mt-1">{language === "fr" ? "projets réalisés" : "completed projects"}</p>
-          </div>
-          <div className="text-center p-4 border rounded-lg">
-            <p className="text-3xl font-bold text-[#003DA6]">50 MW+</p>
-            <p className="text-sm text-gray-600 mt-1">{language === "fr" ? "capacité installée" : "installed capacity"}</p>
-          </div>
-        </div>
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-semibold text-[#003DA6] mb-3">{language === "fr" ? "Notre expertise" : "Our Expertise"}</h3>
-          <ul className="text-sm text-gray-700 space-y-2">
-            <li>• {language === "fr" ? "Conception et ingénierie de systèmes solaires commerciaux et industriels" : "Commercial and industrial solar system design and engineering"}</li>
-            <li>• {language === "fr" ? "Installation clé en main et gestion de projet" : "Turnkey installation and project management"}</li>
-            <li>• {language === "fr" ? "Accompagnement pour les subventions et le financement" : "Support for grants and financing"}</li>
-            <li>• {language === "fr" ? "Service après-vente et maintenance" : "After-sales service and maintenance"}</li>
-          </ul>
-        </div>
-        <div className="bg-[#003DA6] text-white p-5 rounded-lg text-center">
-          <h3 className="font-semibold mb-2">{language === "fr" ? "Contactez-nous" : "Contact Us"}</h3>
-          <p className="text-sm opacity-90">info@kwhquebec.com | 1-888-kWh-SOLAR</p>
-          <p className="text-sm opacity-90 mt-1">www.kwhquebec.com</p>
-        </div>
-      </div>
-
-      {/* PDF-only Disclaimers Section */}
-      <div id="pdf-section-disclaimers" aria-hidden="true" tabIndex={-1} data-testid="pdf-section-disclaimers" className="bg-white p-6 rounded-lg" style={{ position: 'absolute', left: '-9999px', top: '0', pointerEvents: 'none' }}>
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">{language === "fr" ? "Avis importants" : "Important Notices"}</h2>
-          <div className="h-0.5 w-16 bg-[#FFB005]"></div>
-        </div>
-        <div className="space-y-4 text-sm text-gray-700">
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="font-semibold text-yellow-800 mb-1">{language === "fr" ? "Validité de l'estimation" : "Estimate Validity"}</p>
-            <p className="text-yellow-700">
-              {language === "fr"
-                ? `Cette estimation préliminaire est valide pour une période de 30 jours à compter de la date du rapport. Les conditions du marché et les prix des équipements peuvent varier.`
-                : `This preliminary estimate is valid for a period of 30 days from the report date. Market conditions and equipment prices may vary.`}
-            </p>
-          </div>
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <p className="font-semibold text-gray-800 mb-1">{language === "fr" ? "Nature préliminaire" : "Preliminary Nature"}</p>
-            <p>
-              {language === "fr"
-                ? "Ce rapport constitue une estimation préliminaire basée sur les informations disponibles. Les calculs de production solaire sont basés sur des données météorologiques historiques et peuvent varier selon les conditions réelles. Les économies présentées sont des projections et ne constituent pas une garantie."
-                : "This report constitutes a preliminary estimate based on available information. Solar production calculations are based on historical weather data and may vary according to actual conditions. The savings presented are projections and do not constitute a guarantee."}
-            </p>
-          </div>
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <p className="font-semibold text-gray-800 mb-1">{language === "fr" ? "Visite de site requise" : "Site Visit Required"}</p>
-            <p>
-              {language === "fr"
-                ? "Le prix final et les spécifications techniques définitives dépendent d'une visite de site et d'une évaluation détaillée. Des facteurs tels que l'état de la toiture, l'infrastructure électrique existante et les conditions d'accès peuvent influencer le coût final du projet."
-                : "The final price and definitive technical specifications depend on a site visit and detailed assessment. Factors such as roof condition, existing electrical infrastructure, and access conditions may influence the final project cost."}
-            </p>
-          </div>
-          <div className="text-xs text-gray-500 mt-4 pt-4 border-t border-gray-200">
-            <p className="mb-2">
-              {language === "fr"
-                ? "© kWh Québec - Tous droits réservés. Ce document est confidentiel et destiné uniquement au destinataire."
-                : "© kWh Québec - All rights reserved. This document is confidential and intended only for the recipient."}
-            </p>
-            <p>
-              {language === "fr"
-                ? "Les informations contenues dans ce rapport sont protégées par le droit d'auteur et ne peuvent être reproduites sans autorisation écrite."
-                : "The information contained in this report is protected by copyright and may not be reproduced without written permission."}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* PDF-only Design Agreement CTA Section */}
-      <div id="pdf-section-service-offer" aria-hidden="true" tabIndex={-1} className="bg-white p-6 rounded-lg" style={{ position: 'absolute', left: '-9999px', top: '0', pointerEvents: 'none' }}>
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-[#003DA6] mb-2">
-            {language === "fr" ? "Prochaine étape: Entente de conception" : "Next Step: Design Agreement"}
-          </h2>
-          <p className="text-gray-600">
-            {language === "fr" ? "Passez à l'action pour concrétiser votre projet solaire" : "Take action to make your solar project a reality"}
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-6 mb-6">
-          <div className="text-center p-4 border rounded-lg">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#003DA6]/10 flex items-center justify-center">
-              <span className="text-xl font-bold text-[#003DA6]">1</span>
-            </div>
-            <h4 className="font-semibold mb-2">{language === "fr" ? "Conception détaillée" : "Detailed Design"}</h4>
-            <p className="text-sm text-gray-600">
-              {language === "fr" ? "Plans d'ingénierie et spécifications techniques" : "Engineering plans and technical specifications"}
-            </p>
-          </div>
-          <div className="text-center p-4 border rounded-lg">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#003DA6]/10 flex items-center justify-center">
-              <span className="text-xl font-bold text-[#003DA6]">2</span>
-            </div>
-            <h4 className="font-semibold mb-2">{language === "fr" ? "Soumission ferme" : "Firm Quote"}</h4>
-            <p className="text-sm text-gray-600">
-              {language === "fr" ? "Prix garantis et calendrier d'exécution" : "Guaranteed pricing and execution timeline"}
-            </p>
-          </div>
-          <div className="text-center p-4 border rounded-lg">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#003DA6]/10 flex items-center justify-center">
-              <span className="text-xl font-bold text-[#003DA6]">3</span>
-            </div>
-            <h4 className="font-semibold mb-2">{language === "fr" ? "Installation clé en main" : "Turnkey Installation"}</h4>
-            <p className="text-sm text-gray-600">
-              {language === "fr" ? "Gestion complète du projet et subventions" : "Complete project management and incentives"}
-            </p>
-          </div>
-        </div>
-        <div className="bg-[#003DA6] text-white p-6 rounded-lg text-center">
-          <p className="text-lg font-semibold mb-2">
-            {language === "fr" ? "Frais de conception: 2 500$ + taxes" : "Design Fee: $2,500 + taxes"}
-          </p>
-          <p className="text-sm opacity-90 mb-4">
-            {language === "fr" ? "Crédité intégralement si vous procédez avec l'installation" : "Fully credited if you proceed with installation"}
-          </p>
-          <div className="inline-block bg-[#FFB005] text-[#003DA6] font-bold px-8 py-3 rounded-lg">
-            {language === "fr" ? "Contactez-nous pour démarrer" : "Contact us to get started"}
-          </div>
-        </div>
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>{language === "fr" ? "Questions?" : "Questions?"} info@kwhquebec.com | 1-800-XXX-XXXX</p>
-        </div>
-      </div>
 
       {/* Externally controlled Create Variant Dialog */}
       {isStaff && (

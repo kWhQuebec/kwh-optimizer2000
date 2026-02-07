@@ -738,9 +738,6 @@ export default function SiteDetailPage() {
               <DownloadReportButton
                 simulationId={latestSimulation.id}
                 siteName={site.name}
-                clientName={site.client?.name}
-                location={[site.city, site.province].filter(Boolean).join(", ")}
-                onSwitchToAnalysis={() => setActiveTab("analysis")}
               />
               {isStaff && (
                 <Link href={`/app/analyses/${latestSimulation.id}/design`}>

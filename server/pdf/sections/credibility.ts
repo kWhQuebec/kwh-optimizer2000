@@ -1,7 +1,7 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawPageFooter } from "../helpers";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString } from "../../brandContent";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString } from "@shared/brandContent";
 
 export function renderCredibility(ctx: PDFContext) {
   const { doc, t, margin, contentWidth, pageWidth, pageHeight } = ctx;

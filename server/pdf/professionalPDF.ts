@@ -1,7 +1,7 @@
 import type { SimulationData } from "./types";
 import { createContext } from "./types";
 import { drawPageHeader, drawPageFooter } from "./helpers";
-import { getNarrativeAct, getNarrativeTransition } from "../brandContent";
+import { getNarrativeAct, getNarrativeTransition } from "@shared/brandContent";
 
 // Section renderers
 import { renderCover } from "./sections/cover";

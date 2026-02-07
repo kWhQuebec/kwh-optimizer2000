@@ -1,7 +1,7 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawRoundedRect } from "../helpers";
-import { getDesignFeeCovers, getClientProvides, getClientReceives } from "../../brandContent";
+import { getDesignFeeCovers, getClientProvides, getClientReceives } from "@shared/brandContent";
 
 export function renderNextSteps(ctx: PDFContext) {
   const { doc, t, margin, contentWidth } = ctx;

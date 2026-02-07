@@ -13,56 +13,38 @@ import { useI18n } from "@/lib/i18n";
 export function DownloadReportButton({
   simulationId,
   siteName,
-  clientName,
-  location,
-  onSwitchToAnalysis
 }: {
   simulationId: string;
   siteName: string;
-  clientName?: string;
-  location?: string;
-  onSwitchToAnalysis?: () => void;
 }) {
   const { t, language } = useI18n();
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
-  const [downloadPhase, setDownloadPhase] = useState<"idle" | "preparing" | "generating">("idle");
-  const [downloadType, setDownloadType] = useState<"full" | "executive">("full");
+  const [downloadPhase, setDownloadPhase] = useState<"idle" | "generating">("idle");
 
   const handleDownloadFull = async () => {
     setDownloading(true);
-    setDownloadType("full");
-    setDownloadPhase("preparing");
+    setDownloadPhase("generating");
     try {
-      // Switch to Analysis tab first so PDF sections are rendered
-      if (onSwitchToAnalysis) {
-        onSwitchToAnalysis();
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/simulation-runs/${simulationId}/report-pdf?lang=${language}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
 
-        // Wait deterministically for the PDF sections to be rendered in the DOM
-        const waitForElement = async (elementId: string, maxWaitMs = 3000): Promise<boolean> => {
-          const startTime = Date.now();
-          while (Date.now() - startTime < maxWaitMs) {
-            if (document.getElementById(elementId)) {
-              return true;
-            }
-            await new Promise(resolve => requestAnimationFrame(resolve));
-          }
-          return false;
-        };
-
-        // Wait for the main PDF section to exist
-        const sectionReady = await waitForElement("pdf-section-system-config");
-        if (!sectionReady) {
-          throw new Error("PDF sections not ready");
-        }
-
-        // Small additional delay for images and charts to fully render
-        await new Promise(resolve => setTimeout(resolve, 200));
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF report");
       }
 
-      setDownloadPhase("generating");
-      const { downloadClientPDF } = await import("@/lib/clientPdfGenerator");
-      await downloadClientPDF(siteName, clientName, location, language);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `rapport-${siteName.replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       toast({ title: language === "fr" ? "Rapport téléchargé" : "Report downloaded" });
     } catch (error) {
       console.error("PDF generation error:", error);
@@ -75,7 +57,6 @@ export function DownloadReportButton({
 
   const handleDownloadExecutive = async () => {
     setDownloading(true);
-    setDownloadType("executive");
     setDownloadPhase("generating");
     try {
       // Download executive summary PDF from server
@@ -110,7 +91,6 @@ export function DownloadReportButton({
 
   const handleDownloadPPTX = async () => {
     setDownloading(true);
-    setDownloadType("full");
     setDownloadPhase("generating");
     try {
       const token = localStorage.getItem("token");
@@ -151,10 +131,7 @@ export function DownloadReportButton({
         data-testid="button-download-report"
       >
         <Loader2 className="w-4 h-4 animate-spin" />
-        {downloadPhase === "preparing"
-          ? (language === "fr" ? "Préparation..." : "Preparing...")
-          : (language === "fr" ? "Génération PDF..." : "Generating PDF...")
-        }
+        {language === "fr" ? "Génération PDF..." : "Generating PDF..."}
       </Button>
     );
   }

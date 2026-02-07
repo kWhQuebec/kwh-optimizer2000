@@ -1,7 +1,7 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawRoundedRect, drawPageHeader } from "../helpers";
-import { getEquipment } from "../../brandContent";
+import { getEquipment } from "@shared/brandContent";
 
 export function renderEquipment(ctx: PDFContext) {
   const { doc, t, margin, contentWidth, headerHeight } = ctx;

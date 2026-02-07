@@ -1,7 +1,7 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawRoundedRect } from "../helpers";
-import { getTimeline } from "../../brandContent";
+import { getTimeline } from "@shared/brandContent";
 
 export function renderTimeline(ctx: PDFContext) {
   const { doc, t, margin, contentWidth } = ctx;

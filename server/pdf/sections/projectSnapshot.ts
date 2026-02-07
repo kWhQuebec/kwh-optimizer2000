@@ -1,7 +1,7 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawRoundedRect, drawPageHeader, drawPageFooter } from "../helpers";
-import { getProjectSnapshotLabels } from "../../brandContent";
+import { getProjectSnapshotLabels } from "@shared/brandContent";
 
 export function renderProjectSnapshot(ctx: PDFContext) {
   const { doc, simulation, t, margin, contentWidth, pageWidth, pageHeight, headerHeight } = ctx;

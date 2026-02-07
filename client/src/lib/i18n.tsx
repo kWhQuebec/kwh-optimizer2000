@@ -254,7 +254,17 @@ const translations: Translations = {
   "site.period": { fr: "Période", en: "Period" },
   "site.runAnalysis": { fr: "Lancer l'analyse de potentiel", en: "Run potential analysis" },
   "site.downloadReport": { fr: "Télécharger le rapport PDF", en: "Download PDF report" },
-  
+
+  // Analysis Results — new sections
+  "analysis.assumptions": { fr: "Hypothèses et exclusions", en: "Assumptions & Exclusions" },
+  "analysis.assumptions.title": { fr: "Hypothèses", en: "Assumptions" },
+  "analysis.exclusions.title": { fr: "Exclusions", en: "Exclusions" },
+  "analysis.equipment": { fr: "Équipement et garanties", en: "Equipment & Warranties" },
+  "analysis.timeline": { fr: "Échéancier type", en: "Typical Timeline" },
+  "analysis.timeline.note": { fr: "Délais sujets à approbation Hydro-Québec", en: "Timelines subject to Hydro-Québec approval" },
+  "analysis.credibility": { fr: "Ils nous font confiance", en: "They Trust Us" },
+  "analysis.equipment.note": { fr: "Équipement indicatif — marques et modèles confirmés dans la soumission ferme", en: "Indicative equipment — brands and models confirmed in the firm quote" },
+
   // Bifacial PV detection
   "bifacial.detected.title": { fr: "Membrane blanche détectée", en: "White membrane detected" },
   "bifacial.detected.description": { fr: "Notre analyse d'imagerie a détecté une membrane de toiture blanche hautement réfléchissante. Les panneaux solaires bi-faciaux peuvent capter la lumière réfléchie du toit, augmentant potentiellement la production d'énergie de 10-15%.", en: "Our imagery analysis detected a highly reflective white roof membrane. Bi-facial solar panels can capture reflected light from the roof, potentially increasing energy production by 10-15%." },

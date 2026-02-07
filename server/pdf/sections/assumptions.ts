@@ -1,7 +1,7 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawRoundedRect, drawPageHeader, drawPageFooter } from "../helpers";
-import { getAssumptions, getExclusions } from "../../brandContent";
+import { getAssumptions, getExclusions } from "@shared/brandContent";
 
 export function renderAssumptions(ctx: PDFContext) {
   const { doc, t, margin, contentWidth, pageWidth, pageHeight, headerHeight } = ctx;

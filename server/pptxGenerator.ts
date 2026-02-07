@@ -2,7 +2,7 @@ import PptxGenJSModule from "pptxgenjs";
 const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import fs from "fs";
 import path from "path";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "./brandContent";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "@shared/brandContent";
 import type { DocumentSimulationData } from "./documentDataProvider";
 import { createLogger } from "./lib/logger";
 
@@ -137,31 +137,7 @@ export async function generatePresentationPPTX(
     }
   }
 
-  const kpis = [
-    { label: getKpiLabel("pvSize", lang), value: `${simulation.pvSizeKW.toFixed(0)} kWc`, highlight: isKpiHighlighted("pvSize") },
-    { label: getKpiLabel("batterySize", lang), value: `${simulation.battEnergyKWh.toFixed(0)} kWh`, highlight: isKpiHighlighted("batterySize") },
-    { label: getKpiLabel("savings", lang), value: formatCurrency(simulation.savingsYear1), highlight: isKpiHighlighted("savings") },
-    { label: getKpiLabel("npv", lang), value: formatCurrency(simulation.npv25), highlight: isKpiHighlighted("npv") },
-  ];
-  
-  kpis.forEach((kpi, i) => {
-    const x = 0.5 + (i * 2.4);
-    slide1.addShape("rect", {
-      x, y: 3.5, w: 2.2, h: 1,
-      fill: { color: kpi.highlight ? COLORS.gold : COLORS.lightGray }
-    });
-    slide1.addText(kpi.label, {
-      x, y: 3.55, w: 2.2, h: 0.3,
-      fontSize: 10, color: COLORS.mediumGray, align: "center", shrinkText: true
-    });
-    const kpiValueFontSize = kpi.value.length > 12 ? 12 : kpi.value.length > 9 ? 14 : 16;
-    slide1.addText(kpi.value, {
-      x, y: 3.85, w: 2.2, h: 0.5,
-      fontSize: kpiValueFontSize, bold: true, color: kpi.highlight ? COLORS.blue : COLORS.darkGray, align: "center", shrinkText: true
-    });
-  });
-
-  // ================= SLIDE: PROJECT SNAPSHOT =================
+  // ================= SLIDE 2: PROJECT SNAPSHOT =================
   const slideSnap = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slideSnap.addText(t("APERÇU DU PROJET", "PROJECT SNAPSHOT"), {
@@ -210,198 +186,256 @@ export async function generatePresentationPPTX(
     });
   });
 
-  const slide2 = pptx.addSlide({ masterName: "KWHMAIN" });
-  
-  slide2.addText(t("INDICATEURS FINANCIERS", "FINANCIAL HIGHLIGHTS"), {
+  // ================= SLIDE 3: YOUR RESULTS (4 KPIs) =================
+  const slideKPI = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  const act3 = getNarrativeAct("act3_results", lang);
+  slideKPI.addText(t("VOS RÉSULTATS", "YOUR RESULTS"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
   });
-
-  const act3 = getNarrativeAct("act3_results", lang);
-  slide2.addText(act3.subtitle, {
+  slideKPI.addText(act3.subtitle, {
     x: 0.5, y: 1.2, w: 9, h: 0.3,
     fontSize: 10, italic: true, color: COLORS.mediumGray
   });
 
-  const financialData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
-    [
-      { text: t("Métrique", "Metric"), options: { bold: true, color: COLORS.white } },
-      { text: t("Valeur", "Value"), options: { bold: true, color: COLORS.white } },
-      { text: t("Métrique", "Metric"), options: { bold: true, color: COLORS.white } },
-      { text: t("Valeur", "Value"), options: { bold: true, color: COLORS.white } }
-    ],
-    [
-      { text: t("Investissement brut", "Gross investment") },
-      { text: formatCurrency(simulation.capexGross) },
-      { text: t("TRI (25 ans)", "IRR (25 years)") },
-      { text: formatPercent(simulation.irr25), options: { bold: true, color: COLORS.green } }
-    ],
-    [
-      { text: t("Subventions Hydro-Québec", "Hydro-Québec Incentives") },
-      { text: formatCurrency(simulation.totalIncentives), options: { color: COLORS.green } },
-      { text: t("Retour simple", "Simple payback") },
-      { text: `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "years")}` }
-    ],
-    [
-      { text: t("Bouclier fiscal", "Tax shield") },
-      { text: formatCurrency(simulation.taxShield), options: { color: COLORS.green } },
-      { text: t("LCOE", "LCOE") },
-      { text: `${simulation.lcoe.toFixed(2)} ¢/kWh` }
-    ],
-    [
-      { text: t("Investissement net", "Net investment"), options: { bold: true } },
-      { text: formatCurrency(simulation.capexNet), options: { bold: true, color: COLORS.blue } },
-      { text: t("VAN (25 ans)", "NPV (25 years)"), options: { bold: true } },
-      { text: formatCurrency(simulation.npv25), options: { bold: true, color: COLORS.green } }
-    ]
+  const kpiCards = [
+    { label: getKpiLabel("savings", lang), value: formatCurrency(simulation.savingsYear1), highlight: false },
+    { label: getKpiLabel("capexNet", lang), value: formatCurrency(simulation.capexNet), highlight: false },
+    { label: getKpiLabel("npv", lang), value: formatCurrency(simulation.npv25), highlight: true },
+    { label: getKpiLabel("irr", lang), value: formatPercent(simulation.irr25), highlight: true },
   ];
-  
-  slide2.addTable(financialData, {
-    x: 0.5, y: 1.6, w: 9.0,
-    fill: { color: COLORS.white },
-    border: { pt: 0.5, color: COLORS.lightGray },
-    fontFace: "Arial",
-    fontSize: 11,
-    color: COLORS.darkGray,
-    valign: "middle",
-    align: "left",
-    colW: [2.5, 2, 2.5, 2],
-    rowH: 0.4
+
+  kpiCards.forEach((kpi, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = 0.5 + col * 4.8;
+    const y = 1.7 + row * 1.6;
+
+    slideKPI.addShape("rect", {
+      x, y, w: 4.5, h: 1.4,
+      fill: { color: kpi.highlight ? COLORS.gold : COLORS.lightGray }
+    });
+    slideKPI.addText(kpi.label, {
+      x: x + 0.2, y: y + 0.1, w: 4.1, h: 0.4,
+      fontSize: 12, color: COLORS.mediumGray, valign: "middle"
+    });
+    slideKPI.addText(kpi.value, {
+      x: x + 0.2, y: y + 0.5, w: 4.1, h: 0.7,
+      fontSize: 28, bold: true, color: kpi.highlight ? COLORS.blue : COLORS.darkGray, valign: "middle"
+    });
   });
 
-  const slide3 = pptx.addSlide({ masterName: "KWHMAIN" });
-  
-  slide3.addText(t("SUBVENTIONS ET INCITATIFS", "INCENTIVES & SUBSIDIES"), {
+  // ================= SLIDE 4: NET INVESTMENT BREAKDOWN (Waterfall) =================
+  const slideWaterfall = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideWaterfall.addText(t("VENTILATION DE L'INVESTISSEMENT NET", "NET INVESTMENT BREAKDOWN"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
   });
 
-  const totalIncentives = (simulation.totalIncentives || 0) + (simulation.taxShield || 0);
-  const hqWidth = totalIncentives > 0 ? ((simulation.totalIncentives || 0) / totalIncentives) * 7.5 : 3.75;
-  const taxWidth = totalIncentives > 0 ? ((simulation.taxShield || 0) / totalIncentives) * 7.5 : 3.75;
-  
-  slide3.addShape("rect", {
-    x: 0.5, y: 1.6, w: Math.max(0.1, hqWidth), h: 0.5, fill: { color: COLORS.blue }
-  });
-  slide3.addShape("rect", {
-    x: 0.5 + hqWidth, y: 1.6, w: Math.max(0.1, taxWidth), h: 0.5, fill: { color: COLORS.green }
-  });
-  
-  slide3.addText(formatCurrency(totalIncentives), {
-    x: 8.2, y: 1.65, w: 1.5, h: 0.4,
-    fontSize: 16, bold: true, color: COLORS.darkGray
-  });
+  // Waterfall chart: CAPEX Brut → -HQ Solaire → -HQ Batterie → -ITC Fédéral → = Net
+  const capexGross = simulation.capexGross || 0;
+  const hqSolar = simulation.incentivesHQSolar || 0;
+  const hqBattery = simulation.incentivesHQBattery || 0;
+  const itcFederal = simulation.incentivesFederal || 0;
+  const capexNet = simulation.capexNet || 0;
 
-  slide3.addShape("rect", { x: 0.5, y: 2.3, w: 0.3, h: 0.2, fill: { color: COLORS.blue } });
-  slide3.addText(t(`Hydro-Québec: ${formatCurrency(simulation.totalIncentives)}`, `Hydro-Québec: ${formatCurrency(simulation.totalIncentives)}`), {
-    x: 0.9, y: 2.3, w: 4, h: 0.2, fontSize: 10, color: COLORS.darkGray
-  });
-  
-  slide3.addShape("rect", { x: 5, y: 2.3, w: 0.3, h: 0.2, fill: { color: COLORS.green } });
-  slide3.addText(t(`Bouclier fiscal: ${formatCurrency(simulation.taxShield)}`, `Tax shield: ${formatCurrency(simulation.taxShield)}`), {
-    x: 5.4, y: 2.3, w: 4, h: 0.2, fontSize: 10, color: COLORS.darkGray
-  });
-
-  const incentiveBreakdown: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
-    [
-      { text: t("Source", "Source"), options: { bold: true, color: COLORS.white } },
-      { text: t("Description", "Description"), options: { bold: true, color: COLORS.white } },
-      { text: t("Montant", "Amount"), options: { bold: true, color: COLORS.white } }
-    ],
-    [
-      { text: "Hydro-Québec" },
-      { text: t("Subvention panneaux solaires", "Solar panels incentive") },
-      { text: formatCurrency(simulation.incentivesHQSolar), options: { color: COLORS.green } }
-    ],
-    [
-      { text: "Hydro-Québec" },
-      { text: t("Subvention stockage", "Storage incentive") },
-      { text: formatCurrency(simulation.incentivesHQBattery), options: { color: COLORS.green } }
-    ],
-    [
-      { text: t("Fédéral", "Federal") },
-      { text: t("Crédit d'impôt à l'investissement (30%)", "Investment Tax Credit (30%)") },
-      { text: formatCurrency(simulation.incentivesFederal), options: { color: COLORS.green } }
-    ],
-    [
-      { text: t("Bouclier fiscal", "Tax shield") },
-      { text: t("Amortissement accéléré (DPA Catégorie 43.2)", "Accelerated depreciation (CCA Class 43.2)") },
-      { text: formatCurrency(simulation.taxShield), options: { color: COLORS.green } }
-    ],
-    [
-      { text: t("TOTAL", "TOTAL"), options: { bold: true } },
-      { text: "" },
-      { text: formatCurrency(totalIncentives), options: { bold: true, color: COLORS.blue } }
-    ]
+  const waterfallBars = [
+    { label: t("CAPEX Brut", "Gross CAPEX"), value: capexGross, type: "start" as const },
+    { label: t("-HQ Solaire", "-HQ Solar"), value: hqSolar, type: "deduction" as const },
+    { label: t("-HQ Batterie", "-HQ Battery"), value: hqBattery, type: "deduction" as const },
+    { label: t("-ITC Fédéral", "-Federal ITC"), value: itcFederal, type: "deduction" as const },
+    { label: t("= Net", "= Net"), value: capexNet, type: "total" as const },
   ];
-  
-  slide3.addTable(incentiveBreakdown, {
-    x: 0.5, y: 2.8, w: 9.0,
-    fill: { color: COLORS.white },
-    border: { pt: 0.5, color: COLORS.lightGray },
-    fontFace: "Arial",
-    fontSize: 10,
-    color: COLORS.darkGray,
-    valign: "middle",
-    align: "left",
-    colW: [2, 5, 2],
-    rowH: 0.35
+
+  const wfChartX = 0.5;
+  const wfChartY = 1.6;
+  const wfChartHeight = 3.2;
+  const maxWfValue = Math.max(capexGross, 1);
+  const wfScale = wfChartHeight / maxWfValue;
+  const wfBarWidth = 1.5;
+  const wfGap = 0.35;
+
+  let runningTotal = capexGross;
+
+  waterfallBars.forEach((bar, i) => {
+    const x = wfChartX + i * (wfBarWidth + wfGap);
+
+    if (bar.type === "start") {
+      // Full bar from bottom
+      const barH = Math.max(0.05, bar.value * wfScale);
+      const barY = wfChartY + wfChartHeight - barH;
+      slideWaterfall.addShape("rect", {
+        x, y: barY, w: wfBarWidth, h: barH,
+        fill: { color: COLORS.blue }
+      });
+      // Value label
+      slideWaterfall.addText(formatCurrency(bar.value), {
+        x, y: barY - 0.3, w: wfBarWidth, h: 0.25,
+        fontSize: 10, bold: true, color: COLORS.blue, align: "center"
+      });
+    } else if (bar.type === "deduction") {
+      // Floating deduction bar
+      const prevTop = wfChartY + wfChartHeight - runningTotal * wfScale;
+      const barH = Math.max(0.05, bar.value * wfScale);
+      slideWaterfall.addShape("rect", {
+        x, y: prevTop, w: wfBarWidth, h: barH,
+        fill: { color: "DC2626" }
+      });
+      // Value label
+      if (bar.value > 0) {
+        slideWaterfall.addText(`-${formatCurrency(bar.value)}`, {
+          x, y: prevTop + barH / 2 - 0.12, w: wfBarWidth, h: 0.25,
+          fontSize: 9, bold: true, color: COLORS.white, align: "center"
+        });
+      }
+      runningTotal -= bar.value;
+    } else {
+      // Total (net) bar from bottom
+      const barH = Math.max(0.05, bar.value * wfScale);
+      const barY = wfChartY + wfChartHeight - barH;
+      slideWaterfall.addShape("rect", {
+        x, y: barY, w: wfBarWidth, h: barH,
+        fill: { color: COLORS.green }
+      });
+      // Value label
+      slideWaterfall.addText(formatCurrency(bar.value), {
+        x, y: barY - 0.3, w: wfBarWidth, h: 0.25,
+        fontSize: 10, bold: true, color: COLORS.green, align: "center"
+      });
+    }
+
+    // Bar label below
+    slideWaterfall.addText(bar.label, {
+      x, y: wfChartY + wfChartHeight + 0.1, w: wfBarWidth, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray, align: "center"
+    });
   });
 
+  // ================= SLIDE 5: ROOF CONFIGURATION =================
+  const slideRoof = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideRoof.addText(t("CONFIGURATION TOITURE", "ROOF CONFIGURATION"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  if (roofImageBuffer) {
+    try {
+      const base64Image = roofImageBuffer.toString("base64");
+      slideRoof.addImage({
+        data: `data:image/png;base64,${base64Image}`,
+        x: 0.5, y: 1.5, w: 5.5, h: 3.5
+      });
+    } catch (imgError) {
+      log.error("Failed to add roof image to roof slide:", imgError);
+    }
+  } else {
+    slideRoof.addText(t("Image satellite non disponible", "Satellite image not available"), {
+      x: 0.5, y: 2.5, w: 5.5, h: 0.5,
+      fontSize: 12, color: COLORS.mediumGray, align: "center"
+    });
+  }
+
+  // Sizing summary on the right
+  slideRoof.addShape("rect", {
+    x: 6.3, y: 1.5, w: 3.5, h: 3.5,
+    fill: { color: COLORS.lightGray }
+  });
+
+  slideRoof.addText(t("DIMENSIONNEMENT", "SIZING SUMMARY"), {
+    x: 6.5, y: 1.6, w: 3.1, h: 0.35,
+    fontSize: 14, bold: true, color: COLORS.blue
+  });
+
+  const roofSummary = [
+    { label: t("Puissance solaire", "Solar capacity"), value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
+    { label: t("Stockage", "Storage"), value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh` : t("Non inclus", "N/A") },
+    { label: t("Production An 1", "Year-1 production"), value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
+    { label: t("Autoconsommation", "Self-consumption"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
+  ];
+
+  roofSummary.forEach((item, i) => {
+    const y = 2.1 + i * 0.65;
+    slideRoof.addText(item.label, {
+      x: 6.5, y, w: 3.1, h: 0.25,
+      fontSize: 9, color: COLORS.mediumGray
+    });
+    slideRoof.addText(item.value, {
+      x: 6.5, y: y + 0.22, w: 3.1, h: 0.3,
+      fontSize: 14, bold: true, color: COLORS.blue
+    });
+  });
+
+  // ================= SLIDE 6: FINANCIAL PROJECTIONS (Cashflow + Cost of Inaction) =================
   if (simulation.cashflows && simulation.cashflows.length > 0) {
-    const slide4 = pptx.addSlide({ masterName: "KWHMAIN" });
-    
-    slide4.addText(t("FLUX DE TRÉSORERIE CUMULATIF", "CUMULATIVE CASHFLOW"), {
+    const slideCashflow = pptx.addSlide({ masterName: "KWHMAIN" });
+
+    slideCashflow.addText(t("PROJECTIONS FINANCIÈRES", "FINANCIAL PROJECTIONS"), {
       x: 0.5, y: 0.8, w: 9, h: 0.5,
       fontSize: 22, bold: true, color: COLORS.blue
     });
-    
+
     const chartData = simulation.cashflows.slice(0, 26).map(cf => ({
       year: cf.year,
       value: Math.round(((cf as any).cumulative || (cf as any).cumulativeCashflow || 0) / 1000)
     }));
-    
-    const maxVal = Math.max(...chartData.map(d => Math.abs(d.value)), 1); // Minimum of 1 to avoid division by zero
-    const scale = 3.5 / maxVal;
+
+    const maxVal = Math.max(...chartData.map(d => Math.abs(d.value)), 1);
+    const scale = 3.0 / maxVal;
     const chartX = 0.5;
     const chartY = 1.5;
     const chartWidth = 9;
-    const chartHeight = 3.5;
+    const chartHeight = 3.0;
     const barWidth = (chartWidth / chartData.length) * 0.7;
     const zeroLine = chartY + chartHeight / 2;
-    
-    slide4.addShape("line", {
+
+    slideCashflow.addShape("line", {
       x: chartX, y: zeroLine, w: chartWidth, h: 0,
       line: { color: COLORS.mediumGray, width: 1 }
     });
-    
+
     chartData.forEach((d, i) => {
       const x = chartX + (i / chartData.length) * chartWidth + (chartWidth / chartData.length) * 0.15;
-      const height = Math.max(0.02, Math.abs(d.value * scale)); // Minimum bar height to avoid invisible/zero-height rects
+      const height = Math.max(0.02, Math.abs(d.value * scale));
       const isNegative = d.value < 0;
       const y = isNegative ? zeroLine : zeroLine - height;
-      
-      slide4.addShape("rect", {
+
+      slideCashflow.addShape("rect", {
         x, y, w: barWidth, h: height,
         fill: { color: isNegative ? "DC2626" : COLORS.green }
       });
-      
+
       if (i % 5 === 0 || i === chartData.length - 1) {
-        slide4.addText(d.year.toString(), {
+        slideCashflow.addText(d.year.toString(), {
           x: x - 0.1, y: zeroLine + chartHeight / 2 + 0.1, w: 0.5, h: 0.2,
           fontSize: 8, color: COLORS.mediumGray, align: "center"
         });
       }
     });
-    
-    slide4.addText(t("Positif (vert) = profit cumulé | Négatif (rouge) = période de récupération", 
+
+    slideCashflow.addText(t("Positif (vert) = profit cumulé | Négatif (rouge) = période de récupération",
                      "Positive (green) = cumulative profit | Negative (red) = payback period"), {
-      x: 0.5, y: 5, w: 9, h: 0.3,
+      x: 0.5, y: 4.6, w: 9, h: 0.25,
       fontSize: 9, color: COLORS.mediumGray, align: "center"
+    });
+
+    // Cost of inaction callout
+    const annualSavings = simulation.savingsYear1 || simulation.annualSavings || 0;
+    const costOfInaction = annualSavings * 25;
+    slideCashflow.addShape("rect", {
+      x: 1.5, y: 4.9, w: 7, h: 0.5,
+      fill: { color: "FFF3CD" }
+    });
+    slideCashflow.addText(
+      t(`Coût de l'inaction sur 25 ans: ${formatCurrency(costOfInaction)}`, `Cost of inaction over 25 years: ${formatCurrency(costOfInaction)}`), {
+      x: 1.5, y: 4.95, w: 7, h: 0.4,
+      fontSize: 12, bold: true, color: "856404", align: "center"
     });
   }
 
-  // ================= SLIDE: ASSUMPTIONS & EXCLUSIONS =================
+  // ================= SLIDE 7: ASSUMPTIONS & EXCLUSIONS =================
   const slideAssump = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slideAssump.addText(t("HYPOTHÈSES ET EXCLUSIONS", "ASSUMPTIONS & EXCLUSIONS"), {
@@ -446,38 +480,55 @@ export async function generatePresentationPPTX(
     });
   });
 
-  // ================= SLIDE: EQUIPMENT & TIMELINE =================
+  // ================= SLIDE 8: EQUIPMENT & WARRANTIES =================
   const slideEquip = pptx.addSlide({ masterName: "KWHMAIN" });
 
-  slideEquip.addText(t("ÉQUIPEMENT ET ÉCHÉANCIER", "EQUIPMENT & TIMELINE"), {
+  slideEquip.addText(t("ÉQUIPEMENT ET GARANTIES", "EQUIPMENT & WARRANTIES"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideEquip.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
   });
 
   const equipment = getEquipment(lang);
   equipment.forEach((eq, i) => {
     const x = 0.5 + i * 2.4;
     slideEquip.addShape("rect", {
-      x, y: 1.5, w: 2.2, h: 1.2,
+      x, y: 1.7, w: 2.2, h: 1.8,
       fill: { color: COLORS.lightGray }
     });
     slideEquip.addText(eq.label, {
-      x, y: 1.55, w: 2.2, h: 0.5,
-      fontSize: 10, color: COLORS.darkGray, align: "center", valign: "middle"
+      x, y: 1.8, w: 2.2, h: 0.7,
+      fontSize: 12, color: COLORS.darkGray, align: "center", valign: "middle"
     });
     slideEquip.addText(eq.warranty, {
-      x, y: 2.05, w: 2.2, h: 0.4,
-      fontSize: 14, bold: true, color: COLORS.blue, align: "center"
+      x, y: 2.5, w: 2.2, h: 0.5,
+      fontSize: 18, bold: true, color: COLORS.blue, align: "center"
     });
     slideEquip.addText(t("garantie", "warranty"), {
-      x, y: 2.4, w: 2.2, h: 0.25,
-      fontSize: 8, color: COLORS.mediumGray, align: "center"
+      x, y: 3.0, w: 2.2, h: 0.3,
+      fontSize: 10, color: COLORS.mediumGray, align: "center"
     });
   });
 
-  slideEquip.addText(t("ÉCHÉANCIER TYPE", "TYPICAL TIMELINE"), {
-    x: 0.5, y: 3.1, w: 9, h: 0.4,
-    fontSize: 16, bold: true, color: COLORS.blue
+  slideEquip.addText(t("Équipement indicatif — marques et modèles finaux confirmés dans la soumission ferme",
+                        "Indicative equipment — final brands and models confirmed in the firm quote"), {
+    x: 0.5, y: 3.8, w: 9, h: 0.3,
+    fontSize: 8, color: COLORS.mediumGray, align: "center"
+  });
+
+  // ================= SLIDE 9: TIMELINE =================
+  const slideTimeline = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideTimeline.addText(t("ÉCHÉANCIER TYPE", "TYPICAL TIMELINE"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideTimeline.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
   });
 
   const timeline = getTimeline(lang);
@@ -486,35 +537,36 @@ export async function generatePresentationPPTX(
     const bgColor = i === 0 ? COLORS.blue : (i === timeline.length - 1 ? COLORS.green : COLORS.lightGray);
     const txtColor = (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.darkGray;
 
-    slideEquip.addShape("rect", {
-      x, y: 3.6, w: 1.7, h: 0.9,
+    slideTimeline.addShape("rect", {
+      x, y: 2.0, w: 1.7, h: 1.3,
       fill: { color: bgColor }
     });
-    slideEquip.addText(tl.step, {
-      x, y: 3.65, w: 1.7, h: 0.45,
-      fontSize: 10, bold: true, color: txtColor, align: "center", valign: "middle"
+    slideTimeline.addText(tl.step, {
+      x, y: 2.1, w: 1.7, h: 0.6,
+      fontSize: 12, bold: true, color: txtColor, align: "center", valign: "middle"
     });
     if (tl.duration) {
-      slideEquip.addText(tl.duration, {
-        x, y: 4.1, w: 1.7, h: 0.35,
-        fontSize: 9, color: (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.mediumGray, align: "center"
+      slideTimeline.addText(tl.duration, {
+        x, y: 2.7, w: 1.7, h: 0.4,
+        fontSize: 11, color: (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.mediumGray, align: "center"
       });
     }
-    
+
     if (i < timeline.length - 1) {
-      slideEquip.addText("▶", {
-        x: x + 1.7, y: 3.85, w: 0.2, h: 0.3,
-        fontSize: 10, color: COLORS.gold
+      slideTimeline.addText("▶", {
+        x: x + 1.7, y: 2.4, w: 0.2, h: 0.4,
+        fontSize: 14, color: COLORS.gold
       });
     }
   });
 
-  slideEquip.addText(t("Délais sujets à approbation Hydro-Québec", "Timelines subject to Hydro-Québec approval"), {
-    x: 0.5, y: 4.7, w: 9, h: 0.3,
-    fontSize: 8, color: COLORS.mediumGray, align: "center"
+  slideTimeline.addText(t("Délais sujets à approbation Hydro-Québec et conditions météorologiques",
+                           "Timelines subject to Hydro-Québec approval and weather conditions"), {
+    x: 0.5, y: 3.6, w: 9, h: 0.3,
+    fontSize: 9, color: COLORS.mediumGray, align: "center"
   });
 
-  // ================= SLIDE: NEXT STEPS =================
+  // ================= SLIDE 10: NEXT STEPS =================
   const slide5 = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slide5.addText(t("PROCHAINES ÉTAPES", "NEXT STEPS"), {
@@ -589,7 +641,7 @@ export async function generatePresentationPPTX(
     fontSize: 11, color: COLORS.gold, align: "center"
   });
 
-  // ================= SLIDE: REFERENCES =================
+  // ================= SLIDE 11: THEY TRUST US =================
   const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
 
   // Titre - utilise brandContent
