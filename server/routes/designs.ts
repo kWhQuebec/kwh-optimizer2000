@@ -162,7 +162,16 @@ router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, async (
 
     const optimizedSimulation = applyOptimalScenario(docData.simulation);
     const { generatePresentationPPTX } = await import("../pptxGenerator");
-    const pptxBuffer = await generatePresentationPPTX(optimizedSimulation, docData.roofVisualizationBuffer, lang);
+    const pptxOptions = {
+      catalogEquipment: optimizedSimulation.catalogEquipment,
+      constructionTimeline: optimizedSimulation.constructionTimeline,
+      roofPolygons: optimizedSimulation.roofPolygons?.map(p => ({
+        label: p.label,
+        areaSqM: p.areaSqM,
+        orientation: p.orientation,
+      })),
+    };
+    const pptxBuffer = await generatePresentationPPTX(optimizedSimulation, docData.roofVisualizationBuffer, lang, pptxOptions);
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
     res.setHeader("Content-Disposition", `attachment; filename="proposition-${docData.simulation.site.name.replace(/\s+/g, '-')}.pptx"`);

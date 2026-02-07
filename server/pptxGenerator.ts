@@ -20,10 +20,17 @@ const COLORS = {
 
 type SimulationData = DocumentSimulationData;
 
+export interface PPTXOptions {
+  catalogEquipment?: Array<{ name: string; manufacturer: string; warranty: string; spec: string; category: string }>;
+  constructionTimeline?: Array<{ step: string; duration: string; status?: string }>;
+  roofPolygons?: Array<{ label?: string; areaSqM: number; orientation?: number }>;
+}
+
 export async function generatePresentationPPTX(
   simulation: SimulationData,
   roofImageBuffer: Buffer | undefined,
-  lang: "fr" | "en" = "fr"
+  lang: "fr" | "en" = "fr",
+  options?: PPTXOptions
 ): Promise<Buffer> {
   const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
   
@@ -226,6 +233,18 @@ export async function generatePresentationPPTX(
     });
   });
 
+  // Supplementary metrics line below KPIs
+  const lcoeValue = simulation.lcoe || 0;
+  const co2Value = simulation.co2AvoidedTonnesPerYear || 0;
+  const backupHours = (simulation.battEnergyKWh > 0 && simulation.peakDemandKW > 0)
+    ? (simulation.battEnergyKWh / (simulation.peakDemandKW * 0.3)).toFixed(1)
+    : "0";
+  const metricsLine = `LCOE: ${lcoeValue.toFixed(2)} ¢/kWh  |  CO₂: ${co2Value.toFixed(1)} t/${t("an", "yr")}  |  ${t("Autonomie batterie", "Battery backup")}: ${backupHours}h`;
+  slideKPI.addText(metricsLine, {
+    x: 0.5, y: 4.7, w: 9, h: 0.3,
+    fontSize: 11, color: COLORS.mediumGray, align: "center"
+  });
+
   // ================= SLIDE 4: NET INVESTMENT BREAKDOWN (Waterfall) =================
   const slideWaterfall = pptx.addSlide({ masterName: "KWHMAIN" });
 
@@ -241,11 +260,14 @@ export async function generatePresentationPPTX(
   const itcFederal = simulation.incentivesFederal || 0;
   const capexNet = simulation.capexNet || 0;
 
+  const taxShield = simulation.taxShield || 0;
+
   const waterfallBars = [
     { label: t("CAPEX Brut", "Gross CAPEX"), value: capexGross, type: "start" as const },
     { label: t("-HQ Solaire", "-HQ Solar"), value: hqSolar, type: "deduction" as const },
     { label: t("-HQ Batterie", "-HQ Battery"), value: hqBattery, type: "deduction" as const },
     { label: t("-ITC Fédéral", "-Federal ITC"), value: itcFederal, type: "deduction" as const },
+    { label: t("-Bouclier Fiscal", "-Tax Shield"), value: taxShield, type: "deduction" as const },
     { label: t("= Net", "= Net"), value: capexNet, type: "total" as const },
   ];
 
@@ -254,8 +276,8 @@ export async function generatePresentationPPTX(
   const wfChartHeight = 3.2;
   const maxWfValue = Math.max(capexGross, 1);
   const wfScale = wfChartHeight / maxWfValue;
-  const wfBarWidth = 1.5;
-  const wfGap = 0.35;
+  const wfBarWidth = 1.2;
+  const wfGap = 0.25;
 
   let runningTotal = capexGross;
 
@@ -367,6 +389,43 @@ export async function generatePresentationPPTX(
       fontSize: 14, bold: true, color: COLORS.blue
     });
   });
+
+  // Per-zone roof polygon table (if available)
+  if (options?.roofPolygons && options.roofPolygons.length > 0) {
+    const orientLabel = (deg: number | undefined) => {
+      if (deg === undefined) return "—";
+      if (deg >= 337.5 || deg < 22.5) return "N";
+      if (deg < 67.5) return "NE";
+      if (deg < 112.5) return "E";
+      if (deg < 157.5) return "SE";
+      if (deg < 202.5) return "S";
+      if (deg < 247.5) return "SW";
+      if (deg < 292.5) return "W";
+      return "NW";
+    };
+    const polyTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
+      [
+        { text: "Zone", options: { bold: true, color: COLORS.white } },
+        { text: "m²", options: { bold: true, color: COLORS.white } },
+        { text: t("Orient.", "Orient."), options: { bold: true, color: COLORS.white } },
+      ],
+      ...options.roofPolygons.map((p, i) => [
+        { text: p.label || `Zone ${i + 1}` },
+        { text: `${Math.round(p.areaSqM)}` },
+        { text: orientLabel(p.orientation) },
+      ])
+    ];
+    slideRoof.addTable(polyTableData, {
+      x: 6.3, y: 3.7, w: 3.5,
+      fill: { color: COLORS.white },
+      border: { pt: 0.5, color: COLORS.lightGray },
+      fontFace: "Arial",
+      fontSize: 8,
+      color: COLORS.darkGray,
+      colW: [1.2, 0.8, 0.8],
+      rowH: 0.22
+    });
+  }
 
   // ================= SLIDE 6: FINANCIAL PROJECTIONS (Cashflow + Cost of Inaction) =================
   if (simulation.cashflows && simulation.cashflows.length > 0) {
@@ -492,26 +551,54 @@ export async function generatePresentationPPTX(
     x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
   });
 
-  const equipment = getEquipment(lang);
-  equipment.forEach((eq, i) => {
-    const x = 0.5 + i * 2.4;
-    slideEquip.addShape("rect", {
-      x, y: 1.7, w: 2.2, h: 1.8,
-      fill: { color: COLORS.lightGray }
+  const dynamicEquip = options?.catalogEquipment;
+  if (dynamicEquip && dynamicEquip.length > 0) {
+    // Use dynamic equipment from DB
+    const eqTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
+      [
+        { text: t("Équipement", "Equipment"), options: { bold: true, color: COLORS.white } },
+        { text: t("Fabricant", "Manufacturer"), options: { bold: true, color: COLORS.white } },
+        { text: t("Garantie", "Warranty"), options: { bold: true, color: COLORS.white } },
+      ],
+      ...dynamicEquip.map(eq => [
+        { text: eq.name },
+        { text: eq.manufacturer },
+        { text: eq.warranty, options: { bold: true, color: COLORS.blue } },
+      ])
+    ];
+    slideEquip.addTable(eqTableData, {
+      x: 0.5, y: 1.7, w: 9,
+      fill: { color: COLORS.white },
+      border: { pt: 0.5, color: COLORS.lightGray },
+      fontFace: "Arial",
+      fontSize: 10,
+      color: COLORS.darkGray,
+      colW: [4, 2.5, 2.5],
+      rowH: 0.35
     });
-    slideEquip.addText(eq.label, {
-      x, y: 1.8, w: 2.2, h: 0.7,
-      fontSize: 12, color: COLORS.darkGray, align: "center", valign: "middle"
+  } else {
+    // Fallback to brandContent defaults
+    const equipment = getEquipment(lang);
+    equipment.forEach((eq, i) => {
+      const x = 0.5 + i * 2.4;
+      slideEquip.addShape("rect", {
+        x, y: 1.7, w: 2.2, h: 1.8,
+        fill: { color: COLORS.lightGray }
+      });
+      slideEquip.addText(eq.label, {
+        x, y: 1.8, w: 2.2, h: 0.7,
+        fontSize: 12, color: COLORS.darkGray, align: "center", valign: "middle"
+      });
+      slideEquip.addText(eq.warranty, {
+        x, y: 2.5, w: 2.2, h: 0.5,
+        fontSize: 18, bold: true, color: COLORS.blue, align: "center"
+      });
+      slideEquip.addText(t("garantie", "warranty"), {
+        x, y: 3.0, w: 2.2, h: 0.3,
+        fontSize: 10, color: COLORS.mediumGray, align: "center"
+      });
     });
-    slideEquip.addText(eq.warranty, {
-      x, y: 2.5, w: 2.2, h: 0.5,
-      fontSize: 18, bold: true, color: COLORS.blue, align: "center"
-    });
-    slideEquip.addText(t("garantie", "warranty"), {
-      x, y: 3.0, w: 2.2, h: 0.3,
-      fontSize: 10, color: COLORS.mediumGray, align: "center"
-    });
-  });
+  }
 
   slideEquip.addText(t("Équipement indicatif — marques et modèles finaux confirmés dans la soumission ferme",
                         "Indicative equipment — final brands and models confirmed in the firm quote"), {
@@ -531,34 +618,67 @@ export async function generatePresentationPPTX(
     x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
   });
 
-  const timeline = getTimeline(lang);
-  timeline.forEach((tl, i) => {
-    const x = 0.5 + i * 1.9;
-    const bgColor = i === 0 ? COLORS.blue : (i === timeline.length - 1 ? COLORS.green : COLORS.lightGray);
-    const txtColor = (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.darkGray;
+  const dynamicTimeline = options?.constructionTimeline;
+  if (dynamicTimeline && dynamicTimeline.length > 0) {
+    // Use dynamic timeline from DB
+    dynamicTimeline.forEach((tl, i) => {
+      const x = 0.5 + i * (9 / dynamicTimeline.length);
+      const stepW = Math.min(1.7, (9 / dynamicTimeline.length) - 0.2);
+      const bgColor = i === 0 ? COLORS.blue : (i === dynamicTimeline.length - 1 ? COLORS.green : COLORS.lightGray);
+      const txtColor = (i === 0 || i === dynamicTimeline.length - 1) ? COLORS.white : COLORS.darkGray;
 
-    slideTimeline.addShape("rect", {
-      x, y: 2.0, w: 1.7, h: 1.3,
-      fill: { color: bgColor }
-    });
-    slideTimeline.addText(tl.step, {
-      x, y: 2.1, w: 1.7, h: 0.6,
-      fontSize: 12, bold: true, color: txtColor, align: "center", valign: "middle"
-    });
-    if (tl.duration) {
-      slideTimeline.addText(tl.duration, {
-        x, y: 2.7, w: 1.7, h: 0.4,
-        fontSize: 11, color: (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.mediumGray, align: "center"
+      slideTimeline.addShape("rect", {
+        x, y: 2.0, w: stepW, h: 1.3,
+        fill: { color: bgColor }
       });
-    }
+      slideTimeline.addText(tl.step, {
+        x, y: 2.1, w: stepW, h: 0.6,
+        fontSize: 11, bold: true, color: txtColor, align: "center", valign: "middle"
+      });
+      if (tl.duration) {
+        slideTimeline.addText(tl.duration, {
+          x, y: 2.7, w: stepW, h: 0.4,
+          fontSize: 10, color: (i === 0 || i === dynamicTimeline.length - 1) ? COLORS.white : COLORS.mediumGray, align: "center"
+        });
+      }
+      if (i < dynamicTimeline.length - 1) {
+        slideTimeline.addText("▶", {
+          x: x + stepW, y: 2.4, w: 0.2, h: 0.4,
+          fontSize: 14, color: COLORS.gold
+        });
+      }
+    });
+  } else {
+    // Fallback to brandContent defaults
+    const timeline = getTimeline(lang);
+    timeline.forEach((tl, i) => {
+      const x = 0.5 + i * 1.9;
+      const bgColor = i === 0 ? COLORS.blue : (i === timeline.length - 1 ? COLORS.green : COLORS.lightGray);
+      const txtColor = (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.darkGray;
 
-    if (i < timeline.length - 1) {
-      slideTimeline.addText("▶", {
-        x: x + 1.7, y: 2.4, w: 0.2, h: 0.4,
-        fontSize: 14, color: COLORS.gold
+      slideTimeline.addShape("rect", {
+        x, y: 2.0, w: 1.7, h: 1.3,
+        fill: { color: bgColor }
       });
-    }
-  });
+      slideTimeline.addText(tl.step, {
+        x, y: 2.1, w: 1.7, h: 0.6,
+        fontSize: 12, bold: true, color: txtColor, align: "center", valign: "middle"
+      });
+      if (tl.duration) {
+        slideTimeline.addText(tl.duration, {
+          x, y: 2.7, w: 1.7, h: 0.4,
+          fontSize: 11, color: (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.mediumGray, align: "center"
+        });
+      }
+
+      if (i < timeline.length - 1) {
+        slideTimeline.addText("▶", {
+          x: x + 1.7, y: 2.4, w: 0.2, h: 0.4,
+          fontSize: 14, color: COLORS.gold
+        });
+      }
+    });
+  }
 
   slideTimeline.addText(t("Délais sujets à approbation Hydro-Québec et conditions météorologiques",
                            "Timelines subject to Hydro-Québec approval and weather conditions"), {

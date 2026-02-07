@@ -265,6 +265,20 @@ const translations: Translations = {
   "analysis.credibility": { fr: "Ils nous font confiance", en: "They Trust Us" },
   "analysis.equipment.note": { fr: "Équipement indicatif — marques et modèles confirmés dans la soumission ferme", en: "Indicative equipment — brands and models confirmed in the firm quote" },
 
+  // Presentation slides (interactive HTML)
+  "presentation.snapshot": { fr: "Aperçu du projet", en: "Project Snapshot" },
+  "presentation.kpi": { fr: "Vos résultats", en: "Your Results" },
+  "presentation.waterfall": { fr: "Ventilation de l'investissement", en: "Investment Breakdown" },
+  "presentation.roofConfig": { fr: "Configuration toiture", en: "Roof Configuration" },
+  "presentation.cashflow": { fr: "Projections financières", en: "Financial Projections" },
+  "presentation.assumptions": { fr: "Hypothèses et exclusions", en: "Assumptions & Exclusions" },
+  "presentation.equipment": { fr: "Équipement et garanties", en: "Equipment & Warranties" },
+  "presentation.timeline": { fr: "Échéancier type", en: "Typical Timeline" },
+  "presentation.nextSteps": { fr: "Prochaines étapes", en: "Next Steps" },
+  "presentation.credibility": { fr: "Ils nous font confiance", en: "They Trust Us" },
+  "presentation.costOfInaction": { fr: "Coût de l'inaction sur 25 ans", en: "Cost of inaction over 25 years" },
+  "presentation.sizingSummary": { fr: "Dimensionnement", en: "Sizing Summary" },
+
   // Bifacial PV detection
   "bifacial.detected.title": { fr: "Membrane blanche détectée", en: "White membrane detected" },
   "bifacial.detected.description": { fr: "Notre analyse d'imagerie a détecté une membrane de toiture blanche hautement réfléchissante. Les panneaux solaires bi-faciaux peuvent capter la lumière réfléchie du toit, augmentant potentiellement la production d'énergie de 10-15%.", en: "Our imagery analysis detected a highly reflective white roof membrane. Bi-facial solar panels can capture reflected light from the roof, potentially increasing energy production by 10-15%." },
