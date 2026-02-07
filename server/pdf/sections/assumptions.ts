@@ -14,32 +14,32 @@ export function renderAssumptions(ctx: PDFContext) {
   doc.y = headerHeight + 25;
 
   // Assumptions title
-  doc.fontSize(18).fillColor(COLORS.blue).font("Helvetica-Bold");
+  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
   doc.text(t("HYPOTHÈSES CLÉS", "KEY ASSUMPTIONS"), margin, doc.y);
   doc.font("Helvetica");
   doc.y += 8;
   doc.rect(margin, doc.y, 160, 3).fillColor(COLORS.gold).fill();
-  doc.y += 20;
+  doc.y += 12;
 
   // Assumptions table
   const assumptions = getAssumptions(ctx.lang);
-  const assTableRowH = 26;
+  const assTableRowH = 22;
 
   // Header row
   drawRoundedRect(doc, margin, doc.y, contentWidth, assTableRowH, 0, COLORS.blue);
-  doc.fontSize(10).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(t("Hypothèse", "Assumption"), margin + 12, doc.y + 7, { width: contentWidth * 0.65 });
-  doc.text(t("Valeur", "Value"), margin + contentWidth * 0.65, doc.y + 7, { width: contentWidth * 0.35 - 12, align: "right" });
+  doc.fontSize(9).fillColor(COLORS.white).font("Helvetica-Bold");
+  doc.text(t("Hypothèse", "Assumption"), margin + 12, doc.y + 6, { width: contentWidth * 0.65 });
+  doc.text(t("Valeur", "Value"), margin + contentWidth * 0.65, doc.y + 6, { width: contentWidth * 0.35 - 12, align: "right" });
   doc.font("Helvetica");
   doc.y += assTableRowH;
 
   assumptions.forEach((a: any, idx: number) => {
     const rowBg = idx % 2 === 0 ? COLORS.background : COLORS.white;
     doc.rect(margin, doc.y, contentWidth, assTableRowH).fillColor(rowBg).fill();
-    doc.fontSize(10).fillColor(COLORS.darkGray);
-    doc.text(a.label, margin + 12, doc.y + 7, { width: contentWidth * 0.65 });
-    doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
-    doc.text(a.value, margin + contentWidth * 0.65, doc.y + 7, { width: contentWidth * 0.35 - 12, align: "right" });
+    doc.fontSize(9).fillColor(COLORS.darkGray);
+    doc.text(a.label, margin + 12, doc.y + 6, { width: contentWidth * 0.65 });
+    doc.fontSize(9).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text(a.value, margin + contentWidth * 0.65, doc.y + 6, { width: contentWidth * 0.35 - 12, align: "right" });
     doc.font("Helvetica");
     doc.y += assTableRowH;
   });
@@ -47,27 +47,27 @@ export function renderAssumptions(ctx: PDFContext) {
   // Table border
   doc.rect(margin, doc.y - (assumptions.length + 1) * assTableRowH, contentWidth, (assumptions.length + 1) * assTableRowH).strokeColor(COLORS.lightGray).lineWidth(0.5).stroke();
 
-  doc.y += 30;
+  doc.y += 20;
 
   // Exclusions title
-  doc.fontSize(18).fillColor(COLORS.red).font("Helvetica-Bold");
+  doc.fontSize(16).fillColor(COLORS.red).font("Helvetica-Bold");
   doc.text(t("EXCLUSIONS", "EXCLUSIONS"), margin, doc.y);
   doc.font("Helvetica");
   doc.y += 8;
   doc.rect(margin, doc.y, 120, 3).fillColor(COLORS.red).fill();
-  doc.y += 20;
+  doc.y += 12;
 
-  doc.fontSize(10).fillColor(COLORS.mediumGray);
+  doc.fontSize(9).fillColor(COLORS.mediumGray);
   doc.text(t("Les éléments suivants ne sont pas inclus dans cette estimation préliminaire:", "The following items are not included in this preliminary estimate:"), margin, doc.y, { width: contentWidth });
-  doc.y += 20;
+  doc.y += 12;
 
   const exclusions = getExclusions(ctx.lang);
   exclusions.forEach((excl: string) => {
-    doc.fontSize(10).fillColor(COLORS.red).font("Helvetica-Bold");
+    doc.fontSize(9).fillColor(COLORS.red).font("Helvetica-Bold");
     doc.text("✕", margin + 10, doc.y);
     doc.font("Helvetica").fillColor(COLORS.darkGray);
     doc.text(excl, margin + 30, doc.y, { width: contentWidth - 40 });
-    doc.y += 20;
+    doc.y += 16;
   });
 
   doc.y += 15;

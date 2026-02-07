@@ -20,10 +20,31 @@ export function renderFinancialProjections(ctx: PDFContext) {
 
   const paybackYears = simulation.simplePaybackYears || 0;
   if (paybackYears > 0) {
-    doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
-    doc.text(t(`Rentable en ${paybackYears.toFixed(1)} ans`, `Profitable in ${paybackYears.toFixed(1)} years`), margin, doc.y, { width: contentWidth });
-    doc.font("Helvetica");
-    doc.y += 20;
+    const bannerY = doc.y;
+    const bannerHeight = 50;
+    
+    // Draw the rounded rectangle banner with gold background
+    drawRoundedRect(doc, margin, bannerY, contentWidth, bannerHeight, 8, COLORS.gold);
+    
+    // Draw the payback value in large bold white text (24px), centered
+    doc.fontSize(24).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text(
+      t(`${paybackYears.toFixed(1)} ans`, `${paybackYears.toFixed(1)} years`),
+      margin,
+      bannerY + 8,
+      { width: contentWidth, align: "center" }
+    );
+    
+    // Draw the subtitle in smaller white text (10px), centered
+    doc.fontSize(10).fillColor(COLORS.white).font("Helvetica");
+    doc.text(
+      t("Retour sur investissement", "Payback period"),
+      margin,
+      bannerY + 32,
+      { width: contentWidth, align: "center" }
+    );
+    
+    doc.y = bannerY + bannerHeight + 15;
   } else {
     doc.y += 8;
   }

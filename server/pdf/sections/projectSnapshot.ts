@@ -22,7 +22,7 @@ export function renderProjectSnapshot(ctx: PDFContext) {
   doc.y += 15;
 
   doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
-  doc.text(t(`Système de ${simulation.pvSizeKW.toFixed(0)} kWc proposé`, `Proposed ${simulation.pvSizeKW.toFixed(0)} kWp system`), margin, doc.y, { width: contentWidth });
+  doc.text(t(`Système de ${(simulation.pvSizeKW || 0).toFixed(0)} kWc proposé`, `Proposed ${(simulation.pvSizeKW || 0).toFixed(0)} kWp system`), margin, doc.y, { width: contentWidth });
   doc.font("Helvetica");
   doc.y += 25;
 
@@ -35,20 +35,18 @@ export function renderProjectSnapshot(ctx: PDFContext) {
   doc.text(snapLocation || "Québec", margin, doc.y + 20);
   doc.y += 50;
 
-  // Snapshot data grid
+  // Snapshot data grid - 4 main metrics in 2x2
   const snapLabels = getProjectSnapshotLabels(ctx.lang);
-  const snapData: [string, string][] = [
+  const mainMetrics: [string, string][] = [
     [snapLabels.annualConsumption.label, `${Math.round(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh`],
     [snapLabels.peakDemand.label, `${(simulation.peakDemandKW || 0).toFixed(0)} kW`],
-    [snapLabels.solarCapacity.label, `${simulation.pvSizeKW.toFixed(0)} kWc`],
-    [snapLabels.batteryCapacity.label, simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : "0 kWh"],
-    [snapLabels.estimatedProduction.label, `${Math.round((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh`],
-    [t("Autosuffisance solaire", "Solar self-sufficiency"), `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`],
+    [snapLabels.solarCapacity.label, `${(simulation.pvSizeKW || 0).toFixed(0)} kWc`],
+    [snapLabels.batteryCapacity.label, (simulation.battEnergyKWh || 0) > 0 ? `${(simulation.battEnergyKWh || 0).toFixed(0)} kWh / ${(simulation.battPowerKW || 0).toFixed(0)} kW` : "0 kWh"],
   ];
 
   const snapColWidth = (contentWidth - 20) / 2;
-  const snapRowHeight = 55;
-  snapData.forEach(([label, value], idx) => {
+  const snapRowHeight = 65;
+  mainMetrics.forEach(([label, value], idx) => {
     const col = idx % 2;
     const row = Math.floor(idx / 2);
     const sx = margin + col * (snapColWidth + 20);
@@ -59,34 +57,49 @@ export function renderProjectSnapshot(ctx: PDFContext) {
 
     doc.fontSize(9).fillColor(COLORS.mediumGray);
     doc.text(label, sx + 12, sy + 10, { width: snapColWidth - 24 });
-    doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.fontSize(18).fillColor(COLORS.blue).font("Helvetica-Bold");
     doc.text(value, sx + 12, sy + 28, { width: snapColWidth - 24 });
     doc.font("Helvetica");
   });
 
-  doc.y += 3 * (snapRowHeight + 10) + 15;
+  doc.y += 2 * (snapRowHeight + 10) + 15;
 
-  // Bonus KPI metrics row (LCOE + CO2)
+  // Bottom row: 4 compact metrics (LCOE, CO2, Year-1 production, Solar self-sufficiency)
   const lcoe = simulation.lcoe || 0;
   const co2 = simulation.co2AvoidedTonnesPerYear || 0;
-  const metricsColWidth = (contentWidth - 20) / 2;
+  const yearOneProduction = Math.round(((simulation.pvSizeKW || 0) * 1035) || 0);
+  const selfSufficiency = (simulation.selfSufficiencyPercent || 0).toFixed(0);
 
-  // LCOE card
-  drawRoundedRect(doc, margin, doc.y, metricsColWidth, 45, 6, COLORS.blue);
-  doc.fontSize(9).fillColor(COLORS.white);
-  doc.text(t("COÛT ACTUALISÉ DE L'ÉNERGIE (LCOE)", "LEVELIZED COST OF ENERGY (LCOE)"), margin + 12, doc.y + 8, { width: metricsColWidth - 24 });
-  doc.fontSize(16).fillColor(COLORS.gold).font("Helvetica-Bold");
-  doc.text(`${lcoe.toFixed(3)} $/kWh`, margin + 12, doc.y + 24, { width: metricsColWidth - 24 });
-  doc.font("Helvetica");
+  const compactCardWidth = (contentWidth - 30) / 4;
+  const compactCardHeight = 40;
+  const compactCards = [
+    { label: t("COÛT ACTUALISÉ DE L'ÉNERGIE (LCOE)", "LEVELIZED COST OF ENERGY (LCOE)"), value: `${lcoe.toFixed(3)} $/kWh`, isBlue: true },
+    { label: t("CO₂ ÉVITÉ PAR ANNÉE", "CO₂ AVOIDED PER YEAR"), value: `${co2.toFixed(1)} ${t("tonnes", "tonnes")}`, isBlue: true },
+    { label: snapLabels.estimatedProduction.label, value: `${yearOneProduction.toLocaleString()} kWh`, isBlue: false },
+    { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${selfSufficiency}%`, isBlue: false },
+  ];
 
-  // CO2 card
-  const co2X = margin + metricsColWidth + 20;
-  drawRoundedRect(doc, co2X, doc.y, metricsColWidth, 45, 6, COLORS.blue);
-  doc.fontSize(9).fillColor(COLORS.white);
-  doc.text(t("CO₂ ÉVITÉ PAR ANNÉE", "CO₂ AVOIDED PER YEAR"), co2X + 12, doc.y + 8, { width: metricsColWidth - 24 });
-  doc.fontSize(16).fillColor(COLORS.gold).font("Helvetica-Bold");
-  doc.text(`${co2.toFixed(1)} ${t("tonnes", "tonnes")}`, co2X + 12, doc.y + 24, { width: metricsColWidth - 24 });
-  doc.font("Helvetica");
+  compactCards.forEach((card, idx) => {
+    const cx = margin + idx * (compactCardWidth + 10);
+    const cy = doc.y;
+
+    if (card.isBlue) {
+      drawRoundedRect(doc, cx, cy, compactCardWidth, compactCardHeight, 6, COLORS.blue);
+      doc.fontSize(9).fillColor(COLORS.white);
+      doc.text(card.label, cx + 8, cy + 4, { width: compactCardWidth - 16 });
+      doc.fontSize(13).fillColor(COLORS.gold).font("Helvetica-Bold");
+      doc.text(card.value, cx + 8, cy + 20, { width: compactCardWidth - 16 });
+      doc.font("Helvetica");
+    } else {
+      drawRoundedRect(doc, cx, cy, compactCardWidth, compactCardHeight, 6, COLORS.background);
+      doc.roundedRect(cx, cy, compactCardWidth, compactCardHeight, 6).strokeColor(COLORS.lightGray).lineWidth(0.5).stroke();
+      doc.fontSize(9).fillColor(COLORS.mediumGray);
+      doc.text(card.label, cx + 8, cy + 4, { width: compactCardWidth - 16 });
+      doc.fontSize(13).fillColor(COLORS.blue).font("Helvetica-Bold");
+      doc.text(card.value, cx + 8, cy + 20, { width: compactCardWidth - 16 });
+      doc.font("Helvetica");
+    }
+  });
 
   // Footer
   drawPageFooter(ctx, t("Document confidentiel | Généré par kWh Québec | Aperçu du projet", "Confidential document | Generated by kWh Québec | Project snapshot"));

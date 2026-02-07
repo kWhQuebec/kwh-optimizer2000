@@ -8,8 +8,9 @@ export function renderBillComparison(ctx: PDFContext) {
   const annualCostBefore = simulation.annualCostBefore || 0;
   const annualCostAfter = simulation.annualCostAfter || 0;
   const annualSavings = simulation.annualSavings || 0;
+  const savingsPercent = annualCostBefore > 0 ? (annualSavings / annualCostBefore) * 100 : 0;
 
-  if (annualCostBefore <= 0) return;
+  if (annualCostBefore <= 0 || savingsPercent < 10) return;
 
   doc.addPage();
   drawSimpleHeader(ctx);

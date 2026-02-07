@@ -1,7 +1,7 @@
 import path from "path";
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { drawKPICard, drawRoundedRect, drawPageFooter, formatCurrency, formatPercent } from "../helpers";
+import { drawRoundedRect, drawPageFooter, formatCurrency, formatPercent } from "../helpers";
 
 export function renderKPIResults(ctx: PDFContext) {
   const { doc, simulation, t, margin, contentWidth, pageWidth, pageHeight, headerHeight, dateStr } = ctx;
@@ -61,36 +61,92 @@ export function renderKPIResults(ctx: PDFContext) {
   doc.font("Helvetica");
   doc.y += 25;
 
-  // 4 KPI Cards
+  // 4 KPI Cards with distinct colors
   const cardY = doc.y;
   const cardWidth = (contentWidth - 30) / 4;
   const cardHeight = 80;
 
-  drawKPICard(doc, margin, cardY, cardWidth, cardHeight,
-    t("Économies An 1", "Year 1 Savings"),
-    formatCurrency(simulation.savingsYear1 || simulation.annualSavings),
-    ""
-  );
+  // Card 1: Year 1 Savings - Light gold background, gold border, gold value text
+  const card1X = margin;
+  const card1Label = t("Économies An 1", "Year 1 Savings");
+  const card1Value = formatCurrency(simulation.savingsYear1 || simulation.annualSavings);
+  
+  doc.roundedRect(card1X, cardY, cardWidth, cardHeight, 8).fillColor("#FFFBEB").fill();
+  doc.roundedRect(card1X, cardY, cardWidth, cardHeight, 8).strokeColor("#FFB005").lineWidth(1).stroke();
+  
+  doc.fontSize(9).fillColor(COLORS.mediumGray).font("Helvetica-Bold");
+  doc.text(card1Label.toUpperCase(), card1X + 10, cardY + 12, { width: cardWidth - 20, align: "center", lineBreak: false });
+  
+  const card1FontSize = card1Value.length > 15 ? 11 : card1Value.length > 12 ? 13 : card1Value.length > 9 ? 15 : card1Value.length > 6 ? 17 : 20;
+  doc.fontSize(card1FontSize).fillColor("#FFB005").font("Helvetica-Bold");
+  doc.text(card1Value, card1X + 10, cardY + 32, { width: cardWidth - 20, align: "center", lineBreak: false });
+  doc.font("Helvetica");
 
-  drawKPICard(doc, margin + cardWidth + 10, cardY, cardWidth, cardHeight,
-    t("Investissement Net", "Net Investment"),
-    formatCurrency(simulation.capexNet),
-    ""
-  );
+  // Card 2: Net Investment - Light gray background, gray border, dark gray value text
+  const card2X = margin + cardWidth + 10;
+  const card2Label = t("Investissement Net", "Net Investment");
+  const card2Value = formatCurrency(simulation.capexNet);
+  
+  doc.roundedRect(card2X, cardY, cardWidth, cardHeight, 8).fillColor("#F7FAFC").fill();
+  doc.roundedRect(card2X, cardY, cardWidth, cardHeight, 8).strokeColor("#E0E0E0").lineWidth(1).stroke();
+  
+  doc.fontSize(9).fillColor(COLORS.mediumGray).font("Helvetica-Bold");
+  doc.text(card2Label.toUpperCase(), card2X + 10, cardY + 12, { width: cardWidth - 20, align: "center", lineBreak: false });
+  
+  const card2FontSize = card2Value.length > 15 ? 11 : card2Value.length > 12 ? 13 : card2Value.length > 9 ? 15 : card2Value.length > 6 ? 17 : 20;
+  doc.fontSize(card2FontSize).fillColor(COLORS.darkGray).font("Helvetica-Bold");
+  doc.text(card2Value, card2X + 10, cardY + 32, { width: cardWidth - 20, align: "center", lineBreak: false });
+  doc.font("Helvetica");
 
-  drawKPICard(doc, margin + 2 * (cardWidth + 10), cardY, cardWidth, cardHeight,
-    t("Profit Net (VAN)", "Net Profit (NPV)"),
-    formatCurrency(simulation.npv25),
-    t("Sur 25 ans", "Over 25 years"),
-    true
-  );
+  // Card 3: NPV (25yr) - Blue background, gold accent bar at top, white label text, gold value text
+  const card3X = margin + 2 * (cardWidth + 10);
+  const card3Label = t("Profit Net (VAN)", "Net Profit (NPV)");
+  const card3Value = formatCurrency(simulation.npv25);
+  const card3Subtitle = t("Sur 25 ans", "Over 25 years");
+  
+  doc.roundedRect(card3X, cardY, cardWidth, cardHeight, 8).fillColor("#003DA6").fill();
+  doc.roundedRect(card3X, cardY, cardWidth, cardHeight, 8).strokeColor("#003DA6").lineWidth(1).stroke();
+  
+  // Gold accent bar at top
+  doc.rect(card3X, cardY, cardWidth, 3).fillColor("#FFB005").fill();
+  
+  doc.fontSize(9).fillColor(COLORS.white).font("Helvetica-Bold");
+  doc.text(card3Label.toUpperCase(), card3X + 10, cardY + 12, { width: cardWidth - 20, align: "center", lineBreak: false });
+  
+  const card3FontSize = card3Value.length > 15 ? 11 : card3Value.length > 12 ? 13 : card3Value.length > 9 ? 15 : card3Value.length > 6 ? 17 : 20;
+  doc.fontSize(card3FontSize).fillColor("#FFB005").font("Helvetica-Bold");
+  doc.text(card3Value, card3X + 10, cardY + 32, { width: cardWidth - 20, align: "center", lineBreak: false });
+  doc.font("Helvetica");
+  
+  if (card3Subtitle) {
+    doc.fontSize(8).fillColor(COLORS.white);
+    doc.text(card3Subtitle, card3X + 10, cardY + 60, { width: cardWidth - 20, align: "center" });
+  }
 
-  drawKPICard(doc, margin + 3 * (cardWidth + 10), cardY, cardWidth, cardHeight,
-    t("Rendement (TRI)", "Return (IRR)"),
-    formatPercent(simulation.irr25),
-    t("25 ans", "25 years"),
-    true
-  );
+  // Card 4: IRR (25yr) - Green background, white label text, white value text, white accent bar at top
+  const card4X = margin + 3 * (cardWidth + 10);
+  const card4Label = t("Rendement (TRI)", "Return (IRR)");
+  const card4Value = formatPercent(simulation.irr25);
+  const card4Subtitle = t("25 ans", "25 years");
+  
+  doc.roundedRect(card4X, cardY, cardWidth, cardHeight, 8).fillColor("#059669").fill();
+  doc.roundedRect(card4X, cardY, cardWidth, cardHeight, 8).strokeColor("#059669").lineWidth(1).stroke();
+  
+  // White accent bar at top
+  doc.rect(card4X, cardY, cardWidth, 3).fillColor(COLORS.white).fill();
+  
+  doc.fontSize(9).fillColor(COLORS.white).font("Helvetica-Bold");
+  doc.text(card4Label.toUpperCase(), card4X + 10, cardY + 12, { width: cardWidth - 20, align: "center", lineBreak: false });
+  
+  const card4FontSize = card4Value.length > 15 ? 11 : card4Value.length > 12 ? 13 : card4Value.length > 9 ? 15 : card4Value.length > 6 ? 17 : 20;
+  doc.fontSize(card4FontSize).fillColor(COLORS.white).font("Helvetica-Bold");
+  doc.text(card4Value, card4X + 10, cardY + 32, { width: cardWidth - 20, align: "center", lineBreak: false });
+  doc.font("Helvetica");
+  
+  if (card4Subtitle) {
+    doc.fontSize(8).fillColor(COLORS.white);
+    doc.text(card4Subtitle, card4X + 10, cardY + 60, { width: cardWidth - 20, align: "center" });
+  }
 
   doc.y = cardY + cardHeight + 25;
 
@@ -110,9 +166,9 @@ export function renderKPIResults(ctx: PDFContext) {
   doc.moveDown(0.5);
 
   const configData = [
-    [t("Puissance solaire :", "Solar power:"), `${simulation.pvSizeKW.toFixed(0)} kWc`],
-    [t("Capacité Batterie :", "Battery Capacity:"), `${simulation.battEnergyKWh.toFixed(0)} kWh`],
-    [t("Puissance Batterie :", "Battery Power:"), `${simulation.battPowerKW.toFixed(1)} kW`],
+    [t("Puissance solaire :", "Solar power:"), `${(simulation.pvSizeKW || 0).toFixed(0)} kWc`],
+    [t("Capacité Batterie :", "Battery Capacity:"), `${(simulation.battEnergyKWh || 0).toFixed(0)} kWh`],
+    [t("Puissance Batterie :", "Battery Power:"), `${(simulation.battPowerKW || 0).toFixed(1)} kW`],
     [t("Toiture totale :", "Total roof:"), `${Math.round(simulation.assumptions?.roofAreaSqFt || 0).toLocaleString()} pi²`],
     [t("Potentiel solaire :", "Solar potential:"), `${Math.round((simulation.assumptions?.roofAreaSqFt || 0) * (simulation.assumptions?.roofUtilizationRatio || 0.8)).toLocaleString()} pi²`],
   ];
@@ -133,11 +189,11 @@ export function renderKPIResults(ctx: PDFContext) {
   const financeData = [
     [t("CAPEX brut :", "Gross CAPEX:"), formatCurrency(simulation.capexGross)],
     [t("Subventions totales :", "Total subsidies:"), `- ${formatCurrency(simulation.totalIncentives)}`],
-    [simulation.npv10 >= 0 
+    [(simulation.npv10 || 0) >= 0 
       ? [t("VAN (10 ans) :", "NPV (10yr):"), formatCurrency(simulation.npv10)]
       : [t("VAN (25 ans) :", "NPV (25yr):"), formatCurrency(simulation.npv25)]
     ][0],
-    [t("LCOE (Coût Énergie) :", "LCOE (Energy Cost):"), `${simulation.lcoe.toFixed(3)} $/kWh`],
+    [t("LCOE (Coût Énergie) :", "LCOE (Energy Cost):"), `${(simulation.lcoe || 0).toFixed(3)} $/kWh`],
   ];
 
   currentY = colY + 18;

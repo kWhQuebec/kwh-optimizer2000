@@ -35,53 +35,26 @@ export function generateProfessionalPDF(
 
   // === SALES FLOW: Impact pages first, technical details later ===
 
-  // Section 1: Cover
   renderCover(ctx);
-
-  // Section 2: Bill Comparison (Before / After) — immediate financial impact
   renderBillComparison(ctx);
-
-  // Section 3: Project Snapshot — system overview
   renderProjectSnapshot(ctx);
-
-  // Section 4: KPI Results — key financial metrics
   renderKPIResults(ctx);
-
-  // Section 5: Net Investment Breakdown — how incentives reduce cost
   renderInvestmentBreakdown(ctx);
-
-  // Section 6: Financing Options — how to pay
   renderFinancingComparison(ctx);
-
-  // Section 7: Financial Projections — long-term value
   renderFinancialProjections(ctx);
-
-  // Section 8: Next Steps — call to action while motivation is high
   renderNextSteps(ctx);
-
-  // Section 9: Credibility — social proof
   renderCredibility(ctx);
 
   // === TECHNICAL APPENDIX ===
 
-  // Section 10 + 11: Equipment & Timeline
   renderEquipment(ctx);
   renderTimeline(ctx);
-
-  // Section 12: Roof Configuration
   renderRoofConfiguration(ctx);
-
-  // Section 13: Assumptions & Exclusions
   renderAssumptions(ctx);
 
   // === DATA APPENDIX ===
 
-  // Appendix A: Scenario Comparison (conditional)
   renderScenarioComparison(ctx, allSiteSimulations);
-
-  // Appendix B: 25-Year Cashflow Table
   renderCashflowTable(ctx);
-
-  // Appendix C: Optimization Analysis
   renderOptimization(ctx);
 }

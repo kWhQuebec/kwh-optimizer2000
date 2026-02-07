@@ -149,7 +149,8 @@ export async function generatePresentationPPTX(
   const annualCostAfter = simulation.annualCostAfter || 0;
   const annualSavingsBill = simulation.annualSavings || 0;
 
-  if (annualCostBefore > 0) {
+  const billSavingsPercent = annualCostBefore > 0 ? (annualSavingsBill / annualCostBefore) * 100 : 0;
+  if (annualCostBefore > 0 && billSavingsPercent >= 10) {
     const slideBill = pptx.addSlide({ masterName: "KWHMAIN" });
 
     slideBill.addText(t("VOTRE FACTURE AVANT / APRES", "YOUR BILL BEFORE / AFTER"), {
@@ -286,14 +287,14 @@ export async function generatePresentationPPTX(
     fontSize: 14, italic: true, color: COLORS.gold
   });
 
-  const kpiCards = [
-    { label: getKpiLabel("savings", lang), value: formatCurrency(simulation.savingsYear1), highlight: false },
-    { label: getKpiLabel("capexNet", lang), value: formatCurrency(simulation.capexNet), highlight: false },
-    { label: getKpiLabel("npv", lang), value: formatCurrency(simulation.npv25), highlight: true },
-    { label: getKpiLabel("irr", lang), value: formatPercent(simulation.irr25), highlight: true },
+  const kpiCardConfigs = [
+    { label: getKpiLabel("savings", lang), value: formatCurrency(simulation.savingsYear1), bg: "FFFBEB", border: "FFB005", valueColor: COLORS.gold, labelColor: COLORS.mediumGray },
+    { label: getKpiLabel("capexNet", lang), value: formatCurrency(simulation.capexNet), bg: COLORS.lightGray, border: "CCCCCC", valueColor: COLORS.darkGray, labelColor: COLORS.mediumGray },
+    { label: getKpiLabel("npv", lang), value: formatCurrency(simulation.npv25), bg: COLORS.blue, border: COLORS.blue, valueColor: COLORS.gold, labelColor: COLORS.white },
+    { label: getKpiLabel("irr", lang), value: formatPercent(simulation.irr25), bg: "059669", border: "059669", valueColor: COLORS.white, labelColor: COLORS.white },
   ];
 
-  kpiCards.forEach((kpi, i) => {
+  kpiCardConfigs.forEach((kpi, i) => {
     const col = i % 2;
     const row = Math.floor(i / 2);
     const x = 0.5 + col * 4.8;
@@ -301,15 +302,16 @@ export async function generatePresentationPPTX(
 
     slideKPI.addShape("rect", {
       x, y, w: 4.5, h: 1.4,
-      fill: { color: kpi.highlight ? COLORS.gold : COLORS.lightGray }
+      fill: { color: kpi.bg },
+      line: { color: kpi.border, width: 1 }
     });
     slideKPI.addText(kpi.label, {
       x: x + 0.2, y: y + 0.1, w: 4.1, h: 0.4,
-      fontSize: 12, color: COLORS.mediumGray, valign: "middle"
+      fontSize: 12, color: kpi.labelColor, valign: "middle"
     });
     slideKPI.addText(kpi.value, {
       x: x + 0.2, y: y + 0.5, w: 4.1, h: 0.7,
-      fontSize: 28, bold: true, color: kpi.highlight ? COLORS.blue : COLORS.darkGray, valign: "middle"
+      fontSize: 28, bold: true, color: kpi.valueColor, valign: "middle"
     });
   });
 
@@ -561,11 +563,23 @@ export async function generatePresentationPPTX(
       x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
     });
 
-    slideCashflow.addText(
-      t(`Rentable en ${(simulation.simplePaybackYears || 0).toFixed(1)} ans`, `Profitable in ${(simulation.simplePaybackYears || 0).toFixed(1)} years`), {
-      x: 0.5, y: 1.45, w: 9, h: 0.3,
-      fontSize: 14, italic: true, color: COLORS.gold
-    });
+    const paybackVal = simulation.simplePaybackYears || 0;
+    if (paybackVal > 0) {
+      slideCashflow.addShape("rect", {
+        x: 2, y: 1.45, w: 6, h: 0.6,
+        fill: { color: COLORS.gold }
+      });
+      slideCashflow.addText(
+        t(`${paybackVal.toFixed(1)} ans`, `${paybackVal.toFixed(1)} years`), {
+        x: 2, y: 1.45, w: 6, h: 0.35,
+        fontSize: 20, bold: true, color: COLORS.white, align: "center"
+      });
+      slideCashflow.addText(
+        t("Retour sur investissement", "Payback period"), {
+        x: 2, y: 1.78, w: 6, h: 0.25,
+        fontSize: 10, color: COLORS.white, align: "center"
+      });
+    }
 
     const chartData = simulation.cashflows.slice(0, 26).map(cf => ({
       year: cf.year,
