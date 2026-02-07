@@ -1,0 +1,89 @@
+Je veux refactorer le générateur PDF pour créer un rapport de vente optimisé.
+
+STRUCTURE CIBLE (11 pages core + appendix):
+
+1. COVER PAGE
+   - Logo kWh Québec
+   - "PRELIMINARY STUDY - SOLAR + STORAGE"
+   - Nom du site + adresse
+   - Client name
+   - Image hero (garder l'actuelle)
+
+2. PROJECT SNAPSHOT (fusionner en 1 page)
+   - Image satellite du site (Google Solar API)
+   - 4 métriques en grid 2x2:
+     * Annual consumption: X kWh
+     * Peak demand: X kW  
+     * Proposed solar: X kWc
+     * Proposed storage: X kWh
+   - Subtitle: "Proposed {size} kWp system"
+
+3. YOUR RESULTS (page hero - la plus importante)
+   - Titre: "YOUR RESULTS"
+   - Subtitle: "Net profit of {npv} $ over 25 years"
+   - 4 KPIs en ligne avec highlighting:
+     * Year 1 Savings: {amount} $ (box jaune)
+     * Net Investment: {amount} $ (box grise)
+     * NPV (25yr): {amount} $ (box bleue, highlight)
+     * IRR: {percent} % (box verte)
+   - SUPPRIMER la page "Your Bill Before/After" - pas vendeur pour 3%
+
+4. NET INVESTMENT BREAKDOWN
+   - Titre: "{percent}% reduction through incentives"
+   - Waterfall chart: Gross CAPEX → -HQ Solar → -HQ Battery → -ITC → -Tax Shield → NET
+   - Breakdown boxes en dessous (garder l'actuel)
+
+5. ROOF CONFIGURATION
+   - Image satellite avec zones colorées
+   - Légende (usable areas, constraint areas)
+   - Tableau "Sizing by Zone"
+   - Net usable area en highlight
+
+6. FINANCIAL PROJECTIONS
+   - Cash flow chart (garder l'actuel)
+   - "Why now? (cost of inaction)" chart
+   - Ajouter: "Payback: {years} years" en gros
+
+7. ASSUMPTIONS & EXCLUSIONS (CRITIQUE - sur 1 page)
+   - Tableau assumptions (2 colonnes, compact)
+   - Liste exclusions avec bullets rouges
+   - Note: "These items can be assessed during detailed design"
+
+8. EQUIPMENT & WARRANTIES (1 page)
+   - 4 boxes: Panels, Inverters, Racking, Workmanship
+   - Chaque box: nom + garantie
+   - Footer: "Indicative equipment — final selection after detailed design"
+
+9. TIMELINE (1 page)
+   - Chevrons horizontaux: Contract → Design → Permits & HQ → Installation → Commissioning
+   - Durées sous chaque chevron
+   - Note: "Timelines subject to HQ approval"
+
+10. NEXT STEPS (1 page)
+    - 3 colonnes:
+      * What the design fee covers ($2,500)
+      * What you need to provide
+      * What you receive
+    - CTA box: "Contact us to schedule your site visit"
+    - Coordonnées
+
+11. THEY TRUST US (dernière page core)
+    - Stats: 15+ years | 120 MW | 25+ C&I Projects
+    - Témoignage client
+    - CTA final
+
+APPENDIX (conditionnel, seulement si fullReport=true)
+    - A: Scenario Comparison
+    - B: Financial Cash Flow Table (25 ans)
+    - C: Optimization Analysis
+    - D: Financing Options (détail)
+
+RÈGLES:
+1. Supprimer TOUTES les pages vides
+2. Supprimer "Your Bill Before/After" (pas vendeur quand réduction < 10%)
+3. Fusionner les pages qui débordent inutilement
+4. Chaque page doit avoir un PURPOSE clair pour la vente
+5. Garder le branding (couleurs, fonts, logo)
+6. Les graphiques doivent être générés côté serveur (pas de placeholder)
+
+Commence par analyser pdfGenerator.ts et propose un plan de refactoring.
