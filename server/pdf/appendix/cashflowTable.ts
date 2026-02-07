@@ -5,6 +5,10 @@ import { formatCurrency, drawSimpleHeader, drawPageFooter } from "../helpers";
 export function renderCashflowTable(ctx: PDFContext) {
   const { doc, simulation, t, margin, contentWidth, pageWidth, pageHeight, dateStr } = ctx;
 
+  if (!simulation.cashflows || simulation.cashflows.length === 0) {
+    return;
+  }
+
   doc.addPage();
   drawSimpleHeader(ctx);
   doc.moveDown(2);
