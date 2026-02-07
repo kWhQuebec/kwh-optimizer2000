@@ -206,6 +206,10 @@ export async function generatePresentationPPTX(
     fontSize: 10, italic: true, color: COLORS.mediumGray
   });
 
+  slideKPI.addShape("rect", {
+    x: 0.5, y: 1.55, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
   const kpiCards = [
     { label: getKpiLabel("savings", lang), value: formatCurrency(simulation.savingsYear1), highlight: false },
     { label: getKpiLabel("capexNet", lang), value: formatCurrency(simulation.capexNet), highlight: false },
@@ -253,6 +257,10 @@ export async function generatePresentationPPTX(
     fontSize: 22, bold: true, color: COLORS.blue
   });
 
+  slideWaterfall.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
   // Waterfall chart: CAPEX Brut → -HQ Solaire → -HQ Batterie → -ITC Fédéral → = Net
   const capexGross = simulation.capexGross || 0;
   const hqSolar = simulation.incentivesHQSolar || 0;
@@ -276,8 +284,8 @@ export async function generatePresentationPPTX(
   const wfChartHeight = 3.2;
   const maxWfValue = Math.max(capexGross, 1);
   const wfScale = wfChartHeight / maxWfValue;
-  const wfBarWidth = 1.2;
-  const wfGap = 0.25;
+  const wfBarWidth = 1.1;
+  const wfGap = 0.2;
 
   let runningTotal = capexGross;
 
@@ -341,6 +349,10 @@ export async function generatePresentationPPTX(
   slideRoof.addText(t("CONFIGURATION TOITURE", "ROOF CONFIGURATION"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideRoof.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
   });
 
   if (roofImageBuffer) {
@@ -436,6 +448,10 @@ export async function generatePresentationPPTX(
       fontSize: 22, bold: true, color: COLORS.blue
     });
 
+    slideCashflow.addShape("rect", {
+      x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+    });
+
     const chartData = simulation.cashflows.slice(0, 26).map(cf => ({
       year: cf.year,
       value: Math.round(((cf as any).cumulative || (cf as any).cumulativeCashflow || 0) / 1000)
@@ -453,6 +469,28 @@ export async function generatePresentationPPTX(
     slideCashflow.addShape("line", {
       x: chartX, y: zeroLine, w: chartWidth, h: 0,
       line: { color: COLORS.mediumGray, width: 1 }
+    });
+
+    // Y-axis labels
+    const yTicks = [0.25, 0.5, 0.75, 1.0];
+    yTicks.forEach(pct => {
+      const tickVal = Math.round(maxVal * pct);
+      const tickY = zeroLine - (chartHeight / 2) * pct;
+      slideCashflow.addText(`${tickVal}k$`, {
+        x: chartX - 0.6, y: tickY - 0.1, w: 0.55, h: 0.2,
+        fontSize: 7, color: COLORS.mediumGray, align: "right"
+      });
+      // Negative mirror
+      const negY = zeroLine + (chartHeight / 2) * pct;
+      slideCashflow.addText(`-${tickVal}k$`, {
+        x: chartX - 0.6, y: negY - 0.1, w: 0.55, h: 0.2,
+        fontSize: 7, color: COLORS.mediumGray, align: "right"
+      });
+    });
+    // Zero label
+    slideCashflow.addText("0", {
+      x: chartX - 0.35, y: zeroLine - 0.1, w: 0.3, h: 0.2,
+      fontSize: 7, color: COLORS.mediumGray, align: "right"
     });
 
     chartData.forEach((d, i) => {
@@ -500,6 +538,10 @@ export async function generatePresentationPPTX(
   slideAssump.addText(t("HYPOTHÈSES ET EXCLUSIONS", "ASSUMPTIONS & EXCLUSIONS"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideAssump.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
   });
 
   const assumptions = getAssumptions(lang);
@@ -694,6 +736,10 @@ export async function generatePresentationPPTX(
     fontSize: 22, bold: true, color: COLORS.blue
   });
 
+  slide5.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
   const act4 = getNarrativeAct("act4_action", lang);
   const transition3 = getNarrativeTransition("resultsToAction", lang);
   slide5.addText(transition3, {
@@ -795,15 +841,28 @@ export async function generatePresentationPPTX(
     });
   });
 
-  // Témoignage - utilise brandContent
+  // Témoignage - utilise brandContent (styled card)
   const testimonialPptx = getFirstTestimonial(lang);
+  const quoteLines = Math.ceil(testimonialPptx.quote.length / 70);
+  const quoteH = Math.max(0.6, quoteLines * 0.3);
+
+  slideRef.addShape("roundRect", {
+    x: 1, y: 3.15, w: 8, h: quoteH + 0.55,
+    fill: { color: "F7F9FC" },
+    rectRadius: 0.1
+  });
+  slideRef.addShape("rect", {
+    x: 1, y: 3.2, w: 0.06, h: quoteH + 0.4,
+    fill: { color: COLORS.blue }
+  });
+
   slideRef.addText(`« ${testimonialPptx.quote} »`, {
-    x: 1, y: 3.3, w: 8, h: 0.7,
-    fontSize: 18, italic: true, color: COLORS.darkGray, align: "center"
+    x: 1.2, y: 3.25, w: 7.6, h: quoteH,
+    fontSize: 16, italic: true, color: COLORS.darkGray, align: "center", valign: "middle"
   });
 
   slideRef.addText(`— ${testimonialPptx.author}`, {
-    x: 1, y: 4, w: 8, h: 0.35,
+    x: 1.2, y: 3.25 + quoteH, w: 7.6, h: 0.35,
     fontSize: 11, color: COLORS.mediumGray, align: "center"
   });
 

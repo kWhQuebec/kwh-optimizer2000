@@ -45,7 +45,7 @@ export function renderRoofConfiguration(ctx: PDFContext) {
   // Roof visualization image
   if (simulation.roofVisualizationBuffer) {
     try {
-      const imageWidth = 460;
+      const imageWidth = Math.min(460, contentWidth);
       const imageHeight = 290;
       const imageX = margin + (contentWidth - imageWidth) / 2;
 
@@ -179,7 +179,7 @@ export function renderRoofConfiguration(ctx: PDFContext) {
     doc.text(t("Total", "Total"), cx, ty + 6, { width: colWidths[0] - 10 });
     cx += colWidths[0];
     doc.text(Math.round(totalSolarArea).toLocaleString(), cx, ty + 6, { width: colWidths[1] - 10, align: "center" });
-    cx += colWidths[0 + 1] + colWidths[2]; // skip orientation column
+    cx += colWidths[1] + colWidths[2]; // skip orientation column
     doc.text(totalPanels.toLocaleString(), cx, ty + 6, { width: colWidths[3] - 10, align: "center" });
     cx += colWidths[3];
     doc.text(totalKWc.toFixed(1), cx, ty + 6, { width: colWidths[4] - 10, align: "center" });

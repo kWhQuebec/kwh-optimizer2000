@@ -324,7 +324,7 @@ function HeroSlide({ site, language }: { site: SiteWithDetails; language: string
         </div>
 
         <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-7xl font-bold mb-4 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-7xl font-bold mb-4 text-white">
             {site.client.name}
           </h1>
           <h2 className="text-3xl md:text-4xl font-light text-white/80 mb-6">
@@ -405,9 +405,10 @@ function SnapshotSlide({ simulation, language }: { simulation: SimulationRun | n
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
         <div className="text-center mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Aperçu du Projet' : 'Project Snapshot'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
           <p className="text-lg text-white/50 italic">{act1.subtitle}</p>
         </div>
 
@@ -476,9 +477,10 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-7xl w-full">
         <div className="text-center mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Vos Résultats' : 'Your Results'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
           <p className="text-lg text-white/50">
             {simulation?.pvSizeKW && (
               <>
@@ -565,9 +567,10 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
         <div className="text-center mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Ventilation de l\'Investissement' : 'Investment Breakdown'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
         </div>
 
         {capexGross > 0 ? (
@@ -587,9 +590,9 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
                   const bottomPos = bar.type === 'total' ? 0 : (bar.type === 'start' ? 0 : chartHeight - (running / maxVal) * chartHeight - barHeight);
 
                   return (
-                    <div key={i} className="flex flex-col items-center" style={{ width: '14%' }}>
+                    <div key={i} className="flex flex-col items-center min-w-[60px]" style={{ width: '14%' }}>
                       {/* Value label */}
-                      <div className="text-sm font-bold mb-1" style={{ color: bar.type === 'deduction' ? '#DC2626' : 'white' }}>
+                      <div className={`${bars.length >= 6 ? 'text-xs' : 'text-sm'} font-bold mb-1`} style={{ color: bar.type === 'deduction' ? '#DC2626' : 'white' }}>
                         {bar.type === 'deduction' ? '-' : ''}{formatCurrency(bar.value)}
                       </div>
                       {/* Bar container */}
@@ -667,9 +670,10 @@ function RoofConfigSlide({ site, simulation, language }: { site: SiteWithDetails
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
         <div className="text-center mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Configuration Toiture' : 'Roof Configuration'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -728,9 +732,10 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
         <div className="text-center mb-8">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Projections Financières' : 'Financial Projections'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
           {breakEvenYear && (
             <p className="text-xl text-white/60">
               {language === 'fr' ? 'Seuil de rentabilité: année ' : 'Break-even: year '}
@@ -742,7 +747,7 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
         {chartData.length > 0 ? (
           <>
             <div className="bg-white/5 rounded-2xl border border-white/10 p-6">
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={400}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis
@@ -814,9 +819,10 @@ function AssumptionsSlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
         <div className="text-center mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Hypothèses et Exclusions' : 'Assumptions & Exclusions'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -864,9 +870,10 @@ function EquipmentSlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
         <div className="text-center mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Équipement et Garanties' : 'Equipment & Warranties'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -906,12 +913,13 @@ function TimelineSlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
         <div className="text-center mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Échéancier Type' : 'Typical Timeline'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
         </div>
 
-        <div className="flex items-center justify-center gap-2 md:gap-4 flex-wrap">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4">
           {timeline.map((tl, i) => {
             const isFirst = i === 0;
             const isLast = i === timeline.length - 1;
@@ -919,9 +927,9 @@ function TimelineSlide({ language }: { language: string }) {
             const borderColor = isFirst ? BRAND_COLORS.primaryBlue : isLast ? '#2D915F' : 'rgba(255,255,255,0.15)';
 
             return (
-              <div key={i} className="flex items-center gap-2 md:gap-4">
+              <div key={i} className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
                 <div
-                  className="rounded-xl px-5 py-5 text-center border min-w-[120px]"
+                  className="rounded-xl px-5 py-4 text-center border min-w-[140px] w-full md:w-auto"
                   style={{ backgroundColor: bgColor, borderColor }}
                 >
                   <p className="font-bold text-base text-white mb-1">{tl.step}</p>
@@ -930,7 +938,12 @@ function TimelineSlide({ language }: { language: string }) {
                   )}
                 </div>
                 {i < timeline.length - 1 && (
-                  <ArrowRight className="h-6 w-6 shrink-0" style={{ color: BRAND_COLORS.accentGold }} />
+                  <>
+                    <ArrowRight className="h-6 w-6 shrink-0 hidden md:block" style={{ color: BRAND_COLORS.accentGold }} />
+                    <svg className="h-5 w-5 shrink-0 md:hidden" viewBox="0 0 24 24" fill="none" stroke={BRAND_COLORS.accentGold} strokeWidth="2">
+                      <path d="M12 5v14M5 12l7 7 7-7" />
+                    </svg>
+                  </>
                 )}
               </div>
             );
@@ -983,9 +996,10 @@ function NextStepsSlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-6xl w-full">
         <div className="text-center mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold mb-2">
             {language === 'fr' ? 'Prochaines Étapes' : 'Next Steps'}
           </h2>
+          <div className="w-20 h-1 mx-auto mb-3 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -1032,9 +1046,10 @@ function CredibilitySlide({ language }: { language: string }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-8">
       <div className="max-w-5xl w-full text-center">
-        <h2 className="text-4xl md:text-5xl font-bold mb-10">
+        <h2 className="text-4xl md:text-5xl font-bold mb-2">
           {language === 'fr' ? 'Ils Nous Font Confiance' : 'They Trust Us'}
         </h2>
+        <div className="w-20 h-1 mx-auto mb-8 rounded-full" style={{ backgroundColor: BRAND_COLORS.accentGold }} />
 
         {/* Stats */}
         <div className="flex items-center justify-center gap-10 md:gap-16 mb-12">

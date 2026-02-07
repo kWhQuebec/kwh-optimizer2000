@@ -1,6 +1,6 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { drawPageFooter } from "../helpers";
+import { drawRoundedRect, drawPageFooter } from "../helpers";
 import { getAllStats, getFirstTestimonial, getTitle, getContactString } from "@shared/brandContent";
 
 export function renderCredibility(ctx: PDFContext) {
@@ -30,17 +30,30 @@ export function renderCredibility(ctx: PDFContext) {
     doc.text(stat.label, statX, refY + 50, { width: statColWidth, align: "center" });
   });
 
-  refY += 120;
+  refY += 100;
 
-  // Testimonial
+  // Gold accent line below stats
+  doc.rect(margin + contentWidth * 0.3, refY, contentWidth * 0.4, 2).fillColor(COLORS.gold).fill();
+  refY += 25;
+
+  // Styled testimonial card
   const testimonial = getFirstTestimonial(ctx.lang);
-  doc.fontSize(14).fillColor(COLORS.darkGray).font("Helvetica-Oblique");
-  doc.text(`« ${testimonial.quote} »`, margin + 40, refY, { width: contentWidth - 80, align: "center" });
+  const cardPad = 20;
+  const cardWidth = contentWidth - 80;
+  const cardX = margin + 40;
+  const cardH = 80;
+
+  drawRoundedRect(doc, cardX, refY, cardWidth, cardH, 8, "#F7F9FC");
+  // Blue left border accent
+  doc.rect(cardX, refY + 4, 4, cardH - 8).fillColor(COLORS.blue).fill();
+
+  doc.fontSize(13).fillColor(COLORS.darkGray).font("Helvetica-Oblique");
+  doc.text(`« ${testimonial.quote} »`, cardX + cardPad, refY + 14, { width: cardWidth - cardPad * 2, align: "center" });
 
   doc.fontSize(11).fillColor(COLORS.mediumGray).font("Helvetica");
-  doc.text(`— ${testimonial.author}`, margin, refY + 70, { width: contentWidth, align: "center" });
+  doc.text(`— ${testimonial.author}`, cardX + cardPad, refY + cardH - 22, { width: cardWidth - cardPad * 2, align: "center" });
 
-  refY += 140;
+  refY += cardH + 40;
 
   // Call to action
   doc.fontSize(18).fillColor(COLORS.blue).font("Helvetica-Bold");
