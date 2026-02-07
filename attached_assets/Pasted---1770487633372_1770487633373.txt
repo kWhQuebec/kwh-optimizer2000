@@ -1,0 +1,154 @@
+ ---                                                                                                                
+  Diagnostic des problèmes actuels                                                                                    
+                                                                                                                     
+  1. PDF: Pages vides / whitespace excessif                                                                             
+                                                                                                                        
+  Les pages vides viennent probablement de sections qui font doc.addPage() même quand elles n'ont rien à afficher (ex:
+  renderRoofConfiguration qui return early si pas de polygones, mais la page a déjà été ajoutée par d'autres sections).
+  Il faut auditer chaque section pour trouver les cas edge.
+
+  2. HTML: Mauvais choix de couleurs
+
+  La présentation HTML utilise un fond sombre bleu foncé (#003DA6 → #002B75 gradient) avec du texte blanc. C'est à
+  contre-courant de l'industrie. Voici pourquoi:
+
+  - Aurora Solar, OpenSolar, Proposify, Qwilr, PandaDoc — tous les leaders utilisent un fond blanc/clair avec des
+  accents de couleur de marque
+  - Les études UX montrent que les couleurs saturées sur fond sombre créent une vibration optique et fatiguent les yeux
+  - Les propositions B2B sont souvent imprimées ou projetées — le fond sombre consomme de l'encre et perd en lisibilité
+  en projection
+  - Le WCAG recommande un ratio de contraste de 4.5:1 — text-white/50 sur fond #002B75 ne passe pas ce test
+
+  3. HTML: Tableaux vides (cashflow)
+
+  Le composant CashflowSlide accède à simulation?.cashflows mais le type SimulationRun (du schema Drizzle) a des
+  cashflows optionnels qui nécessitent un fetch séparé — les données sont probablement undefined au moment du render.
+
+  ---
+  Recommandations basées sur les meilleures pratiques de l'industrie
+
+  A. Passer la présentation HTML en fond BLANC (impact majeur)
+
+  C'est le changement #1 en termes d'impact visuel. Tous les outils de proposition solaire professionnels (Aurora,
+  OpenSolar, Proposify, Qwilr) utilisent:
+  ┌─────────────────┬───────────────────────────────────┬────────────────────────────────────────────────┐
+  │     Élément     │      Actuel (problématique)       │                   Recommandé                   │
+  ├─────────────────┼───────────────────────────────────┼────────────────────────────────────────────────┤
+  │ Fond principal  │ #002B75 → #003DA6 gradient sombre │ Blanc #FFFFFF avec sections en #F7F9FC         │
+  ├─────────────────┼───────────────────────────────────┼────────────────────────────────────────────────┤
+  │ Texte principal │ text-white, text-white/50         │ #333333 (darkGray)                             │
+  ├─────────────────┼───────────────────────────────────┼────────────────────────────────────────────────┤
+  │ Titres          │ text-white sur fond sombre        │ #003DA6 (brand blue) sur blanc                 │
+  ├─────────────────┼───────────────────────────────────┼────────────────────────────────────────────────┤
+  │ Accents         │ #FFB005 gold peu visible          │ #FFB005 gold — bien plus visible sur blanc     │
+  ├─────────────────┼───────────────────────────────────┼────────────────────────────────────────────────┤
+  │ Cartes          │ bg-white/5 (quasi invisible)      │ Blanc avec border #E0E0E0 ou #003DA6           │
+  ├─────────────────┼───────────────────────────────────┼────────────────────────────────────────────────┤
+  │ Barre nav       │ rgba(0,43,117,0.8)                │ Blanc avec border-bottom ou bleu brand solide  │
+  ├─────────────────┼───────────────────────────────────┼────────────────────────────────────────────────┤
+  │ Header hero     │ Gradient sombre                   │ Bleu brand header section only, reste en blanc │
+  └─────────────────┴───────────────────────────────────┴────────────────────────────────────────────────┘
+  Pourquoi: https://aurorasolar.com/blog/how-to-write-great-solar-sales-proposals/ et
+  https://qwilr.com/blog/how-to-write-a-solar-proposal/ montrent tous les deux que les propositions à fond clair avec
+  accents de marque ont de meilleurs taux de conversion. Le fond sombre est acceptable pour le slide Cover (héro), mais
+  pas pour le contenu technique/financier.
+
+  B. Structure de contenu améliorée (PDF + PPTX + HTML)
+
+  D'après https://aurorasolar.com/blog/want-your-solar-proposal-to-stand-out-customize-it/,
+  https://qwilr.com/blog/how-to-write-a-solar-proposal/, et
+  https://www.wattmonk.com/create-winning-solar-sales-proposal/, les sections qui ferment les deals sont:
+
+  1. Cover — Image satellite + nom client (OK, on l'a)
+  2. Le problème du client — Montrer la facture HQ actuelle vs ce qu'ils pourraient payer. Manquant chez nous. Un simple
+   "Votre facture actuelle: X$/an → Avec solaire: Y$/an" est puissant
+  3. La solution — Snapshot du système (OK)
+  4. Résultats financiers — KPIs en gros, visuels (OK mais à polir)
+  5. Comment ça marche visuellement — Le waterfall + roof config (OK)
+  6. Comparaison avant/après — Graphique comparant les coûts mensuels/annuels. Manquant — c'est le #1 closer selon
+  Aurora
+  7. Projections — Cashflow (OK mais données manquantes dans HTML)
+  8. Crédibilité — Témoignages, stats (OK)
+  9. Prochaines étapes + CTA — (OK)
+
+  C. Éléments visuels qui ferment les deals
+  ┌────────────────────────────┬─────────────────────────┬─────────────────────────────────────────────────────────────┐
+  │          Élément           │      Status actuel      │                       Recommandation                        │
+  ├────────────────────────────┼─────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Comparaison avant/après    │ Absent                  │ Ajouter un slide "Votre facture: Avant vs Après" avec 2     │
+  │ facture                    │                         │ barres côte-à-côte                                          │
+  ├────────────────────────────┼─────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Image 3D / satellite du    │ Placeholder dans PDF    │ Utiliser l'image satellite de Google Maps + overlay des     │
+  │ toit                       │                         │ panneaux                                                    │
+  ├────────────────────────────┼─────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Graphique de production    │ Absent                  │ Ajouter un bar chart des 12 mois de production estimée      │
+  │ mensuelle                  │                         │                                                             │
+  ├────────────────────────────┼─────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Tableau de comparaison     │ Absent en présentation  │ Cash vs Loan vs PPA côte-à-côte (existe dans site-detail    │
+  │ financement                │                         │ mais pas dans les exports)                                  │
+  ├────────────────────────────┼─────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Timer d'urgence            │ Le "coût de l'inaction" │ Rendre plus visible: compteur rouge avec $ qui augmente     │
+  │                            │  est là                 │ visuellement                                                │
+  ├────────────────────────────┼─────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Photos de projets          │ Absent                  │ Ajouter 2-3 photos de réalisations dans la section          │
+  │ complétés                  │                         │ crédibilité                                                 │
+  └────────────────────────────┴─────────────────────────┴─────────────────────────────────────────────────────────────┘
+  D. Corrections techniques prioritaires
+
+  1. Pages vides PDF: Auditer chaque section qui fait doc.addPage() — s'assurer que la page est ajoutée SEULEMENT si du
+  contenu suit
+  2. Cashflow vide HTML: Le fetch de /api/sites/:id ne joint probablement pas les cashflows. Vérifier la query et la
+  route API
+  3. PDF lightGray #718096: C'est trop foncé pour un "light gray" — dans la plupart des templates pro, le light gray
+  pour les bordures est #E0E0E0 ou #D1D5DB
+  4. Responsive mobile: Les 3 colonnes "Next Steps" ne devraient pas être en 3 colonnes sur mobile
+
+  E. Cohérence de marque
+
+  Le brand guide de kWh spécifie:
+  - Primary Blue #003DA6 — pour titres, headers, CTA
+  - Accent Gold #FFB005 — pour accents, soulignement, highlights
+  - Gray #AAAAAA — pour texte secondaire
+  - Montserrat — police principale
+  - JetBrains Mono — police monospace
+
+  Problèmes actuels:
+  - Le PDF utilise Helvetica au lieu de Montserrat (limitation PDFKit, mais on pourrait embed la police)
+  - Les grays dans le PDF (#2d3748, #4a5568, #718096) ne correspondent pas au brand #AAAAAA
+  - La présentation HTML utilise font-['Montserrat',sans-serif] mais le fallback sans-serif est probablement ce qui
+  s'affiche si Montserrat n'est pas chargé
+
+  ---
+  Plan d'action recommandé (par priorité)
+  ┌─────┬───────────────────────────────────────────────┬─────────────────────────────┬────────┐
+  │  #  │                    Action                     │           Impact            │ Effort │
+  ├─────┼───────────────────────────────────────────────┼─────────────────────────────┼────────┤
+  │ 1   │ HTML: Passer en fond blanc                    │ Transformationnel           │ Moyen  │
+  ├─────┼───────────────────────────────────────────────┼─────────────────────────────┼────────┤
+  │ 2   │ HTML: Fix données cashflow vides              │ Critique (contenu manquant) │ Petit  │
+  ├─────┼───────────────────────────────────────────────┼─────────────────────────────┼────────┤
+  │ 3   │ PDF: Auditer/éliminer pages vides             │ Élevé                       │ Moyen  │
+  ├─────┼───────────────────────────────────────────────┼─────────────────────────────┼────────┤
+  │ 4   │ Ajouter slide "Avant/Après facture"           │ Élevé (closer #1)           │ Moyen  │
+  ├─────┼───────────────────────────────────────────────┼─────────────────────────────┼────────┤
+  │ 5   │ PDF: Harmoniser les gris avec brand           │ Moyen                       │ Petit  │
+  ├─────┼───────────────────────────────────────────────┼─────────────────────────────┼────────┤
+  │ 6   │ HTML: Responsive 1-col mobile pour Next Steps │ Moyen                       │ Petit  │
+  ├─────┼───────────────────────────────────────────────┼─────────────────────────────┼────────┤
+  │ 7   │ Ajouter production mensuelle bar chart        │ Moyen                       │ Moyen  │
+  ├─────┼───────────────────────────────────────────────┼─────────────────────────────┼────────┤
+  │ 8   │ PDF: Embed Montserrat                         │ Moyen (brand cohérence)     │ Petit  │
+  └─────┴───────────────────────────────────────────────┴─────────────────────────────┴────────┘
+  Veux-tu que je commence à implémenter ces changements, en commençant par les plus impactants (fond blanc HTML + fix
+  cashflow + audit pages vides PDF)?
+
+  Sources:
+  - https://aurorasolar.com/blog/how-to-write-great-solar-sales-proposals/
+  - https://aurorasolar.com/blog/want-your-solar-proposal-to-stand-out-customize-it/
+  - https://qwilr.com/blog/how-to-write-a-solar-proposal/
+  - https://www.wattmonk.com/create-winning-solar-sales-proposal/
+  - https://www.responsive.io/blog/b2b-proposal
+  - https://www.greenlancer.com/post/include-in-solar-panel-proposal
+  - https://www.arka360.com/ros/best-solar-design-software-proposal-tool
+  - https://support.opensolar.com/hc/en-us/articles/12447540228367-Navigating-the-proposal
+  - https://www.uxdesigninstitute.com/blog/dark-mode-design-practical-guide/

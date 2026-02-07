@@ -1,0 +1,41 @@
+┌─────────────────────────────────────────────────────────────────┐
+│  1. COVER                                                        │
+│     Titre + Client + Adresse + Image hero                       │
+├─────────────────────────────────────────────────────────────────┤
+│  2. PROJECT SNAPSHOT (Aperçu - Oleg #1)                         │
+│     Consommation • Demande pointe • Production PV • Autoconso   │
+│     + Image aérienne du site                                    │
+├─────────────────────────────────────────────────────────────────┤
+│  3. YOUR RESULTS (KPIs - Oleg #4)                               │
+│     4 métriques clés: Savings Y1 | Net Investment | NPV | IRR   │
+├─────────────────────────────────────────────────────────────────┤
+│  4. NET INVESTMENT BREAKDOWN (Waterfall - Oleg #4)              │
+│     Coût EPC → -HQ Solar → -HQ Battery → -ITC → = NET           │
+├─────────────────────────────────────────────────────────────────┤
+│  5. ROOF CONFIGURATION                                          │
+│     Image satellite + Légende + Sizing recommandé               │
+├─────────────────────────────────────────────────────────────────┤
+│  6. FINANCIAL PROJECTIONS                                       │
+│     Graphique cashflow cumulatif + Cost of inaction             │
+├─────────────────────────────────────────────────────────────────┤
+│  7. ASSUMPTIONS & EXCLUSIONS (Oleg #2 - CRITIQUE)               │
+│     Tableau hypothèses + Liste exclusions                       │
+├─────────────────────────────────────────────────────────────────┤
+│  8. EQUIPMENT & WARRANTIES (Oleg #3)                            │
+│     Équipement indicatif + Garanties                            │
+├─────────────────────────────────────────────────────────────────┤
+│  9. TIMELINE (Oleg #5)                                          │
+│     Contrat → Design → Permis → Installation → Commissioning    │
+├─────────────────────────────────────────────────────────────────┤
+│  10. NEXT STEPS (Design Agreement - Oleg #6)                    │
+│      Ce qu'on couvre | Ce que vous fournissez | Ce que vous     │
+│      recevez                                                    │
+├─────────────────────────────────────────────────────────────────┤
+│  11. THEY TRUST US (Crédibilité - Oleg #8)                      │
+│      Stats (15+ ans, 120 MW, 25+ projets) + Témoignage          │
+├─────────────────────────────────────────────────────────────────┤
+│  APPENDIX (PDF only)                                            │
+│  - Scenario Comparison                                          │
+│  - Financial Cash Flow Table (25 ans)                           │
+│  - Methodology / Technical details                              │
+└─────────────────────────────────────────────────────────────────┘
