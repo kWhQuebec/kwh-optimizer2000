@@ -113,8 +113,8 @@ export function renderKPIResults(ctx: PDFContext) {
     [t("Puissance solaire :", "Solar power:"), `${simulation.pvSizeKW.toFixed(0)} kWc`],
     [t("Capacité Batterie :", "Battery Capacity:"), `${simulation.battEnergyKWh.toFixed(0)} kWh`],
     [t("Puissance Batterie :", "Battery Power:"), `${simulation.battPowerKW.toFixed(1)} kW`],
-    [t("Toiture totale :", "Total roof:"), `${(simulation.assumptions?.roofAreaSqFt || 0).toLocaleString()} pi²`],
-    [t("Potentiel solaire :", "Solar potential:"), `${((simulation.assumptions?.roofAreaSqFt || 0) * (simulation.assumptions?.roofUtilizationRatio || 0.8)).toLocaleString()} pi²`],
+    [t("Toiture totale :", "Total roof:"), `${Math.round(simulation.assumptions?.roofAreaSqFt || 0).toLocaleString()} pi²`],
+    [t("Potentiel solaire :", "Solar potential:"), `${Math.round((simulation.assumptions?.roofAreaSqFt || 0) * (simulation.assumptions?.roofUtilizationRatio || 0.8)).toLocaleString()} pi²`],
   ];
 
   let currentY = doc.y;
@@ -133,7 +133,10 @@ export function renderKPIResults(ctx: PDFContext) {
   const financeData = [
     [t("CAPEX brut :", "Gross CAPEX:"), formatCurrency(simulation.capexGross)],
     [t("Subventions totales :", "Total subsidies:"), `- ${formatCurrency(simulation.totalIncentives)}`],
-    [t("VAN (10) :", "NPV (10):"), formatCurrency(simulation.npv10)],
+    [simulation.npv10 >= 0 
+      ? [t("VAN (10 ans) :", "NPV (10yr):"), formatCurrency(simulation.npv10)]
+      : [t("VAN (25 ans) :", "NPV (25yr):"), formatCurrency(simulation.npv25)]
+    ][0],
     [t("LCOE (Coût Énergie) :", "LCOE (Energy Cost):"), `${simulation.lcoe.toFixed(3)} $/kWh`],
   ];
 
@@ -162,18 +165,18 @@ export function renderKPIResults(ctx: PDFContext) {
   doc.y = summaryY + 30;
   const co2Tonnes = simulation.co2AvoidedTonnesPerYear || 0;
   const totalProductionKWh = simulation.pvSizeKW * 1035;
-  const treesPlanted = Math.round(co2Tonnes * 40);
-  const carsRemoved = (co2Tonnes / 4.6).toFixed(1);
-  const homesPowered = (totalProductionKWh / 20000).toFixed(1);
+  const co2TonnesDisplay = totalProductionKWh > 0 ? (totalProductionKWh * 0.002) / 1000 : co2Tonnes;
+  const treesPlanted = Math.max(1, Math.round(co2TonnesDisplay * 45));
+  const carsRemoved = co2TonnesDisplay / 4.6;
 
   const eqColWidth = (contentWidth - 20) / 3;
   const eqY = doc.y;
   const eqH = 55;
 
   const co2Metrics = [
-    { label: t("Arbres plantés (équiv.)", "Trees planted (equiv.)"), value: `${treesPlanted.toLocaleString()}`, icon: "🌳" },
-    { label: t("Voitures retirées (équiv.)", "Cars removed (equiv.)"), value: carsRemoved, icon: "🚗" },
-    { label: t("Foyers alimentés (équiv.)", "Homes powered (equiv.)"), value: homesPowered, icon: "🏠" },
+    { label: t("Arbres plantés (équiv.)", "Trees planted (equiv.)"), value: `${treesPlanted.toLocaleString()}`, icon: "" },
+    { label: t("Voitures retirées (équiv.)", "Cars removed (equiv.)"), value: carsRemoved > 0.05 ? carsRemoved.toFixed(1) : "< 0.1", icon: "" },
+    { label: t("Couverture énergétique", "Energy coverage"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`, icon: "" },
   ];
 
   co2Metrics.forEach((metric, idx) => {

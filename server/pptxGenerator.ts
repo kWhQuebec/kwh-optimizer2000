@@ -234,12 +234,12 @@ export async function generatePresentationPPTX(
 
   const snapLabels = getProjectSnapshotLabels(lang);
   const snapItems = [
-    { label: snapLabels.annualConsumption.label, value: `${(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh` },
+    { label: snapLabels.annualConsumption.label, value: `${Math.round(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh` },
     { label: snapLabels.peakDemand.label, value: `${(simulation.peakDemandKW || 0).toFixed(0)} kW` },
     { label: snapLabels.solarCapacity.label, value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
     { label: snapLabels.batteryCapacity.label, value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : "0 kWh" },
-    { label: snapLabels.estimatedProduction.label, value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
-    { label: snapLabels.selfConsumptionRate.label, value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
+    { label: snapLabels.estimatedProduction.label, value: `${Math.round((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
+    { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
   ];
 
   snapItems.forEach((item, i) => {
@@ -327,14 +327,14 @@ export async function generatePresentationPPTX(
 
   const co2ForEquiv = simulation.co2AvoidedTonnesPerYear || 0;
   const totalProductionKWh = (simulation.pvSizeKW * 1035) || 0;
-  const treesPlanted = Math.round(co2ForEquiv * 40);
-  const carsRemoved = (co2ForEquiv / 4.6).toFixed(1);
-  const homesPowered = (totalProductionKWh / 20000).toFixed(1);
+  const co2TonnesDisplay = totalProductionKWh > 0 ? (totalProductionKWh * 0.002) / 1000 : co2ForEquiv;
+  const treesPlanted = Math.max(1, Math.round(co2TonnesDisplay * 45));
+  const carsRemoved = co2TonnesDisplay / 4.6;
 
   const co2Equivalents = [
     { label: t("Arbres plantes", "Trees planted"), value: `${treesPlanted}`, suffix: t("/ an", "/ yr") },
-    { label: t("Voitures retirees", "Cars removed"), value: carsRemoved, suffix: t("/ an", "/ yr") },
-    { label: t("Maisons alimentees", "Homes powered"), value: homesPowered, suffix: "" },
+    { label: t("Voitures retirees", "Cars removed"), value: carsRemoved > 0.05 ? carsRemoved.toFixed(1) : "< 0.1", suffix: t("/ an", "/ yr") },
+    { label: t("Couverture energetique", "Energy coverage"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`, suffix: "" },
   ];
 
   co2Equivalents.forEach((eq, i) => {
@@ -496,7 +496,7 @@ export async function generatePresentationPPTX(
     { label: t("Puissance solaire", "Solar capacity"), value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
     { label: t("Stockage", "Storage"), value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh` : t("Non inclus", "N/A") },
     { label: t("Production An 1", "Year-1 production"), value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
-    { label: t("Autoconsommation", "Self-consumption"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
+    { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
   ];
 
   roofSummary.forEach((item, i) => {

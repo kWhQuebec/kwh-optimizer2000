@@ -33,46 +33,48 @@ export function generateProfessionalPDF(
 ): void {
   const ctx = createContext(doc, simulation, lang, options);
 
-  // === MAIN SECTIONS (13) ===
+  // === SALES FLOW: Impact pages first, technical details later ===
 
   // Section 1: Cover
   renderCover(ctx);
 
-  // Section 2: Bill Comparison (Before / After)
+  // Section 2: Bill Comparison (Before / After) — immediate financial impact
   renderBillComparison(ctx);
 
-  // Section 3: Project Snapshot
+  // Section 3: Project Snapshot — system overview
   renderProjectSnapshot(ctx);
 
-  // Section 4: KPI Results
+  // Section 4: KPI Results — key financial metrics
   renderKPIResults(ctx);
 
-  // Section 5: Net Investment Breakdown (visual waterfall)
+  // Section 5: Net Investment Breakdown — how incentives reduce cost
   renderInvestmentBreakdown(ctx);
 
-  // Section 6: Roof Configuration (enriched with per-zone table)
-  renderRoofConfiguration(ctx);
-
-  // Section 7: Financial Projections (cashflow + cost of inaction)
-  renderFinancialProjections(ctx);
-
-  // Section 8: Financing Comparison (Cash / Loan / Lease)
+  // Section 6: Financing Options — how to pay
   renderFinancingComparison(ctx);
 
-  // Section 9 + 10: Equipment & Timeline (shared page)
+  // Section 7: Financial Projections — long-term value
+  renderFinancialProjections(ctx);
+
+  // Section 8: Next Steps — call to action while motivation is high
+  renderNextSteps(ctx);
+
+  // Section 9: Credibility — social proof
+  renderCredibility(ctx);
+
+  // === TECHNICAL APPENDIX ===
+
+  // Section 10 + 11: Equipment & Timeline
   renderEquipment(ctx);
   renderTimeline(ctx);
 
-  // Section 11: Assumptions & Exclusions
+  // Section 12: Roof Configuration
+  renderRoofConfiguration(ctx);
+
+  // Section 13: Assumptions & Exclusions
   renderAssumptions(ctx);
 
-  // Section 12: Next Steps (own page)
-  renderNextSteps(ctx);
-
-  // Section 13: They Trust Us (Credibility)
-  renderCredibility(ctx);
-
-  // === APPENDIX ===
+  // === DATA APPENDIX ===
 
   // Appendix A: Scenario Comparison (conditional)
   renderScenarioComparison(ctx, allSiteSimulations);

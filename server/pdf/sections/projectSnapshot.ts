@@ -38,12 +38,12 @@ export function renderProjectSnapshot(ctx: PDFContext) {
   // Snapshot data grid
   const snapLabels = getProjectSnapshotLabels(ctx.lang);
   const snapData: [string, string][] = [
-    [snapLabels.annualConsumption.label, `${(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh`],
+    [snapLabels.annualConsumption.label, `${Math.round(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh`],
     [snapLabels.peakDemand.label, `${(simulation.peakDemandKW || 0).toFixed(0)} kW`],
     [snapLabels.solarCapacity.label, `${simulation.pvSizeKW.toFixed(0)} kWc`],
     [snapLabels.batteryCapacity.label, simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : "0 kWh"],
-    [snapLabels.estimatedProduction.label, `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh`],
-    [snapLabels.selfConsumptionRate.label, `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`],
+    [snapLabels.estimatedProduction.label, `${Math.round((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh`],
+    [t("Autosuffisance solaire", "Solar self-sufficiency"), `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`],
   ];
 
   const snapColWidth = (contentWidth - 20) / 2;

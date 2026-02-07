@@ -435,7 +435,7 @@ export function drawCostOfInactionChart(
   const { doc, t, simulation } = ctx;
 
   const years = 25;
-  const inflationRate = 0.025;
+  const inflationRate = 0.035; // HQ tariff escalation standard
   let cumulWithout = 0;
   let cumulWith = 0;
   const costData: Array<{ year: number; without: number; with: number }> = [];
@@ -469,6 +469,26 @@ export function drawCostOfInactionChart(
     else doc.lineTo(px, py);
   });
   doc.stroke();
+
+  // Shade the savings gap between the two lines
+  doc.save();
+  doc.strokeColor("transparent");
+  const fillPath = doc;
+  costData.forEach((d, i) => {
+    const px = x + 40 + (d.year / years) * (width - 60);
+    const py = y + height - (d.without / maxCost) * (height - 20);
+    if (i === 0) fillPath.moveTo(px, py);
+    else fillPath.lineTo(px, py);
+  });
+  for (let i = costData.length - 1; i >= 0; i--) {
+    const d = costData[i];
+    const px = x + 40 + (d.year / years) * (width - 60);
+    const py = y + height - (d.with / maxCost) * (height - 20);
+    fillPath.lineTo(px, py);
+  }
+  fillPath.fillColor(COLORS.green).fillOpacity(0.1).fill();
+  doc.restore();
+  doc.fillOpacity(1);
 
   // Savings at year 25
   const savingsAt25 = cumulWithout - cumulWith;

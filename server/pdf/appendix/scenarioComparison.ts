@@ -30,8 +30,15 @@ export function renderScenarioComparison(ctx: PDFContext, allSiteSimulations: Si
   doc.moveDown(1.5);
 
   const allScenarios = [simulation, ...otherSimulations]
-    .sort((a, b) => (b.npv25 || 0) - (a.npv25 || 0))
-    .slice(0, 4);
+    .sort((a, b) => (b.npv25 || 0) - (a.npv25 || 0));
+
+  const seen = new Set<string>();
+  const dedupedScenarios = allScenarios.filter(sim => {
+    const key = `${(sim.pvSizeKW || 0).toFixed(0)}-${(sim.battEnergyKWh || 0).toFixed(0)}-${(sim.battPowerKW || 0).toFixed(0)}-${Math.round(sim.npv25 || 0)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 4);
 
   // Table header
   const tableY = doc.y;
@@ -56,7 +63,7 @@ export function renderScenarioComparison(ctx: PDFContext, allSiteSimulations: Si
   doc.font("Helvetica");
 
   let currentY = tableY + rowHeight;
-  allScenarios.forEach((sim, idx) => {
+  dedupedScenarios.forEach((sim, idx) => {
     const isCurrentSim = sim.id === simulation.id;
     const rowBg = isCurrentSim ? "#E8F0FE" : (idx % 2 === 0 ? COLORS.white : COLORS.background);
 
@@ -70,8 +77,8 @@ export function renderScenarioComparison(ctx: PDFContext, allSiteSimulations: Si
     colX = margin + 5;
 
     const scenarioName = isCurrentSim
-      ? t("(Rapport actuel)", "(Current report)")
-      : `${t("Variante", "Variant")} ${idx}`;
+      ? `${(sim.pvSizeKW || 0).toFixed(0)} kWc ${t("(Proposé)", "(Proposed)")}`
+      : `${(sim.pvSizeKW || 0).toFixed(0)} kWc ${sim.battEnergyKWh > 0 ? `+ ${sim.battEnergyKWh.toFixed(0)} kWh` : t("(solaire)", "(solar)")}`;
     doc.text(scenarioName, colX, currentY + 7, { width: colWidths[0] - 10 });
     colX += colWidths[0];
 
@@ -96,19 +103,19 @@ export function renderScenarioComparison(ctx: PDFContext, allSiteSimulations: Si
     currentY += rowHeight;
   });
 
-  doc.rect(margin, tableY, contentWidth, (allScenarios.length + 1) * rowHeight).strokeColor(COLORS.borderGray).lineWidth(0.5).stroke();
+  doc.rect(margin, tableY, contentWidth, (dedupedScenarios.length + 1) * rowHeight).strokeColor(COLORS.borderGray).lineWidth(0.5).stroke();
 
   doc.y = currentY + 15;
 
-  const bestScenario = allScenarios[0];
+  const bestScenario = dedupedScenarios[0];
   if (bestScenario.id === simulation.id) {
     doc.fontSize(9).fillColor(COLORS.green).font("Helvetica-Bold");
-    doc.text(t("Le scénario présenté dans ce rapport est optimal.",
-      "The scenario presented in this report is optimal."), margin, doc.y);
+    doc.text(t("Le scénario présenté dans ce rapport offre le meilleur rendement.",
+      "The scenario presented in this report offers the best return."), margin, doc.y);
   } else {
-    doc.fontSize(9).fillColor(COLORS.gold).font("Helvetica-Bold");
-    doc.text(t("Note: Un autre scénario présente une VAN supérieure.",
-      "Note: Another scenario shows a higher NPV."), margin, doc.y);
+    doc.fontSize(9).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text(t("Contactez-nous pour discuter du scénario optimal pour vos besoins.",
+      "Contact us to discuss the optimal scenario for your needs."), margin, doc.y);
   }
   doc.font("Helvetica");
 

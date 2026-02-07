@@ -94,12 +94,16 @@ export function renderFinancingComparison(ctx: PDFContext) {
     doc.font("Helvetica");
 
     if (opt.badge) {
-      doc.fontSize(8).fillColor(COLORS.gold).font("Helvetica-Bold");
-      doc.text(`★ ${opt.badge}`, x, cardY + cardHeight - 25, { width: cardWidth, align: "center" });
+      const badgeWidth = 100;
+      const badgeX = x + (cardWidth - badgeWidth) / 2;
+      const badgeY = cardY + 36;
+      drawRoundedRect(doc, badgeX, badgeY, badgeWidth, 16, 8, COLORS.gold);
+      doc.fontSize(7).fillColor(COLORS.white).font("Helvetica-Bold");
+      doc.text(opt.badge, badgeX, badgeY + 4, { width: badgeWidth, align: "center" });
       doc.font("Helvetica");
     }
 
-    let lineY = cardY + 45;
+    let lineY = cardY + (opt.badge ? 60 : 45);
     opt.lines.forEach((line) => {
       doc.fontSize(8).fillColor(COLORS.lightGray);
       doc.text(line.label, x + 10, lineY, { width: cardWidth - 20 });

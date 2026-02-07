@@ -55,6 +55,12 @@ export function renderCredibility(ctx: PDFContext) {
 
   refY += cardH + 40;
 
+  // Client logos placeholder row
+  doc.fontSize(10).fillColor(COLORS.mediumGray);
+  doc.text(t("Nos clients incluent des entreprises dans les secteurs manufacturier, institutionnel et commercial.",
+    "Our clients include companies in manufacturing, institutional, and commercial sectors."), margin, refY, { width: contentWidth, align: "center" });
+  refY += 25;
+
   // Call to action
   doc.fontSize(18).fillColor(COLORS.blue).font("Helvetica-Bold");
   doc.text(getTitle("nextStep", ctx.lang), margin, refY, { width: contentWidth, align: "center" });
