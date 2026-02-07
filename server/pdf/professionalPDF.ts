@@ -3,14 +3,16 @@ import { createContext } from "./types";
 
 // Section renderers
 import { renderCover } from "./sections/cover";
+import { renderBillComparison } from "./sections/billComparison";
 import { renderProjectSnapshot } from "./sections/projectSnapshot";
 import { renderKPIResults } from "./sections/kpiResults";
 import { renderInvestmentBreakdown } from "./sections/investmentBreakdown";
 import { renderRoofConfiguration } from "./sections/roofConfiguration";
 import { renderFinancialProjections } from "./sections/financialProjections";
-import { renderAssumptions } from "./sections/assumptions";
+import { renderFinancingComparison } from "./sections/financingComparison";
 import { renderEquipment } from "./sections/equipment";
 import { renderTimeline } from "./sections/timeline";
+import { renderAssumptions } from "./sections/assumptions";
 import { renderNextSteps } from "./sections/nextSteps";
 import { renderCredibility } from "./sections/credibility";
 
@@ -31,37 +33,43 @@ export function generateProfessionalPDF(
 ): void {
   const ctx = createContext(doc, simulation, lang, options);
 
-  // === MAIN SECTIONS (11) ===
+  // === MAIN SECTIONS (13) ===
 
   // Section 1: Cover
   renderCover(ctx);
 
-  // Section 2: Project Snapshot
+  // Section 2: Bill Comparison (Before / After)
+  renderBillComparison(ctx);
+
+  // Section 3: Project Snapshot
   renderProjectSnapshot(ctx);
 
-  // Section 3: KPI Results
+  // Section 4: KPI Results
   renderKPIResults(ctx);
 
-  // Section 4: Net Investment Breakdown (visual waterfall)
+  // Section 5: Net Investment Breakdown (visual waterfall)
   renderInvestmentBreakdown(ctx);
 
-  // Section 5: Roof Configuration (enriched with per-zone table)
+  // Section 6: Roof Configuration (enriched with per-zone table)
   renderRoofConfiguration(ctx);
 
-  // Section 6: Financial Projections (cashflow + cost of inaction)
+  // Section 7: Financial Projections (cashflow + cost of inaction)
   renderFinancialProjections(ctx);
 
-  // Section 7: Assumptions & Exclusions
-  renderAssumptions(ctx);
+  // Section 8: Financing Comparison (Cash / Loan / Lease)
+  renderFinancingComparison(ctx);
 
-  // Section 8 + 9: Equipment & Timeline (shared page)
+  // Section 9 + 10: Equipment & Timeline (shared page)
   renderEquipment(ctx);
   renderTimeline(ctx);
 
-  // Section 10: Next Steps (own page)
+  // Section 11: Assumptions & Exclusions
+  renderAssumptions(ctx);
+
+  // Section 12: Next Steps (own page)
   renderNextSteps(ctx);
 
-  // Section 11: They Trust Us (Credibility)
+  // Section 13: They Trust Us (Credibility)
   renderCredibility(ctx);
 
   // === APPENDIX ===

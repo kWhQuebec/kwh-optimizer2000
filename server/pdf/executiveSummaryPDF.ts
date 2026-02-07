@@ -95,7 +95,7 @@ export function generateExecutiveSummaryPDF(
       const imageHeight = 175;
       const imageX = margin + (contentWidth - imageWidth) / 2;
 
-      doc.roundedRect(imageX - 3, doc.y - 3, imageWidth + 6, imageHeight + 6, 4).strokeColor(COLORS.lightGray).lineWidth(1).stroke();
+      doc.roundedRect(imageX - 3, doc.y - 3, imageWidth + 6, imageHeight + 6, 4).strokeColor(COLORS.borderGray).lineWidth(1).stroke();
       doc.image(simulation.roofVisualizationBuffer, imageX, doc.y, { width: imageWidth, height: imageHeight });
       doc.y += imageHeight + 15;
 

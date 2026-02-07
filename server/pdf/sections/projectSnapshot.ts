@@ -19,7 +19,12 @@ export function renderProjectSnapshot(ctx: PDFContext) {
   doc.font("Helvetica");
   doc.y += 8;
   doc.rect(margin, doc.y, 180, 3).fillColor(COLORS.gold).fill();
-  doc.y += 20;
+  doc.y += 15;
+
+  doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
+  doc.text(t(`Système de ${simulation.pvSizeKW.toFixed(0)} kWc proposé`, `Proposed ${simulation.pvSizeKW.toFixed(0)} kWp system`), margin, doc.y, { width: contentWidth });
+  doc.font("Helvetica");
+  doc.y += 25;
 
   // Site info
   doc.fontSize(14).fillColor(COLORS.darkGray).font("Helvetica-Bold");

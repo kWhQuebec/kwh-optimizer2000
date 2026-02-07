@@ -96,7 +96,7 @@ export function renderScenarioComparison(ctx: PDFContext, allSiteSimulations: Si
     currentY += rowHeight;
   });
 
-  doc.rect(margin, tableY, contentWidth, (allScenarios.length + 1) * rowHeight).strokeColor(COLORS.lightGray).lineWidth(0.5).stroke();
+  doc.rect(margin, tableY, contentWidth, (allScenarios.length + 1) * rowHeight).strokeColor(COLORS.borderGray).lineWidth(0.5).stroke();
 
   doc.y = currentY + 15;
 

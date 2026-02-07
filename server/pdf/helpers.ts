@@ -50,7 +50,7 @@ export function drawKPICard(
   highlight = false
 ) {
   drawRoundedRect(doc, x, y, width, height, 8, highlight ? COLORS.blue : COLORS.white);
-  doc.roundedRect(x, y, width, height, 8).strokeColor(COLORS.lightGray).lineWidth(1).stroke();
+  doc.roundedRect(x, y, width, height, 8).strokeColor(COLORS.borderGray).lineWidth(1).stroke();
 
   doc.fontSize(9).fillColor(highlight ? COLORS.white : COLORS.mediumGray);
   doc.text(label.toUpperCase(), x + 10, y + 12, { width: width - 20, align: "center", lineBreak: false });

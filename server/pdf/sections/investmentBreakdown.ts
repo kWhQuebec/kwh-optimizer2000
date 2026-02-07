@@ -16,6 +16,12 @@ export function renderInvestmentBreakdown(ctx: PDFContext) {
   doc.font("Helvetica");
   doc.y += 8;
   doc.rect(margin, doc.y, 180, 3).fillColor(COLORS.gold).fill();
+  doc.y += 15;
+
+  const savingsPct = simulation.capexGross > 0 ? (((simulation.capexGross - simulation.capexNet) / simulation.capexGross) * 100).toFixed(0) : "0";
+  doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
+  doc.text(t(`${savingsPct} % de réduction grâce aux incitatifs`, `${savingsPct}% reduction through incentives`), margin, doc.y, { width: contentWidth });
+  doc.font("Helvetica");
   doc.y += 25;
 
   // Visual waterfall chart

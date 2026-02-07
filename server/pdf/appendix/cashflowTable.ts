@@ -76,7 +76,7 @@ export function renderCashflowTable(ctx: PDFContext) {
 
     rowData.forEach((value, i) => {
       doc.rect(cellX, rowY, colWidths[i], rowHeight).fillColor(bgColor).fill();
-      doc.rect(cellX, rowY, colWidths[i], rowHeight).strokeColor(COLORS.lightGray).lineWidth(0.5).stroke();
+      doc.rect(cellX, rowY, colWidths[i], rowHeight).strokeColor(COLORS.borderGray).lineWidth(0.5).stroke();
 
       const textColor = i === 6 && cf.cumulative < 0 ? COLORS.red : (i === 6 && cf.cumulative > 0 ? COLORS.green : COLORS.darkGray);
       doc.fontSize(7).fillColor(textColor).text(value, cellX + 2, rowY + 3, { width: colWidths[i] - 4, align: "right" });

@@ -144,7 +144,71 @@ export async function generatePresentationPPTX(
     }
   }
 
-  // ================= SLIDE 2: PROJECT SNAPSHOT =================
+  // ================= SLIDE 2: BILL COMPARISON (Before/After) =================
+  const annualCostBefore = simulation.annualCostBefore || 0;
+  const annualCostAfter = simulation.annualCostAfter || 0;
+  const annualSavingsBill = simulation.annualSavings || 0;
+
+  if (annualCostBefore > 0) {
+    const slideBill = pptx.addSlide({ masterName: "KWHMAIN" });
+
+    slideBill.addText(t("VOTRE FACTURE AVANT / APRES", "YOUR BILL BEFORE / AFTER"), {
+      x: 0.5, y: 0.8, w: 9, h: 0.5,
+      fontSize: 22, bold: true, color: COLORS.blue
+    });
+
+    slideBill.addShape("rect", {
+      x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+    });
+
+    slideBill.addShape("rect", {
+      x: 0.5, y: 1.7, w: 4.2, h: 2.2,
+      fill: { color: "FEF2F2" }
+    });
+    slideBill.addText(t("AVANT", "BEFORE"), {
+      x: 0.5, y: 1.8, w: 4.2, h: 0.4,
+      fontSize: 14, bold: true, color: "DC2626", align: "center"
+    });
+    slideBill.addText(formatCurrency(annualCostBefore), {
+      x: 0.5, y: 2.3, w: 4.2, h: 0.8,
+      fontSize: 36, bold: true, color: "DC2626", align: "center", valign: "middle"
+    });
+    slideBill.addText(t("/ an", "/ year"), {
+      x: 0.5, y: 3.1, w: 4.2, h: 0.4,
+      fontSize: 12, color: "DC2626", align: "center"
+    });
+
+    slideBill.addShape("rect", {
+      x: 5.3, y: 1.7, w: 4.2, h: 2.2,
+      fill: { color: "F0FDF4" }
+    });
+    slideBill.addText(t("APRES", "AFTER"), {
+      x: 5.3, y: 1.8, w: 4.2, h: 0.4,
+      fontSize: 14, bold: true, color: "16A34A", align: "center"
+    });
+    slideBill.addText(formatCurrency(annualCostAfter), {
+      x: 5.3, y: 2.3, w: 4.2, h: 0.8,
+      fontSize: 36, bold: true, color: "16A34A", align: "center", valign: "middle"
+    });
+    slideBill.addText(t("/ an", "/ year"), {
+      x: 5.3, y: 3.1, w: 4.2, h: 0.4,
+      fontSize: 12, color: "16A34A", align: "center"
+    });
+
+    const savingsPct = annualCostBefore > 0 ? ((annualSavingsBill / annualCostBefore) * 100).toFixed(0) : "0";
+    slideBill.addShape("rect", {
+      x: 1.5, y: 4.2, w: 7, h: 0.7,
+      fill: { color: COLORS.gold }
+    });
+    slideBill.addText(
+      t(`Economie annuelle: ${formatCurrency(annualSavingsBill)} (${savingsPct}%)`,
+        `Annual savings: ${formatCurrency(annualSavingsBill)} (${savingsPct}%)`), {
+      x: 1.5, y: 4.25, w: 7, h: 0.6,
+      fontSize: 18, bold: true, color: COLORS.blue, align: "center", valign: "middle"
+    });
+  }
+
+  // ================= SLIDE 3: PROJECT SNAPSHOT =================
   const slideSnap = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slideSnap.addText(t("APERÇU DU PROJET", "PROJECT SNAPSHOT"), {
@@ -160,6 +224,12 @@ export async function generatePresentationPPTX(
 
   slideSnap.addShape("rect", {
     x: 0.5, y: 1.55, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  slideSnap.addText(
+    t(`Systeme de ${simulation.pvSizeKW.toFixed(0)} kWc propose`, `Proposed ${simulation.pvSizeKW.toFixed(0)} kWc system`), {
+    x: 0.5, y: 1.65, w: 9, h: 0.3,
+    fontSize: 14, italic: true, color: COLORS.gold
   });
 
   const snapLabels = getProjectSnapshotLabels(lang);
@@ -193,7 +263,7 @@ export async function generatePresentationPPTX(
     });
   });
 
-  // ================= SLIDE 3: YOUR RESULTS (4 KPIs) =================
+  // ================= SLIDE 4: YOUR RESULTS (4 KPIs) =================
   const slideKPI = pptx.addSlide({ masterName: "KWHMAIN" });
 
   const act3 = getNarrativeAct("act3_results", lang);
@@ -208,6 +278,12 @@ export async function generatePresentationPPTX(
 
   slideKPI.addShape("rect", {
     x: 0.5, y: 1.55, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  slideKPI.addText(
+    t(`Profit net de ${formatCurrency(simulation.npv25)} sur 25 ans`, `Net profit of ${formatCurrency(simulation.npv25)} over 25 years`), {
+    x: 0.5, y: 1.65, w: 9, h: 0.3,
+    fontSize: 14, italic: true, color: COLORS.gold
   });
 
   const kpiCards = [
@@ -245,11 +321,35 @@ export async function generatePresentationPPTX(
     : "0";
   const metricsLine = `LCOE: ${lcoeValue.toFixed(2)} ¢/kWh  |  CO₂: ${co2Value.toFixed(1)} t/${t("an", "yr")}  |  ${t("Autonomie batterie", "Battery backup")}: ${backupHours}h`;
   slideKPI.addText(metricsLine, {
-    x: 0.5, y: 4.7, w: 9, h: 0.3,
+    x: 0.5, y: 4.3, w: 9, h: 0.3,
     fontSize: 11, color: COLORS.mediumGray, align: "center"
   });
 
-  // ================= SLIDE 4: NET INVESTMENT BREAKDOWN (Waterfall) =================
+  const co2ForEquiv = simulation.co2AvoidedTonnesPerYear || 0;
+  const totalProductionKWh = (simulation.pvSizeKW * 1035) || 0;
+  const treesPlanted = Math.round(co2ForEquiv * 40);
+  const carsRemoved = (co2ForEquiv / 4.6).toFixed(1);
+  const homesPowered = (totalProductionKWh / 20000).toFixed(1);
+
+  const co2Equivalents = [
+    { label: t("Arbres plantes", "Trees planted"), value: `${treesPlanted}`, suffix: t("/ an", "/ yr") },
+    { label: t("Voitures retirees", "Cars removed"), value: carsRemoved, suffix: t("/ an", "/ yr") },
+    { label: t("Maisons alimentees", "Homes powered"), value: homesPowered, suffix: "" },
+  ];
+
+  co2Equivalents.forEach((eq, i) => {
+    const x = 0.5 + i * 3.2;
+    slideKPI.addText(eq.value, {
+      x, y: 4.65, w: 3, h: 0.3,
+      fontSize: 14, bold: true, color: COLORS.green, align: "center"
+    });
+    slideKPI.addText(`${eq.label} ${eq.suffix}`, {
+      x, y: 4.9, w: 3, h: 0.25,
+      fontSize: 9, color: COLORS.mediumGray, align: "center"
+    });
+  });
+
+  // ================= SLIDE 5: NET INVESTMENT BREAKDOWN (Waterfall) =================
   const slideWaterfall = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slideWaterfall.addText(t("VENTILATION DE L'INVESTISSEMENT NET", "NET INVESTMENT BREAKDOWN"), {
@@ -259,6 +359,15 @@ export async function generatePresentationPPTX(
 
   slideWaterfall.addShape("rect", {
     x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  const totalIncentivesVal = simulation.totalIncentives || 0;
+  const capexGrossVal = simulation.capexGross || 1;
+  const incentiveReductionPct = ((totalIncentivesVal / capexGrossVal) * 100).toFixed(0);
+  slideWaterfall.addText(
+    t(`Reduction de ${incentiveReductionPct} % grace aux incitatifs`, `${incentiveReductionPct}% reduction thanks to incentives`), {
+    x: 0.5, y: 1.45, w: 9, h: 0.3,
+    fontSize: 14, italic: true, color: COLORS.gold
   });
 
   // Waterfall chart: CAPEX Brut → -HQ Solaire → -HQ Batterie → -ITC Fédéral → = Net
@@ -343,7 +452,7 @@ export async function generatePresentationPPTX(
     });
   });
 
-  // ================= SLIDE 5: ROOF CONFIGURATION =================
+  // ================= SLIDE 6: ROOF CONFIGURATION =================
   const slideRoof = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slideRoof.addText(t("CONFIGURATION TOITURE", "ROOF CONFIGURATION"), {
@@ -439,7 +548,7 @@ export async function generatePresentationPPTX(
     });
   }
 
-  // ================= SLIDE 6: FINANCIAL PROJECTIONS (Cashflow + Cost of Inaction) =================
+  // ================= SLIDE 7: FINANCIAL PROJECTIONS (Cashflow + Cost of Inaction) =================
   if (simulation.cashflows && simulation.cashflows.length > 0) {
     const slideCashflow = pptx.addSlide({ masterName: "KWHMAIN" });
 
@@ -450,6 +559,12 @@ export async function generatePresentationPPTX(
 
     slideCashflow.addShape("rect", {
       x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+    });
+
+    slideCashflow.addText(
+      t(`Rentable en ${(simulation.simplePaybackYears || 0).toFixed(1)} ans`, `Profitable in ${(simulation.simplePaybackYears || 0).toFixed(1)} years`), {
+      x: 0.5, y: 1.45, w: 9, h: 0.3,
+      fontSize: 14, italic: true, color: COLORS.gold
     });
 
     const chartData = simulation.cashflows.slice(0, 26).map(cf => ({
@@ -532,56 +647,126 @@ export async function generatePresentationPPTX(
     });
   }
 
-  // ================= SLIDE 7: ASSUMPTIONS & EXCLUSIONS =================
-  const slideAssump = pptx.addSlide({ masterName: "KWHMAIN" });
+  // ================= SLIDE 8: FINANCING COMPARISON =================
+  {
+    const finCapexNet = simulation.capexNet || 0;
+    const finSavingsYear1 = simulation.savingsYear1 || 0;
+    const finPayback = simulation.simplePaybackYears || 0;
+    const finNpv25 = simulation.npv25 || 0;
 
-  slideAssump.addText(t("HYPOTHÈSES ET EXCLUSIONS", "ASSUMPTIONS & EXCLUSIONS"), {
-    x: 0.5, y: 0.8, w: 9, h: 0.5,
-    fontSize: 22, bold: true, color: COLORS.blue
-  });
+    const loanRate = 0.05;
+    const loanTermMonths = 120;
+    const loanMonthlyRate = loanRate / 12;
+    const loanMonthly = finCapexNet > 0 ? finCapexNet * loanMonthlyRate / (1 - Math.pow(1 + loanMonthlyRate, -loanTermMonths)) : 0;
 
-  slideAssump.addShape("rect", {
-    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
-  });
+    const leaseRate = 0.07;
+    const leaseTermMonths = 180;
+    const leaseMonthlyRate = leaseRate / 12;
+    const leaseMonthly = finCapexNet > 0 ? finCapexNet * leaseMonthlyRate / (1 - Math.pow(1 + leaseMonthlyRate, -leaseTermMonths)) : 0;
 
-  const assumptions = getAssumptions(lang);
-  const assTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
-    [
-      { text: t("Hypothèse", "Assumption"), options: { bold: true, color: COLORS.white } },
-      { text: t("Valeur", "Value"), options: { bold: true, color: COLORS.white } }
-    ],
-    ...assumptions.map(a => [
-      { text: a.label },
-      { text: a.value, options: { bold: true, color: COLORS.blue } }
-    ])
-  ];
+    const slideFinancing = pptx.addSlide({ masterName: "KWHMAIN" });
 
-  slideAssump.addTable(assTableData, {
-    x: 0.5, y: 1.4, w: 5.5,
-    fill: { color: COLORS.white },
-    border: { pt: 0.5, color: COLORS.lightGray },
-    fontFace: "Arial",
-    fontSize: 10,
-    color: COLORS.darkGray,
-    valign: "middle",
-    colW: [3.5, 2],
-    rowH: 0.3
-  });
-
-  slideAssump.addText(t("EXCLUSIONS", "EXCLUSIONS"), {
-    x: 6.5, y: 1.4, w: 3, h: 0.35,
-    fontSize: 14, bold: true, color: "DC2626"
-  });
-
-  const exclusions = getExclusions(lang);
-  exclusions.forEach((excl, i) => {
-    slideAssump.addText(`✕  ${excl}`, {
-      x: 6.5, y: 1.85 + i * 0.35, w: 3.2, h: 0.3,
-      fontSize: 9, color: COLORS.darkGray
+    slideFinancing.addText(t("OPTIONS DE FINANCEMENT", "FINANCING OPTIONS"), {
+      x: 0.5, y: 0.8, w: 9, h: 0.5,
+      fontSize: 22, bold: true, color: COLORS.blue
     });
-  });
 
-  // ================= SLIDE 8: EQUIPMENT & WARRANTIES =================
+    slideFinancing.addShape("rect", {
+      x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+    });
+
+    const finColumns = [
+      {
+        title: t("Comptant", "Cash"),
+        badge: t("Recommande", "Recommended"),
+        highlighted: true,
+        rows: [
+          { label: t("Investissement", "Investment"), value: formatCurrency(finCapexNet) },
+          { label: t("Economies An 1", "Year 1 Savings"), value: formatCurrency(finSavingsYear1) },
+          { label: t("Retour simple", "Simple Payback"), value: `${finPayback.toFixed(1)} ${t("ans", "yrs")}` },
+          { label: t("VAN 25 ans", "25yr NPV"), value: formatCurrency(finNpv25) },
+        ]
+      },
+      {
+        title: t("Financement", "Loan"),
+        badge: null,
+        highlighted: false,
+        rows: [
+          { label: t("Taux", "Rate"), value: "5.0%" },
+          { label: t("Terme", "Term"), value: t("10 ans", "10 yrs") },
+          { label: t("Mensualite", "Monthly"), value: formatCurrency(Math.round(loanMonthly)) },
+          { label: t("Total", "Total"), value: formatCurrency(Math.round(loanMonthly * loanTermMonths)) },
+        ]
+      },
+      {
+        title: t("Location", "Lease"),
+        badge: null,
+        highlighted: false,
+        rows: [
+          { label: t("Taux", "Rate"), value: "7.0%" },
+          { label: t("Terme", "Term"), value: t("15 ans", "15 yrs") },
+          { label: t("Mensualite", "Monthly"), value: formatCurrency(Math.round(leaseMonthly)) },
+          { label: t("Total", "Total"), value: formatCurrency(Math.round(leaseMonthly * leaseTermMonths)) },
+        ]
+      },
+    ];
+
+    finColumns.forEach((col, ci) => {
+      const x = 0.5 + ci * 3.2;
+      const colW = 2.9;
+
+      if (col.highlighted) {
+        slideFinancing.addShape("rect", {
+          x: x - 0.05, y: 1.55, w: colW + 0.1, h: 3.5,
+          line: { color: COLORS.gold, width: 2 },
+          fill: { color: COLORS.white }
+        });
+      }
+
+      slideFinancing.addShape("rect", {
+        x, y: 1.6, w: colW, h: 3.4,
+        fill: { color: col.highlighted ? "FFFDF5" : COLORS.lightGray }
+      });
+
+      slideFinancing.addText(col.title, {
+        x, y: 1.65, w: colW, h: 0.45,
+        fontSize: 16, bold: true, color: COLORS.blue, align: "center", valign: "middle"
+      });
+
+      if (col.badge) {
+        slideFinancing.addShape("rect", {
+          x: x + 0.3, y: 2.1, w: colW - 0.6, h: 0.3,
+          fill: { color: COLORS.gold }
+        });
+        slideFinancing.addText(`* ${col.badge}`, {
+          x: x + 0.3, y: 2.1, w: colW - 0.6, h: 0.3,
+          fontSize: 10, bold: true, color: COLORS.blue, align: "center", valign: "middle"
+        });
+      }
+
+      const rowStartY = col.badge ? 2.55 : 2.2;
+      col.rows.forEach((row, ri) => {
+        const ry = rowStartY + ri * 0.65;
+        slideFinancing.addText(row.label, {
+          x: x + 0.15, y: ry, w: colW - 0.3, h: 0.25,
+          fontSize: 9, color: COLORS.mediumGray, align: "center"
+        });
+        slideFinancing.addText(row.value, {
+          x: x + 0.15, y: ry + 0.22, w: colW - 0.3, h: 0.35,
+          fontSize: 16, bold: true, color: COLORS.darkGray, align: "center"
+        });
+      });
+    });
+
+    slideFinancing.addText(
+      t("Les taux presentes sont indicatifs et sujets a approbation de credit. Consultez votre institution financiere.",
+        "Rates shown are indicative and subject to credit approval. Consult your financial institution."), {
+      x: 0.5, y: 5.1, w: 9, h: 0.3,
+      fontSize: 8, color: COLORS.mediumGray, align: "center"
+    });
+  }
+
+  // ================= SLIDE 9: EQUIPMENT & WARRANTIES =================
   const slideEquip = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slideEquip.addText(t("ÉQUIPEMENT ET GARANTIES", "EQUIPMENT & WARRANTIES"), {
@@ -648,7 +833,7 @@ export async function generatePresentationPPTX(
     fontSize: 8, color: COLORS.mediumGray, align: "center"
   });
 
-  // ================= SLIDE 9: TIMELINE =================
+  // ================= SLIDE 10: TIMELINE =================
   const slideTimeline = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slideTimeline.addText(t("ÉCHÉANCIER TYPE", "TYPICAL TIMELINE"), {
@@ -728,7 +913,56 @@ export async function generatePresentationPPTX(
     fontSize: 9, color: COLORS.mediumGray, align: "center"
   });
 
-  // ================= SLIDE 10: NEXT STEPS =================
+  // ================= SLIDE 11: ASSUMPTIONS & EXCLUSIONS =================
+  const slideAssump = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideAssump.addText(t("HYPOTHESES ET EXCLUSIONS", "ASSUMPTIONS & EXCLUSIONS"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideAssump.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  const assumptions = getAssumptions(lang);
+  const assTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
+    [
+      { text: t("Hypothese", "Assumption"), options: { bold: true, color: COLORS.white } },
+      { text: t("Valeur", "Value"), options: { bold: true, color: COLORS.white } }
+    ],
+    ...assumptions.map(a => [
+      { text: a.label },
+      { text: a.value, options: { bold: true, color: COLORS.blue } }
+    ])
+  ];
+
+  slideAssump.addTable(assTableData, {
+    x: 0.5, y: 1.4, w: 5.5,
+    fill: { color: COLORS.white },
+    border: { pt: 0.5, color: COLORS.lightGray },
+    fontFace: "Arial",
+    fontSize: 10,
+    color: COLORS.darkGray,
+    valign: "middle",
+    colW: [3.5, 2],
+    rowH: 0.3
+  });
+
+  slideAssump.addText(t("EXCLUSIONS", "EXCLUSIONS"), {
+    x: 6.5, y: 1.4, w: 3, h: 0.35,
+    fontSize: 14, bold: true, color: "DC2626"
+  });
+
+  const exclusions = getExclusions(lang);
+  exclusions.forEach((excl, i) => {
+    slideAssump.addText(`x  ${excl}`, {
+      x: 6.5, y: 1.85 + i * 0.35, w: 3.2, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
+    });
+  });
+
+  // ================= SLIDE 12: NEXT STEPS =================
   const slide5 = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slide5.addText(t("PROCHAINES ÉTAPES", "NEXT STEPS"), {
@@ -807,7 +1041,7 @@ export async function generatePresentationPPTX(
     fontSize: 11, color: COLORS.gold, align: "center"
   });
 
-  // ================= SLIDE 11: THEY TRUST US =================
+  // ================= SLIDE 13: THEY TRUST US =================
   const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
 
   // Titre - utilise brandContent

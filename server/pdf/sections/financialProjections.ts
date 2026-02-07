@@ -16,7 +16,17 @@ export function renderFinancialProjections(ctx: PDFContext) {
   doc.font("Helvetica");
   doc.y += 8;
   doc.rect(margin, doc.y, 200, 3).fillColor(COLORS.gold).fill();
-  doc.y += 20;
+  doc.y += 12;
+
+  const paybackYears = simulation.simplePaybackYears || 0;
+  if (paybackYears > 0) {
+    doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
+    doc.text(t(`Rentable en ${paybackYears.toFixed(1)} ans`, `Profitable in ${paybackYears.toFixed(1)} years`), margin, doc.y, { width: contentWidth });
+    doc.font("Helvetica");
+    doc.y += 20;
+  } else {
+    doc.y += 8;
+  }
 
   // Cash Flow Chart — taller for better visibility
   drawCashflowChart(
