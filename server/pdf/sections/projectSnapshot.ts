@@ -41,7 +41,7 @@ export function renderProjectSnapshot(ctx: PDFContext) {
     [snapLabels.annualConsumption.label, `${(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh`],
     [snapLabels.peakDemand.label, `${(simulation.peakDemandKW || 0).toFixed(0)} kW`],
     [snapLabels.solarCapacity.label, `${simulation.pvSizeKW.toFixed(0)} kWc`],
-    [snapLabels.batteryCapacity.label, simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : t("Non inclus", "Not included")],
+    [snapLabels.batteryCapacity.label, simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : "0 kWh"],
     [snapLabels.estimatedProduction.label, `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh`],
     [snapLabels.selfConsumptionRate.label, `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`],
   ];

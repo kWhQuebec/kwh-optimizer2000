@@ -533,7 +533,7 @@ function SnapshotSlide({ simulation, language }: { simulation: SimulationRun | n
     { icon: Zap, label: labels.annualConsumption?.label || '', value: simulation?.annualConsumptionKWh ? `${Math.round(simulation.annualConsumptionKWh).toLocaleString()} kWh` : '--' },
     { icon: TrendingUp, label: labels.peakDemand?.label || '', value: simulation?.peakDemandKW ? `${Number(simulation.peakDemandKW).toFixed(0)} kW` : '--' },
     { icon: Sun, label: labels.solarCapacity?.label || '', value: simulation?.pvSizeKW ? `${Number(simulation.pvSizeKW).toFixed(0)} kWc` : '--' },
-    { icon: Battery, label: labels.batteryCapacity?.label || '', value: simulation?.battEnergyKWh && Number(simulation.battEnergyKWh) > 0 ? `${Number(simulation.battEnergyKWh).toFixed(0)} kWh` : (language === 'fr' ? 'Non inclus' : 'Not included') },
+    { icon: Battery, label: labels.batteryCapacity?.label || '', value: simulation?.battEnergyKWh && Number(simulation.battEnergyKWh) > 0 ? `${Number(simulation.battEnergyKWh).toFixed(0)} kWh` : '0 kWh' },
     { icon: Sun, label: labels.estimatedProduction?.label || '', value: simulation?.pvSizeKW ? `${Math.round(Number(simulation.pvSizeKW) * 1035).toLocaleString()} kWh` : '--' },
     { icon: CheckCircle2, label: labels.selfConsumptionRate?.label || '', value: simulation?.selfSufficiencyPercent ? `${Number(simulation.selfSufficiencyPercent).toFixed(0)}%` : '--' },
   ];

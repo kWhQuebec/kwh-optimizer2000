@@ -237,7 +237,7 @@ export async function generatePresentationPPTX(
     { label: snapLabels.annualConsumption.label, value: `${(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh` },
     { label: snapLabels.peakDemand.label, value: `${(simulation.peakDemandKW || 0).toFixed(0)} kW` },
     { label: snapLabels.solarCapacity.label, value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
-    { label: snapLabels.batteryCapacity.label, value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : t("Non inclus", "Not included") },
+    { label: snapLabels.batteryCapacity.label, value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : "0 kWh" },
     { label: snapLabels.estimatedProduction.label, value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
     { label: snapLabels.selfConsumptionRate.label, value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
   ];
