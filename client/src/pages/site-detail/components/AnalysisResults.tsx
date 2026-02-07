@@ -304,8 +304,8 @@ export function AnalysisResults({
 
   return (
     <div className="space-y-6">
-      {/* Optimal System Recommendation Banner */}
-      {displayedScenario && (
+      {/* Optimal System Recommendation Banner — wait for full data to avoid flash */}
+      {displayedScenario && !isLoadingFullData && (
         <Card className="border-primary bg-gradient-to-r from-primary/10 to-primary/5">
           <CardContent className="py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
