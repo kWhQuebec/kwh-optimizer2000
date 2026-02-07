@@ -932,10 +932,9 @@ function runPotentialAnalysis(
     // Revenue = base savings * degradation * tariff inflation
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
-    // HQ surplus revenue starts after 24 months (year 3+)
-    // After first 24-month cycle, HQ pays for accumulated surplus in the bank
+    const escalatedSurplusRate = (h.hqSurplusCompensationRate || 0.046) * Math.pow(1 + h.inflationRate, y - 1);
     const surplusRevenue = y >= 3 
-      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
+      ? totalExportedKWh * escalatedSurplusRate * degradationFactor
       : 0;
     
     const revenue = savingsRevenue + surplusRevenue;
@@ -959,26 +958,11 @@ function runPotentialAnalysis(
     
     // Note: Years 26-30 have no new incentives (depreciation exhausted, all credits received)
     
-    // Battery replacement at configured year (adjusted for inflation and price decline)
-    const replacementYear = h.batteryReplacementYear || 10;
+    const battReplaceInterval = h.batteryReplacementYear || 10;
     const replacementFactor = h.batteryReplacementCostFactor || 0.60;
     const priceDecline = h.batteryPriceDeclineRate || 0.05;
     
-    if (y === replacementYear && battEnergyKWh > 0) {
-      // Battery cost adjusted: inflation increases cost, but battery prices decline
-      // Net effect: original_cost * replacement_factor * (1 + inflation - price_decline)^years
-      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
-      investment = -capexBattery * replacementFactor * netPriceChange;
-    }
-    
-    // Second replacement at year 20
-    if (y === 20 && battEnergyKWh > 0) {
-      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
-      investment = -capexBattery * replacementFactor * netPriceChange;
-    }
-    
-    // Third replacement at year 30 for extended 30-year analysis
-    if (y === 30 && battEnergyKWh > 0) {
+    if (battEnergyKWh > 0 && y > 0 && y % battReplaceInterval === 0 && y < MAX_ANALYSIS_YEARS) {
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
@@ -1204,10 +1188,9 @@ function runPotentialAnalysis(
       // Revenue from self-consumption savings
       const savingsRevenue = optAnnualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
       
-      // HQ surplus revenue starts after 24 months (year 3+)
-      // Surplus kWh compensated at HQ cost of supply rate (4.54¢/kWh per R-4270-2024)
+      const escalatedSurplusRate = (h.hqSurplusCompensationRate || 0.046) * Math.pow(1 + h.inflationRate, y - 1);
       const surplusRevenue = y >= 3 
-        ? optAnnualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
+        ? optSimResult.totalExportedKWh * escalatedSurplusRate * degradationFactor
         : 0;
       
       const revenue = savingsRevenue + surplusRevenue;
@@ -1232,21 +1215,11 @@ function runPotentialAnalysis(
       
       // Note: Years 26-30 have no new incentives (depreciation exhausted, all credits received)
       
-      const replacementYear = h.batteryReplacementYear || 10;
+      const battReplaceInterval = h.batteryReplacementYear || 10;
       const replacementFactor = h.batteryReplacementCostFactor || 0.60;
       const priceDecline = h.batteryPriceDeclineRate || 0.05;
       
-      if (y === replacementYear && optBattEnergyKWh > 0) {
-        const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
-        investment = -optCapexBattery * replacementFactor * netPriceChange;
-      }
-      // Second replacement at year 20
-      if (y === 20 && optBattEnergyKWh > 0) {
-        const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
-        investment = -optCapexBattery * replacementFactor * netPriceChange;
-      }
-      // Third replacement at year 30 for extended 30-year analysis
-      if (y === 30 && optBattEnergyKWh > 0) {
+      if (optBattEnergyKWh > 0 && y > 0 && y % battReplaceInterval === 0 && y < OPT_MAX_ANALYSIS_YEARS) {
         const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
         investment = -optCapexBattery * replacementFactor * netPriceChange;
       }
@@ -1484,7 +1457,7 @@ function runPotentialAnalysis(
         irr25: finalResult.irr25,
         irr10: finalResult.irr10 || 0,
         irr20: finalResult.irr20 || 0,
-        simplePaybackYears: finalAnnualSavings > 0 ? Math.ceil(trueOptCapexNet / finalAnnualSavings) : h.analysisYears,
+        simplePaybackYears: finalResult.simplePaybackYears || (finalAnnualSavings > 0 ? Math.ceil(trueOptCapexNet / finalAnnualSavings) : h.analysisYears),
         lcoe: finalLcoe,
         npv30: optNpv30,
         irr30: optIrr30,
@@ -2304,11 +2277,9 @@ function runScenarioWithSizing(
     // Revenue = base savings * degradation * tariff inflation
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
-    // HQ surplus revenue starts after 24 months (year 3+)
-    // After first 24-month cycle, HQ pays for accumulated surplus in the bank
-    // We model this as annual revenue starting year 3
+    const escalatedSurplusRate = (h.hqSurplusCompensationRate || 0.046) * Math.pow(1 + h.inflationRate, y - 1);
     const surplusRevenue = y >= 3 
-      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
+      ? annualExportedKWh * escalatedSurplusRate * degradationFactor
       : 0;
     
     const revenue = savingsRevenue + surplusRevenue;
@@ -2327,22 +2298,11 @@ function runScenarioWithSizing(
       incentives = incentivesFederal;
     }
     
-    // Battery replacement at configured year
-    const replacementYear = h.batteryReplacementYear || 10;
+    const battReplaceInterval = h.batteryReplacementYear || 10;
     const replacementFactor = h.batteryReplacementCostFactor || 0.60;
     const priceDecline = h.batteryPriceDeclineRate || 0.05;
     
-    if (y === replacementYear && battEnergyKWh > 0) {
-      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
-      investment = -capexBattery * replacementFactor * netPriceChange;
-    }
-    // Second replacement at year 20
-    if (y === 20 && battEnergyKWh > 0) {
-      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
-      investment = -capexBattery * replacementFactor * netPriceChange;
-    }
-    // Third replacement at year 30 for extended analysis
-    if (y === 30 && battEnergyKWh > 0) {
+    if (battEnergyKWh > 0 && y > 0 && y % battReplaceInterval === 0 && y < MAX_SCENARIO_YEARS) {
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
@@ -2368,20 +2328,31 @@ function runScenarioWithSizing(
     if (y <= 25) totalProduction25Scenario += yearProd;
     totalProduction30Scenario += yearProd;
   }
-  const lcoe = totalProduction25Scenario > 0 ? capexNet / totalProduction25Scenario : 0;
-  const lcoe30 = totalProduction30Scenario > 0 ? capexNet / totalProduction30Scenario : 0;
+  const totalLifetimeCost25 = capexNet + (opexBase * 25);
+  const totalLifetimeCost30 = capexNet + (opexBase * 30);
+  const lcoe = totalProduction25Scenario > 0 ? totalLifetimeCost25 / totalProduction25Scenario : 0;
+  const lcoe30 = totalProduction30Scenario > 0 ? totalLifetimeCost30 / totalProduction30Scenario : 0;
   
   // Build cashflows array for return
   const cashflows = cashflowValues.map((netCashflow, index) => ({ year: index, netCashflow }));
   
   // Calculate additional KPI metrics for Dashboard
   const totalProductionKWh = pvSizeKW * effectiveYield;
-  const simplePaybackYears = annualSavings > 0 ? capexNet / annualSavings : 0;
+  // Payback: cumulative cashflow approach (consistent with runPotentialAnalysis)
+  let simplePaybackYears = MAX_SCENARIO_YEARS;
+  let cumCheck = cashflowValues[0];
+  for (let i = 1; i < Math.min(cashflowValues.length, 26); i++) {
+    cumCheck += cashflowValues[i];
+    if (cumCheck >= 0) {
+      simplePaybackYears = i;
+      break;
+    }
+  }
   const selfSufficiencyPercent = annualConsumptionKWh > 0 
     ? (selfConsumptionKWh / annualConsumptionKWh) * 100 
     : 0;
-  // Quebec grid emission factor: ~0.5 g CO2/kWh (very low due to hydro)
-  const co2AvoidedTonnesPerYear = (selfConsumptionKWh * 0.0005) / 1000;
+  // CO2: Quebec grid factor 0.002 kg CO2/kWh (~2 g/kWh, Env. Canada)
+  const co2AvoidedTonnesPerYear = (selfConsumptionKWh * 0.002) / 1000;
   
   const annualCostAfter = annualCostBefore - annualSavings;
   

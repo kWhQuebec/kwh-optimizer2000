@@ -1698,7 +1698,7 @@ export default function MarketIntelligencePage() {
                                     const ppaDiscountPercent = proposal.ppaDiscountPercent || 40; // TRC's discount
                                     const ppaRate = compElecRate * (1 - ppaDiscountPercent / 100); // Calculate actual PPA rate
                                     const ppaTerm = proposal.ppaTerm || 16; // TRC's 16-year term
-                                    const realInflationRate = proposal.kwhInflationRate || 0.048; // Real HQ inflation
+                                    const realInflationRate = proposal.kwhInflationRate || 0.035; // HQ tariff inflation (3.5%)
                                     
                                     const leasePayment = cashCapex / 7 * 1.15; // 7-year lease with interest
                                     

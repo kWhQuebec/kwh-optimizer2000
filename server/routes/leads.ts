@@ -358,7 +358,8 @@ router.post("/api/quick-estimate", async (req, res) => {
     };
     
     // CO2 reduction (based on conservative scenario)
-    const co2ReductionTons = Math.round(primaryScenario.annualProductionKWh * 0.0012 * 10) / 10;
+    // CO2: Quebec grid factor 0.002 kg CO2/kWh (~2 g/kWh, Env. Canada)
+    const co2ReductionTons = Math.round(primaryScenario.annualProductionKWh * 0.002 * 10) / 10;
     
     // Calculate before/after HQ bill comparison (based on conservative scenario)
     const annualBillBefore = estimatedMonthlyBill * 12;

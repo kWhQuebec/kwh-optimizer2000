@@ -279,6 +279,7 @@ export function resolveYieldStrategy(
 /**
  * Run hourly solar + battery simulation
  * This is the SINGLE entry point for all hourly simulations
+ * @deprecated Use runHourlySimulation from siteAnalysisHelpers.ts instead (BASELINE_CAPACITY_FACTOR=0.645)
  */
 export function runSolarBatterySimulation(
   hourlyData: HourlyDataPoint[],

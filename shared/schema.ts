@@ -917,7 +917,7 @@ export const competitorProposalAnalysis = pgTable("competitor_proposal_analysis"
   compElecRate: real("comp_elec_rate"), // $/kWh
   
   // Our assumptions (kWh standard)
-  kwhInflationRate: real("kwh_inflation_rate"), // e.g., 0.048 for 4.8%
+  kwhInflationRate: real("kwh_inflation_rate"), // e.g., 0.035 for 3.5%
   kwhDegradationRate: real("kwh_degradation_rate"), // e.g., 0.005 for 0.5%
   kwhOmCostPercent: real("kwh_om_cost_percent"), // e.g., 0.01 for 1%
   kwhCostPerWatt: real("kwh_cost_per_watt"), // Our price for comparison
@@ -2117,7 +2117,7 @@ export interface AnalysisAssumptions {
   tariffPower: number;       // $/kW/month - default 17.57 (M tariff)
   
   // Solar production parameters
-  solarYieldKWhPerKWp: number; // kWh/kWp/year - default 1100, based on racking config
+  solarYieldKWhPerKWp: number; // kWh/kWp/year - default 1150, based on racking config
   orientationFactor: number;   // 0-1 multiplier for roof orientation (1.0 = optimal south-facing)
   
   // Racking configuration (Jan 2026 - KB vs Opsun analysis)
@@ -2130,7 +2130,7 @@ export interface AnalysisAssumptions {
   degradationRatePercent: number; // Annual module degradation - default 0.005 (0.5%/year)
   
   // Financial
-  inflationRate: number;     // % as decimal - default 0.048
+  inflationRate: number;     // % as decimal - default 0.035
   discountRate: number;      // WACC % as decimal - default 0.08
   taxRate: number;           // Corporate tax % as decimal - default 0.265
   
@@ -2182,8 +2182,8 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   tariffCode: "M", // Default to Medium Power tariff
   tariffEnergy: 0.06061, // Tarif M 2025: 6.061¢/kWh (tier 1)
   tariffPower: 17.573, // Tarif M 2025: $17.573/kW
-  solarYieldKWhKWp: 1100, // Quebec field data: 1000-1150 kWh/kWp depending on racking (see RackingConfig)
-  solarYieldKWhPerKWp: 1100, // Alias for backward compatibility
+  solarYieldKWhKWp: 1150, // Quebec baseline: 1150 kWh/kWp (matches BASELINE_YIELD constant)
+  solarYieldKWhPerKWp: 1150, // Alias for backward compatibility
   orientationFactor: 1.0, // 1.0 = optimal south-facing, reduced for E/W orientations
   
   // Racking system configuration (new - Jan 2026)

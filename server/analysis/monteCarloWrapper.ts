@@ -7,6 +7,11 @@
  * This allows clients to understand the range of possible outcomes based on
  * uncertainty in key variables.
  * 
+ * NOTE: This uses a simplified financial model (not hourly simulation) because
+ * Monte Carlo requires 500+ iterations for statistical significance. The full
+ * hourly simulation is too compute-intensive for this purpose. Key financial
+ * formulas (incentives, tax shield, payback) are aligned with the main engine.
+ * 
  * Updated Jan 2026 per James (solar expert) - realistic 25-year assumptions:
  * 
  * Variable Mapping (Config → AnalysisAssumptions → Financial Engine):
@@ -140,36 +145,38 @@ export function createSimplifiedScenarioRunner(
     const afterHQ = capexGross - hqIncentive;
     // Federal ITC: 30% of remaining CAPEX
     const federalITC = afterHQ * 0.30;
-    // Net CAPEX for year 0 (tax shield applied over time, not upfront)
     const capexNet = afterHQ - federalITC;
     
-    // Energy savings year 1
+    // Tax rate for CCA tax shield calculation
+    const taxRate = h.taxRate || 0.265;
+    
+    // Tax shield: CCA Class 43.2 allows 100% year-1 expensing for clean energy
+    // Factor 0.90 is conservative (assumes 10% not recovered)
+    const taxShield = capexNet * taxRate * 0.90;
+    
+    // Energy savings year 1 (surplus revenue separated - delayed to year 3 per HQ 24-month cycle)
     const energyRate = tariffEnergy || h.tariffEnergy || 0.06;
-    const energySavingsY1 = selfConsumedKWh * energyRate + exportedKWh * (h.hqSurplusCompensationRate || 0.046);
+    const energySavingsY1 = selfConsumedKWh * energyRate;
+    const surplusRevenueY1 = exportedKWh * (h.hqSurplusCompensationRate || 0.046);
     
     // Demand charge savings (simplified model)
     // Estimate solar covers ~10-15% of peak during peak hours (conservative)
     const solarPeakContribution = Math.min(pvSizeKW * 0.15, peakKW * 0.10);
     const effectiveTariffPower = tariffPower || h.tariffPower || 17.573;
-    const demandSavingsY1 = solarPeakContribution * effectiveTariffPower * 12; // Monthly billing
-    
-    // Total year 1 savings
-    const year1Savings = energySavingsY1 + demandSavingsY1;
+    const demandSavingsY1 = solarPeakContribution * effectiveTariffPower * 12;
     
     // O&M costs ($/kWc/year)
     const omPerKW = h.omPerKwc !== undefined ? h.omPerKwc : 15;
     const omCostY1 = pvSizeKW * omPerKW;
     
-    // Tax rate for annual tax shield on O&M deduction
-    const taxRate = h.taxRate || 0.265;
-    
     // Generate 26-year cashflows (year 0 to 25)
     const cashflows: Array<{ year: number; netCashflow: number }> = [];
     const cashflowValues: number[] = [];
     
-    // Year 0: CAPEX investment
-    cashflows.push({ year: 0, netCashflow: -capexNet });
-    cashflowValues.push(-capexNet);
+    // Year 0: CAPEX investment + tax shield
+    const effectiveYear0 = -capexNet + taxShield;
+    cashflows.push({ year: 0, netCashflow: effectiveYear0 });
+    cashflowValues.push(effectiveYear0);
     
     const degradationRate = h.degradationRatePercent || 0.005;
     const escalationRate = h.inflationRate || 0.035;
@@ -178,11 +185,11 @@ export function createSimplifiedScenarioRunner(
     for (let year = 1; year <= 25; year++) {
       const degradationFactor = Math.pow(1 - degradationRate, year);
       const escalationFactor = Math.pow(1 + escalationRate, year);
-      const yearSavings = year1Savings * degradationFactor * escalationFactor;
+      const yearEnergySavings = energySavingsY1 * degradationFactor * escalationFactor;
+      const yearSurplus = year >= 3 ? surplusRevenueY1 * degradationFactor * escalationFactor : 0;
+      const yearDemandSavings = demandSavingsY1 * escalationFactor;
       const yearOm = omCostY1 * Math.pow(1 + omEscalation, year);
-      // Tax shield on operating costs
-      const taxBenefit = yearOm * taxRate * 0.3; // Partial deductibility
-      const netCashflow = yearSavings - yearOm + taxBenefit;
+      const netCashflow = yearEnergySavings + yearSurplus + yearDemandSavings - yearOm;
       
       cashflows.push({ year, netCashflow });
       cashflowValues.push(netCashflow);

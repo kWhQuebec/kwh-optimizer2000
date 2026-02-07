@@ -30,7 +30,7 @@ export interface CashflowInputs {
   
   // Rate parameters
   gridRateY1: number;        // Client's electricity rate $/kWh
-  kwhInflation: number;      // kWh Québec inflation assumption (4.8%)
+  kwhInflation: number;      // HQ tariff inflation assumption (3.5%)
   trcInflation: number;      // TRC/competitor inflation assumption (3%)
   degradation: number;       // Panel degradation rate (0.5%/year)
   omRate: number;            // O&M as % of CAPEX (1%)
@@ -323,7 +323,7 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
 export const DEFAULT_CASHFLOW_INPUTS: Partial<CashflowInputs> = {
   hqIncentivePerKw: 1000,
   itcRate: 0.30,
-  kwhInflation: 0.048,
+  kwhInflation: 0.035,
   trcInflation: 0.03,
   degradation: 0.005,
   omRate: 0.01,
