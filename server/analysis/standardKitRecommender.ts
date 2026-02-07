@@ -205,7 +205,7 @@ function calculateCustomPrice(
 ): number {
   // Use tiered pricing based on system size, or custom override
   const solarCostPerW = config.customPricePerWatt || getTieredPricing(pvKW);
-  const batteryCapacityCost = config.customBatteryCapacityCost || 550;
+  const batteryCapacityCost = config.customBatteryCapacityCost || 450;
   const batteryPowerCost = config.customBatteryPowerCost || 800;
   
   const solarCost = pvKW * 1000 * solarCostPerW;

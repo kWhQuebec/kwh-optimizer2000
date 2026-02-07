@@ -2136,7 +2136,7 @@ export interface AnalysisAssumptions {
   
   // CAPEX costs
   solarCostPerW: number;     // $/W - default 2.25
-  batteryCapacityCost: number; // $/kWh - default 550
+  batteryCapacityCost: number; // $/kWh - default 450
   batteryPowerCost: number;   // $/kW - default 800
   
   // O&M
@@ -2201,7 +2201,7 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   discountRate: 0.07, // 7% WACC (midpoint of 6-8% range)
   taxRate: 0.265, // 26.5% corporate tax
   solarCostPerW: 2.25, // $2.25/Wc
-  batteryCapacityCost: 550, // $550/kWh
+  batteryCapacityCost: 450, // $450/kWh
   batteryPowerCost: 800, // $800/kW
   omSolarPercent: 0.01, // 1% of solar CAPEX
   omBatteryPercent: 0.005, // 0.5% of battery CAPEX
