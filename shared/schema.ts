@@ -1923,7 +1923,6 @@ export const insertRoofPolygonSchema = createInsertSchema(roofPolygons).omit({
 export const insertGoogleSolarCacheSchema = createInsertSchema(googleSolarCache).omit({
   id: true,
   fetchedAt: true,
-  hitCount: true,
 });
 
 // Types
@@ -2143,6 +2142,7 @@ export interface AnalysisAssumptions {
   omSolarPercent: number;    // % of CAPEX - default 0.01
   omBatteryPercent: number;  // % of CAPEX - default 0.005
   omEscalation: number;      // % per year - default 0.025
+  omPerKwc?: number;         // $/kWc/year absolute O&M (used by Monte Carlo) - default 15
   
   // Roof constraints
   roofAreaSqFt: number;      // Total roof area in sq ft
@@ -2182,8 +2182,7 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   tariffCode: "M", // Default to Medium Power tariff
   tariffEnergy: 0.06061, // Tarif M 2025: 6.061¢/kWh (tier 1)
   tariffPower: 17.573, // Tarif M 2025: $17.573/kW
-  solarYieldKWhKWp: 1150, // Quebec baseline: 1150 kWh/kWp (matches BASELINE_YIELD constant)
-  solarYieldKWhPerKWp: 1150, // Alias for backward compatibility
+  solarYieldKWhPerKWp: 1150, // Quebec baseline: 1150 kWh/kWp (matches BASELINE_YIELD constant)
   orientationFactor: 1.0, // 1.0 = optimal south-facing, reduced for E/W orientations
   
   // Racking system configuration (new - Jan 2026)

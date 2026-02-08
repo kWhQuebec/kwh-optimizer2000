@@ -1,7 +1,8 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { getAllRackingConfigs, RackingConfig, RoofColorType } from "@shared/schema";
 import { z } from "zod";
+import { asyncHandler, BadRequestError } from "../middleware/errorHandler";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("RackingComparison");
@@ -33,63 +34,50 @@ export interface RackingComparisonResult {
   isWinner: boolean;
 }
 
-router.get("/api/racking/configs", authMiddleware, async (req: AuthRequest, res: Response) => {
-  try {
-    const configs = getAllRackingConfigs();
-    res.json(configs);
-  } catch (error) {
-    log.error("Error fetching racking configs:", error);
-    res.status(500).json({ error: "Failed to fetch racking configurations" });
+router.get("/api/racking/configs", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const configs = getAllRackingConfigs();
+  res.json(configs);
+}));
+
+router.post("/api/racking/compare", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const parseResult = compareRequestSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    throw new BadRequestError("Invalid request body", parseResult.error.errors);
   }
-});
 
-router.post("/api/racking/compare", authMiddleware, async (req: AuthRequest, res: Response) => {
-  try {
-    const parseResult = compareRequestSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return res.status(400).json({ 
-        error: "Invalid request body", 
-        details: parseResult.error.errors 
-      });
-    }
+  const { roofAreaSqM, roofColorType } = parseResult.data;
+  const configs = getAllRackingConfigs();
 
-    const { roofAreaSqM, roofColorType } = parseResult.data;
-    const configs = getAllRackingConfigs();
+  const results: RackingComparisonResult[] = configs.map((config) => {
+    const maxSystemSizeKW = roofAreaSqM * 0.15 * config.densityFactor;
+    const annualProductionKWh = maxSystemSizeKW * config.effectiveYieldKWhKWp;
+    const totalRackingCost = maxSystemSizeKW * 1000 * (config.pricePerWatt + config.ballastPerWatt);
+    const totalCostPerWatt = getTotalCostPerWatt(config.manufacturer);
+    const estimatedTotalCost = maxSystemSizeKW * 1000 * totalCostPerWatt;
+    const costPerKWhYear1 = estimatedTotalCost / annualProductionKWh;
 
-    const results: RackingComparisonResult[] = configs.map((config) => {
-      const maxSystemSizeKW = roofAreaSqM * 0.15 * config.densityFactor;
-      const annualProductionKWh = maxSystemSizeKW * config.effectiveYieldKWhKWp;
-      const totalRackingCost = maxSystemSizeKW * 1000 * (config.pricePerWatt + config.ballastPerWatt);
-      const totalCostPerWatt = getTotalCostPerWatt(config.manufacturer);
-      const estimatedTotalCost = maxSystemSizeKW * 1000 * totalCostPerWatt;
-      const costPerKWhYear1 = estimatedTotalCost / annualProductionKWh;
+    return {
+      config,
+      maxSystemSizeKW,
+      annualProductionKWh,
+      totalRackingCost,
+      estimatedTotalCost,
+      costPerKWhYear1,
+      isWinner: false,
+    };
+  });
 
-      return {
-        config,
-        maxSystemSizeKW,
-        annualProductionKWh,
-        totalRackingCost,
-        estimatedTotalCost,
-        costPerKWhYear1,
-        isWinner: false,
-      };
-    });
-
-    results.sort((a, b) => a.costPerKWhYear1 - b.costPerKWhYear1);
-    if (results.length > 0) {
-      results[0].isWinner = true;
-    }
-
-    res.json({
-      roofAreaSqM,
-      roofColorType: roofColorType || null,
-      results,
-      winnerType: results.length > 0 ? results[0].config.type : null,
-    });
-  } catch (error) {
-    log.error("Error comparing racking options:", error);
-    res.status(500).json({ error: "Failed to compare racking options" });
+  results.sort((a, b) => a.costPerKWhYear1 - b.costPerKWhYear1);
+  if (results.length > 0) {
+    results[0].isWinner = true;
   }
-});
+
+  res.json({
+    roofAreaSqM,
+    roofColorType: roofColorType || null,
+    results,
+    winnerType: results.length > 0 ? results[0].config.type : null,
+  });
+}));
 
 export default router;

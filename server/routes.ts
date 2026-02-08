@@ -97,7 +97,7 @@ import workQueueRouter from "./routes/work-queue";
 import rackingComparisonRouter from "./routes/racking-comparison";
 import qualificationRouter from "./routes/qualification";
 
-const JWT_SECRET = process.env.SESSION_SECRET;
+const JWT_SECRET = process.env.SESSION_SECRET as string;
 if (!JWT_SECRET) {
   throw new Error("SESSION_SECRET environment variable is required");
 }
@@ -161,7 +161,7 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
 
   const token = authHeader.substring(7);
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as unknown as { userId: string };
     req.userId = decoded.userId;
     
     // Fetch user to get role and clientId

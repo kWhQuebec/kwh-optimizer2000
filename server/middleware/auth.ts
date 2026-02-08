@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { storage } from "../storage";
 
-const JWT_SECRET = process.env.SESSION_SECRET;
+const JWT_SECRET = process.env.SESSION_SECRET as string;
 if (!JWT_SECRET) {
   throw new Error("SESSION_SECRET environment variable is required");
 }
@@ -21,7 +21,7 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
 
   const token = authHeader.substring(7);
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as unknown as { userId: string };
     req.userId = decoded.userId;
     
     const user = await storage.getUser(decoded.userId);

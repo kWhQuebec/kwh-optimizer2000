@@ -375,7 +375,7 @@ router.get("/api/procurations/:referenceId/download", authMiddleware, requireSta
   
   // Finally, try from client's first site
   if (!streetAddress && procuration.clientId) {
-    const sites = await storage.getSitesByClientId(procuration.clientId);
+    const sites = await storage.getSitesByClient(procuration.clientId);
     if (sites && sites.length > 0) {
       const site = sites[0];
       if (site.address) streetAddress = site.address;

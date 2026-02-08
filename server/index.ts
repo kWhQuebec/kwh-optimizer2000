@@ -30,10 +30,10 @@ async function initStripe() {
 
   try {
     serverLog.info('Initializing Stripe schema...');
-    await runMigrations({ 
+    await runMigrations({
       databaseUrl,
       schema: 'stripe'
-    });
+    } as Parameters<typeof runMigrations>[0]);
     serverLog.info('Stripe schema ready');
 
     const stripeSync = await getStripeSync();
