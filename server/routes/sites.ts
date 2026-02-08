@@ -616,6 +616,8 @@ router.post("/:id/suggest-constraints", authMiddleware, requireStaff, async (req
 
     const existingPolygons = await storage.getRoofPolygons(site.id);
 
+    log.info(`suggest-constraints: site=${site.id}, lat=${site.latitude}, lng=${site.longitude}, polygons=${existingPolygons.length}`);
+
     const result = await googleSolar.suggestConstraints({
       latitude: site.latitude,
       longitude: site.longitude,
@@ -635,8 +637,9 @@ router.post("/:id/suggest-constraints", authMiddleware, requireStaff, async (req
       analysisNotes: result.analysisNotes
     });
   } catch (error) {
-    log.error("Error suggesting constraints:", error);
-    res.status(500).json({ error: "Internal server error" });
+    const msg = error instanceof Error ? error.message : String(error);
+    log.error("Error suggesting constraints:", msg, error instanceof Error ? error.stack : "");
+    res.status(500).json({ error: `Constraint detection failed: ${msg}` });
   }
 });
 

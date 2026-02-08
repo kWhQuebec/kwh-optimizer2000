@@ -527,9 +527,11 @@ async function classifyWithGemini(
 
   try {
     // Fetch RGB image as base64
-    const urlWithKey = rgbUrl.includes("key=")
-      ? rgbUrl
-      : `${rgbUrl}&key=${apiKey}`;
+    let urlWithKey = rgbUrl;
+    if (!rgbUrl.includes("key=")) {
+      const separator = rgbUrl.includes("?") ? "&" : "?";
+      urlWithKey = `${rgbUrl}${separator}key=${apiKey}`;
+    }
     const response = await fetch(urlWithKey);
     if (!response.ok) {
       log.warn("Could not fetch RGB image for classification, using generic labels");
@@ -640,15 +642,19 @@ export async function detectRoofConstraints(
   const notes: string[] = [];
   let allConstraints: DetectedConstraint[] = [];
 
+  // Hoist DSM results to function scope so Steps 2 & 3 can use them
+  let dsm: { raster: Float32Array | Float64Array | Uint8Array | Uint16Array | Int16Array; width: number; height: number; meta: TiePointScale } | null = null;
+  let dsmConstraints: DetectedConstraint[] = [];
+
   // Step 1: Parse DSM GeoTIFF and detect obstacles
   log.info("Parsing DSM GeoTIFF...");
   try {
-    const dsm = await fetchAndParseGeoTIFF(input.dsmUrl, apiKey);
+    dsm = await fetchAndParseGeoTIFF(input.dsmUrl, apiKey);
     log.info(
       `DSM loaded: ${dsm.width}×${dsm.height} pixels, scale: ${dsm.meta.scale[0].toFixed(8)}°×${dsm.meta.scale[1].toFixed(8)}°`
     );
 
-    const dsmConstraints = detectDSMObstacles(
+    dsmConstraints = detectDSMObstacles(
       dsm.raster,
       dsm.width,
       dsm.height,
@@ -694,8 +700,8 @@ export async function detectRoofConstraints(
     notes.push("Flux analysis: skipped (no annualFlux URL)");
   }
 
-  // Step 3: Classify with Gemini Vision
-  if (input.rgbUrl && allConstraints.length > 0) {
+  // Step 3: Classify with Gemini Vision (requires DSM metadata for pixel mapping)
+  if (input.rgbUrl && allConstraints.length > 0 && dsm) {
     try {
       log.info("Classifying obstacles with Gemini Vision...");
       allConstraints = await classifyWithGemini(
