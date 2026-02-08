@@ -447,15 +447,6 @@ export function AnalysisResults({
     return items;
   }, [displayedScenario, language]);
 
-  const cumulativeCashflowData = useMemo(() => {
-    const cashflows = displayedScenario.scenarioBreakdown?.cashflows;
-    if (!cashflows || cashflows.length === 0) return null;
-    let cumulative = 0;
-    return cashflows.map((cf: {year: number; netCashflow: number}) => {
-      cumulative += cf.netCashflow;
-      return { year: cf.year, cumulative: Math.round(cumulative) };
-    });
-  }, [displayedScenario]);
 
   return (
     <div className="space-y-6">
@@ -1221,54 +1212,7 @@ export function AnalysisResults({
         </div>
       </div>
 
-      {/* 5d: Cumulative Cashflow Chart */}
-      {cumulativeCashflowData && cumulativeCashflowData.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">
-              {language === "fr" ? "Flux de trésorerie cumulé" : "Cumulative Cashflow"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={cumulativeCashflowData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="year"
-                    className="text-xs"
-                    label={{ value: language === "fr" ? "Année" : "Year", position: "bottom", offset: 0, style: { fontSize: 11 } }}
-                  />
-                  <YAxis
-                    tickFormatter={(v) => formatDollar(v)}
-                    className="text-xs"
-                  />
-                  <ReferenceLine y={0} stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeWidth={1.5} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px"
-                    }}
-                    formatter={(value: number) => [`$${Math.round(value).toLocaleString()}`, language === "fr" ? "Cumulatif" : "Cumulative"]}
-                    labelFormatter={(v) => `${language === "fr" ? "Année" : "Year"} ${v}`}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="cumulative"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 5e: Hourly Profile Chart */}
+      {/* 5d: Hourly Profile Chart */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
