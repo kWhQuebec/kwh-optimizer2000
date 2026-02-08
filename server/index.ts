@@ -7,6 +7,7 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { errorHandler } from "./middleware/errorHandler";
 import { createLogger } from "./lib/logger";
+import { startUploadCleanupScheduler } from "./lib/uploadConfig";
 
 const serverLog = createLogger("Server");
 
@@ -137,6 +138,7 @@ app.use((req, res, next) => {
 (async () => {
   await initStripe();
   await registerRoutes(httpServer, app);
+  startUploadCleanupScheduler();
 
   app.use(errorHandler);
 

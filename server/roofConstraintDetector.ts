@@ -273,16 +273,30 @@ async function fetchAndParseGeoTIFF(
   height: number;
   meta: TiePointScale;
 }> {
-  const urlWithKey = url.includes("key=") ? url : `${url}&key=${apiKey}`;
+  // Append API key — use ? or & depending on whether URL already has query params
+  let urlWithKey = url;
+  if (!url.includes("key=")) {
+    const separator = url.includes("?") ? "&" : "?";
+    urlWithKey = `${url}${separator}key=${apiKey}`;
+  }
+
+  log.info(`Fetching GeoTIFF: ${urlWithKey.substring(0, 80)}...`);
   const response = await fetch(urlWithKey);
   if (!response.ok) {
-    throw new Error(`Failed to fetch GeoTIFF: ${response.status}`);
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`Failed to fetch GeoTIFF: ${response.status} ${errorText.substring(0, 200)}`);
   }
   const arrayBuffer = await response.arrayBuffer();
+  if (arrayBuffer.byteLength === 0) {
+    throw new Error("GeoTIFF response was empty");
+  }
   const tiff = await GeoTIFF.fromArrayBuffer(arrayBuffer);
   const image = await tiff.getImage();
   const rasters = await image.readRasters();
   const raster = rasters[0] as Float32Array;
+  if (!raster || raster.length === 0) {
+    throw new Error("GeoTIFF contained no raster data");
+  }
   const width = image.getWidth();
   const height = image.getHeight();
 
@@ -628,23 +642,28 @@ export async function detectRoofConstraints(
 
   // Step 1: Parse DSM GeoTIFF and detect obstacles
   log.info("Parsing DSM GeoTIFF...");
-  const dsm = await fetchAndParseGeoTIFF(input.dsmUrl, apiKey);
-  log.info(
-    `DSM loaded: ${dsm.width}×${dsm.height} pixels, scale: ${dsm.meta.scale[0].toFixed(8)}°×${dsm.meta.scale[1].toFixed(8)}°`
-  );
+  try {
+    const dsm = await fetchAndParseGeoTIFF(input.dsmUrl, apiKey);
+    log.info(
+      `DSM loaded: ${dsm.width}×${dsm.height} pixels, scale: ${dsm.meta.scale[0].toFixed(8)}°×${dsm.meta.scale[1].toFixed(8)}°`
+    );
 
-  const dsmConstraints = detectDSMObstacles(
-    dsm.raster,
-    dsm.width,
-    dsm.height,
-    dsm.meta,
-    input.solarPolygons
-  );
-  allConstraints.push(...dsmConstraints);
-  notes.push(
-    `DSM analysis: ${dsmConstraints.length} obstacle(s) detected above roof level`
-  );
-  log.info(`DSM: ${dsmConstraints.length} obstacles detected`);
+    const dsmConstraints = detectDSMObstacles(
+      dsm.raster,
+      dsm.width,
+      dsm.height,
+      dsm.meta,
+      input.solarPolygons
+    );
+    allConstraints.push(...dsmConstraints);
+    notes.push(
+      `DSM analysis: ${dsmConstraints.length} obstacle(s) detected above roof level`
+    );
+    log.info(`DSM: ${dsmConstraints.length} obstacles detected`);
+  } catch (err) {
+    log.error("DSM analysis failed:", err);
+    notes.push(`DSM analysis: failed (${err instanceof Error ? err.message : "unknown error"})`);
+  }
 
   // Step 2: Parse annualFlux GeoTIFF and detect shadows
   if (input.annualFluxUrl) {

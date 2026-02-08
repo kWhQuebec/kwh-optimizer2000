@@ -92,7 +92,8 @@ export async function cleanupOldUploads(maxAgeMs: number = 24 * 60 * 60 * 1000):
   let deleted = 0;
   const now = Date.now();
 
-  for (const dir of [METER_UPLOADS_DIR, SITE_VISIT_DIR]) {
+  const defaultUploadDir = path.join(UPLOAD_BASE, "uploads");
+  for (const dir of [METER_UPLOADS_DIR, SITE_VISIT_DIR, PROCURATIONS_DIR, SIGNATURES_DIR, defaultUploadDir]) {
     try {
       const files = await fs.promises.readdir(dir);
 
@@ -120,3 +121,22 @@ export const UPLOAD_DIRS = {
   procurations: PROCURATIONS_DIR,
   signatures: SIGNATURES_DIR,
 };
+
+/**
+ * Start periodic cleanup of old temp upload files.
+ * Runs every 6 hours, deletes files older than 24 hours.
+ */
+export function startUploadCleanupScheduler(): void {
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+  setInterval(async () => {
+    try {
+      const deleted = await cleanupOldUploads();
+      if (deleted > 0) {
+        log.info(`Upload cleanup: deleted ${deleted} old temp files`);
+      }
+    } catch (error) {
+      log.error("Upload cleanup scheduler error:", error);
+    }
+  }, SIX_HOURS);
+  log.info("Upload cleanup scheduler started (every 6h, files older than 24h)");
+}

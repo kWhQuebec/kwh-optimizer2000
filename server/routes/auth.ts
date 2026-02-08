@@ -3,6 +3,7 @@ import { authMiddleware, signToken, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import bcrypt from "bcrypt";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
 import { sendPasswordResetEmail } from "../emailService";
 import { generateSecurePassword } from "../lib/secureRandom";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
@@ -10,6 +11,24 @@ import { createLogger } from "../lib/logger";
 
 const log = createLogger("Auth");
 const router = Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts, please try again in 15 minutes" },
+  keyGenerator: (req) => req.body?.email?.toLowerCase() || req.ip || "unknown",
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many password reset requests, please try again later" },
+  keyGenerator: (req) => req.body?.email?.toLowerCase() || req.ip || "unknown",
+});
 
 const emailSchema = z.string().email().transform(e => e.toLowerCase().trim());
 
@@ -35,7 +54,7 @@ function checkRateLimit(email: string): boolean {
   return true;
 }
 
-router.post("/api/auth/login", async (req, res) => {
+router.post("/api/auth/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     
@@ -140,7 +159,7 @@ router.post("/api/auth/change-password", authMiddleware, async (req: AuthRequest
   }
 });
 
-router.post("/api/auth/forgot-password", asyncHandler(async (req, res) => {
+router.post("/api/auth/forgot-password", forgotPasswordLimiter, asyncHandler(async (req, res) => {
   const { email, language = "fr" } = req.body;
   
   if (!email) {

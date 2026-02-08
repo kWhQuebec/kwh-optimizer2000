@@ -462,13 +462,23 @@ export function RoofDrawingModal({
           ? `${suggestedConstraints.length} contrainte(s) détectée(s). Vérifiez et ajustez si nécessaire.`
           : `${suggestedConstraints.length} constraint(s) detected. Review and adjust as needed.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error suggesting constraints:', error);
+      let serverMsg = '';
+      try {
+        // apiRequest throws Error("400: {\"error\":\"...\"}") — parse the JSON part
+        const msg = error?.message || '';
+        const jsonStart = msg.indexOf('{');
+        if (jsonStart >= 0) {
+          const parsed = JSON.parse(msg.substring(jsonStart));
+          serverMsg = parsed.error || '';
+        }
+      } catch { /* ignore parse errors */ }
       toast({
         title: language === 'fr' ? 'Erreur' : 'Error',
-        description: language === 'fr' 
-          ? 'Impossible d\'analyser le toit. Veuillez réessayer.' 
-          : 'Failed to analyze the roof. Please try again.',
+        description: serverMsg || (language === 'fr'
+          ? 'Impossible d\'analyser le toit. Veuillez réessayer.'
+          : 'Failed to analyze the roof. Please try again.'),
         variant: 'destructive',
       });
     } finally {
