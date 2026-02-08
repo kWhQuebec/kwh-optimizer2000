@@ -191,6 +191,16 @@ export function RoofDrawingModal({
     cleanupCustomDrawingOverlays();
   };
 
+  // Toggle interactivity on all existing polygon overlays.
+  // During drawing mode, polygons must be non-interactive so clicks pass through to the map.
+  const setAllPolygonsInteractive = (interactive: boolean) => {
+    polygonsRef.current.forEach((p) => {
+      if (p.googlePolygon) {
+        p.googlePolygon.setOptions({ clickable: interactive, editable: interactive });
+      }
+    });
+  };
+
   const completeCustomPolygonDrawing = () => {
     const vertices = customDrawingVerticesRef.current;
     if (vertices.length < 3 || !mapRef.current) return;
@@ -202,7 +212,8 @@ export function RoofDrawingModal({
       fillOpacity: 0.4,
       strokeColor: currentColor,
       strokeWeight: 2,
-      editable: true,
+      editable: false,   // Non-interactive while drawing continues
+      clickable: false,   // Let clicks pass through to the map
       map: mapRef.current,
     });
 
@@ -215,6 +226,9 @@ export function RoofDrawingModal({
   const startCustomPolygonDrawing = () => {
     if (!mapRef.current) return;
     cancelCustomPolygonDrawing();
+
+    // Disable clicks/editing on all existing polygons so clicks pass through to the map
+    setAllPolygonsInteractive(false);
 
     if (drawingManagerRef.current) {
       drawingManagerRef.current.setDrawingMode(null);
@@ -305,6 +319,8 @@ export function RoofDrawingModal({
     customDrawingDblClickListenerRef.current = map.addListener('dblclick', (e: google.maps.MapMouseEvent) => {
       if (customDrawingVerticesRef.current.length >= 3) {
         e.stop?.();
+        // The 2nd click of the double-click already added a duplicate vertex via the click handler — remove it
+        customDrawingVerticesRef.current.pop();
         completeCustomPolygonDrawingRef.current();
       }
     });
@@ -334,6 +350,7 @@ export function RoofDrawingModal({
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        disableDoubleClickZoom: true,
       });
 
       mapRef.current = map;
@@ -973,6 +990,8 @@ export function RoofDrawingModal({
                       drawingManagerRef.current.setDrawingMode(null);
                     }
                     setActiveDrawingMode(null);
+                    // Re-enable interactivity so vertices can be dragged
+                    setAllPolygonsInteractive(true);
                   }}
                   data-testid="button-edit-mode"
                 >
