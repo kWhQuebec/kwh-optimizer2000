@@ -311,52 +311,58 @@ export function AnalysisResults({
     const taxShield = sb.taxShield || 0;
     const netCapex = displayedScenario.capexNet || 0;
 
-    const items: Array<{name: string; base: number; value: number; fill: string; label: string}> = [];
+    const items: Array<{name: string; base: number; value: number; fill: string; label: string; isEndpoint: boolean}> = [];
+    let running = capexGross;
     items.push({
       name: language === "fr" ? "CAPEX Brut" : "Gross CAPEX",
       base: 0,
       value: capexGross,
       fill: "hsl(var(--muted-foreground))",
-      label: `$${(capexGross / 1000).toFixed(0)}k`
+      label: `$${(capexGross / 1000).toFixed(0)}k`,
+      isEndpoint: true
     });
     if (hqSolar > 0) {
-      const afterHqSolar = capexGross - hqSolar;
+      running -= hqSolar;
       items.push({
-        name: language === "fr" ? "- HQ Solaire" : "- HQ Solar",
-        base: afterHqSolar,
+        name: language === "fr" ? "- Hydro-Québec Solaire" : "- Hydro-Québec Solar",
+        base: running,
         value: hqSolar,
         fill: "#22C55E",
-        label: `-$${(hqSolar / 1000).toFixed(0)}k`
+        label: `-$${(hqSolar / 1000).toFixed(0)}k`,
+        isEndpoint: false
       });
     }
     if (hqBattery > 0) {
-      const afterHqBatt = capexGross - hqSolar - hqBattery;
+      running -= hqBattery;
       items.push({
-        name: language === "fr" ? "- HQ Stockage" : "- HQ Battery",
-        base: afterHqBatt,
+        name: language === "fr" ? "- Hydro-Québec Stockage" : "- Hydro-Québec Battery",
+        base: running,
         value: hqBattery,
         fill: "#22C55E",
-        label: `-$${(hqBattery / 1000).toFixed(0)}k`
+        label: `-$${(hqBattery / 1000).toFixed(0)}k`,
+        isEndpoint: false
       });
     }
     if (itc > 0) {
-      const afterItc = capexGross - hqSolar - hqBattery - itc;
+      running -= itc;
       items.push({
         name: language === "fr" ? "- CII 30%" : "- ITC 30%",
-        base: afterItc,
+        base: running,
         value: itc,
         fill: "#3B82F6",
-        label: `-$${(itc / 1000).toFixed(0)}k`
+        label: `-$${(itc / 1000).toFixed(0)}k`,
+        isEndpoint: false
       });
     }
     if (taxShield > 0) {
-      const afterTax = capexGross - hqSolar - hqBattery - itc - taxShield;
+      running -= taxShield;
       items.push({
         name: language === "fr" ? "- Bouclier DPA" : "- Tax Shield CCA",
-        base: afterTax,
+        base: running,
         value: taxShield,
         fill: "#3B82F6",
-        label: `-$${(taxShield / 1000).toFixed(0)}k`
+        label: `-$${(taxShield / 1000).toFixed(0)}k`,
+        isEndpoint: false
       });
     }
     items.push({
@@ -364,7 +370,8 @@ export function AnalysisResults({
       base: 0,
       value: netCapex,
       fill: "hsl(var(--primary))",
-      label: `$${(netCapex / 1000).toFixed(0)}k`
+      label: `$${(netCapex / 1000).toFixed(0)}k`,
+      isEndpoint: true
     });
     return items;
   }, [displayedScenario, language]);
@@ -623,14 +630,14 @@ export function AnalysisResults({
           <CardContent>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={waterfallData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+                <BarChart data={waterfallData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
                   <XAxis
                     dataKey="name"
-                    className="text-xs"
-                    angle={-20}
+                    tick={{ fontSize: 10 }}
+                    angle={-15}
                     textAnchor="end"
-                    height={60}
+                    height={55}
                     interval={0}
                   />
                   <YAxis
@@ -648,15 +655,15 @@ export function AnalysisResults({
                       return [`$${Math.round(value as number).toLocaleString()}`, language === "fr" ? "Montant" : "Amount"];
                     }}
                   />
-                  <Bar dataKey="base" stackId="stack" fill="transparent" />
+                  <Bar dataKey="base" stackId="stack" fill="transparent" fillOpacity={0} strokeOpacity={0} isAnimationActive={false} />
                   <Bar
                     dataKey="value"
                     stackId="stack"
-                    radius={[4, 4, 0, 0]}
+                    radius={[3, 3, 0, 0]}
                     label={{
                       position: "top",
                       formatter: (_v: number, _n: string, props: any) => {
-                        const item = waterfallData[props?.index];
+                        const item = waterfallData?.[props?.index];
                         return item?.label || '';
                       },
                       style: { fontSize: 11, fontFamily: "monospace", fill: "hsl(var(--foreground))" }
