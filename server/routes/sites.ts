@@ -1118,7 +1118,23 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
     throw new NotFoundError("Site");
   }
 
-  const capacityKW = site.kbKwDc || 100;
+  const simulations = await storage.getSimulationRunsBySite(site.id);
+  const latestSim = simulations.length > 0
+    ? simulations.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())[0]
+    : null;
+
+  let capacityKW = site.kbKwDc || 100;
+
+  if (latestSim?.sensitivity) {
+    const sens = latestSim.sensitivity as any;
+    const bestNPV = sens.optimalScenarios?.bestNPV;
+    if (bestNPV?.pvSizeKW) {
+      capacityKW = bestNPV.pvSizeKW;
+    }
+  } else if (latestSim?.pvSizeKW) {
+    capacityKW = latestSim.pvSizeKW;
+  }
+
   const panelCount = site.kbPanelCount || Math.ceil(capacityKW * 1000 / 625);
   const capacityW = capacityKW * 1000;
 
