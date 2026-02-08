@@ -1,6 +1,7 @@
 import path from "path";
 import type { SimulationData } from "./types";
 import { COLORS } from "./types";
+import { formatSmartCurrency } from "./helpers";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("ExecutiveSummaryPDF");
@@ -114,8 +115,8 @@ export function generateExecutiveSummaryPDF(
 
   drawKpiBox(margin, kpiY, kpiWidth, kpiHeight, t("PUISSANCE PV", "PV POWER"), `${simulation.pvSizeKW.toFixed(0)} kWc`);
   drawKpiBox(margin + kpiWidth + 5, kpiY, kpiWidth, kpiHeight, t("BATTERIE", "BATTERY"), `${simulation.battEnergyKWh.toFixed(0)} kWh`);
-  drawKpiBox(margin + (kpiWidth + 5) * 2, kpiY, kpiWidth, kpiHeight, t("ÉCONOMIES AN 1", "SAVINGS YR 1"), formatCurrency(simulation.savingsYear1), true);
-  drawKpiBox(margin + (kpiWidth + 5) * 3, kpiY, kpiWidth, kpiHeight, t("VAN 25 ANS", "NPV 25 YRS"), formatCurrency(simulation.npv25), true);
+  drawKpiBox(margin + (kpiWidth + 5) * 2, kpiY, kpiWidth, kpiHeight, t("ÉCONOMIES AN 1", "SAVINGS YR 1"), formatSmartCurrency(simulation.savingsYear1), true);
+  drawKpiBox(margin + (kpiWidth + 5) * 3, kpiY, kpiWidth, kpiHeight, t("VAN 25 ANS", "NPV 25 YRS"), formatSmartCurrency(simulation.npv25), true);
 
   doc.y = kpiY + kpiHeight + 20;
 
@@ -133,11 +134,11 @@ export function generateExecutiveSummaryPDF(
   const financialData = [
     { label: t("Investissement brut", "Gross investment"), value: formatCurrency(simulation.capexGross), col: "left" },
     { label: t("TRI (25 ans)", "IRR (25 years)"), value: formatPercent(simulation.irr25), col: "right" },
-    { label: t("Subventions totales", "Total incentives"), value: formatCurrency(simulation.totalIncentives), col: "left" },
+    { label: t("Subventions totales", "Total incentives"), value: formatSmartCurrency(simulation.totalIncentives), col: "left" },
     { label: t("Retour simple", "Simple payback"), value: `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "years")}`, col: "right" },
-    { label: t("Investissement net", "Net investment"), value: formatCurrency(simulation.capexNet), col: "left" },
+    { label: t("Investissement net", "Net investment"), value: formatSmartCurrency(simulation.capexNet), col: "left" },
     { label: t("LCOE", "LCOE"), value: `${simulation.lcoe.toFixed(2)} ¢/kWh`, col: "right" },
-    { label: t("Bouclier fiscal", "Tax shield"), value: formatCurrency(simulation.taxShield), col: "left" },
+    { label: t("Bouclier fiscal", "Tax shield"), value: formatSmartCurrency(simulation.taxShield), col: "left" },
     { label: t("Autosuffisance", "Self-sufficiency"), value: formatPercent(simulation.selfSufficiencyPercent / 100), col: "right" },
   ];
 

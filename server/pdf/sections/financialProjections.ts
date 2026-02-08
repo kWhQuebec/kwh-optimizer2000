@@ -62,6 +62,42 @@ export function renderFinancialProjections(ctx: PDFContext) {
 
   doc.y += 240;
 
+  // Surplus Credits Info Box — only if surplus data exists
+  const surplusKWh = simulation.totalExportedKWh || 0;
+  const surplusRevenue = simulation.annualSurplusRevenue || 0;
+  if (surplusKWh > 0) {
+    const surplusY = doc.y;
+    const surplusH = 75;
+    drawRoundedRect(doc, margin, surplusY, contentWidth, surplusH, 8, "#FFFBEB");
+    doc.roundedRect(margin, surplusY, contentWidth, surplusH, 8).strokeColor("#FFB005").lineWidth(1).stroke();
+
+    doc.fontSize(10).fillColor(COLORS.gold).font("Helvetica-Bold");
+    doc.text(t("CRÉDITS DE SURPLUS (MESURAGE NET)", "SURPLUS CREDITS (NET METERING)"), margin + 15, surplusY + 10, { width: contentWidth - 30 });
+    doc.font("Helvetica");
+
+    const surplusColW = (contentWidth - 60) / 2;
+    doc.fontSize(9).fillColor(COLORS.mediumGray);
+    doc.text(t("Surplus annuel exporté", "Annual surplus exported"), margin + 15, surplusY + 28);
+    doc.fontSize(12).fillColor(COLORS.darkGray).font("Helvetica-Bold");
+    doc.text(`${Math.round(surplusKWh).toLocaleString("fr-CA")} kWh`, margin + 15, surplusY + 40);
+    doc.font("Helvetica");
+
+    doc.fontSize(9).fillColor(COLORS.mediumGray);
+    doc.text(t("Valeur annuelle des crédits", "Annual credit value"), margin + 15 + surplusColW, surplusY + 28);
+    doc.fontSize(12).fillColor(COLORS.gold).font("Helvetica-Bold");
+    doc.text(formatCurrency(surplusRevenue), margin + 15 + surplusColW, surplusY + 40);
+    doc.font("Helvetica");
+
+    doc.fontSize(7).fillColor(COLORS.lightGray);
+    doc.text(
+      t("Les crédits kWh compensent votre facture pendant 24 mois. Le surplus non utilisé est compensé au tarif de référence (~4,54¢/kWh).",
+        "kWh credits offset your bill for up to 24 months. Unused surplus is compensated at the reference rate (~4.54¢/kWh)."),
+      margin + 15, surplusY + 57, { width: contentWidth - 30 }
+    );
+
+    doc.y = surplusY + surplusH + 15;
+  }
+
   // Cost of Inaction — tighter spacing
   doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
   doc.text(t("Pourquoi maintenant ? (coût de l'inaction)", "Why now? (cost of inaction)"), margin, doc.y);

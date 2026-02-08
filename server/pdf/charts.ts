@@ -1,7 +1,7 @@
 import type { CashflowEntry, PeakWeekEntry, FrontierPoint } from "@shared/schema";
 import type { PDFContext } from "./types";
 import { COLORS } from "./types";
-import { formatCurrency, drawRoundedRect } from "./helpers";
+import { formatCurrency, formatSmartCurrency, drawRoundedRect } from "./helpers";
 
 export function drawBarChart(
   ctx: PDFContext,
@@ -392,7 +392,7 @@ export function drawWaterfallChart(
 
     // Value label above/inside bar
     doc.fontSize(8).fillColor(COLORS.darkGray).font("Helvetica-Bold");
-    const valText = i === 0 ? formatCurrency(item.value, true) : `- ${formatCurrency(item.value, true)}`;
+    const valText = i === 0 ? formatSmartCurrency(item.value) : `- ${formatSmartCurrency(item.value)}`;
     doc.text(valText, bx - 5, baseY - runningTop - (i === 0 ? scaleY(item.value) : 0) - 14, { width: barWidth + 10, align: "center" });
     doc.font("Helvetica");
 
@@ -413,7 +413,7 @@ export function drawWaterfallChart(
   doc.undash();
 
   doc.fontSize(9).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(formatCurrency(resultValue, true), rx - 5, baseY - resultH - 14, { width: barWidth + 10, align: "center" });
+  doc.text(formatSmartCurrency(resultValue), rx - 5, baseY - resultH - 14, { width: barWidth + 10, align: "center" });
   doc.font("Helvetica");
 
   doc.fontSize(7).fillColor(COLORS.blue).font("Helvetica-Bold");

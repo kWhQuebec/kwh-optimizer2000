@@ -1,6 +1,6 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { formatCurrency, drawSimpleHeader, drawPageFooter } from "../helpers";
+import { formatCurrency, formatSmartCurrency, drawSimpleHeader, drawPageFooter } from "../helpers";
 import { drawWaterfallChart } from "../charts";
 
 export function renderInvestmentBreakdown(ctx: PDFContext) {
@@ -64,7 +64,7 @@ export function renderInvestmentBreakdown(ctx: PDFContext) {
   doc.fontSize(7).fillColor(COLORS.lightGray);
   doc.text(t("1 000 $/kW (max 40%)", "$1,000/kW (max 40%)"), margin + 8, incentiveY + 20, { width: incentiveCardWidth - 16, align: "center" });
   doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(formatCurrency(simulation.incentivesHQSolar), margin + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
+  doc.text(formatSmartCurrency(simulation.incentivesHQSolar), margin + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
   doc.font("Helvetica");
 
   // HQ Battery Incentive
@@ -76,7 +76,7 @@ export function renderInvestmentBreakdown(ctx: PDFContext) {
   doc.fontSize(7).fillColor(COLORS.lightGray);
   doc.text(t("300 $/kW (max 40%)", "$300/kW (max 40%)"), bx + 8, incentiveY + 20, { width: incentiveCardWidth - 16, align: "center" });
   doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(formatCurrency(simulation.incentivesHQBattery), bx + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
+  doc.text(formatSmartCurrency(simulation.incentivesHQBattery), bx + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
   doc.font("Helvetica");
 
   // Federal ITC
@@ -88,7 +88,7 @@ export function renderInvestmentBreakdown(ctx: PDFContext) {
   doc.fontSize(7).fillColor(COLORS.lightGray);
   doc.text(t("30% du CAPEX net", "30% of net CAPEX"), fx + 8, incentiveY + 20, { width: incentiveCardWidth - 16, align: "center" });
   doc.fontSize(14).fillColor(COLORS.green).font("Helvetica-Bold");
-  doc.text(formatCurrency(simulation.incentivesFederal), fx + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
+  doc.text(formatSmartCurrency(simulation.incentivesFederal), fx + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
   doc.font("Helvetica");
 
   // Tax Shield
@@ -100,7 +100,7 @@ export function renderInvestmentBreakdown(ctx: PDFContext) {
   doc.fontSize(7).fillColor(COLORS.lightGray);
   doc.text(t("DPA/CCA Classe 43.2", "CCA Class 43.2"), tx + 8, incentiveY + 20, { width: incentiveCardWidth - 16, align: "center" });
   doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
-  doc.text(formatCurrency(simulation.taxShield), tx + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
+  doc.text(formatSmartCurrency(simulation.taxShield), tx + 8, incentiveY + 38, { width: incentiveCardWidth - 16, align: "center" });
   doc.font("Helvetica");
 
   // Total rows

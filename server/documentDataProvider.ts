@@ -56,6 +56,8 @@ export interface DocumentSimulationData {
   selfSufficiencyPercent: number;
   annualCostBefore: number;
   annualCostAfter: number;
+  totalExportedKWh: number;
+  annualSurplusRevenue: number;
   assumptions?: {
     roofAreaSqFt: number;
     roofUtilizationRatio: number;

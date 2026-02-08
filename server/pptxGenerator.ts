@@ -41,6 +41,15 @@ export async function generatePresentationPPTX(
     return `${value.toLocaleString("fr-CA", { maximumFractionDigits: 0 })} $`;
   };
 
+  const formatSmartCurrency = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || isNaN(value)) return "0 $";
+    const abs = Math.abs(value);
+    const sign = value < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M $`;
+    if (abs >= 10_000) return `${sign}${Math.round(abs / 1000)}k $`;
+    return `${sign}${Math.round(abs).toLocaleString("fr-CA")} $`;
+  };
+
   const formatPercent = (value: number | null | undefined): string => {
     if (value === null || value === undefined || isNaN(value)) {
       return "0.0%";
@@ -170,7 +179,7 @@ export async function generatePresentationPPTX(
       x: 0.5, y: 1.8, w: 4.2, h: 0.4,
       fontSize: 14, bold: true, color: "DC2626", align: "center"
     });
-    slideBill.addText(formatCurrency(annualCostBefore), {
+    slideBill.addText(formatSmartCurrency(annualCostBefore), {
       x: 0.5, y: 2.3, w: 4.2, h: 0.8,
       fontSize: 36, bold: true, color: "DC2626", align: "center", valign: "middle"
     });
@@ -187,7 +196,7 @@ export async function generatePresentationPPTX(
       x: 5.3, y: 1.8, w: 4.2, h: 0.4,
       fontSize: 14, bold: true, color: "16A34A", align: "center"
     });
-    slideBill.addText(formatCurrency(annualCostAfter), {
+    slideBill.addText(formatSmartCurrency(annualCostAfter), {
       x: 5.3, y: 2.3, w: 4.2, h: 0.8,
       fontSize: 36, bold: true, color: "16A34A", align: "center", valign: "middle"
     });
@@ -282,15 +291,15 @@ export async function generatePresentationPPTX(
   });
 
   slideKPI.addText(
-    t(`Profit net de ${formatCurrency(simulation.npv25)} sur 25 ans`, `Net profit of ${formatCurrency(simulation.npv25)} over 25 years`), {
+    t(`Profit net de ${formatSmartCurrency(simulation.npv25)} sur 25 ans`, `Net profit of ${formatSmartCurrency(simulation.npv25)} over 25 years`), {
     x: 0.5, y: 1.65, w: 9, h: 0.3,
     fontSize: 14, italic: true, color: COLORS.gold
   });
 
   const kpiCardConfigs = [
-    { label: getKpiLabel("savings", lang), value: formatCurrency(simulation.savingsYear1), bg: "FFFBEB", border: "FFB005", valueColor: COLORS.gold, labelColor: COLORS.mediumGray },
-    { label: getKpiLabel("capexNet", lang), value: formatCurrency(simulation.capexNet), bg: COLORS.lightGray, border: "CCCCCC", valueColor: COLORS.darkGray, labelColor: COLORS.mediumGray },
-    { label: getKpiLabel("npv", lang), value: formatCurrency(simulation.npv25), bg: COLORS.blue, border: COLORS.blue, valueColor: COLORS.gold, labelColor: COLORS.white },
+    { label: getKpiLabel("savings", lang), value: formatSmartCurrency(simulation.savingsYear1), bg: "FFFBEB", border: "FFB005", valueColor: COLORS.gold, labelColor: COLORS.mediumGray },
+    { label: getKpiLabel("capexNet", lang), value: formatSmartCurrency(simulation.capexNet), bg: COLORS.lightGray, border: "CCCCCC", valueColor: COLORS.darkGray, labelColor: COLORS.mediumGray },
+    { label: getKpiLabel("npv", lang), value: formatSmartCurrency(simulation.npv25), bg: COLORS.blue, border: COLORS.blue, valueColor: COLORS.gold, labelColor: COLORS.white },
     { label: getKpiLabel("irr", lang), value: formatPercent(simulation.irr25), bg: "059669", border: "059669", valueColor: COLORS.white, labelColor: COLORS.white },
   ];
 
@@ -412,7 +421,7 @@ export async function generatePresentationPPTX(
         fill: { color: COLORS.blue }
       });
       // Value label
-      slideWaterfall.addText(formatCurrency(bar.value), {
+      slideWaterfall.addText(formatSmartCurrency(bar.value), {
         x, y: barY - 0.3, w: wfBarWidth, h: 0.25,
         fontSize: 10, bold: true, color: COLORS.blue, align: "center"
       });
@@ -441,7 +450,7 @@ export async function generatePresentationPPTX(
         fill: { color: COLORS.green }
       });
       // Value label
-      slideWaterfall.addText(formatCurrency(bar.value), {
+      slideWaterfall.addText(formatSmartCurrency(bar.value), {
         x, y: barY - 0.3, w: wfBarWidth, h: 0.25,
         fontSize: 10, bold: true, color: COLORS.green, align: "center"
       });
@@ -655,9 +664,68 @@ export async function generatePresentationPPTX(
       fill: { color: "FFF3CD" }
     });
     slideCashflow.addText(
-      t(`Coût de l'inaction sur 25 ans: ${formatCurrency(costOfInaction)}`, `Cost of inaction over 25 years: ${formatCurrency(costOfInaction)}`), {
+      t(`Coût de l'inaction sur 25 ans: ${formatSmartCurrency(costOfInaction)}`, `Cost of inaction over 25 years: ${formatSmartCurrency(costOfInaction)}`), {
       x: 1.5, y: 4.95, w: 7, h: 0.4,
       fontSize: 12, bold: true, color: "856404", align: "center"
+    });
+  }
+
+  // ================= SURPLUS CREDITS SLIDE (conditional) =================
+  const surplusExportedKWh = simulation.totalExportedKWh || 0;
+  const surplusRevenue = simulation.annualSurplusRevenue || 0;
+  if (surplusExportedKWh > 0 && surplusRevenue > 0) {
+    const slideSurplus = pptx.addSlide({ masterName: "KWHMAIN" });
+
+    slideSurplus.addText(t("CRÉDITS DE SURPLUS (MESURAGE NET)", "SURPLUS CREDITS (NET METERING)"), {
+      x: 0.5, y: 0.8, w: 9, h: 0.5,
+      fontSize: 22, bold: true, color: COLORS.blue
+    });
+
+    slideSurplus.addShape("rect", {
+      x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+    });
+
+    slideSurplus.addShape("rect", {
+      x: 0.5, y: 1.7, w: 4.2, h: 1.8,
+      fill: { color: "FFFBEB" },
+      line: { color: COLORS.gold, width: 1 }
+    });
+    slideSurplus.addText(t("Surplus exporté au réseau", "Surplus exported to grid"), {
+      x: 0.7, y: 1.8, w: 3.8, h: 0.4,
+      fontSize: 12, color: COLORS.mediumGray, align: "center"
+    });
+    slideSurplus.addText(`${Math.round(surplusExportedKWh).toLocaleString("fr-CA")} kWh`, {
+      x: 0.7, y: 2.3, w: 3.8, h: 0.8,
+      fontSize: 28, bold: true, color: COLORS.gold, align: "center", valign: "middle"
+    });
+    slideSurplus.addText(t("/ an", "/ year"), {
+      x: 0.7, y: 3.0, w: 3.8, h: 0.3,
+      fontSize: 11, color: COLORS.mediumGray, align: "center"
+    });
+
+    slideSurplus.addShape("rect", {
+      x: 5.3, y: 1.7, w: 4.2, h: 1.8,
+      fill: { color: COLORS.blue },
+      line: { color: COLORS.blue, width: 1 }
+    });
+    slideSurplus.addText(t("Valeur annuelle des crédits", "Annual credit value"), {
+      x: 5.5, y: 1.8, w: 3.8, h: 0.4,
+      fontSize: 12, color: COLORS.white, align: "center"
+    });
+    slideSurplus.addText(formatSmartCurrency(surplusRevenue), {
+      x: 5.5, y: 2.3, w: 3.8, h: 0.8,
+      fontSize: 28, bold: true, color: COLORS.gold, align: "center", valign: "middle"
+    });
+    slideSurplus.addText(t("/ an", "/ year"), {
+      x: 5.5, y: 3.0, w: 3.8, h: 0.3,
+      fontSize: 11, color: COLORS.white, align: "center"
+    });
+
+    slideSurplus.addText(
+      t("Les crédits kWh compensent votre facture pendant 24 mois. Le surplus non utilisé est compensé au tarif de référence (~4,54¢/kWh).",
+        "kWh credits offset your bill for up to 24 months. Unused surplus is compensated at the reference rate (~4.54¢/kWh)."), {
+      x: 0.5, y: 4.0, w: 9, h: 0.5,
+      fontSize: 9, color: COLORS.mediumGray, align: "center"
     });
   }
 

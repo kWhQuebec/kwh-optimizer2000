@@ -83,6 +83,13 @@ interface SiteWithDetails extends Site {
 }
 
 const formatCurrency = (v: number) => `${Math.round(v).toLocaleString('fr-CA')} $`;
+const formatSmartCurrency = (v: number): string => {
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M $`;
+  if (abs >= 10_000) return `${sign}${Math.round(abs / 1000)}k $`;
+  return `${sign}${Math.round(abs).toLocaleString('fr-CA')} $`;
+};
 const formatPercent = (v: number) => `${v.toFixed(0)} %`;
 
 const SLIDES = [
@@ -93,6 +100,7 @@ const SLIDES = [
   'waterfall',
   'roofConfig',
   'cashflow',
+  'surplusCredits',
   'financing',
   'equipment',
   'timeline',
@@ -213,6 +221,7 @@ export default function PresentationPage() {
     waterfall: <WaterfallSlide simulation={bestSimulation ?? null} language={language} />,
     roofConfig: <RoofConfigSlide site={site} simulation={bestSimulation ?? null} language={language} />,
     cashflow: <CashflowSlide simulation={fullSimulation ?? bestSimulation ?? null} language={language} />,
+    surplusCredits: <SurplusCreditsSlide simulation={fullSimulation ?? bestSimulation ?? null} language={language} />,
     financing: <FinancingSlide simulation={fullSimulation ?? bestSimulation ?? null} language={language} />,
     assumptions: <AssumptionsSlide language={language} />,
     equipment: <EquipmentSlide language={language} />,
@@ -468,7 +477,7 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
               {language === 'fr' ? "Aujourd'hui" : 'Today'}
             </p>
             <p className="text-4xl md:text-5xl font-bold" style={{ color: '#DC2626' }}>
-              {costBefore > 0 ? formatCurrency(costBefore) : '--'}
+              {costBefore > 0 ? formatSmartCurrency(costBefore) : '--'}
             </p>
             <p className="text-sm mt-2" style={{ color: '#6B7280' }}>
               {language === 'fr' ? 'par année' : 'per year'}
@@ -485,7 +494,7 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
               {language === 'fr' ? 'Avec Solaire' : 'With Solar'}
             </p>
             <p className="text-4xl md:text-5xl font-bold" style={{ color: '#16A34A' }}>
-              {costAfter > 0 ? formatCurrency(costAfter) : '--'}
+              {costAfter > 0 ? formatSmartCurrency(costAfter) : '--'}
             </p>
             <p className="text-sm mt-2" style={{ color: '#6B7280' }}>
               {language === 'fr' ? 'par année' : 'per year'}
@@ -501,7 +510,7 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
               data-testid="banner-savings"
             >
               <p className="text-3xl md:text-4xl font-bold text-white mb-1">
-                {formatCurrency(savings)}
+                {formatSmartCurrency(savings)}
               </p>
               <p className="text-white/90 text-base md:text-lg font-medium">
                 {language === 'fr' ? "d'économies par année" : 'savings per year'}
@@ -580,19 +589,19 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
     {
       icon: DollarSign,
       label: language === 'fr' ? 'Économies An 1' : 'Year 1 Savings',
-      value: simulation?.savingsYear1 ? formatCurrency(simulation.savingsYear1) : '--',
+      value: simulation?.savingsYear1 ? formatSmartCurrency(simulation.savingsYear1) : '--',
       highlight: false
     },
     {
       icon: TrendingUp,
       label: language === 'fr' ? 'Investissement Net' : 'Net Investment',
-      value: simulation?.capexNet ? formatCurrency(Number(simulation.capexNet)) : '--',
+      value: simulation?.capexNet ? formatSmartCurrency(Number(simulation.capexNet)) : '--',
       highlight: false
     },
     {
       icon: Zap,
       label: language === 'fr' ? 'Profit Net (VAN)' : 'Net Profit (NPV)',
-      value: simulation?.npv25 ? formatCurrency(npv25Val) : '--',
+      value: simulation?.npv25 ? formatSmartCurrency(npv25Val) : '--',
       highlight: true
     },
     {
@@ -618,7 +627,7 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-7xl w-full">
         <SlideTitle
-          subtitle={npv25Val > 0 ? (language === 'fr' ? `Profit net de ${formatCurrency(npv25Val)} sur 25 ans` : `Net profit of ${formatCurrency(npv25Val)} over 25 years`) : undefined}
+          subtitle={npv25Val > 0 ? (language === 'fr' ? `Profit net de ${formatSmartCurrency(npv25Val)} sur 25 ans` : `Net profit of ${formatSmartCurrency(npv25Val)} over 25 years`) : undefined}
         >
           {language === 'fr' ? 'Vos Résultats' : 'Your Results'}
         </SlideTitle>
@@ -748,7 +757,7 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
                   return (
                     <div key={i} className="flex flex-col items-center min-w-[50px] md:min-w-[60px]" style={{ width: '14%' }}>
                       <div className={`${bars.length >= 6 ? 'text-xs' : 'text-sm'} font-bold mb-1`} style={{ color: bar.type === 'deduction' ? '#DC2626' : '#1F2937' }}>
-                        {bar.type === 'deduction' ? '-' : ''}{formatCurrency(bar.value)}
+                        {bar.type === 'deduction' ? '-' : ''}{bar.type === 'start' || bar.type === 'total' ? formatSmartCurrency(bar.value) : formatCurrency(bar.value)}
                       </div>
                       <div className="w-full relative" style={{ height: chartHeight }}>
                         <div style={{ height: chartHeight - barHeight }} />
@@ -934,7 +943,7 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
               >
                 <AlertTriangle className="h-5 w-5 inline-block mr-2" style={{ color: BRAND_COLORS.accentGold }} />
                 <span className="text-base md:text-lg font-semibold" style={{ color: BRAND_COLORS.accentGold }}>
-                  {language === 'fr' ? "Coût de l'inaction sur 25 ans" : 'Cost of inaction over 25 years'}: {formatCurrency(costOfInaction)}
+                  {language === 'fr' ? "Coût de l'inaction sur 25 ans" : 'Cost of inaction over 25 years'}: {formatSmartCurrency(costOfInaction)}
                 </span>
               </div>
             )}
@@ -946,6 +955,83 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
             </p>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function SurplusCreditsSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+  const exported = simulation?.totalExportedKWh ?? 0;
+  const revenue = simulation?.annualSurplusRevenue ?? 0;
+
+  if (!exported || exported <= 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <div className="text-center" style={{ color: '#6B7280' }}>
+          <Zap className="h-16 w-16 mx-auto mb-4 opacity-30" />
+          <p className="text-xl font-semibold">
+            {language === 'fr' ? "Aucun surplus d'énergie" : 'No surplus energy'}
+          </p>
+          <p className="text-sm mt-2">
+            {language === 'fr'
+              ? "La production solaire est entièrement autoconsommée."
+              : 'All solar production is self-consumed.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+      <div className="max-w-5xl w-full">
+        <SlideTitle>
+          {language === 'fr'
+            ? 'CRÉDITS DE SURPLUS (MESURAGE NET)'
+            : 'SURPLUS CREDITS (NET METERING)'}
+        </SlideTitle>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <div
+            className="rounded-2xl p-8 text-center shadow-sm"
+            style={{ backgroundColor: '#EFF6FF', border: `2px solid ${BRAND_COLORS.primaryBlue}20` }}
+            data-testid="card-surplus-kwh"
+          >
+            <Zap className="h-12 w-12 mx-auto mb-4" style={{ color: BRAND_COLORS.primaryBlue }} />
+            <p className="text-base font-semibold mb-3" style={{ color: BRAND_COLORS.darkBlue }}>
+              {language === 'fr' ? 'Surplus exporté annuel' : 'Annual surplus exported'}
+            </p>
+            <p className="text-4xl md:text-5xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>
+              {Math.round(exported).toLocaleString('fr-CA')} kWh
+            </p>
+          </div>
+
+          <div
+            className="rounded-2xl p-8 text-center shadow-sm"
+            style={{ backgroundColor: '#F0FDF4', border: '2px solid #BBF7D020' }}
+            data-testid="card-surplus-revenue"
+          >
+            <DollarSign className="h-12 w-12 mx-auto mb-4" style={{ color: '#16A34A' }} />
+            <p className="text-base font-semibold mb-3" style={{ color: '#166534' }}>
+              {language === 'fr' ? 'Valeur annuelle du crédit' : 'Annual credit value'}
+            </p>
+            <p className="text-4xl md:text-5xl font-bold" style={{ color: '#16A34A' }}>
+              {formatSmartCurrency(revenue)}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="mt-8 rounded-xl px-6 py-4 text-center"
+          style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}
+          data-testid="text-surplus-footnote"
+        >
+          <p className="text-sm" style={{ color: '#6B7280' }}>
+            {language === 'fr'
+              ? "Les crédits kWh compensent votre facture pendant 24 mois. Le surplus non utilisé est compensé au tarif de référence (~4,54¢/kWh)."
+              : 'kWh credits offset your bill for up to 24 months. Unused surplus is compensated at the reference rate (~4.54¢/kWh).'}
+          </p>
+        </div>
       </div>
     </div>
   );

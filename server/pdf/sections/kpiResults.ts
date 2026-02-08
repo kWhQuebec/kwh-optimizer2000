@@ -1,7 +1,7 @@
 import path from "path";
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { drawRoundedRect, drawPageFooter, formatCurrency, formatPercent } from "../helpers";
+import { drawRoundedRect, drawPageFooter, formatCurrency, formatSmartCurrency, formatPercent } from "../helpers";
 
 export function renderKPIResults(ctx: PDFContext) {
   const { doc, simulation, t, margin, contentWidth, pageWidth, pageHeight, headerHeight, dateStr } = ctx;
@@ -57,7 +57,7 @@ export function renderKPIResults(ctx: PDFContext) {
   doc.y += 15;
 
   doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
-  doc.text(t(`Profit net de ${formatCurrency(simulation.npv25)} sur 25 ans`, `Net profit of ${formatCurrency(simulation.npv25)} over 25 years`), margin, doc.y, { width: contentWidth });
+  doc.text(t(`Profit net de ${formatSmartCurrency(simulation.npv25)} sur 25 ans`, `Net profit of ${formatSmartCurrency(simulation.npv25)} over 25 years`), margin, doc.y, { width: contentWidth });
   doc.font("Helvetica");
   doc.y += 25;
 
@@ -69,7 +69,7 @@ export function renderKPIResults(ctx: PDFContext) {
   // Card 1: Year 1 Savings - Light gold background, gold border, gold value text
   const card1X = margin;
   const card1Label = t("Économies An 1", "Year 1 Savings");
-  const card1Value = formatCurrency(simulation.savingsYear1 || simulation.annualSavings);
+  const card1Value = formatSmartCurrency(simulation.savingsYear1 || simulation.annualSavings);
   
   doc.roundedRect(card1X, cardY, cardWidth, cardHeight, 8).fillColor("#FFFBEB").fill();
   doc.roundedRect(card1X, cardY, cardWidth, cardHeight, 8).strokeColor("#FFB005").lineWidth(1).stroke();
@@ -85,7 +85,7 @@ export function renderKPIResults(ctx: PDFContext) {
   // Card 2: Net Investment - Light gray background, gray border, dark gray value text
   const card2X = margin + cardWidth + 10;
   const card2Label = t("Investissement Net", "Net Investment");
-  const card2Value = formatCurrency(simulation.capexNet);
+  const card2Value = formatSmartCurrency(simulation.capexNet);
   
   doc.roundedRect(card2X, cardY, cardWidth, cardHeight, 8).fillColor("#F7FAFC").fill();
   doc.roundedRect(card2X, cardY, cardWidth, cardHeight, 8).strokeColor("#E0E0E0").lineWidth(1).stroke();
@@ -101,7 +101,7 @@ export function renderKPIResults(ctx: PDFContext) {
   // Card 3: NPV (25yr) - Blue background, gold accent bar at top, white label text, gold value text
   const card3X = margin + 2 * (cardWidth + 10);
   const card3Label = t("Profit Net (VAN)", "Net Profit (NPV)");
-  const card3Value = formatCurrency(simulation.npv25);
+  const card3Value = formatSmartCurrency(simulation.npv25);
   const card3Subtitle = t("Sur 25 ans", "Over 25 years");
   
   doc.roundedRect(card3X, cardY, cardWidth, cardHeight, 8).fillColor("#003DA6").fill();
