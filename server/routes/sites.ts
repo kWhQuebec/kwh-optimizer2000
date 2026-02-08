@@ -1121,45 +1121,19 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
   const capacityKW = site.kbKwDc || 100;
   const panelCount = site.kbPanelCount || Math.ceil(capacityKW * 1000 / 625);
   const capacityW = capacityKW * 1000;
+  const epcMargin = defaultAnalysisAssumptions.epcMargin ?? 0.35;
 
   const components = await storage.getActivePricingComponents();
 
-  const breakdown: Record<string, { cost: number; perW: number; source: string | null }> = {};
-  let totalCost = 0;
+  // Accumulate cost (before margin) per category
+  const categoryAccum: Record<string, { cost: number; fixedCost: number; variableCost: number; source: string | null }> = {};
+  let totalCostBeforeMargin = 0;
 
-  // Use fixed $0.35/W for racking in analysis phase (specific racking selection is for design/quotation phase)
-  const RACKING_RATE_PER_W = 0.35;
-  const rackingCost = RACKING_RATE_PER_W * capacityW;
-  breakdown['racking'] = { cost: rackingCost, perW: RACKING_RATE_PER_W, source: 'Estimation analyse' };
-  totalCost += rackingCost;
-
+  // First pass: fixed + variable costs (non-percent components)
   for (const comp of components) {
-    // Skip racking components - we use a fixed rate for analysis
-    if (comp.category === 'racking') {
-      continue;
-    }
+    if (comp.unit === 'percent') continue;
 
-    let componentCost = 0;
-
-    switch (comp.unit) {
-      case 'W':
-        componentCost = comp.pricePerUnit * capacityKW * 1000;
-        break;
-      case 'kW':
-        componentCost = comp.pricePerUnit * capacityKW;
-        break;
-      case 'panel':
-        componentCost = comp.pricePerUnit * panelCount;
-        break;
-      case 'project':
-        componentCost = comp.pricePerUnit;
-        break;
-      case 'percent':
-        break;
-      default:
-        componentCost = comp.pricePerUnit * capacityKW * 1000;
-    }
-
+    // Tiered pricing filter
     if (comp.minQuantity !== null && comp.maxQuantity !== null) {
       const qty = comp.unit === 'panel' ? panelCount : capacityKW;
       if (qty < comp.minQuantity || qty > comp.maxQuantity) {
@@ -1167,29 +1141,71 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
       }
     }
 
-    if (!breakdown[comp.category]) {
-      breakdown[comp.category] = { cost: 0, perW: 0, source: null };
+    const fixedPortion = comp.fixedCost ?? 0;
+    let variablePortion = 0;
+
+    switch (comp.unit) {
+      case 'W':
+        variablePortion = comp.pricePerUnit * capacityW;
+        break;
+      case 'kW':
+        variablePortion = comp.pricePerUnit * capacityKW;
+        break;
+      case 'panel':
+        variablePortion = comp.pricePerUnit * panelCount;
+        break;
+      case 'project':
+        variablePortion = comp.pricePerUnit;
+        break;
+      default:
+        variablePortion = comp.pricePerUnit * capacityW;
     }
-    breakdown[comp.category].cost += componentCost;
-    breakdown[comp.category].source = comp.source;
-    totalCost += componentCost;
-  }
 
-  for (const comp of components.filter(c => c.unit === 'percent' && c.category !== 'racking')) {
-    const percentageCost = totalCost * (comp.pricePerUnit / 100);
-    if (!breakdown[comp.category]) {
-      breakdown[comp.category] = { cost: 0, perW: 0, source: null };
+    if (!categoryAccum[comp.category]) {
+      categoryAccum[comp.category] = { cost: 0, fixedCost: 0, variableCost: 0, source: null };
     }
-    breakdown[comp.category].cost += percentageCost;
-    breakdown[comp.category].source = comp.source;
-    totalCost += percentageCost;
+    categoryAccum[comp.category].fixedCost += fixedPortion;
+    categoryAccum[comp.category].variableCost += variablePortion;
+    categoryAccum[comp.category].cost += fixedPortion + variablePortion;
+    categoryAccum[comp.category].source = comp.source;
+    totalCostBeforeMargin += fixedPortion + variablePortion;
   }
 
-  for (const cat of Object.keys(breakdown)) {
-    breakdown[cat].perW = Math.round((breakdown[cat].cost / capacityW) * 100) / 100;
+  // Second pass: percent-based components (applied to subtotal so far)
+  for (const comp of components.filter(c => c.unit === 'percent')) {
+    const percentageCost = totalCostBeforeMargin * (comp.pricePerUnit / 100);
+    const fixedPortion = comp.fixedCost ?? 0;
+    if (!categoryAccum[comp.category]) {
+      categoryAccum[comp.category] = { cost: 0, fixedCost: 0, variableCost: 0, source: null };
+    }
+    categoryAccum[comp.category].fixedCost += fixedPortion;
+    categoryAccum[comp.category].variableCost += percentageCost;
+    categoryAccum[comp.category].cost += fixedPortion + percentageCost;
+    categoryAccum[comp.category].source = comp.source;
+    totalCostBeforeMargin += fixedPortion + percentageCost;
   }
 
+  // Apply gross margin: sellPrice = cost / (1 - margin)
+  const marginMultiplier = 1 / (1 - epcMargin);
+  const totalCost = Math.round(totalCostBeforeMargin * marginMultiplier);
   const totalPerW = Math.round((totalCost / capacityW) * 100) / 100;
+
+  const breakdown: Record<string, {
+    cost: number; costBeforeMargin: number; perW: number;
+    fixedCost: number; variableCost: number; source: string | null;
+  }> = {};
+
+  for (const [cat, accum] of Object.entries(categoryAccum)) {
+    const sellPrice = Math.round(accum.cost * marginMultiplier);
+    breakdown[cat] = {
+      cost: sellPrice,
+      costBeforeMargin: Math.round(accum.cost),
+      perW: Math.round((sellPrice / capacityW) * 100) / 100,
+      fixedCost: Math.round(accum.fixedCost),
+      variableCost: Math.round(accum.variableCost),
+      source: accum.source,
+    };
+  }
 
   res.json({
     siteId: site.id,
@@ -1197,8 +1213,10 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
     capacityKW,
     panelCount,
     breakdown,
-    totalCost: Math.round(totalCost),
+    totalCost,
     totalPerW,
+    epcMargin,
+    totalCostBeforeMargin: Math.round(totalCostBeforeMargin),
     componentCount: components.length,
   });
 }));

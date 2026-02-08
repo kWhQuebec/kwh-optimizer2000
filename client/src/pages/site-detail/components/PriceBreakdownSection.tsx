@@ -93,8 +93,8 @@ export function PriceBreakdownSection({ siteId, isAdmin }: { siteId: string; isA
             {!isOpen && priceData && (
               <CardDescription className="mt-1">
                 {language === "fr"
-                  ? `Coût total estimé: ${priceData.totalCost.toLocaleString('fr-CA')} $ CAD`
-                  : `Estimated total cost: $${priceData.totalCost.toLocaleString('en-CA')} CAD`}
+                  ? `Prix de vente estimé: ${priceData.totalCost.toLocaleString('fr-CA')} $ CAD`
+                  : `Estimated sell price: $${priceData.totalCost.toLocaleString('en-CA')} CAD`}
               </CardDescription>
             )}
           </CardHeader>
@@ -132,12 +132,17 @@ export function PriceBreakdownSection({ siteId, isAdmin }: { siteId: string; isA
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">
-                        {language === "fr" ? "Coût total estimé" : "Estimated Total Cost"}
+                        {language === "fr" ? "Prix de vente estimé" : "Estimated Sell Price"}
                       </p>
                       <p className="text-3xl font-bold font-mono text-primary" data-testid="text-total-cost">
                         {language === "fr"
                           ? `${priceData.totalCost.toLocaleString('fr-CA')} $`
                           : `$${priceData.totalCost.toLocaleString('en-CA')}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {language === "fr"
+                          ? `Marge brute ${Math.round((priceData.epcMargin ?? 0.35) * 100)}% — Coût: ${priceData.totalCostBeforeMargin?.toLocaleString('fr-CA')} $`
+                          : `${Math.round((priceData.epcMargin ?? 0.35) * 100)}% gross margin — Cost: $${priceData.totalCostBeforeMargin?.toLocaleString('en-CA')}`}
                       </p>
                     </div>
                     <div className="flex gap-4">
@@ -189,12 +194,20 @@ export function PriceBreakdownSection({ siteId, isAdmin }: { siteId: string; isA
 
                   {sortedCategories.map(([category, data]) => {
                     const percentage = getPercentage(data.cost, priceData.totalCost);
+                    const costPerW = data.costBeforeMargin != null
+                      ? (data.costBeforeMargin / (priceData.capacityKW * 1000)).toFixed(2)
+                      : null;
                     return (
                       <div key={category} className="space-y-1" data-testid={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium">{getCategoryLabel(category)}</span>
                           <div className="flex items-center gap-3 font-mono text-muted-foreground">
                             <span className="text-xs">${data.perW.toFixed(2)}/W</span>
+                            {costPerW && (
+                              <span className="text-xs opacity-60" title={language === "fr" ? "Coût avant marge" : "Cost before margin"}>
+                                ({language === "fr" ? "coût" : "cost"} ${costPerW})
+                              </span>
+                            )}
                             <span className="font-semibold text-foreground">
                               {language === "fr"
                                 ? `${data.cost.toLocaleString('fr-CA')} $`

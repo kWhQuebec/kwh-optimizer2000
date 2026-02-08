@@ -110,6 +110,7 @@ const pricingComponentSchema = z.object({
   name: z.string().min(1, "Name required"),
   description: z.string().optional(),
   pricePerUnit: z.coerce.number().min(0, "Price must be positive"),
+  fixedCost: z.coerce.number().min(0).default(0),
   unit: z.string().min(1, "Unit required"),
   minQuantity: z.coerce.number().optional().nullable(),
   maxQuantity: z.coerce.number().optional().nullable(),
@@ -159,6 +160,7 @@ export default function AdminPricingPage() {
       name: "",
       description: "",
       pricePerUnit: 0,
+      fixedCost: 0,
       unit: "W",
       minQuantity: null,
       maxQuantity: null,
@@ -259,6 +261,7 @@ export default function AdminPricingPage() {
       name: component.name,
       description: component.description || "",
       pricePerUnit: component.pricePerUnit,
+      fixedCost: component.fixedCost ?? 0,
       unit: component.unit,
       minQuantity: component.minQuantity,
       maxQuantity: component.maxQuantity,
@@ -277,6 +280,7 @@ export default function AdminPricingPage() {
       name: "",
       description: "",
       pricePerUnit: 0,
+      fixedCost: 0,
       unit: "W",
       minQuantity: null,
       maxQuantity: null,
@@ -473,9 +477,18 @@ export default function AdminPricingPage() {
                                       {dollarPerWatt !== null ? (
                                         <span className="text-primary font-semibold">
                                           ${dollarPerWatt.toFixed(4)}/W
+                                          {(component.fixedCost ?? 0) > 0 && (
+                                            <span className="text-xs text-muted-foreground ml-1">
+                                              (+ ${(component.fixedCost ?? 0).toLocaleString('en-CA')} {language === "fr" ? "fixe" : "fixed"})
+                                            </span>
+                                          )}
                                         </span>
                                       ) : (
-                                        <span className="text-muted-foreground">-</span>
+                                        <span className="text-muted-foreground">
+                                          {(component.fixedCost ?? 0) > 0
+                                            ? `$${(component.fixedCost ?? 0).toLocaleString('en-CA')} ${language === "fr" ? "fixe" : "fixed"}`
+                                            : "-"}
+                                        </span>
                                       )}
                                     </TableCell>
                                     <TableCell>
@@ -656,6 +669,27 @@ export default function AdminPricingPage() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="fixedCost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {language === "fr" ? "Coût fixe par projet ($CAD)" : "Fixed Cost per Project ($CAD)"}
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="number" step="100" min="0" {...field} data-testid="input-fixed-cost" />
+                    </FormControl>
+                    <FormDescription>
+                      {language === "fr"
+                        ? "Portion qui ne varie pas avec la taille du système (mobilisation, permis, etc.)"
+                        : "Portion that doesn't scale with system size (mobilization, permits, etc.)"}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField

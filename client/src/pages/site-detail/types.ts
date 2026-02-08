@@ -23,9 +23,18 @@ export interface PriceBreakdownResponse {
   siteName: string;
   capacityKW: number;
   panelCount: number;
-  breakdown: Record<string, { cost: number; perW: number; source: string | null }>;
-  totalCost: number;
-  totalPerW: number;
+  breakdown: Record<string, {
+    cost: number;            // Sell price (after margin)
+    costBeforeMargin: number; // Cost price (before margin)
+    perW: number;            // Sell $/W
+    fixedCost: number;       // Fixed cost portion
+    variableCost: number;    // Variable cost portion
+    source: string | null;
+  }>;
+  totalCost: number;          // Sell price total
+  totalPerW: number;          // Sell $/W
+  epcMargin: number;          // Margin applied (e.g. 0.35)
+  totalCostBeforeMargin: number; // Cost total (before margin)
   componentCount: number;
 }
 

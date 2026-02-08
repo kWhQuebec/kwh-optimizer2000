@@ -390,7 +390,8 @@ export const pricingComponents = pgTable("pricing_components", {
   category: text("category").notNull(), // "panels" | "racking" | "inverters" | "bos_electrical" | "labor" | "soft_costs"
   name: text("name").notNull(), // e.g., "Jinko 625W Bifacial", "KB Racking AeroGrid"
   description: text("description"), // Additional context
-  pricePerUnit: real("price_per_unit").notNull(), // Price in CAD
+  pricePerUnit: real("price_per_unit").notNull(), // Variable cost in CAD (per unit)
+  fixedCost: real("fixed_cost").default(0), // Fixed cost portion per project ($CAD) - doesn't scale with system size
   unit: text("unit").notNull(), // "W" | "panel" | "kW" | "project" | "hour" | "percent"
   minQuantity: real("min_quantity"), // For tiered pricing - minimum quantity for this price
   maxQuantity: real("max_quantity"), // For tiered pricing - maximum quantity for this price
@@ -2175,6 +2176,9 @@ export interface AnalysisAssumptions {
   // Source: HQ Grille tarifaire avril 2025 - Compensation at average cost of supply
   // NOT client's energy tariff rate - HQ compensates at cost of supply after 24-month bank reset
   hqSurplusCompensationRate?: number;  // $/kWh - default 0.0460 (4.60¢/kWh)
+
+  // EPC gross margin applied to catalog cost prices for sell pricing
+  epcMargin?: number; // Gross margin (default 0.35 = 35%) — sellPrice = cost / (1 - margin)
 }
 
 // Default analysis assumptions
@@ -2227,6 +2231,9 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   // Source: HQ Grille tarifaire avril 2025 - Coût moyen d'approvisionnement
   // After 24-month bank reset, surplus kWh compensated at this rate (NOT client tariff)
   hqSurplusCompensationRate: 0.0460, // 4.60¢/kWh (HQ cost of supply April 2025)
+
+  // EPC gross margin — sellPrice = cost / (1 - 0.35)
+  epcMargin: 0.35, // 35% gross margin
 };
 
 // Cashflow entry for detailed analysis
