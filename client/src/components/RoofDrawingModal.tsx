@@ -319,6 +319,9 @@ export function RoofDrawingModal({
   const handleDeletePolygon = (polygonId: string) => {
     const polygon = polygons.find((p) => p.id === polygonId);
     if (polygon?.googlePolygon) {
+      // Clean up dashed polyline if present
+      const polyline = (polygon.googlePolygon as any).__dashedPolyline as google.maps.Polyline | undefined;
+      if (polyline) polyline.setMap(null);
       polygon.googlePolygon.setMap(null);
     }
     setPolygons((prev) => prev.filter((p) => p.id !== polygonId));
@@ -333,6 +336,8 @@ export function RoofDrawingModal({
     suggestedPolygonIds.forEach((id) => {
       const polygon = polygons.find((p) => p.id === id);
       if (polygon?.googlePolygon) {
+        const polyline = (polygon.googlePolygon as any).__dashedPolyline as google.maps.Polyline | undefined;
+        if (polyline) polyline.setMap(null);
         polygon.googlePolygon.setMap(null);
       }
     });
@@ -341,6 +346,15 @@ export function RoofDrawingModal({
   };
 
   const handleAcceptSuggestedConstraints = () => {
+    // Remove dashed polylines and make polygons solid (accepted)
+    suggestedPolygonIds.forEach((id) => {
+      const polygon = polygons.find((p) => p.id === id);
+      if (polygon?.googlePolygon) {
+        const polyline = (polygon.googlePolygon as any).__dashedPolyline as google.maps.Polyline | undefined;
+        if (polyline) polyline.setMap(null);
+        polygon.googlePolygon.setOptions({ fillOpacity: 0.4, strokeWeight: 2, strokeOpacity: 1 });
+      }
+    });
     setSuggestedPolygonIds(new Set());
   };
 
@@ -369,42 +383,61 @@ export function RoofDrawingModal({
       minLng -= lngPadding;
       maxLng += lngPadding;
 
-      const data = await apiRequest<{ constraints: [number, number][][] }>('POST', `/api/sites/${siteId}/suggest-constraints`, {
+      const data = await apiRequest<{
+        constraints: Array<{ coordinates: [number, number][]; areaSqM: number; label: string; source: string }>;
+        analysisNotes?: string;
+      }>('POST', `/api/sites/${siteId}/suggest-constraints`, {
         solarPolygons: solarPolygons.map((p) => p.coordinates),
         bounds: { minLat, maxLat, minLng, maxLng },
         centerLat: latitude,
         centerLng: longitude,
       });
 
-      const suggestedConstraints: [number, number][][] = data.constraints || [];
+      const suggestedConstraints = data.constraints || [];
 
       if (suggestedConstraints.length === 0) {
         toast({
           title: language === 'fr' ? 'Aucune contrainte détectée' : 'No constraints detected',
-          description: language === 'fr' 
-            ? 'L\'analyse n\'a détecté aucun obstacle sur le toit.' 
+          description: language === 'fr'
+            ? 'L\'analyse n\'a détecté aucun obstacle sur le toit.'
             : 'The analysis did not detect any obstacles on the roof.',
         });
         return;
       }
 
       const newSuggestedIds = new Set<string>();
-      const newPolygons: DrawnPolygon[] = suggestedConstraints.map((coords) => {
-        const googleCoords = coords.map(([lng, lat]) => ({ lat, lng }));
-        
+      const newPolygons: DrawnPolygon[] = suggestedConstraints.map((constraint) => {
+        const googleCoords = constraint.coordinates.map(([lng, lat]) => ({ lat, lng }));
+
         const googlePolygon = new google.maps.Polygon({
           paths: googleCoords,
           fillColor: CONSTRAINT_COLOR,
-          fillOpacity: 0.5,
+          fillOpacity: 0.3,
           strokeColor: CONSTRAINT_COLOR,
-          strokeWeight: 3,
-          strokeOpacity: 1,
+          strokeWeight: 2,
+          strokeOpacity: 0.8,
           editable: true,
           map: mapRef.current,
         });
 
+        // Apply dashed stroke pattern for suggested constraints
+        const icons: google.maps.IconSequence[] = [{
+          icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 },
+          offset: '0',
+          repeat: '15px',
+        }];
+        const polyline = new google.maps.Polyline({
+          path: [...googleCoords, googleCoords[0]],
+          strokeColor: CONSTRAINT_COLOR,
+          strokeOpacity: 0,
+          icons,
+          map: mapRef.current,
+        });
+        // Store polyline reference for cleanup
+        (googlePolygon as any).__dashedPolyline = polyline;
+
         const path = googlePolygon.getPath();
-        const areaSqM = google.maps.geometry.spherical.computeArea(path);
+        const areaSqM = constraint.areaSqM || google.maps.geometry.spherical.computeArea(path);
         const id = generateId();
         newSuggestedIds.add(id);
 
@@ -412,8 +445,8 @@ export function RoofDrawingModal({
 
         return {
           id,
-          label: language === 'fr' ? 'Contrainte (suggérée)' : 'Constraint (suggested)',
-          coordinates: coords,
+          label: constraint.label || (language === 'fr' ? 'Contrainte (suggérée)' : 'Constraint (suggested)'),
+          coordinates: constraint.coordinates,
           areaSqM,
           color: CONSTRAINT_COLOR,
           googlePolygon,
@@ -422,11 +455,11 @@ export function RoofDrawingModal({
 
       setSuggestedPolygonIds((prev) => new Set([...Array.from(prev), ...Array.from(newSuggestedIds)]));
       setPolygons((prev) => [...prev, ...newPolygons]);
-      
+
       toast({
         title: language === 'fr' ? 'Contraintes suggérées' : 'Constraints suggested',
-        description: language === 'fr' 
-          ? `${suggestedConstraints.length} contrainte(s) détectée(s). Vérifiez et ajustez si nécessaire.` 
+        description: language === 'fr'
+          ? `${suggestedConstraints.length} contrainte(s) détectée(s). Vérifiez et ajustez si nécessaire.`
           : `${suggestedConstraints.length} constraint(s) detected. Review and adjust as needed.`,
       });
     } catch (error) {
@@ -488,6 +521,8 @@ export function RoofDrawingModal({
     polygons.forEach((p) => {
       if (p.googlePolygon) {
         try {
+          const polyline = (p.googlePolygon as any).__dashedPolyline as google.maps.Polyline | undefined;
+          if (polyline) polyline.setMap(null);
           p.googlePolygon.setMap(null);
         } catch (e) {
           // Ignore errors
@@ -520,6 +555,8 @@ export function RoofDrawingModal({
     polygons.forEach((p) => {
       if (p.googlePolygon) {
         try {
+          const polyline = (p.googlePolygon as any).__dashedPolyline as google.maps.Polyline | undefined;
+          if (polyline) polyline.setMap(null);
           p.googlePolygon.setMap(null);
         } catch (e) {
           // Ignore errors
@@ -678,7 +715,44 @@ export function RoofDrawingModal({
                 <AlertTriangle className="h-4 w-4 mr-1" />
                 {language === 'fr' ? 'Contrainte' : 'Constraint'}
               </Button>
-              
+
+              <div className="ml-auto flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSuggestConstraints}
+                  disabled={isSuggestingConstraints || polygons.filter(p => p.color === SOLAR_COLOR).length === 0}
+                  data-testid="button-suggest-constraints"
+                  title={language === 'fr' ? 'Détecter automatiquement les obstacles du toit' : 'Auto-detect roof obstacles'}
+                >
+                  {isSuggestingConstraints ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                  {language === 'fr' ? 'Détecter' : 'Detect'}
+                </Button>
+                {suggestedPolygonIds.size > 0 && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="bg-green-600 hover:bg-green-700 text-xs"
+                      onClick={handleAcceptSuggestedConstraints}
+                      data-testid="button-accept-suggestions"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      {language === 'fr' ? 'Accepter' : 'Accept'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs text-destructive border-destructive/50 hover:bg-destructive/10"
+                      onClick={handleClearSuggestedConstraints}
+                      data-testid="button-clear-suggestions"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      {language === 'fr' ? 'Rejeter' : 'Reject'}
+                    </Button>
+                  </>
+                )}
+              </div>
               </div>
 
             {/* Drawing Mode Indicator */}
@@ -762,18 +836,19 @@ export function RoofDrawingModal({
                 )}
 
                 {polygons.map((polygon, index) => {
-                  const isConstraintPolygon = polygon.color === CONSTRAINT_COLOR || 
+                  const isConstraintPolygon = polygon.color === CONSTRAINT_COLOR ||
                     polygon.label?.toLowerCase().includes('constraint') ||
                     polygon.label?.toLowerCase().includes('contrainte');
-                  
+                  const isSuggested = suggestedPolygonIds.has(polygon.id);
+
                   return (
                   <div
                     key={polygon.id}
-                    className="p-3 rounded-lg border bg-card hover-elevate flex gap-2"
+                    className={`p-3 rounded-lg border bg-card hover-elevate flex gap-2 ${isSuggested ? 'border-dashed border-orange-400' : ''}`}
                     data-testid={`polygon-item-${index}`}
                   >
-                    <div 
-                      className={`w-1 rounded-full shrink-0 ${isConstraintPolygon ? 'bg-orange-500' : 'bg-blue-500'}`} 
+                    <div
+                      className={`w-1 rounded-full shrink-0 ${isConstraintPolygon ? 'bg-orange-500' : 'bg-blue-500'}`}
                     />
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -815,6 +890,11 @@ export function RoofDrawingModal({
                             <span className="text-sm font-medium truncate">
                               {polygon.label || (language === 'fr' ? `Zone ${index + 1}` : `Area ${index + 1}`)}
                             </span>
+                            {isSuggested && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1 border-orange-400 text-orange-600">
+                                {language === 'fr' ? 'IA' : 'AI'}
+                              </Badge>
+                            )}
                             <Button
                               size="icon"
                               variant="ghost"

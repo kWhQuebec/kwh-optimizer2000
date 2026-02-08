@@ -2117,7 +2117,7 @@ export interface AnalysisAssumptions {
   tariffPower: number;       // $/kW/month - default 17.57 (M tariff)
   
   // Solar production parameters
-  solarYieldKWhPerKWp: number; // kWh/kWp/year - default 1150, based on racking config
+  solarYieldKWhPerKWp: number; // kWh/kWp/year - default 1100, based on racking config
   orientationFactor: number;   // 0-1 multiplier for roof orientation (1.0 = optimal south-facing)
   
   // Racking configuration (Jan 2026 - KB vs Opsun analysis)
@@ -2131,7 +2131,7 @@ export interface AnalysisAssumptions {
   
   // Financial
   inflationRate: number;     // % as decimal - default 0.035
-  discountRate: number;      // WACC % as decimal - default 0.08
+  discountRate: number;      // WACC % as decimal - default 0.07
   taxRate: number;           // Corporate tax % as decimal - default 0.265
   
   // CAPEX costs

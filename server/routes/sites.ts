@@ -631,7 +631,7 @@ router.post("/:id/suggest-constraints", authMiddleware, requireStaff, async (req
     }
 
     res.json({
-      suggestedConstraints: result.suggestedConstraints,
+      constraints: result.suggestedConstraints,
       analysisNotes: result.analysisNotes
     });
   } catch (error) {

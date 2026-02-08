@@ -359,129 +359,6 @@ export async function registerRoutes(
 // NOTE: The following helper functions remain here as they are used by analysis routes
 // and other parts of the codebase that have not yet been extracted.
 
-/**
- * Deduplicate meter readings by hour
- * 
- * Problem: Sites can have multiple meter files with overlapping periods (e.g., HOUR + FIFTEEN_MIN
- * for the same dates). Without deduplication, the analysis engine sums ALL readings, causing
- * massive overcounting (e.g., 303 million kWh instead of ~500k kWh).
- * 
- * Solution: 
- * 1. Bucket readings by hour (YYYY-MM-DD-HH key)
- * 2. For each hour, prefer HOUR granularity readings (most accurate for energy)
- * 3. If no HOUR reading exists, aggregate ALL readings in that bucket (sum kWh, max kW)
- * 4. Readings without granularity are treated as candidates for aggregation
- * 5. Sort final readings by timestamp
- * 
- * Returns: { readings, dataSpanDays } where dataSpanDays is computed from ORIGINAL timestamps
- */
-function deduplicateMeterReadingsByHour(
-  rawReadings: Array<{ 
-    kWh: number | null; 
-    kW: number | null; 
-    timestamp: Date;
-    granularity?: string;
-  }>
-): { 
-  readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>;
-  dataSpanDays: number;
-} {
-  if (rawReadings.length === 0) {
-    return { readings: [], dataSpanDays: 365 };
-  }
-  
-  // CRITICAL: Calculate dataSpanDays from ORIGINAL readings (before any filtering)
-  // This ensures correct annualization factor
-  let minTs = new Date(rawReadings[0].timestamp).getTime();
-  let maxTs = minTs;
-  for (const r of rawReadings) {
-    const ts = new Date(r.timestamp).getTime();
-    if (ts < minTs) minTs = ts;
-    if (ts > maxTs) maxTs = ts;
-  }
-  const dataSpanDays = Math.max(1, (maxTs - minTs) / (1000 * 60 * 60 * 24));
-  
-  // Group readings by hour bucket
-  const hourBuckets = new Map<string, Array<typeof rawReadings[0]>>();
-  
-  for (const reading of rawReadings) {
-    const ts = new Date(reading.timestamp);
-    // Create hour bucket key: YYYY-MM-DD-HH
-    const bucketKey = `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, '0')}-${String(ts.getDate()).padStart(2, '0')}-${String(ts.getHours()).padStart(2, '0')}`;
-    
-    const bucket = hourBuckets.get(bucketKey) || [];
-    bucket.push(reading);
-    hourBuckets.set(bucketKey, bucket);
-  }
-  
-  // For each hour bucket, select or aggregate the best reading
-  const deduplicatedReadings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }> = [];
-  
-  for (const [bucketKey, readings] of hourBuckets) {
-    // Separate by granularity - treat missing granularity as "OTHER"
-    const hourlyReadings = readings.filter(r => r.granularity === 'HOUR');
-    const nonHourlyReadings = readings.filter(r => r.granularity !== 'HOUR');
-    
-    // Parse bucket key for hour-aligned timestamp
-    const parts = bucketKey.split('-');
-    const hourTimestamp = new Date(
-      parseInt(parts[0]), 
-      parseInt(parts[1]) - 1, 
-      parseInt(parts[2]), 
-      parseInt(parts[3]), 
-      0, 0, 0
-    );
-    
-    if (hourlyReadings.length > 0) {
-      // Use HOUR reading - take the one with valid kWh if possible
-      const bestHourly = hourlyReadings.find(r => r.kWh !== null) || hourlyReadings[0];
-      
-      // Also check all other readings for max kW (15-min data is more accurate for peaks)
-      let maxKW = bestHourly.kW || 0;
-      for (const r of nonHourlyReadings) {
-        if (r.kW !== null && r.kW > maxKW) {
-          maxKW = r.kW;
-        }
-      }
-      
-      deduplicatedReadings.push({
-        timestamp: hourTimestamp,
-        kWh: bestHourly.kWh,
-        kW: maxKW > 0 ? maxKW : bestHourly.kW,
-      });
-    } else {
-      // No HOUR readings - aggregate ALL readings in this bucket
-      // Sum all kWh values and take max kW
-      let totalKWh = 0;
-      let maxKW = 0;
-      let hasKWh = false;
-      
-      for (const r of readings) {
-        if (r.kWh !== null) {
-          totalKWh += r.kWh;
-          hasKWh = true;
-        }
-        if (r.kW !== null && r.kW > maxKW) {
-          maxKW = r.kW;
-        }
-      }
-      
-      deduplicatedReadings.push({
-        timestamp: hourTimestamp,
-        kWh: hasKWh ? totalKWh : null,
-        kW: maxKW > 0 ? maxKW : null,
-      });
-    }
-  }
-  
-  // Sort by timestamp for consistent analysis
-  deduplicatedReadings.sort((a, b) => 
-    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
-  
-  return { readings: deduplicatedReadings, dataSpanDays };
-}
-
 async function parseHydroQuebecCSV(
   filePath: string, 
   meterFileId: string, 
@@ -703,29 +580,19 @@ function runPotentialAnalysis(
   customAssumptions?: Partial<AnalysisAssumptions>,
   options?: AnalysisOptions
 ): AnalysisResult {
-  // DEBUG: Log incoming yieldSource BEFORE merge
-  log.info(`======================================`);
-  log.info(`INCOMING customAssumptions.yieldSource = '${customAssumptions?.yieldSource}'`);
-  log.info(`defaultAnalysisAssumptions.yieldSource = '${defaultAnalysisAssumptions.yieldSource}'`);
-  
   // Merge custom assumptions with defaults
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
-  
-  // CRITICAL: Copy _yieldStrategy if present in customAssumptions
+
+  // Copy _yieldStrategy if present in customAssumptions
   const incomingStrategy = (customAssumptions as any)?._yieldStrategy;
   if (incomingStrategy) {
     (h as any)._yieldStrategy = incomingStrategy;
-    log.info(`COPIED _yieldStrategy: skipTempCorrection=${incomingStrategy.skipTempCorrection}`);
   }
-  
-  // CRITICAL: If customAssumptions had yieldSource set, ensure it's preserved after merge
+
+  // If customAssumptions had yieldSource set, ensure it's preserved after merge
   if (customAssumptions?.yieldSource) {
     h.yieldSource = customAssumptions.yieldSource;
-    log.info(`yieldSource from customAssumptions: '${h.yieldSource}'`);
   }
-  
-  // DEBUG: Verify yieldSource and strategy are correct
-  log.info(`AFTER MERGE: yieldSource='${h.yieldSource}', hasStrategy=${!!(h as any)._yieldStrategy}`);
   
   // ========== STEP 1: Build 8760-hour simulation data ==========
   // Aggregate readings into hourly consumption and peak power (with interpolation for missing months)
@@ -932,9 +799,10 @@ function runPotentialAnalysis(
     // Revenue = base savings * degradation * tariff inflation
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
-    const escalatedSurplusRate = (h.hqSurplusCompensationRate || 0.046) * Math.pow(1 + h.inflationRate, y - 1);
+    // HQ surplus revenue starts after 24 months (year 3+)
+    // After first 24-month cycle, HQ pays for accumulated surplus in the bank
     const surplusRevenue = y >= 3 
-      ? totalExportedKWh * escalatedSurplusRate * degradationFactor
+      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
       : 0;
     
     const revenue = savingsRevenue + surplusRevenue;
@@ -958,11 +826,26 @@ function runPotentialAnalysis(
     
     // Note: Years 26-30 have no new incentives (depreciation exhausted, all credits received)
     
-    const battReplaceInterval = h.batteryReplacementYear || 10;
+    // Battery replacement at configured year (adjusted for inflation and price decline)
+    const replacementYear = h.batteryReplacementYear || 10;
     const replacementFactor = h.batteryReplacementCostFactor || 0.60;
     const priceDecline = h.batteryPriceDeclineRate || 0.05;
     
-    if (battEnergyKWh > 0 && y > 0 && y % battReplaceInterval === 0 && y < MAX_ANALYSIS_YEARS) {
+    if (y === replacementYear && battEnergyKWh > 0) {
+      // Battery cost adjusted: inflation increases cost, but battery prices decline
+      // Net effect: original_cost * replacement_factor * (1 + inflation - price_decline)^years
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    
+    // Second replacement at year 20
+    if (y === 20 && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    
+    // Third replacement at year 30 for extended 30-year analysis
+    if (y === 30 && battEnergyKWh > 0) {
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
@@ -1188,9 +1071,10 @@ function runPotentialAnalysis(
       // Revenue from self-consumption savings
       const savingsRevenue = optAnnualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
       
-      const escalatedSurplusRate = (h.hqSurplusCompensationRate || 0.046) * Math.pow(1 + h.inflationRate, y - 1);
+      // HQ surplus revenue starts after 24 months (year 3+)
+      // Surplus kWh compensated at HQ cost of supply rate (4.54¢/kWh per R-4270-2024)
       const surplusRevenue = y >= 3 
-        ? optSimResult.totalExportedKWh * escalatedSurplusRate * degradationFactor
+        ? optAnnualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
         : 0;
       
       const revenue = savingsRevenue + surplusRevenue;
@@ -1215,11 +1099,21 @@ function runPotentialAnalysis(
       
       // Note: Years 26-30 have no new incentives (depreciation exhausted, all credits received)
       
-      const battReplaceInterval = h.batteryReplacementYear || 10;
+      const replacementYear = h.batteryReplacementYear || 10;
       const replacementFactor = h.batteryReplacementCostFactor || 0.60;
       const priceDecline = h.batteryPriceDeclineRate || 0.05;
       
-      if (optBattEnergyKWh > 0 && y > 0 && y % battReplaceInterval === 0 && y < OPT_MAX_ANALYSIS_YEARS) {
+      if (y === replacementYear && optBattEnergyKWh > 0) {
+        const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+        investment = -optCapexBattery * replacementFactor * netPriceChange;
+      }
+      // Second replacement at year 20
+      if (y === 20 && optBattEnergyKWh > 0) {
+        const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+        investment = -optCapexBattery * replacementFactor * netPriceChange;
+      }
+      // Third replacement at year 30 for extended 30-year analysis
+      if (y === 30 && optBattEnergyKWh > 0) {
         const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
         investment = -optCapexBattery * replacementFactor * netPriceChange;
       }
@@ -1457,7 +1351,7 @@ function runPotentialAnalysis(
         irr25: finalResult.irr25,
         irr10: finalResult.irr10 || 0,
         irr20: finalResult.irr20 || 0,
-        simplePaybackYears: finalResult.simplePaybackYears || (finalAnnualSavings > 0 ? Math.ceil(trueOptCapexNet / finalAnnualSavings) : h.analysisYears),
+        simplePaybackYears: finalAnnualSavings > 0 ? Math.ceil(trueOptCapexNet / finalAnnualSavings) : h.analysisYears,
         lcoe: finalLcoe,
         npv30: optNpv30,
         irr30: optIrr30,
@@ -2277,9 +2171,11 @@ function runScenarioWithSizing(
     // Revenue = base savings * degradation * tariff inflation
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
-    const escalatedSurplusRate = (h.hqSurplusCompensationRate || 0.046) * Math.pow(1 + h.inflationRate, y - 1);
+    // HQ surplus revenue starts after 24 months (year 3+)
+    // After first 24-month cycle, HQ pays for accumulated surplus in the bank
+    // We model this as annual revenue starting year 3
     const surplusRevenue = y >= 3 
-      ? annualExportedKWh * escalatedSurplusRate * degradationFactor
+      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
       : 0;
     
     const revenue = savingsRevenue + surplusRevenue;
@@ -2298,11 +2194,22 @@ function runScenarioWithSizing(
       incentives = incentivesFederal;
     }
     
-    const battReplaceInterval = h.batteryReplacementYear || 10;
+    // Battery replacement at configured year
+    const replacementYear = h.batteryReplacementYear || 10;
     const replacementFactor = h.batteryReplacementCostFactor || 0.60;
     const priceDecline = h.batteryPriceDeclineRate || 0.05;
     
-    if (battEnergyKWh > 0 && y > 0 && y % battReplaceInterval === 0 && y < MAX_SCENARIO_YEARS) {
+    if (y === replacementYear && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    // Second replacement at year 20
+    if (y === 20 && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    // Third replacement at year 30 for extended analysis
+    if (y === 30 && battEnergyKWh > 0) {
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
@@ -2338,7 +2245,11 @@ function runScenarioWithSizing(
   
   // Calculate additional KPI metrics for Dashboard
   const totalProductionKWh = pvSizeKW * effectiveYield;
-  // Payback: cumulative cashflow approach (consistent with runPotentialAnalysis)
+  const selfSufficiencyPercent = annualConsumptionKWh > 0
+    ? (selfConsumptionKWh / annualConsumptionKWh) * 100
+    : 0;
+
+  // Payback: use cumulative cashflow approach (consistent across all engines)
   let simplePaybackYears = MAX_SCENARIO_YEARS;
   let cumCheck = cashflowValues[0];
   for (let i = 1; i < Math.min(cashflowValues.length, 26); i++) {
@@ -2348,10 +2259,8 @@ function runScenarioWithSizing(
       break;
     }
   }
-  const selfSufficiencyPercent = annualConsumptionKWh > 0 
-    ? (selfConsumptionKWh / annualConsumptionKWh) * 100 
-    : 0;
-  // CO2: Quebec grid factor 0.002 kg CO2/kWh (~2 g/kWh, Env. Canada)
+
+  // CO2: Quebec grid factor 0.002 kg CO2/kWh (consistent across all engines)
   const co2AvoidedTonnesPerYear = (selfConsumptionKWh * 0.002) / 1000;
   
   const annualCostAfter = annualCostBefore - annualSavings;

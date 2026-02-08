@@ -539,7 +539,6 @@ function runHourlySimulation(
   monthlyPeaksBefore: number[];
   monthlyPeaksAfter: number[];
   totalGridChargingKWh: number;
-  nightChargingKWh: number;
 } {
   const hourlyProfile: HourlyProfileEntry[] = [];
   let soc = battEnergyKWh * 0.5;
@@ -650,12 +649,6 @@ function runHourlySimulation(
         battAction = -maxDischarge;
       } else if (net < 0 && soc < battEnergyKWh) {
         battAction = Math.min(Math.abs(net), battPowerKW, battEnergyKWh - soc);
-      // Night Charging Strategy:
-      // Battery charges from grid during off-peak hours (22:00-06:00) to prepare
-      // for next-day peak shaving. This increases total grid consumption but reduces
-      // peak demand charges, which is net beneficial for Tarif M/L customers.
-      // The cost of night charging is tracked in gridChargingCost and accounted
-      // for in the financial model.
       } else if (hour >= 22 && soc < battEnergyKWh) {
         battAction = Math.min(battPowerKW, battEnergyKWh - soc);
         isGridCharging = true;
@@ -738,7 +731,6 @@ function runHourlySimulation(
     monthlyPeaksBefore,
     monthlyPeaksAfter,
     totalGridChargingKWh,
-    nightChargingKWh: totalGridChargingKWh,
   };
 }
 
@@ -1045,9 +1037,8 @@ function runScenarioWithSizing(
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
-    const escalatedSurplusRate = (h.hqSurplusCompensationRate || 0.046) * Math.pow(1 + h.inflationRate, y - 1);
     const surplusRevenue = y >= 3 
-      ? simResult.totalExportedKWh * escalatedSurplusRate * degradationFactor
+      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
       : 0;
     
     const revenue = savingsRevenue + surplusRevenue;
@@ -1066,11 +1057,19 @@ function runScenarioWithSizing(
       incentives = incentivesFederal;
     }
     
-    const battReplaceInterval = h.batteryReplacementYear || 10;
+    const replacementYear = h.batteryReplacementYear || 10;
     const replacementFactor = h.batteryReplacementCostFactor || 0.60;
     const priceDecline = h.batteryPriceDeclineRate || 0.05;
     
-    if (battEnergyKWh > 0 && y > 0 && y % battReplaceInterval === 0 && y < MAX_SCENARIO_YEARS) {
+    if (y === replacementYear && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    if (y === 20 && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    if (y === 30 && battEnergyKWh > 0) {
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }
@@ -1088,7 +1087,11 @@ function runScenarioWithSizing(
   const cashflows = cashflowValues.map((netCashflow, index) => ({ year: index, netCashflow }));
   
   const totalProductionKWh = pvSizeKW * effectiveYield;
-  // Payback: cumulative cashflow approach (consistent with runPotentialAnalysis)
+  const selfSufficiencyPercent = annualConsumptionKWh > 0
+    ? (selfConsumptionKWh / annualConsumptionKWh) * 100
+    : 0;
+
+  // Payback: use cumulative cashflow approach (consistent with runPotentialAnalysis)
   let simplePaybackYears = MAX_SCENARIO_YEARS;
   let cumCheck = cashflowValues[0];
   for (let i = 1; i < Math.min(cashflowValues.length, 26); i++) {
@@ -1098,13 +1101,12 @@ function runScenarioWithSizing(
       break;
     }
   }
-  const selfSufficiencyPercent = annualConsumptionKWh > 0 
-    ? (selfConsumptionKWh / annualConsumptionKWh) * 100 
-    : 0;
-  // CO2: Quebec grid factor 0.002 kg CO2/kWh (~2 g/kWh, Env. Canada)
+
+  // CO2: Quebec grid factor 0.002 kg CO2/kWh (consistent with runPotentialAnalysis)
   const co2AvoidedTonnesPerYear = (selfConsumptionKWh * 0.002) / 1000;
-  
+
   const annualCostAfter = annualCostBefore - annualSavings;
+
   // LCOE: full formula with degradation + O&M (consistent with runPotentialAnalysis)
   let totalProduction25 = 0;
   for (let y = 1; y <= 25; y++) {
@@ -1544,9 +1546,8 @@ export function runPotentialAnalysis(
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
-    const escalatedSurplusRate = (h.hqSurplusCompensationRate || 0.046) * Math.pow(1 + h.inflationRate, y - 1);
     const surplusRevenue = y >= 3 
-      ? totalExportedKWh * escalatedSurplusRate * degradationFactor
+      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
       : 0;
     
     const revenue = savingsRevenue + surplusRevenue;
@@ -1566,11 +1567,21 @@ export function runPotentialAnalysis(
       incentives = incentivesFederal;
     }
     
-    const battReplaceInterval = h.batteryReplacementYear || 10;
+    const replacementYear = h.batteryReplacementYear || 10;
     const replacementFactor = h.batteryReplacementCostFactor || 0.60;
     const priceDecline = h.batteryPriceDeclineRate || 0.05;
     
-    if (battEnergyKWh > 0 && y > 0 && y % battReplaceInterval === 0 && y < MAX_ANALYSIS_YEARS) {
+    if (y === replacementYear && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    
+    if (y === 20 && battEnergyKWh > 0) {
+      const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
+      investment = -capexBattery * replacementFactor * netPriceChange;
+    }
+    
+    if (y === 30 && battEnergyKWh > 0) {
       const netPriceChange = Math.pow(1 + h.inflationRate - priceDecline, y);
       investment = -capexBattery * replacementFactor * netPriceChange;
     }

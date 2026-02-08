@@ -1,5 +1,6 @@
 import type { IStorage } from "./storage";
 import { createLogger } from "./lib/logger";
+import { detectRoofConstraints } from "./roofConstraintDetector";
 
 const log = createLogger("GoogleSolar");
 
@@ -964,6 +965,87 @@ export async function analyzeRoofColor(location: GeoLocation): Promise<RoofColor
       averageBrightness: 0,
       suggestBifacial: false,
       error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}
+
+// --- Suggest Constraints (DSM + Flux + Gemini hybrid) ---
+
+export interface SuggestConstraintsInput {
+  latitude: number;
+  longitude: number;
+  existingPolygons: Array<{
+    coordinates: [number, number][];
+    label?: string;
+    color?: string;
+  }>;
+}
+
+export interface SuggestConstraintsResult {
+  success: boolean;
+  suggestedConstraints?: Array<{
+    coordinates: [number, number][];
+    areaSqM: number;
+    label: string;
+    source: string;
+  }>;
+  analysisNotes?: string;
+  error?: string;
+}
+
+export async function suggestConstraints(
+  input: SuggestConstraintsInput
+): Promise<SuggestConstraintsResult> {
+  try {
+    // Get data layers (DSM, flux, RGB URLs)
+    const dataLayers = await getDataLayers(
+      { latitude: input.latitude, longitude: input.longitude },
+      75
+    );
+
+    if (!dataLayers.success || !dataLayers.dsmUrl) {
+      return {
+        success: false,
+        error: dataLayers.error || "DSM data not available for this location",
+      };
+    }
+
+    // Filter to only solar polygons (blue) for analysis
+    const solarPolygons = input.existingPolygons
+      .filter((p) => !p.color || p.color === "#3b82f6")
+      .map((p) => ({ coordinates: p.coordinates, label: p.label }));
+
+    if (solarPolygons.length === 0) {
+      return {
+        success: false,
+        error: "No solar polygons found to analyze",
+      };
+    }
+
+    const result = await detectRoofConstraints({
+      latitude: input.latitude,
+      longitude: input.longitude,
+      solarPolygons,
+      dsmUrl: dataLayers.dsmUrl,
+      annualFluxUrl: dataLayers.annualFluxUrl,
+      rgbUrl: dataLayers.rgbUrl,
+    });
+
+    return {
+      success: true,
+      suggestedConstraints: result.constraints.map((c) => ({
+        coordinates: c.coordinates,
+        areaSqM: c.areaSqM,
+        label: c.label,
+        source: c.source,
+      })),
+      analysisNotes: result.analysisNotes,
+    };
+  } catch (error) {
+    log.error("suggestConstraints error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
