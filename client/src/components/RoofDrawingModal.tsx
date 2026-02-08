@@ -129,6 +129,179 @@ export function RoofDrawingModal({
   const [isSuggestingConstraints, setIsSuggestingConstraints] = useState(false);
   const [suggestedPolygonIds, setSuggestedPolygonIds] = useState<Set<string>>(new Set());
   const polygonTypeRef = useRef<PolygonType>('solar');
+  const customDrawingVerticesRef = useRef<google.maps.LatLng[]>([]);
+  const customDrawingPolylineRef = useRef<google.maps.Polyline | null>(null);
+  const customDrawingStartMarkerRef = useRef<google.maps.Marker | null>(null);
+  const customDrawingClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const customDrawingDblClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const customDrawingMouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const customDrawingGhostLineRef = useRef<google.maps.Polyline | null>(null);
+
+  const isNearStartVertex = (clickLatLng: google.maps.LatLng, startLatLng: google.maps.LatLng): boolean => {
+    if (!mapRef.current) return false;
+    const projection = mapRef.current.getProjection();
+    if (!projection) return false;
+    const scale = Math.pow(2, mapRef.current.getZoom()!);
+    const worldStart = projection.fromLatLngToPoint(startLatLng)!;
+    const worldClick = projection.fromLatLngToPoint(clickLatLng)!;
+    const pixelDist = Math.sqrt(
+      Math.pow((worldStart.x - worldClick.x) * scale, 2) +
+      Math.pow((worldStart.y - worldClick.y) * scale, 2)
+    );
+    return pixelDist < 15;
+  };
+
+  const cleanupCustomDrawingOverlays = () => {
+    if (customDrawingPolylineRef.current) {
+      customDrawingPolylineRef.current.setMap(null);
+      customDrawingPolylineRef.current = null;
+    }
+    if (customDrawingStartMarkerRef.current) {
+      customDrawingStartMarkerRef.current.setMap(null);
+      customDrawingStartMarkerRef.current = null;
+    }
+    if (customDrawingGhostLineRef.current) {
+      customDrawingGhostLineRef.current.setMap(null);
+      customDrawingGhostLineRef.current = null;
+    }
+    if (customDrawingClickListenerRef.current) {
+      google.maps.event.removeListener(customDrawingClickListenerRef.current);
+      customDrawingClickListenerRef.current = null;
+    }
+    if (customDrawingDblClickListenerRef.current) {
+      google.maps.event.removeListener(customDrawingDblClickListenerRef.current);
+      customDrawingDblClickListenerRef.current = null;
+    }
+    if (customDrawingMouseMoveListenerRef.current) {
+      google.maps.event.removeListener(customDrawingMouseMoveListenerRef.current);
+      customDrawingMouseMoveListenerRef.current = null;
+    }
+    customDrawingVerticesRef.current = [];
+  };
+
+  const cancelCustomPolygonDrawing = () => {
+    cleanupCustomDrawingOverlays();
+  };
+
+  const completeCustomPolygonDrawing = () => {
+    const vertices = customDrawingVerticesRef.current;
+    if (vertices.length < 3 || !mapRef.current) return;
+
+    const currentColor = polygonTypeRef.current === 'constraint' ? CONSTRAINT_COLOR : SOLAR_COLOR;
+    const polygon = new google.maps.Polygon({
+      paths: vertices.map(v => ({ lat: v.lat(), lng: v.lng() })),
+      fillColor: currentColor,
+      fillOpacity: 0.4,
+      strokeColor: currentColor,
+      strokeWeight: 2,
+      editable: true,
+      map: mapRef.current,
+    });
+
+    handlePolygonComplete(polygon);
+    cleanupCustomDrawingOverlays();
+    startCustomPolygonDrawing();
+  };
+
+  const startCustomPolygonDrawing = () => {
+    if (!mapRef.current) return;
+    cancelCustomPolygonDrawing();
+
+    if (drawingManagerRef.current) {
+      drawingManagerRef.current.setDrawingMode(null);
+    }
+
+    const map = mapRef.current;
+    const currentColor = polygonTypeRef.current === 'constraint' ? CONSTRAINT_COLOR : SOLAR_COLOR;
+
+    const previewPolyline = new google.maps.Polyline({
+      path: [],
+      strokeColor: currentColor,
+      strokeOpacity: 1,
+      strokeWeight: 2,
+      map: map,
+    });
+    customDrawingPolylineRef.current = previewPolyline;
+
+    const ghostLine = new google.maps.Polyline({
+      path: [],
+      strokeColor: currentColor,
+      strokeOpacity: 0.5,
+      strokeWeight: 2,
+      icons: [{
+        icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 },
+        offset: '0',
+        repeat: '15px',
+      }],
+      map: map,
+    });
+    customDrawingGhostLineRef.current = ghostLine;
+
+    customDrawingClickListenerRef.current = map.addListener('click', (e: google.maps.MapMouseEvent) => {
+      if (!e.latLng) return;
+      const latLng = e.latLng;
+      const vertices = customDrawingVerticesRef.current;
+
+      if (vertices.length >= 3 && isNearStartVertex(latLng, vertices[0])) {
+        completeCustomPolygonDrawing();
+        return;
+      }
+
+      vertices.push(latLng);
+      previewPolyline.setPath(vertices.map(v => ({ lat: v.lat(), lng: v.lng() })));
+
+      if (vertices.length === 1) {
+        const startMarker = new google.maps.Marker({
+          position: latLng,
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: currentColor,
+            fillOpacity: 0.6,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+          },
+          clickable: false,
+          zIndex: 999,
+        });
+        customDrawingStartMarkerRef.current = startMarker;
+      }
+    });
+
+    customDrawingMouseMoveListenerRef.current = map.addListener('mousemove', (e: google.maps.MapMouseEvent) => {
+      if (!e.latLng) return;
+      const vertices = customDrawingVerticesRef.current;
+      if (vertices.length === 0) return;
+
+      const lastVertex = vertices[vertices.length - 1];
+      ghostLine.setPath([
+        { lat: lastVertex.lat(), lng: lastVertex.lng() },
+        { lat: e.latLng.lat(), lng: e.latLng.lng() },
+      ]);
+
+      if (vertices.length >= 3 && customDrawingStartMarkerRef.current) {
+        const near = isNearStartVertex(e.latLng, vertices[0]);
+        const icon = customDrawingStartMarkerRef.current.getIcon() as google.maps.Symbol;
+        if (icon) {
+          customDrawingStartMarkerRef.current.setIcon({
+            ...icon,
+            scale: near ? 12 : 8,
+            fillOpacity: near ? 0.9 : 0.6,
+          });
+        }
+      }
+    });
+
+    customDrawingDblClickListenerRef.current = map.addListener('dblclick', (e: google.maps.MapMouseEvent) => {
+      if (customDrawingVerticesRef.current.length >= 3) {
+        e.stop?.();
+        completeCustomPolygonDrawing();
+      }
+    });
+
+    setActiveDrawingMode('polygon');
+  };
 
   const initializeMap = useCallback(async () => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -183,9 +356,8 @@ export function RoofDrawingModal({
 
       google.maps.event.addListener(drawingManager, 'polygoncomplete', (polygon: google.maps.Polygon) => {
         handlePolygonComplete(polygon);
-        // Keep polygon mode active for continuous drawing
         setTimeout(() => {
-          drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+          startCustomPolygonDrawing();
         }, 100);
       });
 
@@ -252,9 +424,7 @@ export function RoofDrawingModal({
         setPolygons(loadedPolygons);
       }
 
-      // Auto-activate polygon drawing mode
-      drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-      setActiveDrawingMode('polygon');
+      startCustomPolygonDrawing();
       
       setIsLoading(false);
     } catch (err) {
@@ -527,7 +697,7 @@ export function RoofDrawingModal({
   };
 
   const handleClose = useCallback(() => {
-    // Remove polygon overlays from the map but don't touch any other DOM elements
+    cancelCustomPolygonDrawing();
     polygons.forEach((p) => {
       if (p.googlePolygon) {
         try {
@@ -542,7 +712,6 @@ export function RoofDrawingModal({
     
     setPolygons([]);
     setActiveDrawingMode(null);
-    // Just call onClose - keep map intact for reuse
     onClose();
   }, [polygons, onClose]);
 
@@ -560,8 +729,8 @@ export function RoofDrawingModal({
     }
   }, [isOpen, initializeMap]);
 
-  // Minimal cleanup - just remove polygon overlays, keep map intact
   const cleanupMap = useCallback(() => {
+    cancelCustomPolygonDrawing();
     polygons.forEach((p) => {
       if (p.googlePolygon) {
         try {
@@ -587,21 +756,18 @@ export function RoofDrawingModal({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && drawingManagerRef.current && activeDrawingMode) {
-        // Cancel current drawing by resetting and re-enabling drawing mode
-        const currentMode = activeDrawingMode === 'polygon' 
-          ? google.maps.drawing.OverlayType.POLYGON 
-          : google.maps.drawing.OverlayType.RECTANGLE;
-        
-        // Set to null first to cancel any in-progress drawing
-        drawingManagerRef.current.setDrawingMode(null);
-        
-        // Re-enable the same drawing mode after a brief delay
-        setTimeout(() => {
-          if (drawingManagerRef.current && activeDrawingMode) {
-            drawingManagerRef.current.setDrawingMode(currentMode);
-          }
-        }, 50);
+      if (e.key === 'Escape' && activeDrawingMode) {
+        if (activeDrawingMode === 'polygon') {
+          cancelCustomPolygonDrawing();
+          startCustomPolygonDrawing();
+        } else if (drawingManagerRef.current) {
+          drawingManagerRef.current.setDrawingMode(null);
+          setTimeout(() => {
+            if (drawingManagerRef.current && activeDrawingMode === 'rectangle') {
+              drawingManagerRef.current.setDrawingMode(google.maps.drawing.OverlayType.RECTANGLE);
+            }
+          }, 50);
+        }
         
         toast({
           title: language === 'fr' ? 'Tracé annulé' : 'Drawing cancelled',
@@ -700,6 +866,10 @@ export function RoofDrawingModal({
                       rectangleOptions: { fillColor: SOLAR_COLOR, strokeColor: SOLAR_COLOR, fillOpacity: 0.4, strokeWeight: 2, editable: true }
                     });
                   }
+                  if (activeDrawingMode === 'polygon') {
+                    cancelCustomPolygonDrawing();
+                    startCustomPolygonDrawing();
+                  }
                 }}
                 data-testid="button-type-solar"
               >
@@ -718,6 +888,10 @@ export function RoofDrawingModal({
                       polygonOptions: { fillColor: CONSTRAINT_COLOR, strokeColor: CONSTRAINT_COLOR, fillOpacity: 0.4, strokeWeight: 2, editable: true },
                       rectangleOptions: { fillColor: CONSTRAINT_COLOR, strokeColor: CONSTRAINT_COLOR, fillOpacity: 0.4, strokeWeight: 2, editable: true }
                     });
+                  }
+                  if (activeDrawingMode === 'polygon') {
+                    cancelCustomPolygonDrawing();
+                    startCustomPolygonDrawing();
                   }
                 }}
                 data-testid="button-type-constraint"
@@ -784,6 +958,7 @@ export function RoofDrawingModal({
                   variant="outline"
                   className="h-7 text-xs"
                   onClick={() => {
+                    cancelCustomPolygonDrawing();
                     if (drawingManagerRef.current) {
                       drawingManagerRef.current.setDrawingMode(null);
                     }
