@@ -1235,9 +1235,58 @@ export default function SiteDetailPage() {
               onChange={setCustomAssumptions}
               disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
               site={site}
-              onSiteRefresh={() => refetch()}
               showOnlyRoofSection={!site.meterFiles?.length}
               onOpenRoofDrawing={() => setIsRoofDrawingModalOpen(true)}
+              onGeocodeAndDraw={async () => {
+                if (!site.address) {
+                  toast({
+                    variant: "destructive",
+                    title: language === "fr" ? "Adresse manquante" : "Missing address",
+                    description: language === "fr"
+                      ? "Veuillez d'abord ajouter une adresse dans les paramètres du site."
+                      : "Please add an address in site settings first."
+                  });
+                  return;
+                }
+                setIsGeocodingAddress(true);
+                try {
+                  const token = localStorage.getItem("token");
+                  const response = await fetch(`/api/sites/${site.id}/geocode`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    },
+                    credentials: "include"
+                  });
+                  if (!response.ok) {
+                    const data = await response.json();
+                    toast({
+                      variant: "destructive",
+                      title: language === "fr" ? "Erreur de géocodage" : "Geocoding error",
+                      description: data.error || (language === "fr"
+                        ? "Impossible de localiser l'adresse."
+                        : "Could not locate address.")
+                    });
+                    setIsGeocodingAddress(false);
+                    return;
+                  }
+                  toast({
+                    title: language === "fr" ? "Coordonnées trouvées" : "Coordinates found",
+                    description: language === "fr" ? "Ouverture de l'outil de dessin..." : "Opening drawing tool..."
+                  });
+                  await refetch();
+                  setIsGeocodingAddress(false);
+                  setPendingModalOpen(true);
+                } catch (error) {
+                  toast({
+                    variant: "destructive",
+                    title: language === "fr" ? "Erreur" : "Error",
+                    description: language === "fr" ? "Erreur de connexion" : "Connection error"
+                  });
+                  setIsGeocodingAddress(false);
+                }
+              }}
               roofPolygons={roofPolygons}
             />
           )}

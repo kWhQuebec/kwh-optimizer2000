@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState } from "react";
 import {
   Settings,
   ChevronDown,
@@ -12,13 +12,6 @@ import {
   Calculator,
   Battery,
   Home,
-  Satellite,
-  RefreshCw,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  Grid3X3,
   Pencil,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,9 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
-import { useAuth } from "@/lib/auth";
 import type { AnalysisAssumptions, Site, RoofPolygon } from "@shared/schema";
 import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@shared/schema";
 import { getTariffRates } from "../utils";
@@ -40,9 +31,9 @@ interface AnalysisParametersEditorProps {
   onChange: (value: Partial<AnalysisAssumptions>) => void;
   disabled?: boolean;
   site?: Site;
-  onSiteRefresh?: () => void;
   showOnlyRoofSection?: boolean;
   onOpenRoofDrawing?: () => void;
+  onGeocodeAndDraw?: () => void;
   roofPolygons?: RoofPolygon[];
 }
 
@@ -51,156 +42,15 @@ export function AnalysisParametersEditor({
   onChange,
   disabled = false,
   site,
-  onSiteRefresh,
   showOnlyRoofSection = false,
   onOpenRoofDrawing,
+  onGeocodeAndDraw,
   roofPolygons = []
 }: AnalysisParametersEditorProps) {
   const { language } = useI18n();
-  const { token } = useAuth();
-  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [isEstimating, setIsEstimating] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const [showResetButton, setShowResetButton] = useState(false);
-
-  // Stale detection using server-provided timestamp:
-  // - Use roofEstimatePendingAt from server to calculate real elapsed time
-  // - Show reset after 15s from when server started pending
-  useEffect(() => {
-    // If not pending or actively estimating, hide reset button
-    if (site?.roofEstimateStatus !== "pending" || isEstimating) {
-      setShowResetButton(false);
-      return;
-    }
-
-    // Pending status exists and we're not actively estimating
-    // Use server timestamp if available, otherwise show reset immediately (stale from before timestamp was added)
-    const pendingAt = site.roofEstimatePendingAt ? new Date(site.roofEstimatePendingAt).getTime() : null;
-
-    if (!pendingAt) {
-      // No timestamp = legacy stale status, show reset immediately
-      setShowResetButton(true);
-      return;
-    }
-
-    // Calculate remaining time until reset button should show (15s grace period)
-    const elapsed = Date.now() - pendingAt;
-    const remaining = Math.max(0, 15000 - elapsed);
-
-    if (remaining === 0) {
-      // Already past 15 seconds, show immediately
-      setShowResetButton(true);
-    } else {
-      // Wait for remaining time
-      const timer = setTimeout(() => {
-        setShowResetButton(true);
-      }, remaining);
-      return () => clearTimeout(timer);
-    }
-  }, [site?.roofEstimateStatus, site?.roofEstimatePendingAt, isEstimating]);
-
-  // Reset stale pending status
-  const handleResetStatus = async () => {
-    if (!site || !token || isResetting) return;
-    setIsResetting(true);
-    try {
-      const response = await fetch(`/api/sites/${site.id}/reset-roof-status`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
-      if (response.ok) {
-        setShowResetButton(false);
-        onSiteRefresh?.();
-        toast({
-          title: language === "fr" ? "Statut réinitialisé" : "Status reset",
-          description: language === "fr"
-            ? "Vous pouvez maintenant relancer l'estimation"
-            : "You can now retry the estimation",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: language === "fr" ? "Erreur" : "Error",
-          description: language === "fr"
-            ? "Impossible de réinitialiser le statut"
-            : "Could not reset status",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to reset status:", error);
-      toast({
-        variant: "destructive",
-        title: language === "fr" ? "Erreur" : "Error",
-        description: language === "fr"
-          ? "Impossible de réinitialiser le statut"
-          : "Could not reset status",
-      });
-    } finally {
-      setIsResetting(false);
-    }
-  };
 
   const merged: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...value };
-
-  // Roof estimation mutation with 20-second timeout
-  const handleRoofEstimate = async () => {
-    if (!site || !token) return;
-
-    setIsEstimating(true);
-    setShowResetButton(false); // Hide reset button when starting new estimation
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
-
-    try {
-      const response = await fetch(`/api/sites/${site.id}/roof-estimate`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Estimation failed");
-      }
-
-      // Apply the estimated value to analysis parameters (convert m² to sq ft)
-      if (data.roofEstimate?.roofAreaSqFt) {
-        onChange({ ...value, roofAreaSqFt: Math.round(data.roofEstimate.roofAreaSqFt) });
-      }
-
-      toast({
-        title: language === "fr" ? "Estimation réussie" : "Estimation successful",
-        description: language === "fr"
-          ? `Surface estimée: ${Math.round(data.roofEstimate.roofAreaSqM)} m² (${Math.round(data.roofEstimate.roofAreaSqFt)} pi²)`
-          : `Estimated area: ${Math.round(data.roofEstimate.roofAreaSqM)} m² (${Math.round(data.roofEstimate.roofAreaSqFt)} sq ft)`,
-      });
-
-      onSiteRefresh?.();
-    } catch (error) {
-      clearTimeout(timeoutId);
-      const isTimeout = error instanceof Error && error.name === 'AbortError';
-      toast({
-        variant: "destructive",
-        title: language === "fr" ? "Erreur d'estimation" : "Estimation error",
-        description: isTimeout
-          ? (language === "fr"
-              ? "Délai dépassé. Veuillez entrer la surface manuellement."
-              : "Request timed out. Please enter the area manually.")
-          : (error instanceof Error ? error.message : "Unknown error"),
-      });
-    } finally {
-      setIsEstimating(false);
-    }
-  };
 
   const updateField = (field: keyof AnalysisAssumptions, newValue: number) => {
     onChange({ ...value, [field]: newValue });
@@ -657,287 +507,6 @@ export function AnalysisParametersEditor({
                 {language === "fr" ? "Contraintes de toiture" : "Roof Constraints"}
               </h4>
 
-              {/* Satellite Roof View */}
-              {site && site.latitude && site.longitude && site.roofAreaAutoSqM && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-                <div className="rounded-lg overflow-hidden border">
-                  <div className="relative">
-                    <iframe
-                      className="w-full h-48"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      allowFullScreen
-                      referrerPolicy="no-referrer-when-downgrade"
-                      src={`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&center=${site.latitude},${site.longitude}&zoom=20&maptype=satellite`}
-                      title={language === "fr" ? "Vue satellite du toit" : "Satellite roof view"}
-                    />
-                    <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-sm rounded-md px-2 py-1 text-xs font-medium flex items-center gap-1.5">
-                      <Home className="w-3.5 h-3.5 text-primary" />
-                      {Math.round(site.roofAreaAutoSqM)} m² ({Math.round(site.roofAreaAutoSqM * 10.764)} pi²)
-                    </div>
-                    <div className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm rounded-md px-2 py-1 text-xs text-muted-foreground">
-                      {language === "fr" ? "Vue satellite" : "Satellite view"}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Satellite Estimation Status & Button */}
-              {site && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                    {site.roofEstimateStatus === "pending" && (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        <span className="text-xs text-muted-foreground">
-                          {language === "fr" ? "Estimation satellite en cours..." : "Satellite estimation in progress..."}
-                        </span>
-                        {showResetButton && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleResetStatus}
-                            disabled={isResetting}
-                            className="h-6 text-xs ml-auto text-destructive hover:text-destructive"
-                            data-testid="button-reset-roof-status"
-                          >
-                            {isResetting ? (
-                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            ) : (
-                              <XCircle className="w-3 h-3 mr-1" />
-                            )}
-                            {language === "fr" ? "Réinitialiser" : "Reset"}
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {site.roofEstimateStatus === "success" && site.roofAreaAutoSqM && (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        <span className="text-xs">
-                          {language === "fr"
-                            ? `Estimation satellite: ${Math.round(site.roofAreaAutoSqM)} m² (${Math.round(site.roofAreaAutoSqM * 10.764)} pi²)`
-                            : `Satellite estimate: ${Math.round(site.roofAreaAutoSqM)} m² (${Math.round(site.roofAreaAutoSqM * 10.764)} sq ft)`}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            if (site.roofAreaAutoSqM) {
-                              updateField("roofAreaSqFt", Math.round(site.roofAreaAutoSqM * 10.764));
-                            }
-                          }}
-                          className="h-6 text-xs ml-auto"
-                          disabled={disabled}
-                          data-testid="button-apply-satellite-estimate"
-                        >
-                          {language === "fr" ? "Appliquer" : "Apply"}
-                        </Button>
-                      </>
-                    )}
-                    {site.roofEstimateStatus === "failed" && (
-                      <>
-                        <AlertCircle className="w-4 h-4 text-destructive" />
-                        <span className="text-xs text-destructive">
-                          {language === "fr" ? "Estimation échouée" : "Estimation failed"}
-                          {site.roofEstimateError && `: ${site.roofEstimateError}`}
-                        </span>
-                      </>
-                    )}
-                    {(!site.roofEstimateStatus || site.roofEstimateStatus === "none" || site.roofEstimateStatus === "skipped") && (
-                      <span className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Aucune estimation satellite disponible" : "No satellite estimation available"}
-                      </span>
-                    )}
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRoofEstimate}
-                      disabled={disabled || isEstimating || site.roofEstimateStatus === "pending"}
-                      className="h-7 text-xs gap-1.5 ml-auto"
-                      data-testid="button-estimate-roof-satellite"
-                    >
-                      {isEstimating ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : site.roofEstimateStatus === "success" ? (
-                        <RefreshCw className="w-3 h-3" />
-                      ) : (
-                        <Satellite className="w-3 h-3" />
-                      )}
-                      {isEstimating
-                        ? (language === "fr" ? "Estimation..." : "Estimating...")
-                        : site.roofEstimateStatus === "success"
-                          ? (language === "fr" ? "Recalculer" : "Recalculate")
-                          : (language === "fr" ? "Estimer via satellite" : "Estimate from satellite")}
-                    </Button>
-                  </div>
-
-                  {/* Roof Segments from Google Solar API */}
-                  {site.roofEstimateStatus === "success" && site.roofAreaAutoDetails && (
-                    ((): React.ReactNode => {
-                      const details = site.roofAreaAutoDetails as any;
-                      const segments = details?.solarPotential?.roofSegmentStats;
-                      const maxSunshine = details?.solarPotential?.maxSunshineHoursPerYear;
-                      const panelConfigs = details?.solarPotential?.solarPanelConfigs;
-                      const bestConfig = panelConfigs?.[panelConfigs.length - 1];
-                      const panelWatts = details?.solarPotential?.panelCapacityWatts || 400;
-
-                      // Detect if Google data is limited (< 10 panels means likely residential-focused or incomplete)
-                      const hasLimitedGoogleData = !bestConfig || (bestConfig.panelsCount || 0) < 10;
-
-                      if (!segments || segments.length === 0) return null;
-
-                      return (
-                        <div className="p-2 rounded-lg border border-dashed bg-muted/30 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Layers className="w-3.5 h-3.5 text-primary" />
-                            <span className="text-xs font-medium">
-                              {language === "fr" ? "Segments de toit détectés" : "Detected Roof Segments"}
-                            </span>
-                            <Badge variant="secondary" className="text-xs h-5">
-                              {segments.length} {language === "fr" ? "segments" : "segments"}
-                            </Badge>
-                            {/* Fallback mode indicator for limited Google data */}
-                            {hasLimitedGoogleData && (
-                              <Badge variant="outline" className="text-xs h-5 gap-1 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800">
-                                <Grid3X3 className="w-3 h-3" />
-                                {language === "fr" ? "Mode estimation" : "Estimation mode"}
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* Segment summary table with solar quality */}
-                          <div className="grid grid-cols-5 gap-1 text-xs">
-                            <div className="font-medium text-muted-foreground">#</div>
-                            <div className="font-medium text-muted-foreground">
-                              {language === "fr" ? "Surface" : "Area"}
-                            </div>
-                            <div className="font-medium text-muted-foreground">
-                              {language === "fr" ? "Orientation" : "Orientation"}
-                            </div>
-                            <div className="font-medium text-muted-foreground">
-                              {language === "fr" ? "Incl." : "Pitch"}
-                            </div>
-                            <div className="font-medium text-muted-foreground">
-                              {language === "fr" ? "Qualité" : "Quality"}
-                            </div>
-                            {(() => {
-                              // Helper function to calculate quality score
-                              const getQualityScore = (seg: any) => {
-                                const azimuth = seg.azimuthDegrees || 0;
-                                const pitch = seg.pitchDegrees || 0;
-                                const azimuthScore = Math.max(0, 100 - Math.abs(azimuth - 180) * 0.8);
-                                const pitchScore = Math.max(0, 100 - Math.abs(pitch - 32) * 3);
-                                return (azimuthScore * 0.6 + pitchScore * 0.4);
-                              };
-
-                              // Sort segments by quality score (best first) for optimal orientation display
-                              const sortedSegments = [...segments].sort((a: any, b: any) =>
-                                getQualityScore(b) - getQualityScore(a)
-                              );
-
-                              return sortedSegments.slice(0, 6).map((seg: any, idx: number) => {
-                                const azimuth = seg.azimuthDegrees || 0;
-                                const pitch = seg.pitchDegrees || 0;
-                                const area = seg.stats?.areaMeters2 || 0;
-                                const isOptimal = idx === 0;
-
-                                // Determine orientation label
-                                let orientation = "?";
-                                if (azimuth >= 337.5 || azimuth < 22.5) orientation = "N";
-                                else if (azimuth >= 22.5 && azimuth < 67.5) orientation = "NE";
-                                else if (azimuth >= 67.5 && azimuth < 112.5) orientation = "E";
-                                else if (azimuth >= 112.5 && azimuth < 157.5) orientation = "SE";
-                                else if (azimuth >= 157.5 && azimuth < 202.5) orientation = "S";
-                                else if (azimuth >= 202.5 && azimuth < 247.5) orientation = "SW";
-                                else if (azimuth >= 247.5 && azimuth < 292.5) orientation = "W";
-                                else if (azimuth >= 292.5 && azimuth < 337.5) orientation = "NW";
-
-                                // Calculate solar quality score (0-100) based on orientation and pitch
-                                // South-facing (180°) with 30-35° pitch is optimal for Quebec
-                                const qualityScore = getQualityScore(seg);
-
-                                // Get quality color
-                                let qualityColor = "bg-red-500";
-                                let qualityLabel = "⚠";
-                                if (qualityScore >= 80) { qualityColor = "bg-green-500"; qualityLabel = "★★★"; }
-                                else if (qualityScore >= 60) { qualityColor = "bg-amber-400"; qualityLabel = "★★"; }
-                                else if (qualityScore >= 40) { qualityColor = "bg-orange-400"; qualityLabel = "★"; }
-
-                                return (
-                                  <Fragment key={idx}>
-                                    <div className={`font-mono ${isOptimal ? "text-primary font-bold" : ""}`}>
-                                      {isOptimal ? "★" : idx + 1}
-                                    </div>
-                                    <div className={`font-mono ${isOptimal ? "text-primary font-semibold" : ""}`}>{Math.round(area)} m²</div>
-                                    <div className={`font-mono ${isOptimal ? "text-primary font-semibold" : ""}`}>{orientation}</div>
-                                    <div className={`font-mono ${isOptimal ? "text-primary font-semibold" : ""}`}>{Math.round(pitch)}°</div>
-                                    <div className="flex items-center gap-1">
-                                      <div
-                                        className={`w-2 h-2 rounded-full ${qualityColor}`}
-                                        title={`${Math.round(qualityScore)}% - ${orientation} @ ${Math.round(pitch)}°`}
-                                      />
-                                      <span className="text-[10px]">{qualityLabel}</span>
-                                    </div>
-                                  </Fragment>
-                                );
-                              });
-                            })()}
-                          </div>
-                          {segments.length > 6 && (
-                            <p className="text-xs text-muted-foreground">
-                              {language === "fr"
-                                ? `+ ${segments.length - 6} autres segments...`
-                                : `+ ${segments.length - 6} more segments...`}
-                            </p>
-                          )}
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {language === "fr"
-                              ? "★★★ = Optimal (Sud, 30-35°) | ★★ = Bon | ★ = Acceptable"
-                              : "★★★ = Optimal (South, 30-35°) | ★★ = Good | ★ = Acceptable"}
-                          </p>
-
-                          {/* Local irradiance data from Google Solar API - only show sunshine/yield, not panel counts (C&I buildings need manual sizing) */}
-                          {maxSunshine ? (
-                            <div className="pt-2 border-t border-dashed">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Sun className="w-3.5 h-3.5 text-amber-500" />
-                                <span className="text-xs font-medium">
-                                  {language === "fr" ? "Irradiance locale" : "Local Irradiance"}
-                                </span>
-                              </div>
-                              <p className="text-xs">
-                                <span className="text-muted-foreground">{language === "fr" ? "Ensoleillement" : "Sunshine"}: </span>
-                                <span className="font-mono font-medium">{Math.round(maxSunshine).toLocaleString()} h/{language === "fr" ? "an" : "year"}</span>
-                              </p>
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {language === "fr"
-                                  ? "Données d'irradiance Google Solar. Le dimensionnement C&I utilise la surface de toit tracée."
-                                  : "Google Solar irradiance data. C&I sizing uses manually traced roof area."}
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="pt-2 border-t border-dashed">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Grid3X3 className="w-3.5 h-3.5 text-teal-500" />
-                                <span className="text-xs font-medium">
-                                  {language === "fr" ? "Estimation algorithmique" : "Algorithmic Estimate"}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-muted-foreground">
-                                {language === "fr"
-                                  ? "Données d'irradiance non disponibles. Le dimensionnement utilise le rendement standard de 1035 kWh/kWp pour le Québec."
-                                  : "Irradiance data not available. Sizing uses standard Quebec yield of 1035 kWh/kWp."}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()
-                  )}
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between flex-wrap gap-1">
@@ -960,8 +529,14 @@ export function AnalysisParametersEditor({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={onOpenRoofDrawing}
-                      disabled={!site?.latitude || !site?.longitude || disabled}
+                      onClick={() => {
+                        if (site?.latitude && site?.longitude) {
+                          onOpenRoofDrawing?.();
+                        } else {
+                          onGeocodeAndDraw?.();
+                        }
+                      }}
+                      disabled={disabled}
                       className="gap-1 h-8"
                       data-testid="button-draw-roof"
                     >
