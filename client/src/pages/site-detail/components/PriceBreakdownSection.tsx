@@ -35,12 +35,7 @@ export function PriceBreakdownSection({ siteId }: { siteId: string }) {
   };
 
   const { data: priceData, isLoading, error } = useQuery<PriceBreakdownResponse>({
-    queryKey: ['/api/sites', siteId, 'price-breakdown', language],
-    queryFn: async () => {
-      const res = await fetch(`/api/sites/${siteId}/price-breakdown?lang=${language}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch price breakdown');
-      return res.json();
-    },
+    queryKey: ['/api/sites', siteId, 'price-breakdown'],
     enabled: isOpen,
   });
 

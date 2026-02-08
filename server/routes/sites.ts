@@ -1157,8 +1157,6 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
     breakdown[largestCat].perW = Math.round((breakdown[largestCat].cost / capacityW) * 100) / 100;
   }
 
-  const lang = (req.query.lang as string) === 'en' ? 'en' : 'fr';
-
   res.json({
     siteId: site.id,
     siteName: site.name,
@@ -1167,7 +1165,7 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
     breakdown,
     totalCost,
     totalPerW,
-    tierLabel: getTierLabel(capacityKW, lang),
+    tierLabel: getTierLabel(capacityKW, 'fr'),
   });
 }));
 
