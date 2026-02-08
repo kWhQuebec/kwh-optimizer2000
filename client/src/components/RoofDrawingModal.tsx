@@ -136,6 +136,14 @@ export function RoofDrawingModal({
   const customDrawingDblClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const customDrawingMouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const customDrawingGhostLineRef = useRef<google.maps.Polyline | null>(null);
+  const completeCustomPolygonDrawingRef = useRef<() => void>(() => {});
+  const startCustomPolygonDrawingRef = useRef<() => void>(() => {});
+  const polygonsRef = useRef<DrawnPolygon[]>([]);
+
+  // Keep polygonsRef in sync with state
+  useEffect(() => {
+    polygonsRef.current = polygons;
+  }, [polygons]);
 
   const isNearStartVertex = (clickLatLng: google.maps.LatLng, startLatLng: google.maps.LatLng): boolean => {
     if (!mapRef.current) return false;
@@ -200,8 +208,9 @@ export function RoofDrawingModal({
 
     handlePolygonComplete(polygon);
     cleanupCustomDrawingOverlays();
-    startCustomPolygonDrawing();
+    setTimeout(() => startCustomPolygonDrawingRef.current(), 100);
   };
+  completeCustomPolygonDrawingRef.current = completeCustomPolygonDrawing;
 
   const startCustomPolygonDrawing = () => {
     if (!mapRef.current) return;
@@ -243,7 +252,7 @@ export function RoofDrawingModal({
       const vertices = customDrawingVerticesRef.current;
 
       if (vertices.length >= 3 && isNearStartVertex(latLng, vertices[0])) {
-        completeCustomPolygonDrawing();
+        completeCustomPolygonDrawingRef.current();
         return;
       }
 
@@ -296,12 +305,13 @@ export function RoofDrawingModal({
     customDrawingDblClickListenerRef.current = map.addListener('dblclick', (e: google.maps.MapMouseEvent) => {
       if (customDrawingVerticesRef.current.length >= 3) {
         e.stop?.();
-        completeCustomPolygonDrawing();
+        completeCustomPolygonDrawingRef.current();
       }
     });
 
     setActiveDrawingMode('polygon');
   };
+  startCustomPolygonDrawingRef.current = startCustomPolygonDrawing;
 
   const initializeMap = useCallback(async () => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -357,7 +367,7 @@ export function RoofDrawingModal({
       google.maps.event.addListener(drawingManager, 'polygoncomplete', (polygon: google.maps.Polygon) => {
         handlePolygonComplete(polygon);
         setTimeout(() => {
-          startCustomPolygonDrawing();
+          startCustomPolygonDrawingRef.current();
         }, 100);
       });
 
@@ -424,8 +434,8 @@ export function RoofDrawingModal({
         setPolygons(loadedPolygons);
       }
 
-      startCustomPolygonDrawing();
-      
+      startCustomPolygonDrawingRef.current();
+
       setIsLoading(false);
     } catch (err) {
       console.error('Error initializing Google Maps:', err);
@@ -698,7 +708,7 @@ export function RoofDrawingModal({
 
   const handleClose = useCallback(() => {
     cancelCustomPolygonDrawing();
-    polygons.forEach((p) => {
+    polygonsRef.current.forEach((p) => {
       if (p.googlePolygon) {
         try {
           const polyline = (p.googlePolygon as any).__dashedPolyline as google.maps.Polyline | undefined;
@@ -709,11 +719,11 @@ export function RoofDrawingModal({
         }
       }
     });
-    
+
     setPolygons([]);
     setActiveDrawingMode(null);
     onClose();
-  }, [polygons, onClose]);
+  }, [onClose]);
 
   const totalAreaSqM = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
   const totalAreaSqFt = totalAreaSqM * 10.764; // Convert m² to sq ft
@@ -731,7 +741,7 @@ export function RoofDrawingModal({
 
   const cleanupMap = useCallback(() => {
     cancelCustomPolygonDrawing();
-    polygons.forEach((p) => {
+    polygonsRef.current.forEach((p) => {
       if (p.googlePolygon) {
         try {
           const polyline = (p.googlePolygon as any).__dashedPolyline as google.maps.Polyline | undefined;
@@ -742,7 +752,7 @@ export function RoofDrawingModal({
         }
       }
     });
-  }, [polygons]);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -759,7 +769,7 @@ export function RoofDrawingModal({
       if (e.key === 'Escape' && activeDrawingMode) {
         if (activeDrawingMode === 'polygon') {
           cancelCustomPolygonDrawing();
-          startCustomPolygonDrawing();
+          startCustomPolygonDrawingRef.current();
         } else if (drawingManagerRef.current) {
           drawingManagerRef.current.setDrawingMode(null);
           setTimeout(() => {
@@ -868,7 +878,7 @@ export function RoofDrawingModal({
                   }
                   if (activeDrawingMode === 'polygon') {
                     cancelCustomPolygonDrawing();
-                    startCustomPolygonDrawing();
+                    startCustomPolygonDrawingRef.current();
                   }
                 }}
                 data-testid="button-type-solar"
@@ -891,7 +901,7 @@ export function RoofDrawingModal({
                   }
                   if (activeDrawingMode === 'polygon') {
                     cancelCustomPolygonDrawing();
-                    startCustomPolygonDrawing();
+                    startCustomPolygonDrawingRef.current();
                   }
                 }}
                 data-testid="button-type-constraint"

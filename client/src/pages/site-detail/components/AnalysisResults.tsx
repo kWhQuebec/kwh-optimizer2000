@@ -3,7 +3,8 @@ import {
   Zap, Battery, BarChart3, DollarSign, Leaf, TrendingUp, TrendingDown,
   Sun, Shield, Car, Award, Sparkles, MousePointerClick, Plus, FileSignature,
   TreePine, Phone, ArrowRight, Star, AlertTriangle, CheckCircle2, CreditCard,
-  Home, Calculator, Info, Settings, Loader2, Clock, Quote, Wrench, ListChecks, Users
+  Home, Calculator, Info, Settings, Loader2, Clock, Quote, Wrench, ListChecks, Users,
+  Building2, CheckCircle, ChevronRight
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,7 +16,7 @@ import type {
   FrontierPoint, HourlyProfileEntry, SimulationRun
 } from "@shared/schema";
 import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@shared/schema";
-import { getAssumptions, getExclusions, getEquipment, getTimeline, getAllStats, getFirstTestimonial } from "@shared/brandContent";
+import { getAssumptions, getExclusions, getEquipment, getTimeline, getAllStats, getFirstTestimonial, getNarrativeAct, getNarrativeTransition, getDesignFeeCovers, getClientProvides, getClientReceives } from "@shared/brandContent";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -126,6 +127,26 @@ export function AnalysisResults({
       <div className="flex-1 h-px bg-border" />
     </div>
   );
+
+  const NarrativeActHeader = ({ actKey }: { actKey: "act1_challenge" | "act2_solution" | "act3_results" | "act4_action" }) => {
+    const act = getNarrativeAct(actKey, language as "fr" | "en");
+    return (
+      <div className="pt-6 pb-2">
+        <h2 className="text-lg font-bold tracking-wide text-primary">{act.title}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{act.subtitle}</p>
+      </div>
+    );
+  };
+
+  const NarrativeTransition = ({ transitionKey }: { transitionKey: "challengeToSolution" | "solutionToResults" | "resultsToAction" }) => {
+    const text = getNarrativeTransition(transitionKey, language as "fr" | "en");
+    return (
+      <div className="flex items-center gap-3 py-4">
+        <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
+        <p className="text-sm italic text-muted-foreground">{text}</p>
+      </div>
+    );
+  };
 
   const optimalScenario = simulation.sensitivity
     ? (simulation.sensitivity as SensitivityAnalysis).frontier.find(p => p.isOptimal)
@@ -390,8 +411,118 @@ export function AnalysisResults({
     <div className="space-y-6">
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* SECTION 1: PROJECT SNAPSHOT                                    */}
+      {/* EXECUTIVE SUMMARY                                              */}
       {/* ═══════════════════════════════════════════════════════════════ */}
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardContent className="py-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-1">
+                {language === "fr" ? "Résumé exécutif" : "Executive Summary"}
+              </p>
+              <h1 className="text-2xl font-bold">
+                {site?.name || (language === "fr" ? "Votre projet solaire" : "Your Solar Project")}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {language === "fr"
+                  ? `${(displayedScenario.pvSizeKW || 0).toFixed(0)} kWc solaire${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${(displayedScenario.battEnergyKWh || 0).toFixed(0)} kWh stockage` : ''}`
+                  : `${(displayedScenario.pvSizeKW || 0).toFixed(0)} kWp solar${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${(displayedScenario.battEnergyKWh || 0).toFixed(0)} kWh storage` : ''}`}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold font-mono text-primary">${((dashboardAnnualSavings || 0) / 1000).toFixed(0)}k</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "économies/an" : "savings/yr"}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold font-mono">{(dashboardPaybackYears || 0).toFixed(1)} {language === "fr" ? "ans" : "yrs"}</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "retour" : "payback"}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold font-mono text-green-600">${((dashboardNpv25 || 0) / 1000).toFixed(0)}k</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25 yrs"}</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <a href="#next-steps-cta">
+              <Button size="sm" className="gap-2" data-testid="button-exec-summary-cta">
+                <ArrowRight className="w-4 h-4" />
+                {language === "fr" ? "Voir les prochaines étapes" : "View next steps"}
+              </Button>
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ACT 1: THE ENERGY CHALLENGE                                    */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <NarrativeActHeader actKey="act1_challenge" />
+
+      <SectionDivider
+        title={language === "fr" ? "Votre bâtiment" : "Your Building"}
+        icon={Building2}
+      />
+
+      <Card>
+        <CardContent className="py-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "Consommation annuelle" : "Annual Consumption"}</p>
+                <p className="text-lg font-bold font-mono" data-testid="text-annual-consumption">
+                  {((simulation.annualConsumptionKWh || 0) / 1000).toFixed(0)} <span className="text-sm font-normal">MWh</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "Demande de pointe" : "Peak Demand"}</p>
+                <p className="text-lg font-bold font-mono" data-testid="text-peak-demand">
+                  {(simulation.peakDemandKW || 0).toFixed(0)} <span className="text-sm font-normal">kW</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "Tarif HQ" : "HQ Tariff"}</p>
+                <p className="text-lg font-bold font-mono" data-testid="text-tariff">
+                  {assumptions.tariffCode || (language === "fr" ? "M / G" : "M / G")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "Facture annuelle est." : "Est. Annual Bill"}</p>
+                <p className="text-lg font-bold font-mono text-red-600" data-testid="text-est-bill">
+                  ${(((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06)) / 1000).toFixed(0)}k
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <NarrativeTransition transitionKey="challengeToSolution" />
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ACT 2: OUR SOLUTION                                            */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <NarrativeActHeader actKey="act2_solution" />
+
       <SectionDivider
         title={language === "fr" ? "Aperçu du projet" : "Project Snapshot"}
         icon={Zap}
@@ -508,9 +639,34 @@ export function AnalysisResults({
         </CardContent>
       </Card>
 
+      {/* Roof Configuration (moved up into Act 2) */}
+      {site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && dashboardPvSizeKW > 0 && (
+        <>
+          <SectionDivider
+            title={language === "fr" ? "Configuration du toit" : "Roof Configuration"}
+            icon={Home}
+          />
+          <RoofVisualization
+            siteId={site.id}
+            siteName={site.name}
+            address={site.address || ""}
+            latitude={site.latitude}
+            longitude={site.longitude}
+            roofAreaSqFt={assumptions.roofAreaSqFt}
+            maxPVCapacityKW={maxPVFromRoof}
+            currentPVSizeKW={dashboardPvSizeKW || undefined}
+            onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
+          />
+        </>
+      )}
+
+      <NarrativeTransition transitionKey="solutionToResults" />
+
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* SECTION 2: YOUR RESULTS — HERO KPIs                           */}
+      {/* ACT 3: YOUR RESULTS                                            */}
       {/* ═══════════════════════════════════════════════════════════════ */}
+      <NarrativeActHeader actKey="act3_results" />
+
       <SectionDivider
         title={language === "fr" ? "Vos résultats" : "Your Results"}
         icon={Star}
@@ -612,6 +768,112 @@ export function AnalysisResults({
         </div>
       </div>
 
+      {/* Environmental Impact (moved up from bottom) */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Leaf className="w-4 h-4 text-green-500" />
+            <span className="text-sm font-semibold">{language === "fr" ? "Impact environnemental" : "Environmental Impact"}</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3">
+              <Leaf className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <div>
+                <p className="text-lg font-bold font-mono">{((dashboardCo2Tonnes || 0) * 25).toFixed(0)}</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "t CO₂ évitées (25a)" : "t CO₂ avoided (25y)"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Car className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <div>
+                <p className="text-lg font-bold font-mono">{(((dashboardCo2Tonnes || 0) / 4.6) * 25).toFixed(0)}</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "années-auto retirées" : "car-years removed"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <TreePine className="w-5 h-5 text-green-600 flex-shrink-0" />
+              <div>
+                <p className="text-lg font-bold font-mono">{Math.round(((dashboardCo2Tonnes || 0) * 25) / 0.022)}</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "arbres équivalents" : "trees equivalent"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Award className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              <div>
+                <p className="text-lg font-bold font-mono">{(dashboardCoveragePercent || 0).toFixed(0)}%</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "autosuffisance" : "self-sufficiency"}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Strategic Benefits (client-visible version) */}
+      {(() => {
+        const pvKW = displayedScenario.pvSizeKW || 0;
+        const battKWh = displayedScenario.battEnergyKWh || 0;
+        const battPowerKW = displayedScenario.battPowerKW || 0;
+
+        const avgLoadKW = battPowerKW > 0 ? battPowerKW * 0.5 : (simulation.peakDemandKW ? simulation.peakDemandKW * 0.3 : 0);
+        const backupHours = (battKWh > 0 && avgLoadKW > 0) ? (battKWh / avgLoadKW) : 0;
+        const selfSufficiency = dashboardCoveragePercent || 0;
+        const propertyValueIncrease = pvKW * 1000;
+
+        const hasSolar = pvKW > 0;
+        const hasBattery = battKWh > 0;
+
+        if (!hasSolar && !hasBattery) return null;
+
+        return (
+          <Card className="border-primary/10">
+            <CardContent className="py-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold">{language === "fr" ? "Bénéfices stratégiques" : "Strategic Benefits"}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {hasBattery && backupHours > 0 && (
+                  <div className="p-4 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm font-medium">{language === "fr" ? "Résilience" : "Resilience"}</span>
+                    </div>
+                    <p className="text-2xl font-bold font-mono text-blue-600">
+                      {backupHours >= 1 ? `${backupHours.toFixed(1)}h` : `${Math.round(backupHours * 60)}min`}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "autonomie en cas de panne" : "backup during outage"}</p>
+                  </div>
+                )}
+                {hasSolar && (
+                  <div className="p-4 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Award className="w-4 h-4 text-amber-500" />
+                      <span className="text-sm font-medium">{language === "fr" ? "Indépendance énergétique" : "Energy Independence"}</span>
+                    </div>
+                    <p className="text-2xl font-bold font-mono text-amber-600">{selfSufficiency.toFixed(0)}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "de vos besoins couverts" : "of your needs covered"}</p>
+                  </div>
+                )}
+                {hasSolar && propertyValueIncrease > 0 && (
+                  <div className="p-4 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4 text-purple-500" />
+                      <span className="text-sm font-medium">{language === "fr" ? "Valeur immobilière" : "Property Value"}</span>
+                    </div>
+                    <p className="text-2xl font-bold font-mono text-purple-600">
+                      {propertyValueIncrease >= 1000
+                        ? `+$${(propertyValueIncrease / 1000).toFixed(0)}k`
+                        : `+$${propertyValueIncrease.toFixed(0)}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "~$1k/kWc (études)" : "~$1k/kW (studies)"}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* SECTION 3: NET INVESTMENT BREAKDOWN (Waterfall)                */}
       {/* ═══════════════════════════════════════════════════════════════ */}
@@ -701,29 +963,6 @@ export function AnalysisResults({
       )}
 
       {isStaff && <PriceBreakdownSection siteId={site.id} isAdmin={isStaff} />}
-
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* SECTION 4: ROOF CONFIGURATION                                 */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && dashboardPvSizeKW > 0 && (
-        <>
-          <SectionDivider
-            title={language === "fr" ? "Configuration du toit" : "Roof Configuration"}
-            icon={Home}
-          />
-          <RoofVisualization
-            siteId={site.id}
-            siteName={site.name}
-            address={site.address || ""}
-            latitude={site.latitude}
-            longitude={site.longitude}
-            roofAreaSqFt={assumptions.roofAreaSqFt}
-            maxPVCapacityKW={maxPVFromRoof}
-            currentPVSizeKW={dashboardPvSizeKW || undefined}
-            onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
-          />
-        </>
-      )}
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* SECTION 5: FINANCIAL PROJECTIONS                               */}
@@ -1087,8 +1326,15 @@ export function AnalysisResults({
 
       <FinancingCalculator simulation={simulation} displayedScenario={displayedScenario} />
 
+      <NarrativeTransition transitionKey="resultsToAction" />
+
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* CTA BANNER (mid-page)                                          */}
+      {/* ACT 4: TAKE ACTION                                             */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <NarrativeActHeader actKey="act4_action" />
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* CTA BANNER                                                     */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="py-4">
@@ -1223,44 +1469,52 @@ export function AnalysisResults({
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">1</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Entente de conception" : "Design Agreement"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr"
-                    ? "Notre équipe prépare les plans détaillés et la liste d'équipements"
-                    : "Our team prepares detailed plans and equipment specifications"}
-                </p>
-              </div>
+            {/* Column 1: Design fee covers */}
+            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <h4 className="font-semibold text-sm text-primary mb-3 flex items-center gap-2">
+                <FileSignature className="w-4 h-4" />
+                {language === "fr" ? "L'entente couvre" : "Design fee covers"}
+              </h4>
+              <ul className="space-y-2">
+                {getDesignFeeCovers(language as "fr" | "en").map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">2</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Soumission finale" : "Final Quote"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr"
-                    ? "Vous recevez une soumission détaillée avec prix fermes garantis"
-                    : "You receive a detailed quote with guaranteed firm pricing"}
-                </p>
-              </div>
+
+            {/* Column 2: Client provides */}
+            <div className="p-4 bg-muted/30 rounded-lg border">
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {language === "fr" ? "Vous fournissez" : "You provide"}
+              </h4>
+              <ul className="space-y-2">
+                {getClientProvides(language as "fr" | "en").map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <ArrowRight className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary font-bold">3</span>
-              </div>
-              <div>
-                <h4 className="font-medium">{language === "fr" ? "Installation" : "Installation"}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr"
-                    ? "Nous gérons l'installation clé en main et les demandes de subventions"
-                    : "We manage turnkey installation and incentive applications"}
-                </p>
-              </div>
+
+            {/* Column 3: Client receives */}
+            <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+              <h4 className="font-semibold text-sm text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                {language === "fr" ? "Vous recevez" : "You receive"}
+              </h4>
+              <ul className="space-y-2">
+                {getClientReceives(language as "fr" | "en").map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <Star className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
@@ -1324,48 +1578,6 @@ export function AnalysisResults({
               </blockquote>
             );
           })()}
-        </CardContent>
-      </Card>
-
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ENVIRONMENTAL IMPACT (compact inline)                          */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Leaf className="w-4 h-4 text-green-500" />
-            <span className="text-sm font-semibold">{language === "fr" ? "Impact environnemental" : "Environmental Impact"}</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3">
-              <Leaf className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <div>
-                <p className="text-lg font-bold font-mono">{((dashboardCo2Tonnes || 0) * 25).toFixed(0)}</p>
-                <p className="text-xs text-muted-foreground">{language === "fr" ? "t CO₂ évitées (25a)" : "t CO₂ avoided (25y)"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Car className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-              <div>
-                <p className="text-lg font-bold font-mono">{(((dashboardCo2Tonnes || 0) / 4.6) * 25).toFixed(0)}</p>
-                <p className="text-xs text-muted-foreground">{language === "fr" ? "années-auto retirées" : "car-years removed"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <TreePine className="w-5 h-5 text-green-600 flex-shrink-0" />
-              <div>
-                <p className="text-lg font-bold font-mono">{Math.round(((dashboardCo2Tonnes || 0) * 25) / 0.022)}</p>
-                <p className="text-xs text-muted-foreground">{language === "fr" ? "arbres équivalents" : "trees equivalent"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Award className="w-5 h-5 text-amber-500 flex-shrink-0" />
-              <div>
-                <p className="text-lg font-bold font-mono">{(dashboardCoveragePercent || 0).toFixed(0)}%</p>
-                <p className="text-xs text-muted-foreground">{language === "fr" ? "autosuffisance" : "self-sufficiency"}</p>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
