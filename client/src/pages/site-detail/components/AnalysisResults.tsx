@@ -1081,7 +1081,7 @@ export function AnalysisResults({
         );
       })()}
 
-      {/* 5b: Surplus Revenue */}
+      {/* 5b: Surplus Credits (Net Metering) */}
       {displayedScenario.pvSizeKW > 0 && (displayedScenario.scenarioBreakdown?.totalExportedKWh || 0) > 0 && (displayedScenario.scenarioBreakdown?.annualSurplusRevenue || 0) > 0 && (
         <Card className="border-blue-200 dark:border-blue-800">
           <CardContent className="p-5">
@@ -1091,7 +1091,7 @@ export function AnalysisResults({
               </div>
               <div>
                 <p className="text-sm font-semibold">
-                  {language === "fr" ? "Revenus de surplus Hydro-Québec" : "Hydro-Québec Surplus Revenue"}
+                  {language === "fr" ? "Crédits de surplus Hydro-Québec" : "Hydro-Québec Surplus Credits"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {language === "fr" ? "Programme d'autoproduction (mesurage net)" : "Self-production program (net metering)"}
@@ -1109,7 +1109,7 @@ export function AnalysisResults({
               </div>
               <div className="p-3 bg-muted/30 rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">
-                  {language === "fr" ? "Revenu annuel (après 24 mois)" : "Annual revenue (after 24 months)"}
+                  {language === "fr" ? "Valeur annuelle des crédits" : "Annual credit value"}
                 </p>
                 <p className="text-lg font-bold font-mono text-green-600 dark:text-green-400">
                   ${Math.round(displayedScenario.scenarioBreakdown?.annualSurplusRevenue || 0).toLocaleString()}
@@ -1118,8 +1118,8 @@ export function AnalysisResults({
             </div>
             <p className="text-xs text-muted-foreground mt-3">
               {language === "fr"
-                ? "Tarif coût d'approvisionnement Hydro-Québec: ~$0.06/kWh. Les premiers 24 mois créditent votre facture, ensuite Hydro-Québec vous paie."
-                : "Hydro-Québec cost of supply rate: ~$0.06/kWh. First 24 months credit your bill, then Hydro-Québec pays you."}
+                ? "Les crédits kWh compensent votre facture pendant 24 mois. Le surplus non utilisé après 24 mois est compensé au tarif de référence (~4,54¢/kWh)."
+                : "kWh credits offset your bill for up to 24 months. Unused surplus after 24 months is compensated at the reference rate (~4.54¢/kWh)."}
             </p>
           </CardContent>
         </Card>
