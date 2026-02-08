@@ -24,18 +24,12 @@ export interface PriceBreakdownResponse {
   capacityKW: number;
   panelCount: number;
   breakdown: Record<string, {
-    cost: number;            // Sell price (after margin)
-    costBeforeMargin: number; // Cost price (before margin)
-    perW: number;            // Sell $/W
-    fixedCost: number;       // Fixed cost portion
-    variableCost: number;    // Variable cost portion
-    source: string | null;
+    cost: number;
+    perW: number;
   }>;
-  totalCost: number;          // Sell price total
-  totalPerW: number;          // Sell $/W
-  epcMargin: number;          // Margin applied (e.g. 0.35)
-  totalCostBeforeMargin: number; // Cost total (before margin)
-  componentCount: number;
+  totalCost: number;
+  totalPerW: number;
+  tierLabel: string;
 }
 
 export interface VariantPreset {

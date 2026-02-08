@@ -962,7 +962,7 @@ export function AnalysisResults({
         </Card>
       )}
 
-      {isStaff && <PriceBreakdownSection siteId={site.id} isAdmin={isStaff} />}
+      {isStaff && <PriceBreakdownSection siteId={site.id} />}
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* SECTION 5: FINANCIAL PROJECTIONS                               */}
