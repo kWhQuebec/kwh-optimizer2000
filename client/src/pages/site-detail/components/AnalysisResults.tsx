@@ -909,7 +909,7 @@ export function AnalysisResults({
                     <p className="text-2xl font-bold font-mono text-purple-600">
                       {formatDollarSigned(propertyValueIncrease)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "~$1k/kWc (études)" : "~$1k/kW (studies)"}</p>
+                    <a href="/blog/solaire-valeur-immobiliere-commercial" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mt-1 inline-block">{language === "fr" ? "~$1k/kWc (voir les études)" : "~$1k/kW (see studies)"}</a>
                   </div>
                 )}
               </div>
@@ -2270,9 +2270,9 @@ export function AnalysisResults({
                                 <p className="text-lg font-bold font-mono text-purple-600">
                                   {formatDollarSigned(propertyValueIncrease)}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {language === "fr" ? `~$1k/kWc (études sectorielles)` : `~$1k/kW (industry studies)`}
-                                </p>
+                                <a href="/blog/solaire-valeur-immobiliere-commercial" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                                  {language === "fr" ? `~$1k/kWc (voir les études)` : `~$1k/kW (see studies)`}
+                                </a>
                               </div>
                             )}
                           </div>
