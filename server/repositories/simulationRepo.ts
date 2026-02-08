@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { simulationRuns, sites, clients } from "@shared/schema";
 import type { SimulationRun, InsertSimulationRun, Site, Client } from "@shared/schema";
@@ -36,6 +36,25 @@ export async function getSimulationRun(id: string): Promise<(SimulationRun & { s
 
 export async function getSimulationRunsBySite(siteId: string): Promise<SimulationRun[]> {
   return db.select().from(simulationRuns).where(eq(simulationRuns.siteId, siteId));
+}
+
+export async function getSimulationRunsByClientId(clientId: string): Promise<(SimulationRun & { site: Site & { client: Client } })[]> {
+  const clientSites = await db.select().from(sites).where(eq(sites.clientId, clientId));
+  if (clientSites.length === 0) return [];
+
+  const siteIds = clientSites.map(s => s.id);
+  const runs = await db.select().from(simulationRuns)
+    .where(inArray(simulationRuns.siteId, siteIds))
+    .orderBy(desc(simulationRuns.createdAt));
+
+  const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
+  if (!client) return [];
+
+  const siteMap = new Map(clientSites.map(s => [s.id, s]));
+  return runs.map(run => ({
+    ...run,
+    site: { ...siteMap.get(run.siteId)!, client },
+  })).filter(r => r.site);
 }
 
 export async function getSimulationRunFull(id: string): Promise<SimulationRun | undefined> {

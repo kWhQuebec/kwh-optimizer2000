@@ -24,11 +24,8 @@ router.get("/api/standard-kits", authMiddleware, async (_req, res) => {
 router.get("/api/simulation-runs", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (req.userRole === "client" && req.userClientId) {
-      const sites = await storage.getSitesByClient(req.userClientId);
-      const siteIds = sites.map(s => s.id);
-      const allRuns = await storage.getSimulationRuns();
-      const filteredRuns = allRuns.filter(run => siteIds.includes(run.siteId));
-      return res.json(filteredRuns);
+      const runs = await storage.getSimulationRunsByClientId(req.userClientId);
+      return res.json(runs);
     }
     
     const runs = await storage.getSimulationRuns();

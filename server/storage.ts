@@ -119,6 +119,7 @@ export interface IStorage {
   getSimulationRuns(): Promise<(SimulationRun & { site: Site & { client: Client } })[]>;
   getSimulationRun(id: string): Promise<(SimulationRun & { site: Site & { client: Client } }) | undefined>;
   getSimulationRunsBySite(siteId: string): Promise<SimulationRun[]>;
+  getSimulationRunsByClientId(clientId: string): Promise<(SimulationRun & { site: Site & { client: Client } })[]>;
   createSimulationRun(run: InsertSimulationRun): Promise<SimulationRun>;
 
   // Designs
@@ -932,6 +933,17 @@ export class MemStorage implements IStorage {
 
   async getSimulationRunsBySite(siteId: string): Promise<SimulationRun[]> {
     return Array.from(this.simulationRuns.values()).filter(r => r.siteId === siteId);
+  }
+
+  async getSimulationRunsByClientId(clientId: string): Promise<(SimulationRun & { site: Site & { client: Client } })[]> {
+    const clientSites = Array.from(this.sites.values()).filter(s => s.clientId === clientId);
+    const siteIds = new Set(clientSites.map(s => s.id));
+    const client = this.clients.get(clientId);
+    if (!client) return [];
+    const siteMap = new Map(clientSites.map(s => [s.id, s]));
+    return Array.from(this.simulationRuns.values())
+      .filter(r => siteIds.has(r.siteId))
+      .map(r => ({ ...r, site: { ...siteMap.get(r.siteId)!, client } }));
   }
 
   async createSimulationRun(run: InsertSimulationRun): Promise<SimulationRun> {

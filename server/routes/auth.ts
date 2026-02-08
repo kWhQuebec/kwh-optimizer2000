@@ -6,7 +6,7 @@ import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import { sendPasswordResetEmail } from "../emailService";
 import { generateSecurePassword } from "../lib/secureRandom";
-import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
+import { asyncHandler, BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } from "../middleware/errorHandler";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("Auth");
@@ -54,110 +54,96 @@ function checkRateLimit(email: string): boolean {
   return true;
 }
 
-router.post("/api/auth/login", loginLimiter, async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
-    }
+router.post("/api/auth/login", loginLimiter, asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
 
-    const user = await storage.getUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-    
-    if (user.status === "inactive") {
-      return res.status(403).json({ error: "Account is deactivated. Please contact an administrator." });
-    }
-
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-
-    await storage.updateUser(user.id, { lastLoginAt: new Date() });
-
-    const token = signToken(user.id);
-    
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        forcePasswordChange: user.forcePasswordChange || false,
-      },
-    });
-  } catch (error) {
-    log.error("Login error:", error);
-    res.status(500).json({ error: "Internal server error" });
+  if (!email || !password) {
+    throw new BadRequestError("Email and password required");
   }
-});
 
-router.get("/api/auth/me", authMiddleware, async (req: AuthRequest, res) => {
-  try {
-    const user = await storage.getUser(req.userId!);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    
-    let clientName = null;
-    if (user.clientId) {
-      const client = await storage.getClient(user.clientId);
-      clientName = client?.name || null;
-    }
-    
-    res.json({
+  const user = await storage.getUserByEmail(email);
+  if (!user) {
+    throw new UnauthorizedError("Invalid credentials");
+  }
+
+  if (user.status === "inactive") {
+    throw new ForbiddenError("Account is deactivated. Please contact an administrator.");
+  }
+
+  const isValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isValid) {
+    throw new UnauthorizedError("Invalid credentials");
+  }
+
+  await storage.updateUser(user.id, { lastLoginAt: new Date() });
+
+  const token = signToken(user.id);
+
+  res.json({
+    token,
+    user: {
       id: user.id,
       email: user.email,
       role: user.role,
-      name: user.name || null,
-      clientId: user.clientId || null,
-      clientName,
       forcePasswordChange: user.forcePasswordChange || false,
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+    },
+  });
+}));
 
-router.post("/api/auth/change-password", authMiddleware, async (req: AuthRequest, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    
-    if (!newPassword || newPassword.length < 8) {
-      return res.status(400).json({ error: "New password must be at least 8 characters" });
-    }
-    
-    const user = await storage.getUser(req.userId!);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    
-    if (!user.forcePasswordChange) {
-      if (!currentPassword) {
-        return res.status(400).json({ error: "Current password is required" });
-      }
-      const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-      if (!isValid) {
-        return res.status(401).json({ error: "Current password is incorrect" });
-      }
-    }
-    
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-    
-    await storage.updateUser(user.id, { 
-      passwordHash,
-      forcePasswordChange: false
-    });
-    
-    res.json({ success: true, message: "Password changed successfully" });
-  } catch (error) {
-    log.error("Change password error:", error);
-    res.status(500).json({ error: "Internal server error" });
+router.get("/api/auth/me", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const user = await storage.getUser(req.userId!);
+  if (!user) {
+    throw new NotFoundError("User");
   }
-});
+
+  let clientName = null;
+  if (user.clientId) {
+    const client = await storage.getClient(user.clientId);
+    clientName = client?.name || null;
+  }
+
+  res.json({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: user.name || null,
+    clientId: user.clientId || null,
+    clientName,
+    forcePasswordChange: user.forcePasswordChange || false,
+  });
+}));
+
+router.post("/api/auth/change-password", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 8) {
+    throw new BadRequestError("New password must be at least 8 characters");
+  }
+
+  const user = await storage.getUser(req.userId!);
+  if (!user) {
+    throw new NotFoundError("User");
+  }
+
+  if (!user.forcePasswordChange) {
+    if (!currentPassword) {
+      throw new BadRequestError("Current password is required");
+    }
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new UnauthorizedError("Current password is incorrect");
+    }
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  await storage.updateUser(user.id, {
+    passwordHash,
+    forcePasswordChange: false
+  });
+
+  res.json({ success: true, message: "Password changed successfully" });
+}));
 
 router.post("/api/auth/forgot-password", forgotPasswordLimiter, asyncHandler(async (req, res) => {
   const { email, language = "fr" } = req.body;

@@ -126,6 +126,7 @@ export class DatabaseStorage implements IStorage {
   getSimulationRuns = simulationRepo.getSimulationRuns;
   getSimulationRun = simulationRepo.getSimulationRun;
   getSimulationRunsBySite = simulationRepo.getSimulationRunsBySite;
+  getSimulationRunsByClientId = simulationRepo.getSimulationRunsByClientId;
   getSimulationRunFull = simulationRepo.getSimulationRunFull;
   createSimulationRun = simulationRepo.createSimulationRun;
 
