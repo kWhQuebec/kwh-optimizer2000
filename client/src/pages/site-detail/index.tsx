@@ -78,6 +78,7 @@ export default function SiteDetailPage() {
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
   const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency'>('npv');
+  const [isTransitioningSimulation, setIsTransitioningSimulation] = useState(false);
 
   const [deliverablePhase, setDeliverablePhase] = useState<DeliverablePhase>('idle');
 
@@ -249,6 +250,7 @@ export default function SiteDetailPage() {
       return result;
     },
     onSuccess: (data) => {
+      setIsTransitioningSimulation(true);
       if (data?.id) {
         pendingNewSimulationIdRef.current = data.id;
       } else {
@@ -303,7 +305,7 @@ export default function SiteDetailPage() {
     const token = localStorage.getItem("token");
 
     try {
-      const pdfResponse = await fetch(`/api/simulation-runs/${simId}/report-pdf?lang=${language}`, {
+      const pdfResponse = await fetch(`/api/simulation-runs/${simId}/report-pdf?lang=${language}&opt=${optimizationTarget}`, {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -323,7 +325,7 @@ export default function SiteDetailPage() {
       }
 
       setDeliverablePhase('pptx');
-      const pptxResponse = await fetch(`/api/simulation-runs/${simId}/presentation-pptx?lang=${language}`, {
+      const pptxResponse = await fetch(`/api/simulation-runs/${simId}/presentation-pptx?lang=${language}&opt=${optimizationTarget}`, {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -466,6 +468,7 @@ export default function SiteDetailPage() {
         if (mostRecent) {
           setSelectedSimulationId(mostRecent.id);
           pendingNewSimulationIdRef.current = null;
+          setIsTransitioningSimulation(false);
           return;
         }
       } else {
@@ -473,6 +476,7 @@ export default function SiteDetailPage() {
         if (foundSimulation) {
           setSelectedSimulationId(pendingId);
           pendingNewSimulationIdRef.current = null;
+          setIsTransitioningSimulation(false);
           return;
         }
       }
@@ -677,7 +681,7 @@ export default function SiteDetailPage() {
             </>
           )}
           {/* Presentation Mode Button */}
-          <Link href={`/app/presentation/${site.id}${latestSimulation ? `?sim=${latestSimulation.id}` : ''}`}>
+          <Link href={`/app/presentation/${site.id}${latestSimulation ? `?sim=${latestSimulation.id}&opt=${optimizationTarget}` : ''}`}>
             <Button variant="outline" className="gap-2" data-testid="button-presentation-mode">
               <Layers className="w-4 h-4" />
               {language === "fr" ? "Présentation" : "Presentation"}
@@ -738,6 +742,7 @@ export default function SiteDetailPage() {
               <DownloadReportButton
                 simulationId={latestSimulation.id}
                 siteName={site.name}
+                optimizationTarget={optimizationTarget}
               />
               {isStaff && (
                 <Link href={`/app/analyses/${latestSimulation.id}/design`}>
@@ -1441,7 +1446,7 @@ export default function SiteDetailPage() {
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-6">
-          {runAnalysisMutation.isPending ? (
+          {(runAnalysisMutation.isPending || isTransitioningSimulation) ? (
             <Card>
               <CardContent className="py-16 text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">

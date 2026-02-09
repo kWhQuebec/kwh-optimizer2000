@@ -54,6 +54,7 @@ router.get("/api/simulation-runs/:id/full", authMiddleware, asyncHandler(async (
 
 router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+  const opt = (req.query.opt as string) || 'npv';
   const useV2 = req.query.v !== "1";
   const docData = await prepareDocumentData(req.params.id, storage);
 
@@ -64,7 +65,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
     }
   }
 
-  const optimizedSimulation = applyOptimalScenario(docData.simulation);
+  const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
 
   if (useV2) {
     const { generateProfessionalPDFv2 } = await import("../services/pdfGeneratorV2");
@@ -105,6 +106,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
 
 router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+  const opt = (req.query.opt as string) || 'npv';
   const docData = await prepareDocumentData(req.params.id, storage);
 
   if (req.userRole === "client" && req.userClientId) {
@@ -121,7 +123,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
 
   doc.pipe(res);
 
-  const optimizedSimulation = applyOptimalScenario(docData.simulation);
+  const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
   const simulationWithRoof = {
     ...optimizedSimulation,
     roofVisualizationBuffer: docData.roofVisualizationBuffer,
@@ -135,6 +137,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
 
 router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+  const opt = (req.query.opt as string) || 'npv';
   const docData = await prepareDocumentData(req.params.id, storage);
 
   if (req.userRole === "client" && req.userClientId) {
@@ -144,7 +147,7 @@ router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, asyncHa
     }
   }
 
-  const optimizedSimulation = applyOptimalScenario(docData.simulation);
+  const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
   const { generatePresentationPPTX } = await import("../pptxGenerator");
   const pptxOptions = {
     catalogEquipment: optimizedSimulation.catalogEquipment,

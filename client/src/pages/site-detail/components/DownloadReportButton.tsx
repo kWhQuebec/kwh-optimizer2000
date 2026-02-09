@@ -13,9 +13,11 @@ import { useI18n } from "@/lib/i18n";
 export function DownloadReportButton({
   simulationId,
   siteName,
+  optimizationTarget = 'npv',
 }: {
   simulationId: string;
   siteName: string;
+  optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency';
 }) {
   const { t, language } = useI18n();
   const { toast } = useToast();
@@ -27,7 +29,7 @@ export function DownloadReportButton({
     setDownloadPhase("generating");
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/simulation-runs/${simulationId}/report-pdf?lang=${language}`, {
+      const response = await fetch(`/api/simulation-runs/${simulationId}/report-pdf?lang=${language}&opt=${optimizationTarget}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
@@ -61,7 +63,7 @@ export function DownloadReportButton({
     try {
       // Download executive summary PDF from server
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/simulation-runs/${simulationId}/executive-summary-pdf?lang=${language}`, {
+      const response = await fetch(`/api/simulation-runs/${simulationId}/executive-summary-pdf?lang=${language}&opt=${optimizationTarget}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
@@ -94,7 +96,7 @@ export function DownloadReportButton({
     setDownloadPhase("generating");
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/simulation-runs/${simulationId}/presentation-pptx?lang=${language}`, {
+      const response = await fetch(`/api/simulation-runs/${simulationId}/presentation-pptx?lang=${language}&opt=${optimizationTarget}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 

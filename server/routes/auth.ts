@@ -18,7 +18,8 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many login attempts, please try again in 15 minutes" },
-  keyGenerator: (req) => req.body?.email?.toLowerCase() || req.ip || "unknown",
+  keyGenerator: (req) => req.body?.email?.toLowerCase() || "unknown",
+  validate: { ip: false },
 });
 
 const forgotPasswordLimiter = rateLimit({
@@ -27,7 +28,8 @@ const forgotPasswordLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many password reset requests, please try again later" },
-  keyGenerator: (req) => req.body?.email?.toLowerCase() || req.ip || "unknown",
+  keyGenerator: (req) => req.body?.email?.toLowerCase() || "unknown",
+  validate: { ip: false },
 });
 
 const emailSchema = z.string().email().transform(e => e.toLowerCase().trim());

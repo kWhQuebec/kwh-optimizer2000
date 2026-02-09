@@ -218,14 +218,20 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
 }
 
 export function applyOptimalScenario(
-  simulation: SimulationRun & { site: Site & { client: Client } }
+  simulation: SimulationRun & { site: Site & { client: Client } },
+  target: 'npv' | 'irr' | 'selfSufficiency' = 'npv'
 ): SimulationRun & { site: Site & { client: Client } } {
   const sensitivity = simulation.sensitivity as SensitivityAnalysis | null | undefined;
   if (!sensitivity?.optimalScenarios) {
     return simulation;
   }
 
-  const optimal: OptimalScenario | null = sensitivity.optimalScenarios.bestNPV;
+  const targetMap: Record<string, OptimalScenario | null | undefined> = {
+    npv: sensitivity.optimalScenarios.bestNPV,
+    irr: sensitivity.optimalScenarios.bestIRR,
+    selfSufficiency: sensitivity.optimalScenarios.maxSelfSufficiency,
+  };
+  const optimal: OptimalScenario | null = targetMap[target] ?? sensitivity.optimalScenarios.bestNPV ?? null;
   if (!optimal) {
     return simulation;
   }
@@ -285,7 +291,7 @@ export function applyOptimalScenario(
     }
   }
 
-  log.info(`Applied bestNPV optimal scenario: PV=${optimal.pvSizeKW}kW, Batt=${optimal.battEnergyKWh}kWh, NPV25=${optimal.npv25}, IRR=${optimal.irr25}`);
+  log.info(`Applied ${target} optimal scenario: PV=${optimal.pvSizeKW}kW, Batt=${optimal.battEnergyKWh}kWh, NPV25=${optimal.npv25}, IRR=${optimal.irr25}`);
 
   return merged;
 }

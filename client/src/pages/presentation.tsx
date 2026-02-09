@@ -116,7 +116,9 @@ export default function PresentationPage() {
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const simIdFromUrl = new URLSearchParams(window.location.search).get('sim');
+  const urlParams = new URLSearchParams(window.location.search);
+  const simIdFromUrl = urlParams.get('sim');
+  const optFromUrl = (urlParams.get('opt') || 'npv') as 'npv' | 'irr' | 'selfSufficiency';
 
   const { data: site, isLoading } = useQuery<SiteWithDetails>({
     queryKey: ['/api/sites', id],
@@ -129,21 +131,93 @@ export default function PresentationPage() {
       const found = site.simulationRuns.find(s => s.id === simIdFromUrl);
       if (found) return found;
     }
-    const scenarios = site.simulationRuns.filter(s =>
-      s.type === "SCENARIO" && (s.pvSizeKW !== null || s.battEnergyKWh !== null) && s.npv20 !== null
-    );
-    if (scenarios.length > 0) {
-      return scenarios.reduce((best, cur) => (cur.npv20 || 0) > (best.npv20 || 0) ? cur : best);
-    }
     return [...site.simulationRuns].sort((a, b) =>
       new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
     )[0];
   })();
 
   const { data: fullSimulation } = useQuery<SimulationRun>({
-    queryKey: ['/api/simulation-runs', bestSimulation?.id],
+    queryKey: ['/api/simulation-runs', bestSimulation?.id, 'full'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/simulation-runs/${bestSimulation!.id}/full`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Failed to fetch full simulation');
+      return res.json();
+    },
     enabled: !!bestSimulation?.id,
   });
+
+  const optimizedSimulation = (() => {
+    const sim = fullSimulation ?? bestSimulation;
+    if (!sim) return null;
+    const sensitivity = sim.sensitivity as any;
+    if (!sensitivity?.optimalScenarios) return sim;
+
+    const targetMap: Record<string, any> = {
+      npv: sensitivity.optimalScenarios.bestNPV,
+      irr: sensitivity.optimalScenarios.bestIRR,
+      selfSufficiency: sensitivity.optimalScenarios.maxSelfSufficiency,
+    };
+    const optimal = targetMap[optFromUrl] ?? sensitivity.optimalScenarios.bestNPV;
+    if (!optimal) return sim;
+
+    const merged = { ...sim } as any;
+    merged.pvSizeKW = optimal.pvSizeKW;
+    merged.battEnergyKWh = optimal.battEnergyKWh;
+    merged.battPowerKW = optimal.battPowerKW;
+    merged.capexNet = optimal.capexNet;
+    merged.npv25 = optimal.npv25;
+    merged.irr25 = optimal.irr25;
+    merged.simplePaybackYears = optimal.simplePaybackYears;
+    merged.selfSufficiencyPercent = optimal.selfSufficiencyPercent;
+    merged.annualSavings = optimal.annualSavings;
+    merged.savingsYear1 = optimal.annualSavings;
+    merged.totalProductionKWh = optimal.totalProductionKWh;
+    merged.co2AvoidedTonnesPerYear = optimal.co2AvoidedTonnesPerYear;
+
+    const bd = optimal.scenarioBreakdown;
+    if (bd) {
+      merged.capexGross = bd.capexGross ?? sim.capexGross;
+      merged.capexPV = bd.capexSolar ?? (sim as any).capexPV;
+      merged.capexBattery = bd.capexBattery ?? (sim as any).capexBattery;
+      merged.incentivesHQSolar = bd.actualHQSolar ?? (sim as any).incentivesHQSolar;
+      merged.incentivesHQBattery = bd.actualHQBattery ?? (sim as any).incentivesHQBattery;
+      merged.incentivesHQ = (merged.incentivesHQSolar ?? 0) + (merged.incentivesHQBattery ?? 0);
+      merged.incentivesFederal = bd.itcAmount ?? (sim as any).incentivesFederal;
+      merged.taxShield = bd.taxShield ?? (sim as any).taxShield;
+      merged.totalIncentives = (merged.incentivesHQ ?? 0) + (merged.incentivesFederal ?? 0) + (merged.taxShield ?? 0);
+      merged.lcoe = bd.lcoe ?? sim.lcoe;
+      merged.annualCostAfter = Math.max(0, ((sim as any).annualCostBefore ?? 0) - (optimal.annualSavings ?? 0));
+      merged.annualEnergySavingsKWh = bd.annualEnergySavingsKWh ?? (sim as any).annualEnergySavingsKWh;
+      merged.totalExportedKWh = bd.totalExportedKWh ?? (sim as any).totalExportedKWh;
+      merged.annualSurplusRevenue = bd.annualSurplusRevenue ?? (sim as any).annualSurplusRevenue;
+
+      if (bd.cashflows && bd.cashflows.length > 0) {
+        let cumulative = -(merged.capexNet ?? merged.capexGross ?? 0);
+        merged.cashflows = bd.cashflows.map((cf: any, i: number) => {
+          if (i === 0) {
+            cumulative = cf.netCashflow;
+          } else {
+            cumulative += cf.netCashflow;
+          }
+          return {
+            year: cf.year,
+            revenue: 0,
+            opex: 0,
+            ebitda: 0,
+            investment: i === 0 ? -(merged.capexNet ?? 0) : 0,
+            dpa: 0,
+            incentives: 0,
+            netCashflow: cf.netCashflow,
+            cumulative,
+          };
+        });
+      }
+    }
+    return merged as SimulationRun;
+  })();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -226,16 +300,18 @@ export default function PresentationPage() {
   const currentLogo = language === 'fr' ? logoFr : logoEn;
   const isHeroSlide = slideContent === 'hero';
 
+  const displaySim = optimizedSimulation ?? bestSimulation ?? null;
+
   const slideComponents: Record<SlideType, JSX.Element> = {
     hero: <HeroSlide site={site} language={language} />,
-    billComparison: <BillComparisonSlide simulation={fullSimulation ?? bestSimulation ?? null} language={language} />,
-    snapshot: <SnapshotSlide simulation={bestSimulation ?? null} language={language} />,
-    kpi: <KPIResultsSlide simulation={bestSimulation ?? null} language={language} />,
-    waterfall: <WaterfallSlide simulation={bestSimulation ?? null} language={language} />,
-    roofConfig: <RoofConfigSlide site={site} simulation={bestSimulation ?? null} language={language} />,
-    cashflow: <CashflowSlide simulation={fullSimulation ?? bestSimulation ?? null} language={language} />,
-    surplusCredits: <SurplusCreditsSlide simulation={fullSimulation ?? bestSimulation ?? null} language={language} />,
-    financing: <FinancingSlide simulation={fullSimulation ?? bestSimulation ?? null} language={language} />,
+    billComparison: <BillComparisonSlide simulation={displaySim} language={language} />,
+    snapshot: <SnapshotSlide simulation={displaySim} language={language} />,
+    kpi: <KPIResultsSlide simulation={displaySim} language={language} />,
+    waterfall: <WaterfallSlide simulation={displaySim} language={language} />,
+    roofConfig: <RoofConfigSlide site={site} simulation={displaySim} language={language} />,
+    cashflow: <CashflowSlide simulation={displaySim} language={language} />,
+    surplusCredits: <SurplusCreditsSlide simulation={displaySim} language={language} />,
+    financing: <FinancingSlide simulation={displaySim} language={language} />,
     assumptions: <AssumptionsSlide language={language} />,
     equipment: <EquipmentSlide language={language} />,
     timeline: <TimelineSlide language={language} />,
