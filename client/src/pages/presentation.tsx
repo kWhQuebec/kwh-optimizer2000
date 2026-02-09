@@ -698,10 +698,11 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
     ? (Number(simulation.battEnergyKWh) / (Number(simulation.peakDemandKW) * 0.3)).toFixed(1)
     : '0';
 
-  const treesPerYear = Math.round(co2Tonnes * 40);
-  const carsRemoved = co2Tonnes > 0 ? (co2Tonnes / 4.6).toFixed(1) : '0';
+  const co2Total25 = Math.round(co2Tonnes * 25);
+  const treesEquiv = Math.round((co2Tonnes * 25) / 0.022);
+  const carsRemoved = Math.round((co2Tonnes / 4.6) * 25);
   const totalProdKWh = simulation?.totalProductionKWh ? Number(simulation.totalProductionKWh) : (simulation?.pvSizeKW ? Number(simulation.pvSizeKW) * 1035 : 0);
-  const homesPowered = totalProdKWh > 0 ? (totalProdKWh / 20000).toFixed(1) : '0';
+  const homesPowered = totalProdKWh > 0 ? Math.round(totalProdKWh / 20000) : 0;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
@@ -762,25 +763,32 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
         </div>
 
         {co2Tonnes > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3 rounded-xl p-4 shadow-sm" style={{ border: '1px solid #E5E7EB', backgroundColor: '#F0FDF4' }}>
-              <TreePine className="h-8 w-8 shrink-0" style={{ color: '#16A34A' }} />
+              <Leaf className="h-8 w-8 shrink-0" style={{ color: '#16A34A' }} />
               <div>
-                <p className="text-xl font-bold" style={{ color: '#166534' }}>{treesPerYear.toLocaleString()}</p>
-                <p className="text-xs" style={{ color: '#6B7280' }}>{language === 'fr' ? 'arbres plantés / an' : 'trees planted / yr'}</p>
+                <p className="text-xl font-bold" style={{ color: '#166534' }}>{co2Total25.toLocaleString()}</p>
+                <p className="text-xs" style={{ color: '#6B7280' }}>{language === 'fr' ? 't CO₂ évitées (25 ans)' : 't CO₂ avoided (25 yrs)'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl p-4 shadow-sm" style={{ border: '1px solid #E5E7EB', backgroundColor: '#EFF6FF' }}>
               <Car className="h-8 w-8 shrink-0" style={{ color: BRAND_COLORS.primaryBlue }} />
               <div>
-                <p className="text-xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{carsRemoved}</p>
-                <p className="text-xs" style={{ color: '#6B7280' }}>{language === 'fr' ? 'voitures retirées / an' : 'cars removed / yr'}</p>
+                <p className="text-xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{carsRemoved.toLocaleString()}</p>
+                <p className="text-xs" style={{ color: '#6B7280' }}>{language === 'fr' ? 'années-auto retirées' : 'car-years removed'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl p-4 shadow-sm" style={{ border: '1px solid #E5E7EB', backgroundColor: '#F0FDF4' }}>
+              <TreePine className="h-8 w-8 shrink-0" style={{ color: '#16A34A' }} />
+              <div>
+                <p className="text-xl font-bold" style={{ color: '#166534' }}>{treesEquiv.toLocaleString()}</p>
+                <p className="text-xs" style={{ color: '#6B7280' }}>{language === 'fr' ? 'arbres équivalents' : 'trees equivalent'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl p-4 shadow-sm" style={{ border: '1px solid #E5E7EB', backgroundColor: '#FFFBEB' }}>
               <Home className="h-8 w-8 shrink-0" style={{ color: '#D97706' }} />
               <div>
-                <p className="text-xl font-bold" style={{ color: '#92400E' }}>{homesPowered}</p>
+                <p className="text-xl font-bold" style={{ color: '#92400E' }}>{homesPowered.toLocaleString()}</p>
                 <p className="text-xs" style={{ color: '#6B7280' }}>{language === 'fr' ? 'maisons alimentées' : 'homes powered'}</p>
               </div>
             </div>
