@@ -1,6 +1,6 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { formatCurrency, drawRoundedRect, drawSimpleHeader, drawPageFooter } from "../helpers";
+import { formatCurrency, drawRoundedRect, drawSimpleHeader, drawPageFooter, ensureFits } from "../helpers";
 import { drawCashflowChart, drawCostOfInactionChart } from "../charts";
 
 export function renderFinancialProjections(ctx: PDFContext) {
@@ -18,115 +18,96 @@ export function renderFinancialProjections(ctx: PDFContext) {
   doc.rect(margin, doc.y, 200, 3).fillColor(COLORS.gold).fill();
   doc.y += 12;
 
+  // Payback banner
   const paybackYears = simulation.simplePaybackYears || 0;
   if (paybackYears > 0) {
     const bannerY = doc.y;
-    const bannerHeight = 50;
-    
-    // Draw the rounded rectangle banner with gold background
+    const bannerHeight = 45;
     drawRoundedRect(doc, margin, bannerY, contentWidth, bannerHeight, 8, COLORS.gold);
-    
-    // Draw the payback value in large bold white text (24px), centered
-    doc.fontSize(24).fillColor(COLORS.white).font("Helvetica-Bold");
+
+    doc.fontSize(22).fillColor(COLORS.white).font("Helvetica-Bold");
     doc.text(
       t(`${paybackYears.toFixed(1)} ans`, `${paybackYears.toFixed(1)} years`),
-      margin,
-      bannerY + 8,
-      { width: contentWidth, align: "center" }
+      margin, bannerY + 6, { width: contentWidth, align: "center" }
     );
-    
-    // Draw the subtitle in smaller white text (10px), centered
     doc.fontSize(10).fillColor(COLORS.white).font("Helvetica");
     doc.text(
       t("Retour sur investissement", "Payback period"),
-      margin,
-      bannerY + 32,
-      { width: contentWidth, align: "center" }
+      margin, bannerY + 28, { width: contentWidth, align: "center" }
     );
-    
-    doc.y = bannerY + bannerHeight + 15;
+
+    doc.y = bannerY + bannerHeight + 10;
   } else {
     doc.y += 8;
   }
 
-  // Cash Flow Chart — taller for better visibility
+  // Cash Flow Chart — compact height
+  const cashflowChartHeight = 180;
   drawCashflowChart(
-    ctx,
-    margin,
-    doc.y,
-    contentWidth,
-    220,
+    ctx, margin, doc.y, contentWidth, cashflowChartHeight,
     simulation.cashflows || [],
     t("Flux de trésorerie et retour sur investissement", "Cash flow and return on investment")
   );
+  doc.y += cashflowChartHeight + 15;
 
-  doc.y += 240;
+  // Cost of Inaction
+  ensureFits(ctx, 160);
+  doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
+  doc.text(t("Pourquoi maintenant ? (coût de l'inaction)", "Why now? (cost of inaction)"), margin, doc.y);
+  doc.font("Helvetica");
+  doc.moveDown(0.5);
+
+  const costChartHeight = 130;
+  drawCostOfInactionChart(ctx, margin, doc.y, contentWidth, costChartHeight);
+  doc.y += costChartHeight + 12;
+
+  // Energy Security — only show when battery provides meaningful backup
+  if (simulation.battEnergyKWh > 0) {
+    ensureFits(ctx, 55);
+    const criticalLoadKW = simulation.peakDemandKW * 0.3;
+    const backupHours = criticalLoadKW > 0 ? simulation.battEnergyKWh / criticalLoadKW : 0;
+
+    const cardH = 50;
+    drawRoundedRect(doc, margin, doc.y, contentWidth, cardH, 8, COLORS.blue);
+
+    doc.fontSize(9).fillColor(COLORS.white);
+    doc.text(t("SÉCURITÉ ÉNERGÉTIQUE — En cas de panne, votre batterie maintient les opérations essentielles pendant :",
+      "ENERGY SECURITY — In case of outage, your battery maintains essential operations for:"), margin + 15, doc.y + 8, { width: contentWidth - 140 });
+
+    doc.fontSize(24).fillColor(COLORS.gold).font("Helvetica-Bold");
+    doc.text(`${backupHours.toFixed(1)}h`, margin + contentWidth - 120, doc.y + 10, { width: 105, align: "center" });
+    doc.font("Helvetica");
+
+    doc.y += cardH + 10;
+  }
 
   // Surplus Credits Info Box — only if surplus data exists
   const surplusKWh = simulation.totalExportedKWh || 0;
   const surplusRevenue = simulation.annualSurplusRevenue || 0;
   if (surplusKWh > 0) {
-    const surplusY = doc.y;
-    const surplusH = 75;
-    drawRoundedRect(doc, margin, surplusY, contentWidth, surplusH, 8, "#FFFBEB");
-    doc.roundedRect(margin, surplusY, contentWidth, surplusH, 8).strokeColor("#FFB005").lineWidth(1).stroke();
+    ensureFits(ctx, 65);
+    const surplusH = 55;
+    drawRoundedRect(doc, margin, doc.y, contentWidth, surplusH, 8, "#FFFBEB");
+    doc.roundedRect(margin, doc.y, contentWidth, surplusH, 8).strokeColor("#FFB005").lineWidth(1).stroke();
 
-    doc.fontSize(10).fillColor(COLORS.gold).font("Helvetica-Bold");
-    doc.text(t("CRÉDITS DE SURPLUS (MESURAGE NET)", "SURPLUS CREDITS (NET METERING)"), margin + 15, surplusY + 10, { width: contentWidth - 30 });
+    doc.fontSize(9).fillColor(COLORS.gold).font("Helvetica-Bold");
+    doc.text(t("CRÉDITS DE SURPLUS (MESURAGE NET)", "SURPLUS CREDITS (NET METERING)"), margin + 12, doc.y + 8, { width: contentWidth - 24 });
     doc.font("Helvetica");
 
-    const surplusColW = (contentWidth - 60) / 2;
-    doc.fontSize(9).fillColor(COLORS.mediumGray);
-    doc.text(t("Surplus annuel exporté", "Annual surplus exported"), margin + 15, surplusY + 28);
-    doc.fontSize(12).fillColor(COLORS.darkGray).font("Helvetica-Bold");
-    doc.text(`${Math.round(surplusKWh).toLocaleString("fr-CA")} kWh`, margin + 15, surplusY + 40);
+    const surplusColW = (contentWidth - 40) / 2;
+    doc.fontSize(8).fillColor(COLORS.mediumGray);
+    doc.text(t("Surplus annuel exporté", "Annual surplus exported"), margin + 12, doc.y + 22);
+    doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
+    doc.text(`${Math.round(surplusKWh).toLocaleString("fr-CA")} kWh`, margin + 12, doc.y + 33);
     doc.font("Helvetica");
 
-    doc.fontSize(9).fillColor(COLORS.mediumGray);
-    doc.text(t("Valeur annuelle des crédits", "Annual credit value"), margin + 15 + surplusColW, surplusY + 28);
-    doc.fontSize(12).fillColor(COLORS.gold).font("Helvetica-Bold");
-    doc.text(formatCurrency(surplusRevenue), margin + 15 + surplusColW, surplusY + 40);
+    doc.fontSize(8).fillColor(COLORS.mediumGray);
+    doc.text(t("Valeur annuelle des crédits", "Annual credit value"), margin + 12 + surplusColW, doc.y + 22);
+    doc.fontSize(11).fillColor(COLORS.gold).font("Helvetica-Bold");
+    doc.text(formatCurrency(surplusRevenue), margin + 12 + surplusColW, doc.y + 33);
     doc.font("Helvetica");
 
-    doc.fontSize(7).fillColor(COLORS.lightGray);
-    doc.text(
-      t("Les crédits kWh compensent votre facture pendant 24 mois. Le surplus non utilisé est compensé au tarif de référence (~4,54¢/kWh).",
-        "kWh credits offset your bill for up to 24 months. Unused surplus is compensated at the reference rate (~4.54¢/kWh)."),
-      margin + 15, surplusY + 57, { width: contentWidth - 30 }
-    );
-
-    doc.y = surplusY + surplusH + 15;
-  }
-
-  // Cost of Inaction — tighter spacing
-  doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
-  doc.text(t("Pourquoi maintenant ? (coût de l'inaction)", "Why now? (cost of inaction)"), margin, doc.y);
-  doc.font("Helvetica");
-  doc.moveDown(0.8);
-
-  const costChartY = doc.y;
-  const costChartHeight = 150;
-
-  drawCostOfInactionChart(ctx, margin, costChartY, contentWidth, costChartHeight);
-
-  doc.y = costChartY + costChartHeight + 20;
-
-  // Energy Security — only show when battery provides meaningful backup
-  if (simulation.battEnergyKWh > 0) {
-    const criticalLoadKW = simulation.peakDemandKW * 0.3;
-    const backupHours = criticalLoadKW > 0 ? simulation.battEnergyKWh / criticalLoadKW : 0;
-
-    const cardY = doc.y;
-    const cardH = 60;
-    drawRoundedRect(doc, margin, cardY, contentWidth, cardH, 8, COLORS.blue);
-
-    doc.fontSize(10).fillColor(COLORS.white);
-    doc.text(t("SÉCURITÉ ÉNERGÉTIQUE — En cas de panne, votre batterie maintient les opérations essentielles pendant :",
-      "ENERGY SECURITY — In case of outage, your battery maintains essential operations for:"), margin + 15, cardY + 10, { width: contentWidth - 160 });
-
-    doc.fontSize(28).fillColor(COLORS.gold).font("Helvetica-Bold");
-    doc.text(`${backupHours.toFixed(1)}h`, margin + contentWidth - 130, cardY + 12, { width: 115, align: "center" });
-    doc.font("Helvetica");
+    doc.y += surplusH + 10;
   }
 
   drawPageFooter(ctx, t("Document confidentiel | Généré par kWh Québec | Projections financières", "Confidential document | Generated by kWh Québec | Financial projections"));

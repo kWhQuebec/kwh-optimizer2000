@@ -117,3 +117,19 @@ export function drawPageFooter(ctx: PDFContext, label: string) {
   doc.fontSize(8).fillColor(COLORS.lightGray);
   doc.text(label, margin, pageHeight - 30, { align: "center", width: contentWidth });
 }
+
+/**
+ * Check if `requiredHeight` px of content fits on the current page.
+ * If not, add a new page with a simple header and reset doc.y.
+ * Returns true if a new page was added.
+ */
+export function ensureFits(ctx: PDFContext, requiredHeight: number): boolean {
+  const { doc, pageHeight, margin } = ctx;
+  if (doc.y + requiredHeight > pageHeight - 40) {
+    doc.addPage();
+    drawSimpleHeader(ctx);
+    doc.y = margin + 20;
+    return true;
+  }
+  return false;
+}

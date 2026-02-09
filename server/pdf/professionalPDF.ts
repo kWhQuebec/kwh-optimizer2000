@@ -35,25 +35,22 @@ export function generateProfessionalPDF(
 
   // === SALES FLOW: Impact pages first, technical details later ===
 
-  renderCover(ctx);
-  renderBillComparison(ctx);
-  renderProjectSnapshot(ctx);
-  renderKPIResults(ctx);
-  renderInvestmentBreakdown(ctx);
-  renderFinancingComparison(ctx);
-  renderFinancialProjections(ctx);
-  renderNextSteps(ctx);
-  renderCredibility(ctx);
-
-  // === TECHNICAL APPENDIX ===
-
-  renderEquipment(ctx);
+  renderCover(ctx);                        // P1: Cover
+  renderBillComparison(ctx);               // P2: Bill Before/After (conditional)
+  renderProjectSnapshot(ctx);              // P3: Project Snapshot
+  renderKPIResults(ctx);                   // P4: Your Results
+  renderInvestmentBreakdown(ctx);          // P5: Net Investment
+  renderFinancialProjections(ctx);         // P6: Financial Projections
+  renderFinancingComparison(ctx);          // P7: Financing Options (conditional)
+  renderAssumptions(ctx);                  // P8: Assumptions & Exclusions
+  renderEquipment(ctx);                    // P9: Equipment & Timeline (shared page)
   renderTimeline(ctx);
-  renderRoofConfiguration(ctx);
-  renderAssumptions(ctx);
+  renderNextSteps(ctx);                    // P10: Next Steps
+  renderCredibility(ctx);                  // P11: They Trust Us
 
-  // === DATA APPENDIX ===
+  // === APPENDIX ===
 
+  renderRoofConfiguration(ctx);            // Appendix: Roof Configuration (conditional)
   renderScenarioComparison(ctx, allSiteSimulations);
   renderCashflowTable(ctx);
   renderOptimization(ctx);

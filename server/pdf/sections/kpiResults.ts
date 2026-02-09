@@ -1,7 +1,7 @@
 import path from "path";
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { drawRoundedRect, drawPageFooter, formatCurrency, formatSmartCurrency, formatPercent } from "../helpers";
+import { drawRoundedRect, drawPageFooter, formatCurrency, formatSmartCurrency, formatPercent, ensureFits } from "../helpers";
 
 export function renderKPIResults(ctx: PDFContext) {
   const { doc, simulation, t, margin, contentWidth, pageWidth, pageHeight, headerHeight, dateStr } = ctx;
@@ -219,6 +219,7 @@ export function renderKPIResults(ctx: PDFContext) {
 
   // CO2 Equivalent Metrics
   doc.y = summaryY + 30;
+  ensureFits(ctx, 70);
   const co2Tonnes = simulation.co2AvoidedTonnesPerYear || 0;
   const totalProductionKWh = simulation.pvSizeKW * 1035;
   const co2TonnesDisplay = totalProductionKWh > 0 ? (totalProductionKWh * 0.002) / 1000 : co2Tonnes;
