@@ -999,7 +999,7 @@ const fr = {
           name: "Financier",
           items: [
             { label: "Taux d'actualisation", value: "8%" },
-            { label: "Inflation tarif Hydro-Québec", value: "4.8%/an" },
+            { label: "Inflation tarif Hydro-Québec", value: "3.5%/an" },
             { label: "Taux d'imposition", value: "26.5%" },
           ],
         },
@@ -1540,7 +1540,7 @@ const en = {
           name: "Financial",
           items: [
             { label: "Discount rate", value: "8%" },
-            { label: "Hydro-Québec rate inflation", value: "4.8%/year" },
+            { label: "Hydro-Québec rate inflation", value: "3.5%/year" },
             { label: "Tax rate", value: "26.5%" },
           ],
         },

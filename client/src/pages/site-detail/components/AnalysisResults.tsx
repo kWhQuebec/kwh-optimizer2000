@@ -2192,8 +2192,8 @@ export function AnalysisResults({
                                 </span>
                                 <span className="text-amber-600 dark:text-amber-300 ml-1">
                                   {language === "fr"
-                                    ? `Si Hydro-Québec augmente de +6%/an au lieu de +4.8%/an, la rentabilité s'améliore significativement.`
-                                    : `If Hydro-Québec increases +6%/year instead of +4.8%/year, profitability improves significantly.`}
+                                    ? `Si Hydro-Québec augmente de +6%/an au lieu de +${((assumptions.electricityEscalation || 0.035) * 100).toFixed(1).replace('.0', '')}%/an, la rentabilité s'améliore significativement.`
+                                    : `If Hydro-Québec increases +6%/year instead of +${((assumptions.electricityEscalation || 0.035) * 100).toFixed(1).replace('.0', '')}%/year, profitability improves significantly.`}
                                 </span>
                               </div>
                             </div>
