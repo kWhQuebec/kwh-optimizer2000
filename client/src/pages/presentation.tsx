@@ -809,9 +809,9 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
 
   const bars = [
     { label: language === 'fr' ? 'CAPEX Brut' : 'Gross CAPEX', value: capexGross, type: 'start' as const, color: BRAND_COLORS.primaryBlue },
-    { label: language === 'fr' ? 'HQ Solaire' : 'HQ Solar', value: hqSolar, type: 'deduction' as const, color: '#DC2626' },
-    { label: language === 'fr' ? 'HQ Batterie' : 'HQ Battery', value: hqBattery, type: 'deduction' as const, color: '#DC2626' },
-    { label: language === 'fr' ? 'ITC Fédéral' : 'Federal ITC', value: itcFederal, type: 'deduction' as const, color: '#DC2626' },
+    { label: language === 'fr' ? 'Hydro-Québec Solaire' : 'Hydro-Québec Solar', value: hqSolar, type: 'deduction' as const, color: '#DC2626' },
+    { label: language === 'fr' ? 'Hydro-Québec Batterie' : 'Hydro-Québec Battery', value: hqBattery, type: 'deduction' as const, color: '#DC2626' },
+    { label: language === 'fr' ? 'Crédit fédéral (ITC)' : 'Federal ITC', value: itcFederal, type: 'deduction' as const, color: '#DC2626' },
     { label: language === 'fr' ? 'Bouclier Fiscal' : 'Tax Shield', value: taxShield, type: 'deduction' as const, color: '#DC2626' },
     { label: language === 'fr' ? 'Net' : 'Net', value: capexNet, type: 'total' as const, color: '#2D915F' },
   ];
@@ -865,9 +865,9 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
               {[
-                { label: 'HQ Solar', value: hqSolar },
-                { label: 'HQ Battery', value: hqBattery },
-                { label: language === 'fr' ? 'ITC Fédéral' : 'Federal ITC', value: itcFederal },
+                { label: language === 'fr' ? 'Hydro-Québec Solaire' : 'Hydro-Québec Solar', value: hqSolar },
+                { label: language === 'fr' ? 'Hydro-Québec Batterie' : 'Hydro-Québec Battery', value: hqBattery },
+                { label: language === 'fr' ? 'Crédit fédéral (ITC)' : 'Federal ITC', value: itcFederal },
                 { label: language === 'fr' ? 'Bouclier Fiscal' : 'Tax Shield', value: taxShield },
               ].filter(item => item.value > 0).map((item, i) => (
                 <div key={i} className="rounded-xl p-4 text-center shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
