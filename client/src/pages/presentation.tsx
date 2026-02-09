@@ -814,7 +814,7 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
     { label: language === 'fr' ? 'Crédit fédéral (ITC)' : 'Federal ITC', value: itcFederal, type: 'deduction' as const, color: '#DC2626' },
     { label: language === 'fr' ? 'Bouclier Fiscal' : 'Tax Shield', value: taxShield, type: 'deduction' as const, color: '#DC2626' },
     { label: language === 'fr' ? 'Net' : 'Net', value: capexNet, type: 'total' as const, color: '#2D915F' },
-  ];
+  ].filter(bar => bar.type === 'start' || bar.type === 'total' || bar.value > 0);
 
   const maxVal = Math.max(capexGross, 1);
   const chartHeight = 300;
