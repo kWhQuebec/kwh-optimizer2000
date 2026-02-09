@@ -95,6 +95,7 @@ export const clients = pgTable("clients", {
   postalCode: text("postal_code"),
   notes: text("notes"),
   accountManagerEmail: text("account_manager_email").default("malabarre@kwh.quebec"),
+  website: text("website"),
   isArchived: boolean("is_archived").notNull().default(false),
   archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -244,6 +245,8 @@ export const meterFiles = pgTable("meter_files", {
   originalStoragePath: text("original_storage_path"),
   status: text("status").notNull().default("UPLOADED"), // "UPLOADED" | "PARSED" | "FAILED"
   errorMessage: text("error_message"),
+  isSynthetic: boolean("is_synthetic").default(false),
+  syntheticParams: jsonb("synthetic_params"), // Stores generation params for reproducibility
   createdAt: timestamp("created_at").defaultNow(),
 });
 

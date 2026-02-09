@@ -8,3 +8,4 @@ export * from './potentialAnalysis';
 export * from './monteCarloWrapper';
 export * from './peakShavingAnalysis';
 export * from './standardKitRecommender';
+export * from './syntheticProfile';

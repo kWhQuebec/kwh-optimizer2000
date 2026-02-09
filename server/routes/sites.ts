@@ -17,12 +17,15 @@ import {
 } from "@shared/schema";
 import {
   runMonteCarloAnalysis,
-  createSimplifiedScenarioRunner,
+  createHourlyScenarioRunner,
   analyzePeakShaving,
   recommendStandardKit,
   STANDARD_KITS,
   type MonteCarloConfig,
-  type SiteScenarioParams,
+  generateSyntheticProfile,
+  estimateAnnualConsumption,
+  type BuildingSubType,
+  type OperatingSchedule,
 } from "../analysis";
 import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-engine";
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError, ConflictError } from "../middleware/errorHandler";
@@ -966,24 +969,45 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
     throw new NotFoundError("Site");
   }
 
+  // Load hourly meter data — required for the real engine
+  const readings = await storage.getMeterReadingsBySite(siteId);
+  if (readings.length === 0) {
+    throw new BadRequestError("No meter data available for Monte Carlo analysis. Run a detailed analysis first.");
+  }
+
+  const { deduplicateMeterReadingsByHour, buildHourlyData } = await import("./siteAnalysisHelpers");
+
+  const dedupResult = deduplicateMeterReadingsByHour(readings.map(r => ({
+    kWh: r.kWh,
+    kW: r.kW,
+    timestamp: new Date(r.timestamp),
+    granularity: r.granularity || undefined
+  })));
+  const { hourlyData } = buildHourlyData(dedupResult.readings);
+
   // Get site's analysis assumptions or use defaults
   const baseAssumptions: AnalysisAssumptions = site.analysisAssumptions || defaultAnalysisAssumptions();
 
-  // Get site parameters for the scenario runner
-  // Try to extract from site's analysis data or use reasonable defaults
+  // Get sizing from latest analysis
   const analyses = await storage.getSimulationRunsBySite(siteId);
   const latestAnalysis = analyses.length > 0 ? analyses[analyses.length - 1] : null;
 
-  const siteParams: SiteScenarioParams = {
-    pvSizeKW: latestAnalysis?.pvSizeKW || site.quickAnalysisSystemSizeKw || 100,
-    annualConsumptionKWh: latestAnalysis?.annualConsumptionKWh || 200000,
-    tariffEnergy: baseAssumptions.tariffEnergy || 0.06,
-    tariffPower: baseAssumptions.tariffPower || 17.573,
-    peakKW: latestAnalysis?.peakDemandKW || 50,
-  };
+  const pvSizeKW = latestAnalysis?.pvSizeKW || site.quickAnalysisSystemSizeKw || 100;
+  const peakKW = latestAnalysis?.peakDemandKW || 50;
+  const battEnergyKWh = latestAnalysis?.battEnergyKWh || 0;
+  const battPowerKW = latestAnalysis?.battPowerKW || 0;
 
-  // Create scenario runner with site-specific parameters
-  const runScenario = createSimplifiedScenarioRunner(siteParams);
+  // Annualize consumption
+  let totalKWh = 0;
+  for (const r of dedupResult.readings) { totalKWh += r.kWh || 0; }
+  const annualizationFactor = 365 / Math.max(dedupResult.dataSpanDays, 1);
+  const annualConsumptionKWh = latestAnalysis?.annualConsumptionKWh || totalKWh * annualizationFactor;
+
+  // Create scenario runner backed by the real hourly engine
+  const runScenario = createHourlyScenarioRunner(
+    hourlyData, pvSizeKW, battEnergyKWh, battPowerKW,
+    peakKW, annualConsumptionKWh
+  );
 
   // Use provided config or default
   const monteCarloConfig: MonteCarloConfig = config || {
@@ -1003,7 +1027,6 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
   // Return result with monteCarlo wrapper for frontend compatibility
   res.json({
     monteCarlo: monteCarloResult,
-    siteParams,
     baseAssumptions,
   });
 }));
@@ -1489,6 +1512,127 @@ router.post("/:id/unarchive", authMiddleware, requireStaff, asyncHandler(async (
   });
 
   res.json(updatedSite);
+}));
+
+// ==================== SYNTHETIC PROFILE ====================
+
+const BUILDING_TYPE_LABELS: Record<string, string> = {
+  office: "Bureau",
+  warehouse: "Entrepôt",
+  retail: "Commerce",
+  industrial: "Industriel",
+  institutional: "Institutionnel",
+};
+
+const syntheticProfileSchema = z.object({
+  buildingSubType: z.enum(["office", "warehouse", "retail", "industrial", "institutional"]),
+  annualConsumptionKWh: z.number().positive().optional(),
+  monthlyBill: z.number().positive().optional(),
+  tariffCode: z.enum(["G", "M", "L"]).optional(),
+  buildingSqFt: z.number().positive().optional(),
+  operatingSchedule: z.enum(["standard", "extended", "24/7"]).optional(),
+});
+
+router.post("/:siteId/generate-synthetic-profile", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId } = req.params;
+
+  const site = await storage.getSite(siteId);
+  if (!site) {
+    throw new NotFoundError("Site");
+  }
+
+  const parsed = syntheticProfileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new BadRequestError("Invalid parameters: " + parsed.error.message);
+  }
+
+  const { buildingSubType, operatingSchedule, monthlyBill, tariffCode, buildingSqFt } = parsed.data;
+
+  // Determine annual consumption: direct value > bill estimate > area estimate > fallback
+  const annualConsumptionKWh = parsed.data.annualConsumptionKWh || estimateAnnualConsumption({
+    monthlyBill,
+    tariffCode: tariffCode as 'G' | 'M' | 'L' | undefined,
+    buildingSqFt: buildingSqFt || site.buildingSqFt || undefined,
+    buildingSubType,
+  });
+
+  log.info(`Generating synthetic profile for site ${siteId}: ${buildingSubType}, ${annualConsumptionKWh} kWh/yr`);
+
+  const result = generateSyntheticProfile({
+    buildingSubType: buildingSubType as BuildingSubType,
+    annualConsumptionKWh,
+    operatingSchedule: (operatingSchedule as OperatingSchedule) || 'standard',
+  });
+
+  const label = BUILDING_TYPE_LABELS[buildingSubType] || buildingSubType;
+
+  // Create the meter file entry
+  const meterFile = await storage.createMeterFile({
+    siteId,
+    fileName: `Profil synthétique - ${label}`,
+    granularity: "HOUR",
+    periodStart: result.readings[0].timestamp,
+    periodEnd: result.readings[result.readings.length - 1].timestamp,
+    isSynthetic: true,
+    syntheticParams: {
+      buildingSubType,
+      annualConsumptionKWh,
+      operatingSchedule: operatingSchedule || 'standard',
+      generatedAt: new Date().toISOString(),
+    },
+  });
+
+  // Update status to PARSED since we're creating readings directly
+  await storage.updateMeterFile(meterFile.id, { status: "PARSED" });
+
+  // Create meter readings (8760 entries)
+  const readings = result.readings.map(r => ({
+    meterFileId: meterFile.id,
+    timestamp: r.timestamp,
+    granularity: "HOUR" as const,
+    kWh: r.kWh,
+    kW: r.kW,
+  }));
+
+  await storage.createMeterReadings(readings);
+
+  log.info(`Synthetic profile created: ${readings.length} readings, peak ${result.metadata.estimatedPeakKW} kW`);
+
+  res.json({
+    meterFile: { ...meterFile, status: "PARSED" },
+    metadata: result.metadata,
+    readingsCount: readings.length,
+  });
+}));
+
+// ==================== COMPANY WEBSITE ANALYSIS ====================
+
+router.post("/:siteId/analyze-company-website", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId } = req.params;
+
+  const site = await storage.getSite(siteId);
+  if (!site) {
+    throw new NotFoundError("Site");
+  }
+
+  const { url } = req.body;
+  const websiteUrl = url || (site as any).client?.website;
+
+  if (!websiteUrl || typeof websiteUrl !== 'string') {
+    throw new BadRequestError("No website URL provided");
+  }
+
+  // Validate URL format
+  try {
+    new URL(websiteUrl);
+  } catch {
+    throw new BadRequestError("Invalid URL format");
+  }
+
+  const { analyzeCompanyWebsite } = await import("../analysis/companyWebAnalyzer");
+  const result = await analyzeCompanyWebsite(websiteUrl);
+
+  res.json(result);
 }));
 
 export default router;

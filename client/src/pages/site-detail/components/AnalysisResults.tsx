@@ -469,6 +469,12 @@ export function AnalysisResults({
                   ? `${(displayedScenario.pvSizeKW || 0).toFixed(0)} kWc solaire${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${(displayedScenario.battEnergyKWh || 0).toFixed(0)} kWh stockage` : ''}`
                   : `${(displayedScenario.pvSizeKW || 0).toFixed(0)} kWp solar${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${(displayedScenario.battEnergyKWh || 0).toFixed(0)} kWh storage` : ''}`}
               </p>
+              {site?.meterFiles?.some((f: any) => f.isSynthetic) && (
+                <Badge variant="outline" className="mt-2 border-amber-400 text-amber-700 bg-amber-50 gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {language === "fr" ? "Basé sur un profil synthétique" : "Based on synthetic profile"}
+                </Badge>
+              )}
             </div>
             <div className="flex flex-wrap gap-4">
               <div className="text-center">

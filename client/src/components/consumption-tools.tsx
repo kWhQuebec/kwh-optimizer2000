@@ -7,13 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import { 
-  BarChart3, 
-  FileText, 
-  Calculator, 
-  TrendingUp, 
-  Zap, 
-  DollarSign, 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  BarChart3,
+  FileText,
+  Calculator,
+  TrendingUp,
+  Zap,
+  DollarSign,
   Clock,
   Sun,
   Battery,
@@ -21,9 +22,15 @@ import {
   Edit3,
   RotateCcw,
   Save,
-  Building2
+  Building2,
+  Loader2,
+  Globe,
+  AlertTriangle,
+  Ruler
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
 const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -505,6 +512,360 @@ export function KPIDashboard({
             </div>
           ))}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ==================== SYNTHETIC PROFILE GENERATOR ====================
+
+const BUILDING_SUB_TYPES = ['office', 'warehouse', 'retail', 'industrial', 'institutional'] as const;
+
+const BUILDING_SUB_LABELS = {
+  fr: {
+    office: "Bureau",
+    warehouse: "Entrepôt",
+    retail: "Commerce",
+    industrial: "Industriel",
+    institutional: "Institutionnel",
+  },
+  en: {
+    office: "Office",
+    warehouse: "Warehouse",
+    retail: "Retail",
+    industrial: "Industrial",
+    institutional: "Institutional",
+  },
+};
+
+const SCHEDULE_LABELS = {
+  fr: { standard: "Standard", extended: "Étendu", "24/7": "24h/7" },
+  en: { standard: "Standard", extended: "Extended", "24/7": "24/7" },
+};
+
+const ENERGY_INTENSITY: Record<string, number> = {
+  office: 18, warehouse: 10, retail: 22, industrial: 15, institutional: 20,
+};
+
+interface SyntheticProfileGeneratorProps {
+  siteId: string;
+  buildingSqFt?: number | null;
+  clientWebsite?: string | null;
+  onGenerated: () => void;
+}
+
+export function SyntheticProfileGenerator({ siteId, buildingSqFt, clientWebsite, onGenerated }: SyntheticProfileGeneratorProps) {
+  const { language } = useI18n();
+  const { toast } = useToast();
+  const labels = language === "fr" ? BUILDING_SUB_LABELS.fr : BUILDING_SUB_LABELS.en;
+  const schedLabels = language === "fr" ? SCHEDULE_LABELS.fr : SCHEDULE_LABELS.en;
+
+  const [buildingSubType, setBuildingSubType] = useState<string>("office");
+  const [operatingSchedule, setOperatingSchedule] = useState<string>("standard");
+  const [inputMode, setInputMode] = useState<string>("bill");
+  const [billAmount, setBillAmount] = useState<number>(5000);
+  const [billingPeriod, setBillingPeriod] = useState<number>(1);
+  const [tariffCode, setTariffCode] = useState<string>("M");
+  const [sqFt, setSqFt] = useState<number>(buildingSqFt || 0);
+  const [directKWh, setDirectKWh] = useState<number>(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isAnalyzingWeb, setIsAnalyzingWeb] = useState(false);
+
+  // Compute estimated annual kWh for preview
+  const estimatedAnnual = (() => {
+    if (inputMode === "direct" && directKWh > 0) return directKWh;
+    if (inputMode === "area" && sqFt > 0) {
+      return sqFt * (ENERGY_INTENSITY[buildingSubType] || 18);
+    }
+    if (inputMode === "bill" && billAmount > 0) {
+      const rate = HQ_ENERGY_RATES[tariffCode] || 0.06;
+      const monthlyKWh = ((billAmount / billingPeriod) * 0.7) / rate;
+      return Math.round(monthlyKWh * 12);
+    }
+    return 0;
+  })();
+
+  const handleAnalyzeWeb = async () => {
+    if (!clientWebsite) return;
+    setIsAnalyzingWeb(true);
+    try {
+      const result = await apiRequest<{
+        buildingSubType: string;
+        operatingSchedule: string;
+        sector: string;
+        confidence: number;
+        reasoning: string;
+      }>("POST", `/api/sites/${siteId}/analyze-company-website`, { url: clientWebsite });
+
+      if (BUILDING_SUB_TYPES.includes(result.buildingSubType as any)) {
+        setBuildingSubType(result.buildingSubType);
+      }
+      if (['standard', 'extended', '24/7'].includes(result.operatingSchedule)) {
+        setOperatingSchedule(result.operatingSchedule);
+      }
+
+      toast({
+        title: language === "fr" ? "Analyse terminée" : "Analysis complete",
+        description: language === "fr"
+          ? `Secteur: ${result.sector} (confiance: ${Math.round(result.confidence * 100)}%)`
+          : `Sector: ${result.sector} (confidence: ${Math.round(result.confidence * 100)}%)`,
+      });
+    } catch (err: any) {
+      toast({
+        title: language === "fr" ? "Erreur d'analyse" : "Analysis error",
+        description: err.message || "Failed to analyze website",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzingWeb(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const body: Record<string, unknown> = {
+        buildingSubType,
+        operatingSchedule,
+      };
+
+      if (inputMode === "direct" && directKWh > 0) {
+        body.annualConsumptionKWh = directKWh;
+      } else if (inputMode === "area" && sqFt > 0) {
+        body.buildingSqFt = sqFt;
+      } else if (inputMode === "bill" && billAmount > 0) {
+        body.monthlyBill = billAmount / billingPeriod;
+        body.tariffCode = tariffCode;
+      }
+
+      const result = await apiRequest<{
+        meterFile: any;
+        metadata: { annualConsumptionKWh: number; estimatedPeakKW: number };
+        readingsCount: number;
+      }>("POST", `/api/sites/${siteId}/generate-synthetic-profile`, body);
+
+      toast({
+        title: language === "fr" ? "Profil synthétique généré" : "Synthetic profile generated",
+        description: language === "fr"
+          ? `${(result.metadata.annualConsumptionKWh / 1000).toFixed(0)} MWh/an — ${result.readingsCount} points horaires`
+          : `${(result.metadata.annualConsumptionKWh / 1000).toFixed(0)} MWh/yr — ${result.readingsCount} hourly data points`,
+      });
+
+      onGenerated();
+    } catch (err: any) {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: err.message || "Failed to generate profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <Card className="border-amber-200 bg-gradient-to-br from-amber-50/50 to-transparent">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-amber-600" />
+          <CardTitle className="text-lg">
+            {language === "fr" ? "Générer un profil synthétique" : "Generate Synthetic Profile"}
+          </CardTitle>
+        </div>
+        <CardDescription>
+          {language === "fr"
+            ? "Créez un profil de consommation horaire estimé (8760 points) pour débloquer l'analyse complète"
+            : "Create an estimated hourly consumption profile (8760 points) to unlock the full analysis"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Web analysis button */}
+        {clientWebsite && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAnalyzeWeb}
+            disabled={isAnalyzingWeb}
+            className="w-full gap-2"
+          >
+            {isAnalyzingWeb ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+            {language === "fr" ? "Pré-remplir depuis le site web" : "Pre-fill from website"}
+          </Button>
+        )}
+
+        {/* Building type */}
+        <div className="space-y-2">
+          <Label>{language === "fr" ? "Type de bâtiment" : "Building type"}</Label>
+          <Select value={buildingSubType} onValueChange={setBuildingSubType}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BUILDING_SUB_TYPES.map(type => (
+                <SelectItem key={type} value={type}>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    {labels[type]}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Operating schedule */}
+        <div className="space-y-2">
+          <Label>{language === "fr" ? "Horaire d'opération" : "Operating schedule"}</Label>
+          <Select value={operatingSchedule} onValueChange={setOperatingSchedule}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(schedLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Consumption input — 3 modes */}
+        <div className="space-y-2">
+          <Label>{language === "fr" ? "Consommation annuelle estimée" : "Estimated annual consumption"}</Label>
+          <Tabs value={inputMode} onValueChange={setInputMode}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="bill" className="text-xs gap-1">
+                <DollarSign className="h-3 w-3" />
+                {language === "fr" ? "Facture" : "Bill"}
+              </TabsTrigger>
+              <TabsTrigger value="area" className="text-xs gap-1">
+                <Ruler className="h-3 w-3" />
+                {language === "fr" ? "Superficie" : "Area"}
+              </TabsTrigger>
+              <TabsTrigger value="direct" className="text-xs gap-1">
+                <Zap className="h-3 w-3" />
+                kWh
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="bill" className="space-y-3 mt-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">{language === "fr" ? "Montant ($)" : "Amount ($)"}</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      value={billAmount || ""}
+                      onChange={(e) => setBillAmount(parseFloat(e.target.value) || 0)}
+                      className="pl-8 h-9"
+                      placeholder="5000"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{language === "fr" ? "Période (mois)" : "Period (months)"}</Label>
+                  <Select value={billingPeriod.toString()} onValueChange={(v) => setBillingPeriod(parseInt(v))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">{language === "fr" ? "Code tarifaire" : "Tariff code"}</Label>
+                <Select value={tariffCode} onValueChange={setTariffCode}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="G">G – {language === "fr" ? "Petite puissance" : "Small power"} (&lt;65 kW)</SelectItem>
+                    <SelectItem value="M">M – {language === "fr" ? "Moyenne puissance" : "Medium power"} (65kW–5MW)</SelectItem>
+                    <SelectItem value="L">L – {language === "fr" ? "Grande puissance" : "Large power"} (&gt;5MW)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="area" className="space-y-3 mt-3">
+              <div className="space-y-1">
+                <Label className="text-xs">{language === "fr" ? "Superficie (pi²)" : "Area (sq ft)"}</Label>
+                <Input
+                  type="number"
+                  value={sqFt || ""}
+                  onChange={(e) => setSqFt(parseFloat(e.target.value) || 0)}
+                  placeholder="50000"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {language === "fr"
+                  ? `Intensité: ${ENERGY_INTENSITY[buildingSubType] || 18} kWh/pi²/an pour ${labels[buildingSubType as keyof typeof labels]}`
+                  : `Intensity: ${ENERGY_INTENSITY[buildingSubType] || 18} kWh/ft²/yr for ${labels[buildingSubType as keyof typeof labels]}`}
+              </p>
+            </TabsContent>
+
+            <TabsContent value="direct" className="space-y-3 mt-3">
+              <div className="space-y-1">
+                <Label className="text-xs">{language === "fr" ? "Consommation annuelle (kWh)" : "Annual consumption (kWh)"}</Label>
+                <Input
+                  type="number"
+                  value={directKWh || ""}
+                  onChange={(e) => setDirectKWh(parseFloat(e.target.value) || 0)}
+                  placeholder="500000"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Preview */}
+        {estimatedAnnual > 0 && (
+          <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {language === "fr" ? "Consommation estimée:" : "Estimated consumption:"}
+              </span>
+              <Badge variant="secondary" className="font-mono text-base">
+                {(estimatedAnnual / 1000).toFixed(0)} MWh/{language === "fr" ? "an" : "yr"}
+              </Badge>
+            </div>
+          </div>
+        )}
+
+        {/* Warning banner */}
+        <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800">
+            {language === "fr"
+              ? "Ce profil est une estimation basée sur des archétypes. Il ne remplace pas les données réelles d'Hydro-Québec."
+              : "This profile is an estimate based on archetypes. It does not replace real Hydro-Québec data."}
+          </p>
+        </div>
+
+        {/* Generate button */}
+        <Button
+          className="w-full gap-2"
+          onClick={handleGenerate}
+          disabled={isGenerating || estimatedAnnual <= 0}
+        >
+          {isGenerating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <BarChart3 className="h-4 w-4" />
+          )}
+          {language === "fr"
+            ? isGenerating ? "Génération en cours..." : "Générer le profil (8760 points)"
+            : isGenerating ? "Generating..." : "Generate profile (8760 points)"}
+        </Button>
       </CardContent>
     </Card>
   );

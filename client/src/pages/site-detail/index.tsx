@@ -46,7 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LoadProfileEditor, SingleBillEstimator } from "@/components/consumption-tools";
+import { LoadProfileEditor, SingleBillEstimator, SyntheticProfileGenerator } from "@/components/consumption-tools";
 import { SiteVisitSection } from "@/components/site-visit-section";
 import { DesignAgreementSection } from "@/components/design-agreement-section";
 import { ActivityFeed } from "@/components/activity-feed";
@@ -1299,31 +1299,12 @@ export default function SiteDetailPage() {
           )}
 
           {isStaff && (!site.meterFiles || site.meterFiles.length === 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  {language === "fr" ? "Pas de fichiers CSV?" : "No CSV files?"}
-                </CardTitle>
-                <CardDescription>
-                  {language === "fr"
-                    ? "Estimez la consommation annuelle à partir d'une seule facture Hydro-Québec"
-                    : "Estimate annual consumption from a single Hydro-Québec bill"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SingleBillEstimator
-                  onEstimate={(monthlyData) => {
-                    const totalKWh = monthlyData.reduce((sum, d) => sum + d.consumption, 0);
-                    toast({
-                      title: language === "fr" ? "Profil généré" : "Profile generated",
-                      description: language === "fr"
-                        ? `Consommation estimée: ${(totalKWh / 1000).toFixed(0)} MWh/an`
-                        : `Estimated consumption: ${(totalKWh / 1000).toFixed(0)} MWh/year`,
-                    });
-                  }}
-                />
-              </CardContent>
-            </Card>
+            <SyntheticProfileGenerator
+              siteId={site.id}
+              buildingSqFt={site.buildingSqFt}
+              clientWebsite={(site as any).client?.website}
+              onGenerated={() => refetch()}
+            />
           )}
 
           {isStaff && site.meterFiles && site.meterFiles.length > 0 && latestSimulation && (() => {
