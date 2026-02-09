@@ -463,103 +463,7 @@ export async function generatePresentationPPTX(
     });
   });
 
-  // ================= SLIDE 6: ROOF CONFIGURATION =================
-  const slideRoof = pptx.addSlide({ masterName: "KWHMAIN" });
-
-  slideRoof.addText(t("CONFIGURATION TOITURE", "ROOF CONFIGURATION"), {
-    x: 0.5, y: 0.8, w: 9, h: 0.5,
-    fontSize: 22, bold: true, color: COLORS.blue
-  });
-
-  slideRoof.addShape("rect", {
-    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
-  });
-
-  if (roofImageBuffer) {
-    try {
-      const base64Image = roofImageBuffer.toString("base64");
-      slideRoof.addImage({
-        data: `data:image/png;base64,${base64Image}`,
-        x: 0.5, y: 1.5, w: 5.5, h: 3.5
-      });
-    } catch (imgError) {
-      log.error("Failed to add roof image to roof slide:", imgError);
-    }
-  } else {
-    slideRoof.addText(t("Image satellite non disponible", "Satellite image not available"), {
-      x: 0.5, y: 2.5, w: 5.5, h: 0.5,
-      fontSize: 12, color: COLORS.mediumGray, align: "center"
-    });
-  }
-
-  // Sizing summary on the right
-  slideRoof.addShape("rect", {
-    x: 6.3, y: 1.5, w: 3.5, h: 3.5,
-    fill: { color: COLORS.lightGray }
-  });
-
-  slideRoof.addText(t("DIMENSIONNEMENT", "SIZING SUMMARY"), {
-    x: 6.5, y: 1.6, w: 3.1, h: 0.35,
-    fontSize: 14, bold: true, color: COLORS.blue
-  });
-
-  const roofSummary = [
-    { label: t("Puissance solaire", "Solar capacity"), value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
-    { label: t("Stockage", "Storage"), value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh` : t("Non inclus", "N/A") },
-    { label: t("Production An 1", "Year-1 production"), value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
-    { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
-  ];
-
-  roofSummary.forEach((item, i) => {
-    const y = 2.1 + i * 0.65;
-    slideRoof.addText(item.label, {
-      x: 6.5, y, w: 3.1, h: 0.25,
-      fontSize: 9, color: COLORS.mediumGray
-    });
-    slideRoof.addText(item.value, {
-      x: 6.5, y: y + 0.22, w: 3.1, h: 0.3,
-      fontSize: 14, bold: true, color: COLORS.blue
-    });
-  });
-
-  // Per-zone roof polygon table (if available)
-  if (options?.roofPolygons && options.roofPolygons.length > 0) {
-    const orientLabel = (deg: number | undefined) => {
-      if (deg === undefined) return "—";
-      if (deg >= 337.5 || deg < 22.5) return "N";
-      if (deg < 67.5) return "NE";
-      if (deg < 112.5) return "E";
-      if (deg < 157.5) return "SE";
-      if (deg < 202.5) return "S";
-      if (deg < 247.5) return "SW";
-      if (deg < 292.5) return "W";
-      return "NW";
-    };
-    const polyTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
-      [
-        { text: "Zone", options: { bold: true, color: COLORS.white } },
-        { text: "m²", options: { bold: true, color: COLORS.white } },
-        { text: t("Orient.", "Orient."), options: { bold: true, color: COLORS.white } },
-      ],
-      ...options.roofPolygons.map((p, i) => [
-        { text: p.label || `Zone ${i + 1}` },
-        { text: `${Math.round(p.areaSqM)}` },
-        { text: orientLabel(p.orientation) },
-      ])
-    ];
-    slideRoof.addTable(polyTableData, {
-      x: 6.3, y: 3.7, w: 3.5,
-      fill: { color: COLORS.white },
-      border: { pt: 0.5, color: COLORS.lightGray },
-      fontFace: "Arial",
-      fontSize: 8,
-      color: COLORS.darkGray,
-      colW: [1.2, 0.8, 0.8],
-      rowH: 0.22
-    });
-  }
-
-  // ================= SLIDE 7: FINANCIAL PROJECTIONS (Cashflow + Cost of Inaction) =================
+  // ================= SLIDE 6: FINANCIAL PROJECTIONS (Cashflow + Cost of Inaction) =================
   if (simulation.cashflows && simulation.cashflows.length > 0) {
     const slideCashflow = pptx.addSlide({ masterName: "KWHMAIN" });
 
@@ -729,7 +633,7 @@ export async function generatePresentationPPTX(
     });
   }
 
-  // ================= SLIDE 8: FINANCING COMPARISON =================
+  // ================= SLIDE 7: FINANCING COMPARISON =================
   {
     const finCapexNet = simulation.capexNet || 0;
     const finSavingsYear1 = simulation.savingsYear1 || 0;
@@ -847,6 +751,55 @@ export async function generatePresentationPPTX(
       fontSize: 8, color: COLORS.mediumGray, align: "center"
     });
   }
+
+  // ================= SLIDE 8: ASSUMPTIONS & EXCLUSIONS =================
+  const slideAssump = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideAssump.addText(t("HYPOTHESES ET EXCLUSIONS", "ASSUMPTIONS & EXCLUSIONS"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideAssump.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  const assumptions = getAssumptions(lang);
+  const assTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
+    [
+      { text: t("Hypothese", "Assumption"), options: { bold: true, color: COLORS.white } },
+      { text: t("Valeur", "Value"), options: { bold: true, color: COLORS.white } }
+    ],
+    ...assumptions.map(a => [
+      { text: a.label },
+      { text: a.value, options: { bold: true, color: COLORS.blue } }
+    ])
+  ];
+
+  slideAssump.addTable(assTableData, {
+    x: 0.5, y: 1.4, w: 5.5,
+    fill: { color: COLORS.white },
+    border: { pt: 0.5, color: COLORS.lightGray },
+    fontFace: "Arial",
+    fontSize: 10,
+    color: COLORS.darkGray,
+    valign: "middle",
+    colW: [3.5, 2],
+    rowH: 0.3
+  });
+
+  slideAssump.addText(t("EXCLUSIONS", "EXCLUSIONS"), {
+    x: 6.5, y: 1.4, w: 3, h: 0.35,
+    fontSize: 14, bold: true, color: "DC2626"
+  });
+
+  const exclusions = getExclusions(lang);
+  exclusions.forEach((excl, i) => {
+    slideAssump.addText(`x  ${excl}`, {
+      x: 6.5, y: 1.85 + i * 0.35, w: 3.2, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
+    });
+  });
 
   // ================= SLIDE 9: EQUIPMENT & WARRANTIES =================
   const slideEquip = pptx.addSlide({ masterName: "KWHMAIN" });
@@ -995,56 +948,7 @@ export async function generatePresentationPPTX(
     fontSize: 9, color: COLORS.mediumGray, align: "center"
   });
 
-  // ================= SLIDE 11: ASSUMPTIONS & EXCLUSIONS =================
-  const slideAssump = pptx.addSlide({ masterName: "KWHMAIN" });
-
-  slideAssump.addText(t("HYPOTHESES ET EXCLUSIONS", "ASSUMPTIONS & EXCLUSIONS"), {
-    x: 0.5, y: 0.8, w: 9, h: 0.5,
-    fontSize: 22, bold: true, color: COLORS.blue
-  });
-
-  slideAssump.addShape("rect", {
-    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
-  });
-
-  const assumptions = getAssumptions(lang);
-  const assTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
-    [
-      { text: t("Hypothese", "Assumption"), options: { bold: true, color: COLORS.white } },
-      { text: t("Valeur", "Value"), options: { bold: true, color: COLORS.white } }
-    ],
-    ...assumptions.map(a => [
-      { text: a.label },
-      { text: a.value, options: { bold: true, color: COLORS.blue } }
-    ])
-  ];
-
-  slideAssump.addTable(assTableData, {
-    x: 0.5, y: 1.4, w: 5.5,
-    fill: { color: COLORS.white },
-    border: { pt: 0.5, color: COLORS.lightGray },
-    fontFace: "Arial",
-    fontSize: 10,
-    color: COLORS.darkGray,
-    valign: "middle",
-    colW: [3.5, 2],
-    rowH: 0.3
-  });
-
-  slideAssump.addText(t("EXCLUSIONS", "EXCLUSIONS"), {
-    x: 6.5, y: 1.4, w: 3, h: 0.35,
-    fontSize: 14, bold: true, color: "DC2626"
-  });
-
-  const exclusions = getExclusions(lang);
-  exclusions.forEach((excl, i) => {
-    slideAssump.addText(`x  ${excl}`, {
-      x: 6.5, y: 1.85 + i * 0.35, w: 3.2, h: 0.3,
-      fontSize: 9, color: COLORS.darkGray
-    });
-  });
-
-  // ================= SLIDE 12: NEXT STEPS =================
+  // ================= SLIDE 11: NEXT STEPS =================
   const slide5 = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slide5.addText(t("PROCHAINES ÉTAPES", "NEXT STEPS"), {
@@ -1123,7 +1027,7 @@ export async function generatePresentationPPTX(
     fontSize: 11, color: COLORS.gold, align: "center"
   });
 
-  // ================= SLIDE 13: THEY TRUST US =================
+  // ================= SLIDE 12: THEY TRUST US =================
   const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
 
   // Titre - utilise brandContent
@@ -1192,6 +1096,100 @@ export async function generatePresentationPPTX(
     x: 2.5, y: 4.72, w: 5, h: 0.4,
     fontSize: 14, bold: true, color: COLORS.gold, align: "center"
   });
+
+  // ================= APPENDIX: ROOF CONFIGURATION =================
+  const slideRoof = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideRoof.addText(t("CONFIGURATION TOITURE", "ROOF CONFIGURATION"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideRoof.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  if (roofImageBuffer) {
+    try {
+      const base64Image = roofImageBuffer.toString("base64");
+      slideRoof.addImage({
+        data: `data:image/png;base64,${base64Image}`,
+        x: 0.5, y: 1.5, w: 5.5, h: 3.5
+      });
+    } catch (imgError) {
+      log.error("Failed to add roof image to roof slide:", imgError);
+    }
+  } else {
+    slideRoof.addText(t("Image satellite non disponible", "Satellite image not available"), {
+      x: 0.5, y: 2.5, w: 5.5, h: 0.5,
+      fontSize: 12, color: COLORS.mediumGray, align: "center"
+    });
+  }
+
+  slideRoof.addShape("rect", {
+    x: 6.3, y: 1.5, w: 3.5, h: 3.5,
+    fill: { color: COLORS.lightGray }
+  });
+
+  slideRoof.addText(t("DIMENSIONNEMENT", "SIZING SUMMARY"), {
+    x: 6.5, y: 1.6, w: 3.1, h: 0.35,
+    fontSize: 14, bold: true, color: COLORS.blue
+  });
+
+  const roofSummary = [
+    { label: t("Puissance solaire", "Solar capacity"), value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
+    { label: t("Stockage", "Storage"), value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh` : t("Non inclus", "N/A") },
+    { label: t("Production An 1", "Year-1 production"), value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
+    { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
+  ];
+
+  roofSummary.forEach((item, i) => {
+    const y = 2.1 + i * 0.65;
+    slideRoof.addText(item.label, {
+      x: 6.5, y, w: 3.1, h: 0.25,
+      fontSize: 9, color: COLORS.mediumGray
+    });
+    slideRoof.addText(item.value, {
+      x: 6.5, y: y + 0.22, w: 3.1, h: 0.3,
+      fontSize: 14, bold: true, color: COLORS.blue
+    });
+  });
+
+  if (options?.roofPolygons && options.roofPolygons.length > 0) {
+    const orientLabel = (deg: number | undefined) => {
+      if (deg === undefined) return "—";
+      if (deg >= 337.5 || deg < 22.5) return "N";
+      if (deg < 67.5) return "NE";
+      if (deg < 112.5) return "E";
+      if (deg < 157.5) return "SE";
+      if (deg < 202.5) return "S";
+      if (deg < 247.5) return "SW";
+      if (deg < 292.5) return "W";
+      return "NW";
+    };
+    const polyTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
+      [
+        { text: "Zone", options: { bold: true, color: COLORS.white } },
+        { text: "m²", options: { bold: true, color: COLORS.white } },
+        { text: t("Orient.", "Orient."), options: { bold: true, color: COLORS.white } },
+      ],
+      ...options.roofPolygons.map((p, i) => [
+        { text: p.label || `Zone ${i + 1}` },
+        { text: `${Math.round(p.areaSqM)}` },
+        { text: orientLabel(p.orientation) },
+      ])
+    ];
+    slideRoof.addTable(polyTableData, {
+      x: 6.3, y: 3.7, w: 3.5,
+      fill: { color: COLORS.white },
+      border: { pt: 0.5, color: COLORS.lightGray },
+      fontFace: "Arial",
+      fontSize: 8,
+      color: COLORS.darkGray,
+      colW: [1.2, 0.8, 0.8],
+      rowH: 0.22
+    });
+  }
 
   const pptxData = await pptx.write({ outputType: "nodebuffer" });
   return pptxData as Buffer;

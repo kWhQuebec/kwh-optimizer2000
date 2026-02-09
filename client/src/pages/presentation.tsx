@@ -98,15 +98,15 @@ const SLIDES = [
   'snapshot',
   'kpi',
   'waterfall',
-  'roofConfig',
   'cashflow',
   'surplusCredits',
   'financing',
+  'assumptions',
   'equipment',
   'timeline',
-  'assumptions',
   'nextSteps',
   'credibility',
+  'roofConfig',
 ] as const;
 type SlideType = typeof SLIDES[number];
 
