@@ -716,7 +716,7 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
           <p className="text-center mb-6" style={{ color: '#6B7280' }}>
             {language === 'fr' ? 'Système: ' : 'System: '}
             <span className="font-semibold" style={{ color: '#1F2937' }}>{formatSmartPower(Number(simulation.pvSizeKW), language, 'kWc')}</span>
-            {simulation.battEnergyKWh && Number(simulation.battEnergyKWh) > 0 && (
+            {Number(simulation.battEnergyKWh) > 0 && (
               <> + <span className="font-semibold" style={{ color: '#1F2937' }}>{formatSmartEnergy(Number(simulation.battEnergyKWh), language)}</span></>
             )}
           </p>
