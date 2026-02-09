@@ -2119,9 +2119,9 @@ export function AnalysisResults({
                       const avgLoadKW = battPowerKW > 0 ? battPowerKW * 0.5 : (simulation.peakDemandKW ? simulation.peakDemandKW * 0.3 : 0);
                       const backupHours = (battKWh > 0 && avgLoadKW > 0) ? (battKWh / avgLoadKW) : 0;
 
-                      const selfSufficiency = simulation.selfSufficiencyPercent
-                        ? simulation.selfSufficiencyPercent
-                        : (pvKW > 0 ? Math.min(40, pvKW / 10) : 0);
+                      const selfSufficiency = optimal.selfSufficiencyPercent
+                        ?? displayedScenario.selfSufficiencyPercent
+                        ?? (pvKW > 0 ? Math.min(40, pvKW / 10) : 0);
 
                       const propertyValueIncrease = pvKW * 1000;
 
