@@ -16,6 +16,7 @@ import type {
   FrontierPoint, HourlyProfileEntry, SimulationRun
 } from "@shared/schema";
 import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@shared/schema";
+import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
 import { getAssumptions, getExclusions, getEquipment, getTimeline, getAllStats, getFirstTestimonial, getNarrativeAct, getNarrativeTransition, getDesignFeeCovers, getClientProvides, getClientReceives } from "@shared/brandContent";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -34,54 +35,9 @@ import type { SiteWithDetails, VariantPreset, DisplayedScenarioType } from "../t
 const MONTH_NAMES_FR = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const MONTH_NAMES_EN = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-function formatDollar(value: number): string {
-  const abs = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
-  if (abs >= 1_000_000) {
-    return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
-  }
-  if (abs >= 1_000) {
-    return `${sign}$${(abs / 1_000).toFixed(0)}k`;
-  }
-  return `${sign}$${abs.toFixed(0)}`;
-}
-
-function formatDollarSigned(value: number): string {
-  const abs = Math.abs(value);
-  const sign = value >= 0 ? '+' : '-';
-  if (abs >= 1_000_000) {
-    return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
-  }
-  if (abs >= 1_000) {
-    return `${sign}$${(abs / 1_000).toFixed(0)}k`;
-  }
-  return `${sign}$${abs.toFixed(0)}`;
-}
-
-function formatDollarDecimal(value: number): string {
-  const abs = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
-  if (abs >= 1_000_000) {
-    return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
-  }
-  if (abs >= 1_000) {
-    return `${sign}$${(abs / 1_000).toFixed(1)}k`;
-  }
-  return `${sign}$${abs.toFixed(0)}`;
-}
-
-function formatPower(valueKW: number): string {
-  if (valueKW >= 1_000) {
-    return `${(valueKW / 1_000).toFixed(1)} MW`;
-  }
-  return `${valueKW.toFixed(0)} kW`;
-}
-
-function formatPowerC(valueKW: number): string {
-  if (valueKW >= 1_000) {
-    return `${(valueKW / 1_000).toFixed(1)} MWc`;
-  }
-  return `${valueKW.toFixed(0)} kWc`;
+function formatDollarSigned(value: number, lang: string = 'fr'): string {
+  const sign = value >= 0 ? '+' : '';
+  return `${sign}${formatSmartCurrency(value, lang)}`;
 }
 
 export function AnalysisResults({
@@ -389,7 +345,7 @@ export function AnalysisResults({
       base: 0,
       value: capexGross,
       fill: "hsl(var(--muted-foreground))",
-      label: `${formatDollar(capexGross)}`,
+      label: `${formatSmartCurrency(capexGross, language)}`,
       isEndpoint: true
     });
     if (hqSolar > 0) {
@@ -399,7 +355,7 @@ export function AnalysisResults({
         base: running,
         value: hqSolar,
         fill: "#22C55E",
-        label: `${formatDollar(-hqSolar)}`,
+        label: `${formatSmartCurrency(-hqSolar, language)}`,
         isEndpoint: false
       });
     }
@@ -410,7 +366,7 @@ export function AnalysisResults({
         base: running,
         value: hqBattery,
         fill: "#22C55E",
-        label: `${formatDollar(-hqBattery)}`,
+        label: `${formatSmartCurrency(-hqBattery, language)}`,
         isEndpoint: false
       });
     }
@@ -421,7 +377,7 @@ export function AnalysisResults({
         base: running,
         value: itc,
         fill: "#3B82F6",
-        label: `${formatDollar(-itc)}`,
+        label: `${formatSmartCurrency(-itc, language)}`,
         isEndpoint: false
       });
     }
@@ -432,7 +388,7 @@ export function AnalysisResults({
         base: running,
         value: taxShield,
         fill: "#3B82F6",
-        label: `${formatDollar(-taxShield)}`,
+        label: `${formatSmartCurrency(-taxShield, language)}`,
         isEndpoint: false
       });
     }
@@ -441,7 +397,7 @@ export function AnalysisResults({
       base: 0,
       value: netCapex,
       fill: "hsl(var(--primary))",
-      label: `${formatDollar(netCapex)}`,
+      label: `${formatSmartCurrency(netCapex, language)}`,
       isEndpoint: true
     });
     return items;
@@ -466,8 +422,8 @@ export function AnalysisResults({
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {language === "fr"
-                  ? `${(displayedScenario.pvSizeKW || 0).toFixed(0)} kWc solaire${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${(displayedScenario.battEnergyKWh || 0).toFixed(0)} kWh stockage` : ''}`
-                  : `${(displayedScenario.pvSizeKW || 0).toFixed(0)} kWp solar${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${(displayedScenario.battEnergyKWh || 0).toFixed(0)} kWh storage` : ''}`}
+                  ? `${formatSmartPower(displayedScenario.pvSizeKW || 0, language)} solaire${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${formatSmartEnergy(displayedScenario.battEnergyKWh || 0, language)} stockage` : ''}`
+                  : `${formatSmartPower(displayedScenario.pvSizeKW || 0, language, 'kW')} solar${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${formatSmartEnergy(displayedScenario.battEnergyKWh || 0, language)} storage` : ''}`}
               </p>
               {site?.meterFiles?.some((f: any) => f.isSynthetic) && (
                 <Badge variant="outline" className="mt-2 border-amber-400 text-amber-700 bg-amber-50 gap-1">
@@ -478,7 +434,7 @@ export function AnalysisResults({
             </div>
             <div className="flex flex-wrap gap-4">
               <div className="text-center">
-                <p className="text-2xl font-bold font-mono text-primary">{formatDollar(dashboardAnnualSavings || 0)}</p>
+                <p className="text-2xl font-bold font-mono text-primary">{formatSmartCurrency(dashboardAnnualSavings || 0, language)}</p>
                 <p className="text-xs text-muted-foreground">{language === "fr" ? "économies/an" : "savings/yr"}</p>
               </div>
               <div className="text-center">
@@ -486,7 +442,7 @@ export function AnalysisResults({
                 <p className="text-xs text-muted-foreground">{language === "fr" ? "retour" : "payback"}</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold font-mono text-green-600">{formatDollar(dashboardNpv25 || 0)}</p>
+                <p className="text-2xl font-bold font-mono text-green-600">{formatSmartCurrency(dashboardNpv25 || 0, language)}</p>
                 <p className="text-xs text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25 yrs"}</p>
               </div>
             </div>
@@ -522,7 +478,7 @@ export function AnalysisResults({
               <div>
                 <p className="text-xs text-muted-foreground">{language === "fr" ? "Consommation annuelle" : "Annual Consumption"}</p>
                 <p className="text-lg font-bold font-mono" data-testid="text-annual-consumption">
-                  {((simulation.annualConsumptionKWh || 0) / 1000).toFixed(0)} <span className="text-sm font-normal">MWh</span>
+                  {formatSmartEnergy(simulation.annualConsumptionKWh || 0, language)}
                 </p>
               </div>
             </div>
@@ -555,7 +511,7 @@ export function AnalysisResults({
               <div>
                 <p className="text-xs text-muted-foreground">{language === "fr" ? "Facture annuelle est." : "Est. Annual Bill"}</p>
                 <p className="text-lg font-bold font-mono text-red-600" data-testid="text-est-bill">
-                  {formatDollar((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06))}
+                  {formatSmartCurrency((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06), language)}
                 </p>
               </div>
             </div>
@@ -641,7 +597,7 @@ export function AnalysisResults({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Panneaux solaires" : "Solar Panels"}</p>
-                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-pv-size">{(displayedScenario.pvSizeKW || 0).toFixed(0)} <span className="text-sm font-normal">kWc</span></p>
+                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-pv-size">{formatSmartPower(displayedScenario.pvSizeKW || 0, language)}</p>
                 {displayedScenario.pvSizeKW > 1000 && (
                   <Badge variant="destructive" className="mt-1 text-xs flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
@@ -656,7 +612,7 @@ export function AnalysisResults({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Stockage énergie" : "Energy Storage"}</p>
-                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-battery-size">{(displayedScenario.battEnergyKWh || 0).toFixed(0)} <span className="text-sm font-normal">kWh</span></p>
+                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-battery-size">{formatSmartEnergy(displayedScenario.battEnergyKWh || 0, language)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -674,7 +630,7 @@ export function AnalysisResults({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Capacité toit estimée" : "Est. Roof Capacity"}</p>
-                <p className="text-lg font-bold font-mono">{Math.round(maxPVFromRoof * 0.9)} <span className="text-sm font-normal">kWc</span></p>
+                <p className="text-lg font-bold font-mono">{formatSmartPower(Math.round(maxPVFromRoof * 0.9), language)}</p>
                 {isRoofLimited && (
                   <Badge variant="secondary" className="mt-1 text-xs">
                     {language === "fr" ? "Limité par le toit" : "Roof limited"}
@@ -729,7 +685,7 @@ export function AnalysisResults({
               </p>
             </div>
             <p className="text-2xl font-bold font-mono" data-testid="text-savings">
-              {formatDollar(dashboardAnnualSavings || 0)}
+              {formatSmartCurrency(dashboardAnnualSavings || 0, language)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {language === "fr" ? "par année" : "per year"}
@@ -746,7 +702,7 @@ export function AnalysisResults({
               </p>
             </div>
             <p className="text-2xl font-bold font-mono" data-testid="text-capex-net">
-              {formatDollar(displayedScenario.capexNet || 0)}
+              {formatSmartCurrency(displayedScenario.capexNet || 0, language)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {language === "fr" ? "après incitatifs" : "after incentives"}
@@ -763,7 +719,7 @@ export function AnalysisResults({
               </p>
             </div>
             <p className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400" data-testid="text-npv">
-              {formatDollar(dashboardNpv25 || 0)}
+              {formatSmartCurrency(dashboardNpv25 || 0, language)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {language === "fr" ? "profit net actualisé" : "net present value"}
@@ -904,7 +860,7 @@ export function AnalysisResults({
                       <span className="text-sm font-medium">{language === "fr" ? "Valeur immobilière" : "Property Value"}</span>
                     </div>
                     <p className="text-2xl font-bold font-mono text-purple-600">
-                      {formatDollarSigned(propertyValueIncrease)}
+                      {formatDollarSigned(propertyValueIncrease, language)}
                     </p>
                     <a href="/blog/solaire-valeur-immobiliere-commercial" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mt-1 inline-block">{language === "fr" ? "~$1k/kWc (voir les études)" : "~$1k/kW (see studies)"}</a>
                   </div>
@@ -944,7 +900,7 @@ export function AnalysisResults({
                     interval={0}
                   />
                   <YAxis
-                    tickFormatter={(v) => formatDollar(v)}
+                    tickFormatter={(v) => formatSmartCurrency(v, language)}
                     className="text-xs"
                   />
                   <Tooltip
@@ -988,13 +944,13 @@ export function AnalysisResults({
               <div className="text-center p-4 bg-muted/30 rounded-lg border">
                 <p className="text-sm text-muted-foreground mb-1">{language === "fr" ? "CAPEX brut estimé" : "Est. Gross CAPEX"}</p>
                 <p className="text-2xl font-bold font-mono">
-                  {formatDollar((displayedScenario.capexNet || 0) * 1.6)}
+                  {formatSmartCurrency((displayedScenario.capexNet || 0) * 1.6, language)}
                 </p>
               </div>
               <div className="text-center p-4 bg-primary/5 rounded-lg border border-primary/20">
                 <p className="text-sm text-muted-foreground mb-1">{language === "fr" ? "CAPEX net" : "Net CAPEX"}</p>
                 <p className="text-2xl font-bold font-mono text-primary">
-                  {formatDollar(displayedScenario.capexNet || 0)}
+                  {formatSmartCurrency(displayedScenario.capexNet || 0, language)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "après incitatifs" : "after incentives"}</p>
               </div>
@@ -1035,7 +991,7 @@ export function AnalysisResults({
                     {language === "fr" ? "Facture actuelle" : "Current bill"}
                   </p>
                   <p className="text-3xl font-bold font-mono text-red-600 dark:text-red-400" data-testid="text-annual-bill-before">
-                    {formatDollar(estimatedAnnualBill || 0)}
+                    {formatSmartCurrency(estimatedAnnualBill || 0, language)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "/année (énergie)" : "/year (energy)"}</p>
                 </div>
@@ -1050,7 +1006,7 @@ export function AnalysisResults({
                       {language === "fr" ? "Économie" : "Savings"} ({savingsPercent}%)
                     </p>
                     <p className="text-xl font-bold font-mono text-green-700 dark:text-green-300 text-center" data-testid="text-annual-savings-highlight">
-                      {formatDollar(-(annualSavings || 0))}
+                      {formatSmartCurrency(-(annualSavings || 0), language)}
                     </p>
                   </div>
                 </div>
@@ -1062,7 +1018,7 @@ export function AnalysisResults({
                       : `Bill after ${displayedScenario.pvSizeKW > 0 && displayedScenario.battEnergyKWh > 0 ? 'solar + storage' : displayedScenario.pvSizeKW > 0 ? 'solar' : 'storage'}`}
                   </p>
                   <p className="text-3xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-annual-bill-after">
-                    {formatDollar(estimatedBillAfter || 0)}
+                    {formatSmartCurrency(estimatedBillAfter || 0, language)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "/année (énergie)" : "/year (energy)"}</p>
                 </div>
@@ -1101,7 +1057,7 @@ export function AnalysisResults({
                   {language === "fr" ? "Surplus annuel exporté" : "Annual surplus exported"}
                 </p>
                 <p className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">
-                  {Math.round(displayedScenario.scenarioBreakdown?.totalExportedKWh || 0).toLocaleString()} kWh
+                  {formatSmartEnergy(displayedScenario.scenarioBreakdown?.totalExportedKWh || 0, language)}
                 </p>
               </div>
               <div className="p-3 bg-muted/30 rounded-lg">
@@ -1158,11 +1114,11 @@ export function AnalysisResults({
                 </p>
               </div>
               <p className="text-2xl font-bold font-mono text-primary">
-                {formatDollar(showExtendedLifeAnalysis ? (simulation.npv30 || displayedScenario.npv25 || 0) : (displayedScenario.npv25 || 0))}
+                {formatSmartCurrency(showExtendedLifeAnalysis ? (simulation.npv30 || displayedScenario.npv25 || 0) : (displayedScenario.npv25 || 0), language)}
               </p>
               {showExtendedLifeAnalysis && simulation.npv30 && displayedScenario.npv25 && (
                 <p className="text-xs text-green-600 mt-1">
-                  {formatDollarSigned((simulation.npv30 || 0) - (displayedScenario.npv25 || 0))} {language === "fr" ? "vs 25 ans" : "vs 25 yrs"}
+                  {formatDollarSigned((simulation.npv30 || 0) - (displayedScenario.npv25 || 0), language)} {language === "fr" ? "vs 25 ans" : "vs 25 yrs"}
                 </p>
               )}
             </CardContent>
@@ -1229,8 +1185,8 @@ export function AnalysisResults({
              displayedScenario.battEnergyKWh !== (simulation.battEnergyKWh || 0)) && (
             <p className="text-xs text-muted-foreground mt-1">
               {language === "fr"
-                ? `Profil basé sur la configuration initiale (${simulation.pvSizeKW || 0} kWc Solaire + ${simulation.battEnergyKWh || 0} kWh stockage)`
-                : `Profile based on initial configuration (${simulation.pvSizeKW || 0} kWp Solar + ${simulation.battEnergyKWh || 0} kWh storage)`}
+                ? `Profil basé sur la configuration initiale (${formatSmartPower(simulation.pvSizeKW || 0, language)} Solaire + ${formatSmartEnergy(simulation.battEnergyKWh || 0, language)} stockage)`
+                : `Profile based on initial configuration (${formatSmartPower(simulation.pvSizeKW || 0, language, 'kW')} Solar + ${formatSmartEnergy(simulation.battEnergyKWh || 0, language)} storage)`}
             </p>
           )}
         </CardHeader>
@@ -1708,11 +1664,11 @@ export function AnalysisResults({
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">{language === "fr" ? "Notre système" : "Our system"}</span>
-                        <span className="font-mono font-medium">{ourPvKw.toFixed(1)} kWc</span>
+                        <span className="font-mono font-medium">{formatSmartPower(ourPvKw, language)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">{language === "fr" ? "Google max config" : "Google max config"}</span>
-                        <span className="font-mono">{googleMaxPvKw.toFixed(1)} kWc ({maxConfig.panelsCount} pan.)</span>
+                        <span className="font-mono">{formatSmartPower(googleMaxPvKw, language)} ({maxConfig.panelsCount} pan.)</span>
                       </div>
                     </div>
 
@@ -1727,17 +1683,17 @@ export function AnalysisResults({
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">{language === "fr" ? "Notre simulation" : "Our simulation"}</span>
-                            <span className="font-mono">{Math.round(ourAnnualProd).toLocaleString()} kWh/an</span>
+                            <span className="font-mono">{formatSmartEnergy(ourAnnualProd, language)}/{language === "fr" ? "an" : "yr"}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">{language === "fr" ? "Basé sur rendement Google" : "Based on Google yield"}</span>
-                            <span className="font-mono text-primary">{Math.round(ourPvKw * googleYield).toLocaleString()} kWh/an</span>
+                            <span className="font-mono text-primary">{formatSmartEnergy(ourPvKw * googleYield, language)}/{language === "fr" ? "an" : "yr"}</span>
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
                           {language === "fr"
-                            ? `Votre système de ${ourPvKw.toFixed(0)} kWc × rendement Google de ${Math.round(googleYield)} kWh/kWc = ${Math.round(ourPvKw * googleYield).toLocaleString()} kWh/an`
-                            : `Your ${ourPvKw.toFixed(0)} kWp system × Google yield of ${Math.round(googleYield)} kWh/kWp = ${Math.round(ourPvKw * googleYield).toLocaleString()} kWh/yr`}
+                            ? `Votre système de ${formatSmartPower(ourPvKw, language)} × rendement Google de ${Math.round(googleYield)} kWh/kWc = ${formatSmartEnergy(ourPvKw * googleYield, language)}/an`
+                            : `Your ${formatSmartPower(ourPvKw, language, 'kW')} system × Google yield of ${Math.round(googleYield)} kWh/kWp = ${formatSmartEnergy(ourPvKw * googleYield, language)}/yr`}
                         </p>
                       </div>
                     )}
@@ -1747,11 +1703,11 @@ export function AnalysisResults({
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">{language === "fr" ? "Notre prod." : "Our prod."}</span>
-                            <span className="font-mono">{Math.round(ourAnnualProd).toLocaleString()} kWh/an</span>
+                            <span className="font-mono">{formatSmartEnergy(ourAnnualProd, language)}/{language === "fr" ? "an" : "yr"}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">{language === "fr" ? "Google prod." : "Google prod."}</span>
-                            <span className="font-mono">{Math.round(googleProdAc).toLocaleString()} kWh/an</span>
+                            <span className="font-mono">{formatSmartEnergy(googleProdAc, language)}/{language === "fr" ? "an" : "yr"}</span>
                           </div>
                         </div>
                       </div>
@@ -1790,15 +1746,15 @@ export function AnalysisResults({
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">{language === "fr" ? "Solaire" : "Solar"}</span>
-                          <span className="font-mono text-sm">{formatDollarDecimal(displayedScenario.scenarioBreakdown.capexSolar || 0)}</span>
+                          <span className="font-mono text-sm">{formatSmartCurrency(displayedScenario.scenarioBreakdown.capexSolar || 0, language)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">{language === "fr" ? "Stockage" : "Storage"}</span>
-                          <span className="font-mono text-sm">{formatDollarDecimal(displayedScenario.scenarioBreakdown.capexBattery || 0)}</span>
+                          <span className="font-mono text-sm">{formatSmartCurrency(displayedScenario.scenarioBreakdown.capexBattery || 0, language)}</span>
                         </div>
                         <div className="flex justify-between border-t pt-2">
                           <span className="text-sm font-medium">{language === "fr" ? "CAPEX brut" : "Gross CAPEX"}</span>
-                          <span className="font-mono text-sm font-bold">{formatDollarDecimal(displayedScenario.scenarioBreakdown.capexGross || 0)}</span>
+                          <span className="font-mono text-sm font-bold">{formatSmartCurrency(displayedScenario.scenarioBreakdown.capexGross || 0, language)}</span>
                         </div>
                       </div>
                     </div>
@@ -1810,27 +1766,27 @@ export function AnalysisResults({
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">{language === "fr" ? "Hydro-Québec (solaire)" : "Hydro-Québec Solar"}</span>
-                          <span className="font-mono text-sm text-primary">{formatDollarDecimal(-(displayedScenario.scenarioBreakdown.actualHQSolar || 0))}</span>
+                          <span className="font-mono text-sm text-primary">{formatSmartCurrency(-(displayedScenario.scenarioBreakdown.actualHQSolar || 0), language)}</span>
                         </div>
                         {(displayedScenario.scenarioBreakdown.actualHQBattery || 0) > 0 && (
                           <div className="flex justify-between">
                             <span className="text-sm text-muted-foreground">
                               {language === "fr" ? "Hydro-Québec (crédit stockage jumelé)" : "Hydro-Québec (paired storage credit)"}
                             </span>
-                            <span className="font-mono text-sm text-primary">{formatDollarDecimal(-(displayedScenario.scenarioBreakdown.actualHQBattery || 0))}</span>
+                            <span className="font-mono text-sm text-primary">{formatSmartCurrency(-(displayedScenario.scenarioBreakdown.actualHQBattery || 0), language)}</span>
                           </div>
                         )}
                         <div className="flex justify-between">
                           <span className="text-sm">{language === "fr" ? "CII fédéral (30%)" : "Federal ITC (30%)"}</span>
-                          <span className="font-mono text-sm text-primary">{formatDollarDecimal(-(displayedScenario.scenarioBreakdown.itcAmount || 0))}</span>
+                          <span className="font-mono text-sm text-primary">{formatSmartCurrency(-(displayedScenario.scenarioBreakdown.itcAmount || 0), language)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">{language === "fr" ? "Bouclier fiscal (DPA)" : "Tax Shield (CCA)"}</span>
-                          <span className="font-mono text-sm text-primary">{formatDollarDecimal(-(displayedScenario.scenarioBreakdown.taxShield || 0))}</span>
+                          <span className="font-mono text-sm text-primary">{formatSmartCurrency(-(displayedScenario.scenarioBreakdown.taxShield || 0), language)}</span>
                         </div>
                         <div className="flex justify-between border-t pt-2">
                           <span className="text-sm font-medium">{language === "fr" ? "CAPEX net" : "Net CAPEX"}</span>
-                          <span className="font-mono text-sm font-bold">{formatDollarDecimal(displayedScenario.capexNet || 0)}</span>
+                          <span className="font-mono text-sm font-bold">{formatSmartCurrency(displayedScenario.capexNet || 0, language)}</span>
                         </div>
                       </div>
                     </div>
@@ -1848,7 +1804,7 @@ export function AnalysisResults({
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">{language === "fr" ? "VAN 25 ans" : "NPV 25 years"}</p>
-                        <p className="text-lg font-bold font-mono">{formatDollar(displayedScenario.npv25 || 0)}</p>
+                        <p className="text-lg font-bold font-mono">{formatSmartCurrency(displayedScenario.npv25 || 0, language)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">{language === "fr" ? "TRI 25 ans" : "IRR 25 years"}</p>
@@ -1920,14 +1876,14 @@ export function AnalysisResults({
                             type="number"
                             dataKey="capexNet"
                             name={language === "fr" ? "Investissement net" : "Net Investment"}
-                            tickFormatter={(v) => formatDollar(v)}
+                            tickFormatter={(v) => formatSmartCurrency(v, language)}
                             className="text-xs"
                           />
                           <YAxis
                             type="number"
                             dataKey="npv25"
                             name={language === "fr" ? "VAN" : "NPV"}
-                            tickFormatter={(v) => formatDollar(v)}
+                            tickFormatter={(v) => formatSmartCurrency(v, language)}
                             className="text-xs"
                           />
                           <ZAxis type="number" range={[60, 200]} />
@@ -1957,10 +1913,10 @@ export function AnalysisResults({
                                   : (language === "fr" ? "Stockage" : "Storage");
 
                               const sizingLabel = actualType === 'hybrid'
-                                ? `${pvKW}kW Solar + ${battKWh}kWh`
+                                ? `${formatSmartPower(pvKW, language, 'kW')} Solar + ${formatSmartEnergy(battKWh, language)}`
                                 : actualType === 'solar'
-                                  ? `${pvKW}kW Solar`
-                                  : `${battKWh}kWh`;
+                                  ? `${formatSmartPower(pvKW, language, 'kW')} Solar`
+                                  : formatSmartEnergy(battKWh, language);
 
                               return (
                                 <div className="bg-card border rounded-lg p-2 shadow-lg">
@@ -1971,10 +1927,10 @@ export function AnalysisResults({
                                     {typeLabel}: {sizingLabel}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {language === "fr" ? "Investissement" : "Investment"}: {formatDollarDecimal(point.capexNet || 0)}
+                                    {language === "fr" ? "Investissement" : "Investment"}: {formatSmartCurrency(point.capexNet || 0, language)}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {language === "fr" ? "VAN 25 ans" : "NPV 25 years"}: {formatDollarDecimal(point.npv25 || 0)}
+                                    {language === "fr" ? "VAN 25 ans" : "NPV 25 years"}: {formatSmartCurrency(point.npv25 || 0, language)}
                                   </p>
                                   {point.isOptimal && (
                                     <p className="text-xs font-medium text-primary mt-1">
@@ -2218,7 +2174,7 @@ export function AnalysisResults({
                                   <span className="text-xs font-medium">{language === "fr" ? "Valeur immo." : "Property Value"}</span>
                                 </div>
                                 <p className="text-lg font-bold font-mono text-purple-600">
-                                  {formatDollarSigned(propertyValueIncrease)}
+                                  {formatDollarSigned(propertyValueIncrease, language)}
                                 </p>
                                 <a href="/blog/solaire-valeur-immobiliere-commercial" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
                                   {language === "fr" ? `~$1k/kWc (voir les études)` : `~$1k/kW (see studies)`}
@@ -2261,11 +2217,11 @@ export function AnalysisResults({
                           >
                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                             <XAxis dataKey="pvSizeKW" className="text-xs" label={{ value: language === "fr" ? "Solaire (kWc)" : "Solar (kWp)", position: "bottom", offset: 0, style: { fontSize: 11 } }} />
-                            <YAxis tickFormatter={(v) => formatDollar(v)} className="text-xs" label={{ value: language === "fr" ? "VAN" : "NPV", angle: -90, position: "insideLeft", style: { fontSize: 11 } }} />
+                            <YAxis tickFormatter={(v) => formatSmartCurrency(v, language)} className="text-xs" label={{ value: language === "fr" ? "VAN" : "NPV", angle: -90, position: "insideLeft", style: { fontSize: 11 } }} />
                             <Tooltip
                               contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
-                              formatter={(value: number) => [formatDollarDecimal(value), language === "fr" ? "VAN 25 ans" : "NPV 25 years"]}
-                              labelFormatter={(v) => `${v} kWc`}
+                              formatter={(value: number) => [formatSmartCurrency(value, language), language === "fr" ? "VAN 25 ans" : "NPV 25 years"]}
+                              labelFormatter={(v) => formatSmartPower(Number(v), language)}
                             />
                             <ReferenceLine y={0} stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeWidth={1.5} label={{ value: language === "fr" ? "Taux d'actualisation" : "Discount Rate", position: "right", fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                             <Line
@@ -2291,9 +2247,9 @@ export function AnalysisResults({
                           return (
                             <p className="text-xs text-muted-foreground mt-2">
                               {language === "fr" ? "Optimal: " : "Optimal: "}
-                              <span className="font-medium text-foreground">{optimalSolar.pvSizeKW} kWc</span>
+                              <span className="font-medium text-foreground">{formatSmartPower(optimalSolar.pvSizeKW, language)}</span>
                               {language === "fr" ? " → VAN " : " → NPV "}
-                              <span className="font-medium text-primary">{formatDollarDecimal(optimalSolar.npv25)}</span>
+                              <span className="font-medium text-primary">{formatSmartCurrency(optimalSolar.npv25, language)}</span>
                             </p>
                           );
                         }
@@ -2320,11 +2276,11 @@ export function AnalysisResults({
                           >
                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                             <XAxis dataKey="battEnergyKWh" className="text-xs" label={{ value: language === "fr" ? "Stockage (kWh)" : "Storage (kWh)", position: "bottom", offset: 0, style: { fontSize: 11 } }} />
-                            <YAxis tickFormatter={(v) => formatDollar(v)} className="text-xs" label={{ value: language === "fr" ? "VAN" : "NPV", angle: -90, position: "insideLeft", style: { fontSize: 11 } }} />
+                            <YAxis tickFormatter={(v) => formatSmartCurrency(v, language)} className="text-xs" label={{ value: language === "fr" ? "VAN" : "NPV", angle: -90, position: "insideLeft", style: { fontSize: 11 } }} />
                             <Tooltip
                               contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
-                              formatter={(value: number) => [formatDollarDecimal(value), language === "fr" ? "VAN 25 ans" : "NPV 25 years"]}
-                              labelFormatter={(v) => `${v} kWh`}
+                              formatter={(value: number) => [formatSmartCurrency(value, language), language === "fr" ? "VAN 25 ans" : "NPV 25 years"]}
+                              labelFormatter={(v) => formatSmartEnergy(Number(v), language)}
                             />
                             <ReferenceLine y={0} stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeWidth={1.5} label={{ value: language === "fr" ? "Taux d'actualisation" : "Discount Rate", position: "right", fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                             <Line
@@ -2347,9 +2303,9 @@ export function AnalysisResults({
                           return (
                             <p className="text-xs text-muted-foreground mt-2">
                               {language === "fr" ? "Optimal: " : "Optimal: "}
-                              <span className="font-medium text-foreground">{optimalBattery.battEnergyKWh} kWh</span>
+                              <span className="font-medium text-foreground">{formatSmartEnergy(optimalBattery.battEnergyKWh, language)}</span>
                               {language === "fr" ? " → VAN " : " → NPV "}
-                              <span className="font-medium text-primary">{formatDollarDecimal(optimalBattery.npv25)}</span>
+                              <span className="font-medium text-primary">{formatSmartCurrency(optimalBattery.npv25, language)}</span>
                             </p>
                           );
                         }

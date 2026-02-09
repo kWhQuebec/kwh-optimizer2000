@@ -1,6 +1,6 @@
 import type { PDFContext, SimulationData } from "../types";
 import { COLORS } from "../types";
-import { formatCurrency, formatPercent, drawRoundedRect, drawSimpleHeader, drawPageFooter } from "../helpers";
+import { formatCurrency, formatPercent, formatSmartPower, formatSmartEnergy, drawRoundedRect, drawSimpleHeader, drawPageFooter } from "../helpers";
 
 export function renderScenarioComparison(ctx: PDFContext, allSiteSimulations: SimulationData[]) {
   const { doc, simulation, t, margin, contentWidth, pageWidth, pageHeight, dateStr } = ctx;
@@ -77,8 +77,8 @@ export function renderScenarioComparison(ctx: PDFContext, allSiteSimulations: Si
     colX = margin + 5;
 
     const scenarioName = isCurrentSim
-      ? `${(sim.pvSizeKW || 0).toFixed(0)} kWc ${t("(Proposé)", "(Proposed)")}`
-      : `${(sim.pvSizeKW || 0).toFixed(0)} kWc ${sim.battEnergyKWh > 0 ? `+ ${sim.battEnergyKWh.toFixed(0)} kWh` : t("(solaire)", "(solar)")}`;
+      ? `${formatSmartPower(sim.pvSizeKW || 0, ctx.lang, "kWc")} ${t("(Proposé)", "(Proposed)")}`
+      : `${formatSmartPower(sim.pvSizeKW || 0, ctx.lang, "kWc")} ${sim.battEnergyKWh > 0 ? `+ ${formatSmartEnergy(sim.battEnergyKWh, ctx.lang)}` : t("(solaire)", "(solar)")}`;
     doc.text(scenarioName, colX, currentY + 7, { width: colWidths[0] - 10 });
     colX += colWidths[0];
 

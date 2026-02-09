@@ -62,6 +62,7 @@ import { Badge } from "@/components/ui/badge";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import type { Site, Client, SimulationRun, CashflowEntry } from "@shared/schema";
+import { formatSmartPower, formatSmartEnergy, formatSmartCurrency as sharedFormatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import {
   getAssumptions,
   getExclusions,
@@ -81,16 +82,6 @@ interface SiteWithDetails extends Site {
   client: Client;
   simulationRuns: SimulationRun[];
 }
-
-const formatCurrency = (v: number) => `${Math.round(v).toLocaleString('fr-CA')} $`;
-const formatSmartCurrency = (v: number): string => {
-  const abs = Math.abs(v);
-  const sign = v < 0 ? '-' : '';
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M $`;
-  if (abs >= 10_000) return `${sign}${Math.round(abs / 1000)}k $`;
-  return `${sign}${Math.round(abs).toLocaleString('fr-CA')} $`;
-};
-const formatPercent = (v: number) => `${v.toFixed(0)} %`;
 
 const SLIDES = [
   'hero',
@@ -566,7 +557,7 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
               {language === 'fr' ? "Aujourd'hui" : 'Today'}
             </p>
             <p className="text-4xl md:text-5xl font-bold" style={{ color: '#DC2626' }}>
-              {costBefore > 0 ? formatSmartCurrency(costBefore) : '--'}
+              {costBefore > 0 ? sharedFormatSmartCurrency(costBefore, language) : '--'}
             </p>
             <p className="text-sm mt-2" style={{ color: '#6B7280' }}>
               {language === 'fr' ? 'par année' : 'per year'}
@@ -583,7 +574,7 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
               {language === 'fr' ? 'Avec Solaire' : 'With Solar'}
             </p>
             <p className="text-4xl md:text-5xl font-bold" style={{ color: '#16A34A' }}>
-              {costAfter > 0 ? formatSmartCurrency(costAfter) : '--'}
+              {costAfter > 0 ? sharedFormatSmartCurrency(costAfter, language) : '--'}
             </p>
             <p className="text-sm mt-2" style={{ color: '#6B7280' }}>
               {language === 'fr' ? 'par année' : 'per year'}
@@ -599,7 +590,7 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
               data-testid="banner-savings"
             >
               <p className="text-3xl md:text-4xl font-bold text-white mb-1">
-                {formatSmartCurrency(savings)}
+                {sharedFormatSmartCurrency(savings, language)}
               </p>
               <p className="text-white/90 text-base md:text-lg font-medium">
                 {language === 'fr' ? "d'économies par année" : 'savings per year'}
@@ -625,14 +616,14 @@ function SnapshotSlide({ simulation, language }: { simulation: SimulationRun | n
   const lang = language as "fr" | "en";
   const labels = getProjectSnapshotLabels(lang);
   const act1 = getNarrativeAct("act1_challenge", lang);
-  const systemSize = simulation?.pvSizeKW ? Number(simulation.pvSizeKW).toFixed(0) : null;
+  const systemSize = simulation?.pvSizeKW ? formatSmartPower(Number(simulation.pvSizeKW), language, 'kWc') : null;
 
   const items = [
-    { icon: Zap, label: labels.annualConsumption?.label || '', value: simulation?.annualConsumptionKWh ? `${Math.round(simulation.annualConsumptionKWh).toLocaleString()} kWh` : '--' },
-    { icon: TrendingUp, label: labels.peakDemand?.label || '', value: simulation?.peakDemandKW ? `${Number(simulation.peakDemandKW).toFixed(0)} kW` : '--' },
-    { icon: Sun, label: labels.solarCapacity?.label || '', value: simulation?.pvSizeKW ? `${Number(simulation.pvSizeKW).toFixed(0)} kWc` : '--' },
-    { icon: Battery, label: labels.batteryCapacity?.label || '', value: simulation?.battEnergyKWh && Number(simulation.battEnergyKWh) > 0 ? `${Number(simulation.battEnergyKWh).toFixed(0)} kWh` : '0 kWh' },
-    { icon: Sun, label: labels.estimatedProduction?.label || '', value: simulation?.pvSizeKW ? `${Math.round(Number(simulation.pvSizeKW) * 1035).toLocaleString()} kWh` : '--' },
+    { icon: Zap, label: labels.annualConsumption?.label || '', value: simulation?.annualConsumptionKWh ? formatSmartEnergy(simulation.annualConsumptionKWh, language) : '--' },
+    { icon: TrendingUp, label: labels.peakDemand?.label || '', value: simulation?.peakDemandKW ? formatSmartPower(Number(simulation.peakDemandKW), language, 'kW') : '--' },
+    { icon: Sun, label: labels.solarCapacity?.label || '', value: simulation?.pvSizeKW ? formatSmartPower(Number(simulation.pvSizeKW), language, 'kWc') : '--' },
+    { icon: Battery, label: labels.batteryCapacity?.label || '', value: simulation?.battEnergyKWh && Number(simulation.battEnergyKWh) > 0 ? formatSmartEnergy(Number(simulation.battEnergyKWh), language) : '0 kWh' },
+    { icon: Sun, label: labels.estimatedProduction?.label || '', value: simulation?.pvSizeKW ? formatSmartEnergy(Math.round(Number(simulation.pvSizeKW) * 1035), language) : '--' },
     { icon: CheckCircle2, label: labels.selfConsumptionRate?.label || '', value: simulation?.selfSufficiencyPercent ? `${Number(simulation.selfSufficiencyPercent).toFixed(0)}%` : '--' },
   ];
 
@@ -640,7 +631,7 @@ function SnapshotSlide({ simulation, language }: { simulation: SimulationRun | n
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
         <SlideTitle
-          subtitle={systemSize ? (language === 'fr' ? `Système de ${systemSize} kWc proposé` : `Proposed ${systemSize} kWp system`) : undefined}
+          subtitle={systemSize ? (language === 'fr' ? `Système de ${systemSize} proposé` : `Proposed ${systemSize} system`) : undefined}
         >
           {language === 'fr' ? 'Aperçu du Projet' : 'Project Snapshot'}
         </SlideTitle>
@@ -678,19 +669,19 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
     {
       icon: DollarSign,
       label: language === 'fr' ? 'Économies An 1' : 'Year 1 Savings',
-      value: simulation?.savingsYear1 ? formatSmartCurrency(simulation.savingsYear1) : '--',
+      value: simulation?.savingsYear1 ? sharedFormatSmartCurrency(simulation.savingsYear1, language) : '--',
       highlight: false
     },
     {
       icon: TrendingUp,
       label: language === 'fr' ? 'Investissement Net' : 'Net Investment',
-      value: simulation?.capexNet ? formatSmartCurrency(Number(simulation.capexNet)) : '--',
+      value: simulation?.capexNet ? sharedFormatSmartCurrency(Number(simulation.capexNet), language) : '--',
       highlight: false
     },
     {
       icon: Zap,
       label: language === 'fr' ? 'Profit Net (VAN)' : 'Net Profit (NPV)',
-      value: simulation?.npv25 ? formatSmartCurrency(npv25Val) : '--',
+      value: simulation?.npv25 ? sharedFormatSmartCurrency(npv25Val, language) : '--',
       highlight: true
     },
     {
@@ -716,7 +707,7 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-7xl w-full">
         <SlideTitle
-          subtitle={npv25Val > 0 ? (language === 'fr' ? `Profit net de ${formatSmartCurrency(npv25Val)} sur 25 ans` : `Net profit of ${formatSmartCurrency(npv25Val)} over 25 years`) : undefined}
+          subtitle={npv25Val > 0 ? (language === 'fr' ? `Profit net de ${sharedFormatSmartCurrency(npv25Val, language)} sur 25 ans` : `Net profit of ${sharedFormatSmartCurrency(npv25Val, language)} over 25 years`) : undefined}
         >
           {language === 'fr' ? 'Vos Résultats' : 'Your Results'}
         </SlideTitle>
@@ -724,9 +715,9 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
         {simulation?.pvSizeKW && (
           <p className="text-center mb-6" style={{ color: '#6B7280' }}>
             {language === 'fr' ? 'Système: ' : 'System: '}
-            <span className="font-semibold" style={{ color: '#1F2937' }}>{Number(simulation.pvSizeKW).toFixed(0)} kW</span>
+            <span className="font-semibold" style={{ color: '#1F2937' }}>{formatSmartPower(Number(simulation.pvSizeKW), language, 'kWc')}</span>
             {simulation.battEnergyKWh && Number(simulation.battEnergyKWh) > 0 && (
-              <> + <span className="font-semibold" style={{ color: '#1F2937' }}>{Number(simulation.battEnergyKWh).toFixed(0)} kWh</span></>
+              <> + <span className="font-semibold" style={{ color: '#1F2937' }}>{formatSmartEnergy(Number(simulation.battEnergyKWh), language)}</span></>
             )}
           </p>
         )}
@@ -846,7 +837,7 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
                   return (
                     <div key={i} className="flex flex-col items-center min-w-[50px] md:min-w-[60px]" style={{ width: '14%' }}>
                       <div className={`${bars.length >= 6 ? 'text-xs' : 'text-sm'} font-bold mb-1`} style={{ color: bar.type === 'deduction' ? '#DC2626' : '#1F2937' }}>
-                        {bar.type === 'deduction' ? '-' : ''}{bar.type === 'start' || bar.type === 'total' ? formatSmartCurrency(bar.value) : formatCurrency(bar.value)}
+                        {bar.type === 'deduction' ? '-' : ''}{bar.type === 'start' || bar.type === 'total' ? sharedFormatSmartCurrency(bar.value, language) : formatSmartCurrencyFull(bar.value, language)}
                       </div>
                       <div className="w-full relative" style={{ height: chartHeight }}>
                         <div style={{ height: chartHeight - barHeight }} />
@@ -875,7 +866,7 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
               ].filter(item => item.value > 0).map((item, i) => (
                 <div key={i} className="rounded-xl p-4 text-center shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
                   <p className="text-sm" style={{ color: '#6B7280' }}>{item.label}</p>
-                  <p className="text-lg md:text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>-{formatCurrency(item.value)}</p>
+                  <p className="text-lg md:text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>-{formatSmartCurrencyFull(item.value, language)}</p>
                 </div>
               ))}
             </div>
@@ -899,9 +890,9 @@ function RoofConfigSlide({ site, simulation, language }: { site: SiteWithDetails
     : null;
 
   const summaryItems = [
-    { label: language === 'fr' ? 'Puissance solaire' : 'Solar capacity', value: simulation?.pvSizeKW ? `${Number(simulation.pvSizeKW).toFixed(0)} kWc` : '--' },
-    { label: language === 'fr' ? 'Stockage' : 'Storage', value: simulation?.battEnergyKWh && Number(simulation.battEnergyKWh) > 0 ? `${Number(simulation.battEnergyKWh).toFixed(0)} kWh` : (language === 'fr' ? 'Non inclus' : 'N/A') },
-    { label: language === 'fr' ? 'Production An 1' : 'Year-1 production', value: simulation?.pvSizeKW ? `${Math.round(Number(simulation.pvSizeKW) * 1035).toLocaleString()} kWh` : '--' },
+    { label: language === 'fr' ? 'Puissance solaire' : 'Solar capacity', value: simulation?.pvSizeKW ? formatSmartPower(Number(simulation.pvSizeKW), language, 'kWc') : '--' },
+    { label: language === 'fr' ? 'Stockage' : 'Storage', value: simulation?.battEnergyKWh && Number(simulation.battEnergyKWh) > 0 ? formatSmartEnergy(Number(simulation.battEnergyKWh), language) : (language === 'fr' ? 'Non inclus' : 'N/A') },
+    { label: language === 'fr' ? 'Production An 1' : 'Year-1 production', value: simulation?.pvSizeKW ? formatSmartEnergy(Math.round(Number(simulation.pvSizeKW) * 1035), language) : '--' },
     { label: language === 'fr' ? 'Autoconsommation' : 'Self-consumption', value: simulation?.selfSufficiencyPercent ? `${Number(simulation.selfSufficiencyPercent).toFixed(0)}%` : '--' },
   ];
 
@@ -984,13 +975,13 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
                   <YAxis
                     stroke="#9CA3AF"
                     tick={{ fill: '#6B7280', fontSize: 12 }}
-                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k$`}
+                    tickFormatter={(value: number) => sharedFormatSmartCurrency(value, language)}
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', color: '#1F2937' }}
                     labelStyle={{ color: '#1F2937', fontWeight: 'bold' }}
                     formatter={(value: number, name: string) => [
-                      `${Math.round(value).toLocaleString('fr-CA')} $`,
+                      formatSmartCurrencyFull(value, language),
                       name === 'cumulative' ? (language === 'fr' ? 'Cumulatif' : 'Cumulative') : (language === 'fr' ? 'Annuel' : 'Annual')
                     ]}
                   />
@@ -1032,7 +1023,7 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
               >
                 <AlertTriangle className="h-5 w-5 inline-block mr-2" style={{ color: BRAND_COLORS.accentGold }} />
                 <span className="text-base md:text-lg font-semibold" style={{ color: BRAND_COLORS.accentGold }}>
-                  {language === 'fr' ? "Coût de l'inaction sur 25 ans" : 'Cost of inaction over 25 years'}: {formatSmartCurrency(costOfInaction)}
+                  {language === 'fr' ? "Coût de l'inaction sur 25 ans" : 'Cost of inaction over 25 years'}: {sharedFormatSmartCurrency(costOfInaction, language)}
                 </span>
               </div>
             )}
@@ -1091,7 +1082,7 @@ function SurplusCreditsSlide({ simulation, language }: { simulation: SimulationR
               {language === 'fr' ? 'Surplus exporté annuel' : 'Annual surplus exported'}
             </p>
             <p className="text-4xl md:text-5xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>
-              {Math.round(exported).toLocaleString('fr-CA')} kWh
+              {formatSmartEnergy(exported, language)}
             </p>
           </div>
 
@@ -1105,7 +1096,7 @@ function SurplusCreditsSlide({ simulation, language }: { simulation: SimulationR
               {language === 'fr' ? 'Valeur annuelle du crédit' : 'Annual credit value'}
             </p>
             <p className="text-4xl md:text-5xl font-bold" style={{ color: '#16A34A' }}>
-              {formatSmartCurrency(revenue)}
+              {sharedFormatSmartCurrency(revenue, language)}
             </p>
           </div>
         </div>
@@ -1160,12 +1151,12 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
       title: language === 'fr' ? 'Comptant' : 'Cash',
       icon: Banknote,
       recommended: true,
-      keyNumber: capexNet > 0 ? formatCurrency(capexNet) : '--',
+      keyNumber: capexNet > 0 ? formatSmartCurrencyFull(capexNet, language) : '--',
       keyLabel: language === 'fr' ? 'Investissement net' : 'Net investment',
       bullets: [
-        language === 'fr' ? `Économies An 1: ${formatCurrency(savingsYear1)}` : `Year 1 savings: ${formatCurrency(savingsYear1)}`,
+        language === 'fr' ? `Économies An 1: ${formatSmartCurrencyFull(savingsYear1, language)}` : `Year 1 savings: ${formatSmartCurrencyFull(savingsYear1, language)}`,
         language === 'fr' ? `Retour simple: ${paybackYears} ans` : `Simple payback: ${paybackYears} years`,
-        language === 'fr' ? `VAN 25 ans: ${formatCurrency(npv25)}` : `25yr NPV: ${formatCurrency(npv25)}`,
+        language === 'fr' ? `VAN 25 ans: ${formatSmartCurrencyFull(npv25, language)}` : `25yr NPV: ${formatSmartCurrencyFull(npv25, language)}`,
       ],
     },
     {
@@ -1173,12 +1164,12 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
       title: language === 'fr' ? 'Financement' : 'Loan',
       icon: CreditCard,
       recommended: false,
-      keyNumber: capexNet > 0 ? `${Math.round(loanMonthly).toLocaleString('fr-CA')} $/m` : '--',
+      keyNumber: capexNet > 0 ? `${formatSmartCurrencyFull(loanMonthly, language)}/m` : '--',
       keyLabel: language === 'fr' ? 'Paiement mensuel' : 'Monthly payment',
       bullets: [
         language === 'fr' ? `Taux: 5 %, terme 10 ans` : `Rate: 5%, 10yr term`,
-        language === 'fr' ? `Net An 1: ${formatCurrency(loanNetYear1)}` : `Net Year 1: ${formatCurrency(loanNetYear1)}`,
-        language === 'fr' ? `Annuel: ${formatCurrency(loanAnnualPayment)}` : `Annual: ${formatCurrency(loanAnnualPayment)}`,
+        language === 'fr' ? `Net An 1: ${formatSmartCurrencyFull(loanNetYear1, language)}` : `Net Year 1: ${formatSmartCurrencyFull(loanNetYear1, language)}`,
+        language === 'fr' ? `Annuel: ${formatSmartCurrencyFull(loanAnnualPayment, language)}` : `Annual: ${formatSmartCurrencyFull(loanAnnualPayment, language)}`,
       ],
     },
     {
@@ -1186,11 +1177,11 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
       title: language === 'fr' ? 'Location / Crédit-bail' : 'Lease',
       icon: Receipt,
       recommended: false,
-      keyNumber: capexNet > 0 ? `${Math.round(leaseMonthly).toLocaleString('fr-CA')} $/m` : '--',
+      keyNumber: capexNet > 0 ? `${formatSmartCurrencyFull(leaseMonthly, language)}/m` : '--',
       keyLabel: language === 'fr' ? 'Paiement mensuel' : 'Monthly payment',
       bullets: [
         language === 'fr' ? `Taux: 7 %, terme 15 ans` : `Rate: 7%, 15yr term`,
-        language === 'fr' ? `Net An 1: ${formatCurrency(leaseNetYear1)}` : `Net Year 1: ${formatCurrency(leaseNetYear1)}`,
+        language === 'fr' ? `Net An 1: ${formatSmartCurrencyFull(leaseNetYear1, language)}` : `Net Year 1: ${formatSmartCurrencyFull(leaseNetYear1, language)}`,
         language === 'fr' ? 'Aucun investissement initial' : 'No upfront investment',
       ],
     },

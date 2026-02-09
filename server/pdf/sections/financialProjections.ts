@@ -1,6 +1,6 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { formatCurrency, drawRoundedRect, drawSimpleHeader, drawPageFooter, ensureFits } from "../helpers";
+import { formatCurrency, formatSmartEnergy, drawRoundedRect, drawSimpleHeader, drawPageFooter, ensureFits } from "../helpers";
 import { drawCashflowChart, drawCostOfInactionChart } from "../charts";
 
 export function renderFinancialProjections(ctx: PDFContext) {
@@ -98,7 +98,7 @@ export function renderFinancialProjections(ctx: PDFContext) {
     doc.fontSize(8).fillColor(COLORS.mediumGray);
     doc.text(t("Surplus annuel exporté", "Annual surplus exported"), margin + 12, doc.y + 22);
     doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
-    doc.text(`${Math.round(surplusKWh).toLocaleString("fr-CA")} kWh`, margin + 12, doc.y + 33);
+    doc.text(formatSmartEnergy(surplusKWh, ctx.lang), margin + 12, doc.y + 33);
     doc.font("Helvetica");
 
     doc.fontSize(8).fillColor(COLORS.mediumGray);

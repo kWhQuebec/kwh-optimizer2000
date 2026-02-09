@@ -1,6 +1,6 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { formatPercent, drawSimpleHeader, drawPageFooter } from "../helpers";
+import { formatPercent, formatSmartPower, formatSmartEnergy, drawSimpleHeader, drawPageFooter } from "../helpers";
 import { drawFrontierScatterChart, drawOptimizationLineChart } from "../charts";
 
 export function renderOptimization(ctx: PDFContext) {
@@ -118,8 +118,8 @@ export function renderOptimization(ctx: PDFContext) {
   doc.moveDown(0.5);
 
   const optMetrics = [
-    [t("Taille PV optimale", "Optimal PV size"), `${simulation.pvSizeKW.toFixed(0)} kWc`],
-    [t("Capacité batterie optimale", "Optimal battery capacity"), `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW`],
+    [t("Taille PV optimale", "Optimal PV size"), formatSmartPower(simulation.pvSizeKW, ctx.lang, "kWc")],
+    [t("Capacité batterie optimale", "Optimal battery capacity"), `${formatSmartEnergy(simulation.battEnergyKWh, ctx.lang)} / ${formatSmartPower(simulation.battPowerKW, ctx.lang, "kW")}`],
     [t("Autosuffisance atteinte", "Self-sufficiency achieved"), formatPercent(simulation.selfSufficiencyPercent / 100)],
     [t("Retour sur investissement", "Payback period"), `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "years")}`],
   ];

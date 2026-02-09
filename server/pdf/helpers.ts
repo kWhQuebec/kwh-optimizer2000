@@ -1,6 +1,11 @@
 import path from "path";
 import type { PDFContext } from "./types";
 import { COLORS } from "./types";
+import {
+  formatSmartPower as _formatSmartPower,
+  formatSmartEnergy as _formatSmartEnergy,
+  formatSmartCurrency as _formatSmartCurrency,
+} from "@shared/formatters";
 
 export function formatCurrency(value: number | null | undefined, compact = false): string {
   if (value === null || value === undefined || isNaN(value)) {
@@ -12,17 +17,16 @@ export function formatCurrency(value: number | null | undefined, compact = false
   return `${value.toLocaleString("fr-CA", { maximumFractionDigits: 0 })} $`;
 }
 
-export function formatSmartCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined || isNaN(value)) return "0 $";
-  const abs = Math.abs(value);
-  const sign = value < 0 ? "-" : "";
-  if (abs >= 1_000_000) {
-    return `${sign}${(abs / 1_000_000).toFixed(1)}M $`;
-  }
-  if (abs >= 10_000) {
-    return `${sign}${Math.round(abs / 1000)}k $`;
-  }
-  return `${sign}${Math.round(abs).toLocaleString("fr-CA")} $`;
+export function formatSmartCurrency(value: number | null | undefined, lang: string = "fr"): string {
+  return _formatSmartCurrency(value, lang);
+}
+
+export function formatSmartPower(kw: number | null | undefined, lang: string = "fr", unit: "kWc" | "kW" = "kWc"): string {
+  return _formatSmartPower(kw, lang, unit);
+}
+
+export function formatSmartEnergy(kwh: number | null | undefined, lang: string = "fr", unit: "kWh" | "Wh" = "kWh"): string {
+  return _formatSmartEnergy(kwh, lang, unit);
 }
 
 export function formatPercent(value: number | null | undefined): string {

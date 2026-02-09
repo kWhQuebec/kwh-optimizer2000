@@ -1,4 +1,5 @@
 import { COLORS } from "./types";
+import { formatSmartPower, formatSmartEnergy, formatSmartCurrency } from "./helpers";
 
 interface PortfolioSiteData {
   siteName: string;
@@ -91,8 +92,8 @@ export function generatePortfolioSummaryPDF(
 
   const kpis = [
     { label: t("Bâtiments", "Buildings"), value: String(portfolio.numBuildings) },
-    { label: t("PV Total", "Total PV"), value: `${formatNumber(portfolio.totalPvSizeKW)} kW` },
-    { label: "NPV (25 ans)", value: formatCurrency(portfolio.totalNpv25) },
+    { label: t("PV Total", "Total PV"), value: formatSmartPower(portfolio.totalPvSizeKW, lang, "kW") },
+    { label: "NPV (25 ans)", value: formatSmartCurrency(portfolio.totalNpv25, lang) },
     { label: t("TRI Pondéré", "Weighted IRR"), value: formatPercent(portfolio.weightedIrr25) },
   ];
 
@@ -110,9 +111,9 @@ export function generatePortfolioSummaryPDF(
   y += kpiHeight + 20;
 
   const kpis2 = [
-    { label: t("Stockage Total", "Total Storage"), value: `${formatNumber(portfolio.totalBatteryKWh)} kWh` },
-    { label: t("CAPEX Net", "Net CAPEX"), value: formatCurrency(portfolio.totalCapexNet) },
-    { label: t("Économies/an", "Savings/yr"), value: formatCurrency(portfolio.totalAnnualSavings) },
+    { label: t("Stockage Total", "Total Storage"), value: formatSmartEnergy(portfolio.totalBatteryKWh, lang) },
+    { label: t("CAPEX Net", "Net CAPEX"), value: formatSmartCurrency(portfolio.totalCapexNet, lang) },
+    { label: t("Économies/an", "Savings/yr"), value: formatSmartCurrency(portfolio.totalAnnualSavings, lang) },
     { label: t("CO₂ Évité/an", "CO₂ Avoided/yr"), value: `${formatNumber(portfolio.totalCo2Avoided, 1)} t` },
   ];
 

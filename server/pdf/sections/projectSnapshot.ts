@@ -1,6 +1,6 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { drawRoundedRect, drawPageHeader, drawPageFooter } from "../helpers";
+import { drawRoundedRect, drawPageHeader, drawPageFooter, formatSmartPower, formatSmartEnergy } from "../helpers";
 import { getProjectSnapshotLabels } from "@shared/brandContent";
 
 export function renderProjectSnapshot(ctx: PDFContext) {
@@ -22,7 +22,7 @@ export function renderProjectSnapshot(ctx: PDFContext) {
   doc.y += 15;
 
   doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
-  doc.text(t(`Système de ${(simulation.pvSizeKW || 0).toFixed(0)} kWc proposé`, `Proposed ${(simulation.pvSizeKW || 0).toFixed(0)} kWp system`), margin, doc.y, { width: contentWidth });
+  doc.text(t(`Système de ${formatSmartPower(simulation.pvSizeKW, ctx.lang, "kWc")} proposé`, `Proposed ${formatSmartPower(simulation.pvSizeKW, ctx.lang, "kWc")} system`), margin, doc.y, { width: contentWidth });
   doc.font("Helvetica");
   doc.y += 25;
 
@@ -38,10 +38,10 @@ export function renderProjectSnapshot(ctx: PDFContext) {
   // Snapshot data grid - 4 main metrics in 2x2
   const snapLabels = getProjectSnapshotLabels(ctx.lang);
   const mainMetrics: [string, string][] = [
-    [snapLabels.annualConsumption.label, `${Math.round(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh`],
-    [snapLabels.peakDemand.label, `${(simulation.peakDemandKW || 0).toFixed(0)} kW`],
-    [snapLabels.solarCapacity.label, `${(simulation.pvSizeKW || 0).toFixed(0)} kWc`],
-    [snapLabels.batteryCapacity.label, (simulation.battEnergyKWh || 0) > 0 ? `${(simulation.battEnergyKWh || 0).toFixed(0)} kWh / ${(simulation.battPowerKW || 0).toFixed(0)} kW` : "0 kWh"],
+    [snapLabels.annualConsumption.label, formatSmartEnergy(simulation.annualConsumptionKWh, ctx.lang)],
+    [snapLabels.peakDemand.label, formatSmartPower(simulation.peakDemandKW, ctx.lang, "kW")],
+    [snapLabels.solarCapacity.label, formatSmartPower(simulation.pvSizeKW, ctx.lang, "kWc")],
+    [snapLabels.batteryCapacity.label, (simulation.battEnergyKWh || 0) > 0 ? `${formatSmartEnergy(simulation.battEnergyKWh, ctx.lang)} / ${formatSmartPower(simulation.battPowerKW, ctx.lang, "kW")}` : "0 kWh"],
   ];
 
   const snapColWidth = (contentWidth - 20) / 2;
@@ -75,7 +75,7 @@ export function renderProjectSnapshot(ctx: PDFContext) {
   const compactCards = [
     { label: t("COÛT ACTUALISÉ DE L'ÉNERGIE (LCOE)", "LEVELIZED COST OF ENERGY (LCOE)"), value: `${lcoe.toFixed(3)} $/kWh`, isBlue: true },
     { label: t("CO₂ ÉVITÉ PAR ANNÉE", "CO₂ AVOIDED PER YEAR"), value: `${co2.toFixed(1)} ${t("tonnes", "tonnes")}`, isBlue: true },
-    { label: snapLabels.estimatedProduction.label, value: `${yearOneProduction.toLocaleString()} kWh`, isBlue: false },
+    { label: snapLabels.estimatedProduction.label, value: formatSmartEnergy(yearOneProduction, ctx.lang), isBlue: false },
     { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${selfSufficiency}%`, isBlue: false },
   ];
 

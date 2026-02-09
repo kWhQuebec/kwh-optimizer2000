@@ -1,6 +1,6 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
-import { drawRoundedRect, drawSimpleHeader, drawPageFooter } from "../helpers";
+import { drawRoundedRect, drawSimpleHeader, drawPageFooter, formatSmartPower } from "../helpers";
 import { createLogger } from "../../lib/logger";
 
 const log = createLogger("RoofConfiguration");
@@ -168,7 +168,7 @@ export function renderRoofConfiguration(ctx: PDFContext) {
       cx += colWidths[2];
       doc.text(panels.toLocaleString(), cx, ty + 6, { width: colWidths[3] - 10, align: "center" });
       cx += colWidths[3];
-      doc.text(kwc.toFixed(1), cx, ty + 6, { width: colWidths[4] - 10, align: "center" });
+      doc.text(formatSmartPower(kwc, ctx.lang, "kWc"), cx, ty + 6, { width: colWidths[4] - 10, align: "center" });
       ty += rowH;
     });
 
@@ -182,7 +182,7 @@ export function renderRoofConfiguration(ctx: PDFContext) {
     cx += colWidths[1] + colWidths[2]; // skip orientation column
     doc.text(totalPanels.toLocaleString(), cx, ty + 6, { width: colWidths[3] - 10, align: "center" });
     cx += colWidths[3];
-    doc.text(totalKWc.toFixed(1), cx, ty + 6, { width: colWidths[4] - 10, align: "center" });
+    doc.text(formatSmartPower(totalKWc, ctx.lang, "kWc"), cx, ty + 6, { width: colWidths[4] - 10, align: "center" });
     doc.font("Helvetica");
 
     // Table border

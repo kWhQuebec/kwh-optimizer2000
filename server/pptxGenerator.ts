@@ -3,6 +3,7 @@ const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import fs from "fs";
 import path from "path";
 import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "@shared/brandContent";
+import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import type { DocumentSimulationData } from "./documentDataProvider";
 import { createLogger } from "./lib/logger";
 
@@ -33,22 +34,9 @@ export async function generatePresentationPPTX(
   options?: PPTXOptions
 ): Promise<Buffer> {
   const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
-  
-  const formatCurrency = (value: number | null | undefined): string => {
-    if (value === null || value === undefined || isNaN(value)) {
-      return "0 $";
-    }
-    return `${value.toLocaleString("fr-CA", { maximumFractionDigits: 0 })} $`;
-  };
 
-  const formatSmartCurrency = (value: number | null | undefined): string => {
-    if (value === null || value === undefined || isNaN(value)) return "0 $";
-    const abs = Math.abs(value);
-    const sign = value < 0 ? "-" : "";
-    if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M $`;
-    if (abs >= 10_000) return `${sign}${Math.round(abs / 1000)}k $`;
-    return `${sign}${Math.round(abs).toLocaleString("fr-CA")} $`;
-  };
+  const fmtCurrency = (value: number | null | undefined): string => formatSmartCurrencyFull(value, lang);
+  const fmtSmartCurrency = (value: number | null | undefined): string => formatSmartCurrency(value, lang);
 
   const formatPercent = (value: number | null | undefined): string => {
     if (value === null || value === undefined || isNaN(value)) {
@@ -179,7 +167,7 @@ export async function generatePresentationPPTX(
       x: 0.5, y: 1.8, w: 4.2, h: 0.4,
       fontSize: 14, bold: true, color: "DC2626", align: "center"
     });
-    slideBill.addText(formatSmartCurrency(annualCostBefore), {
+    slideBill.addText(fmtSmartCurrency(annualCostBefore), {
       x: 0.5, y: 2.3, w: 4.2, h: 0.8,
       fontSize: 36, bold: true, color: "DC2626", align: "center", valign: "middle"
     });
@@ -196,7 +184,7 @@ export async function generatePresentationPPTX(
       x: 5.3, y: 1.8, w: 4.2, h: 0.4,
       fontSize: 14, bold: true, color: "16A34A", align: "center"
     });
-    slideBill.addText(formatSmartCurrency(annualCostAfter), {
+    slideBill.addText(fmtSmartCurrency(annualCostAfter), {
       x: 5.3, y: 2.3, w: 4.2, h: 0.8,
       fontSize: 36, bold: true, color: "16A34A", align: "center", valign: "middle"
     });
@@ -211,8 +199,8 @@ export async function generatePresentationPPTX(
       fill: { color: COLORS.gold }
     });
     slideBill.addText(
-      t(`Economie annuelle: ${formatCurrency(annualSavingsBill)} (${savingsPct}%)`,
-        `Annual savings: ${formatCurrency(annualSavingsBill)} (${savingsPct}%)`), {
+      t(`Economie annuelle: ${fmtCurrency(annualSavingsBill)} (${savingsPct}%)`,
+        `Annual savings: ${fmtCurrency(annualSavingsBill)} (${savingsPct}%)`), {
       x: 1.5, y: 4.25, w: 7, h: 0.6,
       fontSize: 18, bold: true, color: COLORS.blue, align: "center", valign: "middle"
     });
@@ -237,18 +225,18 @@ export async function generatePresentationPPTX(
   });
 
   slideSnap.addText(
-    t(`Systeme de ${simulation.pvSizeKW.toFixed(0)} kWc propose`, `Proposed ${simulation.pvSizeKW.toFixed(0)} kWc system`), {
+    t(`Systeme de ${formatSmartPower(simulation.pvSizeKW, lang)} propose`, `Proposed ${formatSmartPower(simulation.pvSizeKW, lang)} system`), {
     x: 0.5, y: 1.65, w: 9, h: 0.3,
     fontSize: 14, italic: true, color: COLORS.gold
   });
 
   const snapLabels = getProjectSnapshotLabels(lang);
   const snapItems = [
-    { label: snapLabels.annualConsumption.label, value: `${Math.round(simulation.annualConsumptionKWh || 0).toLocaleString()} kWh` },
-    { label: snapLabels.peakDemand.label, value: `${(simulation.peakDemandKW || 0).toFixed(0)} kW` },
-    { label: snapLabels.solarCapacity.label, value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
-    { label: snapLabels.batteryCapacity.label, value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh / ${simulation.battPowerKW.toFixed(0)} kW` : "0 kWh" },
-    { label: snapLabels.estimatedProduction.label, value: `${Math.round((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
+    { label: snapLabels.annualConsumption.label, value: formatSmartEnergy(simulation.annualConsumptionKWh || 0, lang) },
+    { label: snapLabels.peakDemand.label, value: formatSmartPower(simulation.peakDemandKW || 0, lang, 'kW') },
+    { label: snapLabels.solarCapacity.label, value: formatSmartPower(simulation.pvSizeKW, lang) },
+    { label: snapLabels.batteryCapacity.label, value: simulation.battEnergyKWh > 0 ? `${formatSmartEnergy(simulation.battEnergyKWh, lang)} / ${formatSmartPower(simulation.battPowerKW, lang, 'kW')}` : "0 kWh" },
+    { label: snapLabels.estimatedProduction.label, value: formatSmartEnergy((simulation.pvSizeKW * 1035) || 0, lang) },
     { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
   ];
 
@@ -291,15 +279,15 @@ export async function generatePresentationPPTX(
   });
 
   slideKPI.addText(
-    t(`Profit net de ${formatSmartCurrency(simulation.npv25)} sur 25 ans`, `Net profit of ${formatSmartCurrency(simulation.npv25)} over 25 years`), {
+    t(`Profit net de ${fmtSmartCurrency(simulation.npv25)} sur 25 ans`, `Net profit of ${fmtSmartCurrency(simulation.npv25)} over 25 years`), {
     x: 0.5, y: 1.65, w: 9, h: 0.3,
     fontSize: 14, italic: true, color: COLORS.gold
   });
 
   const kpiCardConfigs = [
-    { label: getKpiLabel("savings", lang), value: formatSmartCurrency(simulation.savingsYear1), bg: "FFFBEB", border: "FFB005", valueColor: COLORS.gold, labelColor: COLORS.mediumGray },
-    { label: getKpiLabel("capexNet", lang), value: formatSmartCurrency(simulation.capexNet), bg: COLORS.lightGray, border: "CCCCCC", valueColor: COLORS.darkGray, labelColor: COLORS.mediumGray },
-    { label: getKpiLabel("npv", lang), value: formatSmartCurrency(simulation.npv25), bg: COLORS.blue, border: COLORS.blue, valueColor: COLORS.gold, labelColor: COLORS.white },
+    { label: getKpiLabel("savings", lang), value: fmtSmartCurrency(simulation.savingsYear1), bg: "FFFBEB", border: "FFB005", valueColor: COLORS.gold, labelColor: COLORS.mediumGray },
+    { label: getKpiLabel("capexNet", lang), value: fmtSmartCurrency(simulation.capexNet), bg: COLORS.lightGray, border: "CCCCCC", valueColor: COLORS.darkGray, labelColor: COLORS.mediumGray },
+    { label: getKpiLabel("npv", lang), value: fmtSmartCurrency(simulation.npv25), bg: COLORS.blue, border: COLORS.blue, valueColor: COLORS.gold, labelColor: COLORS.white },
     { label: getKpiLabel("irr", lang), value: formatPercent(simulation.irr25), bg: "059669", border: "059669", valueColor: COLORS.white, labelColor: COLORS.white },
   ];
 
@@ -421,7 +409,7 @@ export async function generatePresentationPPTX(
         fill: { color: COLORS.blue }
       });
       // Value label
-      slideWaterfall.addText(formatSmartCurrency(bar.value), {
+      slideWaterfall.addText(fmtSmartCurrency(bar.value), {
         x, y: barY - 0.3, w: wfBarWidth, h: 0.25,
         fontSize: 10, bold: true, color: COLORS.blue, align: "center"
       });
@@ -435,7 +423,7 @@ export async function generatePresentationPPTX(
       });
       // Value label
       if (bar.value > 0) {
-        slideWaterfall.addText(`-${formatCurrency(bar.value)}`, {
+        slideWaterfall.addText(`-${fmtCurrency(bar.value)}`, {
           x, y: prevTop + barH / 2 - 0.12, w: wfBarWidth, h: 0.25,
           fontSize: 9, bold: true, color: COLORS.white, align: "center"
         });
@@ -450,7 +438,7 @@ export async function generatePresentationPPTX(
         fill: { color: COLORS.green }
       });
       // Value label
-      slideWaterfall.addText(formatSmartCurrency(bar.value), {
+      slideWaterfall.addText(fmtSmartCurrency(bar.value), {
         x, y: barY - 0.3, w: wfBarWidth, h: 0.25,
         fontSize: 10, bold: true, color: COLORS.green, align: "center"
       });
@@ -568,7 +556,7 @@ export async function generatePresentationPPTX(
       fill: { color: "FFF3CD" }
     });
     slideCashflow.addText(
-      t(`Coût de l'inaction sur 25 ans: ${formatSmartCurrency(costOfInaction)}`, `Cost of inaction over 25 years: ${formatSmartCurrency(costOfInaction)}`), {
+      t(`Coût de l'inaction sur 25 ans: ${fmtSmartCurrency(costOfInaction)}`, `Cost of inaction over 25 years: ${fmtSmartCurrency(costOfInaction)}`), {
       x: 1.5, y: 4.95, w: 7, h: 0.4,
       fontSize: 12, bold: true, color: "856404", align: "center"
     });
@@ -598,7 +586,7 @@ export async function generatePresentationPPTX(
       x: 0.7, y: 1.8, w: 3.8, h: 0.4,
       fontSize: 12, color: COLORS.mediumGray, align: "center"
     });
-    slideSurplus.addText(`${Math.round(surplusExportedKWh).toLocaleString("fr-CA")} kWh`, {
+    slideSurplus.addText(formatSmartEnergy(surplusExportedKWh, lang), {
       x: 0.7, y: 2.3, w: 3.8, h: 0.8,
       fontSize: 28, bold: true, color: COLORS.gold, align: "center", valign: "middle"
     });
@@ -616,7 +604,7 @@ export async function generatePresentationPPTX(
       x: 5.5, y: 1.8, w: 3.8, h: 0.4,
       fontSize: 12, color: COLORS.white, align: "center"
     });
-    slideSurplus.addText(formatSmartCurrency(surplusRevenue), {
+    slideSurplus.addText(fmtSmartCurrency(surplusRevenue), {
       x: 5.5, y: 2.3, w: 3.8, h: 0.8,
       fontSize: 28, bold: true, color: COLORS.gold, align: "center", valign: "middle"
     });
@@ -667,10 +655,10 @@ export async function generatePresentationPPTX(
         badge: t("Recommande", "Recommended"),
         highlighted: true,
         rows: [
-          { label: t("Investissement", "Investment"), value: formatCurrency(finCapexNet) },
-          { label: t("Economies An 1", "Year 1 Savings"), value: formatCurrency(finSavingsYear1) },
+          { label: t("Investissement", "Investment"), value: fmtCurrency(finCapexNet) },
+          { label: t("Economies An 1", "Year 1 Savings"), value: fmtCurrency(finSavingsYear1) },
           { label: t("Retour simple", "Simple Payback"), value: `${finPayback.toFixed(1)} ${t("ans", "yrs")}` },
-          { label: t("VAN 25 ans", "25yr NPV"), value: formatCurrency(finNpv25) },
+          { label: t("VAN 25 ans", "25yr NPV"), value: fmtCurrency(finNpv25) },
         ]
       },
       {
@@ -680,8 +668,8 @@ export async function generatePresentationPPTX(
         rows: [
           { label: t("Taux", "Rate"), value: "5.0%" },
           { label: t("Terme", "Term"), value: t("10 ans", "10 yrs") },
-          { label: t("Mensualite", "Monthly"), value: formatCurrency(Math.round(loanMonthly)) },
-          { label: t("Total", "Total"), value: formatCurrency(Math.round(loanMonthly * loanTermMonths)) },
+          { label: t("Mensualite", "Monthly"), value: fmtCurrency(Math.round(loanMonthly)) },
+          { label: t("Total", "Total"), value: fmtCurrency(Math.round(loanMonthly * loanTermMonths)) },
         ]
       },
       {
@@ -691,8 +679,8 @@ export async function generatePresentationPPTX(
         rows: [
           { label: t("Taux", "Rate"), value: "7.0%" },
           { label: t("Terme", "Term"), value: t("15 ans", "15 yrs") },
-          { label: t("Mensualite", "Monthly"), value: formatCurrency(Math.round(leaseMonthly)) },
-          { label: t("Total", "Total"), value: formatCurrency(Math.round(leaseMonthly * leaseTermMonths)) },
+          { label: t("Mensualite", "Monthly"), value: fmtCurrency(Math.round(leaseMonthly)) },
+          { label: t("Total", "Total"), value: fmtCurrency(Math.round(leaseMonthly * leaseTermMonths)) },
         ]
       },
     ];
@@ -1137,9 +1125,9 @@ export async function generatePresentationPPTX(
   });
 
   const roofSummary = [
-    { label: t("Puissance solaire", "Solar capacity"), value: `${simulation.pvSizeKW.toFixed(0)} kWc` },
-    { label: t("Stockage", "Storage"), value: simulation.battEnergyKWh > 0 ? `${simulation.battEnergyKWh.toFixed(0)} kWh` : t("Non inclus", "N/A") },
-    { label: t("Production An 1", "Year-1 production"), value: `${((simulation.pvSizeKW * 1035) || 0).toLocaleString()} kWh` },
+    { label: t("Puissance solaire", "Solar capacity"), value: formatSmartPower(simulation.pvSizeKW, lang) },
+    { label: t("Stockage", "Storage"), value: simulation.battEnergyKWh > 0 ? formatSmartEnergy(simulation.battEnergyKWh, lang) : t("Non inclus", "N/A") },
+    { label: t("Production An 1", "Year-1 production"), value: formatSmartEnergy((simulation.pvSizeKW * 1035) || 0, lang) },
     { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
   ];
 

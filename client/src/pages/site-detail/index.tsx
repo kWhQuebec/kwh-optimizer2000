@@ -62,6 +62,7 @@ import { ScenarioComparison } from "./components/ScenarioComparison";
 import { AnalysisResults } from "./components/AnalysisResults";
 import type { SiteWithDetails, QuickPotentialResult, DeliverablePhase } from "./types";
 import { formatNumber, getTariffRates } from "./utils";
+import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
 
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -924,7 +925,6 @@ export default function SiteDetailPage() {
               const displayedCapex = Math.round(displayedCapacityKW * 1000 * costPerW);
               const yieldKWhPerKWp = quickPotential.production.yieldKWhPerKWp || 1039;
               const displayedProductionKWh = Math.round(displayedCapacityKW * yieldKWhPerKWp);
-              const displayedProductionMWh = displayedProductionKWh / 1000;
 
               const displayedHqIncentive = Math.min(displayedCapacityKW * 1000, displayedCapex * 0.40);
               const displayedFederalItc = Math.round((displayedCapex - displayedHqIncentive) * 0.30);
@@ -943,7 +943,7 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Capacité estimée" : "Estimated Capacity"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {formatNumber(displayedCapacityKW, language)} kWc
+                  {formatSmartPower(displayedCapacityKW, language, 'kWc')}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {formatNumber(displayedPanelCount, language)} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
@@ -956,7 +956,7 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Production annuelle" : "Annual Production"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {formatNumber(displayedProductionMWh, language, 1)} MWh
+                  {formatSmartEnergy(displayedProductionKWh, language)}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {formatNumber(yieldKWhPerKWp, language)} kWh/kWc
@@ -969,9 +969,7 @@ export default function SiteDetailPage() {
                   {language === "fr" ? "Investissement estimé" : "Estimated Investment"}
                 </div>
                 <div className="text-2xl font-bold text-foreground">
-                  {displayedCapex >= 1000000
-                    ? `$${Math.round(displayedCapex / 1000000)}M`
-                    : `$${Math.round(displayedCapex / 1000)}k`}
+                  {formatSmartCurrency(displayedCapex, language)}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   ${costPerW.toFixed(2)}/W
@@ -987,9 +985,7 @@ export default function SiteDetailPage() {
                   {displayedPaybackYears.toFixed(1)} {language === "fr" ? "ans" : "years"}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  ~{displayedAnnualSavings >= 1000000
-                    ? `$${Math.round(displayedAnnualSavings / 1000000)}M`
-                    : `$${Math.round(displayedAnnualSavings / 1000)}k`}/{language === "fr" ? "an" : "year"}
+                  ~{formatSmartCurrency(displayedAnnualSavings, language)}/{language === "fr" ? "an" : "year"}
                 </div>
               </div>
             </div>
@@ -1022,7 +1018,7 @@ export default function SiteDetailPage() {
                       {language === "fr" ? "VAN 25 ans (6%)" : "NPV 25 yrs (6%)"}
                     </div>
                     <div className={`text-lg font-bold ${npv >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {npv >= 1000000 ? `$${Math.round(npv / 1000000)}M` : `$${Math.round(npv / 1000)}k`}
+                      {formatSmartCurrency(npv, language)}
                     </div>
                   </div>
                   <div className="space-y-0.5">
@@ -1048,25 +1044,19 @@ export default function SiteDetailPage() {
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-hq">
                     <div className="text-xs text-muted-foreground">Hydro-Québec</div>
                     <div className="font-semibold text-green-700 dark:text-green-400">
-                      {displayedHqIncentive >= 1000000
-                        ? `$${Math.round(displayedHqIncentive / 1000000)}M`
-                        : `$${Math.round(displayedHqIncentive / 1000)}k`}
+                      {formatSmartCurrency(displayedHqIncentive, language)}
                     </div>
                   </div>
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-federal">
                     <div className="text-xs text-muted-foreground">{language === "fr" ? "Crédit fédéral (30%)" : "Federal ITC (30%)"}</div>
                     <div className="font-semibold text-green-700 dark:text-green-400">
-                      {displayedFederalItc >= 1000000
-                        ? `$${Math.round(displayedFederalItc / 1000000)}M`
-                        : `$${Math.round(displayedFederalItc / 1000)}k`}
+                      {formatSmartCurrency(displayedFederalItc, language)}
                     </div>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3" data-testid="incentive-net">
                     <div className="text-xs text-muted-foreground">{language === "fr" ? "Investissement net" : "Net Investment"}</div>
                     <div className="font-semibold text-blue-700 dark:text-blue-400">
-                      {displayedNetCapex >= 1000000
-                        ? `$${Math.round(displayedNetCapex / 1000000)}M`
-                        : `$${Math.round(displayedNetCapex / 1000)}k`}
+                      {formatSmartCurrency(displayedNetCapex, language)}
                     </div>
                   </div>
                 </div>
