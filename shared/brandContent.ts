@@ -82,19 +82,19 @@ export const BRAND_CONTENT = {
 
   // === ÉQUIPEMENT INDICATIF ===
   equipment: [
-    { labelFr: "Panneaux solaires Tier-1", labelEn: "Tier-1 solar panels", warranty: "25 ans/years", iconCode: "panel" },
-    { labelFr: "Onduleurs certifiés CSA/UL", labelEn: "CSA/UL certified inverters", warranty: "10-15 ans/years", iconCode: "inverter" },
-    { labelFr: "Structure de montage KB Racking", labelEn: "KB Racking mounting structure", warranty: "25 ans/years", iconCode: "mounting" },
-    { labelFr: "Main d'œuvre certifiée", labelEn: "Certified workmanship", warranty: "10 ans/years", iconCode: "workmanship" },
+    { labelFr: "Panneaux solaires Tier-1", labelEn: "Tier-1 solar panels", warrantyFr: "25 ans", warrantyEn: "25 years", iconCode: "panel" },
+    { labelFr: "Onduleurs certifiés CSA/UL", labelEn: "CSA/UL certified inverters", warrantyFr: "10-15 ans", warrantyEn: "10-15 years", iconCode: "inverter" },
+    { labelFr: "Structure de montage KB Racking", labelEn: "KB Racking mounting structure", warrantyFr: "25 ans", warrantyEn: "25 years", iconCode: "mounting" },
+    { labelFr: "Main d'œuvre certifiée", labelEn: "Certified workmanship", warrantyFr: "10 ans", warrantyEn: "10 years", iconCode: "workmanship" },
   ],
 
   // === ÉCHÉANCIER TYPE ===
   timeline: [
-    { stepFr: "Signature", stepEn: "Contract", duration: "", iconCode: "contract" },
-    { stepFr: "Conception", stepEn: "Design", duration: "2-4 sem.", iconCode: "design" },
-    { stepFr: "Permis & HQ", stepEn: "Permits & HQ", duration: "8-12 sem.", iconCode: "permits" },
-    { stepFr: "Installation", stepEn: "Installation", duration: "2-4 sem.", iconCode: "install" },
-    { stepFr: "Mise en service", stepEn: "Commissioning", duration: "1-2 sem.", iconCode: "commissioning" },
+    { stepFr: "Signature", stepEn: "Contract", durationFr: "", durationEn: "", iconCode: "contract" },
+    { stepFr: "Conception", stepEn: "Design", durationFr: "2-4 sem.", durationEn: "2-4 wks", iconCode: "design" },
+    { stepFr: "Permis & HQ", stepEn: "Permits & HQ", durationFr: "8-12 sem.", durationEn: "8-12 wks", iconCode: "permits" },
+    { stepFr: "Installation", stepEn: "Installation", durationFr: "2-4 sem.", durationEn: "2-4 wks", iconCode: "install" },
+    { stepFr: "Mise en service", stepEn: "Commissioning", durationFr: "1-2 sem.", durationEn: "1-2 wks", iconCode: "commissioning" },
   ],
 
   // === PROJECT SNAPSHOT LABELS ===
@@ -237,14 +237,14 @@ export function getExclusions(lang: Lang) {
 export function getEquipment(lang: Lang) {
   return BRAND_CONTENT.equipment.map(e => ({
     label: lang === "fr" ? e.labelFr : e.labelEn,
-    warranty: e.warranty,
+    warranty: lang === "fr" ? e.warrantyFr : e.warrantyEn,
   }));
 }
 
 export function getTimeline(lang: Lang) {
   return BRAND_CONTENT.timeline.map(t => ({
     step: lang === "fr" ? t.stepFr : t.stepEn,
-    duration: t.duration,
+    duration: lang === "fr" ? t.durationFr : t.durationEn,
   }));
 }
 
