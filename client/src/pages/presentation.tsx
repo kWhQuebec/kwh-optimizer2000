@@ -890,10 +890,7 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
 function RoofConfigSlide({ site, simulation, language }: { site: SiteWithDetails; simulation: SimulationRun | null; language: string }) {
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const hasCoords = site.latitude && site.longitude;
-
-  const satelliteImageUrl = hasCoords && googleMapsApiKey
-    ? `https://maps.googleapis.com/maps/api/staticmap?center=${site.latitude},${site.longitude}&zoom=19&size=600x400&maptype=satellite&key=${googleMapsApiKey}`
-    : null;
+  const currentPVSizeKW = simulation?.pvSizeKW ? Number(simulation.pvSizeKW) : undefined;
 
   const summaryItems = [
     { label: language === 'fr' ? 'Puissance solaire' : 'Solar capacity', value: simulation?.pvSizeKW ? formatSmartPower(Number(simulation.pvSizeKW), language, 'kWc') : '--' },
@@ -909,15 +906,23 @@ function RoofConfigSlide({ site, simulation, language }: { site: SiteWithDetails
           {language === 'fr' ? 'Configuration Toiture' : 'Roof Configuration'}
         </SlideTitle>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-          <div>
-            {satelliteImageUrl ? (
-              <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
-                <img src={satelliteImageUrl} alt="Vue satellite" className="w-full h-auto" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-stretch">
+          <div className="rounded-2xl overflow-hidden shadow-sm flex flex-col" style={{ border: '1px solid #E5E7EB', minHeight: '380px' }}>
+            {hasCoords && googleMapsApiKey ? (
+              <div className="flex-1">
+                <RoofVisualization
+                  siteId={site.id}
+                  siteName={site.name}
+                  address={site.address || ""}
+                  latitude={site.latitude!}
+                  longitude={site.longitude!}
+                  roofAreaSqFt={site.roofAreaAutoSqM ? site.roofAreaAutoSqM * 10.764 : undefined}
+                  currentPVSizeKW={currentPVSizeKW}
+                />
               </div>
             ) : (
-              <div className="rounded-2xl p-12 text-center h-full flex items-center justify-center shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
-                <div>
+              <div className="flex-1 flex items-center justify-center p-12">
+                <div className="text-center">
                   <Building2 className="h-16 w-16 mx-auto mb-4" style={{ color: '#D1D5DB' }} />
                   <p style={{ color: '#9CA3AF' }}>{language === 'fr' ? 'Image non disponible' : 'Image not available'}</p>
                 </div>
@@ -925,11 +930,11 @@ function RoofConfigSlide({ site, simulation, language }: { site: SiteWithDetails
             )}
           </div>
 
-          <div className="rounded-2xl p-6 shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
+          <div className="rounded-2xl p-6 shadow-sm flex flex-col" style={{ border: '1px solid #E5E7EB', minHeight: '380px' }}>
             <h3 className="text-xl font-bold mb-6" style={{ color: BRAND_COLORS.primaryBlue }}>
               {language === 'fr' ? 'Dimensionnement' : 'Sizing Summary'}
             </h3>
-            <div className="space-y-5">
+            <div className="space-y-5 flex-1 flex flex-col justify-center">
               {summaryItems.map((item, i) => (
                 <div key={i}>
                   <p className="text-sm mb-1" style={{ color: '#6B7280' }}>{item.label}</p>
