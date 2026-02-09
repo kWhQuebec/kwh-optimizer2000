@@ -116,16 +116,29 @@ export default function PresentationPage() {
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const simIdFromUrl = new URLSearchParams(window.location.search).get('sim');
+
   const { data: site, isLoading } = useQuery<SiteWithDetails>({
     queryKey: ['/api/sites', id],
     enabled: !!id,
   });
 
-  const bestSimulation = site?.simulationRuns?.length
-    ? [...site.simulationRuns].sort((a, b) =>
-        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      )[0]
-    : null;
+  const bestSimulation = (() => {
+    if (!site?.simulationRuns?.length) return null;
+    if (simIdFromUrl) {
+      const found = site.simulationRuns.find(s => s.id === simIdFromUrl);
+      if (found) return found;
+    }
+    const scenarios = site.simulationRuns.filter(s =>
+      s.type === "SCENARIO" && (s.pvSizeKW !== null || s.battEnergyKWh !== null) && s.npv20 !== null
+    );
+    if (scenarios.length > 0) {
+      return scenarios.reduce((best, cur) => (cur.npv20 || 0) > (best.npv20 || 0) ? cur : best);
+    }
+    return [...site.simulationRuns].sort((a, b) =>
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    )[0];
+  })();
 
   const { data: fullSimulation } = useQuery<SimulationRun>({
     queryKey: ['/api/simulation-runs', bestSimulation?.id],

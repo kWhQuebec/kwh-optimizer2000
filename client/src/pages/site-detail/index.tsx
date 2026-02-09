@@ -677,7 +677,7 @@ export default function SiteDetailPage() {
             </>
           )}
           {/* Presentation Mode Button */}
-          <Link href={`/app/presentation/${site.id}`}>
+          <Link href={`/app/presentation/${site.id}${latestSimulation ? `?sim=${latestSimulation.id}` : ''}`}>
             <Button variant="outline" className="gap-2" data-testid="button-presentation-mode">
               <Layers className="w-4 h-4" />
               {language === "fr" ? "Présentation" : "Presentation"}

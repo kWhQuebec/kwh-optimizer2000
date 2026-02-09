@@ -17,7 +17,8 @@ import {
 } from "@shared/schema";
 import {
   runMonteCarloAnalysis,
-  createHourlyScenarioRunner,
+  createSimplifiedScenarioRunner,
+  type SiteScenarioParams,
   analyzePeakShaving,
   recommendStandardKit,
   STANDARD_KITS,
@@ -1003,11 +1004,14 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
   const annualizationFactor = 365 / Math.max(dedupResult.dataSpanDays, 1);
   const annualConsumptionKWh = latestAnalysis?.annualConsumptionKWh || totalKWh * annualizationFactor;
 
-  // Create scenario runner backed by the real hourly engine
-  const runScenario = createHourlyScenarioRunner(
-    hourlyData, pvSizeKW, battEnergyKWh, battPowerKW,
-    peakKW, annualConsumptionKWh
-  );
+  const siteScenarioParams: SiteScenarioParams = {
+    pvSizeKW,
+    annualConsumptionKWh,
+    tariffEnergy: baseAssumptions.tariffEnergy || 0.06061,
+    tariffPower: baseAssumptions.tariffPower || 17.573,
+    peakKW,
+  };
+  const runScenario = createSimplifiedScenarioRunner(siteScenarioParams);
 
   // Use provided config or default
   const monteCarloConfig: MonteCarloConfig = config || {
