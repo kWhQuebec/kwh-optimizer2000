@@ -88,7 +88,7 @@ export function drawCashflowChart(
     const barH = Math.abs(netValue) / (range / 2) * (chartHeight * 0.3);
     const barY = netValue >= 0 ? baselineY - barH : baselineY;
 
-    const barColor = netValue >= 0 ? COLORS.green : COLORS.red;
+    const barColor = netValue >= 0 ? COLORS.green : COLORS.mediumGray;
     doc.rect(barX, barY, barWidth, Math.max(barH, 2)).fillColor(barColor).fill();
 
     const cumulY = chartY + chartHeight - ((cf.cumulative - minCumul) / range) * chartHeight;

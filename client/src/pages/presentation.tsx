@@ -808,12 +808,12 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
   const savingsPercent = capexGross > 0 ? ((totalIncentives / capexGross) * 100).toFixed(0) : '0';
 
   const bars = [
-    { label: language === 'fr' ? 'CAPEX Brut' : 'Gross CAPEX', value: capexGross, type: 'start' as const, color: BRAND_COLORS.primaryBlue },
-    { label: language === 'fr' ? 'Hydro-Québec Solaire' : 'Hydro-Québec Solar', value: hqSolar, type: 'deduction' as const, color: '#DC2626' },
-    { label: language === 'fr' ? 'Hydro-Québec Batterie' : 'Hydro-Québec Battery', value: hqBattery, type: 'deduction' as const, color: '#DC2626' },
-    { label: language === 'fr' ? 'Crédit fédéral (ITC)' : 'Federal ITC', value: itcFederal, type: 'deduction' as const, color: '#DC2626' },
-    { label: language === 'fr' ? 'Bouclier Fiscal' : 'Tax Shield', value: taxShield, type: 'deduction' as const, color: '#DC2626' },
-    { label: language === 'fr' ? 'Net' : 'Net', value: capexNet, type: 'total' as const, color: '#2D915F' },
+    { label: language === 'fr' ? 'CAPEX Brut' : 'Gross CAPEX', value: capexGross, type: 'start' as const, color: '#6B7280' },
+    { label: language === 'fr' ? '- Hydro-Québec Solaire' : '- Hydro-Québec Solar', value: hqSolar, type: 'deduction' as const, color: '#22C55E' },
+    { label: language === 'fr' ? '- Hydro-Québec Batterie' : '- Hydro-Québec Battery', value: hqBattery, type: 'deduction' as const, color: '#22C55E' },
+    { label: language === 'fr' ? '- Crédit fédéral (ITC)' : '- Federal ITC', value: itcFederal, type: 'deduction' as const, color: '#3B82F6' },
+    { label: language === 'fr' ? '- Bouclier Fiscal' : '- Tax Shield', value: taxShield, type: 'deduction' as const, color: '#3B82F6' },
+    { label: language === 'fr' ? 'CAPEX Net' : 'Net CAPEX', value: capexNet, type: 'total' as const, color: BRAND_COLORS.primaryBlue },
   ].filter(bar => bar.type === 'start' || bar.type === 'total' || bar.value > 0);
 
   const maxVal = Math.max(capexGross, 1);
@@ -836,23 +836,29 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
                 {bars.map((bar, i) => {
                   const barHeight = Math.max(8, (bar.value / maxVal) * chartHeight);
 
-                  if (bar.type === 'deduction') {
+                  let topOffset: number;
+                  if (bar.type === 'start') {
+                    topOffset = chartHeight - barHeight;
+                  } else if (bar.type === 'deduction') {
+                    const runningHeight = (running / maxVal) * chartHeight;
+                    topOffset = chartHeight - runningHeight;
                     running -= bar.value;
+                  } else {
+                    topOffset = chartHeight - barHeight;
                   }
 
                   return (
                     <div key={i} className="flex flex-col items-center min-w-[50px] md:min-w-[60px]" style={{ width: '14%' }}>
-                      <div className={`${bars.length >= 6 ? 'text-xs' : 'text-sm'} font-bold mb-1`} style={{ color: bar.type === 'deduction' ? '#DC2626' : '#1F2937' }}>
-                        {bar.type === 'deduction' ? '-' : ''}{bar.type === 'start' || bar.type === 'total' ? sharedFormatSmartCurrency(bar.value, language) : formatSmartCurrencyFull(bar.value, language)}
+                      <div className={`${bars.length >= 6 ? 'text-xs' : 'text-sm'} font-bold mb-1`} style={{ color: '#1F2937' }}>
+                        {bar.type === 'start' || bar.type === 'total' ? sharedFormatSmartCurrency(bar.value, language) : `-${formatSmartCurrencyFull(bar.value, language)}`}
                       </div>
                       <div className="w-full relative" style={{ height: chartHeight }}>
-                        <div style={{ height: chartHeight - barHeight }} />
+                        <div style={{ height: topOffset }} />
                         <div
                           className="w-full rounded-t"
                           style={{
                             height: barHeight,
                             backgroundColor: bar.color,
-                            opacity: bar.type === 'deduction' ? 0.85 : 1
                           }}
                         />
                       </div>

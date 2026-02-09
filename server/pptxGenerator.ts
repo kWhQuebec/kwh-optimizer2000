@@ -401,27 +401,25 @@ export async function generatePresentationPPTX(
     const x = wfChartX + i * (wfBarWidth + wfGap);
 
     if (bar.type === "start") {
-      // Full bar from bottom
       const barH = Math.max(0.05, bar.value * wfScale);
       const barY = wfChartY + wfChartHeight - barH;
       slideWaterfall.addShape("rect", {
         x, y: barY, w: wfBarWidth, h: barH,
-        fill: { color: COLORS.blue }
+        fill: { color: COLORS.mediumGray }
       });
-      // Value label
       slideWaterfall.addText(fmtSmartCurrency(bar.value), {
         x, y: barY - 0.3, w: wfBarWidth, h: 0.25,
-        fontSize: 10, bold: true, color: COLORS.blue, align: "center"
+        fontSize: 10, bold: true, color: COLORS.darkGray, align: "center"
       });
     } else if (bar.type === "deduction") {
-      // Floating deduction bar
       const prevTop = wfChartY + wfChartHeight - runningTotal * wfScale;
       const barH = Math.max(0.05, bar.value * wfScale);
+      const isHQ = bar.label.includes("HQ") || bar.label.includes("Hydro");
+      const barColor = isHQ ? "22C55E" : "3B82F6";
       slideWaterfall.addShape("rect", {
         x, y: prevTop, w: wfBarWidth, h: barH,
-        fill: { color: "DC2626" }
+        fill: { color: barColor }
       });
-      // Value label
       if (bar.value > 0) {
         slideWaterfall.addText(`-${fmtCurrency(bar.value)}`, {
           x, y: prevTop + barH / 2 - 0.12, w: wfBarWidth, h: 0.25,
@@ -430,17 +428,15 @@ export async function generatePresentationPPTX(
       }
       runningTotal -= bar.value;
     } else {
-      // Total (net) bar from bottom
       const barH = Math.max(0.05, bar.value * wfScale);
       const barY = wfChartY + wfChartHeight - barH;
       slideWaterfall.addShape("rect", {
         x, y: barY, w: wfBarWidth, h: barH,
-        fill: { color: COLORS.green }
+        fill: { color: COLORS.blue }
       });
-      // Value label
       slideWaterfall.addText(fmtSmartCurrency(bar.value), {
         x, y: barY - 0.3, w: wfBarWidth, h: 0.25,
-        fontSize: 10, bold: true, color: COLORS.green, align: "center"
+        fontSize: 10, bold: true, color: COLORS.blue, align: "center"
       });
     }
 
@@ -531,7 +527,7 @@ export async function generatePresentationPPTX(
 
       slideCashflow.addShape("rect", {
         x, y, w: barWidth, h: height,
-        fill: { color: isNegative ? "DC2626" : COLORS.green }
+        fill: { color: isNegative ? COLORS.mediumGray : COLORS.green }
       });
 
       if (i % 5 === 0 || i === chartData.length - 1) {
@@ -542,8 +538,8 @@ export async function generatePresentationPPTX(
       }
     });
 
-    slideCashflow.addText(t("Positif (vert) = profit cumulé | Négatif (rouge) = période de récupération",
-                     "Positive (green) = cumulative profit | Negative (red) = payback period"), {
+    slideCashflow.addText(t("Positif (vert) = profit cumulé | Gris = période de récupération",
+                     "Positive (green) = cumulative profit | Gray = payback period"), {
       x: 0.5, y: 4.6, w: 9, h: 0.25,
       fontSize: 9, color: COLORS.mediumGray, align: "center"
     });

@@ -557,14 +557,14 @@ function generateWaterfallSVG(
   const scale = chartH / maxVal;
 
   const items = [
-    { label: t("Co&ucirc;t Brut", "Gross Cost"), value: gross, color: "#003DA6", isNeg: false },
-    { label: t("ITC F&eacute;d&eacute;ral", "Federal ITC"), value: itc, color: "#ef4444", isNeg: true },
-    { label: t("Incitatif HQ", "HQ Incentive"), value: hq, color: "#ef4444", isNeg: true },
+    { label: t("Co&ucirc;t Brut", "Gross Cost"), value: gross, color: "#6B7280", isNeg: false },
+    { label: t("Incitatif HQ", "HQ Incentive"), value: hq, color: "#22C55E", isNeg: true },
+    { label: t("ITC F&eacute;d&eacute;ral", "Federal ITC"), value: itc, color: "#3B82F6", isNeg: true },
   ];
   if (taxShieldVal > 0) {
-    items.push({ label: t("Bouclier Fiscal", "Tax Shield"), value: taxShieldVal, color: "#f97316", isNeg: true });
+    items.push({ label: t("Bouclier Fiscal", "Tax Shield"), value: taxShieldVal, color: "#3B82F6", isNeg: true });
   }
-  items.push({ label: t("Co&ucirc;t Net", "Net Cost"), value: net, color: "#FFB005", isNeg: false });
+  items.push({ label: t("Co&ucirc;t Net", "Net Cost"), value: net, color: "#003DA6", isNeg: false });
 
   const totalW = items.length * barW + (items.length - 1) * gap;
   const startX = (svgW - totalW) / 2;
@@ -589,7 +589,7 @@ function generateWaterfallSVG(
 
     bars += `<rect x="${x}" y="${barY}" width="${barW}" height="${Math.max(barH, 2)}" fill="${item.color}" rx="3"/>`;
     const valStr = item.isNeg ? `-${cur(item.value)}` : cur(item.value);
-    bars += `<text x="${x + barW / 2}" y="${barY - 5}" text-anchor="middle" font-size="10" font-weight="600" fill="${item.isNeg ? "#ef4444" : item.color}">${valStr}</text>`;
+    bars += `<text x="${x + barW / 2}" y="${barY - 5}" text-anchor="middle" font-size="10" font-weight="600" fill="#1F2937">${valStr}</text>`;
     bars += `<text x="${x + barW / 2}" y="${topPad + chartH + 18}" text-anchor="middle" font-size="9" fill="#6b7280">${item.label}</text>`;
 
     if (item.isNeg && i > 0 && i < items.length - 1) {
