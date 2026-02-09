@@ -37,6 +37,7 @@ import {
 
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import { RoofVisualization } from "@/components/RoofVisualization";
 
 const BRAND_COLORS = {
   primaryBlue: '#003DA6',
@@ -289,12 +290,11 @@ export default function PresentationPage() {
 
   const slideContent = SLIDES[currentSlide];
   const currentLogo = language === 'fr' ? logoFr : logoEn;
-  const isHeroSlide = slideContent === 'hero';
 
   const displaySim = optimizedSimulation ?? bestSimulation ?? null;
 
   const slideComponents: Record<SlideType, JSX.Element> = {
-    hero: <HeroSlide site={site} language={language} />,
+    hero: <HeroSlide site={site} simulation={displaySim} language={language} />,
     billComparison: <BillComparisonSlide simulation={displaySim} language={language} />,
     snapshot: <SnapshotSlide simulation={displaySim} language={language} />,
     kpi: <KPIResultsSlide simulation={displaySim} language={language} />,
@@ -314,17 +314,15 @@ export default function PresentationPage() {
     <div
       className="min-h-screen font-['Montserrat',sans-serif]"
       style={{
-        background: isHeroSlide
-          ? `linear-gradient(135deg, ${BRAND_COLORS.primaryBlue} 0%, ${BRAND_COLORS.darkBlue} 100%)`
-          : '#FFFFFF',
-        color: isHeroSlide ? '#FFFFFF' : '#1F2937',
+        background: '#FFFFFF',
+        color: '#1F2937',
       }}
     >
       <div
         className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm"
         style={{
-          backgroundColor: isHeroSlide ? 'rgba(0, 43, 117, 0.8)' : 'rgba(255,255,255,0.95)',
-          borderBottom: isHeroSlide ? '1px solid rgba(255,255,255,0.1)' : '1px solid #E5E7EB',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderBottom: '1px solid #E5E7EB',
         }}
       >
         <div className="flex items-center justify-between px-6 py-3">
@@ -333,12 +331,11 @@ export default function PresentationPage() {
               src={currentLogo}
               alt="kWh Québec"
               className="h-10 w-auto"
-              style={isHeroSlide ? { filter: 'brightness(0) invert(1)' } : {}}
               data-testid="logo-kwh-quebec"
             />
-            <div className="h-8 w-px" style={{ backgroundColor: isHeroSlide ? 'rgba(255,255,255,0.2)' : '#E5E7EB' }} />
+            <div className="h-8 w-px" style={{ backgroundColor: '#E5E7EB' }} />
             <Link href={`/app/sites/${id}`}>
-              <Button variant="ghost" size="sm" style={{ color: isHeroSlide ? 'rgba(255,255,255,0.7)' : BRAND_COLORS.primaryBlue }}>
+              <Button variant="ghost" size="sm" style={{ color: BRAND_COLORS.primaryBlue }}>
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 {language === 'fr' ? 'Quitter' : 'Exit'}
               </Button>
@@ -351,7 +348,7 @@ export default function PresentationPage() {
               variant="ghost"
               size="icon"
               onClick={toggleFullscreen}
-              style={{ color: isHeroSlide ? 'rgba(255,255,255,0.7)' : BRAND_COLORS.primaryBlue }}
+              style={{ color: BRAND_COLORS.primaryBlue }}
               data-testid="button-fullscreen"
             >
               {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
@@ -367,8 +364,8 @@ export default function PresentationPage() {
       <div
         className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-sm"
         style={{
-          backgroundColor: isHeroSlide ? 'rgba(0, 43, 117, 0.8)' : 'rgba(255,255,255,0.95)',
-          borderTop: isHeroSlide ? '1px solid rgba(255,255,255,0.1)' : '1px solid #E5E7EB',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderTop: '1px solid #E5E7EB',
         }}
       >
         <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4">
@@ -377,7 +374,7 @@ export default function PresentationPage() {
             onClick={prevSlide}
             disabled={currentSlide === 0}
             className="disabled:opacity-30"
-            style={{ color: isHeroSlide ? 'rgba(255,255,255,0.7)' : BRAND_COLORS.primaryBlue }}
+            style={{ color: BRAND_COLORS.primaryBlue }}
             data-testid="button-prev-slide"
           >
             <ArrowLeft className="h-5 w-5 mr-0 md:mr-2" />
@@ -394,14 +391,14 @@ export default function PresentationPage() {
                   style={{
                     backgroundColor: index === currentSlide
                       ? BRAND_COLORS.accentGold
-                      : isHeroSlide ? 'rgba(255,255,255,0.3)' : '#D1D5DB',
+                      : '#D1D5DB',
                     transform: index === currentSlide ? 'scale(1.2)' : 'scale(1)'
                   }}
                   data-testid={`slide-indicator-${index}`}
                 />
               ))}
             </div>
-            <span className="hidden md:inline text-xs" style={{ color: isHeroSlide ? 'rgba(255,255,255,0.5)' : '#9CA3AF' }}>
+            <span className="hidden md:inline text-xs" style={{ color: '#9CA3AF' }}>
               {currentSlide + 1}/{SLIDES.length} — {language === 'fr' ? 'Propulsé par' : 'Powered by'} kWh Québec
             </span>
           </div>
@@ -411,7 +408,7 @@ export default function PresentationPage() {
             onClick={nextSlide}
             disabled={currentSlide === SLIDES.length - 1}
             className="disabled:opacity-30"
-            style={{ color: isHeroSlide ? 'rgba(255,255,255,0.7)' : BRAND_COLORS.primaryBlue }}
+            style={{ color: BRAND_COLORS.primaryBlue }}
             data-testid="button-next-slide"
           >
             <span className="hidden md:inline">{language === 'fr' ? 'Suivant' : 'Next'}</span>
@@ -439,20 +436,17 @@ function SlideTitle({ children, subtitle }: { children: string; subtitle?: strin
   );
 }
 
-function HeroSlide({ site, language }: { site: SiteWithDetails; language: string }) {
+function HeroSlide({ site, simulation, language }: { site: SiteWithDetails; simulation: SimulationRun | null; language: string }) {
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const hasCoords = site.latitude && site.longitude;
-
-  const satelliteImageUrl = hasCoords && googleMapsApiKey
-    ? `https://maps.googleapis.com/maps/api/staticmap?center=${site.latitude},${site.longitude}&zoom=18&size=800x500&maptype=satellite&key=${googleMapsApiKey}`
-    : null;
+  const currentPVSizeKW = simulation?.pvSizeKW ? Number(simulation.pvSizeKW) : undefined;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-center mb-6">
           <div
-            className="px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl"
+            className="px-6 py-3 rounded-full flex items-center gap-3 shadow-sm"
             style={{ backgroundColor: BRAND_COLORS.accentGold }}
           >
             <Sun className="h-6 w-6 text-white" />
@@ -462,14 +456,14 @@ function HeroSlide({ site, language }: { site: SiteWithDetails; language: string
           </div>
         </div>
 
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-7xl font-bold mb-4 text-white">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-6xl font-bold mb-3" style={{ color: BRAND_COLORS.primaryBlue }}>
             {site.client.name}
           </h1>
-          <h2 className="text-2xl md:text-4xl font-light text-white/80 mb-6">
+          <h2 className="text-2xl md:text-3xl font-light mb-4" style={{ color: '#4B5563' }}>
             {site.name}
           </h2>
-          <div className="flex items-center justify-center gap-2 text-white/60">
+          <div className="flex items-center justify-center gap-2" style={{ color: '#9CA3AF' }}>
             <MapPin className="h-5 w-5" />
             <span className="text-lg md:text-xl">
               {[site.address, site.city, site.postalCode].filter(Boolean).join(", ")}
@@ -477,31 +471,35 @@ function HeroSlide({ site, language }: { site: SiteWithDetails; language: string
           </div>
         </div>
 
-        {satelliteImageUrl ? (
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 mx-auto max-w-4xl">
-            <img src={satelliteImageUrl} alt="Vue satellite" className="w-full h-auto" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5">
-              <span className="text-sm text-white/80">Google Solar</span>
-            </div>
+        {hasCoords && googleMapsApiKey ? (
+          <div className="mx-auto max-w-5xl rounded-2xl overflow-hidden shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
+            <RoofVisualization
+              siteId={site.id}
+              siteName={site.name}
+              address={site.address || ""}
+              latitude={site.latitude!}
+              longitude={site.longitude!}
+              roofAreaSqFt={site.roofAreaAutoSqM ? site.roofAreaAutoSqM * 10.764 : undefined}
+              currentPVSizeKW={currentPVSizeKW}
+            />
           </div>
         ) : (
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-12 text-center mx-auto max-w-4xl">
-            <Building2 className="h-24 w-24 mx-auto text-white/20 mb-4" />
-            <p className="text-white/40">
-              {language === 'fr' ? 'Image satellite en cours de chargement...' : 'Satellite image loading...'}
+          <div className="rounded-2xl p-12 text-center mx-auto max-w-4xl shadow-sm" style={{ border: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
+            <Building2 className="h-24 w-24 mx-auto mb-4" style={{ color: '#D1D5DB' }} />
+            <p style={{ color: '#9CA3AF' }}>
+              {language === 'fr' ? 'Image satellite non disponible' : 'Satellite image not available'}
             </p>
           </div>
         )}
 
-        <div className="flex items-center justify-center gap-4 flex-wrap mt-8">
+        <div className="flex items-center justify-center gap-4 flex-wrap mt-6">
           {site.buildingType && (
             <Badge
               variant="secondary"
-              className="text-white text-base md:text-lg px-4 py-2"
-              style={{ backgroundColor: 'rgba(255,176,5,0.2)', borderColor: BRAND_COLORS.accentGold, borderWidth: 1 }}
+              className="text-base md:text-lg px-4 py-2"
+              style={{ backgroundColor: 'rgba(0,61,166,0.08)', color: BRAND_COLORS.primaryBlue, borderColor: 'rgba(0,61,166,0.15)', borderWidth: 1 }}
             >
-              <Building2 className="h-4 w-4 mr-2" style={{ color: BRAND_COLORS.accentGold }} />
+              <Building2 className="h-4 w-4 mr-2" style={{ color: BRAND_COLORS.primaryBlue }} />
               {site.buildingType === 'industrial'
                 ? (language === 'fr' ? 'Industriel' : 'Industrial')
                 : site.buildingType === 'commercial'
@@ -512,8 +510,8 @@ function HeroSlide({ site, language }: { site: SiteWithDetails; language: string
           {site.roofAreaAutoSqM && (
             <Badge
               variant="secondary"
-              className="text-white text-base md:text-lg px-4 py-2"
-              style={{ backgroundColor: 'rgba(255,176,5,0.2)', borderColor: BRAND_COLORS.accentGold, borderWidth: 1 }}
+              className="text-base md:text-lg px-4 py-2"
+              style={{ backgroundColor: 'rgba(255,176,5,0.08)', color: '#92400E', borderColor: 'rgba(255,176,5,0.3)', borderWidth: 1 }}
             >
               <Sun className="h-4 w-4 mr-2" style={{ color: BRAND_COLORS.accentGold }} />
               {Math.round(site.roofAreaAutoSqM).toLocaleString()} m²
