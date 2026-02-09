@@ -523,6 +523,114 @@ function expandPolygonCoords(
   ] as [number, number]);
 }
 
+function calculateShadowZones(
+  constraintCoordsData: [number, number][][],
+  centroidLat: number
+): google.maps.Polygon[] {
+  const SHADOW_PROJECTION_M = 5.0;
+  const shadowDegLat = SHADOW_PROJECTION_M / 111320;
+
+  const shadowPolygons: google.maps.Polygon[] = [];
+
+  for (const coords of constraintCoordsData) {
+    if (coords.length < 3) continue;
+
+    const originalPath = coords.map(([lng, lat]) => ({ lat, lng }));
+    const shiftedPath = coords.map(([lng, lat]) => ({ lat: lat + shadowDegLat, lng }));
+
+    const shadowPath = [
+      ...originalPath,
+      ...shiftedPath.reverse(),
+    ];
+
+    shadowPolygons.push(new google.maps.Polygon({ paths: shadowPath }));
+  }
+
+  return shadowPolygons;
+}
+
+interface PolygonScore {
+  polygonId: string;
+  score: number;
+  areaScore: number;
+  exposureScore: number;
+  centralityScore: number;
+  southScore: number;
+}
+
+function scorePolygons(
+  solarPolygonData: { id: string; coords: [number, number][] }[],
+  shadowZones: google.maps.Polygon[],
+  globalCentroid: { lat: number; lng: number }
+): PolygonScore[] {
+  if (solarPolygonData.length === 0) return [];
+
+  const metersPerDegreeLat = 111320;
+  const metersPerDegreeLng = 111320 * Math.cos(globalCentroid.lat * Math.PI / 180);
+
+  const areas = solarPolygonData.map(({ coords }) => {
+    const mCoords = coords.map(([lng, lat]) => ({
+      x: lng * metersPerDegreeLng,
+      y: lat * metersPerDegreeLat
+    }));
+    return Math.abs(computeSignedArea(mCoords));
+  });
+  const maxArea = Math.max(...areas);
+
+  const centroids = solarPolygonData.map(({ coords }) => computeCentroid(coords));
+
+  const distances = centroids.map(c => {
+    const dx = (c.lng - globalCentroid.lng) * metersPerDegreeLng;
+    const dy = (c.lat - globalCentroid.lat) * metersPerDegreeLat;
+    return Math.sqrt(dx * dx + dy * dy);
+  });
+  const maxDistance = Math.max(...distances, 1);
+
+  const lats = centroids.map(c => c.lat);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const latRange = maxLat - minLat || 1;
+
+  const exposureScores = solarPolygonData.map(({ coords }) => {
+    if (shadowZones.length === 0) return 1.0;
+
+    const centroid = computeCentroid(coords);
+    let totalSamples = 0;
+    let shadedSamples = 0;
+
+    const samplePoints = [...coords.map(([lng, lat]) => ({ lat, lng })), centroid];
+
+    for (const point of samplePoints) {
+      totalSamples++;
+      const latLng = new google.maps.LatLng(point.lat, point.lng);
+      for (const shadow of shadowZones) {
+        if (google.maps.geometry.poly.containsLocation(latLng, shadow)) {
+          shadedSamples++;
+          break;
+        }
+      }
+    }
+
+    return totalSamples > 0 ? 1 - (shadedSamples / totalSamples) : 1.0;
+  });
+
+  return solarPolygonData.map(({ id }, i) => {
+    const areaScore = maxArea > 0 ? (areas[i] / maxArea) * 100 : 50;
+    const exposureScore = exposureScores[i] * 100;
+    const centralityScore = (1 - distances[i] / maxDistance) * 100;
+    const southScore = latRange > 0 ? (1 - (centroids[i].lat - minLat) / latRange) * 100 : 50;
+    const adjustedSouthScore = solarPolygonData.length === 1 ? 50 : southScore;
+
+    const score =
+      exposureScore * 0.40 +
+      areaScore * 0.35 +
+      centralityScore * 0.15 +
+      adjustedSouthScore * 0.10;
+
+    return { polygonId: id, score, areaScore, exposureScore, centralityScore, southScore: adjustedSouthScore };
+  });
+}
+
 export function RoofVisualization({
   siteId,
   siteName,
@@ -731,6 +839,22 @@ export function RoofVisualization({
     const cosPos = Math.cos(unifiedAxisAngle);
     const sinPos = Math.sin(unifiedAxisAngle);
     
+    // Step 1.6: Calculate shadow zones from constraint obstacles
+    const shadowZones = calculateShadowZones(constraintCoordsData, globalCentroid.lat);
+    console.log(`[RoofVisualization] Calculated ${shadowZones.length} shadow zones from ${constraintCoordsData.length} constraints`);
+    
+    // Step 1.7: Score polygons for inter-polygon priority ranking
+    const polygonScores = scorePolygons(
+      solarPolygonData.map(({ id, coords }) => ({ id, coords })),
+      shadowZones,
+      globalCentroid
+    );
+    const polygonScoreMap: Record<string, number> = {};
+    for (const ps of polygonScores) {
+      polygonScoreMap[ps.polygonId] = ps.score;
+      console.log(`[RoofVisualization] Polygon ${ps.polygonId.slice(0,8)} score: ${ps.score.toFixed(1)} (area=${ps.areaScore.toFixed(0)}, exposure=${ps.exposureScore.toFixed(0)}, central=${ps.centralityScore.toFixed(0)}, south=${ps.southScore.toFixed(0)})`);
+    }
+    
     // Step 2: Process each polygon separately with its own bbox but unified axis
     const allPanels: PanelPosition[] = [];
     let totalAccepted = 0;
@@ -887,10 +1011,28 @@ export function RoofVisualization({
             }
           }
           
-          // Priority based on global grid position (for consistent slider behavior)
+          // Priority: industry-standard center-out placement with shadow avoidance
           const globalRowIdx = Math.round(gridY / panelPitchY);
           const globalColIdx = Math.round(gridX / panelPitchX);
-          const priority = 1000000 - Math.abs(globalRowIdx) * 1000 - Math.abs(globalColIdx);
+          
+          const distToEdge = pointToPolygonDistance(panelCenterLat, panelCenterLng, coords, localCentroid.lat);
+          const approxMaxEdgeDist = Math.min(rawWidth, rawHeight) / 2;
+          const edgeScore = approxMaxEdgeDist > 0 ? Math.min(1, distToEdge / approxMaxEdgeDist) : 0.5;
+
+          const southBias = (localCentroid.lat - panelCenterLat) / (rawHeight / metersPerDegreeLat || 1);
+          const southBiasNorm = Math.max(0, Math.min(1, 0.5 + southBias * 0.5));
+
+          let shadowPenalty = 0;
+          for (const shadowPoly of shadowZones) {
+            if (google.maps.geometry.poly.containsLocation(panelCenter, shadowPoly)) {
+              shadowPenalty = 0.5;
+              break;
+            }
+          }
+
+          const polygonBonus = polygonScoreMap[id] || 50;
+          const intraPriority = (edgeScore * 0.6 + southBiasNorm * 0.15 + 0.25) * (1 - shadowPenalty);
+          const priority = polygonBonus * 1000 + Math.round(intraPriority * 999);
           
           // Calculate array ID based on fire corridor positions
           // Arrays are numbered 1, 2, 3... like KB Racking
@@ -1437,7 +1579,8 @@ export function RoofVisualization({
 
     const panelsToRender = allPanelPositions.slice(0, panelsToShow);
 
-    for (const panel of panelsToRender) {
+    for (let i = 0; i < panelsToRender.length; i++) {
+      const panel = panelsToRender[i];
       let path: google.maps.LatLngLiteral[];
       
       if (panel.corners && panel.corners.length === 4) {
@@ -1451,13 +1594,17 @@ export function RoofVisualization({
         ];
       }
 
+      const positionRatio = panelsToRender.length > 1 ? i / (panelsToRender.length - 1) : 0;
+      const fillOpacity = 0.9 - positionRatio * 0.35;
+      const fillColor = positionRatio < 0.3 ? "#2563eb" : positionRatio < 0.7 ? "#3b82f6" : "#60a5fa";
+
       const panelPolygon = new google.maps.Polygon({
         paths: path,
         strokeColor: "#1e40af",
         strokeOpacity: 0.9,
         strokeWeight: 0.5,
-        fillColor: "#3b82f6",
-        fillOpacity: 0.85,
+        fillColor,
+        fillOpacity,
         map: mapRef.current,
       });
 
