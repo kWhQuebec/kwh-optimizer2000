@@ -69,6 +69,7 @@ import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import type { Site, Client, SimulationRun, CashflowEntry } from "@shared/schema";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency as sharedFormatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
+import { TIMELINE_GRADIENT } from "@shared/colors";
 import {
   getAssumptions,
   getExclusions,
@@ -1371,9 +1372,9 @@ function TimelineSlide({ language }: { language: string }) {
                 <div
                   className="rounded-xl px-5 py-4 text-center min-w-[140px] w-full md:w-auto shadow-sm"
                   style={{
-                    backgroundColor: isFirst ? BRAND_COLORS.primaryBlue : isLast ? '#16A34A' : '#FFFFFF',
-                    border: (isFirst || isLast) ? 'none' : '1px solid #E5E7EB',
-                    color: (isFirst || isLast) ? '#FFFFFF' : '#1F2937',
+                    backgroundColor: TIMELINE_GRADIENT.getStepHex(i, timeline.length),
+                    border: 'none',
+                    color: TIMELINE_GRADIENT.getStepTextColor(i, timeline.length),
                   }}
                 >
                   <p className="font-bold text-base mb-1">{tl.step}</p>
@@ -1411,38 +1412,14 @@ function NextStepsSlide({ language }: { language: string }) {
   const clientReceivesList = getClientReceives(lang);
   const contact = getContactString();
 
-  const milestones = [
-    {
-      icon: FileText,
-      label: language === 'fr' ? 'Signature' : 'Signature',
-      duration: language === 'fr' ? 'Semaine 0' : 'Week 0',
-      color: '#003DA6',
-    },
-    {
-      icon: Settings,
-      label: language === 'fr' ? 'Ingénierie' : 'Engineering',
-      duration: language === 'fr' ? '4-6 sem.' : '4-6 wks',
-      color: '#9CA3AF',
-    },
-    {
-      icon: ClipboardCheck,
-      label: language === 'fr' ? 'Permis' : 'Permits',
-      duration: language === 'fr' ? '6-8 sem.' : '6-8 wks',
-      color: '#9CA3AF',
-    },
-    {
-      icon: Wrench,
-      label: language === 'fr' ? 'Installation' : 'Installation',
-      duration: language === 'fr' ? '4-8 sem.' : '4-8 wks',
-      color: '#9CA3AF',
-    },
-    {
-      icon: Zap,
-      label: language === 'fr' ? 'Mise en service' : 'Commissioning',
-      duration: language === 'fr' ? '~6 mois total' : '~6 months total',
-      color: '#16A34A',
-    },
-  ];
+  const timeline = getTimeline(lang);
+  const milestoneIcons = [FileText, Settings, ClipboardCheck, Wrench, Zap];
+  const milestones = timeline.map((tl, i) => ({
+    icon: milestoneIcons[Math.min(i, milestoneIcons.length - 1)],
+    label: tl.step,
+    duration: tl.duration,
+    color: TIMELINE_GRADIENT.getStepHex(i, timeline.length),
+  }));
 
   const columns = [
     {

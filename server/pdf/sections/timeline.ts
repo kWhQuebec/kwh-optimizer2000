@@ -2,6 +2,7 @@ import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawRoundedRect, drawPageFooter } from "../helpers";
 import { getTimeline } from "@shared/brandContent";
+import { TIMELINE_GRADIENT } from "@shared/colors";
 
 export function renderTimeline(ctx: PDFContext) {
   const { doc, t, margin, contentWidth } = ctx;
@@ -26,8 +27,9 @@ export function renderTimeline(ctx: PDFContext) {
   timelineData.forEach((tl: any, idx: number) => {
     const tx = margin + idx * (tlStepWidth + 5);
 
-    const stepColor = idx === 0 ? COLORS.blue : (idx === timelineData.length - 1 ? COLORS.green : COLORS.background);
-    const textColor = (idx === 0 || idx === timelineData.length - 1) ? COLORS.white : COLORS.darkGray;
+    const gradientColor = TIMELINE_GRADIENT.getStepColor(idx, timelineData.length);
+    const stepColor = gradientColor.bg;
+    const textColor = gradientColor.text;
     drawRoundedRect(doc, tx, tlY, tlStepWidth, tlStepH, 6, stepColor);
 
     doc.fontSize(9).fillColor(textColor).font("Helvetica-Bold");
@@ -35,7 +37,7 @@ export function renderTimeline(ctx: PDFContext) {
     doc.font("Helvetica");
 
     if (tl.duration) {
-      doc.fontSize(8).fillColor(idx === 0 || idx === timelineData.length - 1 ? COLORS.white : COLORS.mediumGray);
+      doc.fontSize(8).fillColor(gradientColor.text === '#FFFFFF' ? COLORS.white : COLORS.mediumGray);
       doc.text(tl.duration, tx + 4, tlY + 30, { width: tlStepWidth - 8, align: "center" });
     }
 

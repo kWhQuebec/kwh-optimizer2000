@@ -29,6 +29,7 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SEOHead, seoContent, getLocalBusinessSchema } from "@/components/seo-head";
+import { TIMELINE_GRADIENT } from "@shared/colors";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/hero-optimized.jpg";
@@ -987,10 +988,10 @@ export default function LandingPage() {
                 data-testid="process-step-1"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-accent/10 border-4 border-background flex items-center justify-center mb-6">
-                    <BarChart3 className="w-6 h-6 text-accent" />
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(0, 4) }}>
+                    <BarChart3 className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(0, 4) }} />
                   </div>
-                  <Badge className="mb-3 bg-accent/10 text-accent border-accent/20">
+                  <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(0, 4)}20`, color: TIMELINE_GRADIENT.getStepHex(0, 4), borderColor: `${TIMELINE_GRADIENT.getStepHex(0, 4)}33` }}>
                     5 {language === "fr" ? "jours" : "days"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
@@ -1015,11 +1016,11 @@ export default function LandingPage() {
                 data-testid="process-step-2"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
-                    <FileText className="w-6 h-6 text-muted-foreground" />
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(1, 4) }}>
+                    <FileText className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(1, 4) }} />
                   </div>
-                  <Badge variant="outline" className="mb-3">
-                    8-16 {language === "fr" ? "sem." : "wks"}
+                  <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(1, 4)}20`, color: TIMELINE_GRADIENT.getStepHex(1, 4), borderColor: `${TIMELINE_GRADIENT.getStepHex(1, 4)}33` }}>
+                    10-16 {language === "fr" ? "sem." : "wks"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
                     {language === "fr" ? "Conception & Planification" : "Design & Planning"}
@@ -1043,11 +1044,11 @@ export default function LandingPage() {
                 data-testid="process-step-3"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
-                    <HardHat className="w-6 h-6 text-muted-foreground" />
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(2, 4) }}>
+                    <HardHat className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(2, 4) }} />
                   </div>
-                  <Badge variant="outline" className="mb-3">
-                    8-16 {language === "fr" ? "sem." : "wks"}
+                  <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(2, 4)}20`, color: TIMELINE_GRADIENT.getStepHex(2, 4), borderColor: `${TIMELINE_GRADIENT.getStepHex(2, 4)}33` }}>
+                    3-6 {language === "fr" ? "sem." : "wks"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">
                     {language === "fr" ? "Construction" : "Construction"}
@@ -1071,10 +1072,10 @@ export default function LandingPage() {
                 data-testid="process-step-4"
               >
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full bg-muted border-4 border-background flex items-center justify-center mb-6">
-                    <Wrench className="w-6 h-6 text-muted-foreground" />
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(3, 4) }}>
+                    <Wrench className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(3, 4) }} />
                   </div>
-                  <Badge variant="outline" className="mb-3">
+                  <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(3, 4)}20`, color: TIMELINE_GRADIENT.getStepHex(3, 4), borderColor: `${TIMELINE_GRADIENT.getStepHex(3, 4)}33` }}>
                     25+ {language === "fr" ? "ans" : "yrs"}
                   </Badge>
                   <h3 className="font-semibold text-sm mb-1">

@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "@shared/brandContent";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
+import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
 import type { DocumentSimulationData } from "./documentDataProvider";
 import { createLogger } from "./lib/logger";
 
@@ -870,8 +871,9 @@ export async function generatePresentationPPTX(
     dynamicTimeline.forEach((tl, i) => {
       const x = 0.5 + i * (9 / dynamicTimeline.length);
       const stepW = Math.min(1.7, (9 / dynamicTimeline.length) - 0.2);
-      const bgColor = i === 0 ? COLORS.blue : (i === dynamicTimeline.length - 1 ? COLORS.green : COLORS.lightGray);
-      const txtColor = (i === 0 || i === dynamicTimeline.length - 1) ? COLORS.white : COLORS.darkGray;
+      const gradC = TIMELINE_GRADIENT_PPTX.getStepColor(i, dynamicTimeline.length);
+      const bgColor = gradC.bg;
+      const txtColor = gradC.text;
 
       slideTimeline.addShape("rect", {
         x, y: 2.0, w: stepW, h: 1.3,
@@ -884,7 +886,7 @@ export async function generatePresentationPPTX(
       if (tl.duration) {
         slideTimeline.addText(tl.duration, {
           x, y: 2.7, w: stepW, h: 0.4,
-          fontSize: 10, color: (i === 0 || i === dynamicTimeline.length - 1) ? COLORS.white : COLORS.mediumGray, align: "center"
+          fontSize: 10, color: gradC.text, align: "center"
         });
       }
       if (i < dynamicTimeline.length - 1) {
@@ -899,8 +901,9 @@ export async function generatePresentationPPTX(
     const timeline = getTimeline(lang);
     timeline.forEach((tl, i) => {
       const x = 0.5 + i * 1.9;
-      const bgColor = i === 0 ? COLORS.blue : (i === timeline.length - 1 ? COLORS.green : COLORS.lightGray);
-      const txtColor = (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.darkGray;
+      const gradC = TIMELINE_GRADIENT_PPTX.getStepColor(i, timeline.length);
+      const bgColor = gradC.bg;
+      const txtColor = gradC.text;
 
       slideTimeline.addShape("rect", {
         x, y: 2.0, w: 1.7, h: 1.3,
@@ -913,7 +916,7 @@ export async function generatePresentationPPTX(
       if (tl.duration) {
         slideTimeline.addText(tl.duration, {
           x, y: 2.7, w: 1.7, h: 0.4,
-          fontSize: 11, color: (i === 0 || i === timeline.length - 1) ? COLORS.white : COLORS.mediumGray, align: "center"
+          fontSize: 11, color: gradC.text, align: "center"
         });
       }
 

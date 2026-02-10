@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead, seoContent, getHowToSchema } from "@/components/seo-head";
+import { TIMELINE_GRADIENT } from "@shared/colors";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
@@ -93,7 +94,7 @@ export default function CommentCaMarchePage() {
       number: 6,
       icon: HardHat,
       title: language === "fr" ? "Construction & Mise en service" : "Construction & Commissioning",
-      duration: language === "fr" ? "4-8 semaines" : "4-8 weeks",
+      duration: language === "fr" ? "3-6 semaines" : "3-6 weeks",
       description: language === "fr"
         ? "Installation clé en main par notre équipe certifiée, suivie des tests de performance et de la mise en service officielle."
         : "Turnkey installation by our certified team, followed by performance testing and official commissioning.",
@@ -209,7 +210,13 @@ export default function CommentCaMarchePage() {
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       {/* Step number and icon */}
-                      <div className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${step.free ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                      <div 
+                        className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+                        style={{
+                          backgroundColor: TIMELINE_GRADIENT.getStepHex(index, 6),
+                          color: TIMELINE_GRADIENT.getStepTextColor(index, 6),
+                        }}
+                      >
                         <step.icon className="w-6 h-6" />
                       </div>
                       

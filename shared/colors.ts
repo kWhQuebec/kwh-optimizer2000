@@ -64,3 +64,31 @@ export const PPTX_COLORS = {
   mediumGray: "666666",
   lightGray: "E0E0E0",
 } as const;
+
+export const TIMELINE_GRADIENT = {
+  getStepColor(index: number, total: number): { bg: string; text: string } {
+    if (total <= 1) return { bg: BRAND.primaryBlue, text: "#FFFFFF" };
+    const opacity = 0.2 + (0.8 * index) / (total - 1);
+    if (opacity >= 0.85) {
+      return { bg: BRAND.primaryBlue, text: "#FFFFFF" };
+    }
+    const r = Math.round(255 - (255 - 0) * opacity);
+    const g = Math.round(255 - (255 - 61) * opacity);
+    const b = Math.round(255 - (255 - 166) * opacity);
+    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    return { bg: hex, text: opacity > 0.55 ? "#FFFFFF" : "#1F2937" };
+  },
+  getStepHex(index: number, total: number): string {
+    return this.getStepColor(index, total).bg;
+  },
+  getStepTextColor(index: number, total: number): string {
+    return this.getStepColor(index, total).text;
+  },
+} as const;
+
+export const TIMELINE_GRADIENT_PPTX = {
+  getStepColor(index: number, total: number): { bg: string; text: string } {
+    const c = TIMELINE_GRADIENT.getStepColor(index, total);
+    return { bg: c.bg.replace("#", ""), text: c.text.replace("#", "") };
+  },
+} as const;
