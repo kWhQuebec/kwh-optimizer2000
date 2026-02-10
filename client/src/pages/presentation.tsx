@@ -1029,7 +1029,7 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
                       : (language === 'fr' ? 'Cash-flow annuel' : 'Annual cash flow')}
                   />
                   <Bar dataKey="annual" radius={[2, 2, 0, 0]}>
-                    {cashflowData.map((entry, index) => (
+                    {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.annual >= 0 ? '#16A34A' : '#DC2626'} opacity={0.6} />
                     ))}
                   </Bar>
