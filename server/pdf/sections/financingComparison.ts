@@ -51,7 +51,7 @@ export function renderFinancingComparison(ctx: PDFContext) {
         { label: t("Retour", "Payback"), value: `${Number(paybackYears).toFixed(1)} ${t("ans", "yrs")}`, bold: false },
         { label: t("Profit 25 ans (VAN)", "25-yr Profit (NPV)"), value: formatCurrency(npv25), bold: true },
       ],
-      badge: t("Recommandé", "Recommended"),
+      badge: null,
     },
     {
       title: t("FINANCEMENT", "LOAN"),

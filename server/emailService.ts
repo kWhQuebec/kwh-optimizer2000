@@ -204,13 +204,12 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
     const isRecommended = scenario.recommended === true;
     
     return `
-      <div style="background: ${isRecommended ? 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' : '#f8f9fa'}; border-radius: 8px; padding: 20px; margin-bottom: 15px; ${isRecommended ? 'border: 2px solid #003DA6;' : 'border: 1px solid #e0e0e0;'}">
+      <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 8px;">
           <div>
             <span style="font-size: 18px; font-weight: 700; color: #003DA6;">${labels.title}</span>
             <span style="font-size: 14px; color: #666; margin-left: 8px;">(${labels.subtitle})</span>
           </div>
-          ${isRecommended ? `<span style="background: #003DA6; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;">${txt.recommended}</span>` : ''}
         </div>
         
         <div style="display: table; width: 100%; border-collapse: collapse;">

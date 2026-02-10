@@ -1019,7 +1019,7 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
                   />
                   <Bar dataKey="annual" radius={[2, 2, 0, 0]}>
                     {cashflowData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.annual >= 0 ? '#003DA6' : '#DC2626'} opacity={0.6} />
+                      <Cell key={`cell-${index}`} fill={entry.annual >= 0 ? '#16A34A' : '#DC2626'} opacity={0.6} />
                     ))}
                   </Bar>
                   <Line type="monotone" dataKey="cumulative" stroke={BRAND_COLORS.accentGold} strokeWidth={3} dot={false} />
@@ -1180,7 +1180,6 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
       key: 'cash',
       title: language === 'fr' ? 'Comptant' : 'Cash',
       icon: Banknote,
-      recommended: true,
       keyNumber: capexNet > 0 ? formatSmartCurrencyFull(capexNet, language) : '--',
       keyLabel: language === 'fr' ? 'Investissement net' : 'Net investment',
       bullets: [
@@ -1230,28 +1229,20 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
               key={opt.key}
               className="rounded-2xl p-5 md:p-6 shadow-sm relative"
               style={{
-                border: opt.recommended ? `2px solid ${BRAND_COLORS.accentGold}` : '1px solid #E5E7EB',
+                border: '1px solid #E5E7EB',
               }}
               data-testid={`card-financing-${opt.key}`}
             >
-              {opt.recommended && (
-                <div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: BRAND_COLORS.accentGold }}
-                >
-                  {language === 'fr' ? 'Recommandé' : 'Recommended'}
-                </div>
-              )}
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className="h-10 w-10 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: opt.recommended ? 'rgba(255,176,5,0.1)' : 'rgba(0,61,166,0.08)' }}
+                  style={{ backgroundColor: 'rgba(0,61,166,0.08)' }}
                 >
-                  <opt.icon className="h-5 w-5" style={{ color: opt.recommended ? BRAND_COLORS.accentGold : BRAND_COLORS.primaryBlue }} />
+                  <opt.icon className="h-5 w-5" style={{ color: BRAND_COLORS.primaryBlue }} />
                 </div>
                 <h3 className="text-lg font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{opt.title}</h3>
               </div>
-              <p className="text-2xl md:text-3xl font-bold mb-1" style={{ color: opt.recommended ? BRAND_COLORS.accentGold : BRAND_COLORS.primaryBlue }}>
+              <p className="text-2xl md:text-3xl font-bold mb-1" style={{ color: BRAND_COLORS.primaryBlue }}>
                 {opt.keyNumber}
               </p>
               <p className="text-sm mb-4" style={{ color: '#6B7280' }}>{opt.keyLabel}</p>
