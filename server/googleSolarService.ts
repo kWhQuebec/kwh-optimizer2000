@@ -585,7 +585,7 @@ export async function getDataLayers(location: GeoLocation, radiusMeters: number 
       "location.latitude": location.latitude.toFixed(6),
       "location.longitude": location.longitude.toFixed(6),
       "radiusMeters": radiusMeters.toString(),
-      "view": "IMAGERY_LAYERS",
+      "view": "IMAGERY_AND_ANNUAL_FLUX_LAYERS",
       "requiredQuality": "HIGH",
       "key": GOOGLE_SOLAR_API_KEY
     });
@@ -604,7 +604,7 @@ export async function getDataLayers(location: GeoLocation, radiusMeters: number 
           "location.latitude": location.latitude.toFixed(6),
           "location.longitude": location.longitude.toFixed(6),
           "radiusMeters": radiusMeters.toString(),
-          "view": "IMAGERY_LAYERS",
+          "view": "IMAGERY_AND_ANNUAL_FLUX_LAYERS",
           "requiredQuality": "MEDIUM",
           "key": GOOGLE_SOLAR_API_KEY
         });
@@ -1012,7 +1012,7 @@ export async function suggestConstraints(
 
     // Filter to only solar polygons (blue) for analysis
     const solarPolygons = input.existingPolygons
-      .filter((p) => !p.color || p.color === "#3b82f6")
+      .filter((p) => p.color !== "#f97316")
       .map((p) => ({ coordinates: p.coordinates, label: p.label }));
 
     if (solarPolygons.length === 0) {

@@ -19,7 +19,9 @@ export interface DetectedConstraint {
   coordinates: [number, number][];
   areaSqM: number;
   label: string;
-  source: "dsm" | "flux";
+  source: "dsm" | "flux" | "vision" | "shadow";
+  estimatedHeightM?: number;
+  confidence?: string;
 }
 
 export interface DetectorResult {
@@ -39,8 +41,6 @@ function pixelToLatLng(
   py: number,
   meta: TiePointScale
 ): [number, number] {
-  // GeoTIFF convention: geo = tiePoint_geo + (pixel - tiePoint_pixel) * scale
-  // Note: Y scale is negative (north-up raster)
   const lng = meta.tiePoint[3] + (px - meta.tiePoint[0]) * meta.scale[0];
   const lat = meta.tiePoint[4] - (py - meta.tiePoint[1]) * meta.scale[1];
   return [lng, lat];
@@ -84,7 +84,6 @@ function createPolygonMask(
   height: number
 ): Uint8Array {
   const mask = new Uint8Array(width * height);
-  // Compute bounding box to limit scanline range
   let minX = width,
     maxX = 0,
     minY = height,
@@ -134,7 +133,6 @@ function connectedComponents(
           component.push(ci);
           const cx = ci % width;
           const cy = (ci - cx) / width;
-          // 8-connectivity neighbors
           for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
               if (dx === 0 && dy === 0) continue;
@@ -160,7 +158,6 @@ function connectedComponents(
 function convexHull(points: [number, number][]): [number, number][] {
   if (points.length <= 3) return points;
 
-  // Find lowest-leftmost point
   let start = 0;
   for (let i = 1; i < points.length; i++) {
     if (
@@ -173,13 +170,11 @@ function convexHull(points: [number, number][]): [number, number][] {
   [points[0], points[start]] = [points[start], points[0]];
   const pivot = points[0];
 
-  // Sort by polar angle
   const sorted = points.slice(1).sort((a, b) => {
     const cross =
       (a[0] - pivot[0]) * (b[1] - pivot[1]) -
       (b[0] - pivot[0]) * (a[1] - pivot[1]);
-    if (cross !== 0) return -cross; // counterclockwise
-    // Collinear: closer first
+    if (cross !== 0) return -cross;
     const distA =
       (a[0] - pivot[0]) ** 2 + (a[1] - pivot[1]) ** 2;
     const distB =
@@ -266,14 +261,15 @@ function perpendicularDist(
 
 async function fetchAndParseGeoTIFF(
   url: string,
-  apiKey: string
+  apiKey: string,
+  centerLat?: number,
+  radiusMeters?: number
 ): Promise<{
   raster: Float32Array | Float64Array | Uint8Array | Uint16Array | Int16Array;
   width: number;
   height: number;
   meta: TiePointScale;
 }> {
-  // Append API key — use ? or & depending on whether URL already has query params
   let urlWithKey = url;
   if (!url.includes("key=")) {
     const separator = url.includes("?") ? "&" : "?";
@@ -301,14 +297,66 @@ async function fetchAndParseGeoTIFF(
   const height = image.getHeight();
 
   const fileDirectory = image.fileDirectory as any;
-  const tiePoint = fileDirectory.ModelTiepoint || [0, 0, 0, 0, 0, 0];
-  const scale = fileDirectory.ModelPixelScale || [1, 1, 1];
+  let tiePoint = fileDirectory.ModelTiepoint;
+  let scale = fileDirectory.ModelPixelScale;
+  const modelTransformation = fileDirectory.ModelTransformation;
+
+  if (!scale && modelTransformation && modelTransformation.length >= 16) {
+    log.info("ModelPixelScale absent, deriving from ModelTransformation matrix");
+    const scaleX = Math.abs(modelTransformation[0]);
+    const scaleY = Math.abs(modelTransformation[5]);
+    const originX = modelTransformation[3];
+    const originY = modelTransformation[7];
+    const scaleZ = modelTransformation.length > 10 ? Math.abs(modelTransformation[10]) : 1;
+
+    scale = [scaleX, scaleY, scaleZ];
+    tiePoint = [0, 0, 0, originX, originY, 0];
+
+    log.info(`Derived scale: [${scaleX.toFixed(10)}, ${scaleY.toFixed(10)}], origin: [${originX.toFixed(6)}, ${originY.toFixed(6)}]`);
+  }
+
+  if (!tiePoint) {
+    tiePoint = [0, 0, 0, 0, 0, 0];
+  }
+  if (!scale) {
+    scale = [1, 1, 1];
+  }
+
+  const finalScale = Array.from(scale) as number[];
+  const finalTiePoint = Array.from(tiePoint) as number[];
+
+  if (finalScale[0] > 0.01) {
+    const effectiveRadius = radiusMeters || 75;
+    const effectiveLat = centerLat || finalTiePoint[4] || 46.8;
+    const coverageM = effectiveRadius * 2;
+    const metersPerDegLng = 111320 * Math.cos((effectiveLat * Math.PI) / 180);
+    const metersPerDegLat = 111320;
+    const computedScaleX = coverageM / (width * metersPerDegLng);
+    const computedScaleY = coverageM / (height * metersPerDegLat);
+
+    log.warn(`Scale unreasonably large: [${finalScale[0].toFixed(6)}, ${finalScale[1].toFixed(6)}] (>${0.01}° per pixel). Recomputing from image bounds.`);
+    log.info(`Using radius=${effectiveRadius}m, lat=${effectiveLat.toFixed(2)}, image=${width}x${height}`);
+    log.info(`Computed scale: [${computedScaleX.toFixed(10)}, ${computedScaleY.toFixed(10)}]`);
+
+    finalScale[0] = computedScaleX;
+    finalScale[1] = computedScaleY;
+
+    if (finalTiePoint[3] === 0 && finalTiePoint[4] === 0 && effectiveLat) {
+      const lng = centerLat ? (finalTiePoint[3] || 0) : 0;
+      const lat = effectiveLat;
+      finalTiePoint[3] = lng - (width / 2) * computedScaleX;
+      finalTiePoint[4] = lat + (height / 2) * computedScaleY;
+      log.info(`Estimated tiePoint origin: [${finalTiePoint[3].toFixed(6)}, ${finalTiePoint[4].toFixed(6)}]`);
+    }
+  }
+
+  log.info(`GeoTIFF parsed: ${width}x${height}, scale=[${finalScale[0].toFixed(10)}, ${finalScale[1].toFixed(10)}]`);
 
   return {
     raster: raster as Float32Array,
     width,
     height,
-    meta: { tiePoint: Array.from(tiePoint), scale: Array.from(scale) },
+    meta: { tiePoint: finalTiePoint, scale: finalScale },
   };
 }
 
@@ -330,11 +378,9 @@ function detectDSMObstacles(
   height: number,
   meta: TiePointScale,
   solarPolygons: Array<{ coordinates: [number, number][] }>,
-  minAreaSqM: number = 2
+  minAreaSqM: number = 1
 ): DetectedConstraint[] {
   const constraints: DetectedConstraint[] = [];
-  const pixelAreaSqM = meta.scale[0] * meta.scale[1] * (111320 * 111320); // approximate m²/pixel
-  // More accurate: scale is in degrees, convert to meters at the location latitude
   const latCenter = meta.tiePoint[4] - (height / 2) * meta.scale[1];
   const metersPerDegLat = 111320;
   const metersPerDegLng = 111320 * Math.cos((latCenter * Math.PI) / 180);
@@ -342,16 +388,15 @@ function detectDSMObstacles(
   const pixelHeightM = meta.scale[1] * metersPerDegLat;
   const pixelArea = pixelWidthM * pixelHeightM;
 
+  log.info(`DSM pixel size: ${pixelWidthM.toFixed(3)}m x ${pixelHeightM.toFixed(3)}m = ${pixelArea.toFixed(4)} m²/pixel`);
+
   for (const polygon of solarPolygons) {
-    // Convert polygon coordinates [lng, lat] to pixel coordinates
     const polygonPixels: [number, number][] = polygon.coordinates.map(
       ([lng, lat]) => latLngToPixel(lat, lng, meta)
     );
 
-    // Create mask of pixels inside this polygon
     const mask = createPolygonMask(polygonPixels, width, height);
 
-    // Collect elevation values inside the polygon
     const elevations: number[] = [];
     const maskedIndices: number[] = [];
     for (let i = 0; i < mask.length; i++) {
@@ -364,13 +409,16 @@ function detectDSMObstacles(
       }
     }
 
-    if (elevations.length < 10) continue; // Too few pixels to analyze
+    if (elevations.length < 10) {
+      log.warn(`Polygon has only ${elevations.length} valid pixels, skipping DSM analysis`);
+      continue;
+    }
+
+    log.info(`Polygon: ${elevations.length} pixels inside mask`);
 
     const roofMedian = median(elevations);
-    // Threshold: pixels more than 0.5m above median are obstacle candidates
-    const threshold = roofMedian + 0.5;
+    const threshold = roofMedian + 0.3;
 
-    // Create obstacle bitmask
     const obstacleMask = new Uint8Array(width * height);
     for (const idx of maskedIndices) {
       if (raster[idx] > threshold) {
@@ -378,38 +426,38 @@ function detectDSMObstacles(
       }
     }
 
-    // Find connected components
     const components = connectedComponents(obstacleMask, width, height);
 
     for (const component of components) {
       const areaSqM = component.length * pixelArea;
-      if (areaSqM < minAreaSqM) continue; // Filter noise
+      if (areaSqM < minAreaSqM) continue;
 
-      // Convert pixel indices to [px, py] coordinates
       const pixelPoints: [number, number][] = component.map((idx) => {
         const x = idx % width;
         const y = (idx - x) / width;
         return [x, y] as [number, number];
       });
 
-      // Compute convex hull
       let hull = convexHull(pixelPoints);
-      // Simplify to max ~8 vertices
       if (hull.length > 8) {
         hull = simplifyPolygon(hull, 1.5);
         if (hull.length < 3) hull = convexHull(pixelPoints);
       }
 
-      // Convert hull back to [lng, lat]
       const geoCoords: [number, number][] = hull.map(([px, py]) =>
         pixelToLatLng(px, py, meta)
       );
+
+      const componentElevations = component.map((idx) => raster[idx]);
+      const maxElevation = Math.max(...componentElevations);
+      const heightAboveRoof = maxElevation - roofMedian;
 
       constraints.push({
         coordinates: geoCoords,
         areaSqM: Math.round(areaSqM * 10) / 10,
         label: `Obstacle — ${Math.round(areaSqM)} m²`,
         source: "dsm",
+        estimatedHeightM: Math.round(heightAboveRoof * 10) / 10,
       });
     }
   }
@@ -443,7 +491,6 @@ function detectFluxShadows(
 
     const mask = createPolygonMask(polygonPixels, width, height);
 
-    // Collect flux values inside polygon
     const fluxValues: number[] = [];
     const maskedIndices: number[] = [];
     for (let i = 0; i < mask.length; i++) {
@@ -491,7 +538,6 @@ function detectFluxShadows(
         pixelToLatLng(px, py, meta)
       );
 
-      // Check overlap with DSM constraints — skip if centroid is inside any DSM constraint
       const centroidLng =
         geoCoords.reduce((s, c) => s + c[0], 0) / geoCoords.length;
       const centroidLat =
@@ -513,6 +559,256 @@ function detectFluxShadows(
   return constraints;
 }
 
+// --- Gemini Vision primary detection ---
+
+async function detectWithGeminiVision(
+  rgbUrl: string,
+  apiKey: string,
+  meta: TiePointScale,
+  imageWidth: number,
+  imageHeight: number
+): Promise<DetectedConstraint[]> {
+  let urlWithKey = rgbUrl;
+  if (!rgbUrl.includes("key=")) {
+    const separator = rgbUrl.includes("?") ? "&" : "?";
+    urlWithKey = `${rgbUrl}${separator}key=${apiKey}`;
+  }
+
+  log.info("Fetching RGB image for Gemini Vision detection...");
+  const response = await fetch(urlWithKey);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch RGB image: ${response.status}`);
+  }
+  const buffer = await response.arrayBuffer();
+  const base64 = Buffer.from(buffer).toString("base64");
+  log.info(`RGB image fetched: ${(buffer.byteLength / 1024).toFixed(0)} KB`);
+
+  const prompt = `You are an expert rooftop obstacle detection system for commercial and industrial (C&I) solar installations.
+
+Analyze this satellite/aerial image of a commercial or industrial rooftop. Detect ALL rooftop obstacles, equipment, and features that would prevent solar panel installation.
+
+Look specifically for:
+- HVAC units, RTU (rooftop units), air handlers, condensers
+- Ventilation exhausts, turbine vents, plumbing vents, pipes
+- Skylights, roof hatches, access points
+- Parapets and raised edges along roof perimeters
+- Drain systems and scuppers
+- Satellite dishes, antennas
+- Mechanical penthouses, elevator shafts
+- Existing equipment pads or platforms
+- Any other obstructions or raised features
+
+For each detected obstacle, provide its location as a bounding box using percentage coordinates relative to the image dimensions (0-100%).
+
+Return ONLY a valid JSON array (no markdown, no explanation). Each element:
+[{
+  "type": "HVAC",
+  "label_fr": "Unité CVC",
+  "label_en": "HVAC Unit",
+  "x_pct": 45.2,
+  "y_pct": 30.1,
+  "width_pct": 8.5,
+  "height_pct": 6.2,
+  "estimated_height_m": 1.5,
+  "confidence": "high"
+}]
+
+Rules:
+- x_pct, y_pct = top-left corner of bounding box as % of image width/height
+- width_pct, height_pct = size as % of image width/height
+- estimated_height_m = your best estimate of the obstacle height in meters
+- confidence = "high", "medium", or "low"
+- label_fr = French label, label_en = English label
+- If no obstacles are found, return an empty array []
+- Be thorough — even small vents and pipes matter for solar layout`;
+
+  log.info("Sending image to Gemini Vision for obstacle detection...");
+  const aiResponse = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            inlineData: {
+              mimeType: "image/tiff",
+              data: base64,
+            },
+          },
+          { text: prompt },
+        ],
+      },
+    ],
+  });
+
+  const candidate = aiResponse.candidates?.[0];
+  const textPart = candidate?.content?.parts?.find(
+    (part: { text?: string }) => part.text
+  );
+
+  if (!textPart?.text) {
+    throw new Error("No text response from Gemini Vision detection");
+  }
+
+  const jsonMatch = textPart.text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    log.warn("No JSON array found in Gemini Vision response, checking for empty result");
+    return [];
+  }
+
+  const detections = JSON.parse(jsonMatch[0]) as Array<{
+    type: string;
+    label_fr: string;
+    label_en: string;
+    x_pct: number;
+    y_pct: number;
+    width_pct: number;
+    height_pct: number;
+    estimated_height_m: number;
+    confidence: string;
+  }>;
+
+  log.info(`Gemini Vision detected ${detections.length} obstacles`);
+
+  const constraints: DetectedConstraint[] = [];
+
+  for (const det of detections) {
+    const x1 = (det.x_pct / 100) * imageWidth;
+    const y1 = (det.y_pct / 100) * imageHeight;
+    const x2 = ((det.x_pct + det.width_pct) / 100) * imageWidth;
+    const y2 = ((det.y_pct + det.height_pct) / 100) * imageHeight;
+
+    const topLeft = pixelToLatLng(x1, y1, meta);
+    const topRight = pixelToLatLng(x2, y1, meta);
+    const bottomRight = pixelToLatLng(x2, y2, meta);
+    const bottomLeft = pixelToLatLng(x1, y2, meta);
+
+    const coordinates: [number, number][] = [topLeft, topRight, bottomRight, bottomLeft];
+
+    const latCenter = meta.tiePoint[4] - (imageHeight / 2) * meta.scale[1];
+    const metersPerDegLng = 111320 * Math.cos((latCenter * Math.PI) / 180);
+    const metersPerDegLat = 111320;
+    const widthM = (det.width_pct / 100) * imageWidth * meta.scale[0] * metersPerDegLng;
+    const heightM = (det.height_pct / 100) * imageHeight * meta.scale[1] * metersPerDegLat;
+    const areaSqM = widthM * heightM;
+
+    constraints.push({
+      coordinates,
+      areaSqM: Math.round(areaSqM * 10) / 10,
+      label: `${det.label_fr} — ${Math.round(areaSqM)} m²`,
+      source: "vision",
+      estimatedHeightM: det.estimated_height_m || undefined,
+      confidence: det.confidence,
+    });
+  }
+
+  return constraints;
+}
+
+// --- Shadow projection ---
+
+interface SunPosition {
+  altitude: number;
+  azimuth: number;
+  label: string;
+}
+
+function getWinterSolsticeSunPositions(): SunPosition[] {
+  return [
+    { altitude: 15, azimuth: 150, label: "10h solstice hiver" },
+    { altitude: 19.75, azimuth: 180, label: "12h solstice hiver" },
+    { altitude: 15, azimuth: 210, label: "14h solstice hiver" },
+  ];
+}
+
+function projectShadows(
+  obstacles: DetectedConstraint[],
+  latitude: number
+): DetectedConstraint[] {
+  const shadows: DetectedConstraint[] = [];
+  const sunPositions = getWinterSolsticeSunPositions();
+
+  const metersPerDegLat = 111320;
+  const metersPerDegLng = 111320 * Math.cos((latitude * Math.PI) / 180);
+
+  const obstaclesWithHeight = obstacles.filter(
+    (o) => o.estimatedHeightM && o.estimatedHeightM > 0.3 && o.source !== "shadow"
+  );
+
+  log.info(`Projecting shadows for ${obstaclesWithHeight.length} obstacles with height data`);
+
+  for (const obstacle of obstaclesWithHeight) {
+    const heightM = obstacle.estimatedHeightM!;
+
+    for (const sun of sunPositions) {
+      const altRad = (sun.altitude * Math.PI) / 180;
+      const shadowLength = heightM / Math.tan(altRad);
+
+      if (shadowLength < 0.5) continue;
+
+      const shadowDirectionDeg = (sun.azimuth + 180) % 360;
+      const shadowDirRad = (shadowDirectionDeg * Math.PI) / 180;
+
+      const dxM = shadowLength * Math.sin(shadowDirRad);
+      const dyM = shadowLength * Math.cos(shadowDirRad);
+      const dLng = dxM / metersPerDegLng;
+      const dLat = dyM / metersPerDegLat;
+
+      const shadowCoords: [number, number][] = obstacle.coordinates.map(
+        ([lng, lat]) => [lng + dLng, lat + dLat] as [number, number]
+      );
+
+      const allCoords = [...obstacle.coordinates, ...shadowCoords];
+      let hull = convexHull([...allCoords]);
+      if (hull.length > 8) {
+        hull = simplifyPolygon(hull, 0.000001);
+        if (hull.length < 3) hull = convexHull([...allCoords]);
+      }
+
+      const centLng = hull.reduce((s, c) => s + c[0], 0) / hull.length;
+      const centLat = hull.reduce((s, c) => s + c[1], 0) / hull.length;
+
+      let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+      for (const [lng, lat] of hull) {
+        minLng = Math.min(minLng, lng);
+        maxLng = Math.max(maxLng, lng);
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+      }
+      const areaM2 = (maxLng - minLng) * metersPerDegLng * (maxLat - minLat) * metersPerDegLat;
+
+      const existingShadow = shadows.find((s) => {
+        const sCentLng = s.coordinates.reduce((sum, c) => sum + c[0], 0) / s.coordinates.length;
+        const sCentLat = s.coordinates.reduce((sum, c) => sum + c[1], 0) / s.coordinates.length;
+        const distM = Math.sqrt(
+          ((centLng - sCentLng) * metersPerDegLng) ** 2 +
+          ((centLat - sCentLat) * metersPerDegLat) ** 2
+        );
+        return distM < 2;
+      });
+
+      if (existingShadow) {
+        if (areaM2 > existingShadow.areaSqM) {
+          existingShadow.coordinates = hull;
+          existingShadow.areaSqM = Math.round(areaM2 * 10) / 10;
+          existingShadow.label = `Zone d'ombre projetée — ${Math.round(areaM2)} m² (${sun.label})`;
+        }
+        continue;
+      }
+
+      shadows.push({
+        coordinates: hull,
+        areaSqM: Math.round(areaM2 * 10) / 10,
+        label: `Zone d'ombre projetée — ${Math.round(areaM2)} m² (${sun.label})`,
+        source: "shadow",
+      });
+    }
+  }
+
+  log.info(`Shadow projection: ${shadows.length} shadow zones generated`);
+  return shadows;
+}
+
 // --- Gemini Vision classification ---
 
 async function classifyWithGemini(
@@ -525,8 +821,12 @@ async function classifyWithGemini(
 ): Promise<DetectedConstraint[]> {
   if (constraints.length === 0) return constraints;
 
+  const unlabeled = constraints.filter(
+    (c) => c.source === "dsm" || c.source === "flux"
+  );
+  if (unlabeled.length === 0) return constraints;
+
   try {
-    // Fetch RGB image as base64
     let urlWithKey = rgbUrl;
     if (!rgbUrl.includes("key=")) {
       const separator = rgbUrl.includes("?") ? "&" : "?";
@@ -540,20 +840,18 @@ async function classifyWithGemini(
     const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
 
-    // Build obstacle centroids in pixel coordinates for the prompt
-    const obstacleDescriptions = constraints.map((c, i) => {
+    const obstacleDescriptions = unlabeled.map((c, i) => {
       const centroidLng =
         c.coordinates.reduce((s, p) => s + p[0], 0) / c.coordinates.length;
       const centroidLat =
         c.coordinates.reduce((s, p) => s + p[1], 0) / c.coordinates.length;
       const [px, py] = latLngToPixel(centroidLat, centroidLng, meta);
-      // Clamp to image bounds
       const clampedX = Math.max(0, Math.min(imageWidth - 1, px));
       const clampedY = Math.max(0, Math.min(imageHeight - 1, py));
       return `Obstacle ${i + 1}: pixel position (${clampedX}, ${clampedY}), area ${c.areaSqM} m², source: ${c.source}`;
     });
 
-    const prompt = `This is a satellite view of a commercial/industrial rooftop. I detected ${constraints.length} obstacles on this roof.
+    const prompt = `This is a satellite view of a commercial/industrial rooftop. I detected ${unlabeled.length} obstacles on this roof.
 Their approximate pixel locations and areas are:
 ${obstacleDescriptions.join("\n")}
 
@@ -611,12 +909,15 @@ Return ONLY a valid JSON array:
       label_en: string;
     }>;
 
-    // Map classifications back to constraints
-    return constraints.map((c, i) => {
-      const classification = classifications.find((cl) => cl.id === i + 1);
-      if (classification) {
-        const label = `${classification.label_fr} — ${c.areaSqM} m²`;
-        return { ...c, label };
+    let classifiedIdx = 0;
+    return constraints.map((c) => {
+      if (c.source === "dsm" || c.source === "flux") {
+        const classification = classifications.find((cl) => cl.id === classifiedIdx + 1);
+        classifiedIdx++;
+        if (classification) {
+          const label = `${classification.label_fr} — ${c.areaSqM} m²`;
+          return { ...c, label };
+        }
       }
       return c;
     });
@@ -627,6 +928,47 @@ Return ONLY a valid JSON array:
     );
     return constraints;
   }
+}
+
+// --- Deduplication ---
+
+function deduplicateConstraints(
+  visionConstraints: DetectedConstraint[],
+  dsmConstraints: DetectedConstraint[]
+): DetectedConstraint[] {
+  const merged: DetectedConstraint[] = [...visionConstraints];
+  const metersPerDegLat = 111320;
+
+  for (const dsmC of dsmConstraints) {
+    const dsmCentLng = dsmC.coordinates.reduce((s, c) => s + c[0], 0) / dsmC.coordinates.length;
+    const dsmCentLat = dsmC.coordinates.reduce((s, c) => s + c[1], 0) / dsmC.coordinates.length;
+    const metersPerDegLng = 111320 * Math.cos((dsmCentLat * Math.PI) / 180);
+
+    const overlapIdx = merged.findIndex((vc) => {
+      const vcCentLng = vc.coordinates.reduce((s, c) => s + c[0], 0) / vc.coordinates.length;
+      const vcCentLat = vc.coordinates.reduce((s, c) => s + c[1], 0) / vc.coordinates.length;
+      const distM = Math.sqrt(
+        ((dsmCentLng - vcCentLng) * metersPerDegLng) ** 2 +
+        ((dsmCentLat - vcCentLat) * metersPerDegLat) ** 2
+      );
+      return distM < 3;
+    });
+
+    if (overlapIdx >= 0) {
+      const existing = merged[overlapIdx];
+      if (dsmC.estimatedHeightM && (!existing.estimatedHeightM || dsmC.estimatedHeightM > existing.estimatedHeightM)) {
+        merged[overlapIdx] = {
+          ...existing,
+          estimatedHeightM: dsmC.estimatedHeightM,
+        };
+      }
+      log.info(`Dedup: DSM obstacle overlaps with vision detection, keeping vision label`);
+    } else {
+      merged.push(dsmC);
+    }
+  }
+
+  return merged;
 }
 
 // --- Main detection function ---
@@ -642,16 +984,38 @@ export async function detectRoofConstraints(
   const notes: string[] = [];
   let allConstraints: DetectedConstraint[] = [];
 
-  // Hoist DSM results to function scope so Steps 2 & 3 can use them
   let dsm: { raster: Float32Array | Float64Array | Uint8Array | Uint16Array | Int16Array; width: number; height: number; meta: TiePointScale } | null = null;
   let dsmConstraints: DetectedConstraint[] = [];
+  let visionConstraints: DetectedConstraint[] = [];
 
-  // Step 1: Parse DSM GeoTIFF and detect obstacles
-  log.info("Parsing DSM GeoTIFF...");
+  // Step 1: Gemini Vision detection (primary — works on all roofs)
+  if (input.rgbUrl) {
+    try {
+      log.info("Step 1: Running Gemini Vision obstacle detection (primary)...");
+      const rgbGeoTiff = await fetchAndParseGeoTIFF(input.rgbUrl, apiKey, input.latitude, 75);
+      visionConstraints = await detectWithGeminiVision(
+        input.rgbUrl,
+        apiKey,
+        rgbGeoTiff.meta,
+        rgbGeoTiff.width,
+        rgbGeoTiff.height
+      );
+      notes.push(`Vision detection: ${visionConstraints.length} obstacle(s) detected by Gemini`);
+      log.info(`Vision: ${visionConstraints.length} obstacles detected`);
+    } catch (err) {
+      log.warn("Gemini Vision detection failed, will rely on DSM:", err instanceof Error ? err.message : err);
+      notes.push(`Vision detection: failed (${err instanceof Error ? err.message : "unknown error"})`);
+    }
+  } else {
+    notes.push("Vision detection: skipped (no RGB URL)");
+  }
+
+  // Step 2: DSM analysis (secondary — confirms heights)
+  log.info("Step 2: Parsing DSM GeoTIFF...");
   try {
-    dsm = await fetchAndParseGeoTIFF(input.dsmUrl, apiKey);
+    dsm = await fetchAndParseGeoTIFF(input.dsmUrl, apiKey, input.latitude, 75);
     log.info(
-      `DSM loaded: ${dsm.width}×${dsm.height} pixels, scale: ${dsm.meta.scale[0].toFixed(8)}°×${dsm.meta.scale[1].toFixed(8)}°`
+      `DSM loaded: ${dsm.width}x${dsm.height} pixels, scale: ${dsm.meta.scale[0].toFixed(8)}°x${dsm.meta.scale[1].toFixed(8)}°`
     );
 
     dsmConstraints = detectDSMObstacles(
@@ -661,7 +1025,6 @@ export async function detectRoofConstraints(
       dsm.meta,
       input.solarPolygons
     );
-    allConstraints.push(...dsmConstraints);
     notes.push(
       `DSM analysis: ${dsmConstraints.length} obstacle(s) detected above roof level`
     );
@@ -671,18 +1034,39 @@ export async function detectRoofConstraints(
     notes.push(`DSM analysis: failed (${err instanceof Error ? err.message : "unknown error"})`);
   }
 
-  // Step 2: Parse annualFlux GeoTIFF and detect shadows
+  // Step 3: Merge and deduplicate vision + DSM results
+  if (visionConstraints.length > 0 && dsmConstraints.length > 0) {
+    log.info("Step 3: Merging and deduplicating vision + DSM results...");
+    allConstraints = deduplicateConstraints(visionConstraints, dsmConstraints);
+    notes.push(`Merge: ${allConstraints.length} unique obstacles after deduplication`);
+  } else if (visionConstraints.length > 0) {
+    allConstraints = [...visionConstraints];
+  } else {
+    allConstraints = [...dsmConstraints];
+  }
+
+  // Step 4: Project shadows from all detected obstacles
+  log.info("Step 4: Projecting shadows...");
+  const shadowConstraints = projectShadows(allConstraints, input.latitude);
+  if (shadowConstraints.length > 0) {
+    allConstraints.push(...shadowConstraints);
+    notes.push(`Shadow projection: ${shadowConstraints.length} shadow zone(s) projected`);
+  } else {
+    notes.push("Shadow projection: no shadow zones (no obstacles with height data)");
+  }
+
+  // Step 5: Parse annualFlux GeoTIFF for flux-based shadow detection
   if (input.annualFluxUrl) {
     try {
-      log.info("Parsing annualFlux GeoTIFF...");
-      const flux = await fetchAndParseGeoTIFF(input.annualFluxUrl, apiKey);
+      log.info("Step 5: Parsing annualFlux GeoTIFF...");
+      const flux = await fetchAndParseGeoTIFF(input.annualFluxUrl, apiKey, input.latitude, 75);
       const fluxConstraints = detectFluxShadows(
         flux.raster,
         flux.width,
         flux.height,
         flux.meta,
         input.solarPolygons,
-        dsmConstraints
+        allConstraints.filter((c) => c.source !== "shadow")
       );
       allConstraints.push(...fluxConstraints);
       notes.push(
@@ -700,10 +1084,13 @@ export async function detectRoofConstraints(
     notes.push("Flux analysis: skipped (no annualFlux URL)");
   }
 
-  // Step 3: Classify with Gemini Vision (requires DSM metadata for pixel mapping)
-  if (input.rgbUrl && allConstraints.length > 0 && dsm) {
+  // Step 6: Classify remaining unlabeled DSM/flux obstacles with Gemini
+  const unlabeledCount = allConstraints.filter(
+    (c) => c.source === "dsm" || c.source === "flux"
+  ).length;
+  if (input.rgbUrl && unlabeledCount > 0 && dsm) {
     try {
-      log.info("Classifying obstacles with Gemini Vision...");
+      log.info(`Step 6: Classifying ${unlabeledCount} DSM/flux obstacles with Gemini...`);
       allConstraints = await classifyWithGemini(
         input.rgbUrl,
         apiKey,
@@ -712,7 +1099,7 @@ export async function detectRoofConstraints(
         dsm.width,
         dsm.height
       );
-      notes.push("Classification: Gemini Vision applied");
+      notes.push("Classification: Gemini Vision applied to DSM/flux obstacles");
     } catch (err) {
       log.warn(
         "Gemini classification failed:",
@@ -723,7 +1110,7 @@ export async function detectRoofConstraints(
   }
 
   log.info(
-    `Detection complete: ${allConstraints.length} total constraints`
+    `Detection complete: ${allConstraints.length} total constraints (${visionConstraints.length} vision, ${dsmConstraints.length} DSM, ${shadowConstraints.length} shadow)`
   );
 
   return {
