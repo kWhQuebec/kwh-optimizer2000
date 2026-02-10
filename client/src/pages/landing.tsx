@@ -525,7 +525,7 @@ export default function LandingPage() {
                         <p className="text-sm text-muted-foreground">
                           {language === "fr" 
                             ? "Notre outil va automatiquement remplir le formulaire avec vos données" 
-                            : "Our tool will automatically fill the form with your data"}
+                            : "Our tool will automatically fill the form with your info"}
                         </p>
                       </div>
                       
