@@ -33,7 +33,7 @@ export const CHART = {
 
 export const WATERFALL = {
   gross: SEMANTIC.neutral,
-  incentiveHQ: SEMANTIC.positive,
+  incentiveHQ: BRAND.accentGold,
   incentiveITC: SEMANTIC.info,
   taxShield: SEMANTIC.info,
   net: BRAND.primaryBlue,

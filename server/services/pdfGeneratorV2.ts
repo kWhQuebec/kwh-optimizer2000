@@ -558,7 +558,7 @@ function generateWaterfallSVG(
 
   const items = [
     { label: t("Co&ucirc;t Brut", "Gross Cost"), value: gross, color: "#6B7280", isNeg: false },
-    { label: t("Incitatif HQ", "HQ Incentive"), value: hq, color: "#16A34A", isNeg: true },
+    { label: t("Incitatif HQ", "HQ Incentive"), value: hq, color: "#FFB005", isNeg: true },
     { label: t("ITC F&eacute;d&eacute;ral", "Federal ITC"), value: itc, color: "#3B82F6", isNeg: true },
   ];
   if (taxShieldVal > 0) {
@@ -622,7 +622,7 @@ function buildNetInvestmentPage(
         <tr><th>${t("&Eacute;l&eacute;ment", "Item")}</th><th style="text-align: right;">${t("Montant", "Amount")}</th></tr>
         <tr><td>${t("Co&ucirc;t du syst&egrave;me (installation compl&egrave;te cl&eacute; en main)", "System cost (complete turnkey installation)")}</td><td class="number">${cur(sim.capexGross)}</td></tr>
         <tr><td>${t("Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement f&eacute;d&eacute;ral (ITC)", "Federal Investment Tax Credit (ITC)")}</td><td class="number" style="color: #16a34a;">-${cur(sim.incentivesFederal)}</td></tr>
-        <tr><td>${t("Incitatif Hydro-Qu&eacute;bec Autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #16a34a;">-${cur(sim.incentivesHQ)}</td></tr>
+        <tr><td>${t("Incitatif Hydro-Qu&eacute;bec Autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
         ${sim.taxShield > 0 ? `<tr><td>${t("Bouclier fiscal (amortissement acc&eacute;l&eacute;r&eacute;)", "Tax shield (accelerated depreciation)")}</td><td class="number" style="color: #16a34a;">-${cur(sim.taxShield)}</td></tr>` : ""}
         <tr class="total-row"><td><strong>${t("INVESTISSEMENT NET", "NET INVESTMENT")}</strong></td><td class="number"><strong>${cur(sim.capexNet)}</strong></td></tr>
       </table>

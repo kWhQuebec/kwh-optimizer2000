@@ -69,7 +69,7 @@ The platform uses a centralized color palette defined in `shared/colors.ts`. All
 -   **Info/Blue** `#3B82F6` — ITC, tax shield, supplementary data series
 
 ### Chart Color Conventions
--   Waterfall: Gray gross → Green HQ incentive → Blue ITC/tax shield → Dark blue net (hide $0 bars)
+-   Waterfall: Gray gross → Gold HQ incentive → Blue ITC/tax shield → Dark blue net (hide $0 bars)
 -   Cashflow: Blue positive bars, Red negative bars, Gold cumulative line, Gold payback marker
 -   Pipeline CRM: Blue gradient (cold→warm) → Gold (decision) → Green gradient (won) → Red (lost)
 -   KPI icons: Brand blue (primary metrics) and brand gold (action/highlight metrics)

@@ -183,15 +183,15 @@ export async function generatePresentationPPTX(
     });
     slideBill.addText(t("APRES", "AFTER"), {
       x: 5.3, y: 1.8, w: 4.2, h: 0.4,
-      fontSize: 14, bold: true, color: "16A34A", align: "center"
+      fontSize: 14, bold: true, color: "FFB005", align: "center"
     });
     slideBill.addText(fmtSmartCurrency(annualCostAfter), {
       x: 5.3, y: 2.3, w: 4.2, h: 0.8,
-      fontSize: 36, bold: true, color: "16A34A", align: "center", valign: "middle"
+      fontSize: 36, bold: true, color: "FFB005", align: "center", valign: "middle"
     });
     slideBill.addText(t("/ an", "/ year"), {
       x: 5.3, y: 3.1, w: 4.2, h: 0.4,
-      fontSize: 12, color: "16A34A", align: "center"
+      fontSize: 12, color: "FFB005", align: "center"
     });
 
     const savingsPct = annualCostBefore > 0 ? ((annualSavingsBill / annualCostBefore) * 100).toFixed(0) : "0";
@@ -416,7 +416,7 @@ export async function generatePresentationPPTX(
       const prevTop = wfChartY + wfChartHeight - runningTotal * wfScale;
       const barH = Math.max(0.05, bar.value * wfScale);
       const isHQ = bar.label.includes("HQ") || bar.label.includes("Hydro");
-      const barColor = isHQ ? "16A34A" : "3B82F6";
+      const barColor = isHQ ? "FFB005" : "3B82F6";
       slideWaterfall.addShape("rect", {
         x, y: prevTop, w: wfBarWidth, h: barH,
         fill: { color: barColor }

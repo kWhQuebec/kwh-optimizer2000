@@ -354,7 +354,7 @@ export function AnalysisResults({
         name: language === "fr" ? "- Hydro-Québec Solaire" : "- Hydro-Québec Solar",
         base: running,
         value: hqSolar,
-        fill: "#16A34A",
+        fill: "#FFB005",
         label: `${formatSmartCurrency(-hqSolar, language)}`,
         isEndpoint: false
       });
@@ -365,7 +365,7 @@ export function AnalysisResults({
         name: language === "fr" ? "- Hydro-Québec Stockage" : "- Hydro-Québec Battery",
         base: running,
         value: hqBattery,
-        fill: "#16A34A",
+        fill: "#FFB005",
         label: `${formatSmartCurrency(-hqBattery, language)}`,
         isEndpoint: false
       });
