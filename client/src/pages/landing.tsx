@@ -12,7 +12,8 @@ import {
   TrendingUp, Shield, Award, Target, Wrench, HardHat,
   Rocket, BatteryCharging, BadgePercent, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ClipboardCheck, ChevronUp,
-  Phone, Mail, Building, CalendarDays, User, Info, Upload, Sparkles, FileSignature
+  Phone, Mail, Building, CalendarDays, User, Info, Upload, Sparkles, FileSignature,
+  Snowflake, XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +30,8 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SEOHead, seoContent, getLocalBusinessSchema } from "@/components/seo-head";
-import { TIMELINE_GRADIENT } from "@shared/colors";
+import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
+import { getWhySolarNow } from "@shared/brandContent";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/hero-optimized.jpg";
@@ -382,7 +384,6 @@ export default function LandingPage() {
           </div>
         </div>
       </header>
-
       {/* ========== NEW HERO SECTION ========== */}
       <section className="relative pt-16 min-h-[85vh] flex items-center overflow-hidden" data-testid="section-hero">
         <div 
@@ -475,7 +476,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-
       {/* ========== UPLOAD/ANALYSIS SECTION ========== */}
       <section id="analyse" className="relative py-16 overflow-hidden" data-testid="section-analyse">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
@@ -951,7 +951,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-
       {/* ========== FULL PROCESS SECTION ========== */}
       <section id="process" className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
@@ -1108,7 +1107,126 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+      {/* ========== WHY SOLAR NOW SECTION ========== */}
+      {(() => {
+        const whySolarContent = getWhySolarNow(language as "fr" | "en");
+        return (
+          <section id="why-now" className="py-16 px-4 sm:px-6 lg:px-8" data-testid="section-why-now">
+            <div className="max-w-6xl mx-auto">
+              <motion.div
+                className="text-center mb-12"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <Sun className="w-8 h-8" style={{ color: BRAND.accentGold }} />
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold" data-testid="text-why-now-title">
+                    {whySolarContent.sectionTitle}
+                  </h2>
+                </div>
+              </motion.div>
 
+              <div className="grid md:grid-cols-2 gap-6 mb-14">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                >
+                  <Card className="h-full" data-testid="card-before">
+                    <CardContent className="p-6">
+                      <h3 className="text-lg font-semibold mb-4 text-muted-foreground" data-testid="text-before-title">
+                        {whySolarContent.beforeTitle}
+                      </h3>
+                      <ul className="space-y-3">
+                        {whySolarContent.beforeReasons.map((reason, idx) => (
+                          <li key={idx} className="flex items-start gap-3" data-testid={`text-before-reason-${idx}`}>
+                            <XCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                            <span className="text-sm text-muted-foreground">{reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card className="h-full" style={{ borderColor: BRAND.accentGold, borderWidth: '2px' }} data-testid="card-now">
+                    <CardContent className="p-6">
+                      <h3 className="text-lg font-semibold mb-4" data-testid="text-now-title">
+                        {whySolarContent.nowTitle}
+                      </h3>
+                      <ul className="space-y-3">
+                        {whySolarContent.nowReasons.map((reason, idx) => (
+                          <li key={idx} className="flex items-start gap-3" data-testid={`text-now-reason-${idx}`}>
+                            <CheckCircle2 className="w-5 h-5 text-[#16A34A] mt-0.5 shrink-0" />
+                            <span className="text-sm">{reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
+
+              <motion.div
+                className="text-center mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <Snowflake className="w-6 h-6 text-blue-500" />
+                  <h3 className="text-xl sm:text-2xl font-bold" data-testid="text-winter-title">
+                    {whySolarContent.winterTitle}
+                  </h3>
+                </div>
+                <p className="text-muted-foreground" data-testid="text-winter-subtitle">
+                  {whySolarContent.winterSubtitle}
+                </p>
+              </motion.div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {whySolarContent.winterMyths.map((item, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.05 }}
+                  >
+                    <Card className="h-full" data-testid={`card-myth-${idx}`}>
+                      <CardContent className="p-5 space-y-3 text-center">
+                        <div>
+                          <Badge variant="destructive" className="mb-2 text-xs" data-testid={`badge-myth-${idx}`}>
+                            {language === "fr" ? "Mythe" : "Myth"}
+                          </Badge>
+                          <p className="text-sm line-through text-muted-foreground" data-testid={`text-myth-${idx}`}>
+                            {item.myth}
+                          </p>
+                        </div>
+                        <div>
+                          <Badge className="mb-2 text-xs bg-[#16A34A] text-white no-default-hover-elevate no-default-active-elevate" data-testid={`badge-reality-${idx}`}>
+                            {language === "fr" ? "Réalité" : "Reality"}
+                          </Badge>
+                          <p className="text-sm" data-testid={`text-reality-${idx}`}>
+                            {item.reality}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
       {/* ========== CREDIBILITY SECTION ========== */}
       <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
@@ -1259,7 +1377,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-      
       {/* ========== TEAM SECTION ========== */}
       <section id="team" className="py-16 px-4 sm:px-6 lg:px-8" data-testid="section-team">
         <div className="max-w-6xl mx-auto">
@@ -1376,7 +1493,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* ========== SOCIAL PROOF SECTION ========== */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-social-proof">
         <div className="max-w-6xl mx-auto">
@@ -1492,7 +1608,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* ========== FINAL CTA / CONTACT SECTION ========== */}
       <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -1551,7 +1666,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-
       {/* ========== FOOTER ========== */}
       <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
         <div className="max-w-6xl mx-auto">

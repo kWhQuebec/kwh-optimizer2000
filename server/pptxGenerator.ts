@@ -2,7 +2,7 @@ import PptxGenJSModule from "pptxgenjs";
 const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import fs from "fs";
 import path from "path";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition } from "@shared/brandContent";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow } from "@shared/brandContent";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
 import type { DocumentSimulationData } from "./documentDataProvider";
@@ -141,6 +141,68 @@ export async function generatePresentationPPTX(
       log.error("Failed to add roof image to PPTX:", imgError);
     }
   }
+
+  // ================= SLIDE: WHY SOLAR NOW =================
+  const whySolarContent = getWhySolarNow(lang);
+  const slideWhy = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideWhy.addText(whySolarContent.sectionTitle, {
+    x: 0.5, y: 0.3, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slideWhy.addShape("rect", {
+    x: 0.5, y: 0.75, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  slideWhy.addText(whySolarContent.beforeTitle, {
+    x: 0.5, y: 1.0, w: 4.2, h: 0.35,
+    fontSize: 13, bold: true, color: "DC2626"
+  });
+
+  whySolarContent.beforeReasons.forEach((reason, i) => {
+    slideWhy.addText([
+      { text: "\u2717 ", options: { bold: true, color: "DC2626", fontSize: 9 } },
+      { text: reason, options: { color: COLORS.darkGray, fontSize: 9 } }
+    ], { x: 0.5, y: 1.4 + i * 0.28, w: 4.2, h: 0.26, valign: "top" });
+  });
+
+  slideWhy.addShape("rect", {
+    x: 5.1, y: 1.0, w: 0.04, h: 2.5, fill: { color: COLORS.gold }
+  });
+
+  slideWhy.addText(whySolarContent.nowTitle, {
+    x: 5.2, y: 1.0, w: 4.3, h: 0.35,
+    fontSize: 13, bold: true, color: COLORS.green
+  });
+
+  whySolarContent.nowReasons.forEach((reason, i) => {
+    slideWhy.addText([
+      { text: "\u2713 ", options: { bold: true, color: COLORS.green, fontSize: 9 } },
+      { text: reason, options: { color: COLORS.darkGray, fontSize: 9 } }
+    ], { x: 5.2, y: 1.4 + i * 0.28, w: 4.3, h: 0.26, valign: "top" });
+  });
+
+  slideWhy.addText(whySolarContent.winterTitle, {
+    x: 0.5, y: 4.0, w: 9, h: 0.4,
+    fontSize: 14, bold: true, color: COLORS.blue
+  });
+
+  const mythsToShow = whySolarContent.winterMyths.slice(0, 3);
+  const mythColWidth = 2.9;
+  const mythGap = 0.2;
+  mythsToShow.forEach((m, i) => {
+    const mx = 0.5 + i * (mythColWidth + mythGap);
+    slideWhy.addText([
+      { text: t("Mythe: ", "Myth: "), options: { bold: true, color: "DC2626", fontSize: 8 } },
+      { text: m.myth, options: { strike: true, color: "999999", fontSize: 8 } }
+    ], { x: mx, y: 4.4, w: mythColWidth, h: 0.5, valign: "top" });
+
+    slideWhy.addText([
+      { text: t("Réalité: ", "Reality: "), options: { bold: true, color: COLORS.green, fontSize: 8 } },
+      { text: m.reality, options: { color: COLORS.darkGray, fontSize: 8 } }
+    ], { x: mx, y: 4.9, w: mythColWidth, h: 0.8, valign: "top" });
+  });
 
   // ================= SLIDE 2: BILL COMPARISON (Before/After) =================
   const annualCostBefore = simulation.annualCostBefore || 0;

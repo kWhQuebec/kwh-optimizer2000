@@ -3,6 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import type { DocumentSimulationData } from "../documentDataProvider";
 import { createLogger } from "../lib/logger";
+import { getWhySolarNow } from "@shared/brandContent";
 
 const log = createLogger("PDFv2");
 
@@ -105,6 +106,7 @@ export async function generateProfessionalPDFv2(
   nextPage();
 
   pages.push(buildAboutPage(simulation, t, nextPage()));
+  pages.push(buildWhySolarNowPage(t, lang, nextPage()));
   pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage()));
   pages.push(buildResultsPage(simulation, t, totalProductionKWh, nextPage()));
   pages.push(buildNetInvestmentPage(simulation, t, nextPage()));
@@ -422,6 +424,64 @@ function buildAboutPage(
           <li>${t("Op&eacute;ration & maintenance", "Operations & maintenance")}</li>
         </ul>
       </div>
+    </div>
+    ${footerHtml(t, pageNum)}
+  </div>`;
+}
+
+function buildWhySolarNowPage(
+  t: (fr: string, en: string) => string,
+  lang: "fr" | "en",
+  pageNum: number
+): string {
+  const content = getWhySolarNow(lang);
+
+  const beforeItems = content.beforeReasons.map(r =>
+    `<li style="padding: 1.5mm 0 1.5mm 6mm; position: relative; font-size: 8.5pt;">
+      <span style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); color: #DC2626; font-weight: 700;">&#x2717;</span>
+      ${r}
+    </li>`
+  ).join("");
+
+  const nowItems = content.nowReasons.map(r =>
+    `<li style="padding: 1.5mm 0 1.5mm 6mm; position: relative; font-size: 8.5pt;">
+      <span style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); color: #16A34A; font-weight: 700;">&#x2713;</span>
+      ${r}
+    </li>`
+  ).join("");
+
+  const mythsHtml = content.winterMyths.map(m =>
+    `<div style="margin-bottom: 3mm;">
+      <p style="margin: 0; font-size: 8.5pt; color: #DC2626; text-decoration: line-through;">
+        <span style="font-weight: 700;">&#x2717;</span> ${m.myth}
+      </p>
+      <p style="margin: 0.5mm 0 0 0; font-size: 8pt; color: #2A2A2B;">
+        <span style="color: #16A34A; font-weight: 700;">&#x2713;</span> ${m.reality}
+      </p>
+    </div>`
+  ).join("");
+
+  return `
+  <div class="page">
+    <h2>${content.sectionTitle}</h2>
+    <div class="two-column" style="margin-bottom: 5mm;">
+      <div class="info-box">
+        <h3 style="color: #DC2626; margin-bottom: 2mm; font-size: 11pt;">${content.beforeTitle}</h3>
+        <ul class="bullet-list" style="list-style: none; padding-left: 0;">
+          ${beforeItems}
+        </ul>
+      </div>
+      <div class="info-box">
+        <h3 style="color: #16A34A; margin-bottom: 2mm; font-size: 11pt;">${content.nowTitle}</h3>
+        <ul class="bullet-list" style="list-style: none; padding-left: 0;">
+          ${nowItems}
+        </ul>
+      </div>
+    </div>
+    <div class="section">
+      <h3 style="color: #003DA6; margin-bottom: 1mm;">${content.winterTitle}</h3>
+      <p class="subtitle" style="font-size: 9pt; color: #6b7280; margin-bottom: 4mm;">${content.winterSubtitle}</p>
+      ${mythsHtml}
     </div>
     ${footerHtml(t, pageNum)}
   </div>`;

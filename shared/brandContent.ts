@@ -171,6 +171,110 @@ export const BRAND_CONTENT = {
       },
     },
   },
+
+  // === POURQUOI LE SOLAIRE AU QUÉBEC MAINTENANT ===
+  whySolarNow: {
+    sectionTitle: {
+      fr: "Pourquoi le solaire au Québec MAINTENANT?",
+      en: "Why Solar in Quebec NOW?",
+    },
+    beforeTitle: {
+      fr: "Avant: pourquoi c'était pas rentable",
+      en: "Before: Why It Wasn't Profitable",
+    },
+    beforeReasons: [
+      {
+        labelFr: "Coût des panneaux très élevé (>4 $/W installé il y a 10 ans)",
+        labelEn: "Very high panel costs (>$4/W installed 10 years ago)",
+      },
+      {
+        labelFr: "Aucune subvention gouvernementale significative",
+        labelEn: "No significant government incentives",
+      },
+      {
+        labelFr: "Rendement et efficacité des panneaux plus faibles",
+        labelEn: "Lower panel efficiency and yield",
+      },
+      {
+        labelFr: "Tarifs d'électricité très bas au Québec = retour sur investissement trop long",
+        labelEn: "Very low electricity rates in Quebec = payback period too long",
+      },
+    ],
+    nowTitle: {
+      fr: "Aujourd'hui: ce qui a changé",
+      en: "Today: What Has Changed",
+    },
+    nowReasons: [
+      {
+        labelFr: "Réduction drastique des coûts (~1,50-2,00 $/W installé pour C&I)",
+        labelEn: "Drastic cost reduction (~$1.50-2.00/W installed for C&I)",
+      },
+      {
+        labelFr: "Programme d'autoproduction d'Hydro-Québec (incitatif de 1 000 $/kW)",
+        labelEn: "Hydro-Québec self-generation program ($1,000/kW incentive)",
+      },
+      {
+        labelFr: "Crédit d'impôt fédéral à l'investissement (CII) de 30%",
+        labelEn: "Federal Investment Tax Credit (ITC) of 30%",
+      },
+      {
+        labelFr: "Hausses tarifaires d'HQ (indexation annuelle ~3-5%)",
+        labelEn: "HQ rate increases (annual indexation ~3-5%)",
+      },
+      {
+        labelFr: "Meilleure technologie (panneaux bifaciaux, rendements supérieurs)",
+        labelEn: "Better technology (bifacial panels, higher yields)",
+      },
+      {
+        labelFr: "Mesurage net avec banque de crédits sur 24 mois",
+        labelEn: "Net metering with 24-month credit bank",
+      },
+      {
+        labelFr: "Amortissement fiscal accéléré (DPA catégorie 43.1/43.2)",
+        labelEn: "Accelerated tax depreciation (CCA Class 43.1/43.2)",
+      },
+    ],
+    winterTitle: {
+      fr: "Et l'hiver? La neige?",
+      en: "What About Winter? Snow?",
+    },
+    winterSubtitle: {
+      fr: "Les mythes vs la réalité",
+      en: "Myths vs Reality",
+    },
+    winterMyths: [
+      {
+        mythFr: "Les panneaux ne produisent pas en hiver",
+        mythEn: "Panels don't produce in winter",
+        realityFr: "Le système est dimensionné sur la production annuelle, pas seulement l'été. Le Québec génère ~60% de sa production solaire de mai à septembre, et le mesurage net permet d'accumuler des crédits sur 24 mois.",
+        realityEn: "The system is sized on annual production, not just summer. Quebec generates ~60% of solar production from May to September, and net metering allows credit banking over 24 months.",
+      },
+      {
+        mythFr: "Le froid réduit la performance des panneaux",
+        mythEn: "Cold weather reduces panel performance",
+        realityFr: "C'est l'inverse : les températures froides améliorent l'efficacité des panneaux (+0,4%/°C sous 25 °C). Les journées froides et ensoleillées d'hiver au Québec sont en fait idéales pour la production solaire.",
+        realityEn: "It's the opposite: cold temperatures actually improve panel efficiency (+0.4%/°C below 25°C). Cold, sunny winter days in Quebec are actually ideal for solar production.",
+      },
+      {
+        mythFr: "La neige bloque les panneaux pendant des mois",
+        mythEn: "Snow blocks panels for months",
+        realityFr: "La neige glisse rapidement des panneaux commerciaux inclinés. De plus, l'effet albédo (réflexion de la neige au sol) au printemps procure un bonus de production pouvant atteindre 5-10%.",
+        realityEn: "Snow slides off tilted commercial panels quickly. Moreover, the albedo effect (snow ground reflection) in spring provides a production bonus of up to 5-10%.",
+      },
+      {
+        mythFr: "Les journées courtes en hiver rendent le solaire non viable",
+        mythEn: "Short winter days make solar unviable",
+        realityFr: "Les longues journées d'été au Québec (15+ heures d'ensoleillement) compensent largement les journées plus courtes d'hiver. La production annuelle totale est ce qui compte.",
+        realityEn: "Quebec's long summer days (15+ hours of sunlight) more than compensate for shorter winter days. Total annual production is what matters.",
+      },
+      {
+        mythFr: "Le solaire n'a pas fait ses preuves dans le climat québécois",
+        mythEn: "Solar is unproven in Quebec's climate",
+        realityFr: "Plus de 25 ans de données réelles confirment une performance fiable à l'année au Québec. Des milliers de systèmes C&I fonctionnent avec succès dans des climats nordiques similaires à travers le Canada et la Scandinavie.",
+        realityEn: "25+ years of real-world data confirm reliable year-round performance in Quebec. Thousands of C&I systems operate successfully in similar northern climates across Canada and Scandinavia.",
+      },
+    ],
+  },
 };
 
 // === HELPER FUNCTIONS ===
@@ -284,4 +388,30 @@ export function getNarrativeAct(act: keyof typeof BRAND_CONTENT.narrativeArc, la
 
 export function getNarrativeTransition(key: keyof typeof BRAND_CONTENT.narrativeArc.transitions, lang: Lang): string {
   return BRAND_CONTENT.narrativeArc.transitions[key][lang];
+}
+
+export function getWhySolarNow(lang: Lang): {
+  sectionTitle: string;
+  beforeTitle: string;
+  beforeReasons: string[];
+  nowTitle: string;
+  nowReasons: string[];
+  winterTitle: string;
+  winterSubtitle: string;
+  winterMyths: { myth: string; reality: string }[];
+} {
+  const w = BRAND_CONTENT.whySolarNow;
+  return {
+    sectionTitle: w.sectionTitle[lang],
+    beforeTitle: w.beforeTitle[lang],
+    beforeReasons: w.beforeReasons.map(r => (lang === "fr" ? r.labelFr : r.labelEn)),
+    nowTitle: w.nowTitle[lang],
+    nowReasons: w.nowReasons.map(r => (lang === "fr" ? r.labelFr : r.labelEn)),
+    winterTitle: w.winterTitle[lang],
+    winterSubtitle: w.winterSubtitle[lang],
+    winterMyths: w.winterMyths.map(m => ({
+      myth: lang === "fr" ? m.mythFr : m.mythEn,
+      reality: lang === "fr" ? m.realityFr : m.realityEn,
+    })),
+  };
 }

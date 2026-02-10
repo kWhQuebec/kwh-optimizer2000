@@ -83,6 +83,7 @@ import {
   getClientProvides,
   getClientReceives,
   getNarrativeAct,
+  getWhySolarNow,
 } from "@shared/brandContent";
 
 interface SiteWithDetails extends Site {
@@ -92,6 +93,7 @@ interface SiteWithDetails extends Site {
 
 const SLIDES = [
   'hero',
+  'whySolarNow',
   'billComparison',
   'snapshot',
   'kpi',
@@ -301,6 +303,7 @@ export default function PresentationPage() {
 
   const slideComponents: Record<SlideType, JSX.Element> = {
     hero: <HeroSlide site={site} simulation={displaySim} language={language} />,
+    whySolarNow: <WhySolarNowSlide language={language} />,
     billComparison: <BillComparisonSlide simulation={displaySim} language={language} />,
     snapshot: <SnapshotSlide simulation={displaySim} language={language} />,
     kpi: <KPIResultsSlide simulation={displaySim} language={language} />,
@@ -1524,6 +1527,64 @@ function NextStepsSlide({ language }: { language: string }) {
             {language === 'fr' ? 'Contactez-nous pour planifier votre visite de site' : 'Contact us to schedule your site visit'}
           </p>
           <p className="text-base md:text-lg font-semibold" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WhySolarNowSlide({ language }: { language: string }) {
+  const lang = language as "fr" | "en";
+  const content = getWhySolarNow(lang);
+  const displayedMyths = content.winterMyths.slice(0, 3);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+      <div className="max-w-6xl w-full">
+        <SlideTitle>{content.sectionTitle}</SlideTitle>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+          <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
+            <div className="px-4 py-2" style={{ backgroundColor: 'rgba(220,38,38,0.08)' }}>
+              <h3 className="font-bold text-sm text-center" style={{ color: '#DC2626' }}>{content.beforeTitle}</h3>
+            </div>
+            <div className="p-4 space-y-2">
+              {content.beforeReasons.map((reason, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <X className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#DC2626' }} />
+                  <span className="text-xs" style={{ color: '#4B5563' }}>{reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: `2px solid ${BRAND_COLORS.accentGold}` }}>
+            <div className="px-4 py-2" style={{ backgroundColor: 'rgba(22,163,74,0.08)' }}>
+              <h3 className="font-bold text-sm text-center" style={{ color: '#16A34A' }}>{content.nowTitle}</h3>
+            </div>
+            <div className="p-4 space-y-2">
+              {content.nowReasons.map((reason, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#16A34A' }} />
+                  <span className="text-xs" style={{ color: '#4B5563' }}>{reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-4 md:p-5 shadow-sm" style={{ backgroundColor: 'rgba(0,61,166,0.04)', border: '1px solid #E5E7EB' }}>
+          <h3 className="font-bold text-sm md:text-base text-center mb-3" style={{ color: BRAND_COLORS.primaryBlue }}>
+            {content.winterTitle}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {displayedMyths.map((item, i) => (
+              <div key={i} className="space-y-1">
+                <p className="text-xs line-through" style={{ color: '#9CA3AF' }}>{item.myth}</p>
+                <p className="text-xs" style={{ color: '#4B5563' }}>{item.reality}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
