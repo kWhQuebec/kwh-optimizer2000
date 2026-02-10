@@ -26,10 +26,10 @@ import type { DisplayedScenarioType } from "../types";
 import { formatNumber } from "../utils";
 
 export const FINANCING_COLORS = {
-  cash: { bg: "bg-emerald-500", text: "text-emerald-500", border: "border-emerald-500", stroke: "#22C55E", hsl: "hsl(142, 76%, 36%)" },
-  loan: { bg: "bg-blue-500", text: "text-blue-500", border: "border-blue-500", stroke: "#3B82F6", hsl: "hsl(221, 83%, 53%)" },
-  lease: { bg: "bg-amber-500", text: "text-amber-500", border: "border-amber-500", stroke: "#F59E0B", hsl: "hsl(38, 92%, 50%)" },
-  ppa: { bg: "bg-rose-500", text: "text-rose-500", border: "border-rose-500", stroke: "#F43F5E", hsl: "hsl(347, 77%, 50%)" },
+  cash: { bg: "bg-[#16A34A]", text: "text-[#16A34A]", border: "border-[#16A34A]", stroke: "#16A34A", hsl: "hsl(142, 72%, 36%)" },
+  loan: { bg: "bg-[#003DA6]", text: "text-[#003DA6]", border: "border-[#003DA6]", stroke: "#003DA6", hsl: "hsl(218, 100%, 33%)" },
+  lease: { bg: "bg-[#FFB005]", text: "text-[#FFB005]", border: "border-[#FFB005]", stroke: "#FFB005", hsl: "hsl(41, 100%, 51%)" },
+  ppa: { bg: "bg-[#3B82F6]", text: "text-[#3B82F6]", border: "border-[#3B82F6]", stroke: "#3B82F6", hsl: "hsl(217, 91%, 60%)" },
 };
 
 export function FinancingCalculator({ simulation, displayedScenario }: { simulation: SimulationRun; displayedScenario: DisplayedScenarioType }) {
@@ -433,8 +433,8 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
         {financingType === "ppa" && (
           <div className="space-y-4">
             {/* Legal Warning - Prominent */}
-            <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border-2 border-rose-300 dark:border-rose-700 rounded-lg">
-              <p className="text-sm text-rose-800 dark:text-rose-200 leading-relaxed">
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700 rounded-lg">
+              <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
                 {t("financing.ppaLegalWarning")}
               </p>
             </div>
@@ -504,11 +504,11 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                   <span>{language === "fr" ? `Total ${ppaTerm} ans:` : `Total ${ppaTerm} years:`}</span>
                   <span className="font-mono font-semibold">{formatCurrency(ppaTotalPayments)}</span>
                 </p>
-                <p className="flex justify-between gap-2 pt-2 border-t text-xs text-rose-600 dark:text-rose-400">
+                <p className="flex justify-between gap-2 pt-2 border-t text-xs text-red-600 dark:text-red-400">
                   <span>{t("financing.ppaNoIncentives")}:</span>
                   <span className="font-mono">-{formatCurrency(ppaProviderKeepsIncentives)}</span>
                 </p>
-                <p className="flex justify-between gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                <p className="flex justify-between gap-2 text-xs text-[#16A34A] dark:text-green-400">
                   <span>{t("financing.ppaTransfer")} ({language === "fr" ? "pour 1$" : "for $1"}):</span>
                   <span className="font-mono">+{formatCurrency(postPpaSavings)} ({postPpaYears} {language === "fr" ? "ans" : "yrs"})</span>
                 </p>
@@ -640,7 +640,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
           </div>
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-1">{t("financing.netSavings")} (25 {t("compare.years")})</p>
-            <p className={`text-xl font-bold font-mono ${(options.find(o => o.type === financingType)?.netSavings || 0) > 0 ? "text-emerald-600" : "text-red-500"}`}>
+            <p className={`text-xl font-bold font-mono ${(options.find(o => o.type === financingType)?.netSavings || 0) > 0 ? "text-[#16A34A]" : "text-red-500"}`}>
               {formatCurrency(options.find(o => o.type === financingType)?.netSavings || 0)}
             </p>
           </div>

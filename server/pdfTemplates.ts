@@ -17,7 +17,7 @@ export const BRAND_COLORS = {
   lightBg: "#edf2f7",
   white: "#FFFFFF",
   border: "#e2e8f0",
-  success: "#48bb78",
+  success: "#16A34A",
   warning: "#ed8936",
 };
 

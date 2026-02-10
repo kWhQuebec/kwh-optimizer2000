@@ -388,7 +388,7 @@ function buildAboutPage(
           <p class="pillar-desc">${t("Syst&egrave;mes con&ccedil;us pour 25+ ans de performance garantie.", "Systems designed for 25+ years of guaranteed performance.")}</p>
         </div>
         <div class="pillar-card">
-          ${pillarIcon("#ef4444")}
+          ${pillarIcon("#DC2626")}
           <div class="pillar-title">${t("Fiert&eacute;", "Pride")}</div>
           <p class="pillar-desc">${t("Entreprise qu&eacute;b&eacute;coise. Contribution &agrave; la transition &eacute;nerg&eacute;tique locale.", "Quebec company. Contributing to the local energy transition.")}</p>
         </div>
@@ -558,7 +558,7 @@ function generateWaterfallSVG(
 
   const items = [
     { label: t("Co&ucirc;t Brut", "Gross Cost"), value: gross, color: "#6B7280", isNeg: false },
-    { label: t("Incitatif HQ", "HQ Incentive"), value: hq, color: "#22C55E", isNeg: true },
+    { label: t("Incitatif HQ", "HQ Incentive"), value: hq, color: "#16A34A", isNeg: true },
     { label: t("ITC F&eacute;d&eacute;ral", "Federal ITC"), value: itc, color: "#3B82F6", isNeg: true },
   ];
   if (taxShieldVal > 0) {
@@ -807,9 +807,9 @@ function buildStoragePage(
     <div class="chart-container">
       <div class="chart-title">${t("&Eacute;cr&ecirc;tage de la Pointe de Demande (Demand Shaving)", "Peak Demand Shaving")}</div>
       <div style="height: 50mm; background: white; border-radius: 2mm; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #e5e7eb;">
-        <div style="position: absolute; top: 15mm; left: 10mm; right: 10mm; border-top: 2px dashed #ef4444; opacity: 0.5;"></div>
+        <div style="position: absolute; top: 15mm; left: 10mm; right: 10mm; border-top: 2px dashed #DC2626; opacity: 0.5;"></div>
         <div style="position: absolute; top: 25mm; left: 10mm; right: 10mm; border-top: 2px dashed #16a34a;"></div>
-        <div style="position: absolute; top: 13mm; right: 12mm; font-size: 8pt; color: #ef4444;">${t("Pointe AVANT:", "Peak BEFORE:")} ${fmt(sim.peakDemandKW)} kW</div>
+        <div style="position: absolute; top: 13mm; right: 12mm; font-size: 8pt; color: #DC2626;">${t("Pointe AVANT:", "Peak BEFORE:")} ${fmt(sim.peakDemandKW)} kW</div>
         <div style="position: absolute; top: 23mm; right: 12mm; font-size: 8pt; color: #16a34a; font-weight: 600;">${t("Pointe APR&Egrave;S:", "Peak AFTER:")} ${fmt(peakAfter)} kW</div>
       </div>
     </div>
@@ -876,7 +876,7 @@ function generateCashflowSVG(
 
     if (isPositive && paybackYear < 0) paybackYear = p.year;
 
-    const color = isPositive ? "#16a34a" : "#ef4444";
+    const color = isPositive ? "#003DA6" : "#DC2626";
     bars += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(valH, 1)}" fill="${color}" opacity="0.7" rx="1"/>`;
 
     if (p.year === 1 || p.year === 5 || p.year === 10 || p.year === 15 || p.year === 20 || p.year === 25 || p.year === paybackYear) {

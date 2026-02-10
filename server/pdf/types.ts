@@ -36,7 +36,7 @@ export const COLORS = {
   mediumGray: "#4a5568",
   lightGray: "#AAAAAA",
   borderGray: "#E0E0E0",
-  green: "#48bb78",
+  green: "#16A34A",
   red: "#DC2626",
   white: "#FFFFFF",
   background: "#f7fafc",

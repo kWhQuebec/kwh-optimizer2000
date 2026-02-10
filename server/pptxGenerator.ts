@@ -15,7 +15,7 @@ const COLORS = {
   darkGray: "333333",
   mediumGray: "666666",
   lightGray: "E0E0E0",
-  green: "2D915F",
+  green: "16A34A",
   white: "FFFFFF",
 };
 
@@ -415,7 +415,7 @@ export async function generatePresentationPPTX(
       const prevTop = wfChartY + wfChartHeight - runningTotal * wfScale;
       const barH = Math.max(0.05, bar.value * wfScale);
       const isHQ = bar.label.includes("HQ") || bar.label.includes("Hydro");
-      const barColor = isHQ ? "22C55E" : "3B82F6";
+      const barColor = isHQ ? "16A34A" : "3B82F6";
       slideWaterfall.addShape("rect", {
         x, y: prevTop, w: wfBarWidth, h: barH,
         fill: { color: barColor }
@@ -527,7 +527,7 @@ export async function generatePresentationPPTX(
 
       slideCashflow.addShape("rect", {
         x, y, w: barWidth, h: height,
-        fill: { color: isNegative ? COLORS.mediumGray : COLORS.green }
+        fill: { color: isNegative ? "DC2626" : COLORS.blue }
       });
 
       if (i % 5 === 0 || i === chartData.length - 1) {
@@ -538,8 +538,8 @@ export async function generatePresentationPPTX(
       }
     });
 
-    slideCashflow.addText(t("Positif (vert) = profit cumulé | Gris = période de récupération",
-                     "Positive (green) = cumulative profit | Gray = payback period"), {
+    slideCashflow.addText(t("Bleu = profit cumulé | Rouge = période de récupération",
+                     "Blue = cumulative profit | Red = payback period"), {
       x: 0.5, y: 4.6, w: 9, h: 0.25,
       fontSize: 9, color: COLORS.mediumGray, align: "center"
     });

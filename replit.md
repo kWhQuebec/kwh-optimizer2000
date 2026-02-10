@@ -54,6 +54,34 @@ The backend uses a centralized error handling system (`server/middleware/errorHa
 -   **Pipeline Stage Filtering**: Pipeline page supports URL parameter `?stage=prospect` to pre-filter by stage. Stage filter dropdown allows filtering opportunities by pipeline stage in both Kanban and List views.
 -   **Inline Entity Creation**: Opportunity creation form supports inline creation of new clients and sites without leaving the dialog. When creating a new client, fields appear for name, email, and phone. When an existing client is selected, a site dropdown appears with existing client sites plus "Create new site" option. Inline site creation includes fields for name (required), address, city, and province (defaults to Québec). Entities are created sequentially: client → site → opportunity.
 
+## Standardized Color Palette
+The platform uses a centralized color palette defined in `shared/colors.ts`. All charts, sales tools, PDFs, PPTX, and UI components must use these colors consistently.
+
+### Brand Colors
+-   **Primary Blue** `#003DA6` — Titles, CTA buttons, sidebar, "Net" in waterfall, positive cashflow bars
+-   **Dark Blue** `#002B75` — Deeper accent for headings
+-   **Accent Gold** `#FFB005` — Highlights, recommendations, cumulative line, payback marker
+
+### Semantic Colors
+-   **Positive/Green** `#16A34A` — Benefits, savings, HQ incentives, won stages, environmental metrics
+-   **Negative/Red** `#DC2626` — Costs, losses, negative cashflow bars, exclusions, lost stage
+-   **Neutral/Gray** `#6B7280` — CAPEX Brut bar, secondary text, labels
+-   **Info/Blue** `#3B82F6` — ITC, tax shield, supplementary data series
+
+### Chart Color Conventions
+-   Waterfall: Gray gross → Green HQ incentive → Blue ITC/tax shield → Dark blue net (hide $0 bars)
+-   Cashflow: Blue positive bars, Red negative bars, Gold cumulative line, Gold payback marker
+-   Pipeline CRM: Blue gradient (cold→warm) → Gold (decision) → Green gradient (won) → Red (lost)
+-   KPI icons: Brand blue (primary metrics) and brand gold (action/highlight metrics)
+-   Financing: Green (cash), Blue (loan), Gold (lease), Info blue (PPA)
+
+### Colors NOT to use
+-   `#22C55E` (old green) — replaced by `#16A34A`
+-   `#2D915F` / `#48bb78` (old greens) — replaced by `#16A34A`
+-   `#ef4444` (old red) — replaced by `#DC2626`
+-   `#F43F5E` (rose) — replaced by `#3B82F6` or `#DC2626` depending on context
+-   Tailwind `emerald-*` and `rose-*` — use `green-*` and `red-*` instead
+
 ## External Dependencies
 
 ### Third-Party Services

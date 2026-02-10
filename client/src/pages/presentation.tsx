@@ -43,6 +43,10 @@ const BRAND_COLORS = {
   primaryBlue: '#003DA6',
   accentGold: '#FFB005',
   darkBlue: '#002B75',
+  positive: '#16A34A',
+  negative: '#DC2626',
+  neutral: '#6B7280',
+  info: '#3B82F6',
 };
 
 import {
@@ -53,6 +57,7 @@ import {
   YAxis,
   Tooltip,
   Bar,
+  Cell,
   Line,
   Legend,
   ReferenceLine,
@@ -809,8 +814,8 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
 
   const bars = [
     { label: language === 'fr' ? 'CAPEX Brut' : 'Gross CAPEX', value: capexGross, type: 'start' as const, color: '#6B7280' },
-    { label: language === 'fr' ? '- Hydro-Québec Solaire' : '- Hydro-Québec Solar', value: hqSolar, type: 'deduction' as const, color: '#22C55E' },
-    { label: language === 'fr' ? '- Hydro-Québec Batterie' : '- Hydro-Québec Battery', value: hqBattery, type: 'deduction' as const, color: '#22C55E' },
+    { label: language === 'fr' ? '- Hydro-Québec Solaire' : '- Hydro-Québec Solar', value: hqSolar, type: 'deduction' as const, color: '#16A34A' },
+    { label: language === 'fr' ? '- Hydro-Québec Batterie' : '- Hydro-Québec Battery', value: hqBattery, type: 'deduction' as const, color: '#16A34A' },
     { label: language === 'fr' ? '- Crédit fédéral (ITC)' : '- Federal ITC', value: itcFederal, type: 'deduction' as const, color: '#3B82F6' },
     { label: language === 'fr' ? '- Bouclier Fiscal' : '- Tax Shield', value: taxShield, type: 'deduction' as const, color: '#3B82F6' },
     { label: language === 'fr' ? 'CAPEX Net' : 'Net CAPEX', value: capexNet, type: 'total' as const, color: BRAND_COLORS.primaryBlue },
@@ -1008,7 +1013,11 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
                       ? (language === 'fr' ? 'Cash-flow cumulatif' : 'Cumulative cash flow')
                       : (language === 'fr' ? 'Cash-flow annuel' : 'Annual cash flow')}
                   />
-                  <Bar dataKey="annual" fill={BRAND_COLORS.primaryBlue} opacity={0.6} radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="annual" radius={[2, 2, 0, 0]}>
+                    {cashflowData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.annual >= 0 ? '#003DA6' : '#DC2626'} opacity={0.6} />
+                    ))}
+                  </Bar>
                   <Line type="monotone" dataKey="cumulative" stroke={BRAND_COLORS.accentGold} strokeWidth={3} dot={false} />
                   <Line type="monotone" dataKey={() => 0} stroke="#D1D5DB" strokeDasharray="5 5" dot={false} />
                   {breakEvenYear && (
@@ -1362,7 +1371,7 @@ function TimelineSlide({ language }: { language: string }) {
                 <div
                   className="rounded-xl px-5 py-4 text-center min-w-[140px] w-full md:w-auto shadow-sm"
                   style={{
-                    backgroundColor: isFirst ? BRAND_COLORS.primaryBlue : isLast ? '#2D915F' : '#FFFFFF',
+                    backgroundColor: isFirst ? BRAND_COLORS.primaryBlue : isLast ? '#16A34A' : '#FFFFFF',
                     border: (isFirst || isLast) ? 'none' : '1px solid #E5E7EB',
                     color: (isFirst || isLast) ? '#FFFFFF' : '#1F2937',
                   }}
@@ -1454,7 +1463,7 @@ function NextStepsSlide({ language }: { language: string }) {
       title: language === 'fr' ? 'Le client reçoit' : 'The client receives',
       items: clientReceivesList,
       icon: ArrowRight,
-      headerBg: '#2D915F',
+      headerBg: '#16A34A',
       headerText: 'white',
     },
   ];

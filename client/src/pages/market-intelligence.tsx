@@ -748,7 +748,7 @@ export default function MarketIntelligencePage() {
   const getDocumentTypeBadge = (docType: string) => {
     const colors: Record<string, string> = {
       proposal: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
-      pricing: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
+      pricing: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
       analysis: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
       specification: "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200",
       presentation: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
@@ -929,12 +929,12 @@ export default function MarketIntelligencePage() {
                         )}
 
                         {competitor.legalNotes && (
-                          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-lg border border-rose-200 dark:border-rose-800">
-                            <div className="flex items-center gap-2 text-sm font-medium mb-1 text-rose-700 dark:text-rose-300">
+                          <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
+                            <div className="flex items-center gap-2 text-sm font-medium mb-1 text-red-700 dark:text-red-300">
                               <Scale className="w-4 h-4" />
                               {language === "fr" ? "Notes légales" : "Legal Notes"}
                             </div>
-                            <p className="text-sm text-rose-600 dark:text-rose-400">
+                            <p className="text-sm text-red-600 dark:text-red-400">
                               {competitor.legalNotes}
                             </p>
                           </div>
@@ -1022,8 +1022,8 @@ export default function MarketIntelligencePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-                        <div className="text-sm font-medium mb-1 text-emerald-700 dark:text-emerald-300">
+                      <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                        <div className="text-sm font-medium mb-1 text-green-700 dark:text-green-300">
                           {language === "fr" ? "Notre réponse:" : "Our response:"}
                         </div>
                         <p className="text-sm">{card.responseStrategy}</p>
@@ -1827,7 +1827,7 @@ export default function MarketIntelligencePage() {
                                   <Line 
                                     type="monotone" 
                                     dataKey="ppa" 
-                                    stroke="#ef4444" 
+                                    stroke="#DC2626" 
                                     strokeWidth={2}
                                     dot={false}
                                   />

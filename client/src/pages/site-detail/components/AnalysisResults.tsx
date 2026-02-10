@@ -354,7 +354,7 @@ export function AnalysisResults({
         name: language === "fr" ? "- Hydro-Québec Solaire" : "- Hydro-Québec Solar",
         base: running,
         value: hqSolar,
-        fill: "#22C55E",
+        fill: "#16A34A",
         label: `${formatSmartCurrency(-hqSolar, language)}`,
         isEndpoint: false
       });
@@ -365,7 +365,7 @@ export function AnalysisResults({
         name: language === "fr" ? "- Hydro-Québec Stockage" : "- Hydro-Québec Battery",
         base: running,
         value: hqBattery,
-        fill: "#22C55E",
+        fill: "#16A34A",
         label: `${formatSmartCurrency(-hqBattery, language)}`,
         isEndpoint: false
       });
@@ -783,7 +783,7 @@ export function AnalysisResults({
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Car className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <Car className="w-5 h-5 text-green-600 flex-shrink-0" />
               <div>
                 <p className="text-lg font-bold font-mono">{(((dashboardCo2Tonnes || 0) / 4.6) * 25).toFixed(0)}</p>
                 <p className="text-xs text-muted-foreground">{language === "fr" ? "années-auto retirées" : "car-years removed"}</p>
@@ -1922,7 +1922,7 @@ export function AnalysisResults({
                                 <div className="bg-card border rounded-lg p-2 shadow-lg">
                                   <p className="text-sm font-medium">
                                     <span className="inline-block w-2 h-2 rounded-full mr-1.5"
-                                      style={{ backgroundColor: actualType === 'solar' ? '#FFB005' : actualType === 'battery' ? '#003DA6' : '#22C55E' }}
+                                      style={{ backgroundColor: actualType === 'solar' ? '#FFB005' : actualType === 'battery' ? '#003DA6' : '#16A34A' }}
                                     />
                                     {typeLabel}: {sizingLabel}
                                   </p>
@@ -1985,13 +1985,13 @@ export function AnalysisResults({
                           <Scatter
                             name={language === "fr" ? "Solaire variable" : "Solar sweep"}
                             data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal && p.sweepSource === 'pvSweep')}
-                            fill="#22C55E"
+                            fill="#16A34A"
                             shape={(props: any) => {
                               const { cx, cy, payload } = props;
                               const fillOpacity = payload.npv25 >= 0 ? 1 : 0.25;
                               return (
                                 <circle
-                                  cx={cx} cy={cy} r={6} fill="#22C55E" fillOpacity={fillOpacity}
+                                  cx={cx} cy={cy} r={6} fill="#16A34A" fillOpacity={fillOpacity}
                                   style={{ cursor: isStaff ? 'pointer' : 'default' }}
                                   data-testid={`scatter-hybrid-pv-${payload.pvSizeKW}-${payload.battEnergyKWh}`}
                                   onClick={(e) => { if (isStaff) { e.stopPropagation(); e.preventDefault(); handleChartPointClick({ payload }, 0); } }}
@@ -2019,13 +2019,13 @@ export function AnalysisResults({
                           <Scatter
                             name={language === "fr" ? "Hybride" : "Hybrid"}
                             data={(simulation.sensitivity as SensitivityAnalysis).frontier.filter(p => p.type === 'hybrid' && !p.isOptimal && !p.sweepSource)}
-                            fill="#22C55E"
+                            fill="#16A34A"
                             shape={(props: any) => {
                               const { cx, cy, payload } = props;
                               const fillOpacity = payload.npv25 >= 0 ? 1 : 0.25;
                               return (
                                 <circle
-                                  cx={cx} cy={cy} r={6} fill="#22C55E" fillOpacity={fillOpacity}
+                                  cx={cx} cy={cy} r={6} fill="#16A34A" fillOpacity={fillOpacity}
                                   style={{ cursor: isStaff ? 'pointer' : 'default' }}
                                   data-testid={`scatter-hybrid-${payload.pvSizeKW}-${payload.battEnergyKWh}`}
                                   onClick={(e) => { if (isStaff) { e.stopPropagation(); e.preventDefault(); handleChartPointClick({ payload }, 0); } }}
@@ -2043,7 +2043,7 @@ export function AnalysisResults({
                               const actualType = pvKW > 0 && battKWh > 0 ? 'hybrid' :
                                                 pvKW > 0 ? 'solar' : 'battery';
                               const color = actualType === 'solar' ? '#FFB005' :
-                                            actualType === 'battery' ? '#003DA6' : '#22C55E';
+                                            actualType === 'battery' ? '#003DA6' : '#16A34A';
                               return (
                                 <g
                                   style={{ cursor: isStaff ? 'pointer' : 'default' }}
@@ -2062,7 +2062,7 @@ export function AnalysisResults({
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                       {(simulation.sensitivity as SensitivityAnalysis).frontier.some(p => p.sweepSource === 'pvSweep') && (
                         <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22C55E' }}></div>
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#16A34A' }}></div>
                           <span>{language === "fr" ? "Solaire variable (stockage fixe)" : "Solar sweep (fixed storage)"}</span>
                         </div>
                       )}

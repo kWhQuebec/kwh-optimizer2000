@@ -109,13 +109,13 @@ const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
 };
 
 const STAGE_COLORS: Record<string, string> = {
-  prospect: "bg-slate-400",
-  qualified: "bg-blue-400",
-  proposal: "bg-purple-400",
-  design_signed: "bg-yellow-500",
-  negotiation: "bg-orange-400",
-  won_to_be_delivered: "bg-emerald-400",
-  won_in_construction: "bg-green-500",
+  prospect: "bg-blue-200",
+  qualified: "bg-blue-300",
+  proposal: "bg-[#003DA6]",
+  design_signed: "bg-amber-400",
+  negotiation: "bg-amber-500",
+  won_to_be_delivered: "bg-green-300",
+  won_in_construction: "bg-green-600",
   won_delivered: "bg-green-700",
   lost: "bg-red-500",
 };
@@ -124,15 +124,15 @@ const WON_STAGES = ['won_to_be_delivered', 'won_in_construction', 'won_delivered
 const isWonStage = (stage: string) => WON_STAGES.includes(stage);
 
 const STAGE_BAR_COLORS: Record<string, string> = {
-  prospect: "#64748b",
-  qualified: "#3b82f6",
-  proposal: "#a855f7",
-  design_signed: "#eab308",
-  negotiation: "#f97316",
-  won_to_be_delivered: "#34d399",
-  won_in_construction: "#22c55e",
-  won_delivered: "#15803d",
-  lost: "#ef4444",
+  prospect: "#93C5FD",
+  qualified: "#60A5FA",
+  proposal: "#003DA6",
+  design_signed: "#FFB005",
+  negotiation: "#F59E0B",
+  won_to_be_delivered: "#4ADE80",
+  won_in_construction: "#16A34A",
+  won_delivered: "#15803D",
+  lost: "#DC2626",
 };
 
 // Format currency compactly: k for < 1M, M for >= 1M
@@ -513,7 +513,7 @@ export default function DashboardPage() {
           value={stats?.stageBreakdown?.find(s => s.stage === 'prospect')?.count || 0}
           subtitle={language === 'fr' ? 'À contacter' : 'To follow up'}
           icon={UserPlus}
-          iconBg={(stats?.stageBreakdown?.find(s => s.stage === 'prospect')?.count || 0) > 0 ? "bg-yellow-500" : "bg-slate-400"}
+          iconBg="bg-[#FFB005]"
           loading={isLoading}
           onClick={() => setLocation("/app/pipeline?stage=prospect")}
         />
@@ -522,6 +522,7 @@ export default function DashboardPage() {
           value={formatCompactCurrency(stats?.totalPipelineValue)}
           subtitle={`${stats?.activeOpportunityCount || 0} ${language === 'fr' ? 'opportunités' : 'opportunities'}`}
           icon={TrendingUp}
+          iconBg="bg-[#003DA6]"
           loading={isLoading}
         />
         <StatCard
@@ -529,7 +530,7 @@ export default function DashboardPage() {
           value={formatCompactCurrency(stats?.weightedPipelineValue)}
           subtitle={language === 'fr' ? 'Prévision réaliste' : 'Realistic forecast'}
           icon={Target}
-          iconBg="bg-purple-500"
+          iconBg="bg-[#003DA6]"
           loading={isLoading}
         />
         <StatCard
@@ -537,7 +538,7 @@ export default function DashboardPage() {
           value={formatCompactCurrency(stats?.deliveryBacklogValue)}
           subtitle={`${stats?.deliveryBacklogCount || 0} ${language === 'fr' ? 'projets en cours' : 'projects in progress'}`}
           icon={Package}
-          iconBg="bg-blue-500"
+          iconBg="bg-[#003DA6]"
           loading={isLoading}
         />
         <StatCard
@@ -545,7 +546,7 @@ export default function DashboardPage() {
           value={formatCompactCurrency(stats?.deliveredValue)}
           subtitle={`${stats?.deliveredCount || 0} ${language === 'fr' ? 'projets complétés' : 'completed projects'}`}
           icon={CheckCircle2}
-          iconBg="bg-green-600"
+          iconBg="bg-[#003DA6]"
           loading={isLoading}
         />
         <StatCard
@@ -553,7 +554,7 @@ export default function DashboardPage() {
           value={formatCompactCurrency(stats?.wonValue)}
           subtitle={language === 'fr' ? 'Toutes phases confondues' : 'All phases combined'}
           icon={Trophy}
-          iconBg="bg-green-500"
+          iconBg="bg-[#FFB005]"
           loading={isLoading}
         />
         <StatCard
@@ -561,7 +562,7 @@ export default function DashboardPage() {
           value={stats?.pendingTasksCount?.total || 0}
           subtitle={language === 'fr' ? 'À compléter' : 'To complete'}
           icon={ClipboardList}
-          iconBg={stats?.pendingTasksCount?.total ? "bg-orange-500" : "bg-green-500"}
+          iconBg="bg-[#FFB005]"
           loading={isLoading}
         />
       </div>
@@ -600,7 +601,7 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">
               {language === 'fr' ? 'Gains récents' : 'Recent Wins'}
             </CardTitle>
-            <Trophy className="w-4 h-4 text-green-500" />
+            <Trophy className="w-4 h-4 text-[#FFB005]" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -752,9 +753,9 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-[#003DA6]" />
                 <p>{language === 'fr' ? 'Aucune tâche en attente' : 'No pending tasks'}</p>
-                <p className="text-xs mt-1 text-green-600">
+                <p className="text-xs mt-1 text-[#003DA6]">
                   {language === 'fr' ? 'Excellent! Tout est complété.' : 'Great! Everything is complete.'}
                 </p>
               </div>

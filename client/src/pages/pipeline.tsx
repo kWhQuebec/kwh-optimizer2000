@@ -352,13 +352,13 @@ function StageColumn({
   const stageValue = stageOpps.reduce((sum, o) => sum + (o.displayValue ?? o.estimatedValue ?? 0), 0);
   
   const stageColors: Record<Stage, string> = {
-    prospect: "border-t-slate-400",
-    qualified: "border-t-blue-400",
-    proposal: "border-t-purple-400",
-    design_signed: "border-t-yellow-500",
-    negotiation: "border-t-orange-400",
-    won_to_be_delivered: "border-t-emerald-400",
-    won_in_construction: "border-t-green-500",
+    prospect: "border-t-blue-200",
+    qualified: "border-t-blue-300",
+    proposal: "border-t-[#003DA6]",
+    design_signed: "border-t-amber-400",
+    negotiation: "border-t-amber-500",
+    won_to_be_delivered: "border-t-green-300",
+    won_in_construction: "border-t-green-600",
     won_delivered: "border-t-green-700",
     lost: "border-t-red-500",
   };
@@ -422,14 +422,14 @@ function OpportunityListView({
   const { language } = useI18n();
 
   const stageColors: Record<Stage, string> = {
-    prospect: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-    qualified: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-    proposal: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-    design_signed: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-    negotiation: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-    won_to_be_delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
-    won_in_construction: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-    won_delivered: "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200",
+    prospect: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+    qualified: "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200",
+    proposal: "bg-[#003DA6]/10 text-[#003DA6] dark:bg-[#003DA6]/30 dark:text-blue-200",
+    design_signed: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+    negotiation: "bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200",
+    won_to_be_delivered: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    won_in_construction: "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200",
+    won_delivered: "bg-green-300 text-green-900 dark:bg-green-700 dark:text-green-100",
     lost: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
   };
 
