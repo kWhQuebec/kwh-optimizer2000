@@ -612,6 +612,14 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
                   : `${savingsPercent}% savings on your bill`}
               </span>
             </div>
+
+            <div className="mt-4 text-center" style={{ color: '#DC2626' }}>
+              <p className="text-base font-semibold">
+                {language === 'fr'
+                  ? "C'est de l'argent que vous perdez chaque mois en inaction."
+                  : "That's money you're losing every month through inaction."}
+              </p>
+            </div>
           </>
         )}
       </div>
@@ -642,6 +650,9 @@ function SnapshotSlide({ simulation, language }: { simulation: SimulationRun | n
         >
           {language === 'fr' ? 'Aperçu du Projet' : 'Project Snapshot'}
         </SlideTitle>
+        <p className="text-center text-base mb-2" style={{ color: BRAND_COLORS.primaryBlue, fontWeight: '500' }}>
+          {language === 'fr' ? 'Voici ce que nous avons découvert sur votre bâtiment' : 'Here\'s what we discovered about your building'}
+        </p>
         <p className="text-center text-sm italic mb-8" style={{ color: '#6B7280' }}>{act1.subtitle}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -715,7 +726,7 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-7xl w-full">
         <SlideTitle
-          subtitle={npv25Val > 0 ? (language === 'fr' ? `Profit net de ${sharedFormatSmartCurrency(npv25Val, language)} sur 25 ans` : `Net profit of ${sharedFormatSmartCurrency(npv25Val, language)} over 25 years`) : undefined}
+          subtitle={npv25Val > 0 ? (language === 'fr' ? `Votre bâtiment génère un profit net de ${sharedFormatSmartCurrency(npv25Val, language)} sur 25 ans` : `Your building generates a net profit of ${sharedFormatSmartCurrency(npv25Val, language)} over 25 years`) : undefined}
         >
           {language === 'fr' ? 'Vos Résultats' : 'Your Results'}
         </SlideTitle>
@@ -1053,7 +1064,7 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
               >
                 <AlertTriangle className="h-5 w-5 inline-block mr-2" style={{ color: BRAND_COLORS.accentGold }} />
                 <span className="text-base md:text-lg font-semibold" style={{ color: BRAND_COLORS.accentGold }}>
-                  {language === 'fr' ? "Coût de l'inaction sur 25 ans" : 'Cost of inaction over 25 years'}: {sharedFormatSmartCurrency(costOfInaction, language)}
+                  {language === 'fr' ? "Ne rien faire coûtera" : 'Doing nothing will cost'} {sharedFormatSmartCurrency(costOfInaction, language)} {language === 'fr' ? "sur 25 ans" : "over 25 years"}
                 </span>
               </div>
             )}
@@ -1443,7 +1454,7 @@ function NextStepsSlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
         <SlideTitle>
-          {language === 'fr' ? 'Prochaines Étapes' : 'Next Steps'}
+          {language === 'fr' ? 'Passons à l\'action' : 'Let\'s Take Action'}
         </SlideTitle>
 
         <div className="rounded-2xl p-4 md:p-6 mb-8 shadow-sm" style={{ border: '1px solid #E5E7EB' }} data-testid="timeline-milestones">
@@ -1515,9 +1526,14 @@ function NextStepsSlide({ language }: { language: string }) {
           style={{ backgroundColor: 'rgba(0,61,166,0.05)', border: `2px solid ${BRAND_COLORS.primaryBlue}` }}
         >
           <p className="text-lg md:text-xl font-bold mb-2" style={{ color: BRAND_COLORS.primaryBlue }}>
-            {language === 'fr' ? 'Contactez-nous pour planifier votre visite de site' : 'Contact us to schedule your site visit'}
+            {language === 'fr' ? 'Prêt à transformer vos coûts d\'énergie? Contactez-nous pour planifier votre visite de site.' : 'Ready to transform your energy costs? Contact us to schedule your site visit.'}
           </p>
-          <p className="text-base md:text-lg font-semibold" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
+          <p className="text-base md:text-lg font-semibold mb-4" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
+          <p className="text-sm" style={{ color: '#DC2626' }}>
+            {language === 'fr'
+              ? 'Les incitatifs couvrent jusqu\'à 60% du projet — ces programmes peuvent changer à tout moment.'
+              : 'Incentives cover up to 60% of the project — these programs can change at any time.'}
+          </p>
         </div>
       </div>
     </div>
@@ -1621,12 +1637,17 @@ function CredibilitySlide({ language }: { language: string }) {
             alt="kWh Québec"
             className="h-12 md:h-14 mx-auto mb-4"
           />
-          <p className="text-base md:text-lg mb-4" style={{ color: '#4B5563' }}>
+          <p className="text-base md:text-lg mb-4 font-semibold" style={{ color: BRAND_COLORS.primaryBlue }}>
+            {language === 'fr'
+              ? 'Prêt à transformer vos coûts d\'énergie? Contactez-nous pour planifier votre visite de site.'
+              : 'Ready to transform your energy costs? Contact us to schedule your site visit.'}
+          </p>
+          <p className="text-base md:text-lg font-bold" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
+          <p className="text-sm mt-4" style={{ color: '#4B5563' }}>
             {language === 'fr'
               ? 'Votre partenaire pour la transition énergétique commerciale au Québec'
               : 'Your partner for commercial energy transition in Quebec'}
           </p>
-          <p className="text-base md:text-lg font-bold" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
         </div>
       </div>
     </div>

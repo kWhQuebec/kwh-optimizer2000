@@ -36,6 +36,11 @@ export async function generatePresentationPPTX(
 ): Promise<Buffer> {
   const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
 
+  // Compute hidden insights for enhanced storytelling
+  const { computeHiddenInsights } = await import("./documentDataProvider");
+  const simData: any = simulation;
+  const hiddenInsights = computeHiddenInsights(simData as any);
+
   const fmtCurrency = (value: number | null | undefined): string => formatSmartCurrencyFull(value, lang);
   const fmtSmartCurrency = (value: number | null | undefined): string => formatSmartCurrency(value, lang);
 
@@ -125,7 +130,9 @@ export async function generatePresentationPPTX(
   });
 
   const act2 = getNarrativeAct("act2_solution", lang);
-  slide1.addText(act2.subtitle, {
+  slide1.addText(
+    t(`Votre bâtiment pourrait vous faire économiser ${fmtCurrency(simulation.annualSavings)} par année`,
+      `Your building could save you ${fmtCurrency(simulation.annualSavings)} per year`), {
     x: 0.5, y: 3.1, w: 4, h: 0.3,
     fontSize: 10, italic: true, color: COLORS.mediumGray
   });
@@ -324,6 +331,13 @@ export async function generatePresentationPPTX(
     });
   });
 
+  // Add data confidence badge
+  slideSnap.addText(
+    t(`Confiance de l'analyse: ${hiddenInsights.dataConfidencePercent}%`, `Analysis confidence: ${hiddenInsights.dataConfidencePercent}%`), {
+    x: 0.5, y: 4.45, w: 9, h: 0.25,
+    fontSize: 10, color: COLORS.mediumGray, align: "center"
+  });
+
   // ================= SLIDE 4: YOUR RESULTS (4 KPIs) =================
   const slideKPI = pptx.addSlide({ masterName: "KWHMAIN" });
 
@@ -332,7 +346,9 @@ export async function generatePresentationPPTX(
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
   });
-  slideKPI.addText(act3.subtitle, {
+  slideKPI.addText(
+    t(`Votre bâtiment génère un profit net de ${fmtCurrency(simulation.npv25)} sur 25 ans`,
+      `Your building generates a net profit of ${fmtCurrency(simulation.npv25)} over 25 years`), {
     x: 0.5, y: 1.2, w: 9, h: 0.3,
     fontSize: 10, italic: true, color: COLORS.mediumGray
   });
@@ -387,15 +403,9 @@ export async function generatePresentationPPTX(
     fontSize: 11, color: COLORS.mediumGray, align: "center"
   });
 
-  const co2ForEquiv = simulation.co2AvoidedTonnesPerYear || 0;
-  const totalProductionKWh = (simulation.pvSizeKW * 1035) || 0;
-  const co2TonnesDisplay = totalProductionKWh > 0 ? (totalProductionKWh * 0.002) / 1000 : co2ForEquiv;
-  const treesPlanted = Math.max(1, Math.round(co2TonnesDisplay * 45));
-  const carsRemoved = co2TonnesDisplay / 4.6;
-
   const co2Equivalents = [
-    { label: t("Arbres plantes", "Trees planted"), value: `${treesPlanted}`, suffix: t("/ an", "/ yr") },
-    { label: t("Voitures retirees", "Cars removed"), value: carsRemoved > 0.05 ? carsRemoved.toFixed(1) : "< 0.1", suffix: t("/ an", "/ yr") },
+    { label: t("Arbres plantes", "Trees planted"), value: `${hiddenInsights.equivalentTreesPlanted}`, suffix: t("/ 25 ans", "/ 25 yrs") },
+    { label: t("Voitures retirees", "Cars removed"), value: hiddenInsights.equivalentCarsRemoved > 0 ? hiddenInsights.equivalentCarsRemoved.toString() : "< 1", suffix: t("/ 25 ans", "/ 25 yrs") },
     { label: t("Couverture energetique", "Energy coverage"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`, suffix: "" },
   ];
 
@@ -608,14 +618,13 @@ export async function generatePresentationPPTX(
     });
 
     // Cost of inaction callout
-    const annualSavings = simulation.savingsYear1 || simulation.annualSavings || 0;
-    const costOfInaction = annualSavings * 25;
     slideCashflow.addShape("rect", {
       x: 1.5, y: 4.9, w: 7, h: 0.5,
       fill: { color: "FFF3CD" }
     });
     slideCashflow.addText(
-      t(`Coût de l'inaction sur 25 ans: ${fmtSmartCurrency(costOfInaction)}`, `Cost of inaction over 25 years: ${fmtSmartCurrency(costOfInaction)}`), {
+      t(`Ne rien faire vous coûtera ${fmtCurrency(hiddenInsights.costOfInaction25yr)} sur 25 ans`,
+        `Doing nothing will cost you ${fmtCurrency(hiddenInsights.costOfInaction25yr)} over 25 years`), {
       x: 1.5, y: 4.95, w: 7, h: 0.4,
       fontSize: 12, bold: true, color: "856404", align: "center"
     });
@@ -1000,7 +1009,7 @@ export async function generatePresentationPPTX(
   // ================= SLIDE 11: NEXT STEPS =================
   const slide5 = pptx.addSlide({ masterName: "KWHMAIN" });
 
-  slide5.addText(t("PROCHAINES ÉTAPES", "NEXT STEPS"), {
+  slide5.addText(t("PASSONS À L'ACTION", "LET'S TAKE ACTION"), {
     x: 0.5, y: 0.8, w: 9, h: 0.5,
     fontSize: 22, bold: true, color: COLORS.blue
   });
@@ -1011,7 +1020,9 @@ export async function generatePresentationPPTX(
 
   const act4 = getNarrativeAct("act4_action", lang);
   const transition3 = getNarrativeTransition("resultsToAction", lang);
-  slide5.addText(transition3, {
+  slide5.addText(
+    t("Les incitatifs actuels couvrent jusqu'à 60% de votre projet — ces programmes peuvent changer à tout moment.",
+      "Current incentives cover up to 60% of your project — these programs can change at any time."), {
     x: 0.5, y: 1.15, w: 9, h: 0.3,
     fontSize: 9, italic: true, color: COLORS.mediumGray
   });

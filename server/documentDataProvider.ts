@@ -80,6 +80,77 @@ export interface DocumentSimulationData {
     duration: string;
     status?: string;
   }>;
+  hiddenInsights?: HiddenInsights;
+}
+
+export interface HiddenInsights {
+  dataConfidence: 'satellite' | 'manual' | 'hq_actual';
+  dataConfidencePercent: number;
+  peakDemandReductionKw: number;
+  peakDemandSavingsAnnual: number;
+  selfConsumptionPercent: number;
+  gridExportPercent: number;
+  clippingLossPercent: number;
+  equivalentTreesPlanted: number;
+  equivalentCarsRemoved: number;
+  costOfInaction25yr: number;
+}
+
+/**
+ * Compute hiddenInsights from stored simulation data.
+ * This allows showing insights for existing analyses without re-running them.
+ */
+export function computeHiddenInsights(sim: DocumentSimulationData): HiddenInsights {
+  // Data confidence based on whether we have hourly consumption data
+  const hasHourlyData = sim.hourlyProfile && sim.hourlyProfile.length > 100;
+  const dataConfidence = hasHourlyData ? 'hq_actual' as const : 'satellite' as const;
+  const dataConfidencePercent = hasHourlyData ? 95 : 75;
+
+  // Peak demand reduction
+  const peakDemandReductionKw = sim.demandShavingSetpointKW > 0 && sim.peakDemandKW > 0
+    ? Math.max(0, sim.peakDemandKW - sim.demandShavingSetpointKW)
+    : 0;
+  // ~$15/kW/month demand charge (Quebec C&I average)
+  const peakDemandSavingsAnnual = peakDemandReductionKw * 15 * 12;
+
+  // Self-consumption vs export
+  const selfConsumptionPercent = sim.selfSufficiencyPercent || 0;
+  const totalProductionApprox = sim.annualConsumptionKWh * (selfConsumptionPercent / 100);
+  const gridExportPercent = sim.totalExportedKWh > 0 && totalProductionApprox > 0
+    ? Math.min(100, (sim.totalExportedKWh / (totalProductionApprox + sim.totalExportedKWh)) * 100)
+    : 0;
+
+  // Clipping loss estimate (simplified: if PV > consumption ratio is high)
+  const pvProductionEstimate = sim.pvSizeKW * 1150; // ~1150 kWh/kWp in Quebec
+  const actualProduction = totalProductionApprox + sim.totalExportedKWh;
+  const clippingLossPercent = pvProductionEstimate > 0
+    ? Math.max(0, ((pvProductionEstimate - actualProduction) / pvProductionEstimate) * 100)
+    : 0;
+
+  // Environmental equivalents
+  const co2Total25yr = (sim.co2AvoidedTonnesPerYear || 0) * 25;
+  const equivalentTreesPlanted = Math.round(co2Total25yr * 1000 / 21.77);
+  const equivalentCarsRemoved = Math.round(co2Total25yr / 4.6);
+
+  // Cost of inaction: 25-year utility cost without solar at 3.5%/yr escalation
+  const annualCost = sim.annualCostBefore || 0;
+  let costOfInaction25yr = 0;
+  for (let y = 0; y < 25; y++) {
+    costOfInaction25yr += annualCost * Math.pow(1.035, y);
+  }
+
+  return {
+    dataConfidence,
+    dataConfidencePercent,
+    peakDemandReductionKw: Math.round(peakDemandReductionKw),
+    peakDemandSavingsAnnual: Math.round(peakDemandSavingsAnnual),
+    selfConsumptionPercent: Math.round(selfConsumptionPercent),
+    gridExportPercent: Math.round(gridExportPercent),
+    clippingLossPercent: Math.round(clippingLossPercent * 10) / 10,
+    equivalentTreesPlanted,
+    equivalentCarsRemoved,
+    costOfInaction25yr: Math.round(costOfInaction25yr),
+  };
 }
 
 export interface DocumentData {

@@ -415,7 +415,7 @@ export function AnalysisResults({
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-1">
-                {language === "fr" ? "Résumé exécutif" : "Executive Summary"}
+                {language === "fr" ? "Voici votre opportunité" : "Your opportunity awaits"}
               </p>
               <h1 className="text-2xl font-bold">
                 {site?.name || (language === "fr" ? "Votre projet solaire" : "Your Solar Project")}
@@ -671,7 +671,7 @@ export function AnalysisResults({
       <NarrativeActHeader actKey="act3_results" />
 
       <SectionDivider
-        title={language === "fr" ? "Vos résultats" : "Your Results"}
+        title={language === "fr" ? "Voici le potentiel de votre bâtiment" : "Here's your building's potential"}
         icon={Star}
       />
 
@@ -681,15 +681,17 @@ export function AnalysisResults({
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="w-4 h-4 text-amber-500" />
               <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                {language === "fr" ? "Économies An 1" : "Savings Year 1"}
+                {language === "fr" ? "Économies annuelles" : "Annual Savings"}
               </p>
             </div>
-            <p className="text-2xl font-bold font-mono" data-testid="text-savings">
-              {formatSmartCurrency(dashboardAnnualSavings || 0, language)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {language === "fr" ? "par année" : "per year"}
-            </p>
+            <div>
+              <p className="text-2xl font-bold font-mono" data-testid="text-savings">
+                {formatSmartCurrency(dashboardAnnualSavings || 0, language)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === "fr" ? "par année" : "per year"}
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -715,14 +717,14 @@ export function AnalysisResults({
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-blue-500" />
               <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                {language === "fr" ? "VAN 25 ans" : "NPV 25 years"}
+                {language === "fr" ? "Profit net sur 25 ans" : "Net profit over 25 years"}
               </p>
             </div>
             <p className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400" data-testid="text-npv">
               {formatSmartCurrency(dashboardNpv25 || 0, language)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {language === "fr" ? "profit net actualisé" : "net present value"}
+              {language === "fr" ? "après 25 ans" : "after 25 years"}
             </p>
           </CardContent>
         </Card>
@@ -772,7 +774,12 @@ export function AnalysisResults({
         <CardContent className="py-4">
           <div className="flex items-center gap-2 mb-3">
             <Leaf className="w-4 h-4 text-green-500" />
-            <span className="text-sm font-semibold">{language === "fr" ? "Impact environnemental" : "Environmental Impact"}</span>
+            <div>
+              <span className="text-sm font-semibold">{language === "fr" ? "Votre impact sur la planète" : "Your impact on the planet"}</span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {language === "fr" ? "Équivalent à planter des arbres et retirer des voitures de la route" : "Equivalent to planting trees and removing cars from the road"}
+              </p>
+            </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3">
@@ -981,9 +988,16 @@ export function AnalysisResults({
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Zap className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold">
-                  {language === "fr" ? "Impact sur votre facture Hydro-Québec" : "Impact on your Hydro-Québec bill"}
-                </h3>
+                <div>
+                  <h3 className="font-semibold">
+                    {language === "fr" ? "L'impact sur votre facture" : "Transform your energy bill"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {language === "fr"
+                      ? `Ne rien faire vous coûtera $${Math.round(estimatedAnnualBill * 25).toLocaleString()} sur 25 ans`
+                      : `Doing nothing will cost you $${Math.round(estimatedAnnualBill * 25).toLocaleString()} over 25 years`}
+                  </p>
+                </div>
               </div>
               <div className="grid md:grid-cols-3 gap-6 items-center">
                 <div className="text-center p-4 bg-muted/30 rounded-xl border">
