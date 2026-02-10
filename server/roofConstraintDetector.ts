@@ -599,13 +599,13 @@ async function detectWithGeminiVision(
 
   const prompt = `You are an expert rooftop obstacle detection system for commercial and industrial (C&I) solar panel installations in Quebec, Canada.
 
-Analyze this satellite image of a commercial/industrial building rooftop. Detect ALL rooftop obstacles, equipment, and features that would prevent or hinder solar panel installation.
+Analyze this satellite image and detect ONLY obstacles that are PHYSICALLY MOUNTED ON THE ROOF SURFACE. Focus exclusively on equipment and structures attached to or protruding from the roof membrane.
 
 Look specifically for these categories:
 1. HVAC/CVC: Rooftop units (RTU), air handlers, condensers, cooling towers, heat pumps
 2. Ventilation: Exhaust fans, turbine vents, plumbing vents, pipes, ducts, stacks
 3. Skylights/Puits de lumière: Transparent roof panels, dome skylights, roof hatches
-4. Parapets: Raised edges along roof perimeter (indicate which edge: north/south/east/west)
+4. Parapets: ONLY the parapet wall thickness (~0.5m wide strip along the roof edge), NOT the entire roof edge area
 5. Drains/Scuppers: Roof drain systems, internal drains, edge scuppers
 6. Antennas: Satellite dishes, communication antennas, lightning rods
 7. Mechanical rooms: Elevator shafts, mechanical penthouses, stairwell exits
@@ -628,12 +628,13 @@ Return ONLY a valid JSON array. Each element:
 
 Rules:
 - x_pct, y_pct = top-left corner as percentage of image dimensions (0-100)
-- width_pct, height_pct = obstacle size as percentage of image dimensions
+- width_pct, height_pct = obstacle size as percentage of image dimensions. Use TIGHT bounding boxes around the actual equipment footprint only.
 - estimated_height_m = estimated height above roof surface in meters
 - confidence = "high", "medium", or "low"
 - If no obstacles found, return []
-- Be thorough: even small vents and pipes matter for solar panel layout
-- Include shadows cast by obstacles as clues for height estimation`;
+- Do NOT detect: trees, ground-level features, vehicles, shadows on the roof, adjacent buildings, parking lots, or anything not physically mounted on the roof
+- Shadows on the roof are NOT obstacles — ignore them
+- For parapets, only mark the narrow wall thickness (~0.5m), not large roof edge areas`;
 
   log.info("Sending satellite image to Gemini Vision for obstacle detection...");
   const aiResponse = await ai.models.generateContent({
@@ -706,17 +707,29 @@ Rules:
 
   for (const det of detections) {
     if (det.width_pct <= 0 || det.height_pct <= 0) continue;
+    if (det.confidence === "low") continue;
 
-    const obstWidthM = (det.width_pct / 100) * imgWidthM;
-    const obstHeightM = (det.height_pct / 100) * imgHeightM;
+    const cappedWidthPct = Math.min(det.width_pct, 15);
+    const cappedHeightPct = Math.min(det.height_pct, 15);
+
+    const obstWidthM = (cappedWidthPct / 100) * imgWidthM;
+    const obstHeightM = (cappedHeightPct / 100) * imgHeightM;
     const areaSqM = obstWidthM * obstHeightM;
 
-    if (areaSqM < 0.3) continue;
+    if (areaSqM < 0.5) continue;
 
     const topLeftLng = imgLeftLng + (det.x_pct / 100) * imgHalfWidthDeg * 2;
     const topLeftLat = imgTopLat - (det.y_pct / 100) * imgHalfHeightDeg * 2;
-    const botRightLng = imgLeftLng + ((det.x_pct + det.width_pct) / 100) * imgHalfWidthDeg * 2;
-    const botRightLat = imgTopLat - ((det.y_pct + det.height_pct) / 100) * imgHalfHeightDeg * 2;
+    const botRightLng = imgLeftLng + ((det.x_pct + cappedWidthPct) / 100) * imgHalfWidthDeg * 2;
+    const botRightLat = imgTopLat - ((det.y_pct + cappedHeightPct) / 100) * imgHalfHeightDeg * 2;
+
+    const centerLng = (topLeftLng + botRightLng) / 2;
+    const centerLat = (topLeftLat + botRightLat) / 2;
+
+    const insideSolarPolygon = solarPolygons.some((poly) =>
+      isPointInPolygon(centerLng, centerLat, poly.coordinates)
+    );
+    if (!insideSolarPolygon) continue;
 
     const coordinates: [number, number][] = [
       [topLeftLng, topLeftLat],
@@ -738,108 +751,76 @@ Rules:
   return constraints;
 }
 
-// --- Shadow projection ---
+// --- Setback buffer generation (industry-standard fire code setbacks) ---
 
-interface SunPosition {
-  altitude: number;
-  azimuth: number;
-  label: string;
-}
-
-function getWinterSolsticeSunPositions(): SunPosition[] {
-  return [
-    { altitude: 15, azimuth: 150, label: "10h solstice hiver" },
-    { altitude: 19.75, azimuth: 180, label: "12h solstice hiver" },
-    { altitude: 15, azimuth: 210, label: "14h solstice hiver" },
-  ];
-}
-
-function projectShadows(
+function generateSetbackBuffers(
   obstacles: DetectedConstraint[],
-  latitude: number
+  latitude: number,
+  solarPolygons: Array<{ coordinates: [number, number][] }>
 ): DetectedConstraint[] {
-  const shadows: DetectedConstraint[] = [];
-  const sunPositions = getWinterSolsticeSunPositions();
+  const setbacks: DetectedConstraint[] = [];
 
   const metersPerDegLat = 111320;
   const metersPerDegLng = 111320 * Math.cos((latitude * Math.PI) / 180);
 
-  const obstaclesWithHeight = obstacles.filter(
-    (o) => o.estimatedHeightM && o.estimatedHeightM > 0.3 && o.source !== "shadow"
+  const eligibleObstacles = obstacles.filter(
+    (o) => o.source !== "shadow" && o.areaSqM >= 0.3
   );
 
-  log.info(`Projecting shadows for ${obstaclesWithHeight.length} obstacles with height data`);
+  log.info(`Generating setback buffers for ${eligibleObstacles.length} obstacles`);
 
-  for (const obstacle of obstaclesWithHeight) {
-    const heightM = obstacle.estimatedHeightM!;
+  for (const obstacle of eligibleObstacles) {
+    const area = obstacle.areaSqM;
+    const heightM = obstacle.estimatedHeightM || 0;
 
-    for (const sun of sunPositions) {
-      const altRad = (sun.altitude * Math.PI) / 180;
-      const shadowLength = heightM / Math.tan(altRad);
-
-      if (shadowLength < 0.5) continue;
-
-      const shadowDirectionDeg = (sun.azimuth + 180) % 360;
-      const shadowDirRad = (shadowDirectionDeg * Math.PI) / 180;
-
-      const dxM = shadowLength * Math.sin(shadowDirRad);
-      const dyM = shadowLength * Math.cos(shadowDirRad);
-      const dLng = dxM / metersPerDegLng;
-      const dLat = dyM / metersPerDegLat;
-
-      const shadowCoords: [number, number][] = obstacle.coordinates.map(
-        ([lng, lat]) => [lng + dLng, lat + dLat] as [number, number]
-      );
-
-      const allCoords = [...obstacle.coordinates, ...shadowCoords];
-      let hull = convexHull([...allCoords]);
-      if (hull.length > 8) {
-        hull = simplifyPolygon(hull, 0.000001);
-        if (hull.length < 3) hull = convexHull([...allCoords]);
-      }
-
-      const centLng = hull.reduce((s, c) => s + c[0], 0) / hull.length;
-      const centLat = hull.reduce((s, c) => s + c[1], 0) / hull.length;
-
-      let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-      for (const [lng, lat] of hull) {
-        minLng = Math.min(minLng, lng);
-        maxLng = Math.max(maxLng, lng);
-        minLat = Math.min(minLat, lat);
-        maxLat = Math.max(maxLat, lat);
-      }
-      const areaM2 = (maxLng - minLng) * metersPerDegLng * (maxLat - minLat) * metersPerDegLat;
-
-      const existingShadow = shadows.find((s) => {
-        const sCentLng = s.coordinates.reduce((sum, c) => sum + c[0], 0) / s.coordinates.length;
-        const sCentLat = s.coordinates.reduce((sum, c) => sum + c[1], 0) / s.coordinates.length;
-        const distM = Math.sqrt(
-          ((centLng - sCentLng) * metersPerDegLng) ** 2 +
-          ((centLat - sCentLat) * metersPerDegLat) ** 2
-        );
-        return distM < 2;
-      });
-
-      if (existingShadow) {
-        if (areaM2 > existingShadow.areaSqM) {
-          existingShadow.coordinates = hull;
-          existingShadow.areaSqM = Math.round(areaM2 * 10) / 10;
-          existingShadow.label = `Zone d'ombre projetée — ${Math.round(areaM2)} m² (${sun.label})`;
-        }
-        continue;
-      }
-
-      shadows.push({
-        coordinates: hull,
-        areaSqM: Math.round(areaM2 * 10) / 10,
-        label: `Zone d'ombre projetée — ${Math.round(areaM2)} m² (${sun.label})`,
-        source: "shadow",
-      });
+    let setbackM: number;
+    if (area < 4) {
+      setbackM = 1.2;
+    } else if (area <= 15) {
+      setbackM = Math.max(1.5, heightM * 0.8);
+    } else {
+      setbackM = Math.max(2.0, heightM * 1.0);
     }
+
+    const bufferLng = setbackM / metersPerDegLng;
+    const bufferLat = setbackM / metersPerDegLat;
+
+    const centroid: [number, number] = [
+      obstacle.coordinates.reduce((s, c) => s + c[0], 0) / obstacle.coordinates.length,
+      obstacle.coordinates.reduce((s, c) => s + c[1], 0) / obstacle.coordinates.length,
+    ];
+
+    const bufferedCoords: [number, number][] = obstacle.coordinates.map(([lng, lat]) => {
+      const dx = lng - centroid[0];
+      const dy = lat - centroid[1];
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 1e-10) return [lng + bufferLng, lat + bufferLat] as [number, number];
+      const scale = (dist + Math.sqrt(bufferLng * bufferLat)) / dist;
+      return [centroid[0] + dx * scale, centroid[1] + dy * scale] as [number, number];
+    });
+
+    const anyVertexInside = bufferedCoords.some(([lng, lat]) =>
+      solarPolygons.some((poly) => isPointInPolygon(lng, lat, poly.coordinates))
+    );
+    const centerInside = solarPolygons.some((poly) =>
+      isPointInPolygon(centroid[0], centroid[1], poly.coordinates)
+    );
+    if (!anyVertexInside && !centerInside) continue;
+
+    const bufferedWidthM = (Math.max(...bufferedCoords.map(c => c[0])) - Math.min(...bufferedCoords.map(c => c[0]))) * metersPerDegLng;
+    const bufferedHeightM = (Math.max(...bufferedCoords.map(c => c[1])) - Math.min(...bufferedCoords.map(c => c[1]))) * metersPerDegLat;
+    const setbackAreaM2 = Math.max(0, bufferedWidthM * bufferedHeightM - obstacle.areaSqM);
+
+    setbacks.push({
+      coordinates: bufferedCoords,
+      areaSqM: Math.round(setbackAreaM2 * 10) / 10,
+      label: `Zone de retrait — ${Math.round(setbackAreaM2)} m²`,
+      source: "shadow",
+    });
   }
 
-  log.info(`Shadow projection: ${shadows.length} shadow zones generated`);
-  return shadows;
+  log.info(`Setback buffers: ${setbacks.length} setback zones generated`);
+  return setbacks;
 }
 
 // --- Gemini Vision classification ---
@@ -1072,14 +1053,14 @@ export async function detectRoofConstraints(
     allConstraints = [...dsmConstraints];
   }
 
-  // Step 4: Project shadows from all detected obstacles
-  log.info("Step 4: Projecting shadows...");
-  const shadowConstraints = projectShadows(allConstraints, input.latitude);
+  // Step 4: Generate setback buffers around obstacles
+  log.info("Step 4: Generating setback buffers...");
+  const shadowConstraints = generateSetbackBuffers(allConstraints, input.latitude, input.solarPolygons);
   if (shadowConstraints.length > 0) {
     allConstraints.push(...shadowConstraints);
-    notes.push(`Shadow projection: ${shadowConstraints.length} shadow zone(s) projected`);
+    notes.push(`Setback buffers: ${shadowConstraints.length} setback zone(s) generated`);
   } else {
-    notes.push("Shadow projection: no shadow zones (no obstacles with height data)");
+    notes.push("Setback buffers: no setback zones generated");
   }
 
   // Step 5: Parse annualFlux GeoTIFF for flux-based shadow detection
