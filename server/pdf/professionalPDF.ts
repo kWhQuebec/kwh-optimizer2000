@@ -33,6 +33,36 @@ export function generateProfessionalPDF(
 ): void {
   const ctx = createContext(doc, simulation, lang, options);
 
+  /**
+   * NARRATIVE ARC FOR PDF STORYTELLING
+   *
+   * This PDF is structured to follow a compelling sales narrative:
+   *
+   * 1. EMOTIONAL IMPACT (Early pages)
+   *    - Cover: Brand identity & project overview
+   *    - Bill Comparison: "Here's how much you'll save" (concrete numbers)
+   *    - Project Snapshot: Visual context & location
+   *    - KPI Results: "Here's what your building earns over 25 years" + profit comparison
+   *    - Investment Breakdown: What the net cost actually is
+   *    - Financial Projections: The path to positive returns
+   *
+   * 2. TECHNICAL CREDIBILITY (Middle pages)
+   *    - Financing Comparison: Options and flexibility
+   *    - Assumptions & Exclusions: Transparency builds trust
+   *    - Equipment & Timeline: Detailed specifications
+   *
+   * 3. CALL TO ACTION (Final pages)
+   *    - Next Steps: Action-oriented language ("Let's take action")
+   *    - Urgency messaging: Limited-time incentives
+   *    - Credibility: Social proof of other successful projects
+   *
+   * 4. APPENDIX (Reference)
+   *    - Detailed analysis for technical reviewers
+   *
+   * Future developers: Maintain this order to preserve narrative flow.
+   * Emotional impact must come before technical details for better conversion.
+   */
+
   // === SALES FLOW: Impact pages first, technical details later ===
 
   renderCover(ctx);                        // P1: Cover

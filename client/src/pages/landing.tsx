@@ -643,55 +643,21 @@ export default function LandingPage() {
                         )}
                       </div>
                       
-                      {/* Two path choice */}
+                      {/* Single CTA - direct to quick estimate */}
                       <div className="space-y-3">
-                        <p className="text-center font-medium">
-                          {language === "fr" ? "Choisissez votre analyse:" : "Choose your analysis:"}
+                        <Button
+                          onClick={() => setFlowStep('quickForm')}
+                          className="w-full gap-2 h-12 text-base"
+                          data-testid="button-quick-path"
+                        >
+                          <Zap className="w-5 h-5" />
+                          {language === "fr" ? "Voir mon potentiel solaire" : "See my solar potential"}
+                        </Button>
+                        <p className="text-xs text-center text-muted-foreground">
+                          {language === "fr"
+                            ? "Résultats en 2 minutes — gratuit et sans engagement"
+                            : "Results in 2 minutes — free, no commitment"}
                         </p>
-                        
-                        <div className="grid sm:grid-cols-2 gap-3">
-                          {/* Quick path */}
-                          <button
-                            onClick={() => setFlowStep('quickForm')}
-                            className="p-4 border-2 rounded-xl text-left hover:border-primary/50 hover:bg-muted/30 transition-all group"
-                            data-testid="button-quick-path"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
-                                <Zap className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-semibold group-hover:text-primary">
-                                  {language === "fr" ? "Estimation rapide" : "Quick Estimate"}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {language === "fr" ? "2 min • Courriel seulement" : "2 min • Email only"}
-                                </p>
-                              </div>
-                            </div>
-                          </button>
-                          
-                          {/* Detailed path */}
-                          <button
-                            onClick={handleDetailedPath}
-                            className="p-4 border-2 border-primary/30 bg-primary/5 rounded-xl text-left hover:border-primary hover:bg-primary/10 transition-all group"
-                            data-testid="button-detailed-path"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                <FileSignature className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-primary">
-                                  {language === "fr" ? "Analyse complète" : "Complete Analysis"}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {language === "fr" ? "5 jours • Avec procuration" : "5 days • With authorization"}
-                                </p>
-                              </div>
-                            </div>
-                          </button>
-                        </div>
                       </div>
                       
                       {/* Reset link */}

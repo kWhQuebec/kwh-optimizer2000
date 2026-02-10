@@ -54,79 +54,99 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     },
     html: {
       fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1>kWh Québec</h1>
-          </div>
-          <div class="content">
-            <h2>Merci {{contactName}}!</h2>
-            <p>Votre estimation rapide pour <strong>{{address}}</strong> a été générée avec succès.</p>
-            
-            <div class="highlight">
-              <p><strong>Résultats préliminaires:</strong></p>
-              <ul>
-                <li>Capacité PV estimée: <span class="metric">{{pvSizeKW}} kW</span></li>
-                <li>Économies annuelles: <span class="metric">{{annualSavings}} $</span></li>
-                <li>Retour sur investissement: <span class="metric">{{paybackYears}} ans</span></li>
-              </ul>
-            </div>
-            
-            <p>Ces résultats sont basés sur notre analyse satellite et représentent une estimation à ~75% de précision.</p>
-            
-            <h3>Prochaine étape?</h3>
-            <p>Pour une analyse détaillée (~95% précision) basée sur vos données réelles Hydro-Québec, demandez notre <strong>Analyse DÉTAILLÉE gratuite</strong>.</p>
-            
-            <p style="text-align: center; margin: 30px 0;">
-              <a href="{{analysisUrl}}" class="button">Demander l'analyse détaillée</a>
-            </p>
-            
-            <p>Des questions? Répondez simplement à ce courriel ou appelez-nous.</p>
-          </div>
-          <div class="footer">
-            <p>kWh Québec - Solaire + Stockage</p>
-            <p>info@kwhquebec.com | (514) 555-1234</p>
-          </div>
-        </div>
-      </body></html>`,
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>{{contactName}}, votre bâtiment a du potentiel.</h2>
+      <p>Chaque mois, votre facture d'électricité est un coût fixe que vous subissez. <strong>Et si une partie de cette énergie venait directement de votre toit?</strong></p>
+
+      <p>Nous avons analysé le potentiel solaire de <strong>{{address}}</strong> par satellite. Voici ce que ça donne:</p>
+
+      <div class="highlight">
+        <p style="font-size:14px;color:#6b7280;margin-bottom:12px;">Estimation basée sur l'imagerie satellite</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Système solaire recommandé</td>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span class="metric">{{pvSizeKW}} kW</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Économies annuelles estimées</td>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span class="metric">{{annualSavings}} $</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;">Investissement récupéré en</td>
+            <td style="padding:8px 0;text-align:right;"><span class="metric">{{paybackYears}} ans</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;"><strong>Ce qu'on ne peut pas encore calculer:</strong> votre vrai profil de consommation heure par heure. Avec vos données Hydro-Québec, on peut optimiser le système pour maximiser votre retour — et possiblement ajouter du stockage pour réduire vos pointes.</p>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{analysisUrl}}" class="button">Découvrir mon vrai potentiel →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">Questions? Répondez directement à ce courriel — un humain vous répondra.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage C&I</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+    </div>
+  </div>
+</body></html>`,
       en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1>kWh Québec</h1>
-          </div>
-          <div class="content">
-            <h2>Thank you {{contactName}}!</h2>
-            <p>Your quick estimate for <strong>{{address}}</strong> has been generated successfully.</p>
-            
-            <div class="highlight">
-              <p><strong>Preliminary Results:</strong></p>
-              <ul>
-                <li>Estimated PV capacity: <span class="metric">{{pvSizeKW}} kW</span></li>
-                <li>Annual savings: <span class="metric">\${{annualSavings}}</span></li>
-                <li>Payback period: <span class="metric">{{paybackYears}} years</span></li>
-              </ul>
-            </div>
-            
-            <p>These results are based on our satellite analysis and represent an estimate with ~75% accuracy.</p>
-            
-            <h3>Next Step?</h3>
-            <p>For a detailed analysis (~95% accuracy) based on your actual Hydro-Québec data, request our <strong>FREE Detailed Analysis</strong>.</p>
-            
-            <p style="text-align: center; margin: 30px 0;">
-              <a href="{{analysisUrl}}" class="button">Request Detailed Analysis</a>
-            </p>
-            
-            <p>Questions? Simply reply to this email or give us a call.</p>
-          </div>
-          <div class="footer">
-            <p>kWh Québec - Turnkey solar + storage</p>
-            <p>info@kwhquebec.com | (514) 555-1234</p>
-          </div>
-        </div>
-      </body></html>`,
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>{{contactName}}, your building has potential.</h2>
+      <p>Every month, your electricity bill is a fixed cost you absorb. <strong>What if part of that energy came directly from your roof?</strong></p>
+
+      <p>We analyzed the solar potential of <strong>{{address}}</strong> via satellite. Here's what we found:</p>
+
+      <div class="highlight">
+        <p style="font-size:14px;color:#6b7280;margin-bottom:12px;">Estimate based on satellite imagery</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Recommended solar system</td>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span class="metric">{{pvSizeKW}} kW</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Estimated annual savings</td>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span class="metric">\${{annualSavings}}</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;">Investment recovered in</td>
+            <td style="padding:8px 0;text-align:right;"><span class="metric">{{paybackYears}} years</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;"><strong>What we can't calculate yet:</strong> your real hour-by-hour consumption profile. With your Hydro-Québec data, we can optimize the system to maximize your return — and potentially add storage to reduce your peak demand charges.</p>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{analysisUrl}}" class="button">Discover my true potential →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">Questions? Reply directly to this email — a human will answer.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey C&I Solar + Storage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+    </div>
+  </div>
+</body></html>`,
     },
     text: {
-      fr: `Merci {{contactName}}!\n\nVotre estimation rapide pour {{address}} a été générée.\n\nRésultats préliminaires:\n- Capacité PV: {{pvSizeKW}} kW\n- Économies annuelles: {{annualSavings}} $\n- Retour: {{paybackYears}} ans\n\nPour une analyse détaillée gratuite: {{analysisUrl}}\n\nkWh Québec\ninfo@kwhquebec.com`,
-      en: `Thank you {{contactName}}!\n\nYour quick estimate for {{address}} has been generated.\n\nPreliminary Results:\n- PV capacity: {{pvSizeKW}} kW\n- Annual savings: \${{annualSavings}}\n- Payback: {{paybackYears}} years\n\nFor a free detailed analysis: {{analysisUrl}}\n\nkWh Québec\ninfo@kwhquebec.com`,
+      fr: `{{contactName}}, votre bâtiment a du potentiel.\n\nChaque mois, votre facture d'électricité est un coût fixe que vous subissez. Et si une partie de cette énergie venait directement de votre toit?\n\nNous avons analysé le potentiel solaire de {{address}} par satellite.\n\nEstimation:\n- Système solaire: {{pvSizeKW}} kW\n- Économies annuelles: {{annualSavings}} $\n- Investissement récupéré en: {{paybackYears}} ans\n\nDécouvrez votre vrai potentiel: {{analysisUrl}}\n\nQuestions? Répondez directement à ce courriel.\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
+      en: `{{contactName}}, your building has potential.\n\nEvery month, your electricity bill is a fixed cost you absorb. What if part of that energy came directly from your roof?\n\nWe analyzed the solar potential of {{address}} via satellite.\n\nEstimate:\n- Solar system: {{pvSizeKW}} kW\n- Annual savings: \${{annualSavings}}\n- Investment recovered in: {{paybackYears}} years\n\nDiscover your true potential: {{analysisUrl}}\n\nQuestions? Reply directly to this email.\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
     },
   },
 
@@ -365,6 +385,358 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     text: {
       fr: `Bonjour {{contactName}},\n\nÉtude de cas - Entrepôt Montréal:\n- Système: 200 kW + 100 kWh\n- Investissement net: 180 000$\n- Économies: 45 000$/an\n- Retour: 4 ans\n\nDécouvrez votre potentiel: {{analysisUrl}}\n\nkWh Québec`,
       en: `Hello {{contactName}},\n\nCase Study - Montreal Warehouse:\n- System: 200 kW + 100 kWh\n- Net investment: $180,000\n- Savings: $45,000/year\n- Payback: 4 years\n\nDiscover your potential: {{analysisUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // Nurturing email 3: Rising costs projection (Day 10)
+  nurturingRisingCosts: {
+    subject: {
+      fr: "Vos coûts d'énergie dans 5 ans: la projection qui fait réfléchir",
+      en: "Your energy costs in 5 years: the projection that makes you think",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1>kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Bonjour {{contactName}},</h2>
+            <p>Un chiffre que peu de gens ont envie de regarder en face: <strong>le coût de ne rien faire.</strong></p>
+
+            <div class="highlight">
+              <h3>Voici le calcul simple:</h3>
+              <p>L'électricité augmente en moyenne de <strong>3,5% par année</strong> au Québec. Si vous payez {{currentAnnualBill}}$ en électricité aujourd'hui:</p>
+              <ul>
+                <li>Dans <strong>5 ans</strong>: {{bill5Years}}$ ({{increase5Years}}$ de plus)</li>
+                <li>Dans <strong>10 ans</strong>: {{bill10Years}}$ ({{increase10Years}}$ de plus)</li>
+                <li>Dans <strong>25 ans</strong>: {{bill25Years}}$ ({{increase25Years}}$ de plus)</li>
+              </ul>
+            </div>
+
+            <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+              <p style="margin:0;"><strong>Avec le solaire?</strong> Vous fixez votre coût d'énergie au jour 1. Les 25 prochaines années, vos factures n'augmentent plus. C'est l'opposé de l'inflation — c'est une protection.</p>
+            </div>
+
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{analysisUrl}}" class="button">Voir mon impact d'ici 5 ans →</a>
+            </p>
+
+            <p style="font-size:13px;color:#6b7280;">Ces projections supposent une escalade constante. Historiquement, l'électricité a augmenté à 2-4% par année.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Solaire + Stockage</p>
+            <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
+          </div>
+        </div>
+      </body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1>kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Hello {{contactName}},</h2>
+            <p>A number most people don't want to face: <strong>the cost of doing nothing.</strong></p>
+
+            <div class="highlight">
+              <h3>Here's the simple math:</h3>
+              <p>Electricity increases at an average of <strong>3.5% per year</strong> in Quebec. If you pay {{currentAnnualBill}}$ in electricity today:</p>
+              <ul>
+                <li>In <strong>5 years</strong>: {{bill5Years}}$ ({{increase5Years}}$ more)</li>
+                <li>In <strong>10 years</strong>: {{bill10Years}}$ ({{increase10Years}}$ more)</li>
+                <li>In <strong>25 years</strong>: {{bill25Years}}$ ({{increase25Years}}$ more)</li>
+              </ul>
+            </div>
+
+            <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+              <p style="margin:0;"><strong>With solar?</strong> You lock in your energy cost on day 1. For the next 25 years, your bills don't increase. It's the opposite of inflation — it's protection.</p>
+            </div>
+
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{analysisUrl}}" class="button">See my impact over 5 years →</a>
+            </p>
+
+            <p style="font-size:13px;color:#6b7280;">These projections assume constant escalation. Historically, electricity has increased at 2-4% per year.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Turnkey solar + storage</p>
+            <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+          </div>
+        </div>
+      </body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\nLe coût de ne rien faire:\n\nL'électricité augmente de 3,5% par année. Si vous payez {{currentAnnualBill}}$ aujourd'hui:\n- Dans 5 ans: {{bill5Years}}$\n- Dans 10 ans: {{bill10Years}}$\n- Dans 25 ans: {{bill25Years}}$\n\nAvec le solaire, vous fixez votre coût d'énergie maintenant. Pas d'augmentation pendant 25 ans.\n\nVoir mon impact: {{analysisUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nThe cost of doing nothing:\n\nElectricity increases 3.5% per year. If you pay {{currentAnnualBill}}$ today:\n- In 5 years: {{bill5Years}}$\n- In 10 years: {{bill10Years}}$\n- In 25 years: {{bill25Years}}$\n\nWith solar, you lock in your energy cost now. No increases for 25 years.\n\nSee my impact: {{analysisUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // Nurturing email 4: Myth busting (Day 14)
+  nurturingMythBusting: {
+    subject: {
+      fr: "5 mythes sur le solaire au Québec qu'on entend encore en 2026",
+      en: "5 myths about solar in Québec we still hear in 2026",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1>kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Bonjour {{contactName}},</h2>
+            <p>On entend souvent les mêmes objections au sujet du solaire au Québec. Voici la vérité:</p>
+
+            <div class="highlight">
+              <h3>Mythe #1: "Le solaire ne fonctionne pas l'hiver"</h3>
+              <p><strong>Faux.</strong> Les panneaux produisent 25-30% de leur capacité même en hiver. Les journées froides et claires? Elles sont idéales — le froid améliore l'efficacité des panneaux.</p>
+            </div>
+
+            <div class="highlight">
+              <h3>Mythe #2: "Ce n'est pas rentable au Québec parce que l'électricité est bon marché"</h3>
+              <p><strong>Faux.</strong> Avec 60% d'incitatifs cumulés (HQ + fédéral + déductions), le retour sur investissement est de 3-6 ans. C'est mieux qu'une obligation d'épargne.</p>
+            </div>
+
+            <div class="highlight">
+              <h3>Mythe #3: "Les panneaux ont besoin d'entretien constant"</h3>
+              <p><strong>Faux.</strong> Garantie de 25 ans. Entretien minimal — la pluie lave les panneaux. Coût de maintenance: environ 0,5% du système par année.</p>
+            </div>
+
+            <div class="highlight">
+              <h3>Mythe #4: "La neige bloque toute la production"</h3>
+              <p><strong>Faux.</strong> Les panneaux sont conçus pour rejeter la neige. Impact moyen: 5-10% de perte saisonnière. Et vous profitez toujours de 25-30% de production en hiver.</p>
+            </div>
+
+            <div class="highlight">
+              <h3>Mythe #5: "La technologie n'est pas éprouvée"</h3>
+              <p><strong>Faux.</strong> Les panneaux solaires existent depuis 70 ans. kWh Québec seule a installé 120 MW de solaire au Québec. C'est la technologie la plus fiable en électricité.</p>
+            </div>
+
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{analysisUrl}}" class="button">Débuter mon analyse →</a>
+            </p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Solaire + Stockage</p>
+            <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
+          </div>
+        </div>
+      </body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1>kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Hello {{contactName}},</h2>
+            <p>We hear the same solar objections in Quebec all the time. Here's the truth:</p>
+
+            <div class="highlight">
+              <h3>Myth #1: "Solar doesn't work in winter"</h3>
+              <p><strong>False.</strong> Panels produce 25-30% of capacity even in winter. Cold, clear days? They're ideal — cold improves panel efficiency.</p>
+            </div>
+
+            <div class="highlight">
+              <h3>Myth #2: "It's not profitable in Quebec because electricity is cheap"</h3>
+              <p><strong>False.</strong> With 60% cumulative incentives (HQ + federal + deductions), payback is 3-6 years. That's better than a savings bond.</p>
+            </div>
+
+            <div class="highlight">
+              <h3>Myth #3: "Panels need constant maintenance"</h3>
+              <p><strong>False.</strong> 25-year warranty. Minimal maintenance — rain cleans the panels. Annual maintenance cost: about 0.5% of system.</p>
+            </div>
+
+            <div class="highlight">
+              <h3>Myth #4: "Snow blocks all production"</h3>
+              <p><strong>False.</strong> Panels are designed to shed snow. Average impact: 5-10% seasonal loss. And you still get 25-30% winter production.</p>
+            </div>
+
+            <div class="highlight">
+              <h3>Myth #5: "The technology isn't proven"</h3>
+              <p><strong>False.</strong> Solar panels have existed for 70 years. kWh Québec alone has installed 120 MW of solar in Quebec. It's the most reliable technology in electricity.</p>
+            </div>
+
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{analysisUrl}}" class="button">Start my analysis →</a>
+            </p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Turnkey solar + storage</p>
+            <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+          </div>
+        </div>
+      </body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\n5 mythes sur le solaire au Québec:\n\n1. "Ne fonctionne pas l'hiver" — Faux. Produit 25-30% même en hiver.\n2. "Pas rentable au QC" — Faux. 3-6 ans de retour avec 60% d'incitatifs.\n3. "Entretien constant" — Faux. Garantie 25 ans, maintenance minimale.\n4. "La neige bloque tout" — Faux. Perte moyenne: 5-10%, panneaux rejettent la neige.\n5. "Technologie non éprouvée" — Faux. 70 ans d'histoire, 120 MW installés par kWh.\n\nDébuter mon analyse: {{analysisUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\n5 myths about solar in Quebec:\n\n1. "Doesn't work in winter" — False. Produces 25-30% even in winter.\n2. "Not profitable in Quebec" — False. 3-6 year payback with 60% incentives.\n3. "Constant maintenance" — False. 25-year warranty, minimal maintenance.\n4. "Snow blocks everything" — False. Average 5-10% seasonal loss, panels shed snow.\n5. "Technology isn't proven" — False. 70 years of history, 120 MW installed by kWh.\n\nStart my analysis: {{analysisUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // Nurturing email 5: Time-sensitive incentives (Day 21)
+  nurturingTimeSensitive: {
+    subject: {
+      fr: "Les incitatifs solaires au Québec: ce qui change en 2026",
+      en: "Solar incentives in Québec: what's changing in 2026",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1>kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Bonjour {{contactName}},</h2>
+            <p>Les programmes d'incitatifs solaires au Québec changent régulièrement. Voici les faits:</p>
+
+            <div class="highlight">
+              <h3>L'historique des changements:</h3>
+              <ul>
+                <li>2019-2021: Programme HQ original (limité)</li>
+                <li>2021-2023: Augmentation des crédits fédéraux</li>
+                <li>2023-2024: Expansion des incitatifs HQ</li>
+                <li>2024-2026: Configuration actuelle (la plus généreuse de l'histoire)</li>
+              </ul>
+            </div>
+
+            <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+              <p style="margin:0;"><strong>Ce n'est pas une tactique de peur — c'est un fait:</strong> La combinaison actuelle des incitatifs HQ + fédéraux + amortissement accéléré est historiquement la plus généreuse jamais offerte au Québec. Aucune garantie qu'elle reste ainsi.</p>
+            </div>
+
+            <p>Pourquoi? Les gouvernements ajustent les programmes en fonction du volume d'installations, des budget déficitaires, ou des priorités politiques. On ne peut pas prédire l'avenir, mais on peut profiter du présent.</p>
+
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{analysisUrl}}" class="button">Obtenir mon analyse avec les incitatifs actuels →</a>
+            </p>
+
+            <p style="font-size:13px;color:#6b7280;">Votre analyse incluera une comparaison de scénarios: avec les incitatifs actuels vs. une réduction future possible.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Solaire + Stockage</p>
+            <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
+          </div>
+        </div>
+      </body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1>kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Hello {{contactName}},</h2>
+            <p>Solar incentive programs in Quebec change regularly. Here are the facts:</p>
+
+            <div class="highlight">
+              <h3>History of changes:</h3>
+              <ul>
+                <li>2019-2021: Original HQ program (limited)</li>
+                <li>2021-2023: Federal credit increases</li>
+                <li>2023-2024: HQ incentive expansion</li>
+                <li>2024-2026: Current configuration (most generous in history)</li>
+              </ul>
+            </div>
+
+            <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+              <p style="margin:0;"><strong>This isn't fear-mongering — it's a fact:</strong> The current combination of HQ + federal incentives + accelerated depreciation is historically the most generous ever offered in Quebec. No guarantee it stays that way.</p>
+            </div>
+
+            <p>Why? Governments adjust programs based on installation volumes, budget deficits, or political priorities. We can't predict the future, but we can benefit from the present.</p>
+
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{analysisUrl}}" class="button">Get my analysis with current incentives →</a>
+            </p>
+
+            <p style="font-size:13px;color:#6b7280;">Your analysis will include scenario comparisons: current incentives vs. a possible future reduction.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Turnkey solar + storage</p>
+            <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+          </div>
+        </div>
+      </body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\nLes incitatifs solaires au Québec changent régulièrement:\n\n- 2019-2021: Programme original (limité)\n- 2021-2023: Augmentation fédérale\n- 2023-2024: Expansion HQ\n- 2024-2026: Configuration actuelle (plus généreuse que jamais)\n\nLa combinaison HQ + fédéral + amortissement est historiquement la plus généreuse. Aucune garantie qu'elle persiste.\n\nProfitez du présent: {{analysisUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nSolar incentives in Quebec change regularly:\n\n- 2019-2021: Original program (limited)\n- 2021-2023: Federal increase\n- 2023-2024: HQ expansion\n- 2024-2026: Current (most generous ever)\n\nThe HQ + federal + depreciation combination is historically the most generous. No guarantee it stays.\n\nBenefit from now: {{analysisUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // Nurturing email 6: Last chance / respectful closing (Day 30)
+  nurturingLastChance: {
+    subject: {
+      fr: "Dernière question: est-ce le bon moment pour vous?",
+      en: "Last question: is it the right time for you?",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1>kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Bonjour {{contactName}},</h2>
+            <p>On va être honnête: le timing compte. Parfois, ce n'est pas le bon moment, et c'est OK.</p>
+
+            <div class="highlight">
+              <h3>Avant que vous décidiez:</h3>
+              <ul>
+                <li><strong>Chaque mois de délai:</strong> Vous laissez de l'argent sur la table. Avec une économie estimée de {{monthlyValue}}$/mois, c'est {{monthlyValue}}$ de perdu par mois d'attente.</li>
+                <li><strong>Les incitatifs actuels:</strong> Historiquement les plus généreux offerts au Québec. Zéro garantie qu'ils restent.</li>
+                <li><strong>L'analyse est gratuite:</strong> 2 minutes pour démarrer. Aucun engagement, aucune obligation.</li>
+              </ul>
+            </div>
+
+            <p>Si maintenant n'est pas le bon moment pour vous — pour des raisons budgétaires, de timing, ou autre — c'est totalement compréhensible. On respecte ça.</p>
+
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{analysisUrl}}" class="button">Commencer mon analyse gratuite →</a>
+            </p>
+
+            <p style="font-size:13px;color:#6b7280;">Si vous décidez de ne pas continuer, nous n'enverrons plus de courriels. Pas de spam, pas de suivi agressif. Juste du respect pour votre décision.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Solaire + Stockage</p>
+            <p><a href="{{unsubscribeUrl}}">Se désabonner définitivement</a></p>
+          </div>
+        </div>
+      </body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+        <div class="container">
+          <div class="header">
+            <h1>kWh Québec</h1>
+          </div>
+          <div class="content">
+            <h2>Hello {{contactName}},</h2>
+            <p>Let's be honest: timing matters. Sometimes now isn't the right time, and that's OK.</p>
+
+            <div class="highlight">
+              <h3>Before you decide:</h3>
+              <ul>
+                <li><strong>Every month of delay:</strong> You're leaving money on the table. With an estimated {{monthlyValue}}$/month in savings, that's {{monthlyValue}}$ lost per month of waiting.</li>
+                <li><strong>Current incentives:</strong> Historically the most generous ever offered in Quebec. Zero guarantee they stay.</li>
+                <li><strong>The analysis is free:</strong> 2 minutes to start. No commitment, no obligation.</li>
+              </ul>
+            </div>
+
+            <p>If now isn't the right time for you — for budget reasons, timing, or anything else — that's totally understandable. We respect that.</p>
+
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="{{analysisUrl}}" class="button">Start my free analysis →</a>
+            </p>
+
+            <p style="font-size:13px;color:#6b7280;">If you decide not to continue, we won't send more emails. No spam, no aggressive follow-up. Just respect for your decision.</p>
+          </div>
+          <div class="footer">
+            <p>kWh Québec - Turnkey solar + storage</p>
+            <p><a href="{{unsubscribeUrl}}">Unsubscribe permanently</a></p>
+          </div>
+        </div>
+      </body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\nLe timing compte. Parfois, ce n'est pas le bon moment, et c'est OK.\n\nMais avant de décider:\n- Chaque mois de délai: {{monthlyValue}}$ de perdu\n- Les incitatifs actuels sont les plus généreux de l'histoire\n- L'analyse est gratuite et prend 2 minutes\n\nSi maintenant n'est pas le bon moment, on respecte. Pas de spam après ça.\n\nCommencer: {{analysisUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nTiming matters. Sometimes now isn't the right time, and that's OK.\n\nBut before you decide:\n- Every month of delay: {{monthlyValue}}$ lost\n- Current incentives are the most generous in history\n- The analysis is free and takes 2 minutes\n\nIf now isn't the right time, we understand. No spam after that.\n\nStart: {{analysisUrl}}\n\nkWh Québec`,
     },
   },
 

@@ -59,7 +59,12 @@ export function renderKPIResults(ctx: PDFContext) {
   doc.fontSize(14).fillColor(COLORS.gold).font("Helvetica-Bold");
   doc.text(t(`Profit net de ${formatSmartCurrency(simulation.npv25, ctx.lang)} sur 25 ans`, `Net profit of ${formatSmartCurrency(simulation.npv25, ctx.lang)} over 25 years`), margin, doc.y, { width: contentWidth });
   doc.font("Helvetica");
-  doc.y += 25;
+  doc.fontSize(11).fillColor(COLORS.mediumGray).moveDown(0.5);
+  doc.text(t(
+    "Voici ce que votre bâtiment pourrait vous rapporter sur 25 ans",
+    "Here's what your building could earn over 25 years"
+  ), margin, doc.y, { width: contentWidth });
+  doc.y += 20;
 
   // 4 KPI Cards with distinct colors
   const cardY = doc.y;
@@ -216,6 +221,16 @@ export function renderKPIResults(ctx: PDFContext) {
     margin, summaryY + 8, { width: contentWidth, align: "center" }
   );
   doc.font("Helvetica");
+
+  // Comparison narrative
+  doc.moveDown(0.8);
+  const annualNetProfit = simulation.annualSavings || 0;
+  const yearsEquivalent = annualNetProfit > 0 ? (simulation.npv25 / annualNetProfit) : 0;
+  doc.fontSize(9).fillColor(COLORS.mediumGray);
+  doc.text(t(
+    `C'est l'équivalent de ${yearsEquivalent.toFixed(0)} années de profit net sur votre facture actuelle`,
+    `That's equivalent to ${yearsEquivalent.toFixed(0)} years of net profit on your current bill`
+  ), margin, doc.y, { width: contentWidth, align: "center" });
 
   // CO2 Equivalent Metrics
   doc.y = summaryY + 30;
