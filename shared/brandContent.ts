@@ -218,8 +218,8 @@ export const BRAND_CONTENT = {
         labelEn: "Federal Investment Tax Credit (ITC) 30%",
       },
       {
-        labelFr: "Hausses tarifaires HQ ~3-5%/an",
-        labelEn: "HQ rate increases ~3-5%/year",
+        labelFr: "Hausses de coûts énergétiques",
+        labelEn: "Rising energy costs",
       },
       {
         labelFr: "Technologie bifaciale + rendements supérieurs",
