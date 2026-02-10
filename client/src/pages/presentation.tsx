@@ -878,14 +878,14 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="flex flex-wrap justify-center gap-4 mt-6">
               {[
                 { label: language === 'fr' ? 'Hydro-Québec Solaire' : 'Hydro-Québec Solar', value: hqSolar },
                 { label: language === 'fr' ? 'Hydro-Québec Batterie' : 'Hydro-Québec Battery', value: hqBattery },
                 { label: language === 'fr' ? 'Crédit fédéral (ITC)' : 'Federal ITC', value: itcFederal },
                 { label: language === 'fr' ? 'Bouclier Fiscal' : 'Tax Shield', value: taxShield },
               ].filter(item => item.value > 0).map((item, i) => (
-                <div key={i} className="rounded-xl p-4 text-center shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
+                <div key={i} className="rounded-xl p-4 text-center shadow-sm min-w-[160px] flex-1 max-w-[220px]" style={{ border: '1px solid #E5E7EB' }}>
                   <p className="text-sm" style={{ color: '#6B7280' }}>{item.label}</p>
                   <p className="text-lg md:text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>-{formatSmartCurrencyFull(item.value, language)}</p>
                 </div>
