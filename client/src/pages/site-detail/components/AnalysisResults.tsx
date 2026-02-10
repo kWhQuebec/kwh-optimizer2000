@@ -472,8 +472,8 @@ export function AnalysisResults({
         <CardContent className="py-5">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-red-500" />
+              <div className="w-10 h-10 rounded-lg bg-[#FFB005]/10 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-[#FFB005]" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{language === "fr" ? "Consommation annuelle" : "Annual Consumption"}</p>
