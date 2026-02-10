@@ -63,7 +63,7 @@ export const BRAND_CONTENT = {
     utilityEscalation: { value: "3.5%/an", labelFr: "Escalade prix électricité", labelEn: "Utility price escalation" },
     pvDegradation: { value: "0.5%/an", labelFr: "Dégradation panneaux", labelEn: "Panel degradation" },
     systemLife: { value: "25 ans", labelFr: "Durée de vie système", labelEn: "System lifespan" },
-    program: { value: "Autoproduction", labelFr: "Programme HQ", labelEn: "HQ Program" },
+    program: { value: "Autoproduction", labelFr: "Programme Hydro-Québec", labelEn: "Hydro-Québec Program" },
     selfConsumption: { value: "~90%", labelFr: "Autoconsommation estimée", labelEn: "Est. self-consumption" },
     discountRate: { value: "7%", labelFr: "Taux d'actualisation (WACC)", labelEn: "Discount rate (WACC)" },
     omCostSolar: { value: "1.0%/an", labelFr: "O&M solaire (% CAPEX)", labelEn: "Solar O&M (% CAPEX)" },
@@ -210,8 +210,8 @@ export const BRAND_CONTENT = {
         labelEn: "Significant reduction in installation costs",
       },
       {
-        labelFr: "Programme HQ — incitatif 1 000 $/kW",
-        labelEn: "HQ Program — $1,000/kW incentive",
+        labelFr: "Incitatifs Hydro-Québec — Jusqu'à 1 000 $/kW",
+        labelEn: "Hydro-Québec Incentives — Up to $1,000/kW",
       },
       {
         labelFr: "Crédit d'impôt fédéral (CII) 30%",
