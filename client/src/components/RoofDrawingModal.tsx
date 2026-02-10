@@ -242,6 +242,7 @@ export function RoofDrawingModal({
       strokeColor: currentColor,
       strokeOpacity: 1,
       strokeWeight: 2,
+      clickable: false,
       map: map,
     });
     customDrawingPolylineRef.current = previewPolyline;
@@ -251,6 +252,7 @@ export function RoofDrawingModal({
       strokeColor: currentColor,
       strokeOpacity: 0.5,
       strokeWeight: 2,
+      clickable: false,
       icons: [{
         icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 },
         offset: '0',
