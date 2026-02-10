@@ -529,8 +529,8 @@ export default function DashboardPage() {
           title={language === 'fr' ? 'Valeur pondérée' : 'Weighted Value'}
           value={formatCompactCurrency(stats?.weightedPipelineValue)}
           subtitle={language === 'fr' ? 'Prévision réaliste' : 'Realistic forecast'}
-          icon={Target}
-          iconBg="bg-[#003DA6]"
+          icon={DollarSign}
+          iconBg="bg-[#16A34A]"
           loading={isLoading}
         />
         <StatCard
