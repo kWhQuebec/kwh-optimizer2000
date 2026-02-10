@@ -136,6 +136,7 @@ export function RoofDrawingModal({
   const customDrawingDblClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const customDrawingMouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const customDrawingGhostLineRef = useRef<google.maps.Polyline | null>(null);
+  const customDrawingClosingLineRef = useRef<google.maps.Polyline | null>(null);
   const completeCustomPolygonDrawingRef = useRef<() => void>(() => {});
   const startCustomPolygonDrawingRef = useRef<() => void>(() => {});
   const polygonsRef = useRef<DrawnPolygon[]>([]);
@@ -171,6 +172,13 @@ export function RoofDrawingModal({
     if (customDrawingGhostLineRef.current) {
       customDrawingGhostLineRef.current.setMap(null);
       customDrawingGhostLineRef.current = null;
+    }
+    if (customDrawingClosingLineRef.current) {
+      customDrawingClosingLineRef.current.setMap(null);
+      customDrawingClosingLineRef.current = null;
+    }
+    if (mapRef.current) {
+      mapRef.current.setOptions({ draggableCursor: null });
     }
     if (customDrawingClickListenerRef.current) {
       google.maps.event.removeListener(customDrawingClickListenerRef.current);
@@ -237,6 +245,8 @@ export function RoofDrawingModal({
     const map = mapRef.current;
     const currentColor = polygonTypeRef.current === 'constraint' ? CONSTRAINT_COLOR : SOLAR_COLOR;
 
+    map.setOptions({ draggableCursor: 'crosshair' });
+
     const previewPolyline = new google.maps.Polyline({
       path: [],
       strokeColor: currentColor,
@@ -261,6 +271,21 @@ export function RoofDrawingModal({
       map: map,
     });
     customDrawingGhostLineRef.current = ghostLine;
+
+    const closingLine = new google.maps.Polyline({
+      path: [],
+      strokeColor: currentColor,
+      strokeOpacity: 0.4,
+      strokeWeight: 2,
+      clickable: false,
+      icons: [{
+        icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.8, scale: 3 },
+        offset: '0',
+        repeat: '15px',
+      }],
+      map: map,
+    });
+    customDrawingClosingLineRef.current = closingLine;
 
     customDrawingClickListenerRef.current = map.addListener('click', (e: google.maps.MapMouseEvent) => {
       if (!e.latLng) return;
@@ -304,6 +329,15 @@ export function RoofDrawingModal({
         { lat: lastVertex.lat(), lng: lastVertex.lng() },
         { lat: e.latLng.lat(), lng: e.latLng.lng() },
       ]);
+
+      if (vertices.length >= 2) {
+        closingLine.setPath([
+          { lat: e.latLng.lat(), lng: e.latLng.lng() },
+          { lat: vertices[0].lat(), lng: vertices[0].lng() },
+        ]);
+      } else {
+        closingLine.setPath([]);
+      }
 
       if (vertices.length >= 3 && customDrawingStartMarkerRef.current) {
         const near = isNearStartVertex(e.latLng, vertices[0]);
