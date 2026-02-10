@@ -1310,11 +1310,12 @@ function TimelineSlide({ language }: { language: string }) {
             return (
               <div key={i} className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
                 <div
-                  className="rounded-xl px-5 py-4 text-center w-full md:w-[160px] shadow-sm"
+                  className="rounded-xl px-5 py-4 text-center w-full md:w-[160px] shadow-sm flex flex-col items-center justify-center"
                   style={{
                     backgroundColor: TIMELINE_GRADIENT.getStepHex(i, timeline.length),
                     border: 'none',
                     color: TIMELINE_GRADIENT.getStepTextColor(i, timeline.length),
+                    minHeight: '90px',
                   }}
                 >
                   <p className="font-bold text-base mb-1">{tl.step}</p>
