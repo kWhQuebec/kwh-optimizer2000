@@ -108,8 +108,8 @@ const carouselSlides = [
   },
   {
     image: carouselImg4Fr,
-    titleFr: "Options de financement",
-    titleEn: "Financing options",
+    titleFr: "Options d'acquisition",
+    titleEn: "Acquisition options",
     descriptionFr: "Comparez comptant, prêt et crédit-bail sur 25 ans",
     descriptionEn: "Compare cash, loan and capital lease over 25 years",
   },
@@ -695,8 +695,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
       icon: DollarSign,
       title: language === "fr" ? "4. Rapport financier complet" : "4. Complete financial report",
       description: language === "fr"
-        ? "VAN, TRI, 3 options de financement, incitatifs"
-        : "NPV, IRR, 3 financing options, incentives"
+        ? "VAN, TRI, 3 options d'acquisition, incitatifs"
+        : "NPV, IRR, 3 acquisition options, incentives"
     },
   ];
 

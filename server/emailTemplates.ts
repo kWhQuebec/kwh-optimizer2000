@@ -180,7 +180,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             <ul>
               <li>Configuration optimale PV + batterie</li>
               <li>Projections financières sur 25 ans</li>
-              <li>Comparaison des options de financement</li>
+              <li>Comparaison des options d'acquisition</li>
               <li>Rapport PDF professionnel</li>
             </ul>
             

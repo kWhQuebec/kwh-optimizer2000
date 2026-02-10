@@ -17,7 +17,7 @@ export function renderFinancingComparison(ctx: PDFContext) {
   doc.moveDown(2);
 
   doc.fontSize(22).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("OPTIONS DE FINANCEMENT", "FINANCING OPTIONS"), margin, doc.y);
+  doc.text(t("OPTIONS D'ACQUISITION", "ACQUISITION OPTIONS"), margin, doc.y);
   doc.font("Helvetica");
   doc.y += 8;
   doc.rect(margin, doc.y, 200, 3).fillColor(COLORS.gold).fill();
@@ -119,7 +119,7 @@ export function renderFinancingComparison(ctx: PDFContext) {
 
   doc.fontSize(8).fillColor(COLORS.lightGray);
   doc.text(t(
-    "Les taux et termes sont indicatifs. Les options de financement seront précisées dans la soumission ferme.",
-    "Rates and terms are indicative. Financing options will be detailed in the firm quote."
+    "Les taux et termes sont indicatifs. Les options d'acquisition seront précisées dans la soumission ferme.",
+    "Rates and terms are indicative. Acquisition options will be detailed in the firm quote."
   ), margin, doc.y, { width: contentWidth, align: "center" });
 }

@@ -57,8 +57,8 @@ export default function CommentCaMarchePage() {
         ? "Analyse heure par heure de votre système optimal basée sur vos données de consommation réelles. Nous optimisons la taille du solaire et du stockage pour maximiser votre retour sur investissement."
         : "Hour-by-hour analysis of your optimal system based on your real consumption data. We optimize solar and storage sizing to maximize your ROI.",
       deliverables: language === "fr"
-        ? ["Configuration optimale solaire + stockage", "Projections financières 25 ans", "Comparaison options de financement", "Rapport PDF professionnel"]
-        : ["Optimal solar + storage configuration", "25-year financial projections", "Financing options comparison", "Professional PDF report"],
+        ? ["Configuration optimale solaire + stockage", "Projections financières 25 ans", "Comparaison options d'acquisition", "Rapport PDF professionnel"]
+        : ["Optimal solar + storage configuration", "25-year financial projections", "Acquisition options comparison", "Professional PDF report"],
       accuracy: "~95%",
       free: true
     },

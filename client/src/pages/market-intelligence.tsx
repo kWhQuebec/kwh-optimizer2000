@@ -1861,7 +1861,7 @@ export default function MarketIntelligencePage() {
                           <div className="mt-6 pt-4 border-t" data-testid={`section-financing-comparison-${proposal.id}`}>
                             <h5 className="text-sm font-medium mb-3 flex items-center gap-2">
                               <TrendingUp className="w-4 h-4 text-primary" />
-                              {language === "fr" ? "Comparaison des options de financement" : "Financing Options Comparison"}
+                              {language === "fr" ? "Comparaison des options d'acquisition" : "Acquisition Options Comparison"}
                             </h5>
                             
                             <FinancingComparisonSection

@@ -1349,8 +1349,8 @@ const fr = {
       },
     },
     financing: {
-      title: "Options de Financement",
-      description: "Le calculateur compare trois options de financement sur un horizon de 25 ans.",
+      title: "Options d'acquisition",
+      description: "Le calculateur compare trois options d'acquisition sur un horizon de 25 ans.",
       options: [
         {
           name: "Achat Comptant",
@@ -1890,8 +1890,8 @@ const en = {
       },
     },
     financing: {
-      title: "Financing Options",
-      description: "The calculator compares three financing options over a 25-year horizon.",
+      title: "Acquisition Options",
+      description: "The calculator compares three acquisition options over a 25-year horizon.",
       options: [
         {
           name: "Cash Purchase",

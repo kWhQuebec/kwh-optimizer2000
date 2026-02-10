@@ -1284,7 +1284,7 @@ export function AnalysisResults({
       {/* SECTION 6: FINANCING OPTIONS                                   */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <SectionDivider
-        title={language === "fr" ? "Options de financement" : "Financing Options"}
+        title={language === "fr" ? "Options d'acquisition" : "Acquisition Options"}
         icon={CreditCard}
       />
 

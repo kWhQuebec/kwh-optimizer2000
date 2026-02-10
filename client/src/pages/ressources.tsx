@@ -134,8 +134,8 @@ export default function RessourcesPage() {
     {
       category: "financial",
       question: language === "fr"
-        ? "Quelles options de financement sont disponibles?"
-        : "What financing options are available?",
+        ? "Quelles options d'acquisition sont disponibles?"
+        : "What acquisition options are available?",
       answer: language === "fr"
         ? "Trois options principales: 1) Achat comptant - meilleur rendement long terme, 2) Prêt - conservation de tous les incitatifs avec paiements étalés, 3) Crédit-bail/location - flux de trésorerie positif dès le jour 1 en conservant tous les incitatifs. Notre analyse compare ces trois options pour votre situation."
         : "Three main options: 1) Cash purchase - best long-term return, 2) Loan - keep all incentives with spread payments, 3) Capital lease - positive cash flow from day 1 while retaining all incentives. Our analysis compares these three options for your situation."

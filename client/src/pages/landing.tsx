@@ -118,7 +118,7 @@ export default function LandingPage() {
         { id: "impact", image: carouselSlide1Fr, label: "Impact sur votre facture" },
         { id: "config", image: carouselSlide2Fr, label: "Configuration optimale" },
         { id: "evolution", image: carouselSlide3Fr, label: "Évolution sur 25 ans" },
-        { id: "financing", image: carouselSlide4Fr, label: "Options de financement" },
+        { id: "financing", image: carouselSlide4Fr, label: "Options d'acquisition" },
         { id: "profile", image: carouselSlide5Fr, label: "Profil énergétique" },
         { id: "optimization", image: carouselSlide6Fr, label: "Analyse d'optimisation" },
         { id: "sensitivity", image: carouselSlide7Fr, label: "Sensibilité système" },

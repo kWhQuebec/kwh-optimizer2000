@@ -558,7 +558,7 @@ const translations: Translations = {
   "variant.error": { fr: "Erreur lors de la création", en: "Error creating variant" },
 
   // Financing Calculator
-  "financing.title": { fr: "Options de financement", en: "Financing Options" },
+  "financing.title": { fr: "Options d'acquisition", en: "Acquisition Options" },
   "financing.description": { fr: "Comparez les options de paiement pour votre projet.", en: "Compare payment options for your project." },
   "financing.cash": { fr: "Comptant", en: "Cash" },
   "financing.loan": { fr: "Prêt", en: "Loan" },

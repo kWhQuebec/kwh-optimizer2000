@@ -1231,7 +1231,7 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
         <SlideTitle>
-          {language === 'fr' ? 'Options de Financement' : 'Financing Options'}
+          {language === 'fr' ? "Options d'acquisition" : 'Acquisition Options'}
         </SlideTitle>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">

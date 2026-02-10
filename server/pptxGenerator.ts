@@ -708,7 +708,7 @@ export async function generatePresentationPPTX(
 
     const slideFinancing = pptx.addSlide({ masterName: "KWHMAIN" });
 
-    slideFinancing.addText(t("OPTIONS DE FINANCEMENT", "FINANCING OPTIONS"), {
+    slideFinancing.addText(t("OPTIONS D'ACQUISITION", "ACQUISITION OPTIONS"), {
       x: 0.5, y: 0.8, w: 9, h: 0.5,
       fontSize: 22, bold: true, color: COLORS.blue
     });
