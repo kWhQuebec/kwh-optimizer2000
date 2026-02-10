@@ -313,7 +313,7 @@ export default function PresentationPage() {
     assumptions: <AssumptionsSlide language={language} />,
     equipment: <EquipmentSlide language={language} />,
     timeline: <TimelineSlide language={language} />,
-    nextSteps: <NextStepsSlide language={language} />,
+    nextSteps: <NextStepsSlide simulation={displaySim} language={language} />,
     credibility: <CredibilitySlide language={language} />,
   };
 
@@ -1346,12 +1346,20 @@ function TimelineSlide({ language }: { language: string }) {
   );
 }
 
-function NextStepsSlide({ language }: { language: string }) {
+function NextStepsSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
   const lang = language as "fr" | "en";
   const designCovers = getDesignFeeCovers(lang);
   const clientProvidesList = getClientProvides(lang);
   const clientReceivesList = getClientReceives(lang);
   const contact = getContactString();
+
+  const capexGross = Number(simulation?.capexGross || 0);
+  const hqSolar = Number(simulation?.incentivesHQSolar || 0);
+  const hqBattery = Number(simulation?.incentivesHQBattery || 0);
+  const itcFederal = Number(simulation?.incentivesFederal || 0);
+  const taxShield = Number(simulation?.taxShield || 0);
+  const totalIncentives = hqSolar + hqBattery + itcFederal + taxShield;
+  const incentivePercent = capexGross > 0 ? Math.round((totalIncentives / capexGross) * 100) : 60;
 
   const timeline = getTimeline(lang);
   const milestoneIcons = [FileText, Settings, ClipboardCheck, Wrench, Zap];
@@ -1467,8 +1475,8 @@ function NextStepsSlide({ language }: { language: string }) {
           <p className="text-base md:text-lg font-semibold mb-4" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
           <p className="text-sm" style={{ color: '#DC2626' }}>
             {language === 'fr'
-              ? 'Les incitatifs couvrent jusqu\'à 60% du projet — ces programmes peuvent changer à tout moment.'
-              : 'Incentives cover up to 60% of the project — these programs can change at any time.'}
+              ? `Les incitatifs couvrent jusqu'à ${incentivePercent} % du projet — ces programmes peuvent changer à tout moment.`
+              : `Incentives cover up to ${incentivePercent}% of the project — these programs can change at any time.`}
           </p>
         </div>
       </div>
