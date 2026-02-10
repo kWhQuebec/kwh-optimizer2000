@@ -592,8 +592,19 @@ export function RoofDrawingModal({
   };
 
   const handleSuggestConstraints = async () => {
-    const solarPolygons = polygons.filter((p) => p.color === SOLAR_COLOR);
-    if (solarPolygons.length === 0 || !mapRef.current) return;
+    const solarPolygons = polygons.filter((p) => p.color !== CONSTRAINT_COLOR);
+    if (solarPolygons.length === 0 || !mapRef.current) {
+      if (solarPolygons.length === 0) {
+        toast({
+          title: language === 'fr' ? 'Erreur' : 'Error',
+          description: language === 'fr'
+            ? 'Tracez au moins une zone solaire avant de détecter les contraintes.'
+            : 'Draw at least one solar zone before detecting constraints.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
 
     setIsSuggestingConstraints(true);
     try {
