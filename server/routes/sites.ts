@@ -550,18 +550,35 @@ router.post("/:id/suggest-constraints", authMiddleware, requireStaff, asyncHandl
     throw new BadRequestError("Site has no coordinates for constraint detection");
   }
 
-  const existingPolygons = await storage.getRoofPolygons(site.id);
+  const clientSolarPolygons = req.body.solarPolygons as [number, number][][] | undefined;
 
-  log.info(`suggest-constraints: site=${site.id}, lat=${site.latitude}, lng=${site.longitude}, polygons=${existingPolygons.length}`);
+  let polygonsForAnalysis: Array<{ coordinates: [number, number][]; label?: string; color?: string }>;
+
+  if (Array.isArray(clientSolarPolygons) && clientSolarPolygons.length > 0) {
+    polygonsForAnalysis = clientSolarPolygons.map(coords => ({
+      coordinates: coords,
+    }));
+  } else {
+    const existingPolygons = await storage.getRoofPolygons(site.id);
+    const solarOnly = existingPolygons.filter(p => p.color !== '#f97316');
+    polygonsForAnalysis = solarOnly.map(p => ({
+      coordinates: p.coordinates as [number, number][],
+      label: p.label || undefined,
+      color: p.color || undefined,
+    }));
+  }
+
+  if (polygonsForAnalysis.length === 0) {
+    throw new BadRequestError("No solar polygons found to analyze");
+  }
+
+  const source = Array.isArray(clientSolarPolygons) && clientSolarPolygons.length > 0 ? 'client' : 'database';
+  log.info(`suggest-constraints: site=${site.id}, lat=${site.latitude}, lng=${site.longitude}, polygons=${polygonsForAnalysis.length} (from ${source})`);
 
   const result = await googleSolar.suggestConstraints({
     latitude: site.latitude,
     longitude: site.longitude,
-    existingPolygons: existingPolygons.map(p => ({
-      coordinates: p.coordinates as [number, number][],
-      label: p.label || undefined,
-      color: p.color || undefined
-    }))
+    existingPolygons: polygonsForAnalysis,
   });
 
   if (!result.success) {
