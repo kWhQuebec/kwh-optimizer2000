@@ -263,7 +263,8 @@ async function fetchAndParseGeoTIFF(
   url: string,
   apiKey: string,
   centerLat?: number,
-  radiusMeters?: number
+  radiusMeters?: number,
+  centerLng?: number
 ): Promise<{
   raster: Float32Array | Float64Array | Uint8Array | Uint16Array | Int16Array;
   width: number;
@@ -341,12 +342,13 @@ async function fetchAndParseGeoTIFF(
     finalScale[0] = computedScaleX;
     finalScale[1] = computedScaleY;
 
-    if (finalTiePoint[3] === 0 && finalTiePoint[4] === 0 && effectiveLat) {
-      const lng = centerLat ? (finalTiePoint[3] || 0) : 0;
-      const lat = effectiveLat;
-      finalTiePoint[3] = lng - (width / 2) * computedScaleX;
-      finalTiePoint[4] = lat + (height / 2) * computedScaleY;
-      log.info(`Estimated tiePoint origin: [${finalTiePoint[3].toFixed(6)}, ${finalTiePoint[4].toFixed(6)}]`);
+    const effectiveLng = centerLng || finalTiePoint[3] || 0;
+    if (effectiveLat && effectiveLng) {
+      finalTiePoint[3] = effectiveLng - (width / 2) * computedScaleX;
+      finalTiePoint[4] = effectiveLat + (height / 2) * computedScaleY;
+      finalTiePoint[0] = 0;
+      finalTiePoint[1] = 0;
+      log.info(`Estimated tiePoint origin: lng=${finalTiePoint[3].toFixed(8)}, lat=${finalTiePoint[4].toFixed(8)}`);
     }
   }
 
@@ -389,11 +391,21 @@ function detectDSMObstacles(
   const pixelArea = pixelWidthM * pixelHeightM;
 
   log.info(`DSM pixel size: ${pixelWidthM.toFixed(3)}m x ${pixelHeightM.toFixed(3)}m = ${pixelArea.toFixed(4)} m²/pixel`);
+  log.info(`DSM tiePoint: lng=${meta.tiePoint[3].toFixed(8)}, lat=${meta.tiePoint[4].toFixed(8)}, scale=[${meta.scale[0].toFixed(10)}, ${meta.scale[1].toFixed(10)}]`);
 
   for (const polygon of solarPolygons) {
     const polygonPixels: [number, number][] = polygon.coordinates.map(
       ([lng, lat]) => latLngToPixel(lat, lng, meta)
     );
+
+    const pxBounds = polygonPixels.reduce(
+      (acc, [x, y]) => ({
+        minX: Math.min(acc.minX, x), maxX: Math.max(acc.maxX, x),
+        minY: Math.min(acc.minY, y), maxY: Math.max(acc.maxY, y),
+      }),
+      { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
+    );
+    log.info(`DSM polygon pixel bounds: x=[${pxBounds.minX}, ${pxBounds.maxX}], y=[${pxBounds.minY}, ${pxBounds.maxY}] (image: ${width}x${height})`);
 
     const mask = createPolygonMask(polygonPixels, width, height);
 
@@ -562,45 +574,46 @@ function detectFluxShadows(
 // --- Gemini Vision primary detection ---
 
 async function detectWithGeminiVision(
-  rgbUrl: string,
+  latitude: number,
+  longitude: number,
   apiKey: string,
-  meta: TiePointScale,
-  imageWidth: number,
-  imageHeight: number
+  solarPolygons: Array<{ coordinates: [number, number][] }>
 ): Promise<DetectedConstraint[]> {
-  let urlWithKey = rgbUrl;
-  if (!rgbUrl.includes("key=")) {
-    const separator = rgbUrl.includes("?") ? "&" : "?";
-    urlWithKey = `${rgbUrl}${separator}key=${apiKey}`;
-  }
+  const IMG_SIZE = 640;
+  const ZOOM = 20;
 
-  log.info("Fetching RGB image for Gemini Vision detection...");
-  const response = await fetch(urlWithKey);
+  const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${ZOOM}&size=${IMG_SIZE}x${IMG_SIZE}&maptype=satellite&key=${apiKey}`;
+
+  log.info("Fetching Google Maps satellite image for Gemini Vision...");
+  const response = await fetch(staticMapUrl);
   if (!response.ok) {
-    throw new Error(`Failed to fetch RGB image: ${response.status}`);
+    throw new Error(`Failed to fetch satellite image: ${response.status}`);
   }
   const buffer = await response.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
-  log.info(`RGB image fetched: ${(buffer.byteLength / 1024).toFixed(0)} KB`);
+  log.info(`Satellite image fetched: ${(buffer.byteLength / 1024).toFixed(0)} KB`);
 
-  const prompt = `You are an expert rooftop obstacle detection system for commercial and industrial (C&I) solar installations.
+  const metersPerPixel = (156543.03392 * Math.cos((latitude * Math.PI) / 180)) / Math.pow(2, ZOOM);
+  const imgWidthM = IMG_SIZE * metersPerPixel;
+  const imgHeightM = IMG_SIZE * metersPerPixel;
 
-Analyze this satellite/aerial image of a commercial or industrial rooftop. Detect ALL rooftop obstacles, equipment, and features that would prevent solar panel installation.
+  const prompt = `You are an expert rooftop obstacle detection system for commercial and industrial (C&I) solar panel installations in Quebec, Canada.
 
-Look specifically for:
-- HVAC units, RTU (rooftop units), air handlers, condensers
-- Ventilation exhausts, turbine vents, plumbing vents, pipes
-- Skylights, roof hatches, access points
-- Parapets and raised edges along roof perimeters
-- Drain systems and scuppers
-- Satellite dishes, antennas
-- Mechanical penthouses, elevator shafts
-- Existing equipment pads or platforms
-- Any other obstructions or raised features
+Analyze this satellite image of a commercial/industrial building rooftop. Detect ALL rooftop obstacles, equipment, and features that would prevent or hinder solar panel installation.
 
-For each detected obstacle, provide its location as a bounding box using percentage coordinates relative to the image dimensions (0-100%).
+Look specifically for these categories:
+1. HVAC/CVC: Rooftop units (RTU), air handlers, condensers, cooling towers, heat pumps
+2. Ventilation: Exhaust fans, turbine vents, plumbing vents, pipes, ducts, stacks
+3. Skylights/Puits de lumière: Transparent roof panels, dome skylights, roof hatches
+4. Parapets: Raised edges along roof perimeter (indicate which edge: north/south/east/west)
+5. Drains/Scuppers: Roof drain systems, internal drains, edge scuppers
+6. Antennas: Satellite dishes, communication antennas, lightning rods
+7. Mechanical rooms: Elevator shafts, mechanical penthouses, stairwell exits
+8. Other: Equipment pads, conduit runs, snow guards, existing solar panels
 
-Return ONLY a valid JSON array (no markdown, no explanation). Each element:
+The image is approximately ${imgWidthM.toFixed(0)}m × ${imgHeightM.toFixed(0)}m. Each pixel ≈ ${metersPerPixel.toFixed(2)}m.
+
+Return ONLY a valid JSON array. Each element:
 [{
   "type": "HVAC",
   "label_fr": "Unité CVC",
@@ -614,15 +627,15 @@ Return ONLY a valid JSON array (no markdown, no explanation). Each element:
 }]
 
 Rules:
-- x_pct, y_pct = top-left corner of bounding box as % of image width/height
-- width_pct, height_pct = size as % of image width/height
-- estimated_height_m = your best estimate of the obstacle height in meters
+- x_pct, y_pct = top-left corner as percentage of image dimensions (0-100)
+- width_pct, height_pct = obstacle size as percentage of image dimensions
+- estimated_height_m = estimated height above roof surface in meters
 - confidence = "high", "medium", or "low"
-- label_fr = French label, label_en = English label
-- If no obstacles are found, return an empty array []
-- Be thorough — even small vents and pipes matter for solar layout`;
+- If no obstacles found, return []
+- Be thorough: even small vents and pipes matter for solar panel layout
+- Include shadows cast by obstacles as clues for height estimation`;
 
-  log.info("Sending image to Gemini Vision for obstacle detection...");
+  log.info("Sending satellite image to Gemini Vision for obstacle detection...");
   const aiResponse = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: [
@@ -631,7 +644,7 @@ Rules:
         parts: [
           {
             inlineData: {
-              mimeType: "image/tiff",
+              mimeType: "image/png",
               data: base64,
             },
           },
@@ -650,13 +663,25 @@ Rules:
     throw new Error("No text response from Gemini Vision detection");
   }
 
+  log.info(`Gemini Vision response received (${textPart.text.length} chars)`);
+
   const jsonMatch = textPart.text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
-    log.warn("No JSON array found in Gemini Vision response, checking for empty result");
+    log.warn("No JSON array found in Gemini Vision response");
     return [];
   }
 
-  const detections = JSON.parse(jsonMatch[0]) as Array<{
+  let jsonStr = jsonMatch[0]
+    .replace(/```json\s*/g, "")
+    .replace(/```\s*/g, "")
+    .replace(/""(\w)/g, '"$1')
+    .replace(/(\w)""/g, '$1"')
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*\]/g, "]");
+
+  log.info(`Cleaned JSON (first 200 chars): ${jsonStr.substring(0, 200)}`);
+
+  const detections = JSON.parse(jsonStr) as Array<{
     type: string;
     label_fr: string;
     label_en: string;
@@ -672,25 +697,33 @@ Rules:
 
   const constraints: DetectedConstraint[] = [];
 
+  const metersPerDegLng = 111320 * Math.cos((latitude * Math.PI) / 180);
+  const metersPerDegLat = 111320;
+  const imgHalfWidthDeg = (imgWidthM / 2) / metersPerDegLng;
+  const imgHalfHeightDeg = (imgHeightM / 2) / metersPerDegLat;
+  const imgTopLat = latitude + imgHalfHeightDeg;
+  const imgLeftLng = longitude - imgHalfWidthDeg;
+
   for (const det of detections) {
-    const x1 = (det.x_pct / 100) * imageWidth;
-    const y1 = (det.y_pct / 100) * imageHeight;
-    const x2 = ((det.x_pct + det.width_pct) / 100) * imageWidth;
-    const y2 = ((det.y_pct + det.height_pct) / 100) * imageHeight;
+    if (det.width_pct <= 0 || det.height_pct <= 0) continue;
 
-    const topLeft = pixelToLatLng(x1, y1, meta);
-    const topRight = pixelToLatLng(x2, y1, meta);
-    const bottomRight = pixelToLatLng(x2, y2, meta);
-    const bottomLeft = pixelToLatLng(x1, y2, meta);
+    const obstWidthM = (det.width_pct / 100) * imgWidthM;
+    const obstHeightM = (det.height_pct / 100) * imgHeightM;
+    const areaSqM = obstWidthM * obstHeightM;
 
-    const coordinates: [number, number][] = [topLeft, topRight, bottomRight, bottomLeft];
+    if (areaSqM < 0.3) continue;
 
-    const latCenter = meta.tiePoint[4] - (imageHeight / 2) * meta.scale[1];
-    const metersPerDegLng = 111320 * Math.cos((latCenter * Math.PI) / 180);
-    const metersPerDegLat = 111320;
-    const widthM = (det.width_pct / 100) * imageWidth * meta.scale[0] * metersPerDegLng;
-    const heightM = (det.height_pct / 100) * imageHeight * meta.scale[1] * metersPerDegLat;
-    const areaSqM = widthM * heightM;
+    const topLeftLng = imgLeftLng + (det.x_pct / 100) * imgHalfWidthDeg * 2;
+    const topLeftLat = imgTopLat - (det.y_pct / 100) * imgHalfHeightDeg * 2;
+    const botRightLng = imgLeftLng + ((det.x_pct + det.width_pct) / 100) * imgHalfWidthDeg * 2;
+    const botRightLat = imgTopLat - ((det.y_pct + det.height_pct) / 100) * imgHalfHeightDeg * 2;
+
+    const coordinates: [number, number][] = [
+      [topLeftLng, topLeftLat],
+      [botRightLng, topLeftLat],
+      [botRightLng, botRightLat],
+      [topLeftLng, botRightLat],
+    ];
 
     constraints.push({
       coordinates,
@@ -989,31 +1022,25 @@ export async function detectRoofConstraints(
   let visionConstraints: DetectedConstraint[] = [];
 
   // Step 1: Gemini Vision detection (primary — works on all roofs)
-  if (input.rgbUrl) {
-    try {
-      log.info("Step 1: Running Gemini Vision obstacle detection (primary)...");
-      const rgbGeoTiff = await fetchAndParseGeoTIFF(input.rgbUrl, apiKey, input.latitude, 75);
-      visionConstraints = await detectWithGeminiVision(
-        input.rgbUrl,
-        apiKey,
-        rgbGeoTiff.meta,
-        rgbGeoTiff.width,
-        rgbGeoTiff.height
-      );
-      notes.push(`Vision detection: ${visionConstraints.length} obstacle(s) detected by Gemini`);
-      log.info(`Vision: ${visionConstraints.length} obstacles detected`);
-    } catch (err) {
-      log.warn("Gemini Vision detection failed, will rely on DSM:", err instanceof Error ? err.message : err);
-      notes.push(`Vision detection: failed (${err instanceof Error ? err.message : "unknown error"})`);
-    }
-  } else {
-    notes.push("Vision detection: skipped (no RGB URL)");
+  try {
+    log.info("Step 1: Running Gemini Vision obstacle detection (primary)...");
+    visionConstraints = await detectWithGeminiVision(
+      input.latitude,
+      input.longitude,
+      apiKey,
+      input.solarPolygons
+    );
+    notes.push(`Vision detection: ${visionConstraints.length} obstacle(s) detected by Gemini`);
+    log.info(`Vision: ${visionConstraints.length} obstacles detected`);
+  } catch (err) {
+    log.warn("Gemini Vision detection failed, will rely on DSM:", err instanceof Error ? err.message : err);
+    notes.push(`Vision detection: failed (${err instanceof Error ? err.message : "unknown error"})`);
   }
 
   // Step 2: DSM analysis (secondary — confirms heights)
   log.info("Step 2: Parsing DSM GeoTIFF...");
   try {
-    dsm = await fetchAndParseGeoTIFF(input.dsmUrl, apiKey, input.latitude, 75);
+    dsm = await fetchAndParseGeoTIFF(input.dsmUrl, apiKey, input.latitude, 75, input.longitude);
     log.info(
       `DSM loaded: ${dsm.width}x${dsm.height} pixels, scale: ${dsm.meta.scale[0].toFixed(8)}°x${dsm.meta.scale[1].toFixed(8)}°`
     );
@@ -1059,7 +1086,7 @@ export async function detectRoofConstraints(
   if (input.annualFluxUrl) {
     try {
       log.info("Step 5: Parsing annualFlux GeoTIFF...");
-      const flux = await fetchAndParseGeoTIFF(input.annualFluxUrl, apiKey, input.latitude, 75);
+      const flux = await fetchAndParseGeoTIFF(input.annualFluxUrl, apiKey, input.latitude, 75, input.longitude);
       const fluxConstraints = detectFluxShadows(
         flux.raster,
         flux.width,
