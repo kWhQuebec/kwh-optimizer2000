@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useI18n } from "@/lib/i18n";
+import { TIMELINE_GRADIENT } from "@shared/colors";
 import type { PriceBreakdownResponse } from "../types";
 
 export function PriceBreakdownSection({ siteId }: { siteId: string }) {
@@ -23,15 +24,8 @@ export function PriceBreakdownSection({ siteId }: { siteId: string }) {
     other: { en: "Other", fr: "Autres" },
   };
 
-  const categoryColors: Record<string, string> = {
-    panels: "bg-amber-500",
-    racking: "bg-blue-500",
-    inverters: "bg-green-500",
-    bos_electrical: "bg-purple-500",
-    labor: "bg-orange-500",
-    soft_costs: "bg-pink-500",
-    permits: "bg-cyan-500",
-    other: "bg-gray-500",
+  const getGradientColor = (index: number, total: number): string => {
+    return TIMELINE_GRADIENT.getStepHex(total - 1 - index, total);
   };
 
   const { data: priceData, isLoading, error } = useQuery<PriceBreakdownResponse>({
@@ -46,11 +40,6 @@ export function PriceBreakdownSection({ siteId }: { siteId: string }) {
       return language === "fr" ? label.fr : label.en;
     }
     return category;
-  };
-
-  const getCategoryColor = (category: string) => {
-    const key = category.toLowerCase().replace(/\s+/g, '_');
-    return categoryColors[key] || "bg-gray-400";
   };
 
   const getPercentage = (cost: number, total: number) => {
@@ -155,8 +144,9 @@ export function PriceBreakdownSection({ siteId }: { siteId: string }) {
                     {language === "fr" ? "Répartition par catégorie" : "Breakdown by Category"}
                   </p>
 
-                  {sortedCategories.map(([category, data]) => {
+                  {sortedCategories.map(([category, data], index) => {
                     const percentage = getPercentage(data.cost, priceData.totalCost);
+                    const barColor = getGradientColor(index, sortedCategories.length);
                     return (
                       <div key={category} className="space-y-1" data-testid={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
                         <div className="flex items-center justify-between gap-1 text-sm flex-wrap">
@@ -172,8 +162,8 @@ export function PriceBreakdownSection({ siteId }: { siteId: string }) {
                         </div>
                         <div className="relative h-4 bg-muted rounded-full overflow-hidden">
                           <div
-                            className={`h-full ${getCategoryColor(category)} transition-all duration-300`}
-                            style={{ width: `${percentage}%` }}
+                            className="h-full transition-all duration-300"
+                            style={{ width: `${percentage}%`, backgroundColor: barColor }}
                           />
                           <span className="absolute inset-0 flex items-center justify-center text-xs font-medium">
                             {percentage}%
