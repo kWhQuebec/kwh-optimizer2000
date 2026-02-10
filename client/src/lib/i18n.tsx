@@ -33,21 +33,21 @@ const translations: Translations = {
   "nav.mySites": { fr: "Mes sites", en: "My Sites" },
 
   // Landing Page - Hero
-  "landing.hero.title": { fr: "Solaire + stockage clé en main pour le secteur commercial et industriel québécois", en: "Turnkey Solar + Storage for Québec C&I Buildings" },
+  "landing.hero.title": { fr: "Réduisez vos coûts d'énergie avec le solaire commercial", en: "Cut Your Energy Costs with Commercial Solar" },
   "landing.hero.subtitle": { fr: "Incitatifs jusqu'à 40% du projet.", en: "Incentives up to 40% of project cost." },
   "landing.hero.subtitle2": { fr: "Analyse gratuite.", en: "Free analysis." },
-  "landing.hero.description": { 
-    fr: "", 
-    en: "" 
+  "landing.hero.description": {
+    fr: "Vos coûts d'énergie augmentent chaque année. Le solaire les réduit dès le jour 1 — avec un retour sur investissement de 3 à 6 ans et des incitatifs couvrant jusqu'à 60% du projet.",
+    en: "Your energy costs rise every year. Solar cuts them from day 1 — with a 3 to 6 year payback and incentives covering up to 60% of the project."
   },
-  "landing.hero.cta": { fr: "Obtenir mon analyse gratuite", en: "Get my free analysis" },
+  "landing.hero.cta": { fr: "Calculer mes économies gratuitement", en: "Calculate my savings for free" },
   "landing.hero.ctaSecondary": { fr: "Accès client", en: "Client access" },
   
   // Landing Page - Why Now Section (3 items only)
   "landing.whyNow.title": { fr: "Pourquoi maintenant?", en: "Why now?" },
-  "landing.whyNow.subtitle": { fr: "Le Québec vit une transformation énergétique historique", en: "Québec is experiencing a historic energy transformation" },
+  "landing.whyNow.subtitle": { fr: "Les incitatifs n'ont jamais été aussi généreux — et ils ne dureront pas", en: "Incentives have never been this generous — and they won't last" },
   "landing.whyNow.hq.title": { fr: "Crédit jusqu'à 40% par Hydro-Québec", en: "Up to 40% Credit by Hydro-Québec" },
-  "landing.whyNow.hq.description": { fr: "Sur les projets solaires et stockage", en: "On solar and storage projects" },
+  "landing.whyNow.hq.description": { fr: "Programme Hydro-Québec: jusqu'à 1 000$/kW (max 40% du CAPEX)", en: "Hydro-Québec program: up to $1,000/kW (max 40% of CAPEX)" },
   "landing.whyNow.federal.title": { fr: "Crédit fédéral 30%", en: "Federal 30% ITC" },
   "landing.whyNow.federal.description": { fr: "Crédit d'impôt à l'investissement pour technologies propres", en: "Investment tax credit for clean technology" },
   "landing.whyNow.fiscal.title": { fr: "100% déductible en 1ère année", en: "100% Deductible Year 1" },
@@ -56,21 +56,21 @@ const translations: Translations = {
   
   // Landing Page - Process Steps (5 steps)
   "landing.step1.title": { fr: "Analyse du toit", en: "Roof Analysis" },
-  "landing.step1.description": { 
-    fr: "Obtenez en quelques secondes une estimation du potentiel solaire et de la taille solaire optimale pour votre bâtiment.", 
-    en: "Get a solar potential estimate and optimal solar size for your building within seconds." 
+  "landing.step1.description": {
+    fr: "En quelques secondes, découvrez combien d'énergie votre toit pourrait produire et combien vous pourriez économiser — sans aucun engagement.",
+    en: "In seconds, discover how much energy your roof could produce and how much you could save — no commitment required."
   },
   "landing.step1.time": { fr: "Quelques secondes", en: "Within seconds" },
   "landing.step2.title": { fr: "Procuration Hydro-Québec", en: "Hydro-Québec Proxy" },
-  "landing.step2.description": { 
-    fr: "Signez la procuration Hydro-Québec pour nous permettre d'accéder à votre profil de consommation et obtenir une analyse détaillée.", 
-    en: "Sign the Hydro-Québec proxy to let us access your consumption profile and get a detailed analysis." 
+  "landing.step2.description": {
+    fr: "Cette autorisation nous donne accès à votre vrai profil de consommation heure par heure — la clé pour dimensionner un système qui maximise votre retour.",
+    en: "This authorization gives us access to your real hour-by-hour consumption profile — the key to sizing a system that maximizes your return."
   },
   "landing.step2.time": { fr: "Signature électronique", en: "E-signature" },
   "landing.step3.title": { fr: "Analyse détaillée", en: "Detailed Analysis" },
-  "landing.step3.description": { 
-    fr: "Analyse heure par heure de votre système solaire + stockage optimal qui maximise votre retour sur investissement.", 
-    en: "Hour-by-hour analysis of your optimal solar + storage system that maximizes your ROI." 
+  "landing.step3.description": {
+    fr: "Notre moteur simule chaque heure de l'année pour trouver la configuration exacte (solaire + stockage) qui optimise votre investissement.",
+    en: "Our engine simulates every hour of the year to find the exact configuration (solar + storage) that optimizes your investment."
   },
   "landing.step3.time": { fr: "48h", en: "48h" },
   "landing.step4.title": { fr: "Visite et devis", en: "Site Visit & Quote" },
@@ -94,9 +94,9 @@ const translations: Translations = {
   },
   "landing.process.youAreHere": { fr: "Commencez ici", en: "Start here" },
   "landing.process.nextSteps": { fr: "Prochaines étapes", en: "Next steps" },
-  "landing.step1.highlight": { 
-    fr: "Obtenez votre estimation en quelques secondes - c'est gratuit et sans engagement.", 
-    en: "Get your estimate in seconds - it's free with no commitment." 
+  "landing.step1.highlight": {
+    fr: "Téléversez votre facture Hydro-Québec — notre IA l'analyse instantanément et calcule votre potentiel.",
+    en: "Upload your Hydro-Québec bill — our AI analyzes it instantly and calculates your potential."
   },
   
   // Landing Page - Benefits
@@ -149,7 +149,7 @@ const translations: Translations = {
   "landing.hero.stat4.label": { fr: "Éligibilité aux incitatifs", en: "Incentive eligibility" },
   
   // Landing Page - Footer
-  "landing.footer.tagline": { fr: "Accélérez votre transition énergétique", en: "Accelerate your energy transition" },
+  "landing.footer.tagline": { fr: "L'énergie solaire, optimisée pour votre réalité", en: "Solar energy, optimized for your reality" },
 
   // Landing Page - Authorization Section
   "landing.auth.title": { fr: "Accélérez votre analyse", en: "Accelerate Your Analysis" },

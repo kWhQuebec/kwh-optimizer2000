@@ -87,4 +87,11 @@ export function renderBillComparison(ctx: PDFContext) {
     `Sur 25 ans, cela représente des économies cumulées estimées de ${formatCurrency(total25yr)}.`,
     `Over 25 years, this represents estimated cumulative savings of ${formatCurrency(total25yr)}.`
   ), margin, doc.y, { width: contentWidth, align: "center" });
+
+  doc.moveDown(1.5);
+  doc.fontSize(9).fillColor(COLORS.lightGray);
+  doc.text(t(
+    "Ces économies sont nettes — elles tiennent compte de tous les coûts d'opération et maintenance du système solaire.",
+    "These savings are net — they account for all solar system operating and maintenance costs."
+  ), margin, doc.y, { width: contentWidth, align: "center" });
 }

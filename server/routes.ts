@@ -562,6 +562,20 @@ interface AnalysisResult {
   
   // Data quality indicators
   interpolatedMonths: number[]; // Months with no data that were estimated from neighbors
+
+  // Hidden insights for downstream consumers (PDF, PPTX, email)
+  hiddenInsights: {
+    dataConfidence: 'satellite' | 'manual' | 'hq_actual';
+    dataConfidencePercent: number;
+    peakDemandReductionKw: number;
+    peakDemandSavingsAnnual: number;
+    selfConsumptionPercent: number;
+    gridExportPercent: number;
+    clippingLossPercent: number;
+    equivalentTreesPlanted: number;
+    equivalentCarsRemoved: number;
+    costOfInaction25yr: number;
+  };
 }
 
 interface ForcedSizing {

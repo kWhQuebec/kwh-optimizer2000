@@ -324,6 +324,19 @@ interface SensitivityAnalysis {
   optimalScenarios?: OptimalScenarios;
 }
 
+interface HiddenInsights {
+  dataConfidence: 'satellite' | 'manual' | 'hq_actual';
+  dataConfidencePercent: number;
+  peakDemandReductionKw: number;
+  peakDemandSavingsAnnual: number;
+  selfConsumptionPercent: number;
+  gridExportPercent: number;
+  clippingLossPercent: number;
+  equivalentTreesPlanted: number;
+  equivalentCarsRemoved: number;
+  costOfInaction25yr: number;
+}
+
 interface AnalysisResult {
   pvSizeKW: number;
   battEnergyKWh: number;
@@ -368,6 +381,7 @@ interface AnalysisResult {
   peakWeekData: PeakWeekEntry[];
   sensitivity: SensitivityAnalysis;
   interpolatedMonths: number[];
+  hiddenInsights: HiddenInsights;
 }
 
 interface ForcedSizing {
@@ -1640,7 +1654,53 @@ export function runPotentialAnalysis(
   
   const co2Factor = 0.002;
   const co2AvoidedTonnesPerYear = (selfConsumptionKWh * co2Factor) / 1000;
-  
+
+  // Calculate hidden insights for downstream consumers (PDF, PPTX, emails)
+  const dataConfidenceMap: Record<string, 'satellite' | 'manual' | 'hq_actual'> = {
+    google: 'satellite',
+    manual: 'manual',
+    default: 'satellite',
+  };
+  const dataConfidence = dataConfidenceMap[currentYieldSource] || 'satellite';
+  const dataConfidencePercentMap: Record<string, number> = {
+    satellite: 75,
+    manual: 85,
+    hq_actual: 95,
+  };
+  const dataConfidencePercent = dataConfidencePercentMap[dataConfidence] || 75;
+
+  const peakDemandReductionKw = battPowerKW > 0 ? annualDemandReductionKW : 0;
+  const peakDemandSavingsAnnual = demandSavings;
+  const selfConsumptionPercent = totalProductionKWh > 0 ? (selfConsumptionKWh / totalProductionKWh) * 100 : 0;
+  const gridExportPercent = totalProductionKWh > 0 ? (totalExportedKWh / totalProductionKWh) * 100 : 0;
+  const clippingLossPercent = totalProductionKWh > 0 ? (simResult.clippingLossKWh / (totalProductionKWh + simResult.clippingLossKWh)) * 100 : 0;
+
+  // CO2 to trees: 21.77 kg CO2 per tree per year
+  const equivalentTreesPlanted = Math.round((co2AvoidedTonnesPerYear * 1000) / 21.77);
+
+  // CO2 to cars: 4,600 kg CO2 per car per year
+  const equivalentCarsRemoved = Math.round((co2AvoidedTonnesPerYear * 1000) / 4600);
+
+  // Cost of inaction: 25-year utility costs without solar (3.5% annual escalation)
+  let costOfInaction25yr = 0;
+  for (let y = 0; y < 25; y++) {
+    const escalatedCost = annualCostBefore * Math.pow(1 + 0.035, y);
+    costOfInaction25yr += escalatedCost;
+  }
+
+  const hiddenInsights: HiddenInsights = {
+    dataConfidence,
+    dataConfidencePercent,
+    peakDemandReductionKw,
+    peakDemandSavingsAnnual,
+    selfConsumptionPercent,
+    gridExportPercent,
+    clippingLossPercent,
+    equivalentTreesPlanted,
+    equivalentCarsRemoved,
+    costOfInaction25yr,
+  };
+
   const breakdown: FinancialBreakdown = {
     capexSolar: capexPV,
     capexBattery: capexBattery,
@@ -1716,5 +1776,6 @@ export function runPotentialAnalysis(
     peakWeekData: simResult.peakWeekData,
     sensitivity,
     interpolatedMonths,
+    hiddenInsights,
   };
 }
