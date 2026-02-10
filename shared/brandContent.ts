@@ -92,7 +92,7 @@ export const BRAND_CONTENT = {
   timeline: [
     { stepFr: "Signature", stepEn: "Contract", durationFr: "", durationEn: "", iconCode: "contract" },
     { stepFr: "Conception", stepEn: "Design", durationFr: "2-4 sem.", durationEn: "2-4 wks", iconCode: "design" },
-    { stepFr: "Permis & HQ", stepEn: "Permits & HQ", durationFr: "8-12 sem.", durationEn: "8-12 wks", iconCode: "permits" },
+    { stepFr: "Permis & autorisations", stepEn: "Permits & Authorizations", durationFr: "8-12 sem.", durationEn: "8-12 wks", iconCode: "permits" },
     { stepFr: "Installation", stepEn: "Installation", durationFr: "2-4 sem.", durationEn: "2-4 wks", iconCode: "install" },
     { stepFr: "Mise en service", stepEn: "Commissioning", durationFr: "1-2 sem.", durationEn: "1-2 wks", iconCode: "commissioning" },
   ],

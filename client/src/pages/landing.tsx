@@ -31,7 +31,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SEOHead, seoContent, getLocalBusinessSchema } from "@/components/seo-head";
 import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
-import { getWhySolarNow } from "@shared/brandContent";
+import { getWhySolarNow, getTimeline } from "@shared/brandContent";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/hero-optimized.jpg";
@@ -976,119 +976,40 @@ export default function LandingPage() {
             {/* Connection line - centered between icons and duration badges */}
             <div className="hidden md:block absolute top-[68px] left-0 right-0 h-0.5 bg-border z-0" />
             
-            <div className="grid md:grid-cols-4 gap-6 relative z-10">
-              {/* Step 1: Detailed Analysis */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0 }}
-                className="text-center"
-                data-testid="process-step-1"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(0, 4) }}>
-                    <BarChart3 className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(0, 4) }} />
-                  </div>
-                  <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(0, 4)}20`, color: TIMELINE_GRADIENT.getStepHex(0, 4), borderColor: `${TIMELINE_GRADIENT.getStepHex(0, 4)}33` }}>
-                    5 {language === "fr" ? "jours" : "days"}
-                  </Badge>
-                  <h3 className="font-semibold text-sm mb-1">
-                    {language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "fr" 
-                      ? "Analyse horaire complète, rapport détaillé"
-                      : "Complete hourly analysis, detailed report"
-                    }
-                  </p>
+            {(() => {
+              const timeline = getTimeline(language === "fr" ? "fr" : "en");
+              const stepIcons = [FileSignature, FileText, ClipboardCheck, HardHat, Zap];
+              const totalSteps = timeline.length;
+              return (
+                <div className="grid md:grid-cols-5 gap-6 relative z-10">
+                  {timeline.map((tl, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1 }}
+                      className="text-center"
+                      data-testid={`process-step-${i + 1}`}
+                    >
+                      <div className="flex flex-col items-center">
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(i, totalSteps) }}>
+                          {(() => { const Icon = stepIcons[i] || Zap; return <Icon className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(i, totalSteps) }} />; })()}
+                        </div>
+                        {tl.duration && (
+                          <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(i, totalSteps)}20`, color: TIMELINE_GRADIENT.getStepHex(i, totalSteps), borderColor: `${TIMELINE_GRADIENT.getStepHex(i, totalSteps)}33` }}>
+                            {tl.duration}
+                          </Badge>
+                        )}
+                        <h3 className="font-semibold text-sm mb-1">
+                          {tl.step}
+                        </h3>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
-              </motion.div>
-              
-              {/* Step 2: Design */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="text-center"
-                data-testid="process-step-2"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(1, 4) }}>
-                    <FileText className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(1, 4) }} />
-                  </div>
-                  <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(1, 4)}20`, color: TIMELINE_GRADIENT.getStepHex(1, 4), borderColor: `${TIMELINE_GRADIENT.getStepHex(1, 4)}33` }}>
-                    10-16 {language === "fr" ? "sem." : "wks"}
-                  </Badge>
-                  <h3 className="font-semibold text-sm mb-1">
-                    {language === "fr" ? "Conception & Planification" : "Design & Planning"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "fr" 
-                      ? "Ingénierie, permis, approvisionnement"
-                      : "Engineering, permits, procurement"
-                    }
-                  </p>
-                </div>
-              </motion.div>
-              
-              {/* Step 3: Construction */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                className="text-center"
-                data-testid="process-step-3"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(2, 4) }}>
-                    <HardHat className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(2, 4) }} />
-                  </div>
-                  <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(2, 4)}20`, color: TIMELINE_GRADIENT.getStepHex(2, 4), borderColor: `${TIMELINE_GRADIENT.getStepHex(2, 4)}33` }}>
-                    3-6 {language === "fr" ? "sem." : "wks"}
-                  </Badge>
-                  <h3 className="font-semibold text-sm mb-1">
-                    {language === "fr" ? "Construction" : "Construction"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "fr" 
-                      ? "Installation clé en main"
-                      : "Turnkey installation"
-                    }
-                  </p>
-                </div>
-              </motion.div>
-              
-              {/* Step 4: O&M */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-                className="text-center"
-                data-testid="process-step-4"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(3, 4) }}>
-                    <Wrench className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(3, 4) }} />
-                  </div>
-                  <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(3, 4)}20`, color: TIMELINE_GRADIENT.getStepHex(3, 4), borderColor: `${TIMELINE_GRADIENT.getStepHex(3, 4)}33` }}>
-                    25+ {language === "fr" ? "ans" : "yrs"}
-                  </Badge>
-                  <h3 className="font-semibold text-sm mb-1">
-                    {language === "fr" ? "Opération & Maintenance" : "Operations & Maintenance"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "fr" 
-                      ? "Monitoring, support continu"
-                      : "Monitoring, ongoing support"
-                    }
-                  </p>
-                </div>
-              </motion.div>
-            </div>
+              );
+            })()}
           </div>
           
           {/* CTA to start */}
