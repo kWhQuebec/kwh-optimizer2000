@@ -6,14 +6,14 @@ import { useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
-import { 
-  Building2, Factory, School, HelpCircle, 
+import {
+  Building2, Factory, School, HelpCircle,
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, Wrench, HardHat,
   Rocket, BatteryCharging, BadgePercent, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ClipboardCheck, ChevronUp,
   Phone, Mail, Building, CalendarDays, User, Info, Upload, Sparkles, FileSignature,
-  Snowflake, XCircle
+  Snowflake, XCircle, Star, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
@@ -110,6 +111,9 @@ export default function LandingPage() {
   // Qualification fields
   const [roofAgeYears, setRoofAgeYears] = useState<string>('');
   const [ownershipType, setOwnershipType] = useState<'owner' | 'tenant' | ''>('');
+
+  // FAQ accordion state
+  const [expandedFaqItems, setExpandedFaqItems] = useState<string[]>(['item1']);
 
   // Client-side preview calculation
   const clientPreview = useMemo(() => {
@@ -1457,6 +1461,200 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ========== TRIPWIRE: PRELIMINARY DESIGN STUDY ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20" data-testid="section-tripwire">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <Wrench className="w-8 h-8 text-amber-600" />
+              <h2 className="text-3xl sm:text-4xl font-bold" data-testid="tripwire-title">
+                {t("tripwire.title")}
+              </h2>
+            </div>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {t("tripwire.subtitle")}
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            {/* Left: Description and guarantee */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <div>
+                <h3 className="text-3xl sm:text-4xl font-bold text-amber-600 mb-4" data-testid="tripwire-price">
+                  {t("tripwire.price")}
+                </h3>
+                <p className="text-muted-foreground text-lg">
+                  {t("tripwire.description")}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  {t("tripwire.includes.title")}
+                </h4>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3">
+                    <MapPin className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
+                    <span className="text-sm">{t("tripwire.includes.siteVisit")}</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Sun className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
+                    <span className="text-sm">{t("tripwire.includes.shadeAnalysis")}</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Building2 className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
+                    <span className="text-sm">{t("tripwire.includes.roofModel")}</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Zap className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
+                    <span className="text-sm">{t("tripwire.includes.optimalDesign")}</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <TrendingUp className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
+                    <span className="text-sm">{t("tripwire.includes.roiProjections")}</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <DollarSign className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
+                    <span className="text-sm">{t("tripwire.includes.financingComparison")}</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <BadgePercent className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
+                    <span className="text-sm">{t("tripwire.includes.incentiveOptimization")}</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border-2 border-green-200 dark:border-green-900">
+                <div className="flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-sm text-green-800 dark:text-green-200 mb-1">
+                      {t("tripwire.guarantee.label")}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("tripwire.guarantee")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right: CTA and reasoning */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <Card className="p-6 border-amber-200 dark:border-amber-900">
+                <div className="text-center space-y-4">
+                  <Wrench className="w-12 h-12 text-amber-600 mx-auto" />
+                  <div>
+                    <h4 className="font-bold mb-2">{t("tripwire.whyTripwire")}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {t("tripwire.whyTripwire.description")}
+                    </p>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="w-full gap-2 bg-amber-600 hover:bg-amber-700"
+                    onClick={() => {
+                      FunnelEvents.ctaClicked('design_study', 'landing_tripwire');
+                      if (process.env.VITE_CALENDLY_URL) {
+                        window.open(process.env.VITE_CALENDLY_URL, '_blank');
+                      } else {
+                        navigate('/contact?service=design_study');
+                      }
+                    }}
+                    data-testid="button-book-design-study"
+                  >
+                    <CalendarDays className="w-4 h-4" />
+                    {t("tripwire.cta")}
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className="p-4 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+                <p className="text-sm text-muted-foreground">
+                  <strong>💡 {language === "fr" ? "Conseil:" : "Tip:"}</strong> {language === "fr"
+                    ? " Beaucoup de projets solaires échouent faute d'une analyse préalable robuste. Notre étude de design est votre assurance."
+                    : " Many solar projects fail due to lack of robust preliminary analysis. Our design study is your insurance."}
+                </p>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== EXPERT CONSULTATION SECTION ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="section-expert">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center space-y-8"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <Phone className="w-8 h-8 text-primary" />
+                <h2 className="text-3xl sm:text-4xl font-bold" data-testid="expert-title">
+                  {t("expert.title")}
+                </h2>
+              </div>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                {t("expert.subtitle")}
+              </p>
+              <p className="text-muted-foreground">
+                {t("expert.description")}
+              </p>
+            </div>
+
+            {process.env.VITE_CALENDLY_URL ? (
+              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 min-h-[600px]">
+                <iframe
+                  src={process.env.VITE_CALENDLY_URL}
+                  width="100%"
+                  height="650"
+                  frameBorder="0"
+                  title="Book a consultation"
+                  data-testid="calendly-embed"
+                />
+              </div>
+            ) : (
+              <Card className="p-8 text-center space-y-4">
+                <Phone className="w-12 h-12 text-primary mx-auto opacity-50" />
+                <p className="text-muted-foreground">{t("expert.calendlyPlaceholder")}</p>
+                <Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={() => {
+                    FunnelEvents.ctaClicked('expert_call', 'landing_expert');
+                    window.open('mailto:info@kwh.quebec?subject=Expert%20Consultation%20Request', '_blank');
+                  }}
+                  data-testid="button-expert-contact"
+                >
+                  <Mail className="w-4 h-4" />
+                  {language === "fr" ? "Nous contacter" : "Contact us"}
+                </Button>
+              </Card>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
       {/* ========== FINAL CTA / CONTACT SECTION ========== */}
       <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -1515,6 +1713,184 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* ========== TESTIMONIALS SECTION ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-muted/50 to-background">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-14"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+              {t("testimonials.title")}
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              {t("testimonials.subtitle")}
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Card className="h-full flex flex-col p-6 hover:shadow-lg transition-shadow">
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(5)].map((_, idx) => (
+                      <Star
+                        key={idx}
+                        className="w-4 h-4 fill-amber-400 text-amber-400"
+                      />
+                    ))}
+                  </div>
+
+                  {/* Quote */}
+                  <p className="text-sm leading-relaxed mb-6 flex-grow text-muted-foreground">
+                    "{t(`testimonials.item${i}.text`)}"
+                  </p>
+
+                  {/* Author */}
+                  <div className="border-t pt-4">
+                    <p className="font-semibold text-sm">
+                      {t(`testimonials.item${i}.name`)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t(`testimonials.item${i}.role`)} • {t(`testimonials.item${i}.company`)}
+                    </p>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Économies annuelles</p>
+                      <p className="font-bold text-sm text-green-600">
+                        {t(`testimonials.item${i}.savings`)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Système</p>
+                      <p className="font-bold text-sm">
+                        {t(`testimonials.item${i}.system`)}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ========== REFERRAL PROGRAM SECTION ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            className="bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-950/30 dark:to-blue-950/10 rounded-2xl p-10 md:p-16 border border-blue-200/50 dark:border-blue-800/30"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+          >
+            <div className="text-center mb-12">
+              <Rocket className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+                {t("referral.title")}
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                {t("referral.subtitle")}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+              {[
+                { icon: User, step: "1", key: "step1" },
+                { icon: CheckCircle2, step: "2", key: "step2" },
+                { icon: Award, step: "3", key: "step3" },
+              ].map((item, idx) => (
+                <div key={item.key} className="text-center">
+                  <div className="flex items-center justify-center mb-3 gap-2">
+                    <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
+                      {item.step}
+                    </div>
+                    {idx < 2 && (
+                      <ArrowRight className="w-5 h-5 text-blue-400 hidden md:block" />
+                    )}
+                  </div>
+                  <p className="font-semibold mb-1">{t(`referral.${item.key}`)}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center">
+              <a
+                href="mailto:info@kwhquebec.com?subject=Programme%20de%20r%C3%A9f%C3%A9ral"
+                onClick={() => FunnelEvents.ctaClicked('referral_program', 'landing_referral')}
+              >
+                <Button size="lg" className="gap-2">
+                  {t("referral.cta")}
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ========== FAQ SECTION ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-3xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+              {t("faq.title")}
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              {t("faq.subtitle")}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Accordion
+              type="multiple"
+              value={expandedFaqItems}
+              onValueChange={setExpandedFaqItems}
+              className="space-y-3"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <AccordionItem
+                  key={`item${i}`}
+                  value={`item${i}`}
+                  className="border border-border rounded-lg px-5 py-2 hover:border-primary/50 transition-colors"
+                >
+                  <AccordionTrigger className="font-semibold hover:no-underline">
+                    <span className="text-left">
+                      {t(`faq.item${i}.question`)}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground leading-relaxed pt-2">
+                    {t(`faq.item${i}.answer`)}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ========== FOOTER ========== */}
       <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
         <div className="max-w-6xl mx-auto">

@@ -78,7 +78,14 @@ export const leads = pgTable("leads", {
   
   // Hydro-Québec bill storage (transferred to site when lead converts)
   hqBillPath: text("hq_bill_path"),
-  
+
+  // UTM Tracking Parameters
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  utmTerm: text("utm_term"),
+  utmContent: text("utm_content"),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1656,6 +1663,20 @@ export const scheduledEmails = pgTable("scheduled_emails", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Site content management (CMS)
+export const siteContent = pgTable("site_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contentKey: text("content_key").notNull().unique(), // e.g., "testimonials", "faq", "tripwire", "referral", "landing_hero"
+  contentType: text("content_type").notNull().default("json"), // "json" | "text" | "html"
+  value: jsonb("value").notNull(), // The actual content (flexible JSON)
+  label: text("label"), // Human-readable label for admin UI
+  category: text("category").notNull().default("general"), // "landing", "email", "pricing", "social_proof"
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedBy: varchar("updated_by"),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -1947,6 +1968,11 @@ export const insertScheduledEmailSchema = createInsertSchema(scheduledEmails).om
   createdAt: true,
 });
 
+export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -2071,6 +2097,9 @@ export type GoogleSolarCache = typeof googleSolarCache.$inferSelect;
 
 export type InsertScheduledEmail = z.infer<typeof insertScheduledEmailSchema>;
 export type ScheduledEmail = typeof scheduledEmails.$inferSelect;
+
+export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
+export type SiteContent = typeof siteContent.$inferSelect;
 
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };

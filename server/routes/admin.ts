@@ -319,4 +319,64 @@ router.post("/api/admin/seed-blog", authMiddleware, requireStaff, asyncHandler(a
   });
 }));
 
+// ==================== PUBLIC SITE CONTENT ====================
+// These routes are public (no auth) for the landing page to fetch dynamic content
+
+router.get("/api/site-content/:key", asyncHandler(async (req, res) => {
+  const content = await storage.getSiteContentByKey(req.params.key);
+  if (!content || !content.isActive) {
+    return res.status(404).json({ error: "Content not found" });
+  }
+  res.json(content);
+}));
+
+router.get("/api/site-content", asyncHandler(async (req, res) => {
+  const category = req.query.category as string | undefined;
+  const content = category
+    ? await storage.getSiteContentByCategory(category)
+    : await storage.getSiteContentAll();
+  // Only return active content
+  res.json(content.filter(c => c.isActive));
+}));
+
+// ==================== SITE CONTENT (CMS) ====================
+
+router.get("/api/admin/site-content", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const category = req.query.category as string | undefined;
+  const content = category
+    ? await storage.getSiteContentByCategory(category)
+    : await storage.getSiteContentAll();
+  res.json(content);
+}));
+
+router.get("/api/admin/site-content/:id", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const content = await storage.getSiteContent(req.params.id);
+  if (!content) throw new NotFoundError("Content not found");
+  res.json(content);
+}));
+
+router.post("/api/admin/site-content", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const content = await storage.createSiteContent({
+    ...req.body,
+    updatedBy: req.userId,
+  });
+  res.status(201).json(content);
+}));
+
+router.patch("/api/admin/site-content/:id", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const content = await storage.updateSiteContent(req.params.id, {
+    ...req.body,
+    updatedBy: req.userId,
+    updatedAt: new Date(),
+  });
+  if (!content) throw new NotFoundError("Content not found");
+  res.json(content);
+}));
+
+router.delete("/api/admin/site-content/:id", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const result = await storage.deleteSiteContent(req.params.id);
+  if (!result) throw new NotFoundError("Content not found");
+  res.json({ success: true });
+}));
+
 export default router;

@@ -6,7 +6,7 @@ import { authMiddleware, requireStaff, type AuthRequest } from "../middleware/au
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
 import { storage } from "../storage";
 import { insertLeadSchema } from "@shared/schema";
-import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLeadNotification } from "../emailService";
+import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLeadNotification, sendTemplateEmail } from "../emailService";
 import { sendEmail } from "../gmail";
 import * as googleSolar from "../googleSolarService";
 import { generateProcurationPDF, createProcurationData } from "../procurationPdfGenerator";
@@ -15,6 +15,7 @@ import { getTieredSolarCostPerW, BASELINE_YIELD, QUEBEC_MONTHLY_TEMPS } from "..
 import { objectStorageClient } from "../replit_integrations/object_storage";
 import { createLogger } from "../lib/logger";
 import { scheduleNurtureSequence } from "../emailScheduler";
+import { sendSMSNotification, formatHotLeadMessage } from "../smsService";
 
 const log = createLogger("Leads");
 
@@ -362,6 +363,16 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
   // CO2: Quebec grid factor 0.002 kg CO2/kWh (~2 g/kWh, Env. Canada)
   const co2ReductionTons = Math.round(primaryScenario.annualProductionKWh * 0.002 * 10) / 10;
 
+  // Cost of inaction: Cumulative electricity cost increase over 5 years
+  // Assuming 3.5% annual electricity escalation (Quebec historical average)
+  const ELECTRICITY_ESCALATION_RATE = 0.035;
+  const costOfInactionYears = 5;
+  let costOfInaction = 0;
+  for (let year = 1; year <= costOfInactionYears; year++) {
+    costOfInaction += annualBillBefore * Math.pow(1 + ELECTRICITY_ESCALATION_RATE, year - 1);
+  }
+  costOfInaction = Math.round(costOfInaction);
+
   // Calculate before/after HQ bill comparison (based on conservative scenario)
   const annualBillBefore = estimatedMonthlyBill * 12;
   const annualBillAfter = Math.max(0, annualBillBefore - primaryScenario.annualSavings);
@@ -432,12 +443,18 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
       postalCode: null,
       estimatedMonthlyBill: estimatedMonthlyBill || null,
       buildingType: buildingType || "office",
-      notes: `Quick Estimate: ${Math.round(annualKWh).toLocaleString()} kWh/year, ${primaryScenario.systemSizeKW} kW system, ${tariff} tariff${utmNote}`,
+      notes: `Quick Estimate: ${Math.round(annualKWh).toLocaleString()} kWh/year, ${primaryScenario.systemSizeKW} kW system, ${tariff} tariff`,
       source: "quick_estimate",
       // Add qualification fields to lead
       roofAge: roofAgeYears ? (roofAgeYears <= 5 ? 'new' : roofAgeYears <= 10 ? 'recent' : roofAgeYears <= 15 ? 'mature' : 'old') : 'unknown',
       roofAgeYears: roofAgeYears || null,
       propertyRelationship: ownershipType === 'owner' ? 'owner' : ownershipType === 'tenant' ? 'tenant_pending' : 'unknown',
+      // UTM parameters
+      utmSource: utm_source || null,
+      utmMedium: utm_medium || null,
+      utmCampaign: utm_campaign || null,
+      utmTerm: utm_term || null,
+      utmContent: utm_content || null,
     });
     leadId = lead.id;
 
@@ -494,6 +511,52 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
       ownerId: null,
     });
     log.info(`Created lead ${lead.id}, client ${client.id}, site ${site.id}, and opportunity for: ${companyName}`);
+
+    // Send SMS notification for hot leads (monthly bill > $5,000)
+    if (estimatedMonthlyBill && estimatedMonthlyBill > 5000) {
+      const smsMessage = formatHotLeadMessage(
+        companyName || 'Unknown Company',
+        address || 'Unknown Address',
+        Math.round(estimatedMonthlyBill),
+        email || 'no-email'
+      );
+      sendSMSNotification(smsMessage).catch(err => {
+        log.error("Failed to send hot lead SMS:", err);
+        // Don't throw - SMS failure should not block lead creation
+      });
+    }
+
+    // Send welcome email IMMEDIATELY after lead creation
+    if (email && typeof email === "string" && email.includes("@")) {
+      const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+      const host = req.get("host") || "localhost:5000";
+      const baseUrl = `${protocol}://${host}`;
+      const procurationUrl = `${baseUrl}/analysis/${lead.id}/procuration`;
+
+      // Detect language from address
+      const frenchIndicators = ['rue', 'avenue', 'boulevard', 'chemin', 'montréal', 'québec', 'laval', 'sherbrooke', 'trois-rivières', 'saint-', 'sainte-'];
+      const lowerAddress = (address || '').toLowerCase();
+      const isFrench = frenchIndicators.some(indicator => lowerAddress.includes(indicator));
+      const welcomeLanguage = isFrench ? 'fr' : 'en';
+
+      sendTemplateEmail(
+        'welcomePersonalized',
+        leadEmail,
+        {
+          contactName: contactName || clientName || 'Friend',
+          address: address || 'Your location',
+          buildingType: buildingType || 'Commercial',
+          annualConsumptionKwh: Math.round(annualKWh).toString(),
+          systemSizeKw: Math.round(primaryScenario.systemSizeKW).toString(),
+          annualSavings: Math.round(primaryScenario.annualSavings).toString(),
+          costOfInaction: Math.round(costOfInaction).toString(),
+          procurationUrl: procurationUrl,
+        },
+        welcomeLanguage
+      ).catch(err => {
+        log.error("Failed to send welcome email:", err);
+      });
+    }
 
     // Schedule nurture sequence for the lead
     try {

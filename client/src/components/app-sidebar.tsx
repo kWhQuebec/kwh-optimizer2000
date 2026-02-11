@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  BarChart3,
   PenTool,
   Package,
   FileText,
@@ -28,7 +28,8 @@ import {
   Cog,
   Hammer,
   Settings,
-  BookOpen
+  BookOpen,
+  FileEdit
 } from "lucide-react";
 import {
   Sidebar,
@@ -186,6 +187,12 @@ export function AppSidebar() {
       url: "/app/procurations",
       icon: FileSignature,
       tooltip: language === "fr" ? "Autorisations d'accès aux données Hydro-Québec" : "Hydro-Québec data access authorizations",
+    },
+    {
+      title: language === "fr" ? "Contenu" : "Content",
+      url: "/app/content-manager",
+      icon: FileEdit,
+      tooltip: language === "fr" ? "Gestion du contenu du site" : "Site content management",
     },
     {
       title: language === "fr" ? "Import en lot" : "Batch Import",

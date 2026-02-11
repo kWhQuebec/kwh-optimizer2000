@@ -11,6 +11,7 @@ import { startUploadCleanupScheduler } from "./lib/uploadConfig";
 import { startEmailScheduler } from "./emailScheduler";
 import { renderEmailTemplate } from "./emailTemplates";
 import { storage } from "./storage";
+import { seedDefaultContent } from "./seedContent";
 
 const serverLog = createLogger("Server");
 
@@ -155,6 +156,9 @@ app.use((req, res, next) => {
     },
   });
   serverLog.info("Email scheduler initialized");
+
+  // Seed default CMS content if empty
+  await seedDefaultContent();
 
   app.use(errorHandler);
 

@@ -966,6 +966,114 @@ const translations: Translations = {
   "kbRacking.alert": { fr: "Alerte", en: "Alert" },
   "kbRacking.min": { fr: "Min", en: "Min" },
   "kbRacking.max": { fr: "Max", en: "Max" },
+
+  // Tripwire - Preliminary Design Study
+  "tripwire.title": { fr: "Étude de design préliminaire", en: "Preliminary Design Study" },
+  "tripwire.subtitle": { fr: "L'étape intelligente avant d'investir", en: "The smart step before investing" },
+  "tripwire.price": { fr: "$2,500", en: "$2,500" },
+  "tripwire.description": {
+    fr: "Avant d'engager plusieurs centaines de milliers de dollars, validez votre projet avec une étude de design complète et professionnelle.",
+    en: "Before committing hundreds of thousands, validate your project with a complete, professional design study."
+  },
+  "tripwire.includes.title": { fr: "L'étude comprend:", en: "The study includes:" },
+  "tripwire.includes.siteVisit": { fr: "Visite sur site avec mesures précises", en: "On-site visit with precise measurements" },
+  "tripwire.includes.shadeAnalysis": { fr: "Analyse d'ombrage avancée (3D)", en: "Advanced 3D shade analysis" },
+  "tripwire.includes.roofModel": { fr: "Modèle 3D de votre toiture", en: "3D roof model" },
+  "tripwire.includes.optimalDesign": { fr: "Design de système optimal (PV + batterie)", en: "Optimal system design (PV + storage)" },
+  "tripwire.includes.roiProjections": { fr: "Projections de ROI sur 25 ans", en: "25-year ROI projections" },
+  "tripwire.includes.financingComparison": { fr: "Comparaison des options de financement", en: "Financing options comparison" },
+  "tripwire.includes.incentiveOptimization": { fr: "Optimisation des incitatifs", en: "Incentive optimization strategy" },
+  "tripwire.cta": { fr: "Réserver mon étude de design", en: "Book my design study" },
+  "tripwire.guarantee": {
+    fr: "100% applicable à l'installation — Si vous allez de l'avant, ce montant est déduit du coût total du projet.",
+    en: "100% applicable to installation — If you proceed, this amount is deducted from the total project cost."
+  },
+  "tripwire.guarantee.label": { fr: "Garantie", en: "Guarantee" },
+  "tripwire.whyTripwire": {
+    fr: "Pourquoi une étude de design?",
+    en: "Why a design study?"
+  },
+  "tripwire.whyTripwire.description": {
+    fr: "Chaque toiture est unique. Les ombres, l'orientation, la structure — tout compte. Une étude professionnelle évite les erreurs coûteuses et maximise votre retour.",
+    en: "Every roof is unique. Shadows, orientation, structure — it all matters. A professional study avoids costly mistakes and maximizes your return."
+  },
+
+  // Expert consultation section
+  "expert.title": { fr: "Parlez à un expert", en: "Talk to an expert" },
+  "expert.subtitle": {
+    fr: "Réservez une consultation gratuite de 30 minutes avec nos spécialistes en énergie solaire",
+    en: "Book a free 30-minute consultation with our solar energy specialists"
+  },
+  "expert.calendlyPlaceholder": {
+    fr: "Calendly non configuré",
+    en: "Calendly not configured"
+  },
+  "expert.button": { fr: "Prendre un rendez-vous", en: "Schedule a call" },
+  "expert.description": {
+    fr: "Discutez directement avec un ingénieur spécialisé en solaire C&I. Pas de frais, pas d'engagement.",
+    en: "Talk directly with a C&I solar engineer. No fees, no commitment."
+  },
+
+  // Testimonials Section
+  "testimonials.title": { fr: "Ils nous font confiance", en: "They trust us" },
+  "testimonials.subtitle": { fr: "Ce que nos clients disent de leur expérience", en: "What our clients say about their experience" },
+  "testimonials.item1.name": { fr: "Martin Tremblay", en: "Martin Tremblay" },
+  "testimonials.item1.role": { fr: "Directeur des opérations", en: "Operations Director" },
+  "testimonials.item1.company": { fr: "Entrepôts Québec Inc.", en: "Entrepôts Québec Inc." },
+  "testimonials.item1.text": { fr: "En 6 mois, notre facture d'énergie a baissé de 38%. Le retour sur investissement est même meilleur que ce que kWh Québec avait projeté.", en: "In 6 months, our energy bill dropped 38%. The ROI is even better than what kWh Québec projected." },
+  "testimonials.item1.savings": { fr: "$42,000/an", en: "$42,000/year" },
+  "testimonials.item1.system": { fr: "185 kW", en: "185 kW" },
+
+  "testimonials.item2.name": { fr: "Sophie Lavoie", en: "Sophie Lavoie" },
+  "testimonials.item2.role": { fr: "Propriétaire", en: "Owner" },
+  "testimonials.item2.company": { fr: "Centre Commercial Rive-Sud", en: "Centre Commercial Rive-Sud" },
+  "testimonials.item2.text": { fr: "Le processus était transparent du début à la fin. L'équipe de kWh Québec a géré les incitatifs, la procuration HQ, tout. On n'a presque rien eu à faire.", en: "The process was transparent from start to finish. The kWh Québec team handled incentives, HQ procuration, everything. We barely had to do anything." },
+  "testimonials.item2.savings": { fr: "$67,000/an", en: "$67,000/year" },
+  "testimonials.item2.system": { fr: "320 kW", en: "320 kW" },
+
+  "testimonials.item3.name": { fr: "Jean-François Bouchard", en: "Jean-François Bouchard" },
+  "testimonials.item3.role": { fr: "VP Finance", en: "VP Finance" },
+  "testimonials.item3.company": { fr: "Industries Beauce Ltée", en: "Industries Beauce Ltée" },
+  "testimonials.item3.text": { fr: "Le stockage combiné au solaire nous a permis de réduire notre appel de puissance de 22%. C'est un impact direct sur la facture que je n'avais pas anticipé.", en: "Combined storage and solar allowed us to reduce our peak demand by 22%. That's a direct bill impact I hadn't anticipated." },
+  "testimonials.item3.savings": { fr: "$89,000/an", en: "$89,000/year" },
+  "testimonials.item3.system": { fr: "450 kW + 200 kWh", en: "450 kW + 200 kWh" },
+
+  // Referral Program Section
+  "referral.title": { fr: "Référez un collègue, gagnez 1,000$", en: "Refer a colleague, earn $1,000" },
+  "referral.subtitle": { fr: "Pour chaque entreprise référée qui signe un contrat d'installation, vous recevez 1,000$ en carte-cadeau.", en: "For every referred business that signs an installation contract, you receive a $1,000 gift card." },
+  "referral.cta": { fr: "Référer maintenant", en: "Refer now" },
+  "referral.howItWorks": { fr: "Comment ça fonctionne", en: "How it works" },
+  "referral.step1": { fr: "Partagez votre lien unique avec un collègue", en: "Share your unique link with a colleague" },
+  "referral.step2": { fr: "Ils obtiennent une analyse gratuite", en: "They get a free analysis" },
+  "referral.step3": { fr: "Quand ils signent, vous recevez 1,000$", en: "When they sign, you get $1,000" },
+
+  // FAQ Section
+  "faq.title": { fr: "Questions fréquemment posées", en: "Frequently Asked Questions" },
+  "faq.subtitle": { fr: "Trouvez des réponses à vos questions sur le solaire commercial au Québec", en: "Find answers to your questions about commercial solar in Quebec" },
+
+  "faq.item1.question": { fr: "Combien coûte une installation solaire commerciale?", en: "How much does a commercial solar installation cost?" },
+  "faq.item1.answer": { fr: "Le coût varie selon la taille du système et le bâtiment, mais en général de 1,800$ à 2,500$ par kW. Avec les incitatifs gouvernementaux couvrant jusqu'à 60% du projet, votre investissement net tombe à 700$ à 1,000$ par kW. Les systèmes plus grands bénéficient généralement de meilleurs prix unitaires.", en: "Cost varies by system size and building, but typically ranges from $1,800 to $2,500 per kW. With government incentives covering up to 60% of the project, your net investment drops to $700 to $1,000 per kW. Larger systems generally benefit from better unit pricing." },
+
+  "faq.item2.question": { fr: "Quels incitatifs sont disponibles au Québec?", en: "What incentives are available in Quebec?" },
+  "faq.item2.answer": { fr: "Trois niveaux d'incitatifs: (1) Crédit Hydro-Québec jusqu'à 40% du projet, (2) Crédit d'impôt fédéral 30% pour technologies propres, (3) Traitement fiscal avantageux avec 100% déductible en première année. Ces incitatifs peuvent être combinés pour un soutien total de jusqu'à 60% du coût du projet.", en: "Three levels of incentives: (1) Hydro-Québec credit up to 40% of the project, (2) Federal 30% investment tax credit for clean technology, (3) Favorable tax treatment with 100% deductible in year 1. These incentives can be combined for total support up to 60% of project cost." },
+
+  "faq.item3.question": { fr: "Le solaire fonctionne-t-il en hiver au Québec?", en: "Does solar work in winter in Quebec?" },
+  "faq.item3.answer": { fr: "Oui, absolument. Même si la production est plus faible en hiver, le solaire produit de l'électricité pendant les mois froids, particulièrement les jours clairs. Les panneaux fonctionnent même mieux par temps froid. En moyenne, un système québécois produit environ 35% de son énergie annuelle pendant l'hiver (novembre à mars).", en: "Yes, absolutely. While production is lower in winter, solar still generates electricity during cold months, especially on clear days. Panels actually perform better in cold weather. On average, a Quebec system produces about 35% of its annual energy during winter (November to March)." },
+
+  "faq.item4.question": { fr: "Combien de temps prend l'installation?", en: "How long does installation take?" },
+  "faq.item4.answer": { fr: "Le processus complet prend généralement 2-4 mois: analyse et procuration (2-3 semaines), design détaillé (2-4 semaines), approbations réglementaires (2-4 semaines), et installation physique (1-2 semaines). Les projets plus petits ou sans système de stockage peuvent être plus rapides.", en: "The complete process typically takes 2-4 months: analysis and procuration (2-3 weeks), detailed design (2-4 weeks), regulatory approvals (2-4 weeks), and physical installation (1-2 weeks). Smaller projects or those without storage can be faster." },
+
+  "faq.item5.question": { fr: "Qu'est-ce que la procuration Hydro-Québec?", en: "What is Hydro-Québec procuration?" },
+  "faq.item5.answer": { fr: "Une procuration est une autorisation qui nous permet d'accéder à votre profil de consommation détaillé (heure par heure) auprès d'Hydro-Québec. C'est essential pour dimensionner correctement votre système solaire et optimiser votre retour sur investissement. La procuration peut être signée électroniquement en quelques minutes.", en: "A procuration is an authorization that allows us to access your detailed consumption profile (hour-by-hour) from Hydro-Québec. It's essential for properly sizing your solar system and optimizing your return on investment. Procuration can be signed electronically in minutes." },
+
+  "faq.item6.question": { fr: "Quelle est la durée de vie des panneaux solaires?", en: "What is the lifespan of solar panels?" },
+  "faq.item6.answer": { fr: "Les panneaux solaires modernes ont une durée de vie de 25-30 ans avec une garantie de performance. Après 25 ans, ils continuent à produire de l'électricité, généralement à 80% de la capacité initiale. L'inverter, qui convertit l'électricité CC en CA, dure généralement 10-15 ans et peut être remplacé au besoin. Les onduleurs modernes sont très fiables et rarement besoin de maintenance.", en: "Modern solar panels have a lifespan of 25-30 years with a performance warranty. After 25 years, they continue generating electricity, typically at 80% of initial capacity. The inverter, which converts DC to AC power, typically lasts 10-15 years and can be replaced if needed. Modern inverters are highly reliable and rarely require maintenance." },
+
+  "faq.item7.question": { fr: "Le solaire augmente-t-il la valeur de mon bâtiment?", en: "Does solar increase my building's property value?" },
+  "faq.item7.answer": { fr: "Oui. Les études montrent que les bâtiments avec systèmes solaires se vendent entre 3-4% plus cher. Au-delà de la valeur immédiate, les acheteurs apprécient les factures énergétiques réduites et les faibles coûts d'exploitation. Si vous louez des espaces, les locataires sont de plus en plus attirés par les bâtiments durables et à faible consommation énergétique.", en: "Yes. Studies show that buildings with solar systems sell for 3-4% more. Beyond immediate value, buyers appreciate reduced energy bills and low operating costs. If you lease space, tenants are increasingly attracted to sustainable, low-energy buildings." },
+
+  "faq.item8.question": { fr: "Que se passe-t-il si je vends mon bâtiment?", en: "What happens if I sell my building?" },
+  "faq.item8.answer": { fr: "Le système solaire reste avec le bâtiment et augmente sa valeur de revente. Les contrats d'achat-vente standard incluent le transfert du système au nouveau propriétaire. Si vous avez un contrat de financement, il peut généralement être assumé par le nouveau propriétaire ou refinancé à des conditions compétitives. La plupart des acheteurs voient le système solaire comme un atout majeur.", en: "The solar system stays with the building and increases its resale value. Standard purchase agreements include system transfer to the new owner. If you have financing, it can typically be assumed by the new owner or refinanced at competitive rates. Most buyers see the solar system as a major asset." },
 };
 
 interface I18nContextType {

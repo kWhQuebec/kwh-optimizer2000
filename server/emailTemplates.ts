@@ -886,6 +886,156 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     },
   },
 
+  // Personalized welcome email sent immediately after lead creation
+  welcomePersonalized: {
+    subject: {
+      fr: "Votre rapport solaire est en route, {{contactName}}!",
+      en: "Your solar report is on its way, {{contactName}}!",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Bienvenue {{contactName}}!</h2>
+      <p>Merci de votre confiance. Nous avons reçu votre demande d'analyse solaire et nous vous préparons un rapport personnalisé basé sur vos données.</p>
+
+      <div style="background:#f0f9ff;border-left:4px solid #0054A8;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;font-weight:bold;margin-bottom:12px;color:#0054A8;">Votre bâtiment analysé:</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <tr>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">Adresse</td>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><strong>{{address}}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">Type de bâtiment</td>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{buildingType}}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;">Consommation annuelle estimée</td>
+            <td style="padding:6px 0;text-align:right;"><strong>{{annualConsumptionKwh}} kWh/an</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <h3 style="margin-top:24px;margin-bottom:12px;color:#1f2937;">Votre potentiel solaire:</h3>
+      <p style="color:#666;margin-bottom:16px;">Basé sur l'analyse satellite et votre profil de consommation, voici ce que nous estimons:</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0;">
+        <div style="background:#FFF7E6;padding:16px;border-radius:8px;text-align:center;border:1px solid #FFB005;">
+          <p style="margin:0;font-size:12px;color:#999;margin-bottom:8px;">Taille du système</p>
+          <p style="margin:0;font-size:24px;font-weight:bold;color:#0054A8;">{{systemSizeKw}} kW</p>
+        </div>
+        <div style="background:#FFF7E6;padding:16px;border-radius:8px;text-align:center;border:1px solid #FFB005;">
+          <p style="margin:0;font-size:12px;color:#999;margin-bottom:8px;">Économies annuelles</p>
+          <p style="margin:0;font-size:24px;font-weight:bold;color:#16A34A;">{{annualSavings}}$</p>
+        </div>
+        <div style="background:#FFF7E6;padding:16px;border-radius:8px;text-align:center;border:1px solid #FFB005;">
+          <p style="margin:0;font-size:12px;color:#999;margin-bottom:8px;">Coût de l'inaction</p>
+          <p style="margin:0;font-size:24px;font-weight:bold;color:#EF4444;">{{costOfInaction}}$</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top:24px;margin-bottom:12px;color:#1f2937;">Prochaines étapes:</h3>
+      <ol style="padding-left:20px;color:#666;">
+        <li style="margin:8px 0;"><strong>Données réelles Hydro-Québec:</strong> Avec votre procuration, nous accédons à votre profil de consommation heure par heure — la clé pour optimiser davantage.</li>
+        <li style="margin:8px 0;"><strong>Analyse détaillée:</strong> Simulation 8 760 heures pour trouver votre configuration optimale (PV + stockage si applicable).</li>
+        <li style="margin:8px 0;"><strong>Rapport complet:</strong> Projections financières, comparaison de scénarios d'acquisition, et stratégie d'incitatifs.</li>
+      </ol>
+
+      <p style="text-align:center;margin:30px 0;">
+        <a href="{{procurationUrl}}" class="button">Obtenez votre analyse complète avec données réelles →</a>
+      </p>
+
+      <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;font-size:13px;color:#666;"><strong>Pourquoi cette démarche en deux étapes?</strong> La première analyse utilise l'imagerie satellite — rapide et gratuit. La deuxième utilise vos vraies données de consommation heure par heure, ce qui change tout pour optimiser votre investissement et maximiser vos retours.</p>
+      </div>
+
+      <p style="font-size:13px;color:#6b7280;margin-top:24px;">Questions? Répondez simplement à ce courriel — un humain vous répondra dans les 24h.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage C&I</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+    </div>
+  </div>
+</body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Welcome {{contactName}}!</h2>
+      <p>Thank you for your interest. We've received your solar analysis request and we're preparing a personalized report based on your data.</p>
+
+      <div style="background:#f0f9ff;border-left:4px solid #0054A8;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;font-weight:bold;margin-bottom:12px;color:#0054A8;">Your building analyzed:</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <tr>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">Address</td>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><strong>{{address}}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;">Building Type</td>
+            <td style="padding:6px 0;border-bottom:1px solid #e5e7eb;text-align:right;">{{buildingType}}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;">Estimated Annual Consumption</td>
+            <td style="padding:6px 0;text-align:right;"><strong>{{annualConsumptionKwh}} kWh/year</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <h3 style="margin-top:24px;margin-bottom:12px;color:#1f2937;">Your Solar Potential:</h3>
+      <p style="color:#666;margin-bottom:16px;">Based on satellite analysis and your consumption profile, here's what we estimate:</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0;">
+        <div style="background:#FFF7E6;padding:16px;border-radius:8px;text-align:center;border:1px solid #FFB005;">
+          <p style="margin:0;font-size:12px;color:#999;margin-bottom:8px;">System Size</p>
+          <p style="margin:0;font-size:24px;font-weight:bold;color:#0054A8;">{{systemSizeKw}} kW</p>
+        </div>
+        <div style="background:#FFF7E6;padding:16px;border-radius:8px;text-align:center;border:1px solid #FFB005;">
+          <p style="margin:0;font-size:12px;color:#999;margin-bottom:8px;">Annual Savings</p>
+          <p style="margin:0;font-size:24px;font-weight:bold;color:#16A34A;">\${{annualSavings}}</p>
+        </div>
+        <div style="background:#FFF7E6;padding:16px;border-radius:8px;text-align:center;border:1px solid #FFB005;">
+          <p style="margin:0;font-size:12px;color:#999;margin-bottom:8px;">Cost of Inaction</p>
+          <p style="margin:0;font-size:24px;font-weight:bold;color:#EF4444;">\${{costOfInaction}}</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top:24px;margin-bottom:12px;color:#1f2937;">Next Steps:</h3>
+      <ol style="padding-left:20px;color:#666;">
+        <li style="margin:8px 0;"><strong>Real Hydro-Québec Data:</strong> With your authorization, we access your hour-by-hour consumption profile — the key to further optimization.</li>
+        <li style="margin:8px 0;"><strong>Detailed Analysis:</strong> 8,760-hour simulation to find your optimal configuration (PV + storage if applicable).</li>
+        <li style="margin:8px 0;"><strong>Complete Report:</strong> Financial projections, acquisition scenario comparison, and incentive strategy.</li>
+      </ol>
+
+      <p style="text-align:center;margin:30px 0;">
+        <a href="{{procurationUrl}}" class="button">Get your complete analysis with real data →</a>
+      </p>
+
+      <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;font-size:13px;color:#666;"><strong>Why this two-step approach?</strong> The first analysis uses satellite imagery — fast and free. The second uses your real hour-by-hour consumption data, which changes everything for optimization and maximizing your returns.</p>
+      </div>
+
+      <p style="font-size:13px;color:#6b7280;margin-top:24px;">Questions? Just reply to this email — a human will respond within 24 hours.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey C&I Solar + Storage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+    </div>
+  </div>
+</body></html>`,
+    },
+    text: {
+      fr: `Bienvenue {{contactName}}!\n\nMerci de votre confiance. Nous avons reçu votre demande d'analyse solaire.\n\nVotre bâtiment:\n- Adresse: {{address}}\n- Type: {{buildingType}}\n- Consommation: {{annualConsumptionKwh}} kWh/an\n\nVotre potentiel:\n- Système: {{systemSizeKw}} kW\n- Économies annuelles: {{annualSavings}}$\n- Coût de l'inaction (5 ans): {{costOfInaction}}$\n\nProchaines étapes:\n1. Procuration Hydro-Québec (données réelles heure par heure)\n2. Analyse détaillée (simulation 8 760 heures)\n3. Rapport complet avec projections financières\n\nObtenez votre analyse: {{procurationUrl}}\n\nQuestions? Répondez à ce courriel.\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
+      en: `Welcome {{contactName}}!\n\nThank you for your interest. We've received your solar analysis request.\n\nYour building:\n- Address: {{address}}\n- Type: {{buildingType}}\n- Consumption: {{annualConsumptionKwh}} kWh/year\n\nYour potential:\n- System: {{systemSizeKw}} kW\n- Annual savings: \${{annualSavings}}\n- Cost of inaction (5 years): \${{costOfInaction}}\n\nNext steps:\n1. Hydro-Québec authorization (real hour-by-hour data)\n2. Detailed analysis (8,760-hour simulation)\n3. Complete report with financial projections\n\nGet your analysis: {{procurationUrl}}\n\nQuestions? Reply to this email.\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
+    },
+  },
+
   // Welcome email for new user account
   userWelcome: {
     subject: {

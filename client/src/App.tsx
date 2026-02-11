@@ -62,6 +62,7 @@ const PresentationPage = lazy(() => import("@/pages/presentation"));
 const AdminPricingPage = lazy(() => import("@/pages/admin-pricing"));
 const MarketIntelligencePricingPage = lazy(() => import("@/pages/market-intelligence-pricing"));
 const WorkQueuePage = lazy(() => import("@/pages/work-queue"));
+const ContentManager = lazy(() => import("@/pages/content-manager"));
 
 function PageLoader() {
   return (
@@ -472,6 +473,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <AdminPricingPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Admin Content Manager */}
+      <Route path="/app/content-manager">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <ContentManager />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>

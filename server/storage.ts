@@ -46,6 +46,7 @@ import type {
   Supplier, InsertSupplier,
   PriceHistory, InsertPriceHistory,
   GoogleSolarCache, InsertGoogleSolarCache,
+  SiteContent, InsertSiteContent,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -301,6 +302,15 @@ export interface IStorage {
   updateScheduledEmail(id: string, email: Partial<ScheduledEmail>): Promise<ScheduledEmail | undefined>;
   cancelScheduledEmails(leadId: string): Promise<void>;
 
+  // Site Content (CMS)
+  getSiteContentAll(): Promise<SiteContent[]>;
+  getSiteContent(id: string): Promise<SiteContent | undefined>;
+  getSiteContentByKey(contentKey: string): Promise<SiteContent | undefined>;
+  getSiteContentByCategory(category: string): Promise<SiteContent[]>;
+  createSiteContent(content: InsertSiteContent): Promise<SiteContent>;
+  updateSiteContent(id: string, content: Partial<SiteContent>): Promise<SiteContent | undefined>;
+  deleteSiteContent(id: string): Promise<boolean>;
+
   // Market Intelligence - Competitors
   getCompetitors(): Promise<Competitor[]>;
   getCompetitor(id: string): Promise<Competitor | undefined>;
@@ -481,6 +491,7 @@ export class MemStorage implements IStorage {
   private procurationSignatures: Map<string, ProcurationSignature> = new Map();
   private emailLogs: Map<string, EmailLog> = new Map();
   private scheduledEmails: Map<string, ScheduledEmail> = new Map();
+  private siteContentMap: Map<string, SiteContent> = new Map();
   private competitorsMap: Map<string, Competitor> = new Map();
   private battleCardsMap: Map<string, BattleCard> = new Map();
   private marketNotesMap: Map<string, MarketNote> = new Map();
@@ -1712,6 +1723,63 @@ export class MemStorage implements IStorage {
       email.cancelled = true;
       this.scheduledEmails.set(email.id, email);
     }
+  }
+
+  // Site Content (CMS)
+  async getSiteContentAll(): Promise<SiteContent[]> {
+    return Array.from(this.siteContentMap.values())
+      .sort((a, b) => {
+        const categoryCompare = a.category.localeCompare(b.category);
+        return categoryCompare !== 0 ? categoryCompare : (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+      });
+  }
+
+  async getSiteContent(id: string): Promise<SiteContent | undefined> {
+    return this.siteContentMap.get(id);
+  }
+
+  async getSiteContentByKey(contentKey: string): Promise<SiteContent | undefined> {
+    return Array.from(this.siteContentMap.values()).find(c => c.contentKey === contentKey);
+  }
+
+  async getSiteContentByCategory(category: string): Promise<SiteContent[]> {
+    return Array.from(this.siteContentMap.values())
+      .filter(c => c.category === category)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }
+
+  async createSiteContent(content: InsertSiteContent): Promise<SiteContent> {
+    const id = randomUUID();
+    const newContent: SiteContent = {
+      id,
+      contentKey: content.contentKey,
+      contentType: content.contentType ?? "json",
+      value: content.value,
+      label: content.label ?? null,
+      category: content.category ?? "general",
+      sortOrder: content.sortOrder ?? 0,
+      isActive: content.isActive ?? true,
+      updatedAt: new Date(),
+      updatedBy: content.updatedBy ?? null,
+    };
+    this.siteContentMap.set(id, newContent);
+    return newContent;
+  }
+
+  async updateSiteContent(id: string, content: Partial<SiteContent>): Promise<SiteContent | undefined> {
+    const existing = this.siteContentMap.get(id);
+    if (!existing) return undefined;
+    const updated: SiteContent = {
+      ...existing,
+      ...content,
+      updatedAt: new Date(),
+    };
+    this.siteContentMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteSiteContent(id: string): Promise<boolean> {
+    return this.siteContentMap.delete(id);
   }
 
   // Market Intelligence - Competitors

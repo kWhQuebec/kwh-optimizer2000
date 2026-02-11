@@ -1,11 +1,12 @@
 import { eq, desc, and, inArray, isNotNull, isNull, sql, lte } from "drizzle-orm";
 import { db } from "../db";
-import { blogArticles, procurationSignatures, emailLogs, scheduledEmails, opportunities } from "@shared/schema";
+import { blogArticles, procurationSignatures, emailLogs, scheduledEmails, opportunities, siteContent } from "@shared/schema";
 import type {
   BlogArticle, InsertBlogArticle,
   ProcurationSignature, InsertProcurationSignature,
   EmailLog, InsertEmailLog,
   ScheduledEmail, InsertScheduledEmail,
+  SiteContent, InsertSiteContent,
 } from "@shared/schema";
 
 // ==================== BLOG ARTICLES ====================
@@ -192,4 +193,42 @@ export async function cancelScheduledEmails(leadId: string): Promise<void> {
       eq(scheduledEmails.leadId, leadId),
       isNull(scheduledEmails.sentAt)
     ));
+}
+
+// ==================== SITE CONTENT (CMS) ====================
+
+export async function getSiteContentAll(): Promise<SiteContent[]> {
+  return db.select().from(siteContent).orderBy(siteContent.category, siteContent.sortOrder);
+}
+
+export async function getSiteContent(id: string): Promise<SiteContent | undefined> {
+  const [result] = await db.select().from(siteContent).where(eq(siteContent.id, id));
+  return result;
+}
+
+export async function getSiteContentByKey(contentKey: string): Promise<SiteContent | undefined> {
+  const [result] = await db.select().from(siteContent).where(eq(siteContent.contentKey, contentKey));
+  return result;
+}
+
+export async function getSiteContentByCategory(category: string): Promise<SiteContent[]> {
+  return db.select().from(siteContent).where(eq(siteContent.category, category)).orderBy(siteContent.sortOrder);
+}
+
+export async function createSiteContent(content: InsertSiteContent): Promise<SiteContent> {
+  const [result] = await db.insert(siteContent).values(content).returning();
+  return result;
+}
+
+export async function updateSiteContent(id: string, content: Partial<SiteContent>): Promise<SiteContent | undefined> {
+  const [result] = await db.update(siteContent)
+    .set({ ...content, updatedAt: new Date() })
+    .where(eq(siteContent.id, id))
+    .returning();
+  return result;
+}
+
+export async function deleteSiteContent(id: string): Promise<boolean> {
+  const result = await db.delete(siteContent).where(eq(siteContent.id, id)).returning();
+  return result.length > 0;
 }

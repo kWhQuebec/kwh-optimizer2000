@@ -211,6 +211,15 @@ export class DatabaseStorage implements IStorage {
   updateScheduledEmail = contentRepo.updateScheduledEmail;
   cancelScheduledEmails = contentRepo.cancelScheduledEmails;
 
+  // Site Content (CMS)
+  getSiteContentAll = contentRepo.getSiteContentAll;
+  getSiteContent = contentRepo.getSiteContent;
+  getSiteContentByKey = contentRepo.getSiteContentByKey;
+  getSiteContentByCategory = contentRepo.getSiteContentByCategory;
+  createSiteContent = contentRepo.createSiteContent;
+  updateSiteContent = contentRepo.updateSiteContent;
+  deleteSiteContent = contentRepo.deleteSiteContent;
+
   // Market Intelligence
   getCompetitors = marketIntelRepo.getCompetitors;
   getCompetitor = marketIntelRepo.getCompetitor;
