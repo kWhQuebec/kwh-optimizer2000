@@ -1661,20 +1661,20 @@ export default function PipelinePage() {
                 className="space-y-4"
               >
                 <Tabs defaultValue="opportunity" className="w-full">
-                  <TabsList className="grid w-full grid-cols-5" data-testid="tabs-edit-opportunity">
-                    <TabsTrigger value="opportunity" data-testid="tab-edit-opportunity">
+                  <TabsList className="flex w-full flex-wrap h-auto gap-1 p-1" data-testid="tabs-edit-opportunity">
+                    <TabsTrigger value="opportunity" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-opportunity">
                       {language === "fr" ? "Opportunité" : "Opportunity"}
                     </TabsTrigger>
-                    <TabsTrigger value="site" data-testid="tab-edit-site">
+                    <TabsTrigger value="site" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-site">
                       Site
                     </TabsTrigger>
-                    <TabsTrigger value="financial" data-testid="tab-edit-financial">
+                    <TabsTrigger value="financial" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-financial">
                       {language === "fr" ? "Financier" : "Financial"}
                     </TabsTrigger>
-                    <TabsTrigger value="stakeholders" data-testid="tab-edit-stakeholders">
+                    <TabsTrigger value="stakeholders" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-stakeholders">
                       {language === "fr" ? "Parties prenantes" : "Stakeholders"}
                     </TabsTrigger>
-                    <TabsTrigger value="nurturing" data-testid="tab-edit-nurturing">
+                    <TabsTrigger value="nurturing" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-nurturing">
                       Nurturing
                     </TabsTrigger>
                   </TabsList>
