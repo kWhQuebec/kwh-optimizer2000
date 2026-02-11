@@ -19,7 +19,7 @@ export interface HQBillData {
 const HQ_BILL_EXTRACTION_PROMPT = `Tu es un expert en extraction de données de factures Hydro-Québec. Analyse cette image de facture et extrait les informations suivantes en format JSON.
 
 INSTRUCTIONS IMPORTANTES:
-1. Cherche "Numéro de compte" ou "Account number" - format typique: XXXX-XXXX-XXX ou similaire
+1. Cherche "Numéro de client" ou "Client number" - c'est un numéro à 9 chiffres (format: XXX XXX XXX), PAS le "Numéro de compte" qui a 12 chiffres. Le numéro de client est distinct du numéro de compte. Exemple: si tu vois "Numéro de client: 108 304 154", retourne "108 304 154".
 2. Cherche le nom du titulaire du compte près de "Nom", "Titulaire", ou en haut de la facture
 3. Cherche l'adresse de service (pas l'adresse de correspondance) - souvent sous "Adresse de service" ou "Service address"
 4. Pour la consommation annuelle en kWh:
@@ -43,7 +43,7 @@ INSTRUCTIONS IMPORTANTES:
 
 Réponds UNIQUEMENT avec un objet JSON valide (pas de texte avant ou après):
 {
-  "accountNumber": "string ou null si non trouvé",
+  "accountNumber": "le Numéro de client (9 chiffres, ex: 108 304 154), PAS le Numéro de compte (12 chiffres). String ou null si non trouvé",
   "clientName": "string ou null si non trouvé",
   "serviceAddress": "string ou null si non trouvé",
   "annualConsumptionKwh": number ou null si non trouvé,
