@@ -1824,34 +1824,34 @@ export function RoofVisualization({
         <div className="absolute top-3 right-3 z-20 flex gap-2">
           {/* North Arrow Indicator */}
           <div 
-            className="flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm rounded px-2 py-1"
+            className="flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm rounded px-1.5 py-1"
             title={language === "fr" ? "Nord" : "North"}
             data-testid="north-arrow-indicator"
           >
+            <span className="text-[10px] font-bold text-white leading-none">N</span>
             <svg 
-              width="20" 
-              height="24" 
-              viewBox="0 0 20 24" 
+              width="16" 
+              height="18" 
+              viewBox="0 0 16 18" 
               fill="none" 
               xmlns="http://www.w3.org/2000/svg"
-              className="text-white"
+              className="mt-0.5"
             >
               <path 
-                d="M10 2L4 14H10V22L16 10H10V2Z" 
-                fill="currentColor" 
-                stroke="currentColor" 
-                strokeWidth="1"
-              />
-              <path 
-                d="M10 2L4 14H10V2Z" 
+                d="M8 1L3 10H8V1Z" 
                 fill="white"
               />
               <path 
-                d="M10 14V22L16 10H10V14Z" 
-                fill="rgba(255,255,255,0.5)"
+                d="M8 10V17L13 8H8V10Z" 
+                fill="rgba(255,255,255,0.4)"
+              />
+              <path 
+                d="M8 1L3 10H8V17L13 8H8V1Z" 
+                stroke="white" 
+                strokeWidth="0.5"
+                fill="none"
               />
             </svg>
-            <span className="text-[10px] font-bold text-white -mt-0.5">N</span>
           </div>
           <Button
             size="icon"
