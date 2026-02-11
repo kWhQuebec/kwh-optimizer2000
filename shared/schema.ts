@@ -79,6 +79,9 @@ export const leads = pgTable("leads", {
   // Hydro-Québec bill storage (transferred to site when lead converts)
   hqBillPath: text("hq_bill_path"),
 
+  nurtureStatus: text("nurture_status"),
+  nurtureStartedAt: timestamp("nurture_started_at"),
+
   // UTM Tracking Parameters
   utmSource: text("utm_source"),
   utmMedium: text("utm_medium"),
@@ -1686,6 +1689,14 @@ export const siteContent = pgTable("site_content", {
   updatedBy: varchar("updated_by"),
 });
 
+export const systemSettings = pgTable("system_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  settingKey: text("setting_key").notNull().unique(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedBy: varchar("updated_by"),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -1712,6 +1723,9 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   qualificationNextSteps: true,
   qualifiedAt: true,
   qualifiedBy: true,
+  // Nurture status (managed by system)
+  nurtureStatus: true,
+  nurtureStartedAt: true,
 });
 
 // Schema for qualification form data
@@ -1982,6 +1996,11 @@ export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
   updatedAt: true,
 });
 
+export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -2109,6 +2128,9 @@ export type ScheduledEmail = typeof scheduledEmails.$inferSelect;
 
 export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
 export type SiteContent = typeof siteContent.$inferSelect;
+
+export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
+export type SystemSettings = typeof systemSettings.$inferSelect;
 
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };

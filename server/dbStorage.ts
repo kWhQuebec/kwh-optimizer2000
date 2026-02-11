@@ -211,6 +211,10 @@ export class DatabaseStorage implements IStorage {
   updateScheduledEmail = contentRepo.updateScheduledEmail;
   cancelScheduledEmails = contentRepo.cancelScheduledEmails;
 
+  // System Settings
+  getSystemSetting = contentRepo.getSystemSetting;
+  upsertSystemSetting = contentRepo.upsertSystemSetting;
+
   // Site Content (CMS)
   getSiteContentAll = contentRepo.getSiteContentAll;
   getSiteContent = contentRepo.getSiteContent;

@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { authMiddleware, requireStaff, type AuthRequest } from "../middleware/auth";
+import { authMiddleware, requireStaff, requireAdmin, type AuthRequest } from "../middleware/auth";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
 import { storage } from "../storage";
 import { insertLeadSchema } from "@shared/schema";
@@ -561,6 +561,10 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
     // Schedule nurture sequence for the lead
     try {
       await scheduleNurtureSequence(storage, lead.id);
+      await storage.updateLead(lead.id, { 
+        nurtureStatus: "active", 
+        nurtureStartedAt: new Date() 
+      });
     } catch (scheduleErr) {
       log.warn("Failed to schedule nurture emails:", scheduleErr);
       // Non-blocking error - continue even if scheduling fails
@@ -1493,6 +1497,86 @@ router.post("/api/parse-hq-bill", billUpload.single('file'), asyncHandler(async 
       ...result,
       savedBillPath,
     },
+  });
+}));
+
+// ==================== SYSTEM SETTINGS ROUTES (ADMIN) ====================
+
+router.get("/api/admin/settings/:key", authMiddleware, requireAdmin, asyncHandler(async (req, res) => {
+  const setting = await storage.getSystemSetting(req.params.key);
+  res.json(setting || { settingKey: req.params.key, value: null });
+}));
+
+router.put("/api/admin/settings/:key", authMiddleware, requireAdmin, asyncHandler(async (req, res) => {
+  let { value } = req.body;
+  if (req.params.key === "email_nurturing_enabled" && typeof value !== "boolean") {
+    throw new BadRequestError("Value must be a boolean for email_nurturing_enabled");
+  }
+  const setting = await storage.upsertSystemSetting(req.params.key, value, (req as AuthRequest).userId);
+  res.json(setting);
+}));
+
+// ==================== NURTURE SEQUENCE CONTROL ROUTES ====================
+
+router.post("/api/leads/:id/nurture/start", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const lead = await storage.getLead(req.params.id);
+  if (!lead) throw new NotFoundError("Lead not found");
+
+  await storage.cancelScheduledEmails(lead.id);
+  await scheduleNurtureSequence(storage, lead.id);
+  await storage.updateLead(lead.id, { 
+    nurtureStatus: "active",
+    nurtureStartedAt: new Date()
+  });
+
+  res.json({ success: true, message: "Nurture sequence started" });
+}));
+
+router.post("/api/leads/:id/nurture/pause", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const lead = await storage.getLead(req.params.id);
+  if (!lead) throw new NotFoundError("Lead not found");
+
+  await storage.cancelScheduledEmails(lead.id);
+  await storage.updateLead(lead.id, { nurtureStatus: "paused" });
+
+  res.json({ success: true, message: "Nurture sequence paused" });
+}));
+
+router.post("/api/leads/:id/nurture/stop", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const lead = await storage.getLead(req.params.id);
+  if (!lead) throw new NotFoundError("Lead not found");
+
+  await storage.cancelScheduledEmails(lead.id);
+  await storage.updateLead(lead.id, { nurtureStatus: "stopped" });
+
+  res.json({ success: true, message: "Nurture sequence stopped" });
+}));
+
+router.get("/api/leads/:id/nurture/status", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const lead = await storage.getLead(req.params.id);
+  if (!lead) throw new NotFoundError("Lead not found");
+
+  const scheduledEmails = await storage.getScheduledEmailsByLead(lead.id);
+
+  const sequence = scheduledEmails.map(email => ({
+    id: email.id,
+    templateKey: email.templateKey,
+    scheduledFor: email.scheduledFor,
+    sentAt: email.sentAt,
+    cancelled: email.cancelled,
+    attempts: email.attempts,
+    lastError: email.lastError,
+    status: email.sentAt ? "sent" : email.cancelled ? "cancelled" : new Date(email.scheduledFor) <= new Date() ? "overdue" : "pending",
+  }));
+
+  res.json({
+    leadId: lead.id,
+    nurtureStatus: lead.nurtureStatus || "none",
+    nurtureStartedAt: lead.nurtureStartedAt,
+    totalEmails: sequence.length,
+    sentCount: sequence.filter(e => e.status === "sent").length,
+    pendingCount: sequence.filter(e => e.status === "pending").length,
+    sequence,
   });
 }));
 

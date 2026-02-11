@@ -47,6 +47,7 @@ import type {
   PriceHistory, InsertPriceHistory,
   GoogleSolarCache, InsertGoogleSolarCache,
   SiteContent, InsertSiteContent,
+  SystemSettings,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -301,6 +302,10 @@ export interface IStorage {
   createScheduledEmail(email: InsertScheduledEmail): Promise<ScheduledEmail>;
   updateScheduledEmail(id: string, email: Partial<ScheduledEmail>): Promise<ScheduledEmail | undefined>;
   cancelScheduledEmails(leadId: string): Promise<void>;
+
+  // System Settings
+  getSystemSetting(key: string): Promise<SystemSettings | undefined>;
+  upsertSystemSetting(key: string, value: any, updatedBy?: string): Promise<SystemSettings>;
 
   // Site Content (CMS)
   getSiteContentAll(): Promise<SiteContent[]>;
@@ -1723,6 +1728,37 @@ export class MemStorage implements IStorage {
       email.cancelled = true;
       this.scheduledEmails.set(email.id, email);
     }
+  }
+
+  // System Settings
+  private systemSettingsMap = new Map<string, SystemSettings>();
+
+  async getSystemSetting(key: string): Promise<SystemSettings | undefined> {
+    return Array.from(this.systemSettingsMap.values()).find(s => s.settingKey === key);
+  }
+
+  async upsertSystemSetting(key: string, value: any, updatedBy?: string): Promise<SystemSettings> {
+    const existing = await this.getSystemSetting(key);
+    if (existing) {
+      const updated: SystemSettings = {
+        ...existing,
+        value,
+        updatedAt: new Date(),
+        updatedBy: updatedBy ?? null,
+      };
+      this.systemSettingsMap.set(existing.id, updated);
+      return updated;
+    }
+    const id = randomUUID();
+    const created: SystemSettings = {
+      id,
+      settingKey: key,
+      value,
+      updatedAt: new Date(),
+      updatedBy: updatedBy ?? null,
+    };
+    this.systemSettingsMap.set(id, created);
+    return created;
   }
 
   // Site Content (CMS)

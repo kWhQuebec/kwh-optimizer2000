@@ -94,6 +94,15 @@ export async function processScheduledEmails(deps: SchedulerDeps) {
   const now = new Date();
 
   try {
+    const globalSetting = await deps.storage.getSystemSetting("email_nurturing_enabled");
+    if (globalSetting && globalSetting.value === false) {
+      log.info("Global email nurturing is disabled, skipping all scheduled emails");
+      return;
+    }
+    if (globalSetting && typeof globalSetting.value !== "boolean") {
+      log.warn(`email_nurturing_enabled has non-boolean value: ${JSON.stringify(globalSetting.value)}, treating as enabled`);
+    }
+
     const pendingEmails = await deps.storage.getPendingScheduledEmails(now, 10);
 
     if (pendingEmails.length === 0) {
@@ -123,6 +132,17 @@ export async function processScheduledEmails(deps: SchedulerDeps) {
             cancelled: true,
             lastError: "Lead unsubscribed",
           });
+          continue;
+        }
+
+        if (lead.nurtureStatus === "paused" || lead.nurtureStatus === "stopped") {
+          log.info(`Skipping email ${scheduled.id}: lead nurture is ${lead.nurtureStatus}`);
+          if (lead.nurtureStatus === "stopped") {
+            await deps.storage.updateScheduledEmail(scheduled.id, {
+              cancelled: true,
+              lastError: "Lead nurture stopped",
+            });
+          }
           continue;
         }
 

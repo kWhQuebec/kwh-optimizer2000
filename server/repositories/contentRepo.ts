@@ -1,12 +1,13 @@
 import { eq, desc, and, inArray, isNotNull, isNull, sql, lte } from "drizzle-orm";
 import { db } from "../db";
-import { blogArticles, procurationSignatures, emailLogs, scheduledEmails, opportunities, siteContent } from "@shared/schema";
+import { blogArticles, procurationSignatures, emailLogs, scheduledEmails, opportunities, siteContent, systemSettings } from "@shared/schema";
 import type {
   BlogArticle, InsertBlogArticle,
   ProcurationSignature, InsertProcurationSignature,
   EmailLog, InsertEmailLog,
   ScheduledEmail, InsertScheduledEmail,
   SiteContent, InsertSiteContent,
+  SystemSettings,
 } from "@shared/schema";
 
 // ==================== BLOG ARTICLES ====================
@@ -231,4 +232,36 @@ export async function updateSiteContent(id: string, content: Partial<SiteContent
 export async function deleteSiteContent(id: string): Promise<boolean> {
   const result = await db.delete(siteContent).where(eq(siteContent.id, id)).returning();
   return result.length > 0;
+}
+
+// ==================== SYSTEM SETTINGS ====================
+
+export async function getSystemSetting(key: string): Promise<SystemSettings | undefined> {
+  const [setting] = await db
+    .select()
+    .from(systemSettings)
+    .where(eq(systemSettings.settingKey, key))
+    .limit(1);
+  return setting;
+}
+
+export async function upsertSystemSetting(key: string, value: any, updatedBy?: string): Promise<SystemSettings> {
+  const [existing] = await db
+    .select()
+    .from(systemSettings)
+    .where(eq(systemSettings.settingKey, key))
+    .limit(1);
+  if (existing) {
+    const [updated] = await db
+      .update(systemSettings)
+      .set({ value, updatedAt: new Date(), updatedBy })
+      .where(eq(systemSettings.settingKey, key))
+      .returning();
+    return updated;
+  }
+  const [created] = await db
+    .insert(systemSettings)
+    .values({ settingKey: key, value, updatedBy })
+    .returning();
+  return created;
 }

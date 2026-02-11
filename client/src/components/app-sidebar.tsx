@@ -28,6 +28,7 @@ import {
   Cog,
   Hammer,
   Settings,
+  Settings2,
   BookOpen,
   FileEdit
 } from "lucide-react";
@@ -211,6 +212,12 @@ export function AppSidebar() {
       url: "/app/methodology",
       icon: BookOpen,
       tooltip: language === "fr" ? "Hypothèses et explications des calculs" : "Calculation assumptions and explanations",
+    },
+    {
+      title: language === "fr" ? "Paramètres" : "Settings",
+      url: "/app/admin/settings",
+      icon: Settings2,
+      tooltip: language === "fr" ? "Paramètres système" : "System settings",
     },
   ];
 

@@ -44,6 +44,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Opportunity, User as UserType, Client, Site, Lead } from "@shared/schema";
 import { QualificationForm } from "@/components/qualification";
+import { NurtureStatusPanel } from "@/components/nurture-status-panel";
 
 // Format currency in a compact, readable way (e.g., "$128M", "$1.5M", "$250k")
 function formatCompactCurrency(value: number | null | undefined): string {
@@ -1659,7 +1660,7 @@ export default function PipelinePage() {
                 className="space-y-4"
               >
                 <Tabs defaultValue="opportunity" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4" data-testid="tabs-edit-opportunity">
+                  <TabsList className="grid w-full grid-cols-5" data-testid="tabs-edit-opportunity">
                     <TabsTrigger value="opportunity" data-testid="tab-edit-opportunity">
                       {language === "fr" ? "Opportunité" : "Opportunity"}
                     </TabsTrigger>
@@ -1671,6 +1672,9 @@ export default function PipelinePage() {
                     </TabsTrigger>
                     <TabsTrigger value="stakeholders" data-testid="tab-edit-stakeholders">
                       {language === "fr" ? "Parties prenantes" : "Stakeholders"}
+                    </TabsTrigger>
+                    <TabsTrigger value="nurturing" data-testid="tab-edit-nurturing">
+                      Nurturing
                     </TabsTrigger>
                   </TabsList>
 
@@ -1907,6 +1911,18 @@ export default function PipelinePage() {
                         ? "Les contacts clés seront ajoutés prochainement" 
                         : "Key contacts coming soon"}
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="nurturing" className="mt-4" data-testid="tabcontent-edit-nurturing">
+                    {(selectedOpportunity as any)?.leadId ? (
+                      <NurtureStatusPanel leadId={(selectedOpportunity as any).leadId} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        {language === "fr" 
+                          ? "Cette opportunité n'est pas liée à un prospect." 
+                          : "This opportunity is not linked to a lead."}
+                      </p>
+                    )}
                   </TabsContent>
                 </Tabs>
 
