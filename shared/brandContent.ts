@@ -17,8 +17,8 @@ export const BRAND_CONTENT = {
       id: "manufacturing-director",
       quoteFr: "L'analyse détaillée nous a permis de prendre une décision éclairée. Le retour sur investissement prévu s'est avéré exact à 2% près.",
       quoteEn: "The detailed analysis allowed us to make an informed decision. The expected ROI proved accurate within 2%.",
-      authorFr: "L. Hodgkinson — DREAM Industrial REIT",
-      authorEn: "L. Hodgkinson — DREAM Industrial REIT",
+      authorFr: "L. Hodgkinson — dream Industrial REIT",
+      authorEn: "L. Hodgkinson — dream Industrial REIT",
     },
     {
       id: "warehouse-manager", 

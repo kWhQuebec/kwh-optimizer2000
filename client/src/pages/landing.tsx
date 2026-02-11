@@ -1454,7 +1454,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">L. Hodgkinson</p>
-                      <p className="text-xs text-muted-foreground">DREAM Industrial REIT</p>
+                      <p className="text-xs text-muted-foreground">dream Industrial REIT</p>
                     </div>
                   </div>
                 </div>
