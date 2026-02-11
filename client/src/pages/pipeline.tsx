@@ -641,9 +641,10 @@ export default function PipelinePage() {
     queryKey: ["/api/users"],
   });
 
-  const { data: clients = [] } = useQuery<Client[]>({
+  const { data: clientsData } = useQuery<{ clients: Client[]; total: number }>({
     queryKey: ["/api/clients"],
   });
+  const clients = clientsData?.clients ?? [];
 
   // Fetch minimal sites for site selection in opportunity form (optimized - no heavy JSON data)
   const { data: sites = [] } = useQuery<Array<{ id: string; name: string; city: string | null; clientId: string; isArchived: boolean }>>({
@@ -1937,8 +1938,8 @@ export default function PipelinePage() {
                       onClick={async () => {
                         try {
                           // apiRequest already returns parsed JSON
-                          const lead = await apiRequest("GET", `/api/leads/${(selectedOpportunity as any).leadId}`);
-                          setSelectedLeadForQualification(lead);
+                          const lead = await apiRequest("GET", `/api/leads/${(selectedOpportunity as any).leadId}`) as any;
+                          setSelectedLeadForQualification(lead as any);
                           setIsQualificationOpen(true);
                         } catch (error) {
                           console.error("Failed to fetch lead:", error);
