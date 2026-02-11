@@ -593,9 +593,7 @@ export default function LandingPage() {
                               {language === "fr" ? "ou cliquez pour sélectionner" : "or click to select"}
                             </p>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            PDF, JPG, PNG • Max 10 Mo
-                          </p>
+                          <p className="text-xs text-muted-foreground">PDF, JPG, PNG</p>
                         </div>
                       </div>
                       
@@ -1461,7 +1459,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* ========== TRIPWIRE: PRELIMINARY DESIGN STUDY ========== */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20" data-testid="section-tripwire">
         <div className="max-w-4xl mx-auto">
@@ -1597,7 +1594,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* ========== EXPERT CONSULTATION SECTION ========== */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="section-expert">
         <div className="max-w-4xl mx-auto">
@@ -1654,7 +1650,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-
       {/* ========== FINAL CTA / CONTACT SECTION ========== */}
       <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -1713,7 +1708,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-
       {/* ========== TESTIMONIALS SECTION ========== */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-muted/50 to-background">
         <div className="max-w-6xl mx-auto">
@@ -1787,7 +1781,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
       {/* ========== REFERRAL PROGRAM SECTION ========== */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -1841,7 +1834,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-
       {/* ========== FAQ SECTION ========== */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-3xl mx-auto">
@@ -1890,7 +1882,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-
       {/* ========== FOOTER ========== */}
       <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
         <div className="max-w-6xl mx-auto">
