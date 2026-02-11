@@ -1299,7 +1299,7 @@ function TimelineSlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
         <SlideTitle>
-          {language === 'fr' ? 'Échéancier Type' : 'Typical Timeline'}
+          {language === 'fr' ? 'Échéancier préliminaire' : 'Preliminary Timeline'}
         </SlideTitle>
 
         <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4">
