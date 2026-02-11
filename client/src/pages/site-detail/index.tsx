@@ -18,6 +18,7 @@ import {
   TrendingUp,
   PenTool,
   Loader2,
+  ChevronDown,
   ChevronRight,
   Circle,
   CircleCheck,
@@ -40,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -861,6 +863,119 @@ export default function SiteDetailPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Hydro-Québec Information Section */}
+      {(site.hqClientNumber || site.hqAccountNumber || site.hqBillNumber || site.hqContractNumber || site.hqLegalClientName || site.hqTariffDetail) && (
+        <Collapsible defaultOpen={true}>
+          <Card data-testid="section-hq-information">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover-elevate py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-lg">
+                      {language === "fr" ? "Informations Hydro-Québec" : "Hydro-Québec Information"}
+                    </CardTitle>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200" />
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="hq-metadata-grid">
+                  {site.hqLegalClientName && (
+                    <div data-testid="hq-field-legal-name">
+                      <div className="text-sm text-muted-foreground">
+                        {language === "fr" ? "Nom légal du client" : "Legal Client Name"}
+                      </div>
+                      <div className="font-medium">{site.hqLegalClientName}</div>
+                    </div>
+                  )}
+                  {site.hqClientNumber && (
+                    <div data-testid="hq-field-client-number">
+                      <div className="text-sm text-muted-foreground">
+                        {language === "fr" ? "Numéro de client" : "Client Number"}
+                      </div>
+                      <div className="font-medium">{site.hqClientNumber}</div>
+                    </div>
+                  )}
+                  {site.hqAccountNumber && (
+                    <div data-testid="hq-field-account-number">
+                      <div className="text-sm text-muted-foreground">
+                        {language === "fr" ? "Numéro de compte" : "Account Number"}
+                      </div>
+                      <div className="font-medium">{site.hqAccountNumber}</div>
+                    </div>
+                  )}
+                  {site.hqBillNumber && (
+                    <div data-testid="hq-field-bill-number">
+                      <div className="text-sm text-muted-foreground">
+                        {language === "fr" ? "Numéro de facture" : "Bill Number"}
+                      </div>
+                      <div className="font-medium">{site.hqBillNumber}</div>
+                    </div>
+                  )}
+                  {site.hqContractNumber && (
+                    <div data-testid="hq-field-contract-number">
+                      <div className="text-sm text-muted-foreground">
+                        {language === "fr" ? "Numéro de contrat" : "Contract Number"}
+                      </div>
+                      <div className="font-medium">{site.hqContractNumber}</div>
+                    </div>
+                  )}
+                  {site.hqTariffDetail && (
+                    <div data-testid="hq-field-tariff">
+                      <div className="text-sm text-muted-foreground">
+                        {language === "fr" ? "Tarif" : "Tariff"}
+                      </div>
+                      <div className="font-medium">
+                        <Badge variant="secondary">{site.hqTariffDetail}</Badge>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {(() => {
+                  const history = site.hqConsumptionHistory as Array<{ period?: string; kWh?: number; kW?: number; amount?: number; days?: number }> | null;
+                  if (!history || !Array.isArray(history) || history.length === 0) return null;
+                  return (
+                    <div className="pt-4 border-t border-border/50" data-testid="hq-consumption-history">
+                      <div className="text-sm font-medium mb-2">
+                        {language === "fr" ? "Historique de consommation" : "Consumption History"}
+                      </div>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{language === "fr" ? "Période" : "Period"}</TableHead>
+                              <TableHead className="text-right">kWh</TableHead>
+                              <TableHead className="text-right">kW</TableHead>
+                              <TableHead className="text-right">{language === "fr" ? "Montant ($)" : "Amount ($)"}</TableHead>
+                              <TableHead className="text-right">{language === "fr" ? "Jours" : "Days"}</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {history.map((entry, idx) => (
+                              <TableRow key={idx} data-testid={`hq-history-row-${idx}`}>
+                                <TableCell>{entry.period || "—"}</TableCell>
+                                <TableCell className="text-right">{entry.kWh != null ? formatNumber(entry.kWh, language) : "—"}</TableCell>
+                                <TableCell className="text-right">{entry.kW != null ? formatNumber(entry.kW, language) : "—"}</TableCell>
+                                <TableCell className="text-right">{entry.amount != null ? formatNumber(entry.amount, language) : "—"}</TableCell>
+                                <TableCell className="text-right">{entry.days != null ? entry.days : "—"}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       )}
 
       {/* Quick Potential Results Card */}

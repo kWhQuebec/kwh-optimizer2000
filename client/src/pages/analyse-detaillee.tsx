@@ -50,6 +50,11 @@ interface HQBillData {
   estimatedMonthlyBill: number | null;
   confidence: number;
   savedBillPath?: string;
+  billNumber: string | null;
+  hqAccountNumber: string | null;
+  contractNumber: string | null;
+  tariffDetail: string | null;
+  consumptionHistory: Array<{period: string; kWh: number | null; kW: number | null; amount: number | null; days: number | null}> | null;
 }
 
 const detailedFormSchema = z.object({
@@ -313,6 +318,11 @@ export default function AnalyseDetailleePage() {
             billingPeriod: null,
             estimatedMonthlyBill: null,
             confidence: 0.8,
+            billNumber: billData.billNumber || null,
+            hqAccountNumber: billData.hqAccountNumber || null,
+            contractNumber: billData.contractNumber || null,
+            tariffDetail: billData.tariffDetail || null,
+            consumptionHistory: billData.consumptionHistory || null,
           });
           
           // Skip to step 2 since we already have bill data
@@ -567,6 +577,15 @@ export default function AnalyseDetailleePage() {
       const savedPath = sessionPath || savedBillPathRef.current || data.savedBillPath || parsedBillData?.savedBillPath;
       if (savedPath) {
         formData.append('savedBillPath', savedPath);
+      }
+
+      if (parsedBillData) {
+        if (parsedBillData.billNumber) formData.append('hqBillNumber', parsedBillData.billNumber);
+        if (parsedBillData.hqAccountNumber) formData.append('hqAccountNumber12', parsedBillData.hqAccountNumber);
+        if (parsedBillData.contractNumber) formData.append('hqContractNumber', parsedBillData.contractNumber);
+        if (parsedBillData.tariffDetail) formData.append('hqTariffDetail', parsedBillData.tariffDetail);
+        if (parsedBillData.clientName) formData.append('hqLegalClientName', parsedBillData.clientName);
+        if (parsedBillData.consumptionHistory) formData.append('hqConsumptionHistory', JSON.stringify(parsedBillData.consumptionHistory));
       }
 
       const response = await fetch('/api/detailed-analysis-request', {

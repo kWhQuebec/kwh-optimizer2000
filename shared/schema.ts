@@ -229,6 +229,15 @@ export const sites = pgTable("sites", {
   // Hydro-Québec bill storage for Espace Client access
   hqBillPath: text("hq_bill_path"),
   hqBillUploadedAt: timestamp("hq_bill_uploaded_at"),
+
+  // Hydro-Québec bill metadata (extracted from bill parsing)
+  hqLegalClientName: text("hq_legal_client_name"), // Legal name as shown on HQ bill
+  hqClientNumber: text("hq_client_number"), // 9-digit client number (Numéro de client)
+  hqBillNumber: text("hq_bill_number"), // Bill/invoice number (Numéro de facture)
+  hqAccountNumber: text("hq_account_number"), // 12-digit account number (Numéro de compte)
+  hqContractNumber: text("hq_contract_number"), // Contract number (Numéro de contrat)
+  hqTariffDetail: text("hq_tariff_detail"), // Detailed tariff: "G", "M", "M avec GDP", etc.
+  hqConsumptionHistory: jsonb("hq_consumption_history"), // Array of {period, kWh, kW, amount} from last page table
   
   // Lead Qualification Fields (transferred from landing page form)
   roofAgeYears: integer("roof_age_years"), // Approximate roof age in years

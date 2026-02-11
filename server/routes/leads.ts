@@ -664,6 +664,12 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
     ownershipType,
     tariffCode,
     hqClientNumber,
+    hqBillNumber,
+    hqAccountNumber12,
+    hqContractNumber,
+    hqTariffDetail,
+    hqConsumptionHistory,
+    hqLegalClientName,
     notes,
     procurationAccepted,
     procurationDate,
@@ -780,6 +786,61 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
       log.info(`Auto-created opportunity ${createdOpportunityId} for lead: ${lead.id}`);
     } catch (oppError) {
       log.error(`Failed to auto-create opportunity:`, oppError);
+    }
+
+    try {
+      const client = await storage.createClient({
+        name: companyName,
+        mainContactName: contactName,
+        email,
+        phone: phone || null,
+        address: streetAddress || null,
+        city: city || null,
+        province: province || 'Québec',
+        postalCode: postalCode || null,
+        notes: 'Auto-created from Detailed Analysis request',
+      });
+
+      let parsedConsumptionHistory = null;
+      if (hqConsumptionHistory) {
+        try {
+          parsedConsumptionHistory = typeof hqConsumptionHistory === 'string'
+            ? JSON.parse(hqConsumptionHistory)
+            : hqConsumptionHistory;
+        } catch (parseErr) {
+          log.error('Failed to parse hqConsumptionHistory:', parseErr);
+        }
+      }
+
+      const site = await storage.createSite({
+        clientId: client.id,
+        name: streetAddress || `Site - ${companyName}`,
+        address: streetAddress || null,
+        city: city || null,
+        province: province || 'Québec',
+        postalCode: postalCode || null,
+        buildingType: buildingType || 'commercial',
+        roofAgeYears: roofAgeYears ? parseInt(roofAgeYears) : null,
+        ownershipType: ownershipType || null,
+        hqLegalClientName: hqLegalClientName || null,
+        hqClientNumber: hqClientNumber || null,
+        hqBillNumber: hqBillNumber || null,
+        hqAccountNumber: hqAccountNumber12 || null,
+        hqContractNumber: hqContractNumber || null,
+        hqTariffDetail: hqTariffDetail || tariffCode || null,
+        hqConsumptionHistory: parsedConsumptionHistory,
+      });
+
+      if (createdOpportunityId) {
+        await storage.updateOpportunity(createdOpportunityId, {
+          clientId: client.id,
+          siteId: site.id,
+        });
+      }
+
+      log.info(`Created client ${client.id} and site ${site.id} for detailed analysis lead`);
+    } catch (clientSiteError) {
+      log.error('Failed to create client/site for detailed analysis:', clientSiteError);
     }
 
     // Note: Lead notification is now combined with procuration email below

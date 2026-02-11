@@ -3,6 +3,14 @@ import { createLogger } from "./lib/logger";
 
 const log = createLogger("HQBillParser");
 
+export interface HQConsumptionEntry {
+  period: string;
+  kWh: number | null;
+  kW: number | null;
+  amount: number | null;
+  days: number | null;
+}
+
 export interface HQBillData {
   accountNumber: string | null;
   clientName: string | null;
@@ -14,58 +22,74 @@ export interface HQBillData {
   estimatedMonthlyBill: number | null;
   confidence: number;
   rawExtraction: string;
+  billNumber: string | null;
+  hqAccountNumber: string | null;
+  contractNumber: string | null;
+  tariffDetail: string | null;
+  consumptionHistory: HQConsumptionEntry[] | null;
 }
 
 const HQ_BILL_EXTRACTION_PROMPT = `Tu es un expert en extraction de données de factures Hydro-Québec. Analyse cette image de facture et extrait les informations suivantes en format JSON.
 
 INSTRUCTIONS IMPORTANTES:
-1. Cherche "Numéro de client" ou "Client number" - c'est un numéro à 9 chiffres (format: XXX XXX XXX), PAS le "Numéro de compte" qui a 12 chiffres. Le numéro de client est distinct du numéro de compte. Exemple: si tu vois "Numéro de client: 108 304 154", retourne "108 304 154".
-2. Cherche le nom du titulaire du compte près de "Nom", "Titulaire", ou en haut de la facture
-3. Cherche l'adresse de service (pas l'adresse de correspondance) - souvent sous "Adresse de service" ou "Service address"
-4. Pour la consommation annuelle en kWh:
+
+1. NUMÉRO DE CLIENT (clientNumber): Cherche "Numéro de client" ou "Client number" - c'est un numéro à 9 chiffres (format: XXX XXX XXX). NE PAS confondre avec le "Numéro de compte" (12 chiffres). Exemple: "108 304 154".
+
+2. NOM LÉGAL DU CLIENT (clientName): Le nom du titulaire du compte tel qu'inscrit sur la facture, près de "Nom", "Titulaire", ou en haut.
+
+3. ADRESSE DE SERVICE (serviceAddress): Cherche "Adresse de service" ou "Service address" (pas l'adresse de correspondance).
+
+4. NUMÉRO DE FACTURE (billNumber): Cherche "Numéro de facture", "Facture no", "Invoice number" - c'est un long numéro (12+ chiffres).
+
+5. NUMÉRO DE COMPTE (hqAccountNumber): Cherche "Numéro de compte" ou "Account number" - format typique: XXX XXX XXX XXX (12 chiffres). C'est DIFFÉRENT du numéro de client.
+
+6. NUMÉRO DE CONTRAT (contractNumber): Cherche "Numéro de contrat", "Contrat", "Contract number".
+
+7. CONSOMMATION ANNUELLE (annualConsumptionKwh):
    - Cherche "Consommation annuelle", "Annual consumption", ou le total kWh sur 12 mois
    - Si un graphique de 12 mois est visible, additionne les valeurs mensuelles
    - Si seulement une période est visible, extrait le kWh de cette période
-5. Pour la puissance appelée (kW):
+
+8. PUISSANCE APPELÉE (peakDemandKw):
    - Cherche "Puissance appelée", "Demande de puissance", "Peak demand", ou valeurs en kW
-   - C'est le maximum de puissance instantanée utilisée
-6. Pour le code tarifaire:
-   - Cherche "Tarif", "Rate" - exemples: D, G, G-9, M, L, LG
-   - G = Tarif général petit (< 65 kW)
-   - M = Tarif moyen (65 kW - 5 MW)
-   - L = Grand tarif (> 5 MW)
-7. Pour la période de facturation:
-   - Cherche les dates de début et fin de la période
-   - Format attendu: "Du YYYY-MM-DD au YYYY-MM-DD" ou similaire
-8. Pour le montant de la facture:
-   - Cherche "Montant à payer", "Total", "Amount due"
-   - C'est le montant total en dollars
+
+9. TARIF DÉTAILLÉ (tariffDetail): Classification tarifaire COMPLÈTE:
+   - Cherche "Tarif", "Rate" et note la classification exacte
+   - "G" = Tarif général petit débit (< 65 kW)
+   - "M" = Tarif moyen débit (65 kW - 5 MW)
+   - Si un GDP (Garantie de puissance) est mentionné, indique "M avec GDP"
+   - Autres: "G-9", "L", "LG", "BT", etc.
+   - Retourne la classification exacte telle que sur la facture
+
+10. TARIF CODE SIMPLE (tariffCode): Le code tarifaire simplifié (juste la lettre: D, G, M, L, etc.)
+
+11. PÉRIODE DE FACTURATION (billingPeriod): Dates de début et fin.
+
+12. MONTANT DE LA FACTURE (estimatedMonthlyBill): "Montant à payer", "Total", "Amount due" en dollars.
+
+13. HISTORIQUE DE CONSOMMATION (consumptionHistory): Cherche le tableau "Historique de la consommation d'électricité" qui se trouve souvent à la dernière page de la facture. C'est un tableau avec les colonnes: période, kWh, kW (puissance), montant ($), nombre de jours. Extrait TOUTES les lignes du tableau, même les anciennes.
 
 Réponds UNIQUEMENT avec un objet JSON valide (pas de texte avant ou après):
 {
-  "accountNumber": "le Numéro de client (9 chiffres, ex: 108 304 154), PAS le Numéro de compte (12 chiffres). String ou null si non trouvé",
-  "clientName": "string ou null si non trouvé",
-  "serviceAddress": "string ou null si non trouvé",
-  "annualConsumptionKwh": number ou null si non trouvé,
-  "peakDemandKw": number ou null si non trouvé,
-  "tariffCode": "string ou null si non trouvé",
-  "billingPeriod": "string ou null si non trouvé",
-  "estimatedMonthlyBill": number ou null si non trouvé,
-  "confidence": number entre 0 et 1 indiquant ta confiance dans l'extraction
+  "clientNumber": "Numéro de client 9 chiffres (ex: 108 304 154), string ou null",
+  "clientName": "Nom légal du titulaire, string ou null",
+  "serviceAddress": "Adresse de service, string ou null",
+  "billNumber": "Numéro de facture, string ou null",
+  "hqAccountNumber": "Numéro de compte 12 chiffres (ex: 299 095 411 722), string ou null",
+  "contractNumber": "Numéro de contrat, string ou null",
+  "annualConsumptionKwh": "number ou null",
+  "peakDemandKw": "number ou null",
+  "tariffCode": "Code simple (G, M, L, etc.), string ou null",
+  "tariffDetail": "Classification complète (ex: M, M avec GDP, G-9, etc.), string ou null",
+  "billingPeriod": "string ou null",
+  "estimatedMonthlyBill": "number ou null",
+  "consumptionHistory": [
+    {"period": "2024-01 au 2024-02", "kWh": 12345, "kW": 67.8, "amount": 890.12, "days": 31}
+  ],
+  "confidence": "number entre 0 et 1"
 }
 
-Si tu ne peux pas lire la facture ou si l'image n'est pas une facture HQ, retourne:
-{
-  "accountNumber": null,
-  "clientName": null,
-  "serviceAddress": null,
-  "annualConsumptionKwh": null,
-  "peakDemandKw": null,
-  "tariffCode": null,
-  "billingPeriod": null,
-  "estimatedMonthlyBill": null,
-  "confidence": 0
-}`;
+Si tu ne peux pas lire la facture ou si l'image n'est pas une facture Hydro-Québec, retourne tous les champs à null avec confidence: 0.`;
 
 export async function parseHQBill(
   imageBase64: string,
@@ -82,6 +106,11 @@ export async function parseHQBill(
     estimatedMonthlyBill: null,
     confidence: 0,
     rawExtraction: "",
+    billNumber: null,
+    hqAccountNumber: null,
+    contractNumber: null,
+    tariffDetail: null,
+    consumptionHistory: null,
   };
 
   try {
@@ -128,8 +157,18 @@ export async function parseHQBill(
 
     const parsed = JSON.parse(jsonMatch[0]);
 
+    const consumptionHistory: HQConsumptionEntry[] | null = Array.isArray(parsed.consumptionHistory)
+      ? parsed.consumptionHistory.map((entry: Record<string, unknown>) => ({
+          period: typeof entry.period === "string" ? entry.period : "",
+          kWh: typeof entry.kWh === "number" ? entry.kWh : null,
+          kW: typeof entry.kW === "number" ? entry.kW : null,
+          amount: typeof entry.amount === "number" ? entry.amount : null,
+          days: typeof entry.days === "number" ? entry.days : null,
+        }))
+      : null;
+
     const result: HQBillData = {
-      accountNumber: typeof parsed.accountNumber === "string" ? parsed.accountNumber : null,
+      accountNumber: typeof parsed.clientNumber === "string" ? parsed.clientNumber : (typeof parsed.accountNumber === "string" ? parsed.accountNumber : null),
       clientName: typeof parsed.clientName === "string" ? parsed.clientName : null,
       serviceAddress: typeof parsed.serviceAddress === "string" ? parsed.serviceAddress : null,
       annualConsumptionKwh: typeof parsed.annualConsumptionKwh === "number" ? parsed.annualConsumptionKwh : null,
@@ -139,6 +178,11 @@ export async function parseHQBill(
       estimatedMonthlyBill: typeof parsed.estimatedMonthlyBill === "number" ? parsed.estimatedMonthlyBill : null,
       confidence: typeof parsed.confidence === "number" ? Math.min(1, Math.max(0, parsed.confidence)) : 0.5,
       rawExtraction: rawText,
+      billNumber: typeof parsed.billNumber === "string" ? parsed.billNumber : null,
+      hqAccountNumber: typeof parsed.hqAccountNumber === "string" ? parsed.hqAccountNumber : null,
+      contractNumber: typeof parsed.contractNumber === "string" ? parsed.contractNumber : null,
+      tariffDetail: typeof parsed.tariffDetail === "string" ? parsed.tariffDetail : null,
+      consumptionHistory,
     };
 
     const fieldsFound = [
@@ -148,13 +192,15 @@ export async function parseHQBill(
       result.annualConsumptionKwh,
       result.tariffCode,
       result.estimatedMonthlyBill,
+      result.billNumber,
+      result.hqAccountNumber,
     ].filter(Boolean).length;
 
     if (fieldsFound < 2) {
       result.confidence = Math.min(result.confidence, 0.3);
     }
 
-    log.info(`Extracted ${fieldsFound}/6 key fields, confidence: ${result.confidence}`);
+    log.info(`Extracted ${fieldsFound}/8 key fields, confidence: ${result.confidence}`);
     return result;
 
   } catch (error) {
