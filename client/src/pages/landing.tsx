@@ -1572,8 +1572,8 @@ export default function LandingPage() {
                     className="w-full gap-2 bg-amber-600 hover:bg-amber-700"
                     onClick={() => {
                       FunnelEvents.ctaClicked('design_study', 'landing_tripwire');
-                      if (process.env.VITE_CALENDLY_URL) {
-                        window.open(process.env.VITE_CALENDLY_URL, '_blank');
+                      if (import.meta.env.VITE_CALENDLY_URL) {
+                        window.open(import.meta.env.VITE_CALENDLY_URL, '_blank');
                       } else {
                         navigate('/contact?service=design_study');
                       }
@@ -1622,10 +1622,10 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {process.env.VITE_CALENDLY_URL ? (
+            {import.meta.env.VITE_CALENDLY_URL ? (
               <div className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 min-h-[600px]">
                 <iframe
-                  src={process.env.VITE_CALENDLY_URL}
+                  src={import.meta.env.VITE_CALENDLY_URL}
                   width="100%"
                   height="650"
                   frameBorder="0"
