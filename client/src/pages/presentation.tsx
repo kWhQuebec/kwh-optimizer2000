@@ -337,7 +337,7 @@ export default function PresentationPage() {
             <img
               src={currentLogo}
               alt="kWh Québec"
-              className="h-10 w-auto"
+              className="h-20 w-auto"
               data-testid="logo-kwh-quebec"
             />
             <div className="h-8 w-px" style={{ backgroundColor: '#E5E7EB' }} />
