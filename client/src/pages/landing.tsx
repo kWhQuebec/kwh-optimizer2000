@@ -1453,8 +1453,8 @@ export default function LandingPage() {
                       <User className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{language === "fr" ? "Directeur des opérations" : "Operations Director"}</p>
-                      <p className="text-xs text-muted-foreground">{language === "fr" ? "Entreprise manufacturière, Montréal" : "Manufacturing company, Montreal"}</p>
+                      <p className="font-medium text-sm">L. Hodgkinson</p>
+                      <p className="text-xs text-muted-foreground">DREAM Industrial REIT</p>
                     </div>
                   </div>
                 </div>
