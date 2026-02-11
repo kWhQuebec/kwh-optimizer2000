@@ -1553,7 +1553,7 @@ function CredibilitySlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-5xl w-full text-center">
         <SlideTitle>
-          {language === 'fr' ? 'Ils Nous Font Confiance' : 'They Trust Us'}
+          {language === 'fr' ? 'Ils nous font confiance' : 'They Trust Us'}
         </SlideTitle>
 
         <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap mb-12">
