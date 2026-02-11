@@ -1069,6 +1069,44 @@ export async function sendProcurationNotificationToAccountManager(
   } else {
     log.error(`Failed to send notification to account manager: ${result.error}`);
   }
-  
+
   return result;
+}
+
+/**
+ * Send a template-based email for nurture sequences
+ * Uses renderEmailTemplate to substitute placeholders
+ */
+export async function sendTemplateEmail(
+  templateKey: string,
+  to: string,
+  data: Record<string, string>,
+  language: 'fr' | 'en' = 'fr'
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const rendered = renderEmailTemplate(templateKey as any, language, data);
+
+    log.info(`Sending template email ${templateKey} to ${to} (lang: ${language})`);
+
+    const result = await sendEmail({
+      to,
+      subject: rendered.subject,
+      htmlBody: rendered.html,
+      textBody: rendered.text,
+    });
+
+    if (result.success) {
+      log.info(`Template email ${templateKey} sent successfully to ${to}`);
+    } else {
+      log.error(`Failed to send template email ${templateKey}: ${result.error}`);
+    }
+
+    return result;
+  } catch (error: any) {
+    log.error(`Error sending template email ${templateKey}:`, error);
+    return {
+      success: false,
+      error: error.message || 'Unknown error',
+    };
+  }
 }

@@ -24,6 +24,7 @@ import type {
   BlogArticle, InsertBlogArticle,
   ProcurationSignature, InsertProcurationSignature,
   EmailLog, InsertEmailLog,
+  ScheduledEmail, InsertScheduledEmail,
   Competitor, InsertCompetitor,
   BattleCard, InsertBattleCard,
   BattleCardWithCompetitor,
@@ -293,6 +294,13 @@ export interface IStorage {
   createEmailLog(log: InsertEmailLog): Promise<EmailLog>;
   updateEmailLog(id: string, log: Partial<EmailLog>): Promise<EmailLog | undefined>;
 
+  // Scheduled Emails (for nurture sequences)
+  getPendingScheduledEmails(beforeDate: Date, limit: number): Promise<ScheduledEmail[]>;
+  getScheduledEmailsByLead(leadId: string): Promise<ScheduledEmail[]>;
+  createScheduledEmail(email: InsertScheduledEmail): Promise<ScheduledEmail>;
+  updateScheduledEmail(id: string, email: Partial<ScheduledEmail>): Promise<ScheduledEmail | undefined>;
+  cancelScheduledEmails(leadId: string): Promise<void>;
+
   // Market Intelligence - Competitors
   getCompetitors(): Promise<Competitor[]>;
   getCompetitor(id: string): Promise<Competitor | undefined>;
@@ -472,6 +480,7 @@ export class MemStorage implements IStorage {
   private blogArticles: Map<string, BlogArticle> = new Map();
   private procurationSignatures: Map<string, ProcurationSignature> = new Map();
   private emailLogs: Map<string, EmailLog> = new Map();
+  private scheduledEmails: Map<string, ScheduledEmail> = new Map();
   private competitorsMap: Map<string, Competitor> = new Map();
   private battleCardsMap: Map<string, BattleCard> = new Map();
   private marketNotesMap: Map<string, MarketNote> = new Map();
@@ -1651,6 +1660,58 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...log };
     this.emailLogs.set(id, updated);
     return updated;
+  }
+
+  // Scheduled Emails (for nurture sequences)
+  async getPendingScheduledEmails(beforeDate: Date, limit: number): Promise<ScheduledEmail[]> {
+    const pending = Array.from(this.scheduledEmails.values())
+      .filter(e =>
+        !e.sentAt &&
+        !e.cancelled &&
+        e.scheduledFor <= beforeDate &&
+        (e.attempts || 0) < 3
+      )
+      .sort((a, b) => (a.scheduledFor?.getTime() || 0) - (b.scheduledFor?.getTime() || 0))
+      .slice(0, limit);
+    return pending;
+  }
+
+  async getScheduledEmailsByLead(leadId: string): Promise<ScheduledEmail[]> {
+    return Array.from(this.scheduledEmails.values())
+      .filter(e => e.leadId === leadId)
+      .sort((a, b) => (a.scheduledFor?.getTime() || 0) - (b.scheduledFor?.getTime() || 0));
+  }
+
+  async createScheduledEmail(email: InsertScheduledEmail): Promise<ScheduledEmail> {
+    const id = randomUUID();
+    const newEmail: ScheduledEmail = {
+      id,
+      ...email,
+      sentAt: null,
+      cancelled: false,
+      attempts: 0,
+      lastError: null,
+      createdAt: new Date(),
+    };
+    this.scheduledEmails.set(id, newEmail);
+    return newEmail;
+  }
+
+  async updateScheduledEmail(id: string, email: Partial<ScheduledEmail>): Promise<ScheduledEmail | undefined> {
+    const existing = this.scheduledEmails.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...email };
+    this.scheduledEmails.set(id, updated);
+    return updated;
+  }
+
+  async cancelScheduledEmails(leadId: string): Promise<void> {
+    const leadEmails = Array.from(this.scheduledEmails.values())
+      .filter(e => e.leadId === leadId && !e.sentAt);
+    for (const email of leadEmails) {
+      email.cancelled = true;
+      this.scheduledEmails.set(email.id, email);
+    }
   }
 
   // Market Intelligence - Competitors

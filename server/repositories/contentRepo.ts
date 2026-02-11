@@ -1,10 +1,11 @@
-import { eq, desc, and, inArray, isNotNull, sql } from "drizzle-orm";
+import { eq, desc, and, inArray, isNotNull, isNull, sql, lte } from "drizzle-orm";
 import { db } from "../db";
-import { blogArticles, procurationSignatures, emailLogs, opportunities } from "@shared/schema";
+import { blogArticles, procurationSignatures, emailLogs, scheduledEmails, opportunities } from "@shared/schema";
 import type {
   BlogArticle, InsertBlogArticle,
   ProcurationSignature, InsertProcurationSignature,
   EmailLog, InsertEmailLog,
+  ScheduledEmail, InsertScheduledEmail,
 } from "@shared/schema";
 
 // ==================== BLOG ARTICLES ====================
@@ -146,4 +147,49 @@ export async function updateEmailLog(id: string, log: Partial<EmailLog>): Promis
     .where(eq(emailLogs.id, id))
     .returning();
   return result;
+}
+
+// ==================== SCHEDULED EMAILS ====================
+
+export async function getPendingScheduledEmails(beforeDate: Date, limit: number): Promise<ScheduledEmail[]> {
+  return db.select()
+    .from(scheduledEmails)
+    .where(
+      and(
+        isNull(scheduledEmails.sentAt),
+        lte(scheduledEmails.scheduledFor, beforeDate),
+        eq(scheduledEmails.cancelled, false)
+      )
+    )
+    .orderBy(scheduledEmails.scheduledFor)
+    .limit(limit);
+}
+
+export async function getScheduledEmailsByLead(leadId: string): Promise<ScheduledEmail[]> {
+  return db.select()
+    .from(scheduledEmails)
+    .where(eq(scheduledEmails.leadId, leadId))
+    .orderBy(scheduledEmails.scheduledFor);
+}
+
+export async function createScheduledEmail(email: InsertScheduledEmail): Promise<ScheduledEmail> {
+  const [result] = await db.insert(scheduledEmails).values(email).returning();
+  return result;
+}
+
+export async function updateScheduledEmail(id: string, email: Partial<ScheduledEmail>): Promise<ScheduledEmail | undefined> {
+  const [result] = await db.update(scheduledEmails)
+    .set(email)
+    .where(eq(scheduledEmails.id, id))
+    .returning();
+  return result;
+}
+
+export async function cancelScheduledEmails(leadId: string): Promise<void> {
+  await db.update(scheduledEmails)
+    .set({ cancelled: true })
+    .where(and(
+      eq(scheduledEmails.leadId, leadId),
+      isNull(scheduledEmails.sentAt)
+    ));
 }

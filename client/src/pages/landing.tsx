@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,6 +29,7 @@ import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { FunnelEvents, getStoredUTMParams } from "@/lib/analytics";
 import { SEOHead, seoContent, getLocalBusinessSchema } from "@/components/seo-head";
 import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
 import { getWhySolarNow, getTimeline } from "@shared/brandContent";
@@ -89,7 +90,7 @@ interface HQBillData {
   confidence: number;
 }
 
-type FlowStep = 'upload' | 'parsing' | 'extracted' | 'quickForm' | 'quickResult' | 'manualEntry' | 'submitted';
+type FlowStep = 'upload' | 'parsing' | 'extracted' | 'quickResult' | 'manualEntry' | 'submitted';
 
 export default function LandingPage() {
   const { t, language } = useI18n();
@@ -109,8 +110,30 @@ export default function LandingPage() {
   // Qualification fields
   const [roofAgeYears, setRoofAgeYears] = useState<string>('');
   const [ownershipType, setOwnershipType] = useState<'owner' | 'tenant' | ''>('');
-  
-  
+
+  // Client-side preview calculation
+  const clientPreview = useMemo(() => {
+    if (!parsedBillData?.annualConsumptionKwh) return null;
+    const annualKwh = parsedBillData.annualConsumptionKwh;
+    const monthlyBill = parsedBillData.estimatedMonthlyBill || (annualKwh * 0.07 / 12);
+    const annualBill = monthlyBill * 12;
+
+    // Estimated system size (Quebec: ~1150 kWh/kWp)
+    const systemSizeKw = Math.round(annualKwh * 0.7 / 1150); // 70% offset target
+
+    // Estimated annual savings (simplified)
+    const estimatedSavings = Math.round(annualBill * 0.35); // ~35% bill reduction typical
+
+    // Cost of inaction: 5-year projection at 3.5%/yr escalation
+    let costOfInaction5yr = 0;
+    for (let y = 0; y < 5; y++) {
+      costOfInaction5yr += annualBill * Math.pow(1.035, y);
+    }
+    const extraCost5yr = Math.round(costOfInaction5yr - (annualBill * 5));
+
+    return { systemSizeKw, estimatedSavings, annualBill, extraCost5yr, costOfInaction5yr: Math.round(costOfInaction5yr) };
+  }, [parsedBillData]);
+
   const currentLogo = language === "fr" ? logoFr : logoEn;
   
   const analysisSlides = language === "fr" 
@@ -181,32 +204,35 @@ export default function LandingPage() {
   // Dropzone for bill upload
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
-    
+
     const file = acceptedFiles[0];
     const isValidType = file.type === 'application/pdf' || file.type.startsWith('image/');
     const isValidSize = file.size <= 10 * 1024 * 1024;
-    
+
     if (!isValidType) {
-      setParseError(language === "fr" 
-        ? "Format invalide. Utilisez PDF ou image (JPG, PNG)." 
+      setParseError(language === "fr"
+        ? "Format invalide. Utilisez PDF ou image (JPG, PNG)."
         : "Invalid format. Use PDF or image (JPG, PNG).");
       return;
     }
     if (!isValidSize) {
-      setParseError(language === "fr" 
-        ? "Fichier trop volumineux. Maximum 10 Mo." 
+      setParseError(language === "fr"
+        ? "Fichier trop volumineux. Maximum 10 Mo."
         : "File too large. Maximum 10 MB.");
       return;
     }
-    
+
+    // Track bill upload event
+    FunnelEvents.billUploaded(file.type);
+
     setUploadedFile(file);
     setParseError(null);
     setFlowStep('parsing');
-    
+
     // Parse the bill with AI
     const formData = new FormData();
     formData.append('file', file);
-    
+
     fetch('/api/parse-hq-bill', {
       method: 'POST',
       body: formData,
@@ -221,10 +247,12 @@ export default function LandingPage() {
         }
         setParsedBillData(result.data as HQBillData);
         setFlowStep('extracted');
+        // Track successful bill parsing
+        FunnelEvents.billParsed(result.data.annualConsumptionKwh || 0, result.data.confidence || 0);
       })
       .catch(() => {
         setFlowStep('upload');
-        setParseError(language === "fr" 
+        setParseError(language === "fr"
           ? "Impossible d'analyser la facture. Réessayez ou entrez votre consommation manuellement."
           : "Unable to analyze the bill. Try again or enter your consumption manually.");
       });
@@ -241,10 +269,10 @@ export default function LandingPage() {
 
   // Quick analysis mutation
   const quickAnalysisMutation = useMutation({
-    mutationFn: async (data: { 
-      email: string; 
-      annualKwh: number; 
-      clientName?: string; 
+    mutationFn: async (data: {
+      email: string;
+      annualKwh: number;
+      clientName?: string;
       address?: string;
       roofAgeYears?: number;
       ownershipType?: string;
@@ -259,6 +287,7 @@ export default function LandingPage() {
           address: data.address || '',
           roofAgeYears: data.roofAgeYears,
           ownershipType: data.ownershipType,
+          ...getStoredUTMParams(),
         }),
       });
       if (!response.ok) throw new Error('Failed to get quick analysis');
@@ -271,7 +300,7 @@ export default function LandingPage() {
     onError: () => {
       toast({
         title: language === "fr" ? "Erreur" : "Error",
-        description: language === "fr" 
+        description: language === "fr"
           ? "Impossible de générer l'analyse. Veuillez réessayer."
           : "Unable to generate analysis. Please try again.",
         variant: "destructive",
@@ -283,26 +312,29 @@ export default function LandingPage() {
     if (!quickEmail || !quickEmail.includes('@')) {
       toast({
         title: language === "fr" ? "Courriel requis" : "Email required",
-        description: language === "fr" 
+        description: language === "fr"
           ? "Veuillez entrer une adresse courriel valide."
           : "Please enter a valid email address.",
         variant: "destructive",
       });
       return;
     }
-    
+
     const annualKwh = parsedBillData?.annualConsumptionKwh || parseInt(manualKwh) || 0;
     if (annualKwh < 1000) {
       toast({
         title: language === "fr" ? "Consommation invalide" : "Invalid consumption",
-        description: language === "fr" 
+        description: language === "fr"
           ? "La consommation annuelle doit être d'au moins 1,000 kWh."
           : "Annual consumption must be at least 1,000 kWh.",
         variant: "destructive",
       });
       return;
     }
-    
+
+    // Track email capture event
+    FunnelEvents.emailCaptured('quick_estimate');
+
     quickAnalysisMutation.mutate({
       email: quickEmail,
       annualKwh,
@@ -314,6 +346,9 @@ export default function LandingPage() {
   };
 
   const handleDetailedPath = () => {
+    // Track procuration start event
+    FunnelEvents.procurationStarted();
+
     // Store parsed data in localStorage for analyse-detaillee to pick up
     if (parsedBillData) {
       localStorage.setItem('kwhquebec_bill_data', JSON.stringify({
@@ -602,7 +637,7 @@ export default function LandingPage() {
                     </motion.div>
                   )}
 
-                  {/* Step 2: Extracted - Show data + two paths */}
+                  {/* Step 2: Extracted - Show data + partial preview + email gate */}
                   {flowStep === 'extracted' && parsedBillData && (
                     <motion.div
                       key="extracted"
@@ -620,7 +655,7 @@ export default function LandingPage() {
                           </span>
                         </div>
                       </div>
-                      
+
                       {/* Extracted data preview */}
                       <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                         {parsedBillData.clientName && (
@@ -642,24 +677,68 @@ export default function LandingPage() {
                           </div>
                         )}
                       </div>
-                      
-                      {/* Single CTA - direct to quick estimate */}
-                      <div className="space-y-3">
-                        <Button
-                          onClick={() => setFlowStep('quickForm')}
-                          className="w-full gap-2 h-12 text-base"
-                          data-testid="button-quick-path"
-                        >
-                          <Zap className="w-5 h-5" />
-                          {language === "fr" ? "Voir mon potentiel solaire" : "See my solar potential"}
-                        </Button>
-                        <p className="text-xs text-center text-muted-foreground">
+
+                      {/* Partial preview results (3 cards) */}
+                      {clientPreview && (
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium text-center text-primary">
+                            {language === "fr" ? "Potentiel estimé de votre bâtiment" : "Your building's estimated potential"}
+                          </p>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-primary/5 rounded-lg p-3 text-center">
+                              <p className="text-2xl font-bold text-primary">{clientPreview.systemSizeKw}</p>
+                              <p className="text-xs text-muted-foreground">kW {language === "fr" ? "solaire" : "solar"}</p>
+                            </div>
+                            <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 text-center">
+                              <p className="text-2xl font-bold text-green-600">${clientPreview.estimatedSavings.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">{language === "fr" ? "économies/an" : "savings/yr"}</p>
+                            </div>
+                            <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3 text-center">
+                              <p className="text-2xl font-bold text-red-500">+${clientPreview.extraCost5yr.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">{language === "fr" ? "surcoût en 5 ans" : "extra cost in 5 yrs"}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-center text-red-500/80">
+                            {language === "fr"
+                              ? `Ne rien faire vous coûtera ${clientPreview.costOfInaction5yr.toLocaleString()}$ sur 5 ans avec la hausse des tarifs.`
+                              : `Doing nothing will cost you $${clientPreview.costOfInaction5yr.toLocaleString()} over 5 years with rising rates.`}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Email gate */}
+                      <div className="space-y-3 pt-2 border-t">
+                        <p className="text-sm font-medium text-center">
                           {language === "fr"
-                            ? "Résultats en 2 minutes — gratuit et sans engagement"
-                            : "Results in 2 minutes — free, no commitment"}
+                            ? "Recevez votre rapport complet avec les options de financement"
+                            : "Get your full report with financing options"}
+                        </p>
+                        <Input
+                          type="email"
+                          placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
+                          value={quickEmail}
+                          onChange={(e) => setQuickEmail(e.target.value)}
+                          className="text-center"
+                          data-testid="input-quick-email"
+                        />
+                        <Button
+                          onClick={handleQuickAnalysis}
+                          disabled={quickAnalysisMutation.isPending}
+                          className="w-full gap-2 h-11"
+                          data-testid="button-submit-quick"
+                        >
+                          {quickAnalysisMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ArrowRight className="w-4 h-4" />
+                          )}
+                          {language === "fr" ? "Recevoir mon rapport gratuit" : "Get my free report"}
+                        </Button>
+                        <p className="text-[11px] text-center text-muted-foreground">
+                          {language === "fr" ? "Gratuit et sans engagement" : "Free, no commitment"}
                         </p>
                       </div>
-                      
+
                       {/* Reset link */}
                       <div className="text-center">
                         <button onClick={resetFlow} className="text-xs text-muted-foreground hover:underline">
@@ -669,114 +748,7 @@ export default function LandingPage() {
                     </motion.div>
                   )}
 
-                  {/* Step 3a: Quick form - just email */}
-                  {flowStep === 'quickForm' && (
-                    <motion.div
-                      key="quickForm"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-4"
-                    >
-                      <div className="text-center space-y-1">
-                        <h3 className="text-lg font-semibold">
-                          {language === "fr" ? "Recevez votre estimation" : "Get your estimate"}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {language === "fr" 
-                            ? "Entrez votre courriel pour recevoir les résultats" 
-                            : "Enter your email to receive the results"}
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <Input
-                          type="email"
-                          placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
-                          value={quickEmail}
-                          onChange={(e) => setQuickEmail(e.target.value)}
-                          className="text-center"
-                          data-testid="input-quick-email"
-                        />
-                        
-                        {/* Qualification Questions */}
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* Roof Age */}
-                          <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">
-                              {language === "fr" ? "Âge de la toiture" : "Roof age"}
-                            </label>
-                            <Select value={roofAgeYears} onValueChange={setRoofAgeYears}>
-                              <SelectTrigger data-testid="select-roof-age">
-                                <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="5">{language === "fr" ? "< 5 ans" : "< 5 years"}</SelectItem>
-                                <SelectItem value="10">5-10 {language === "fr" ? "ans" : "years"}</SelectItem>
-                                <SelectItem value="15">10-15 {language === "fr" ? "ans" : "years"}</SelectItem>
-                                <SelectItem value="20">15-20 {language === "fr" ? "ans" : "years"}</SelectItem>
-                                <SelectItem value="25">{language === "fr" ? "> 20 ans" : "> 20 years"}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          {/* Ownership */}
-                          <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">
-                              {language === "fr" ? "Propriétaire?" : "Owner?"}
-                            </label>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant={ownershipType === 'owner' ? 'default' : 'outline'}
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setOwnershipType('owner')}
-                                data-testid="button-owner"
-                              >
-                                {language === "fr" ? "Oui" : "Yes"}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant={ownershipType === 'tenant' ? 'default' : 'outline'}
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => setOwnershipType('tenant')}
-                                data-testid="button-tenant"
-                              >
-                                {language === "fr" ? "Non" : "No"}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <Button 
-                          onClick={handleQuickAnalysis}
-                          disabled={quickAnalysisMutation.isPending}
-                          className="w-full gap-2"
-                          data-testid="button-submit-quick"
-                        >
-                          {quickAnalysisMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <ArrowRight className="w-4 h-4" />
-                          )}
-                          {language === "fr" ? "Voir mon estimation" : "See my estimate"}
-                        </Button>
-                      </div>
-                      
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <button onClick={() => setFlowStep('extracted')} className="hover:underline">
-                          ← {language === "fr" ? "Retour" : "Back"}
-                        </button>
-                        <button onClick={handleDetailedPath} className="hover:underline text-primary">
-                          {language === "fr" ? "Analyse complète →" : "Complete analysis →"}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Step 3b: Quick results */}
+                  {/* Step 3: Quick results */}
                   {flowStep === 'quickResult' && quickAnalysisResult && (
                     <motion.div
                       key="quickResult"
@@ -788,46 +760,36 @@ export default function LandingPage() {
                       <div className="text-center space-y-2">
                         <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
                         <h3 className="text-lg font-semibold">
-                          {language === "fr" ? "Votre estimation est prête!" : "Your estimate is ready!"}
+                          {language === "fr" ? "Rapport envoyé!" : "Report sent!"}
                         </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {language === "fr"
+                            ? "Vérifiez votre boîte de réception."
+                            : "Check your inbox."}
+                        </p>
                       </div>
-                      
-                      {quickAnalysisResult.recommendedScenario && (
-                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2">
-                          <p className="text-sm text-muted-foreground text-center">
-                            {language === "fr" ? "Configuration recommandée" : "Recommended configuration"}
-                          </p>
-                          <p className="text-2xl font-bold text-center text-primary">
-                            {quickAnalysisResult.recommendedScenario.systemSizeKw?.toFixed(0) || '—'} kWc
-                          </p>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="text-center">
-                              <p className="text-muted-foreground">{language === "fr" ? "Économies/an" : "Savings/yr"}</p>
-                              <p className="font-semibold">${(quickAnalysisResult.recommendedScenario.annualSavings || 0).toLocaleString()}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-muted-foreground">{language === "fr" ? "Retour" : "Payback"}</p>
-                              <p className="font-semibold">{quickAnalysisResult.recommendedScenario.simplePaybackYears?.toFixed(1) || '—'} {language === "fr" ? "ans" : "yrs"}</p>
-                            </div>
-                          </div>
+
+                      {/* Strong push to procuration */}
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+                        <p className="text-sm font-medium text-center">
+                          {language === "fr"
+                            ? "Vous voulez des résultats basés sur vos vraies données Hydro-Québec?"
+                            : "Want results based on your real Hydro-Québec data?"}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Précision 95%" : "95% accuracy"}</div>
+                          <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Options financement" : "Financing options"}</div>
+                          <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Gratuit" : "Free"}</div>
                         </div>
-                      )}
-                      
-                      <p className="text-sm text-muted-foreground text-center">
-                        {language === "fr" 
-                          ? "Résultats envoyés à votre courriel" 
-                          : "Results sent to your email"}
-                      </p>
-                      
-                      <div className="space-y-2">
                         <Button onClick={handleDetailedPath} className="w-full gap-2" data-testid="button-upgrade-detailed">
                           <FileSignature className="w-4 h-4" />
-                          {language === "fr" ? "Obtenir l'analyse complète" : "Get the complete analysis"}
+                          {language === "fr" ? "Obtenir mon analyse détaillée gratuite" : "Get my free detailed analysis"}
                         </Button>
-                        <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
-                          {language === "fr" ? "Nouvelle analyse" : "New analysis"}
-                        </button>
                       </div>
+
+                      <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
+                        {language === "fr" ? "Nouvelle analyse" : "New analysis"}
+                      </button>
                     </motion.div>
                   )}
 

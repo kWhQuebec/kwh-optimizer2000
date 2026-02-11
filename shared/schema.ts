@@ -1643,6 +1643,19 @@ export const googleSolarCache = pgTable("google_solar_cache", {
   hitCount: integer("hit_count").default(0), // Track cache usage
 });
 
+// Scheduled emails for nurture sequences
+export const scheduledEmails = pgTable("scheduled_emails", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: varchar("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  templateKey: text("template_key").notNull(), // e.g., "nurturingIncentives", "nurturingCaseStudy"
+  scheduledFor: timestamp("scheduled_for").notNull(), // When email should be sent
+  sentAt: timestamp("sent_at"), // When email was actually sent (null if not sent yet)
+  cancelled: boolean("cancelled").default(false), // Whether this email has been cancelled
+  attempts: integer("attempts").default(0), // Number of send attempts
+  lastError: text("last_error"), // Error message if send failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -1929,6 +1942,11 @@ export const insertGoogleSolarCacheSchema = createInsertSchema(googleSolarCache)
   fetchedAt: true,
 });
 
+export const insertScheduledEmailSchema = createInsertSchema(scheduledEmails).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -2050,6 +2068,9 @@ export type RoofPolygon = typeof roofPolygons.$inferSelect;
 
 export type InsertGoogleSolarCache = z.infer<typeof insertGoogleSolarCacheSchema>;
 export type GoogleSolarCache = typeof googleSolarCache.$inferSelect;
+
+export type InsertScheduledEmail = z.infer<typeof insertScheduledEmailSchema>;
+export type ScheduledEmail = typeof scheduledEmails.$inferSelect;
 
 // Extended Market Intelligence types
 export type BattleCardWithCompetitor = BattleCard & { competitor: Competitor };

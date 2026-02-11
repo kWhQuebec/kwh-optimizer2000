@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { initGA4, captureUTMParams } from "@/lib/analytics";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { GlobalSearch } from "@/components/global-search";
@@ -537,6 +538,11 @@ function AppRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    initGA4();
+    captureUTMParams();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>

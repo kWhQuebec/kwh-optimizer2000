@@ -14,6 +14,7 @@ import { parseHQBill, type HQBillData } from "../hqBillParser";
 import { getTieredSolarCostPerW, BASELINE_YIELD, QUEBEC_MONTHLY_TEMPS } from "../analysis/potentialAnalysis";
 import { objectStorageClient } from "../replit_integrations/object_storage";
 import { createLogger } from "../lib/logger";
+import { scheduleNurtureSequence } from "../emailScheduler";
 
 const log = createLogger("Leads");
 
@@ -48,7 +49,7 @@ const upload = multer({
 // Quick estimate endpoint for landing page calculator (no auth required)
 // Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
 router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
-  const { address, email, clientName, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType } = req.body;
+  const { address, email, clientName, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
 
   // Either annualConsumptionKwh or monthlyBill is required
   if (!annualConsumptionKwh && !monthlyBill) {
@@ -415,6 +416,11 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
     const contactName = clientName || email || 'Quick Estimate Lead';
     const leadEmail = email || 'quick-estimate@placeholder.local';
 
+    // Build UTM tracking note
+    const utmNote = utm_source || utm_medium || utm_campaign || utm_term || utm_content
+      ? `\n\n[UTM TRACKING]\nutm_source: ${utm_source || 'N/A'}\nutm_medium: ${utm_medium || 'N/A'}\nutm_campaign: ${utm_campaign || 'N/A'}\nutm_term: ${utm_term || 'N/A'}\nutm_content: ${utm_content || 'N/A'}`
+      : '';
+
     const lead = await storage.createLead({
       companyName,
       contactName,
@@ -426,7 +432,7 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
       postalCode: null,
       estimatedMonthlyBill: estimatedMonthlyBill || null,
       buildingType: buildingType || "office",
-      notes: `Quick Estimate: ${Math.round(annualKWh).toLocaleString()} kWh/year, ${primaryScenario.systemSizeKW} kW system, ${tariff} tariff`,
+      notes: `Quick Estimate: ${Math.round(annualKWh).toLocaleString()} kWh/year, ${primaryScenario.systemSizeKW} kW system, ${tariff} tariff${utmNote}`,
       source: "quick_estimate",
       // Add qualification fields to lead
       roofAge: roofAgeYears ? (roofAgeYears <= 5 ? 'new' : roofAgeYears <= 10 ? 'recent' : roofAgeYears <= 15 ? 'mature' : 'old') : 'unknown',
@@ -488,6 +494,14 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
       ownerId: null,
     });
     log.info(`Created lead ${lead.id}, client ${client.id}, site ${site.id}, and opportunity for: ${companyName}`);
+
+    // Schedule nurture sequence for the lead
+    try {
+      await scheduleNurtureSequence(storage, lead.id);
+    } catch (scheduleErr) {
+      log.warn("Failed to schedule nurture emails:", scheduleErr);
+      // Non-blocking error - continue even if scheduling fails
+    }
 
     // Send notification to Account Manager about new lead (only if email was provided - real lead)
     if (email && typeof email === "string" && email.includes("@")) {

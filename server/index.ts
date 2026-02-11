@@ -8,6 +8,9 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { errorHandler } from "./middleware/errorHandler";
 import { createLogger } from "./lib/logger";
 import { startUploadCleanupScheduler } from "./lib/uploadConfig";
+import { startEmailScheduler } from "./emailScheduler";
+import { renderEmailTemplate } from "./emailTemplates";
+import { storage } from "./storage";
 
 const serverLog = createLogger("Server");
 
@@ -139,6 +142,19 @@ app.use((req, res, next) => {
   await initStripe();
   await registerRoutes(httpServer, app);
   startUploadCleanupScheduler();
+
+  // Start email scheduler for nurture sequences
+  const stopEmailScheduler = startEmailScheduler({
+    storage,
+    sendTemplateEmail: async (templateKey, to, data, lang) => {
+      const { sendTemplateEmail: send } = await import("./emailService");
+      return send(templateKey, to, data, lang);
+    },
+    getLeadById: async (id) => {
+      return storage.getLead(id);
+    },
+  });
+  serverLog.info("Email scheduler initialized");
 
   app.use(errorHandler);
 
