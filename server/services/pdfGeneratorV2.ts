@@ -220,7 +220,7 @@ p { margin-bottom: 3mm; color: var(--dark); }
 .metrics-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; margin: 6mm 0; }
 .metric-card { background: var(--light-gray); border-radius: 3mm; padding: 6mm; text-align: center; }
 .metric-value { font-size: 24pt; font-weight: 700; color: var(--primary); display: block; }
-.metric-label { font-size: 9pt; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+.metric-label { font-size: 9pt; color: var(--gray); letter-spacing: 0.5px; }
 .metric-highlight { background: var(--primary); color: white; }
 .metric-highlight .metric-value { color: white; }
 .metric-highlight .metric-label { color: rgba(255,255,255,0.8); }
