@@ -21,7 +21,9 @@ import {
   Flame,
   Snowflake,
   Clock as ClockIcon,
-  Loader2
+  Loader2,
+  Ban,
+  Trash2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +61,7 @@ function formatCompactCurrency(value: number | null | undefined): string {
   return `$${Math.round(value)}`;
 }
 
-const STAGES = ["prospect", "qualified", "proposal", "design_signed", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered", "lost"] as const;
+const STAGES = ["prospect", "qualified", "proposal", "design_signed", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered", "lost", "disqualified"] as const;
 type Stage = typeof STAGES[number];
 
 const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
@@ -72,6 +74,7 @@ const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
   won_in_construction: { fr: "Gagné - En construction (100%)", en: "Won - In Construction (100%)" },
   won_delivered: { fr: "Gagné - Livré (100%)", en: "Won - Delivered (100%)" },
   lost: { fr: "Perdu (0%)", en: "Lost (0%)" },
+  disqualified: { fr: "Non qualifié (0%)", en: "Disqualified (0%)" },
 };
 
 const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
@@ -111,6 +114,10 @@ const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
     fr: "Opportunité fermée sans succès", 
     en: "Opportunity closed without success" 
   },
+  disqualified: { 
+    fr: "Lead non qualifié – ne correspond pas aux critères (test, doublon, hors cible)", 
+    en: "Disqualified lead – does not meet criteria (test, duplicate, out of scope)" 
+  },
 };
 
 const STAGE_PROBABILITIES: Record<Stage, number> = {
@@ -123,6 +130,7 @@ const STAGE_PROBABILITIES: Record<Stage, number> = {
   won_in_construction: 100,
   won_delivered: 100,
   lost: 0,
+  disqualified: 0,
 };
 
 // Helper to check if a stage is a "won" stage
@@ -213,8 +221,12 @@ function OpportunityCard({
 }) {
   const { language } = useI18n();
   const currentStageIndex = STAGES.indexOf(opportunity.stage as Stage);
-  const canMoveForward = currentStageIndex < STAGES.length - 2;
-  const canMoveBack = currentStageIndex > 0 && !isWonStage(opportunity.stage) && opportunity.stage !== "lost";
+  const TERMINAL_STAGES = ["lost", "disqualified"] as const;
+  const isTerminalStage = (s: string) => (TERMINAL_STAGES as readonly string[]).includes(s);
+  const activeStages = STAGES.filter(s => !isTerminalStage(s));
+  const activeIndex = activeStages.indexOf(opportunity.stage as any);
+  const canMoveForward = activeIndex >= 0 && activeIndex < activeStages.length - 1 && !isWonStage(opportunity.stage);
+  const canMoveBack = currentStageIndex > 0 && !isWonStage(opportunity.stage) && !isTerminalStage(opportunity.stage);
   
   // For virtual split opportunities, use display values; otherwise use original values
   const displayName = opportunity.displayName || opportunity.name;
@@ -288,7 +300,10 @@ function OpportunityCard({
                 variant="ghost" 
                 size="sm" 
                 className="h-7 px-2 text-xs"
-                onClick={() => onStageChange(realOpportunityId, STAGES[currentStageIndex - 1])}
+                onClick={() => {
+                  const prevActive = activeStages[activeIndex - 1];
+                  if (prevActive) onStageChange(realOpportunityId, prevActive as Stage);
+                }}
                 data-testid={`button-move-back-${opportunity.id}`}
               >
                 <ChevronRight className="w-3 h-3 rotate-180" />
@@ -299,14 +314,17 @@ function OpportunityCard({
                 variant="ghost" 
                 size="sm" 
                 className="h-7 px-2 text-xs flex-1"
-                onClick={() => onStageChange(realOpportunityId, STAGES[currentStageIndex + 1])}
+                onClick={() => {
+                  const nextActive = activeStages[activeIndex + 1];
+                  if (nextActive) onStageChange(realOpportunityId, nextActive as Stage);
+                }}
                 data-testid={`button-move-forward-${opportunity.id}`}
               >
-                {STAGE_LABELS[STAGES[currentStageIndex + 1]][language]}
+                {STAGE_LABELS[activeStages[activeIndex + 1]][language]}
                 <ChevronRight className="w-3 h-3 ml-1" />
               </Button>
             )}
-            {!isWonStage(opportunity.stage) && opportunity.stage !== "lost" && (
+            {!isWonStage(opportunity.stage) && !isTerminalStage(opportunity.stage) && (
               <>
                 <Button 
                   variant="ghost" 
@@ -325,6 +343,15 @@ function OpportunityCard({
                   data-testid={`button-mark-lost-${opportunity.id}`}
                 >
                   <XCircle className="w-3 h-3" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-muted-foreground"
+                  onClick={() => onStageChange(realOpportunityId, "disqualified")}
+                  data-testid={`button-mark-disqualified-${opportunity.id}`}
+                >
+                  <Ban className="w-3 h-3" />
                 </Button>
               </>
             )}
@@ -362,6 +389,7 @@ function StageColumn({
     won_in_construction: "border-t-green-600",
     won_delivered: "border-t-green-700",
     lost: "border-t-red-500",
+    disqualified: "border-t-gray-400",
   };
 
   return (
@@ -432,6 +460,7 @@ function OpportunityListView({
     won_in_construction: "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200",
     won_delivered: "bg-green-300 text-green-900 dark:bg-green-700 dark:text-green-100",
     lost: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+    disqualified: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
   };
 
   if (opportunities.length === 0) {
@@ -764,6 +793,29 @@ export default function PipelinePage() {
     onError: () => {
       toast({
         title: language === "fr" ? "Erreur" : "Error",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/opportunities/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      setIsDetailOpen(false);
+      setSelectedOpportunity(null);
+      setIsDeleteConfirmOpen(false);
+      toast({
+        title: language === "fr" ? "Opportunité supprimée" : "Opportunity deleted",
+      });
+    },
+    onError: () => {
+      toast({
+        title: language === "fr" ? "Erreur lors de la suppression" : "Error deleting opportunity",
         variant: "destructive",
       });
     },
@@ -1928,6 +1980,18 @@ export default function PipelinePage() {
                 </Tabs>
 
                 <DialogFooter className="gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 mr-auto">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="text-destructive border-destructive/30"
+                      onClick={() => setIsDeleteConfirmOpen(true)}
+                      data-testid="button-delete-opportunity"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      {language === "fr" ? "Supprimer" : "Delete"}
+                    </Button>
+                  </div>
                   <Button type="button" variant="outline" onClick={() => setIsDetailOpen(false)}>
                     {language === "fr" ? "Annuler" : "Cancel"}
                   </Button>
@@ -1960,6 +2024,41 @@ export default function PipelinePage() {
               </form>
             </Form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {language === "fr" ? "Confirmer la suppression" : "Confirm Deletion"}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            {language === "fr" 
+              ? "Êtes-vous sûr de vouloir supprimer cette opportunité? Cette action est irréversible." 
+              : "Are you sure you want to delete this opportunity? This action cannot be undone."}
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </Button>
+            <Button 
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (selectedOpportunity) {
+                  deleteMutation.mutate(selectedOpportunity.id);
+                }
+              }}
+              data-testid="button-confirm-delete"
+            >
+              {deleteMutation.isPending 
+                ? (language === "fr" ? "Suppression..." : "Deleting...") 
+                : (language === "fr" ? "Supprimer" : "Delete")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
