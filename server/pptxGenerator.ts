@@ -41,6 +41,7 @@ export async function generatePresentationPPTX(
   const simData: any = simulation;
   const hiddenInsights = computeHiddenInsights(simData as any);
 
+
   const fmtCurrency = (value: number | null | undefined): string => formatSmartCurrencyFull(value, lang);
   const fmtSmartCurrency = (value: number | null | undefined): string => formatSmartCurrency(value, lang);
 
@@ -403,9 +404,13 @@ export async function generatePresentationPPTX(
     fontSize: 11, color: COLORS.mediumGray, align: "center"
   });
 
+  const co2Tonnes = simulation.co2AvoidedTonnesPerYear || 0;
+  const pptxTreesPlanted = Math.round((co2Tonnes * 25 * 1000) / 21.77);
+  const pptxCarsRemoved = Math.round((co2Tonnes / 4.6) * 25);
+
   const co2Equivalents = [
-    { label: t("Arbres plantes", "Trees planted"), value: `${hiddenInsights.equivalentTreesPlanted}`, suffix: t("/ 25 ans", "/ 25 yrs") },
-    { label: t("Voitures retirees", "Cars removed"), value: hiddenInsights.equivalentCarsRemoved > 0 ? hiddenInsights.equivalentCarsRemoved.toString() : "< 1", suffix: t("/ 25 ans", "/ 25 yrs") },
+    { label: t("Arbres plantes", "Trees planted"), value: `${pptxTreesPlanted}`, suffix: t("/ 25 ans", "/ 25 yrs") },
+    { label: t("Voitures retirees", "Cars removed"), value: pptxCarsRemoved > 0 ? pptxCarsRemoved.toString() : "< 1", suffix: t("/ 25 ans", "/ 25 yrs") },
     { label: t("Couverture energetique", "Energy coverage"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`, suffix: "" },
   ];
 

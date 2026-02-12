@@ -716,7 +716,7 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
     : '0';
 
   const co2Total25 = Math.round(co2Tonnes * 25);
-  const treesEquiv = Math.round((co2Tonnes * 25) / 0.022);
+  const treesEquiv = Math.round((co2Tonnes * 25 * 1000) / 21.77);
   const carsRemoved = Math.round((co2Tonnes / 4.6) * 25);
   const totalProdKWh = simulation?.totalProductionKWh ? Number(simulation.totalProductionKWh) : (simulation?.pvSizeKW ? Number(simulation.pvSizeKW) * 1035 : 0);
   const homesPowered = totalProdKWh > 0 ? Math.round(totalProdKWh / 20000) : 0;
