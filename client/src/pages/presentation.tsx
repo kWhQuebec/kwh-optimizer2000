@@ -459,7 +459,7 @@ function HeroSlide({ site, simulation, language }: { site: SiteWithDetails; simu
           >
             <Sun className="h-6 w-6 text-white" />
             <span className="text-white font-semibold text-base md:text-lg uppercase tracking-wider">
-              {language === 'fr' ? 'Analyse Solaire Commerciale' : 'Commercial Solar Analysis'}
+              {language === 'fr' ? 'Analyse solaire commerciale' : 'Commercial Solar Analysis'}
             </span>
           </div>
         </div>
@@ -549,7 +549,7 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-5xl w-full">
         <SlideTitle>
-          {language === 'fr' ? 'Votre Facture Avant / Après' : 'Your Bill Before / After'}
+          {language === 'fr' ? 'Votre facture avant / après' : 'Your Bill Before / After'}
         </SlideTitle>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-8">
@@ -647,7 +647,7 @@ function SnapshotSlide({ simulation, language }: { simulation: SimulationRun | n
         <SlideTitle
           subtitle={systemSize ? (language === 'fr' ? `Système de ${systemSize} proposé` : `Proposed ${systemSize} system`) : undefined}
         >
-          {language === 'fr' ? 'Aperçu du Projet' : 'Project Snapshot'}
+          {language === 'fr' ? 'Aperçu du projet' : 'Project Snapshot'}
         </SlideTitle>
         <p className="text-center text-base mb-2" style={{ color: BRAND_COLORS.primaryBlue, fontWeight: '500' }}>
           {language === 'fr' ? 'Voici ce que nous avons découvert sur votre bâtiment' : 'Here\'s what we discovered about your building'}
@@ -685,19 +685,19 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
   const kpis = [
     {
       icon: DollarSign,
-      label: language === 'fr' ? 'Économies An 1' : 'Year 1 Savings',
+      label: language === 'fr' ? 'Économies an 1' : 'Year 1 Savings',
       value: simulation?.savingsYear1 ? sharedFormatSmartCurrency(simulation.savingsYear1, language) : '--',
       highlight: false
     },
     {
       icon: TrendingUp,
-      label: language === 'fr' ? 'Investissement Net' : 'Net Investment',
+      label: language === 'fr' ? 'Investissement net' : 'Net Investment',
       value: simulation?.capexNet ? sharedFormatSmartCurrency(Number(simulation.capexNet), language) : '--',
       highlight: false
     },
     {
       icon: Zap,
-      label: language === 'fr' ? 'Profit Net (VAN)' : 'Net Profit (NPV)',
+      label: language === 'fr' ? 'Profit net (VAN)' : 'Net Profit (NPV)',
       value: simulation?.npv25 ? sharedFormatSmartCurrency(npv25Val, language) : '--',
       highlight: true
     },
@@ -727,7 +727,7 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
         <SlideTitle
           subtitle={npv25Val > 0 ? (language === 'fr' ? `Votre bâtiment génère un profit net de ${sharedFormatSmartCurrency(npv25Val, language)} sur 25 ans` : `Your building generates a net profit of ${sharedFormatSmartCurrency(npv25Val, language)} over 25 years`) : undefined}
         >
-          {language === 'fr' ? 'Vos Résultats' : 'Your Results'}
+          {language === 'fr' ? 'Vos résultats' : 'Your Results'}
         </SlideTitle>
 
         {simulation?.pvSizeKW && (
@@ -831,7 +831,7 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
     { label: language === 'fr' ? '- Hydro-Québec Solaire' : '- Hydro-Québec Solar', value: hqSolar, type: 'deduction' as const, color: '#FFB005' },
     { label: language === 'fr' ? '- Hydro-Québec Batterie' : '- Hydro-Québec Battery', value: hqBattery, type: 'deduction' as const, color: '#FFB005' },
     { label: language === 'fr' ? '- Crédit fédéral (ITC)' : '- Federal ITC', value: itcFederal, type: 'deduction' as const, color: '#3B82F6' },
-    { label: language === 'fr' ? '- Bouclier Fiscal' : '- Tax Shield', value: taxShield, type: 'deduction' as const, color: '#3B82F6' },
+    { label: language === 'fr' ? '- Bouclier fiscal' : '- Tax Shield', value: taxShield, type: 'deduction' as const, color: '#3B82F6' },
     { label: language === 'fr' ? 'CAPEX Net' : 'Net CAPEX', value: capexNet, type: 'total' as const, color: BRAND_COLORS.primaryBlue },
   ].filter(bar => bar.type === 'start' || bar.type === 'total' || bar.value > 0);
 
@@ -845,7 +845,7 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
         <SlideTitle
           subtitle={capexGross > 0 ? (language === 'fr' ? `Réduction de ${savingsPercent} % du coût d'investissement grâce aux incitatifs` : `${savingsPercent}% investment cost reduction through incentives`) : undefined}
         >
-          {language === 'fr' ? "Ventilation de l'Investissement" : 'Investment Breakdown'}
+          {language === 'fr' ? "Ventilation de l'investissement" : 'Investment Breakdown'}
         </SlideTitle>
 
         {capexGross > 0 ? (
@@ -890,10 +890,10 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
 
             <div className="flex flex-wrap justify-center gap-4 mt-6">
               {[
-                { label: language === 'fr' ? 'Hydro-Québec Solaire' : 'Hydro-Québec Solar', value: hqSolar },
-                { label: language === 'fr' ? 'Hydro-Québec Batterie' : 'Hydro-Québec Battery', value: hqBattery },
+                { label: language === 'fr' ? 'Hydro-Québec solaire' : 'Hydro-Québec Solar', value: hqSolar },
+                { label: language === 'fr' ? 'Hydro-Québec batterie' : 'Hydro-Québec Battery', value: hqBattery },
                 { label: language === 'fr' ? 'Crédit fédéral (ITC)' : 'Federal ITC', value: itcFederal },
-                { label: language === 'fr' ? 'Bouclier Fiscal' : 'Tax Shield', value: taxShield },
+                { label: language === 'fr' ? 'Bouclier fiscal' : 'Tax Shield', value: taxShield },
               ].filter(item => item.value > 0).map((item, i) => (
                 <div key={i} className="rounded-xl p-4 text-center shadow-sm min-w-[160px] flex-1 max-w-[220px]" style={{ border: '1px solid #E5E7EB' }}>
                   <p className="text-sm" style={{ color: '#6B7280' }}>{item.label}</p>
@@ -931,7 +931,7 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
         <SlideTitle
           subtitle={breakEvenYear ? (language === 'fr' ? `Rentable en ${breakEvenYear} ans` : `Payback in ${breakEvenYear} years`) : undefined}
         >
-          {language === 'fr' ? 'Projections Financières' : 'Financial Projections'}
+          {language === 'fr' ? 'Projections financières' : 'Financial Projections'}
         </SlideTitle>
 
         {chartData.length > 0 ? (
@@ -1144,7 +1144,7 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
       keyLabel: language === 'fr' ? 'Paiement mensuel' : 'Monthly payment',
       bullets: [
         language === 'fr' ? `Taux: 5 %, terme 10 ans` : `Rate: 5%, 10yr term`,
-        language === 'fr' ? `Net An 1: ${formatSmartCurrencyFull(loanNetYear1, language)}` : `Net Year 1: ${formatSmartCurrencyFull(loanNetYear1, language)}`,
+        language === 'fr' ? `Net an 1: ${formatSmartCurrencyFull(loanNetYear1, language)}` : `Net Year 1: ${formatSmartCurrencyFull(loanNetYear1, language)}`,
         language === 'fr' ? `Annuel: ${formatSmartCurrencyFull(loanAnnualPayment, language)}` : `Annual: ${formatSmartCurrencyFull(loanAnnualPayment, language)}`,
       ],
     },
@@ -1157,7 +1157,7 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
       keyLabel: language === 'fr' ? 'Paiement mensuel' : 'Monthly payment',
       bullets: [
         language === 'fr' ? `Taux: 7 %, terme 15 ans` : `Rate: 7%, 15yr term`,
-        language === 'fr' ? `Net An 1: ${formatSmartCurrencyFull(leaseNetYear1, language)}` : `Net Year 1: ${formatSmartCurrencyFull(leaseNetYear1, language)}`,
+        language === 'fr' ? `Net an 1: ${formatSmartCurrencyFull(leaseNetYear1, language)}` : `Net Year 1: ${formatSmartCurrencyFull(leaseNetYear1, language)}`,
         language === 'fr' ? 'Aucun investissement initial' : 'No upfront investment',
       ],
     },
@@ -1218,7 +1218,7 @@ function AssumptionsSlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
         <SlideTitle>
-          {language === 'fr' ? 'Hypothèses et Exclusions' : 'Assumptions & Exclusions'}
+          {language === 'fr' ? 'Hypothèses et exclusions' : 'Assumptions & Exclusions'}
         </SlideTitle>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
@@ -1264,7 +1264,7 @@ function EquipmentSlide({ language }: { language: string }) {
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
         <SlideTitle>
-          {language === 'fr' ? 'Équipement et Garanties' : 'Equipment & Warranties'}
+          {language === 'fr' ? 'Équipement et garanties' : 'Equipment & Warranties'}
         </SlideTitle>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

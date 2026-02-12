@@ -344,7 +344,7 @@ function buildAboutPage(
 
   return `
   <div class="page">
-    <h2>${t("Qui Sommes-Nous", "About Us")}</h2>
+    <h2>${t("Qui sommes-nous", "About Us")}</h2>
     <p class="subtitle">${t("Votre partenaire solaire cl&eacute; en main au Qu&eacute;bec", "Your turnkey solar partner in Qu&eacute;bec")}</p>
     <p style="margin-bottom: 6mm;">
       <strong>kWh Qu&eacute;bec</strong> ${t(
@@ -360,7 +360,7 @@ function buildAboutPage(
       </div>
       <div class="metric-card">
         <span class="metric-value" style="font-size: 20pt;">25+</span>
-        <span class="metric-label">${t("Projets Compl&eacute;t&eacute;s", "Completed Projects")}</span>
+        <span class="metric-label">${t("Projets compl&eacute;t&eacute;s", "Completed Projects")}</span>
       </div>
       <div class="metric-card">
         <span class="metric-value" style="font-size: 20pt;">15+ ${t("ans", "yrs")}</span>
@@ -368,11 +368,11 @@ function buildAboutPage(
       </div>
       <div class="metric-card metric-accent">
         <span class="metric-value" style="font-size: 20pt;">100%</span>
-        <span class="metric-label">${t("Cl&eacute; en Main", "Turnkey")}</span>
+        <span class="metric-label">${t("Cl&eacute; en main", "Turnkey")}</span>
       </div>
     </div>
     <div class="section">
-      <h3>${t("Notre Approche", "Our Approach")}</h3>
+      <h3>${t("Notre approche", "Our Approach")}</h3>
       <div class="metrics-grid-4">
         <div class="pillar-card">
           ${pillarIcon("#FFB005")}
@@ -397,7 +397,7 @@ function buildAboutPage(
       </div>
     </div>
     <div class="section">
-      <h3>${t("Ils Nous Font Confiance", "They Trust Us")}</h3>
+      <h3>${t("Ils nous font confiance", "They Trust Us")}</h3>
       <div class="logo-grid">
         <div class="logo-item">Dream Industrial</div>
         <div class="logo-item">Lab Space</div>
@@ -416,7 +416,7 @@ function buildAboutPage(
         </ul>
       </div>
       <div class="info-box">
-        <h3 style="color: var(--primary); margin-bottom: 2mm; font-size: 11pt;">${t("Nos Services", "Our Services")}</h3>
+        <h3 style="color: var(--primary); margin-bottom: 2mm; font-size: 11pt;">${t("Nos services", "Our Services")}</h3>
         <ul class="bullet-list" style="font-size: 9pt;">
           <li>${t("Analyse & conception solaire", "Solar analysis & design")}</li>
           <li>${t("Stockage par batteries (BESS)", "Battery storage (BESS)")}</li>
@@ -503,11 +503,11 @@ function buildProjectSnapshotPage(
 
   return `
   <div class="page">
-    <h2>${t("Aper&ccedil;u du Projet", "Project Snapshot")}</h2>
+    <h2>${t("Aper&ccedil;u du projet", "Project Snapshot")}</h2>
     <div class="metrics-grid">
       <div class="metric-card metric-highlight">
         <span class="metric-value">${fmt(sim.pvSizeKW)} kW</span>
-        <span class="metric-label">${t("Puissance Syst&egrave;me", "System Power")}</span>
+        <span class="metric-label">${t("Puissance syst&egrave;me", "System Power")}</span>
       </div>
       <div class="metric-card">
         <span class="metric-value">${fmt(totalProductionKWh)}</span>
@@ -515,12 +515,12 @@ function buildProjectSnapshotPage(
       </div>
       <div class="metric-card">
         <span class="metric-value">${Math.round(sim.selfSufficiencyPercent)}%</span>
-        <span class="metric-label">${t("Couverture &Eacute;nerg&eacute;tique", "Energy Coverage")}</span>
+        <span class="metric-label">${t("Couverture &eacute;nerg&eacute;tique", "Energy Coverage")}</span>
       </div>
     </div>
     <div class="two-column">
       <div class="section">
-        <h3>${t("Informations du Site", "Site Information")}</h3>
+        <h3>${t("Informations du site", "Site Information")}</h3>
         <div class="info-box">
           <p><strong>${t("Adresse:", "Address:")}</strong> ${sim.site.address || t("&Agrave; d&eacute;terminer", "To be determined")}</p>
           <p><strong>${t("Consommation annuelle:", "Annual consumption:")}</strong> ${fmt(sim.annualConsumptionKWh)} kWh</p>
@@ -529,7 +529,7 @@ function buildProjectSnapshotPage(
         </div>
       </div>
       <div class="section">
-        <h3>${t("Impact Environnemental", "Environmental Impact")}</h3>
+        <h3>${t("Impact environnemental", "Environmental Impact")}</h3>
         <div class="info-box">
           <p><strong>${t("CO2 &eacute;vit&eacute;:", "CO2 avoided:")}</strong> ${fmt(sim.co2AvoidedTonnesPerYear)} ${t("tonnes/an", "tonnes/yr")}</p>
           <p><strong>${t("&Eacute;quivalent arbres:", "Equivalent trees:")}</strong> ${fmt(co2Trees)} ${t("arbres", "trees")}</p>
@@ -538,7 +538,7 @@ function buildProjectSnapshotPage(
       </div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">${t("Image Satellite du Site", "Site Satellite Image")}</div>
+      <div class="chart-title">${t("Image satellite du site", "Site Satellite Image")}</div>
       ${satelliteHtml}
     </div>
     ${footerHtml(t, pageNum)}
@@ -556,29 +556,29 @@ function buildResultsPage(
 
   return `
   <div class="page">
-    <h2>${t("Vos R&eacute;sultats", "Your Results")}</h2>
+    <h2>${t("Vos r&eacute;sultats", "Your Results")}</h2>
     <p class="subtitle">${t("Projection sur 25 ans bas&eacute;e sur votre profil de consommation r&eacute;el", "25-year projection based on your actual consumption profile")}</p>
     <div class="metrics-grid">
       <div class="metric-card metric-accent">
         <span class="metric-value">${smartCur(sim.capexNet)}</span>
-        <span class="metric-label">${t("Investissement Net", "Net Investment")}</span>
+        <span class="metric-label">${t("Investissement net", "Net Investment")}</span>
       </div>
       <div class="metric-card metric-highlight">
         <span class="metric-value">${smartCur(sim.annualSavings * 25)}</span>
-        <span class="metric-label">${t("&Eacute;conomies Totales (25 ans)", "Total Savings (25 yrs)")}</span>
+        <span class="metric-label">${t("&Eacute;conomies totales (25 ans)", "Total Savings (25 yrs)")}</span>
       </div>
       <div class="metric-card">
         <span class="metric-value">${paybackStr} ${t("ans", "yrs")}</span>
-        <span class="metric-label">${t("P&eacute;riode de R&eacute;cup&eacute;ration", "Payback Period")}</span>
+        <span class="metric-label">${t("P&eacute;riode de r&eacute;cup&eacute;ration", "Payback Period")}</span>
       </div>
     </div>
     <div class="section">
-      <h3>${t("Indicateurs Financiers Cl&eacute;s", "Key Financial Indicators")}</h3>
+      <h3>${t("Indicateurs financiers cl&eacute;s", "Key Financial Indicators")}</h3>
       <table class="data-table">
-        <tr><td>${t("Taux de Rendement Interne (TRI)", "Internal Rate of Return (IRR)")}</td><td class="number"><strong>${irr}%</strong></td></tr>
-        <tr><td>${t("&Eacute;conomies Ann&eacute;e 1", "Year 1 Savings")}</td><td class="number">${cur(sim.savingsYear1)}</td></tr>
-        <tr><td>${t("&Eacute;conomies Annuelles Moy.", "Avg. Annual Savings")}</td><td class="number">${cur(sim.annualSavings)}</td></tr>
-        <tr><td>${t("Valeur Actuelle Nette (VAN 25 ans)", "Net Present Value (NPV 25 yrs)")}</td><td class="number"><strong>${cur(sim.npv25)}</strong></td></tr>
+        <tr><td>${t("Taux de rendement interne (TRI)", "Internal Rate of Return (IRR)")}</td><td class="number"><strong>${irr}%</strong></td></tr>
+        <tr><td>${t("&Eacute;conomies ann&eacute;e 1", "Year 1 Savings")}</td><td class="number">${cur(sim.savingsYear1)}</td></tr>
+        <tr><td>${t("&Eacute;conomies annuelles moy.", "Avg. Annual Savings")}</td><td class="number">${cur(sim.annualSavings)}</td></tr>
+        <tr><td>${t("Valeur actuelle nette (VAN 25 ans)", "Net Present Value (NPV 25 yrs)")}</td><td class="number"><strong>${cur(sim.npv25)}</strong></td></tr>
         <tr><td>${t("Co&ucirc;t actualis&eacute; de l'&eacute;nergie (LCOE)", "Levelized Cost of Energy (LCOE)")}</td><td class="number">${sim.lcoe > 0 ? sim.lcoe.toFixed(3) : "N/A"} $/kWh</td></tr>
         <tr><td>${t("Co&ucirc;t annuel AVANT solaire", "Annual cost BEFORE solar")}</td><td class="number">${cur(sim.annualCostBefore)}</td></tr>
         <tr><td>${t("Co&ucirc;t annuel APR&Egrave;S solaire", "Annual cost AFTER solar")}</td><td class="number" style="color: #16a34a;">${cur(sim.annualCostAfter)}</td></tr>
@@ -617,14 +617,14 @@ function generateWaterfallSVG(
   const scale = chartH / maxVal;
 
   const items = [
-    { label: t("Co&ucirc;t Brut", "Gross Cost"), value: gross, color: "#6B7280", isNeg: false },
+    { label: t("Co&ucirc;t brut", "Gross Cost"), value: gross, color: "#6B7280", isNeg: false },
     { label: t("Incitatif HQ", "HQ Incentive"), value: hq, color: "#FFB005", isNeg: true },
-    { label: t("ITC F&eacute;d&eacute;ral", "Federal ITC"), value: itc, color: "#3B82F6", isNeg: true },
+    { label: t("ITC f&eacute;d&eacute;ral", "Federal ITC"), value: itc, color: "#3B82F6", isNeg: true },
   ];
   if (taxShieldVal > 0) {
-    items.push({ label: t("Bouclier Fiscal", "Tax Shield"), value: taxShieldVal, color: "#3B82F6", isNeg: true });
+    items.push({ label: t("Bouclier fiscal", "Tax Shield"), value: taxShieldVal, color: "#3B82F6", isNeg: true });
   }
-  items.push({ label: t("Co&ucirc;t Net", "Net Cost"), value: net, color: "#003DA6", isNeg: false });
+  items.push({ label: t("Co&ucirc;t net", "Net Cost"), value: net, color: "#003DA6", isNeg: false });
 
   const totalW = items.length * barW + (items.length - 1) * gap;
   const startX = (svgW - totalW) / 2;
@@ -671,18 +671,18 @@ function buildNetInvestmentPage(
 
   return `
   <div class="page">
-    <h2>${t("Investissement Net", "Net Investment")}</h2>
+    <h2>${t("Investissement net", "Net Investment")}</h2>
     <p class="subtitle">${t("Votre co&ucirc;t r&eacute;el apr&egrave;s incitatifs fiscaux et subventions", "Your real cost after tax incentives and subsidies")}</p>
     <div class="chart-container" style="padding: 8mm;">
       ${waterfallSVG}
     </div>
     <div class="section">
-      <h3>${t("D&eacute;tail des Incitatifs", "Incentives Breakdown")}</h3>
+      <h3>${t("D&eacute;tail des incitatifs", "Incentives Breakdown")}</h3>
       <table class="data-table">
         <tr><th>${t("&Eacute;l&eacute;ment", "Item")}</th><th style="text-align: right;">${t("Montant", "Amount")}</th></tr>
         <tr><td>${t("Co&ucirc;t du syst&egrave;me (installation compl&egrave;te cl&eacute; en main)", "System cost (complete turnkey installation)")}</td><td class="number">${cur(sim.capexGross)}</td></tr>
         <tr><td>${t("Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement f&eacute;d&eacute;ral (ITC)", "Federal Investment Tax Credit (ITC)")}</td><td class="number" style="color: #16a34a;">-${cur(sim.incentivesFederal)}</td></tr>
-        <tr><td>${t("Incitatif Hydro-Qu&eacute;bec Autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
+        <tr><td>${t("Incitatif Hydro-Qu&eacute;bec autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
         ${sim.taxShield > 0 ? `<tr><td>${t("Bouclier fiscal (amortissement acc&eacute;l&eacute;r&eacute;)", "Tax shield (accelerated depreciation)")}</td><td class="number" style="color: #16a34a;">-${cur(sim.taxShield)}</td></tr>` : ""}
         <tr class="total-row"><td><strong>${t("INVESTISSEMENT NET", "NET INVESTMENT")}</strong></td><td class="number"><strong>${cur(sim.capexNet)}</strong></td></tr>
       </table>
@@ -747,10 +747,10 @@ function buildEnergyProfilePage(
 
   return `
   <div class="page">
-    <h2>${t("Profil &Eacute;nerg&eacute;tique", "Energy Profile")}</h2>
+    <h2>${t("Profil &eacute;nerg&eacute;tique", "Energy Profile")}</h2>
     <p class="subtitle">${t("Simulation heure par heure - votre consommation vs production solaire", "Hour-by-hour simulation - your consumption vs solar production")}</p>
     <div class="chart-container">
-      <div class="chart-title">${t("Profil Journalier Type", "Typical Daily Profile")}</div>
+      <div class="chart-title">${t("Profil journalier type", "Typical Daily Profile")}</div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background: var(--primary); opacity: 0.4;"></div> ${t("Consommation", "Consumption")}</div>
         <div class="legend-item"><div class="legend-dot" style="background: var(--accent);"></div> ${t("Production solaire", "Solar production")}</div>
@@ -760,7 +760,7 @@ function buildEnergyProfilePage(
     <div class="metrics-grid">
       <div class="metric-card">
         <span class="metric-value" style="font-size: 18pt;">${Math.round(sim.selfSufficiencyPercent)}%</span>
-        <span class="metric-label">${t("Taux Autoconsommation", "Self-Consumption Rate")}</span>
+        <span class="metric-label">${t("Taux autoconsommation", "Self-Consumption Rate")}</span>
       </div>
       <div class="metric-card">
         <span class="metric-value" style="font-size: 18pt;">${fmt(totalProductionKWh)}</span>
@@ -768,16 +768,16 @@ function buildEnergyProfilePage(
       </div>
       <div class="metric-card">
         <span class="metric-value" style="font-size: 18pt;">${sim.totalExportedKWh > 0 ? fmt(sim.totalExportedKWh) : "0"}</span>
-        <span class="metric-label">${t("kWh Surplus Export&eacute;", "kWh Surplus Exported")}</span>
+        <span class="metric-label">${t("kWh surplus export&eacute;", "kWh Surplus Exported")}</span>
       </div>
     </div>
     <div class="charts-row">
       <div class="chart-container" style="min-height: 35mm;">
-        <div class="chart-title">${t("Distribution Mensuelle de Production", "Monthly Production Distribution")}</div>
+        <div class="chart-title">${t("Distribution mensuelle de production", "Monthly Production Distribution")}</div>
         ${monthlyBarsSVG}
       </div>
       <div class="info-box" style="min-height: 35mm;">
-        <h3 style="font-size: 11pt; color: var(--primary); margin-bottom: 3mm;">${t("Analyse Bas&eacute;e sur Donn&eacute;es R&eacute;elles", "Analysis Based on Real Data")}</h3>
+        <h3 style="font-size: 11pt; color: var(--primary); margin-bottom: 3mm;">${t("Analyse bas&eacute;e sur donn&eacute;es r&eacute;elles", "Analysis Based on Real Data")}</h3>
         <p style="font-size: 9pt;">${t(
           "Notre simulation utilise vos <strong>donn&eacute;es de consommation Hydro-Qu&eacute;bec r&eacute;elles</strong> (via procuration) crois&eacute;es avec les donn&eacute;es d'ensoleillement satellite <strong>Google Solar API</strong>.",
           "Our simulation uses your <strong>real Hydro-Qu&eacute;bec consumption data</strong> (via power of attorney) cross-referenced with <strong>Google Solar API</strong> satellite irradiance data."
@@ -828,13 +828,13 @@ function buildStoragePage(
 
   return `
   <div class="page">
-    <h2>${t("Stockage & Optimisation", "Storage & Optimization")}</h2>
+    <h2>${t("Stockage & optimisation", "Storage & Optimization")}</h2>
     <p class="subtitle">${t("Maximisez vos &eacute;conomies avec un syst&egrave;me de batteries int&eacute;gr&eacute;", "Maximize your savings with an integrated battery system")}</p>
     <div class="two-column">
       <div class="section">
-        <h3>${t("Recommandation Batterie", "Battery Recommendation")}</h3>
+        <h3>${t("Recommandation batterie", "Battery Recommendation")}</h3>
         <div class="info-box" style="background: var(--primary); color: white;">
-          <p style="color: rgba(255,255,255,0.8); font-size: 9pt; margin-bottom: 1mm;">${t("Capacit&eacute; Recommand&eacute;e", "Recommended Capacity")}</p>
+          <p style="color: rgba(255,255,255,0.8); font-size: 9pt; margin-bottom: 1mm;">${t("Capacit&eacute; recommand&eacute;e", "Recommended Capacity")}</p>
           <p style="color: white; font-size: 22pt; font-weight: 700; margin-bottom: 1mm;">${fmt(sim.battEnergyKWh)} kWh</p>
           <p style="color: rgba(255,255,255,0.8); font-size: 9pt; margin-bottom: 3mm;">BESS (Battery Energy Storage System)</p>
           <p style="color: rgba(255,255,255,0.9); font-size: 9pt; margin: 0;">
@@ -845,11 +845,11 @@ function buildStoragePage(
         </div>
       </div>
       <div class="section">
-        <h3>${t("Impact sur la Facture", "Bill Impact")}</h3>
+        <h3>${t("Impact sur la facture", "Bill Impact")}</h3>
         <div class="metrics-grid" style="grid-template-columns: 1fr 1fr; margin: 3mm 0;">
           <div class="metric-card">
             <span class="metric-value" style="font-size: 18pt;">${peakReduction > 0 ? `-${peakReduction}%` : "N/A"}</span>
-            <span class="metric-label">${t("R&eacute;duction Pointe", "Peak Reduction")}</span>
+            <span class="metric-label">${t("R&eacute;duction pointe", "Peak Reduction")}</span>
           </div>
           <div class="metric-card metric-accent">
             <span class="metric-value" style="font-size: 18pt;">${smartCur(battSavings)}</span>
@@ -865,7 +865,7 @@ function buildStoragePage(
       </div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">${t("&Eacute;cr&ecirc;tage de la Pointe de Demande (Demand Shaving)", "Peak Demand Shaving")}</div>
+      <div class="chart-title">${t("&Eacute;cr&ecirc;tage de la pointe de demande (Demand Shaving)", "Peak Demand Shaving")}</div>
       <div style="height: 50mm; background: white; border-radius: 2mm; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #e5e7eb;">
         <div style="position: absolute; top: 15mm; left: 10mm; right: 10mm; border-top: 2px dashed #DC2626; opacity: 0.5;"></div>
         <div style="position: absolute; top: 25mm; left: 10mm; right: 10mm; border-top: 2px dashed #16a34a;"></div>
@@ -1053,7 +1053,7 @@ function buildFinancialProjectionsPage(
 
   const surplusSection = sim.totalExportedKWh > 0 ? `
     <div class="info-box" style="background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 0; margin-top: 4mm;">
-      <h3 style="font-size: 10pt; color: #16a34a; margin-bottom: 2mm;">${t("Cr&eacute;dits Surplus - Mesurage Net HQ", "Surplus Credits - HQ Net Metering")}</h3>
+      <h3 style="font-size: 10pt; color: #16a34a; margin-bottom: 2mm;">${t("Cr&eacute;dits surplus - mesurage net HQ", "Surplus Credits - HQ Net Metering")}</h3>
       <p style="font-size: 9pt; margin: 0;">
         ${t(
           `<strong>${fmt(sim.totalExportedKWh)} kWh</strong> export&eacute;s annuellement vers le r&eacute;seau HQ. Banque de cr&eacute;dits sur 24 mois au taux de r&eacute;f&eacute;rence (~4,54&cent;/kWh). Revenu surplus estim&eacute;: <strong>${cur(sim.annualSurplusRevenue)}/an</strong>.`,
@@ -1064,14 +1064,14 @@ function buildFinancialProjectionsPage(
 
   return `
   <div class="page">
-    <h2>${t("Projections Financi&egrave;res", "Financial Projections")}</h2>
+    <h2>${t("Projections financi&egrave;res", "Financial Projections")}</h2>
     <p class="subtitle">${t("&Eacute;volution sur 25 ans avec inflation &eacute;nerg&eacute;tique de 3,5%/an", "25-year evolution with 3.5%/yr energy inflation")}</p>
     ${cashflowSVG ? `<div class="chart-container">
-      <div class="chart-title">${t("Flux de Tr&eacute;sorerie Cumulatif", "Cumulative Cash Flow")}</div>
+      <div class="chart-title">${t("Flux de tr&eacute;sorerie cumulatif", "Cumulative Cash Flow")}</div>
       ${cashflowSVG}
     </div>` : ""}
     <div class="section">
-      <h3>${t("Projection Annuelle", "Annual Projection")}</h3>
+      <h3>${t("Projection annuelle", "Annual Projection")}</h3>
       <table class="data-table">
         <tr>
           <th>${t("Ann&eacute;e", "Year")}</th>
@@ -1101,11 +1101,11 @@ function buildRoofConfigPage(
 
   return `
   <div class="page">
-    <h2>${t("Configuration de Toiture", "Roof Configuration")}</h2>
+    <h2>${t("Configuration de toiture", "Roof Configuration")}</h2>
     <p class="subtitle">${t("Optimisation bas&eacute;e sur l'analyse Google Solar API", "Optimization based on Google Solar API analysis")}</p>
     <div class="two-column">
       <div class="section">
-        <h3>${t("Segments de Toiture", "Roof Segments")}</h3>
+        <h3>${t("Segments de toiture", "Roof Segments")}</h3>
         <table class="data-table">
           <tr><th>${t("Segment", "Segment")}</th><th>${t("Surface", "Area")}</th><th>${t("Orientation", "Orientation")}</th><th>${t("Inclinaison", "Tilt")}</th></tr>
           ${polygons.map((p, i) => `
@@ -1119,7 +1119,7 @@ function buildRoofConfigPage(
         <p style="font-size: 9pt; color: var(--gray); margin-top: 2mm;">${t("Surface totale:", "Total area:")} ${fmt(polygons.reduce((s, p) => s + p.areaSqM, 0))} m&sup2;</p>
       </div>
       <div class="section">
-        <h3>${t("Param&egrave;tres Techniques", "Technical Parameters")}</h3>
+        <h3>${t("Param&egrave;tres techniques", "Technical Parameters")}</h3>
         <div class="info-box">
           <p><strong>${t("Puissance syst&egrave;me:", "System power:")}</strong> ${fmt(sim.pvSizeKW)} kWc</p>
           ${sim.assumptions ? `<p><strong>${t("Surface toiture totale:", "Total roof area:")}</strong> ${fmt(sim.assumptions.roofAreaSqFt)} pi&sup2;</p>
@@ -1128,7 +1128,7 @@ function buildRoofConfigPage(
       </div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">${t("Vue A&eacute;rienne - Configuration des Panneaux", "Aerial View - Panel Configuration")}</div>
+      <div class="chart-title">${t("Vue a&eacute;rienne - configuration des panneaux", "Aerial View - Panel Configuration")}</div>
       ${imageHtml}
     </div>
     ${footerHtml(t, pageNum)}
@@ -1169,7 +1169,7 @@ function buildEquipmentPage(
 
   return `
   <div class="page">
-    <h2>${t("&Eacute;quipements & Garanties", "Equipment & Warranties")}</h2>
+    <h2>${t("&Eacute;quipements & garanties", "Equipment & Warranties")}</h2>
     <table class="data-table">
       <tr>
         <th>${t("Composant", "Component")}</th>
@@ -1191,7 +1191,7 @@ function buildEquipmentPage(
     </table>
     <div class="two-column" style="margin-top: 8mm;">
       <div class="section">
-        <h3>${t("Certifications &Eacute;quipements", "Equipment Certifications")}</h3>
+        <h3>${t("Certifications &eacute;quipements", "Equipment Certifications")}</h3>
         <ul class="bullet-list">
           <li>${t("Panneaux certifi&eacute;s CSA / UL / IEC", "Panels certified CSA / UL / IEC")}</li>
           <li>${t("Onduleurs certifi&eacute;s CSA C22.2", "Inverters certified CSA C22.2")}</li>
@@ -1200,7 +1200,7 @@ function buildEquipmentPage(
         </ul>
       </div>
       <div class="section">
-        <h3>${t("Garantie Installation kWh", "kWh Installation Warranty")}</h3>
+        <h3>${t("Garantie installation kWh", "kWh Installation Warranty")}</h3>
         <div class="info-box">
           <p><strong>${t("Main d'oeuvre:", "Labor:")}</strong> ${t("10 ans", "10 years")}</p>
           <p><strong>${t("&Eacute;tanch&eacute;it&eacute;:", "Waterproofing:")}</strong> ${t("10 ans", "10 years")}</p>
@@ -1254,10 +1254,10 @@ function buildAssumptionsPage(
 
   return `
   <div class="page">
-    <h2>${t("Hypoth&egrave;ses & Exclusions", "Assumptions & Exclusions")}</h2>
+    <h2>${t("Hypoth&egrave;ses & exclusions", "Assumptions & Exclusions")}</h2>
     <div class="two-column">
       <div class="section">
-        <h3>${t("Hypoth&egrave;ses de Calcul", "Calculation Assumptions")}</h3>
+        <h3>${t("Hypoth&egrave;ses de calcul", "Calculation Assumptions")}</h3>
         <ul class="bullet-list">
           ${assumptions.map(a => `<li>${a}</li>`).join("")}
         </ul>
@@ -1272,7 +1272,7 @@ function buildAssumptionsPage(
       </div>
     </div>
     <div class="section">
-      <h3>${t("Sources de Donn&eacute;es", "Data Sources")}</h3>
+      <h3>${t("Sources de donn&eacute;es", "Data Sources")}</h3>
       <div class="info-box">
         <p><strong>${t("Ensoleillement:", "Irradiance:")}</strong> Google Solar API (${t("donn&eacute;es satellite haute r&eacute;solution", "high-resolution satellite data")})</p>
         <p><strong>${t("Consommation:", "Consumption:")}</strong> ${t("Donn&eacute;es Hydro-Qu&eacute;bec r&eacute;elles (via procuration)", "Real Hydro-Qu&eacute;bec data (via power of attorney)")}</p>
@@ -1299,12 +1299,12 @@ function buildTimelinePage(
   pageNum: number
 ): string {
   const defaultTimeline = [
-    { step: t("Visite Technique & Conception", "Technical Visit & Design"), duration: t("Semaine 1-2", "Week 1-2"), desc: t("Relev&eacute;s sur site, analyse structurale, conception finale du syst&egrave;me", "On-site measurements, structural analysis, final system design") },
-    { step: t("Permis & Approbations", "Permits & Approvals"), duration: t("Semaine 3-4", "Week 3-4"), desc: t("Demande de permis municipal, approbation Hydro-Qu&eacute;bec pour le raccordement", "Municipal permit application, Hydro-Qu&eacute;bec connection approval") },
+    { step: t("Visite technique & conception", "Technical Visit & Design"), duration: t("Semaine 1-2", "Week 1-2"), desc: t("Relev&eacute;s sur site, analyse structurale, conception finale du syst&egrave;me", "On-site measurements, structural analysis, final system design") },
+    { step: t("Permis & approbations", "Permits & Approvals"), duration: t("Semaine 3-4", "Week 3-4"), desc: t("Demande de permis municipal, approbation Hydro-Qu&eacute;bec pour le raccordement", "Municipal permit application, Hydro-Qu&eacute;bec connection approval") },
     { step: t("Approvisionnement", "Procurement"), duration: t("Semaine 5-6", "Week 5-6"), desc: t("Commande et livraison des &eacute;quipements sur site", "Equipment ordering and on-site delivery") },
     { step: t("Installation", "Installation"), duration: t("Semaine 7-10", "Week 7-10"), desc: t("Montage structure, installation panneaux et batterie, c&acirc;blage &eacute;lectrique", "Racking assembly, panel and battery installation, electrical wiring") },
-    { step: t("Inspection & Raccordement", "Inspection & Connection"), duration: t("Semaine 11", "Week 11"), desc: t("Inspection &eacute;lectrique, raccordement au r&eacute;seau Hydro-Qu&eacute;bec", "Electrical inspection, Hydro-Qu&eacute;bec grid connection") },
-    { step: t("Mise en Service & Formation", "Commissioning & Training"), duration: t("Semaine 12", "Week 12"), desc: t("Activation du syst&egrave;me, configuration monitoring, formation &eacute;quipe client", "System activation, monitoring setup, client team training") },
+    { step: t("Inspection & raccordement", "Inspection & Connection"), duration: t("Semaine 11", "Week 11"), desc: t("Inspection &eacute;lectrique, raccordement au r&eacute;seau Hydro-Qu&eacute;bec", "Electrical inspection, Hydro-Qu&eacute;bec grid connection") },
+    { step: t("Mise en service & formation", "Commissioning & Training"), duration: t("Semaine 12", "Week 12"), desc: t("Activation du syst&egrave;me, configuration monitoring, formation &eacute;quipe client", "System activation, monitoring setup, client team training") },
   ];
 
   const useCustom = sim.constructionTimeline && sim.constructionTimeline.length > 0;
@@ -1318,7 +1318,7 @@ function buildTimelinePage(
 
   return `
   <div class="page">
-    <h2>${t("&Eacute;ch&eacute;ancier Type", "Typical Timeline")}</h2>
+    <h2>${t("&Eacute;ch&eacute;ancier type", "Typical Timeline")}</h2>
     <p class="subtitle">${t("De la signature &agrave; la mise en service", "From signing to commissioning")}</p>
     <div class="timeline">
       ${timelineItems.map(item => `
@@ -1345,24 +1345,24 @@ function buildNextStepsPage(
 ): string {
   return `
   <div class="page">
-    <h2>${t("Prochaines &Eacute;tapes", "Next Steps")}</h2>
+    <h2>${t("Prochaines &eacute;tapes", "Next Steps")}</h2>
     <p class="subtitle">${t("Un processus simple et transparent", "A simple and transparent process")}</p>
     <div class="funnel-steps">
       <div class="funnel-step">
         <div class="funnel-step-number">1</div>
-        <div class="funnel-step-title">${t("&Eacute;valuation D&eacute;taill&eacute;e", "Detailed Evaluation")}</div>
+        <div class="funnel-step-title">${t("&Eacute;valuation d&eacute;taill&eacute;e", "Detailed Evaluation")}</div>
         <p class="funnel-step-desc">${t("Procuration HQ + analyse compl&egrave;te avec donn&eacute;es r&eacute;elles. Pr&eacute;cision ~95%.", "HQ power of attorney + complete analysis with real data. ~95% accuracy.")}</p>
         <span class="funnel-step-tag">${t("GRATUIT", "FREE")}</span>
       </div>
       <div class="funnel-step">
         <div class="funnel-step-number">2</div>
-        <div class="funnel-step-title">${t("Visite & Design", "Visit & Design")}</div>
+        <div class="funnel-step-title">${t("Visite & design", "Visit & Design")}</div>
         <p class="funnel-step-desc">${t("Inspection sur site, conception finale, devis ferme garanti 60 jours.", "On-site inspection, final design, firm quote guaranteed 60 days.")}</p>
         <span class="funnel-step-tag paid">${t("DEVIS FORMEL", "FORMAL QUOTE")}</span>
       </div>
       <div class="funnel-step">
         <div class="funnel-step-number">3</div>
-        <div class="funnel-step-title">${t("Ing&eacute;nierie & Construction", "Engineering & Construction")}</div>
+        <div class="funnel-step-title">${t("Ing&eacute;nierie & construction", "Engineering & Construction")}</div>
         <p class="funnel-step-desc">${t("Plans PE, permis, installation cl&eacute; en main. On s'occupe de tout.", "PE drawings, permits, turnkey installation. We handle everything.")}</p>
         <span class="funnel-step-tag paid">8-12 ${t("SEMAINES", "WEEKS")}</span>
       </div>

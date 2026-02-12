@@ -55,7 +55,7 @@ export async function generatePresentationPPTX(
   
   pptx.author = "kWh Québec";
   pptx.company = "kWh Québec";
-  pptx.title = `${t("Étude Solaire", "Solar Study")} - ${simulation.site.name}`;
+  pptx.title = `${t("Étude solaire", "Solar Study")} - ${simulation.site.name}`;
   pptx.subject = t("Proposition commerciale solaire + stockage", "Solar + Storage Commercial Proposal");
   
   let masterLogoBase64: string | null = null;
@@ -452,11 +452,11 @@ export async function generatePresentationPPTX(
   const taxShield = simulation.taxShield || 0;
 
   const waterfallBars = [
-    { label: t("CAPEX Brut", "Gross CAPEX"), value: capexGross, type: "start" as const },
-    { label: t("-HQ Solaire", "-HQ Solar"), value: hqSolar, type: "deduction" as const },
-    { label: t("-HQ Batterie", "-HQ Battery"), value: hqBattery, type: "deduction" as const },
-    { label: t("-ITC Fédéral", "-Federal ITC"), value: itcFederal, type: "deduction" as const },
-    { label: t("-Bouclier Fiscal", "-Tax Shield"), value: taxShield, type: "deduction" as const },
+    { label: t("CAPEX brut", "Gross CAPEX"), value: capexGross, type: "start" as const },
+    { label: t("-HQ solaire", "-HQ Solar"), value: hqSolar, type: "deduction" as const },
+    { label: t("-HQ batterie", "-HQ Battery"), value: hqBattery, type: "deduction" as const },
+    { label: t("-ITC fédéral", "-Federal ITC"), value: itcFederal, type: "deduction" as const },
+    { label: t("-Bouclier fiscal", "-Tax Shield"), value: taxShield, type: "deduction" as const },
     { label: t("= Net", "= Net"), value: capexNet, type: "total" as const },
   ];
 
@@ -724,7 +724,7 @@ export async function generatePresentationPPTX(
         highlighted: true,
         rows: [
           { label: t("Investissement", "Investment"), value: fmtCurrency(finCapexNet) },
-          { label: t("Economies An 1", "Year 1 Savings"), value: fmtCurrency(finSavingsYear1) },
+          { label: t("Économies an 1", "Year 1 Savings"), value: fmtCurrency(finSavingsYear1) },
           { label: t("Retour simple", "Simple Payback"), value: `${finPayback.toFixed(1)} ${t("ans", "yrs")}` },
           { label: t("VAN 25 ans", "25yr NPV"), value: fmtCurrency(finNpv25) },
         ]

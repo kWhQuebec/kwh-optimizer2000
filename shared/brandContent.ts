@@ -48,12 +48,12 @@ export const BRAND_CONTENT = {
 
   // === FORMAT DES KPIs ===
   kpiConfig: {
-    npv: { labelFr: "Profit Net (VAN)", labelEn: "Net Profit (NPV)", highlight: true },
+    npv: { labelFr: "Profit net (VAN)", labelEn: "Net Profit (NPV)", highlight: true },
     irr: { labelFr: "Rendement (TRI)", labelEn: "Return (IRR)", highlight: true },
-    savings: { labelFr: "Économies An 1", labelEn: "Year 1 Savings", highlight: false },
-    capexNet: { labelFr: "Investissement Net", labelEn: "Net Investment", highlight: false },
+    savings: { labelFr: "Économies an 1", labelEn: "Year 1 Savings", highlight: false },
+    capexNet: { labelFr: "Investissement net", labelEn: "Net Investment", highlight: false },
     payback: { labelFr: "Retour simple", labelEn: "Simple Payback", highlight: false },
-    pvSize: { labelFr: "Puissance Solaire", labelEn: "Solar Power", highlight: false },
+    pvSize: { labelFr: "Puissance solaire", labelEn: "Solar Power", highlight: false },
     batterySize: { labelFr: "Stockage", labelEn: "Storage", highlight: false },
   },
 
@@ -164,7 +164,7 @@ export const BRAND_CONTENT = {
     annualConsumption: { labelFr: "Consommation annuelle", labelEn: "Annual consumption", unit: "kWh" },
     peakDemand: { labelFr: "Demande de pointe", labelEn: "Peak demand", unit: "kW" },
     currentTariff: { labelFr: "Tarif HQ actuel", labelEn: "Current HQ tariff", unit: "" },
-    estimatedProduction: { labelFr: "Production solaire An 1", labelEn: "Year-1 solar production", unit: "kWh" },
+    estimatedProduction: { labelFr: "Production solaire an 1", labelEn: "Year-1 solar production", unit: "kWh" },
     selfConsumptionRate: { labelFr: "Taux d'autoconsommation", labelEn: "Self-consumption rate", unit: "%" },
     solarCapacity: { labelFr: "Puissance solaire proposée", labelEn: "Proposed solar capacity", unit: "kWc" },
     batteryCapacity: { labelFr: "Stockage proposé", labelEn: "Proposed storage", unit: "kWh" },
