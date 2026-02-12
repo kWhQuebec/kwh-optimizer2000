@@ -447,8 +447,8 @@ function buildAboutPage(
         <h3 style="color: var(--primary); margin-bottom: 2mm; font-size: 11pt;">${t("Certifications", "Certifications")}</h3>
         <ul class="bullet-list" style="font-size: 9pt;">
           <li>${t("Licence RBQ 1.3 &mdash; Entrepreneur g&eacute;n&eacute;ral", "RBQ License 1.3 &mdash; General Contractor")}</li>
-          <li>${t("Inscrit CNESST", "CNESST Registered")}</li>
-          <li>${t("Inscrit CCQ", "CCQ Registered")}</li>
+          <li>CNESST</li>
+          <li>CCQ</li>
           <li>${t("Assurances 5 M$", "$5M Insurance Coverage")}</li>
         </ul>
       </div>
