@@ -645,6 +645,7 @@ export function RoofVisualization({
 }: RoofVisualizationProps) {
   const { language } = useI18n();
   const { toast } = useToast();
+  const sectionRef = useRef<HTMLDivElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const panelPolygonsRef = useRef<google.maps.Polygon[]>([]);
@@ -1740,23 +1741,41 @@ export function RoofVisualization({
     }
   }, [mapRef, roofPolygons, allPanelPositions, panelsToShow, siteName, language, toast]);
 
-  // Capture visualization as base64 image using html2canvas
   const captureVisualization = useCallback(async (): Promise<string | null> => {
-    if (!mapContainerRef.current) return null;
+    const target = sectionRef.current;
+    if (!target) return null;
     
     try {
-      // Wait a moment for the map to fully render
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const canvas = await html2canvas(mapContainerRef.current, {
+      const hideSelectors = [
+        '[data-testid="button-export-image"]',
+        '[data-testid="button-fullscreen"]',
+        '[data-testid="capacity-slider"]',
+        '.slider-markers',
+      ];
+      const hidden: HTMLElement[] = [];
+      hideSelectors.forEach(sel => {
+        target.querySelectorAll<HTMLElement>(sel).forEach(el => {
+          hidden.push(el);
+          el.style.visibility = 'hidden';
+        });
+      });
+
+      const prevOverflow = target.style.overflow;
+      target.style.overflow = 'visible';
+
+      const canvas = await html2canvas(target, {
         useCORS: true,
         allowTaint: true,
-        scale: 2, // Higher resolution
-        backgroundColor: null,
+        scale: 2,
+        backgroundColor: '#ffffff',
         logging: false,
       });
+
+      target.style.overflow = prevOverflow;
+      hidden.forEach(el => { el.style.visibility = ''; });
       
-      // Convert to base64 PNG
       const dataUrl = canvas.toDataURL('image/png');
       return dataUrl;
     } catch (error) {
@@ -1787,7 +1806,7 @@ export function RoofVisualization({
   const displayedCapacityKW = Math.round(panelsToShow * PANEL_KW);
 
   return (
-    <div className="relative rounded-xl overflow-hidden" data-testid="roof-visualization">
+    <div ref={sectionRef} className="relative rounded-xl overflow-hidden" data-testid="roof-visualization">
       <div className="relative w-full h-72 md:h-96">
         <div ref={mapContainerRef} className="absolute inset-0" />
         
