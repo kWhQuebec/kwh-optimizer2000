@@ -125,7 +125,7 @@ export async function generateProfessionalPDFv2(
     pages.push(buildRoofConfigPage(simulation, t, roofImageBase64, nextPage()));
   }
 
-  pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
+  // Equipment page removed — too detailed for preliminary study
   pages.push(buildAssumptionsPage(simulation, t, nextPage()));
   pages.push(buildTimelinePage(simulation, t, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, nextPage()));
