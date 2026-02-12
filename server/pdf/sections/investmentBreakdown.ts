@@ -28,8 +28,8 @@ export function renderInvestmentBreakdown(ctx: PDFContext) {
   // Visual waterfall chart
   const waterfallItems = [
     { label: t("CAPEX Brut", "Gross CAPEX"), value: simulation.capexGross, isDeduction: false },
-    { label: t("HQ Solaire", "HQ Solar"), value: simulation.incentivesHQSolar, isDeduction: true },
-    { label: t("HQ Batterie", "HQ Battery"), value: simulation.incentivesHQBattery, isDeduction: true },
+    { label: t("Hydro-Québec Solaire", "Hydro-Québec Solar"), value: simulation.incentivesHQSolar, isDeduction: true },
+    { label: t("Hydro-Québec Batterie", "Hydro-Québec Battery"), value: simulation.incentivesHQBattery, isDeduction: true },
     { label: t("ITC Fédéral", "Federal ITC"), value: simulation.incentivesFederal, isDeduction: true },
     { label: t("Bouclier Fiscal", "Tax Shield"), value: simulation.taxShield, isDeduction: true },
   ];

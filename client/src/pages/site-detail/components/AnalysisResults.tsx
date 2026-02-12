@@ -498,7 +498,7 @@ export function AnalysisResults({
                 <CreditCard className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{language === "fr" ? "Tarif HQ" : "HQ Tariff"}</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "Tarif Hydro-Québec" : "Hydro-Québec Tariff"}</p>
                 <p className="text-lg font-bold font-mono" data-testid="text-tariff">
                   {assumptions.tariffCode || (language === "fr" ? "M / G" : "M / G")}
                 </p>

@@ -1027,7 +1027,7 @@ const translations: Translations = {
   "testimonials.item2.name": { fr: "Sophie Lavoie", en: "Sophie Lavoie" },
   "testimonials.item2.role": { fr: "Propriétaire", en: "Owner" },
   "testimonials.item2.company": { fr: "Centre Commercial Rive-Sud", en: "Centre Commercial Rive-Sud" },
-  "testimonials.item2.text": { fr: "Le processus était transparent du début à la fin. L'équipe de kWh Québec a géré les incitatifs, la procuration HQ, tout. On n'a presque rien eu à faire.", en: "The process was transparent from start to finish. The kWh Québec team handled incentives, HQ procuration, everything. We barely had to do anything." },
+  "testimonials.item2.text": { fr: "Le processus était transparent du début à la fin. L'équipe de kWh Québec a géré les incitatifs, la procuration Hydro-Québec, tout. On n'a presque rien eu à faire.", en: "The process was transparent from start to finish. The kWh Québec team handled incentives, Hydro-Québec procuration, everything. We barely had to do anything." },
   "testimonials.item2.savings": { fr: "$67,000/an", en: "$67,000/year" },
   "testimonials.item2.system": { fr: "320 kW", en: "320 kW" },
 

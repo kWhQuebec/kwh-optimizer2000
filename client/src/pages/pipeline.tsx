@@ -506,7 +506,7 @@ function OpportunityListView({
                 {/* RFP Split Type Badge */}
                 {opp.isVirtualSplit && (
                   <Badge className={`text-xs ${opp.splitType === 'rfp' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>
-                    {opp.splitType === 'rfp' ? 'RFP HQ' : 'Hors RFP'}
+                    {opp.splitType === 'rfp' ? 'RFP Hydro-Québec' : 'Hors RFP'}
                   </Badge>
                 )}
 

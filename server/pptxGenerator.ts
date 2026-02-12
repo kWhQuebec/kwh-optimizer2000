@@ -459,8 +459,8 @@ export async function generatePresentationPPTX(
 
   const waterfallBars = [
     { label: t("CAPEX brut", "Gross CAPEX"), value: capexGross, type: "start" as const },
-    { label: t("-HQ solaire", "-HQ Solar"), value: hqSolar, type: "deduction" as const },
-    { label: t("-HQ batterie", "-HQ Battery"), value: hqBattery, type: "deduction" as const },
+    { label: t("-Hydro-Québec solaire", "-Hydro-Québec Solar"), value: hqSolar, type: "deduction" as const },
+    { label: t("-Hydro-Québec batterie", "-Hydro-Québec Battery"), value: hqBattery, type: "deduction" as const },
     { label: t("-ITC fédéral", "-Federal ITC"), value: itcFederal, type: "deduction" as const },
     { label: t("-Bouclier fiscal", "-Tax Shield"), value: taxShield, type: "deduction" as const },
     { label: t("= Net", "= Net"), value: capexNet, type: "total" as const },
@@ -493,7 +493,7 @@ export async function generatePresentationPPTX(
     } else if (bar.type === "deduction") {
       const prevTop = wfChartY + wfChartHeight - runningTotal * wfScale;
       const barH = Math.max(0.05, bar.value * wfScale);
-      const isHQ = bar.label.includes("HQ") || bar.label.includes("Hydro");
+      const isHQ = bar.label.includes("Hydro");
       const barColor = isHQ ? "FFB005" : "3B82F6";
       slideWaterfall.addShape("rect", {
         x, y: prevTop, w: wfBarWidth, h: barH,

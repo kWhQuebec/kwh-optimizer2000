@@ -746,7 +746,7 @@ export default function SitesPage() {
                           <Badge variant="secondary" className="text-xs">
                             {doc.type === 'procuration' 
                               ? (language === "fr" ? "Procuration" : "Authorization")
-                              : (language === "fr" ? "Facture HQ" : "HQ Bill")
+                              : (language === "fr" ? "Facture Hydro-Québec" : "Hydro-Québec Bill")
                             }
                           </Badge>
                           {doc.metadata?.hqAccountNumber && (

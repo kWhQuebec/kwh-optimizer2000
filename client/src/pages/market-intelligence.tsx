@@ -1381,7 +1381,7 @@ export default function MarketIntelligencePage() {
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between">
-                                    <span className="font-medium text-sm">Inflation HQ</span>
+                                    <span className="font-medium text-sm">Inflation Hydro-Québec</span>
                                     <span className="text-green-600 dark:text-green-400 font-semibold text-sm">
                                       +{formatCurrency(proposal.inflationDiff25Years)}
                                     </span>
@@ -1506,12 +1506,12 @@ export default function MarketIntelligencePage() {
                                   <p className="text-xs text-muted-foreground mt-1">
                                     {language === "fr"
                                       ? proposal.billingModel === "production"
-                                        ? `Client paie 100% de la production, même les surplus exportés à HQ. Risque: ${proposal.overproductionRiskValue ? formatCurrency(proposal.overproductionRiskValue) + "/an" : "à calculer"}`
+                                        ? `Client paie 100% de la production, même les surplus exportés à Hydro-Québec. Risque: ${proposal.overproductionRiskValue ? formatCurrency(proposal.overproductionRiskValue) + "/an" : "à calculer"}`
                                         : proposal.billingModel === "consumption"
                                         ? "Client paie seulement l'énergie autoconsommée"
                                         : "Demandez: Payez-vous 100% de la production ou seulement ce que vous consommez?"
                                       : proposal.billingModel === "production"
-                                        ? `Client pays for 100% of production, even surplus exported to HQ. Risk: ${proposal.overproductionRiskValue ? formatCurrency(proposal.overproductionRiskValue) + "/yr" : "to calculate"}`
+                                        ? `Client pays for 100% of production, even surplus exported to Hydro-Québec. Risk: ${proposal.overproductionRiskValue ? formatCurrency(proposal.overproductionRiskValue) + "/yr" : "to calculate"}`
                                         : proposal.billingModel === "consumption"
                                         ? "Client pays only for self-consumed energy"
                                         : "Ask: Do you pay for 100% of production or only what you consume?"}

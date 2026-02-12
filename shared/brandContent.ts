@@ -74,7 +74,7 @@ export const BRAND_CONTENT = {
   exclusions: [
     { labelFr: "Travaux de toiture préalables", labelEn: "Prior roof work" },
     { labelFr: "Mise à niveau électrique (si requise)", labelEn: "Electrical upgrades (if required)" },
-    { labelFr: "Frais d'interconnexion HQ (à confirmer)", labelEn: "HQ interconnection fees (TBC)" },
+    { labelFr: "Frais d'interconnexion Hydro-Québec (à confirmer)", labelEn: "Hydro-Québec interconnection fees (TBC)" },
     { labelFr: "Stockage batterie (optionnel, si non inclus)", labelEn: "Battery storage (optional, if not included)" },
     { labelFr: "Contrat O&M (optionnel)", labelEn: "O&M contract (optional)" },
     { labelFr: "Frais de grue ou levage spécialisé", labelEn: "Crane or specialized lifting fees" },
@@ -163,7 +163,7 @@ export const BRAND_CONTENT = {
   projectSnapshotLabels: {
     annualConsumption: { labelFr: "Consommation annuelle", labelEn: "Annual consumption", unit: "kWh" },
     peakDemand: { labelFr: "Demande de pointe", labelEn: "Peak demand", unit: "kW" },
-    currentTariff: { labelFr: "Tarif HQ actuel", labelEn: "Current HQ tariff", unit: "" },
+    currentTariff: { labelFr: "Tarif Hydro-Québec actuel", labelEn: "Current Hydro-Québec tariff", unit: "" },
     estimatedProduction: { labelFr: "Production solaire an 1", labelEn: "Year-1 solar production", unit: "kWh" },
     selfConsumptionRate: { labelFr: "Taux d'autoconsommation", labelEn: "Self-consumption rate", unit: "%" },
     solarCapacity: { labelFr: "Puissance solaire proposée", labelEn: "Proposed solar capacity", unit: "kWc" },
@@ -174,7 +174,7 @@ export const BRAND_CONTENT = {
   designFeeCovers: [
     { labelFr: "Visite de site complète", labelEn: "Complete site visit" },
     { labelFr: "Ingénierie préliminaire", labelEn: "Preliminary engineering" },
-    { labelFr: "Préparation dossier interconnexion HQ", labelEn: "HQ interconnection application prep" },
+    { labelFr: "Préparation dossier interconnexion Hydro-Québec", labelEn: "Hydro-Québec interconnection application prep" },
     { labelFr: "Soumission ferme détaillée", labelEn: "Detailed firm quote" },
   ],
 
@@ -189,7 +189,7 @@ export const BRAND_CONTENT = {
     { labelFr: "Soumission ferme avec prix garantis", labelEn: "Firm quote with guaranteed pricing" },
     { labelFr: "Échéancier de réalisation détaillé", labelEn: "Detailed implementation schedule" },
     { labelFr: "Portée et exclusions clarifiées", labelEn: "Clarified scope and exclusions" },
-    { labelFr: "Dossier prêt pour demande HQ", labelEn: "File ready for HQ application" },
+    { labelFr: "Dossier prêt pour demande Hydro-Québec", labelEn: "File ready for Hydro-Québec application" },
   ],
 
   // === STORYTELLING - ARC NARRATIF ===
@@ -258,8 +258,8 @@ export const BRAND_CONTENT = {
         labelEn: "Lower panel efficiency",
       },
       {
-        labelFr: "Tarifs HQ bas = retour trop long",
-        labelEn: "Low HQ rates = payback too long",
+        labelFr: "Tarifs Hydro-Québec bas = retour trop long",
+        labelEn: "Low Hydro-Québec rates = payback too long",
       },
     ],
     nowTitle: {

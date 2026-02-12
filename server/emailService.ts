@@ -845,8 +845,8 @@ export async function sendProcurationCompletedNotification(
   });
   
   const subject = language === 'fr'
-    ? `Procuration signée - ${clientData.companyName} - Prête pour HQ`
-    : `Signed Authorization - ${clientData.companyName} - Ready for HQ`;
+    ? `Procuration signée - ${clientData.companyName} - Prête pour Hydro-Québec`
+    : `Signed Authorization - ${clientData.companyName} - Ready for Hydro-Québec`;
   
   const htmlBody = `
 <!DOCTYPE html>
@@ -879,7 +879,7 @@ export async function sendProcurationCompletedNotification(
 <body>
   <div class="container">
     <div class="header">
-      <h1>${language === 'fr' ? 'Procuration HQ Signée' : 'HQ Authorization Signed'}</h1>
+      <h1>${language === 'fr' ? 'Procuration Hydro-Qu&eacute;bec Sign&eacute;e' : 'Hydro-Qu&eacute;bec Authorization Signed'}</h1>
       <span class="badge">${language === 'fr' ? 'Action requise' : 'Action Required'}</span>
     </div>
     
@@ -906,7 +906,7 @@ export async function sendProcurationCompletedNotification(
           </div>
           ` : ''}
           <div class="info-item highlight">
-            <div class="label">${language === 'fr' ? 'No de client HQ' : 'HQ Account Number'}</div>
+            <div class="label">${language === 'fr' ? 'No de client Hydro-Qu&eacute;bec' : 'Hydro-Qu&eacute;bec Account Number'}</div>
             <div class="value">${clientData.hqAccountNumber || (language === 'fr' ? 'Non fourni' : 'Not provided')}</div>
           </div>
         </div>
@@ -950,13 +950,13 @@ export async function sendProcurationCompletedNotification(
 </html>`;
 
   const textBody = language === 'fr'
-    ? `PROCURATION HQ SIGNÉE - ACTION REQUISE
+    ? `PROCURATION HYDRO-QUÉBEC SIGNÉE - ACTION REQUISE
 
 Entreprise: ${clientData.companyName}
 Signataire: ${clientData.contactName}${clientData.signerTitle ? ` - ${clientData.signerTitle}` : ''}
 Courriel: ${clientData.email}
 ${clientData.phone ? `Téléphone: ${clientData.phone}` : ''}
-No de client HQ: ${clientData.hqAccountNumber || 'Non fourni'}
+No de client Hydro-Québec: ${clientData.hqAccountNumber || 'Non fourni'}
 Adresse: ${[clientData.streetAddress, clientData.city, clientData.province, clientData.postalCode].filter(Boolean).join(', ') || 'Non fournie'}
 Date de signature: ${signedDate}
 
@@ -967,13 +967,13 @@ PROCHAINES ÉTAPES:
 
 ---
 kWh Québec | 514.427.8871 | info@kwh.quebec`
-    : `HQ AUTHORIZATION SIGNED - ACTION REQUIRED
+    : `HYDRO-QUÉBEC AUTHORIZATION SIGNED - ACTION REQUIRED
 
 Company: ${clientData.companyName}
 Signatory: ${clientData.contactName}${clientData.signerTitle ? ` - ${clientData.signerTitle}` : ''}
 Email: ${clientData.email}
 ${clientData.phone ? `Phone: ${clientData.phone}` : ''}
-HQ Account Number: ${clientData.hqAccountNumber || 'Not provided'}
+Hydro-Québec Account Number: ${clientData.hqAccountNumber || 'Not provided'}
 Address: ${[clientData.streetAddress, clientData.city, clientData.province, clientData.postalCode].filter(Boolean).join(', ') || 'Not provided'}
 Signature Date: ${signedDate}
 
@@ -1012,8 +1012,8 @@ export async function sendProcurationNotificationToAccountManager(
   language: 'fr' | 'en'
 ): Promise<{ success: boolean; error?: string }> {
   const subject = language === 'fr'
-    ? `Procuration HQ envoyée - ${clientName}`
-    : `HQ Procuration Sent - ${clientName}`;
+    ? `Procuration Hydro-Québec envoyée - ${clientName}`
+    : `Hydro-Québec Procuration Sent - ${clientName}`;
   
   const htmlBody = `
 <!DOCTYPE html>
@@ -1032,10 +1032,10 @@ export async function sendProcurationNotificationToAccountManager(
 </head>
 <body>
   <div class="container">
-    <div class="header">${language === 'fr' ? 'Notification: Procuration HQ envoyée' : 'Notification: HQ Procuration Sent'}</div>
+    <div class="header">${language === 'fr' ? 'Notification: Procuration Hydro-Qu&eacute;bec envoy&eacute;e' : 'Notification: Hydro-Qu&eacute;bec Procuration Sent'}</div>
     <p>${language === 'fr' 
       ? 'Un courriel de demande de procuration Hydro-Québec a été envoyé au client suivant:'
-      : 'An HQ procuration request email has been sent to the following client:'}</p>
+      : 'A Hydro-Qu&eacute;bec procuration request email has been sent to the following client:'}</p>
     <div class="info">
       <div class="label">${language === 'fr' ? 'Client' : 'Client'}</div>
       <div class="value">${clientName}</div>
@@ -1052,8 +1052,8 @@ export async function sendProcurationNotificationToAccountManager(
 </html>`;
 
   const textBody = language === 'fr'
-    ? `Notification: Procuration HQ envoyée\n\nUn courriel de demande de procuration Hydro-Québec a été envoyé au client suivant:\n\nClient: ${clientName}\nCourriel: ${clientEmail}\n\nVous recevrez une notification lorsque le client aura signé la procuration.`
-    : `Notification: HQ Procuration Sent\n\nAn HQ procuration request email has been sent to the following client:\n\nClient: ${clientName}\nEmail: ${clientEmail}\n\nYou will receive a notification when the client signs the procuration.`;
+    ? `Notification: Procuration Hydro-Québec envoyée\n\nUn courriel de demande de procuration Hydro-Québec a été envoyé au client suivant:\n\nClient: ${clientName}\nCourriel: ${clientEmail}\n\nVous recevrez une notification lorsque le client aura signé la procuration.`
+    : `Notification: Hydro-Québec Procuration Sent\n\nA Hydro-Québec procuration request email has been sent to the following client:\n\nClient: ${clientName}\nEmail: ${clientEmail}\n\nYou will receive a notification when the client signs the procuration.`;
 
   log.info(`Sending procuration notification to account manager ${accountManagerEmail}`);
   

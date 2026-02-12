@@ -28,8 +28,8 @@ const DEFAULT_CONTENT = [
         role: { fr: "Propriétaire", en: "Owner" },
         company: "Centre Commercial Rive-Sud",
         text: {
-          fr: "Le processus était transparent du début à la fin. L'équipe de kWh Québec a géré les incitatifs, la procuration HQ, tout. On n'a presque rien eu à faire.",
-          en: "The process was transparent from start to finish. The kWh Québec team handled incentives, HQ procuration, everything. We barely had to do anything."
+          fr: "Le processus était transparent du début à la fin. L'équipe de kWh Québec a géré les incitatifs, la procuration Hydro-Québec, tout. On n'a presque rien eu à faire.",
+          en: "The process was transparent from start to finish. The kWh Québec team handled incentives, Hydro-Québec procuration, everything. We barely had to do anything."
         },
         savings: "$67,000/an",
         system: "320 kW"
@@ -57,7 +57,7 @@ const DEFAULT_CONTENT = [
     value: [
       {
         question: { fr: "Combien coûte une installation solaire commerciale au Québec?", en: "How much does a commercial solar installation cost in Quebec?" },
-        answer: { fr: "Le coût varie entre 1.50$ et 2.50$ par watt installé avant incitatifs. Avec les crédits HQ (40%), fédéral (30%) et l'amortissement accéléré, le coût net peut descendre à 0.60-1.00$/W. Pour un système de 200 kW, ça représente 120 000$ à 200 000$ net.", en: "Cost ranges from $1.50 to $2.50 per watt before incentives. With HQ credits (40%), federal (30%) and accelerated depreciation, net cost can drop to $0.60-1.00/W. For a 200 kW system, that's $120,000 to $200,000 net." }
+        answer: { fr: "Le coût varie entre 1.50$ et 2.50$ par watt installé avant incitatifs. Avec les crédits Hydro-Québec (40%), fédéral (30%) et l'amortissement accéléré, le coût net peut descendre à 0.60-1.00$/W. Pour un système de 200 kW, ça représente 120 000$ à 200 000$ net.", en: "Cost ranges from $1.50 to $2.50 per watt before incentives. With Hydro-Québec credits (40%), federal (30%) and accelerated depreciation, net cost can drop to $0.60-1.00/W. For a 200 kW system, that's $120,000 to $200,000 net." }
       },
       {
         question: { fr: "Quels incitatifs sont disponibles au Québec en 2026?", en: "What incentives are available in Quebec in 2026?" },
@@ -73,7 +73,7 @@ const DEFAULT_CONTENT = [
       },
       {
         question: { fr: "Qu'est-ce que la procuration Hydro-Québec?", en: "What is the Hydro-Québec procuration?" },
-        answer: { fr: "La procuration autorise kWh Québec à accéder à vos données de consommation HQ pour une analyse précise. C'est un document sécurisé, révocable à tout moment.", en: "The procuration authorizes kWh Québec to access your HQ consumption data for accurate analysis. It's a secure document, revocable at any time." }
+        answer: { fr: "La procuration autorise kWh Québec à accéder à vos données de consommation Hydro-Québec pour une analyse précise. C'est un document sécurisé, révocable à tout moment.", en: "The procuration authorizes kWh Québec to access your Hydro-Québec consumption data for accurate analysis. It's a secure document, revocable at any time." }
       },
       {
         question: { fr: "Quelle est la durée de vie des panneaux solaires?", en: "What is the lifespan of solar panels?" },
@@ -109,7 +109,7 @@ const DEFAULT_CONTENT = [
           "Design optimal du système PV + stockage",
           "Projections ROI sur 25 ans",
           "Comparaison Cash vs Lease vs PPA",
-          "Optimisation des incitatifs (HQ + fédéral)"
+          "Optimisation des incitatifs (Hydro-Québec + fédéral)"
         ],
         en: [
           "On-site visit by certified engineer",
@@ -118,7 +118,7 @@ const DEFAULT_CONTENT = [
           "Optimal PV + storage system design",
           "25-year ROI projections",
           "Cash vs Lease vs PPA comparison",
-          "Incentive optimization (HQ + federal)"
+          "Incentive optimization (Hydro-Québec + federal)"
         ]
       },
       guarantee: {

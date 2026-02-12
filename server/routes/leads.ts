@@ -726,15 +726,15 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
     : savedBillPath
       ? `Facture pré-téléversée: ${savedBillPath.split('/').pop()}`
       : hasParsedBillData
-        ? `Facture déjà analysée (No client HQ: ${hqClientNumber})`
+        ? `Facture déjà analysée (No client Hydro-Québec: ${hqClientNumber})`
         : '';
 
   const combinedNotes = [
     '[Analyse Détaillée avec Procuration]',
     procurationInfo,
     '',
-    `No de client HQ: ${hqClientNumber || 'Non fourni'}`,
-    tariffCode ? `Tarif HQ: ${tariffCode}` : '',
+    `No de client Hydro-Québec: ${hqClientNumber || 'Non fourni'}`,
+    tariffCode ? `Tarif Hydro-Québec: ${tariffCode}` : '',
     '',
     'Factures téléversées:',
     fileInfo,
@@ -999,7 +999,7 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
     const isNewLead = !isExistingClient;
     const emailSubject = isNewLead
       ? `Nouveau Lead + Procuration - ${companyName}`
-      : `Procuration HQ - ${companyName} (Client existant)`;
+      : `Procuration Hydro-Québec - ${companyName} (Client existant)`;
 
     const staffEmailResult = await sendEmail({
       to: staffRecipient,
@@ -1044,7 +1044,7 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
 
             <div style="display: flex; gap: 24px; margin-bottom: 16px;">
               <div style="border-left: 4px solid #e5e7eb; padding-left: 16px;">
-                <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">No client HQ</p>
+                <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">No client Hydro-Qu&eacute;bec</p>
                 <p style="margin: 0; font-weight: 500;">${hqClientNumber || 'Non fourni'}</p>
               </div>
               ${tariffCode ? `
@@ -1082,7 +1082,7 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
           </p>
         </div>
       `,
-      textBody: `${isNewLead ? 'Nouveau Lead' : 'Procuration signée'}: ${companyName}\nContact: ${contactName}\nCourriel: ${email}\nNo client HQ: ${hqClientNumber || 'N/A'}\n\nVoir le dossier: ${crmLink}`,
+      textBody: `${isNewLead ? 'Nouveau Lead' : 'Procuration signée'}: ${companyName}\nContact: ${contactName}\nCourriel: ${email}\nNo client Hydro-Québec: ${hqClientNumber || 'N/A'}\n\nVoir le dossier: ${crmLink}`,
       attachments: [pdfAttachment],
     });
 
