@@ -114,7 +114,7 @@ export async function generateProfessionalPDFv2(
   pages.push(buildNetInvestmentPage(simulation, t, nextPage()));
 
   if (hasHourlyProfile) {
-    pages.push(buildEnergyProfilePage(simulation, t, totalProductionKWh, nextPage()));
+    pages.push(buildEnergyProfilePage(simulation, t, totalProductionKWh, nextPage(), isSyntheticData));
   }
 
   if (hasBattery) {
@@ -743,7 +743,8 @@ function buildEnergyProfilePage(
   sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
   totalProductionKWh: number,
-  pageNum: number
+  pageNum: number,
+  isSyntheticData: boolean = false
 ): string {
   const profile = sim.hourlyProfile!;
 
