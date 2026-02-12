@@ -390,7 +390,7 @@ function buildAboutPage(
         <div class="pillar-card">
           ${svgIcon(iconReliability, "#003DA6")}
           <div class="pillar-title">${t("Fiabilit&eacute;", "Reliability")}</div>
-          <p class="pillar-desc">${t("&Eacute;quipements certifi&eacute;s, installation par ma&icirc;tres &eacute;lectriciens.", "Certified equipment, installation by master electricians.")}</p>
+          <p class="pillar-desc">${t("&Eacute;quipements certifi&eacute;s, entrepreneur licenci&eacute; RBQ.", "Certified equipment, RBQ licensed contractor.")}</p>
         </div>
         <div class="pillar-card">
           ${svgIcon(iconLongevity, "#16a34a")}
@@ -417,10 +417,10 @@ function buildAboutPage(
       <div class="info-box">
         <h3 style="color: var(--primary); margin-bottom: 2mm; font-size: 11pt;">${t("Certifications", "Certifications")}</h3>
         <ul class="bullet-list" style="font-size: 9pt;">
-          <li>${t("Ma&icirc;tre &eacute;lectricien CMEQ", "Master Electrician CMEQ")}</li>
+          <li>${t("Licence RBQ 1.3 &mdash; Entrepreneur g&eacute;n&eacute;ral", "RBQ License 1.3 &mdash; General Contractor")}</li>
           <li>${t("Membre CNESST", "CNESST Member")}</li>
-          <li>${t("Certifi&eacute; NABCEP", "NABCEP Certified")}</li>
-          <li>${t("Licence RBQ", "RBQ License")}</li>
+          <li>${t("Membre CCQ", "CCQ Member")}</li>
+          <li>${t("Assurances 5 M$", "$5M Insurance Coverage")}</li>
         </ul>
       </div>
       <div class="info-box">
