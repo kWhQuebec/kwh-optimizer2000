@@ -72,12 +72,11 @@ export const BRAND_CONTENT = {
 
   // === EXCLUSIONS ===
   exclusions: [
-    { labelFr: "Travaux de toiture préalables", labelEn: "Prior roof work" },
-    { labelFr: "Mise à niveau électrique (si requise)", labelEn: "Electrical upgrades (if required)" },
-    { labelFr: "Frais d'interconnexion Hydro-Québec (à confirmer)", labelEn: "Hydro-Québec interconnection fees (TBC)" },
-    { labelFr: "Stockage batterie (optionnel, si non inclus)", labelEn: "Battery storage (optional, if not included)" },
-    { labelFr: "Contrat O&M (optionnel)", labelEn: "O&M contract (optional)" },
-    { labelFr: "Frais de grue ou levage spécialisé", labelEn: "Crane or specialized lifting fees" },
+    { labelFr: "Travaux de toiture préalables (si requis)", labelEn: "Prior roof work (if required)" },
+    { labelFr: "Mise à niveau électrique (si requis)", labelEn: "Electrical upgrades (if required)" },
+    { labelFr: "Permis municipaux (variables selon localité)", labelEn: "Municipal permits (vary by locality)" },
+    { labelFr: "Modifications structurales", labelEn: "Structural modifications" },
+    { labelFr: "Frais d'interconnexion avec Hydro-Québec", labelEn: "Hydro-Québec interconnection fees" },
   ],
 
   // === ÉQUIPEMENT INDICATIF ===
