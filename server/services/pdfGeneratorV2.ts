@@ -287,7 +287,7 @@ p { margin-bottom: 3mm; color: var(--dark); }
 
 function footerHtml(t: (fr: string, en: string) => string, pageNum: number): string {
   return `<div class="page-footer">
-    <span>kWh Qu&eacute;bec &mdash; ${t("Etude Pr&eacute;liminaire", "Preliminary Study")}</span>
+    <span>kWh Qu&eacute;bec &mdash; ${t("&Eacute;tude Pr&eacute;liminaire", "Preliminary Study")}</span>
     <span>Page ${pageNum}</span>
   </div>`;
 }
@@ -319,7 +319,7 @@ function buildCoverPage(
     <div class="cover-content" style="padding: 25mm;">
       <div>
         <div class="cover-logo">${logoHtml}</div>
-        <div class="cover-title">${t("Etude Pr&eacute;liminaire", "Preliminary Study")}</div>
+        <div class="cover-title">${t("&Eacute;tude Pr&eacute;liminaire", "Preliminary Study")}</div>
         <div class="cover-subtitle">${t("Solaire + Stockage", "Solar + Storage")}</div>
       </div>
       <div>
