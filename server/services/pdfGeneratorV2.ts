@@ -596,8 +596,8 @@ function buildResultsPage(
       <h3 style="color: white; margin-bottom: 2mm;">${t("Ce que &ccedil;a signifie pour vous", "What this means for you")}</h3>
       <p style="color: rgba(255,255,255,0.9); margin: 0;">
         ${t(
-          `Gr&acirc;ce aux incitatifs f&eacute;d&eacute;ral (ITC) et provincial (Autoproduction HQ), votre investissement net n'est que de <strong>${smartCur(sim.capexNet)}</strong>, r&eacute;cup&eacute;r&eacute; en <strong>${paybackStr} ans</strong>. Votre syst&egrave;me g&eacute;n&egrave;re ensuite des &eacute;conomies nettes pendant plus de 22 ans.`,
-          `Thanks to federal (ITC) and provincial (HQ Self-Production) incentives, your net investment is only <strong>${smartCur(sim.capexNet)}</strong>, recovered in <strong>${paybackStr} years</strong>. Your system then generates net savings for over 22 years.`
+          `Gr&acirc;ce aux incitatifs f&eacute;d&eacute;ral (ITC) et provincial (Autoproduction Hydro-Qu&eacute;bec), votre investissement net n'est que de <strong>${smartCur(sim.capexNet)}</strong>, r&eacute;cup&eacute;r&eacute; en <strong>${paybackStr} ans</strong>. Votre syst&egrave;me g&eacute;n&egrave;re ensuite des &eacute;conomies nettes pendant plus de 22 ans.`,
+          `Thanks to federal (ITC) and provincial (Hydro-Qu&eacute;bec Self-Production) incentives, your net investment is only <strong>${smartCur(sim.capexNet)}</strong>, recovered in <strong>${paybackStr} years</strong>. Your system then generates net savings for over 22 years.`
         )}
       </p>
     </div>
@@ -626,7 +626,7 @@ function generateWaterfallSVG(
 
   const items = [
     { label: t("Co&ucirc;t brut", "Gross Cost"), value: gross, color: "#6B7280", isNeg: false },
-    { label: t("Incitatif HQ", "HQ Incentive"), value: hq, color: "#FFB005", isNeg: true },
+    { label: t("Incitatif Hydro-Qu&eacute;bec", "Hydro-Qu&eacute;bec Incentive"), value: hq, color: "#FFB005", isNeg: true },
     { label: t("ITC f&eacute;d&eacute;ral", "Federal ITC"), value: itc, color: "#3B82F6", isNeg: true },
   ];
   if (taxShieldVal > 0) {
@@ -697,8 +697,8 @@ function buildNetInvestmentPage(
     </div>
     <div class="info-box" style="background: #FFF8E1; border-left: 4px solid var(--accent); border-radius: 0;">
       <p style="font-size: 9pt; margin: 0;"><strong>${t("Conditions:", "Conditions:")}</strong> ${t(
-        "L'ITC f&eacute;d&eacute;ral s'applique aux projets d'&eacute;nergie propre admissibles (Loi C-69). L'incitatif HQ Autoproduction est plafonn&eacute; &agrave; 1 000 $/kW (max 1 MW) et 40% du CAPEX.",
-        "The federal ITC applies to eligible clean energy projects (Bill C-69). The HQ Self-Production incentive is capped at $1,000/kW (max 1 MW) and 40% of CAPEX."
+        "L'ITC f&eacute;d&eacute;ral s'applique aux projets d'&eacute;nergie propre admissibles (Loi C-69). L'incitatif Hydro-Qu&eacute;bec Autoproduction est plafonn&eacute; &agrave; 1 000 $/kW (max 1 MW) et 40% du CAPEX.",
+        "The federal ITC applies to eligible clean energy projects (Bill C-69). The Hydro-Qu&eacute;bec Self-Production incentive is capped at $1,000/kW (max 1 MW) and 40% of CAPEX."
       )}</p>
     </div>
     ${footerHtml(t, pageNum)}
@@ -866,8 +866,8 @@ function buildStoragePage(
         </div>
         <div class="info-box" style="font-size: 9pt;">
           <p><strong>${t("&Eacute;cr&ecirc;tage de la demande:", "Demand Shaving:")}</strong> ${t(
-            "La batterie se d&eacute;charge pendant vos pointes de demande, r&eacute;duisant votre appel de puissance factur&eacute; par HQ.",
-            "The battery discharges during your peak demand, reducing your billed power draw from HQ."
+            "La batterie se d&eacute;charge pendant vos pointes de demande, r&eacute;duisant votre appel de puissance factur&eacute; par Hydro-Qu&eacute;bec.",
+            "The battery discharges during your peak demand, reducing your billed power draw from Hydro-Qu&eacute;bec."
           )}</p>
         </div>
       </div>
@@ -1061,11 +1061,11 @@ function buildFinancialProjectionsPage(
 
   const surplusSection = sim.totalExportedKWh > 0 ? `
     <div class="info-box" style="background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 0; margin-top: 4mm;">
-      <h3 style="font-size: 10pt; color: #16a34a; margin-bottom: 2mm;">${t("Cr&eacute;dits surplus - mesurage net HQ", "Surplus Credits - HQ Net Metering")}</h3>
+      <h3 style="font-size: 10pt; color: #16a34a; margin-bottom: 2mm;">${t("Cr&eacute;dits surplus - mesurage net Hydro-Qu&eacute;bec", "Surplus Credits - Hydro-Qu&eacute;bec Net Metering")}</h3>
       <p style="font-size: 9pt; margin: 0;">
         ${t(
-          `<strong>${fmt(sim.totalExportedKWh)} kWh</strong> export&eacute;s annuellement vers le r&eacute;seau HQ. Banque de cr&eacute;dits sur 24 mois au taux de r&eacute;f&eacute;rence (~4,54&cent;/kWh). Revenu surplus estim&eacute;: <strong>${cur(sim.annualSurplusRevenue)}/an</strong>.`,
-          `<strong>${fmt(sim.totalExportedKWh)} kWh</strong> exported annually to HQ grid. 24-month credit bank at reference rate (~4.54&cent;/kWh). Estimated surplus revenue: <strong>${cur(sim.annualSurplusRevenue)}/yr</strong>.`
+          `<strong>${fmt(sim.totalExportedKWh)} kWh</strong> export&eacute;s annuellement vers le r&eacute;seau Hydro-Qu&eacute;bec. Banque de cr&eacute;dits sur 24 mois au taux de r&eacute;f&eacute;rence (~4,54&cent;/kWh). Revenu surplus estim&eacute;: <strong>${cur(sim.annualSurplusRevenue)}/an</strong>.`,
+          `<strong>${fmt(sim.totalExportedKWh)} kWh</strong> exported annually to Hydro-Qu&eacute;bec grid. 24-month credit bank at reference rate (~4.54&cent;/kWh). Estimated surplus revenue: <strong>${cur(sim.annualSurplusRevenue)}/yr</strong>.`
         )}
       </p>
     </div>` : "";
@@ -1241,15 +1241,15 @@ function buildAssumptionsPage(
   pageNum: number
 ): string {
   const assumptions = [
-    t("Tarif HQ en vigueur (&eacute;nergie + puissance)", "Current HQ rate (energy + demand)"),
+    t("Tarif Hydro-Qu&eacute;bec en vigueur (&eacute;nergie + puissance)", "Current Hydro-Qu&eacute;bec rate (energy + demand)"),
     t("Inflation &eacute;nerg&eacute;tique annuelle: 3,5%", "Annual energy inflation: 3.5%"),
     t("D&eacute;gradation panneaux: 0,5%/an", "Panel degradation: 0.5%/yr"),
     t("Dur&eacute;e de vie syst&egrave;me: 25 ans minimum", "System life: 25 years minimum"),
-    t("Taux d'actualisation: 6%", "Discount rate: 6%"),
+    t("Taux d'actualisation: 7%", "Discount rate: 7%"),
     t("Rendement solaire: ~1 035 kWh/kWc (base Qu&eacute;bec)", "Solar yield: ~1,035 kWh/kWp (Quebec baseline)"),
     t("Efficacit&eacute; syst&egrave;me: ~90%", "System efficiency: ~90%"),
     t("ITC f&eacute;d&eacute;ral: 30% du CAPEX brut", "Federal ITC: 30% of gross CAPEX"),
-    t("HQ Autoproduction: 1 000 $/kW (plafond 40% CAPEX)", "HQ Self-Production: $1,000/kW (40% CAPEX cap)"),
+    t("Hydro-Qu&eacute;bec — 40% du projet (jusqu'&agrave; 1 000 $/kW)", "Hydro-Qu&eacute;bec — 40% of project (up to $1,000/kW)"),
   ];
 
   const exclusions = [
@@ -1286,7 +1286,7 @@ function buildAssumptionsPage(
         <p><strong>${t("Consommation:", "Consumption:")}</strong> ${t("Donn&eacute;es Hydro-Qu&eacute;bec r&eacute;elles (via procuration)", "Real Hydro-Qu&eacute;bec data (via power of attorney)")}</p>
         <p><strong>${t("Tarifs &eacute;lectriques:", "Electricity rates:")}</strong> Hydro-Qu&eacute;bec ${t("tarifs en vigueur 2026", "rates in effect 2026")}</p>
         <p><strong>${t("ITC f&eacute;d&eacute;ral:", "Federal ITC:")}</strong> ${t("Loi C-69 - Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement pour technologies propres", "Bill C-69 - Clean technology investment tax credit")}</p>
-        <p><strong>${t("Autoproduction HQ:", "HQ Self-Production:")}</strong> ${t("Programme Autoproduction d'Hydro-Qu&eacute;bec", "Hydro-Qu&eacute;bec Self-Production Program")}</p>
+        <p><strong>${t("Autoproduction Hydro-Qu&eacute;bec:", "Hydro-Qu&eacute;bec Self-Production:")}</strong> ${t("Programme Autoproduction d'Hydro-Qu&eacute;bec", "Hydro-Qu&eacute;bec Self-Production Program")}</p>
       </div>
     </div>
     <div class="info-box highlight">
@@ -1359,7 +1359,7 @@ function buildNextStepsPage(
       <div class="funnel-step">
         <div class="funnel-step-number">1</div>
         <div class="funnel-step-title">${t("&Eacute;valuation d&eacute;taill&eacute;e", "Detailed Evaluation")}</div>
-        <p class="funnel-step-desc">${t("Procuration HQ + analyse compl&egrave;te avec donn&eacute;es r&eacute;elles. Pr&eacute;cision ~95%.", "HQ power of attorney + complete analysis with real data. ~95% accuracy.")}</p>
+        <p class="funnel-step-desc">${t("Procuration Hydro-Qu&eacute;bec + analyse compl&egrave;te avec donn&eacute;es r&eacute;elles. Pr&eacute;cision ~95%.", "Hydro-Qu&eacute;bec power of attorney + complete analysis with real data. ~95% accuracy.")}</p>
         <span class="funnel-step-tag">${t("GRATUIT", "FREE")}</span>
       </div>
       <div class="funnel-step">
