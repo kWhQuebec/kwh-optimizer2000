@@ -536,8 +536,9 @@ function buildProjectSnapshotPage(
   pageNum: number,
   isSyntheticData: boolean = false
 ): string {
-  const co2Trees = Math.round((sim.co2AvoidedTonnesPerYear * 1000) / 21.77);
-  const co2Cars = Math.round((sim.co2AvoidedTonnesPerYear * 1000) / 4600);
+  const co2Total25yr = sim.co2AvoidedTonnesPerYear * 25;
+  const co2Trees = Math.round((co2Total25yr * 1000) / 21.77);
+  const co2Cars = Math.round((co2Total25yr / 4.6));
 
   const satelliteHtml = roofImageBase64
     ? `<img src="${roofImageBase64}" style="width: 100%; height: 70mm; object-fit: cover; border-radius: 2mm;" />`
@@ -573,7 +574,7 @@ function buildProjectSnapshotPage(
       <div class="section">
         <h3>${t("Impact environnemental", "Environmental Impact")}</h3>
         <div class="info-box">
-          <p><strong>${t("CO2 &eacute;vit&eacute;:", "CO2 avoided:")}</strong> ${fmt(sim.co2AvoidedTonnesPerYear)} ${t("tonnes/an", "tonnes/yr")}</p>
+          <p><strong>${t("CO2 &eacute;vit&eacute; (25 ans):", "CO2 avoided (25 yr):")}</strong> ${fmt(Math.round(co2Total25yr))} ${t("tonnes", "tonnes")}</p>
           <p><strong>${t("&Eacute;quivalent arbres:", "Equivalent trees:")}</strong> ${fmt(co2Trees)} ${t("arbres", "trees")}</p>
           <p><strong>${t("&Eacute;quivalent voitures:", "Equivalent cars:")}</strong> ${co2Cars} ${t("v&eacute;hicules retir&eacute;s", "vehicles removed")}</p>
         </div>
