@@ -1287,7 +1287,7 @@ function buildEquipmentPage(
         <td>${eq.warranty}</td>
       </tr>`).join("")}
     </table>
-    <div class="two-column" style="margin-top: 8mm;">
+    <div class="two-column" style="margin-top: 4mm;">
       <div class="section">
         <h3>${t("Certifications &eacute;quipements", "Equipment Certifications")}</h3>
         <ul class="bullet-list">
@@ -1307,8 +1307,8 @@ function buildEquipmentPage(
         </div>
       </div>
     </div>
-    <div class="section" style="margin-top: 6mm; padding: 4mm 5mm; background: #f0f4f8; border-radius: 2mm;">
-      <h3 style="margin-bottom: 3mm;">${t("Donn&eacute;es structurelles pour &eacute;valuation de toiture", "Structural Data for Roof Evaluation")}</h3>
+    <div class="section" style="margin-top: 3mm; padding: 3mm 5mm; background: #f0f4f8; border-radius: 2mm;">
+      <h3 style="margin-bottom: 2mm;">${t("Donn&eacute;es structurelles pour &eacute;valuation de toiture", "Structural Data for Roof Evaluation")}</h3>
       <table class="data-table" style="margin-bottom: 0;">
         <tr>
           <th>${t("Param&egrave;tre", "Parameter")}</th>
