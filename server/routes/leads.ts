@@ -503,10 +503,11 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
       leadId: lead.id,
       clientId: client.id,
       siteId: site.id,
-      stage: 'prospect', // Start as prospect for nurturing
+      stage: 'prospect',
       probability: 5,
       source: 'quick_estimate',
       estimatedValue: primaryScenario.netCAPEX || null,
+      pvSizeKW: primaryScenario.systemSizeKW || null,
       expectedCloseDate: null,
       ownerId: null,
     });
@@ -775,14 +776,28 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
     // Auto-create opportunity when lead is submitted
     try {
       const opportunityName = `${companyName} - ${streetAddress || city || 'Solar Project'}`;
+      // Estimate solar size from consumption if available (using ~1035 kWh/kWp effective yield)
+      let estimatedSizeKW: number | null = null;
+      if (hqConsumptionHistory) {
+        try {
+          const history = typeof hqConsumptionHistory === 'string' ? JSON.parse(hqConsumptionHistory) : hqConsumptionHistory;
+          if (Array.isArray(history) && history.length > 0) {
+            const totalKwh = history.reduce((sum: number, m: any) => sum + (parseFloat(m.kwh) || 0), 0);
+            if (totalKwh > 0) {
+              estimatedSizeKW = Math.round(totalKwh / 1035 * 10) / 10;
+            }
+          }
+        } catch (e) { /* ignore parse errors */ }
+      }
       const newOpportunity = await storage.createOpportunity({
         name: opportunityName,
         description: `Auto-created from detailed analysis request. Contact: ${contactName}`,
         leadId: lead.id,
-        stage: 'qualified', // Detailed analysis = qualified (has procuration)
+        stage: 'qualified',
         probability: 15,
         source: 'website',
         estimatedValue: null,
+        pvSizeKW: estimatedSizeKW,
         expectedCloseDate: null,
         ownerId: null,
       });
