@@ -389,11 +389,27 @@ export function isKpiHighlighted(key: keyof typeof BRAND_CONTENT.kpiConfig): boo
   return BRAND_CONTENT.kpiConfig[key].highlight;
 }
 
-export function getAssumptions(lang: Lang) {
-  return Object.values(BRAND_CONTENT.assumptions).map(a => ({
+export function getAssumptions(lang: Lang, isSyntheticData?: boolean) {
+  const rows = Object.values(BRAND_CONTENT.assumptions).map(a => ({
     label: lang === "fr" ? a.labelFr : a.labelEn,
     value: a.value,
   }));
+
+  if (isSyntheticData !== undefined) {
+    if (isSyntheticData) {
+      rows.push({
+        label: lang === "fr" ? "\u26A0\uFE0F Source consommation" : "\u26A0\uFE0F Consumption source",
+        value: lang === "fr" ? "Données synthétiques (estimation)" : "Synthetic data (estimate)",
+      });
+    } else {
+      rows.push({
+        label: lang === "fr" ? "Source consommation" : "Consumption source",
+        value: lang === "fr" ? "Données Hydro-Québec réelles" : "Real Hydro-Québec data",
+      });
+    }
+  }
+
+  return rows;
 }
 
 export function getExclusions(lang: Lang) {

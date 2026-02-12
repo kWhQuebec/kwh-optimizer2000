@@ -1339,7 +1339,7 @@ export function AnalysisResults({
             <div>
               <h4 className="font-semibold text-sm text-primary mb-3">{t("analysis.assumptions.title")}</h4>
               <div className="space-y-2">
-                {getAssumptions(language as "fr" | "en").map((a, i) => (
+                {getAssumptions(language as "fr" | "en", !(simulation.hourlyProfile && (simulation.hourlyProfile as any[]).length > 0)).map((a, i) => (
                   <div key={i} className="flex justify-between items-center text-sm py-1 border-b border-border/50 last:border-0">
                     <span className="text-muted-foreground">{a.label}</span>
                     <span className="font-mono font-medium">{a.value}</span>

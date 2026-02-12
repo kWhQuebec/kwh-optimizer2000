@@ -42,6 +42,7 @@ export async function generatePresentationPPTX(
   const simData: any = simulation;
   const hiddenInsights = computeHiddenInsights(simData as any);
 
+  const isSyntheticData = !(simulation.hourlyProfile && (simulation.hourlyProfile as any[]).length > 0);
 
   const fmtCurrency = (value: number | null | undefined): string => formatSmartCurrencyFull(value, lang);
   const fmtSmartCurrency = (value: number | null | undefined): string => formatSmartCurrency(value, lang);
@@ -846,7 +847,7 @@ export async function generatePresentationPPTX(
     x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
   });
 
-  const assumptions = getAssumptions(lang);
+  const assumptions = getAssumptions(lang, isSyntheticData);
   const assTableData: Array<Array<{ text: string; options?: { bold?: boolean; color?: string } }>> = [
     [
       { text: t("Hypothese", "Assumption"), options: { bold: true, color: COLORS.white } },

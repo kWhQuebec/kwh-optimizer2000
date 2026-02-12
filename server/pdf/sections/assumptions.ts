@@ -22,7 +22,8 @@ export function renderAssumptions(ctx: PDFContext) {
   doc.y += 12;
 
   // Assumptions table
-  const assumptions = getAssumptions(ctx.lang);
+  const isSyntheticData = !(ctx.simulation.hourlyProfile && (ctx.simulation.hourlyProfile as any[]).length > 0);
+  const assumptions = getAssumptions(ctx.lang, isSyntheticData);
   const assTableRowH = 22;
 
   // Header row

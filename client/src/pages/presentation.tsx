@@ -311,7 +311,7 @@ export default function PresentationPage() {
     cashflow: <CashflowSlide simulation={displaySim} language={language} />,
     surplusCredits: <SurplusCreditsSlide simulation={displaySim} language={language} />,
     financing: <FinancingSlide simulation={displaySim} language={language} />,
-    assumptions: <AssumptionsSlide language={language} />,
+    assumptions: <AssumptionsSlide language={language} isSyntheticData={!fullSimulation?.hourlyProfile || (fullSimulation.hourlyProfile as any[]).length === 0} />,
     equipment: <EquipmentSlide language={language} />,
     timeline: <TimelineSlide language={language} />,
     nextSteps: <NextStepsSlide simulation={displaySim} language={language} />,
@@ -1304,9 +1304,9 @@ function FinancingSlide({ simulation, language }: { simulation: SimulationRun | 
   );
 }
 
-function AssumptionsSlide({ language }: { language: string }) {
+function AssumptionsSlide({ language, isSyntheticData }: { language: string; isSyntheticData?: boolean }) {
   const lang = language as "fr" | "en";
-  const assumptions = getAssumptions(lang);
+  const assumptions = getAssumptions(lang, isSyntheticData);
   const exclusions = getExclusions(lang);
 
   return (
