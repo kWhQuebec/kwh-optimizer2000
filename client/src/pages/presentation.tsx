@@ -74,6 +74,7 @@ import {
   getAssumptions,
   getExclusions,
   getEquipment,
+  getEquipmentTechnicalSummary,
   getTimeline,
   getAllStats,
   getFirstTestimonial,
@@ -1257,6 +1258,7 @@ function AssumptionsSlide({ language }: { language: string }) {
 function EquipmentSlide({ language }: { language: string }) {
   const lang = language as "fr" | "en";
   const equipment = getEquipment(lang);
+  const techSummary = getEquipmentTechnicalSummary(lang);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
@@ -1274,14 +1276,66 @@ function EquipmentSlide({ language }: { language: string }) {
               >
                 <Shield className="h-7 w-7" style={{ color: BRAND_COLORS.accentGold }} />
               </div>
-              <p className="text-sm min-h-[2.5rem] mb-3" style={{ color: '#6B7280' }}>{eq.label}</p>
-              <p className="text-3xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{eq.warranty}</p>
-              <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>{language === 'fr' ? 'garantie' : 'warranty'}</p>
+              <p className="font-semibold text-sm min-h-[2.5rem] mb-1" style={{ color: '#374151' }}>{eq.label}</p>
+              {eq.specs && (
+                <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>{eq.specs}</p>
+              )}
+              {eq.weightKg && (
+                <p className="text-xs mb-2" style={{ color: '#9CA3AF' }}>{eq.weightKg} kg</p>
+              )}
+              {eq.dimensionsMm && (
+                <p className="text-xs mb-2" style={{ color: '#9CA3AF' }}>{eq.dimensionsMm}</p>
+              )}
+              <p className="text-2xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{eq.warranty}</p>
+              <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>{language === 'fr' ? 'garantie' : 'warranty'}</p>
+              {eq.certifications && eq.certifications.length > 0 && (
+                <div className="flex flex-wrap gap-1 justify-center mt-3">
+                  {eq.certifications.map((cert: string, ci: number) => (
+                    <span key={ci} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,61,166,0.08)', color: BRAND_COLORS.primaryBlue }}>
+                      {cert}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
 
-        <p className="text-center text-sm mt-8" style={{ color: '#9CA3AF' }}>
+        <div className="mt-8 rounded-xl p-5" style={{ backgroundColor: 'rgba(0,61,166,0.04)', border: '1px solid rgba(0,61,166,0.12)' }}>
+          <h3 className="text-sm font-bold mb-3" style={{ color: BRAND_COLORS.primaryBlue }}>
+            {language === 'fr' ? 'Données structurelles pour évaluation de toiture' : 'Structural Data for Roof Evaluation'}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-xs" style={{ color: '#6B7280' }}>{techSummary.panelWeightKgPerM2.label}</p>
+              <p className="text-lg font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{techSummary.panelWeightKgPerM2.value} <span className="text-xs font-normal">{techSummary.panelWeightKgPerM2.unit}</span></p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs" style={{ color: '#6B7280' }}>{techSummary.rackingWeightKgPerM2.label}</p>
+              <p className="text-lg font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{techSummary.rackingWeightKgPerM2.value} <span className="text-xs font-normal">{techSummary.rackingWeightKgPerM2.unit}</span></p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs" style={{ color: '#6B7280' }}>{techSummary.totalSystemWeightKgPerM2.label}</p>
+              <p className="text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightKgPerM2.value} <span className="text-xs font-normal">{techSummary.totalSystemWeightKgPerM2.unit}</span></p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs" style={{ color: '#6B7280' }}>{techSummary.totalSystemWeightPsfPerSf.label}</p>
+              <p className="text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightPsfPerSf.value} <span className="text-xs font-normal">{techSummary.totalSystemWeightPsfPerSf.unit}</span></p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4 justify-center mt-3">
+            <span className="text-xs flex items-center gap-1" style={{ color: '#6B7280' }}>
+              <CheckCircle2 className="h-3 w-3" style={{ color: BRAND_COLORS.positive }} />
+              {techSummary.windLoadDesign}
+            </span>
+            <span className="text-xs flex items-center gap-1" style={{ color: '#6B7280' }}>
+              <CheckCircle2 className="h-3 w-3" style={{ color: BRAND_COLORS.positive }} />
+              {techSummary.snowLoadNote}
+            </span>
+          </div>
+        </div>
+
+        <p className="text-center text-xs mt-4" style={{ color: '#9CA3AF' }}>
           {language === 'fr'
             ? 'Équipement indicatif — marques et modèles confirmés dans la soumission ferme'
             : 'Indicative equipment — brands and models confirmed in the firm quote'}
