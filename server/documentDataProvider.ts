@@ -196,7 +196,32 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
   }));
 
   let roofVisualizationBuffer: Buffer | undefined;
-  if (roofPolygonsRaw.length > 0 && simulation.site.latitude && simulation.site.longitude) {
+
+  if (simulation.site.roofVisualizationImageUrl) {
+    try {
+      const imgUrl = simulation.site.roofVisualizationImageUrl;
+      if (imgUrl.startsWith("data:image/")) {
+        const base64Data = imgUrl.split(",")[1];
+        if (base64Data) {
+          roofVisualizationBuffer = Buffer.from(base64Data, "base64");
+        }
+      } else if (imgUrl.startsWith("http")) {
+        const mod = imgUrl.startsWith("https") ? await import("https") : await import("http");
+        roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
+          mod.get(imgUrl, (response: any) => {
+            const chunks: Buffer[] = [];
+            response.on("data", (chunk: Buffer) => chunks.push(chunk));
+            response.on("end", () => resolve(Buffer.concat(chunks)));
+            response.on("error", reject);
+          }).on("error", reject);
+        });
+      }
+    } catch (fallbackError) {
+      log.error("Failed to fetch stored roof visualization image:", fallbackError);
+    }
+  }
+
+  if (!roofVisualizationBuffer && roofPolygonsRaw.length > 0 && simulation.site.latitude && simulation.site.longitude) {
     try {
       const { getRoofVisualizationUrl } = await import("./googleSolarService");
       const roofImageUrl = getRoofVisualizationUrl(
@@ -221,31 +246,7 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
         });
       }
     } catch (imgError) {
-      log.error("Failed to fetch roof visualization:", imgError);
-    }
-  }
-
-  if (!roofVisualizationBuffer && simulation.site.roofVisualizationImageUrl) {
-    try {
-      const imgUrl = simulation.site.roofVisualizationImageUrl;
-      if (imgUrl.startsWith("data:image/")) {
-        const base64Data = imgUrl.split(",")[1];
-        if (base64Data) {
-          roofVisualizationBuffer = Buffer.from(base64Data, "base64");
-        }
-      } else if (imgUrl.startsWith("http")) {
-        const mod = imgUrl.startsWith("https") ? await import("https") : await import("http");
-        roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
-          mod.get(imgUrl, (response: any) => {
-            const chunks: Buffer[] = [];
-            response.on("data", (chunk: Buffer) => chunks.push(chunk));
-            response.on("end", () => resolve(Buffer.concat(chunks)));
-            response.on("error", reject);
-          }).on("error", reject);
-        });
-      }
-    } catch (fallbackError) {
-      log.error("Failed to fetch stored roof visualization image:", fallbackError);
+      log.error("Failed to fetch Google Static Maps roof visualization:", imgError);
     }
   }
 
