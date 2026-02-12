@@ -1540,13 +1540,14 @@ router.post("/:id/unarchive", authMiddleware, requireStaff, asyncHandler(async (
 const BUILDING_TYPE_LABELS: Record<string, string> = {
   office: "Bureau",
   warehouse: "Entrepôt",
+  cold_warehouse: "Entrepôt réfrigéré",
   retail: "Commerce",
   industrial: "Industriel",
   institutional: "Institutionnel",
 };
 
 const syntheticProfileSchema = z.object({
-  buildingSubType: z.enum(["office", "warehouse", "retail", "industrial", "institutional"]),
+  buildingSubType: z.enum(["office", "warehouse", "cold_warehouse", "retail", "industrial", "institutional"]),
   annualConsumptionKWh: z.number().positive().optional(),
   monthlyBill: z.number().positive().optional(),
   tariffCode: z.enum(["G", "M", "L"]).optional(),
