@@ -207,6 +207,7 @@ export function LoadProfileEditor({ monthlyData, onUpdate, disabled = false }: L
 const BUILDING_PROFILES: Record<string, number[]> = {
   office: [1.0, 1.0, 1.0, 0.95, 0.9, 0.85, 0.8, 0.85, 0.95, 1.0, 1.05, 1.1],
   warehouse: [0.95, 0.95, 1.0, 1.0, 1.0, 1.05, 1.1, 1.1, 1.0, 1.0, 0.95, 0.9],
+  cold_warehouse: [0.85, 0.85, 0.90, 0.95, 1.05, 1.15, 1.25, 1.25, 1.10, 0.95, 0.85, 0.85],
   retail: [1.15, 1.0, 0.95, 0.9, 0.85, 0.8, 0.85, 0.9, 0.95, 1.0, 1.15, 1.4],
   industrial: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
   healthcare: [1.0, 1.0, 1.0, 0.95, 0.9, 0.95, 1.0, 1.0, 0.95, 1.0, 1.05, 1.1],
@@ -217,19 +218,21 @@ const BUILDING_LABELS = {
   fr: {
     office: "Bureau",
     warehouse: "Entrepôt",
+    cold_warehouse: "Entrepôt réfrigéré",
     retail: "Commerce",
     industrial: "Industriel",
     healthcare: "Santé",
     education: "Éducation",
-  },
+  } as Record<string, string>,
   en: {
     office: "Office",
     warehouse: "Warehouse",
+    cold_warehouse: "Cold warehouse",
     retail: "Retail",
     industrial: "Industrial",
     healthcare: "Healthcare",
     education: "Education",
-  },
+  } as Record<string, string>,
 };
 
 const HQ_ENERGY_RATES: Record<string, number> = {
@@ -519,23 +522,25 @@ export function KPIDashboard({
 
 // ==================== SYNTHETIC PROFILE GENERATOR ====================
 
-const BUILDING_SUB_TYPES = ['office', 'warehouse', 'retail', 'industrial', 'institutional'] as const;
+const BUILDING_SUB_TYPES = ['office', 'warehouse', 'cold_warehouse', 'retail', 'industrial', 'institutional'] as const;
 
 const BUILDING_SUB_LABELS = {
   fr: {
     office: "Bureau",
     warehouse: "Entrepôt",
+    cold_warehouse: "Entrepôt réfrigéré",
     retail: "Commerce",
     industrial: "Industriel",
     institutional: "Institutionnel",
-  },
+  } as Record<string, string>,
   en: {
     office: "Office",
     warehouse: "Warehouse",
+    cold_warehouse: "Cold warehouse",
     retail: "Retail",
     industrial: "Industrial",
     institutional: "Institutional",
-  },
+  } as Record<string, string>,
 };
 
 const SCHEDULE_LABELS = {
@@ -544,7 +549,7 @@ const SCHEDULE_LABELS = {
 };
 
 const ENERGY_INTENSITY: Record<string, number> = {
-  office: 18, warehouse: 10, retail: 22, industrial: 15, institutional: 20,
+  office: 18, warehouse: 10, cold_warehouse: 30, retail: 22, industrial: 15, institutional: 20,
 };
 
 interface SyntheticProfileGeneratorProps {

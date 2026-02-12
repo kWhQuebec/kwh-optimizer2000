@@ -8,11 +8,12 @@
 
 // Monthly shape factors by building type (reused from client BUILDING_PROFILES)
 const MONTHLY_FACTORS: Record<string, number[]> = {
-  office:        [1.0, 1.0, 1.0, 0.95, 0.9, 0.85, 0.8, 0.85, 0.95, 1.0, 1.05, 1.1],
-  warehouse:     [0.95, 0.95, 1.0, 1.0, 1.0, 1.05, 1.1, 1.1, 1.0, 1.0, 0.95, 0.9],
-  retail:        [1.15, 1.0, 0.95, 0.9, 0.85, 0.8, 0.85, 0.9, 0.95, 1.0, 1.15, 1.4],
-  industrial:    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-  institutional: [1.1, 1.1, 1.0, 0.9, 0.7, 0.5, 0.4, 0.5, 1.0, 1.1, 1.1, 1.2],
+  office:         [1.0, 1.0, 1.0, 0.95, 0.9, 0.85, 0.8, 0.85, 0.95, 1.0, 1.05, 1.1],
+  warehouse:      [0.95, 0.95, 1.0, 1.0, 1.0, 1.05, 1.1, 1.1, 1.0, 1.0, 0.95, 0.9],
+  cold_warehouse: [0.85, 0.85, 0.90, 0.95, 1.05, 1.15, 1.25, 1.25, 1.10, 0.95, 0.85, 0.85],
+  retail:         [1.15, 1.0, 0.95, 0.9, 0.85, 0.8, 0.85, 0.9, 0.95, 1.0, 1.15, 1.4],
+  industrial:     [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+  institutional:  [1.1, 1.1, 1.0, 0.9, 0.7, 0.5, 0.4, 0.5, 1.0, 1.1, 1.1, 1.2],
 };
 
 // Building archetype definitions
@@ -24,11 +25,12 @@ const ARCHETYPES: Record<string, {
   loadFactor: number;      // Annual load factor for peak kW derivation
   intensityKwhPerSqFt: number; // kWh/ft²/year for area-based estimation
 }> = {
-  office:        { operatingStart: 7,  operatingEnd: 19, baseNight: 0.30, weekendFactor: 0.25, loadFactor: 0.45, intensityKwhPerSqFt: 18 },
-  warehouse:     { operatingStart: 6,  operatingEnd: 22, baseNight: 0.60, weekendFactor: 0.50, loadFactor: 0.65, intensityKwhPerSqFt: 10 },
-  retail:        { operatingStart: 9,  operatingEnd: 21, baseNight: 0.20, weekendFactor: 0.85, loadFactor: 0.40, intensityKwhPerSqFt: 22 },
-  industrial:    { operatingStart: 0,  operatingEnd: 24, baseNight: 0.80, weekendFactor: 0.75, loadFactor: 0.70, intensityKwhPerSqFt: 15 },
-  institutional: { operatingStart: 7,  operatingEnd: 17, baseNight: 0.25, weekendFactor: 0.20, loadFactor: 0.40, intensityKwhPerSqFt: 20 },
+  office:         { operatingStart: 7,  operatingEnd: 19, baseNight: 0.30, weekendFactor: 0.25, loadFactor: 0.45, intensityKwhPerSqFt: 18 },
+  warehouse:      { operatingStart: 6,  operatingEnd: 22, baseNight: 0.60, weekendFactor: 0.50, loadFactor: 0.65, intensityKwhPerSqFt: 10 },
+  cold_warehouse: { operatingStart: 0,  operatingEnd: 24, baseNight: 0.85, weekendFactor: 0.95, loadFactor: 0.75, intensityKwhPerSqFt: 30 },
+  retail:         { operatingStart: 9,  operatingEnd: 21, baseNight: 0.20, weekendFactor: 0.85, loadFactor: 0.40, intensityKwhPerSqFt: 22 },
+  industrial:     { operatingStart: 0,  operatingEnd: 24, baseNight: 0.80, weekendFactor: 0.75, loadFactor: 0.70, intensityKwhPerSqFt: 15 },
+  institutional:  { operatingStart: 7,  operatingEnd: 17, baseNight: 0.25, weekendFactor: 0.20, loadFactor: 0.40, intensityKwhPerSqFt: 20 },
 };
 
 // Schedule overrides: how they modify operating hours
@@ -37,7 +39,7 @@ const SCHEDULE_OVERRIDES: Record<string, { operatingStart: number; operatingEnd:
   '24/7':  { operatingStart: 0, operatingEnd: 24 },
 };
 
-export type BuildingSubType = 'office' | 'warehouse' | 'retail' | 'industrial' | 'institutional';
+export type BuildingSubType = 'office' | 'warehouse' | 'cold_warehouse' | 'retail' | 'industrial' | 'institutional';
 export type OperatingSchedule = 'standard' | 'extended' | '24/7';
 
 export interface SyntheticProfileParams {
