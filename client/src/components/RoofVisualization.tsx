@@ -2200,7 +2200,7 @@ export function RoofVisualization({
               data-testid="capacity-slider"
             />
             
-            <div className="absolute left-0 right-0 bottom-0 flex justify-between text-xs text-muted-foreground">
+            <div className="absolute bottom-0 text-xs text-muted-foreground slider-markers" style={{ left: 10, right: 10 }}>
               {sliderMarkers.filter(m => m.value <= maxCapacity).map((marker, idx) => {
                 const position = ((marker.value - minCapacity) / (maxCapacity - minCapacity)) * 100;
                 const isRecommended = marker.value === currentPVSizeKW;
