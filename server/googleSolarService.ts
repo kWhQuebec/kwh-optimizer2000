@@ -4,7 +4,7 @@ import { detectRoofConstraints } from "./roofConstraintDetector";
 
 const log = createLogger("GoogleSolar");
 
-const GOOGLE_SOLAR_API_KEY = process.env.GOOGLE_SOLAR_API_KEY;
+const GOOGLE_SOLAR_API_KEY = process.env.GOOGLE_SOLAR_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
 const GOOGLE_SOLAR_API_BASE = "https://solar.googleapis.com/v1";
 const GOOGLE_GEOCODING_API_BASE = "https://maps.googleapis.com/maps/api/geocode/json";
 
