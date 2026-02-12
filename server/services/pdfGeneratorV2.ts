@@ -94,6 +94,7 @@ export async function generateProfessionalPDFv2(
   const totalProductionKWh = (simulation as any).totalProductionKWh || Math.round(simulation.annualConsumptionKWh * simulation.selfSufficiencyPercent / 100);
 
   const hasHourlyProfile = !!(simulation.hourlyProfile && simulation.hourlyProfile.length > 0);
+  const isSyntheticData = !hasHourlyProfile;
   const hasBattery = simulation.battEnergyKWh > 0;
   const hasRoofPolygons = !!(simulation.roofPolygons && simulation.roofPolygons.length > 0);
 
@@ -102,7 +103,7 @@ export async function generateProfessionalPDFv2(
 
   const pages: string[] = [];
 
-  pages.push(buildCoverPage(simulation, t, logoBase64, coverImageBase64, lang));
+  pages.push(buildCoverPage(simulation, t, logoBase64, coverImageBase64, lang, isSyntheticData));
   nextPage();
 
   pages.push(buildAboutPage(simulation, t, nextPage()));
@@ -126,9 +127,19 @@ export async function generateProfessionalPDFv2(
   }
 
   // Equipment page removed — too detailed for preliminary study
-  pages.push(buildAssumptionsPage(simulation, t, nextPage()));
+  pages.push(buildAssumptionsPage(simulation, t, isSyntheticData, nextPage()));
   pages.push(buildTimelinePage(simulation, t, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, nextPage()));
+
+  const watermarkLabel = t("\u00c9TUDE PR\u00c9LIMINAIRE", "PRELIMINARY STUDY");
+  const bodyClass = isSyntheticData ? ' class="synthetic"' : '';
+
+  const pagesHtml = isSyntheticData
+    ? pages.map(p => {
+        if (p.includes('cover-page')) return p;
+        return p.replace('<div class="page"', `<div class="page" data-watermark="${watermarkLabel}"`);
+      }).join("\n")
+    : pages.join("\n");
 
   const html = `<!DOCTYPE html>
 <html lang="${lang}">
@@ -138,8 +149,8 @@ export async function generateProfessionalPDFv2(
 <title>${t("Rapport", "Report")} - ${simulation.site.name}</title>
 <style>${getStyles()}</style>
 </head>
-<body>
-${pages.join("\n")}
+<body${bodyClass}>
+${pagesHtml}
 </body>
 </html>`;
 
@@ -278,6 +289,20 @@ p { margin-bottom: 3mm; color: var(--dark); }
 .funnel-step-tag { display: inline-block; background: var(--accent); color: var(--dark); font-size: 7pt; font-weight: 600; padding: 1mm 3mm; border-radius: 2mm; margin-top: 2mm; }
 .funnel-step-tag.paid { background: var(--light-gray); color: var(--gray); }
 .svg-chart { width: 100%; }
+body.synthetic .page:not(.cover-page)::after {
+  content: attr(data-watermark);
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-35deg);
+  font-size: 52pt; font-weight: 700; font-family: 'Montserrat', sans-serif;
+  color: rgba(0,61,166,0.06); white-space: nowrap;
+  pointer-events: none; z-index: 999; letter-spacing: 2px;
+}
+.synthetic-banner {
+  background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 3mm;
+  padding: 4mm 6mm; margin-top: 6mm;
+  font-size: 9pt; color: #92400E; line-height: 1.5;
+}
+.synthetic-banner strong { color: #B45309; }
 @media print {
   .page { page-break-after: always; page-break-inside: avoid; }
   .page:last-child { page-break-after: auto; }
@@ -297,7 +322,8 @@ function buildCoverPage(
   t: (fr: string, en: string) => string,
   logoBase64: string | null,
   coverImageBase64: string | null,
-  lang: string
+  lang: string,
+  isSyntheticData: boolean = false
 ): string {
   const date = new Date().toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { year: "numeric", month: "long", day: "numeric" });
   const locationText = [sim.site.city, sim.site.province || "QC"].filter(Boolean).join(", ");
@@ -327,6 +353,12 @@ function buildCoverPage(
         <p style="color: rgba(255,255,255,0.8); font-size: 12pt; margin-top: 4mm;">${locationText || "Qu&eacute;bec"}</p>
         ${sim.site.client?.name ? `<p style="color: rgba(255,255,255,0.7); font-size: 11pt; margin-top: 8mm;">${t("Pr&eacute;par&eacute; pour:", "Prepared for:")} <strong style="color: white;">${sim.site.client.name}</strong></p>` : ""}
       </div>
+      ${isSyntheticData ? `<div class="synthetic-banner" style="background: rgba(254,243,199,0.95); border-color: rgba(245,158,11,0.8);">
+        <strong>&#9888; ${t("Donn&eacute;es synth&eacute;tiques", "Synthetic data")}</strong> &mdash; ${t(
+          "Cette analyse est bas&eacute;e sur des donn&eacute;es g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min des 24 derniers mois et fournir une analyse r&eacute;aliste.",
+          "This analysis is based on data generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data for the past 24 months and provide a realistic analysis."
+        )}
+      </div>` : ""}
       <div class="cover-footer">
         <span>${t("Pr&eacute;par&eacute; le", "Prepared on")} ${date}</span>
         <span>kwh.quebec</span>
@@ -1238,6 +1270,7 @@ function buildEquipmentPage(
 function buildAssumptionsPage(
   sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
+  isSyntheticData: boolean = false,
   pageNum: number
 ): string {
   const assumptions = [
@@ -1283,7 +1316,10 @@ function buildAssumptionsPage(
       <h3>${t("Sources de donn&eacute;es", "Data Sources")}</h3>
       <div class="info-box">
         <p><strong>${t("Ensoleillement:", "Irradiance:")}</strong> Google Solar API (${t("donn&eacute;es satellite haute r&eacute;solution", "high-resolution satellite data")})</p>
-        <p><strong>${t("Consommation:", "Consumption:")}</strong> ${t("Donn&eacute;es Hydro-Qu&eacute;bec r&eacute;elles (via procuration)", "Real Hydro-Qu&eacute;bec data (via power of attorney)")}</p>
+        <p><strong>${t("Consommation:", "Consumption:")}</strong> ${isSyntheticData
+          ? t("&#9888; Donn&eacute;es synth&eacute;tiques g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min des 24 derniers mois et fournir une analyse r&eacute;aliste.",
+               "&#9888; Synthetic data generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data for the past 24 months and provide a realistic analysis.")
+          : t("Donn&eacute;es Hydro-Qu&eacute;bec r&eacute;elles (via procuration)", "Real Hydro-Qu&eacute;bec data (via power of attorney)")}</p>
         <p><strong>${t("Tarifs &eacute;lectriques:", "Electricity rates:")}</strong> Hydro-Qu&eacute;bec ${t("tarifs en vigueur 2026", "rates in effect 2026")}</p>
         <p><strong>${t("ITC f&eacute;d&eacute;ral:", "Federal ITC:")}</strong> ${t("Loi C-69 - Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement pour technologies propres", "Bill C-69 - Clean technology investment tax credit")}</p>
         <p><strong>${t("Autoproduction Hydro-Qu&eacute;bec:", "Hydro-Qu&eacute;bec Self-Production:")}</strong> ${t("Programme Autoproduction d'Hydro-Qu&eacute;bec", "Hydro-Qu&eacute;bec Self-Production Program")}</p>
