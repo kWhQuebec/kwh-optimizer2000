@@ -3,7 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import type { DocumentSimulationData } from "../documentDataProvider";
 import { createLogger } from "../lib/logger";
-import { getWhySolarNow, getEquipmentTechnicalSummary } from "@shared/brandContent";
+import { getWhySolarNow, getEquipmentTechnicalSummary, getExclusions } from "@shared/brandContent";
 import { computeAcquisitionCashflows, type CumulativePoint } from "./acquisitionCashflows";
 
 const log = createLogger("PDFv2");
@@ -125,7 +125,7 @@ export async function generateProfessionalPDFv2(
 
 
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
-  pages.push(buildAssumptionsPage(simulation, t, isSyntheticData, nextPage()));
+  pages.push(buildAssumptionsPage(simulation, t, lang, isSyntheticData, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, isSyntheticData, nextPage()));
 
   const watermarkLabel = t("\u00c9TUDE PR\u00c9LIMINAIRE", "PRELIMINARY STUDY");
@@ -1327,6 +1327,7 @@ function buildEquipmentPage(
 function buildAssumptionsPage(
   sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
+  lang: "fr" | "en",
   isSyntheticData: boolean = false,
   pageNum: number
 ): string {
@@ -1342,13 +1343,7 @@ function buildAssumptionsPage(
     t("Hydro-Qu&eacute;bec — 40% du projet (jusqu'&agrave; 1 000 $/kW)", "Hydro-Qu&eacute;bec — 40% of project (up to $1,000/kW)"),
   ];
 
-  const exclusions = [
-    t("Travaux de toiture pr&eacute;alables (si requis)", "Prior roofing work (if required)"),
-    t("Mise &agrave; niveau du panneau &eacute;lectrique (si requis)", "Electrical panel upgrade (if required)"),
-    t("Permis municipaux (variables selon localit&eacute;)", "Municipal permits (varies by location)"),
-    t("&Eacute;tudes structurales additionnelles", "Additional structural studies"),
-    t("Travaux de g&eacute;nie civil (si requis)", "Civil engineering work (if required)"),
-  ];
+  const exclusions = getExclusions(lang);
 
   return `
   <div class="page">
