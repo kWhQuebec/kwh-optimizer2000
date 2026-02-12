@@ -314,7 +314,7 @@ export default function PresentationPage() {
     assumptions: <AssumptionsSlide language={language} isSyntheticData={!fullSimulation?.hourlyProfile || (fullSimulation.hourlyProfile as any[]).length === 0} />,
     equipment: <EquipmentSlide language={language} />,
     timeline: <TimelineSlide language={language} />,
-    nextSteps: <NextStepsSlide simulation={displaySim} language={language} />,
+    nextSteps: <NextStepsSlide simulation={displaySim} language={language} isSyntheticData={!displaySim?.hourlyProfile || (displaySim.hourlyProfile as any[]).length === 0} />,
     credibility: <CredibilitySlide language={language} />,
   };
 
@@ -1495,7 +1495,7 @@ function TimelineSlide({ language }: { language: string }) {
   );
 }
 
-function NextStepsSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simulation: SimulationRun | null; language: string; isSyntheticData?: boolean }) {
   const lang = language as "fr" | "en";
   const designCovers = getDesignFeeCovers(lang);
   const clientProvidesList = getClientProvides(lang);
@@ -1549,6 +1549,26 @@ function NextStepsSlide({ simulation, language }: { simulation: SimulationRun | 
         <SlideTitle>
           {language === 'fr' ? 'Passons à l\'action' : 'Let\'s Take Action'}
         </SlideTitle>
+
+        {!isSyntheticData && (
+          <div
+            className="rounded-2xl px-6 py-4 mb-6 text-center shadow-sm"
+            style={{ backgroundColor: 'rgba(22,163,74,0.06)', border: '2px solid rgba(22,163,74,0.3)' }}
+            data-testid="banner-analysis-complete"
+          >
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <CheckCircle2 className="h-5 w-5" style={{ color: '#16A34A' }} />
+              <p className="text-base md:text-lg font-bold" style={{ color: '#16A34A' }}>
+                {language === 'fr' ? 'Votre analyse est complétée' : 'Your analysis is complete'}
+              </p>
+            </div>
+            <p className="text-sm" style={{ color: '#4B5563' }}>
+              {language === 'fr'
+                ? 'La prochaine étape : signer l\'entente de design pour démarrer la conception détaillée.'
+                : 'Next step: sign the design agreement to begin detailed engineering.'}
+            </p>
+          </div>
+        )}
 
         <div className="rounded-2xl p-4 md:p-6 mb-8 shadow-sm" style={{ border: '1px solid #E5E7EB' }} data-testid="timeline-milestones">
           <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4 md:gap-0 relative">
@@ -1619,14 +1639,26 @@ function NextStepsSlide({ simulation, language }: { simulation: SimulationRun | 
           style={{ backgroundColor: 'rgba(0,61,166,0.05)', border: `2px solid ${BRAND_COLORS.primaryBlue}` }}
         >
           <p className="text-lg md:text-xl font-bold mb-2" style={{ color: BRAND_COLORS.primaryBlue }}>
-            {language === 'fr' ? 'Prêt à transformer vos coûts d\'énergie? Contactez-nous pour planifier votre visite de site.' : 'Ready to transform your energy costs? Contact us to schedule your site visit.'}
+            {isSyntheticData
+              ? (language === 'fr' ? 'Prêt à transformer vos coûts d\'énergie? Contactez-nous pour planifier votre visite de site.' : 'Ready to transform your energy costs? Contact us to schedule your site visit.')
+              : (language === 'fr' ? 'Signez votre entente de design en ligne' : 'Sign your design agreement online')
+            }
           </p>
+          {!isSyntheticData && (
+            <p className="text-sm mb-3" style={{ color: '#4B5563' }}>
+              {language === 'fr'
+                ? 'Un lien sécurisé vous sera envoyé par courriel pour signer et compléter le paiement en ligne.'
+                : 'A secure link will be sent to you by email to sign and complete the payment online.'}
+            </p>
+          )}
           <p className="text-base md:text-lg font-semibold mb-4" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
-          <p className="text-sm" style={{ color: '#DC2626' }}>
-            {language === 'fr'
-              ? `Les incitatifs couvrent jusqu'à ${incentivePercent} % du projet — ces programmes peuvent changer à tout moment.`
-              : `Incentives cover up to ${incentivePercent}% of the project — these programs can change at any time.`}
-          </p>
+          {isSyntheticData && (
+            <p className="text-sm" style={{ color: '#DC2626' }}>
+              {language === 'fr'
+                ? `Les incitatifs couvrent jusqu'à ${incentivePercent} % du projet — ces programmes peuvent changer à tout moment.`
+                : `Incentives cover up to ${incentivePercent}% of the project — these programs can change at any time.`}
+            </p>
+          )}
         </div>
       </div>
     </div>

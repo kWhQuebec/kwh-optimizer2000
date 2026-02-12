@@ -1101,8 +1101,11 @@ export async function generatePresentationPPTX(
   const act4 = getNarrativeAct("act4_action", lang);
   const transition3 = getNarrativeTransition("resultsToAction", lang);
   slide5.addText(
-    t("Les incitatifs actuels couvrent jusqu'à 60% de votre projet — ces programmes peuvent changer à tout moment.",
-      "Current incentives cover up to 60% of your project — these programs can change at any time."), {
+    isSyntheticData
+      ? t("Les incitatifs actuels couvrent jusqu'à 60% de votre projet — ces programmes peuvent changer à tout moment.",
+          "Current incentives cover up to 60% of your project — these programs can change at any time.")
+      : t("Votre analyse est complétée. La prochaine étape: signer l'entente de design pour démarrer la conception.",
+          "Your analysis is complete. Next step: sign the design agreement to begin engineering."), {
     x: 0.5, y: 1.15, w: 9, h: 0.3,
     fontSize: 9, italic: true, color: COLORS.mediumGray
   });
@@ -1158,7 +1161,10 @@ export async function generatePresentationPPTX(
   slide5.addShape("rect", {
     x: 0.5, y: 4.5, w: 9, h: 0.8, fill: { color: COLORS.blue }
   });
-  slide5.addText(t("Contactez-nous pour planifier votre visite de site", "Contact us to schedule your site visit"), {
+  slide5.addText(
+    isSyntheticData
+      ? t("Contactez-nous pour planifier votre évaluation détaillée", "Contact us to schedule your detailed evaluation")
+      : t("Signez votre entente de design en ligne", "Sign your design agreement online"), {
     x: 0.5, y: 4.65, w: 9, h: 0.25,
     fontSize: 14, bold: true, color: COLORS.white, align: "center"
   });

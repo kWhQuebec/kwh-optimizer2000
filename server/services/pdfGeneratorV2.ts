@@ -126,7 +126,7 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
   pages.push(buildAssumptionsPage(simulation, t, isSyntheticData, nextPage()));
-  pages.push(buildNextStepsPage(simulation, t, nextPage()));
+  pages.push(buildNextStepsPage(simulation, t, isSyntheticData, nextPage()));
 
   const watermarkLabel = t("\u00c9TUDE PR\u00c9LIMINAIRE", "PRELIMINARY STUDY");
   const bodyClass = isSyntheticData ? ' class="synthetic"' : '';
@@ -1442,13 +1442,11 @@ function buildTimelinePage(
 function buildNextStepsPage(
   _sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
+  isSyntheticData: boolean,
   pageNum: number
 ): string {
-  return `
-  <div class="page">
-    <h2>${t("Prochaines &eacute;tapes", "Next Steps")}</h2>
-    <p class="subtitle">${t("Un processus simple et transparent", "A simple and transparent process")}</p>
-    <div class="funnel-steps">
+  const funnelStepsHtml = isSyntheticData
+    ? `<div class="funnel-steps">
       <div class="funnel-step">
         <div class="funnel-step-number">1</div>
         <div class="funnel-step-title">${t("&Eacute;valuation d&eacute;taill&eacute;e", "Detailed Evaluation")}</div>
@@ -1473,9 +1471,36 @@ function buildNextStepsPage(
         <p class="funnel-step-desc">${t("Suivi en temps r&eacute;el, maintenance pr&eacute;ventive, performance garantie.", "Real-time monitoring, preventive maintenance, guaranteed performance.")}</p>
         <span class="funnel-step-tag paid">${t("CONTINU", "ONGOING")}</span>
       </div>
-    </div>
-    <div class="two-column" style="margin-top: 6mm;">
-      <div class="section">
+    </div>`
+    : `<div class="funnel-steps">
+      <div class="funnel-step" style="background: rgba(22,163,74,0.06); border: 2px solid rgba(22,163,74,0.2); border-radius: 3mm;">
+        <div class="funnel-step-number" style="background: #16A34A; color: white;">&#10003;</div>
+        <div class="funnel-step-title" style="color: #16A34A;">${t("Analyse compl&eacute;t&eacute;e", "Analysis Completed")}</div>
+        <p class="funnel-step-desc">${t("Donn&eacute;es r&eacute;elles analys&eacute;es. R&eacute;sultats d&eacute;taill&eacute;s pr&ecirc;ts.", "Real data analyzed. Detailed results ready.")}</p>
+        <span class="funnel-step-tag" style="background: #16A34A; color: white;">${t("COMPL&Eacute;T&Eacute;", "COMPLETED")}</span>
+      </div>
+      <div class="funnel-step" style="border: 2px solid var(--accent); border-radius: 3mm;">
+        <div class="funnel-step-number">2</div>
+        <div class="funnel-step-title">${t("Entente de design", "Design Agreement")}</div>
+        <p class="funnel-step-desc">${t("Visite technique, ing&eacute;nierie pr&eacute;liminaire, devis ferme garanti 60 jours.", "Technical visit, preliminary engineering, firm quote guaranteed 60 days.")}</p>
+        <span class="funnel-step-tag">${t("PROCHAINE &Eacute;TAPE", "NEXT STEP")}</span>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-step-number">3</div>
+        <div class="funnel-step-title">${t("Ing&eacute;nierie & construction", "Engineering & Construction")}</div>
+        <p class="funnel-step-desc">${t("Plans PE, permis, installation cl&eacute; en main. On s'occupe de tout.", "PE drawings, permits, turnkey installation. We handle everything.")}</p>
+        <span class="funnel-step-tag paid">8-12 ${t("SEMAINES", "WEEKS")}</span>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-step-number">4</div>
+        <div class="funnel-step-title">${t("Monitoring & O&M", "Monitoring & O&M")}</div>
+        <p class="funnel-step-desc">${t("Suivi en temps r&eacute;el, maintenance pr&eacute;ventive, performance garantie.", "Real-time monitoring, preventive maintenance, guaranteed performance.")}</p>
+        <span class="funnel-step-tag paid">${t("CONTINU", "ONGOING")}</span>
+      </div>
+    </div>`;
+
+  const immediateStepHtml = isSyntheticData
+    ? `<div class="section">
         <h3>${t("Prochaine &eacute;tape imm&eacute;diate", "Immediate next step")}</h3>
         <p>${t("Pour passer de cette &eacute;tude pr&eacute;liminaire &agrave; une analyse d&eacute;taill&eacute;e avec vos donn&eacute;es r&eacute;elles :", "To move from this preliminary study to a detailed analysis with your real data:")}</p>
         <ul class="bullet-list">
@@ -1484,24 +1509,64 @@ function buildNextStepsPage(
           <li>${t("Simulation heure par heure personnalis&eacute;e", "Personalized hour-by-hour simulation")}</li>
           <li>${t("R&eacute;sultat en 5 jours ouvrables", "Results within 5 business days")}</li>
         </ul>
-      </div>
-      <div class="section">
+      </div>`
+    : `<div class="section">
+        <h3>${t("Prochaine &eacute;tape imm&eacute;diate", "Immediate next step")}</h3>
+        <p>${t("Pour passer &agrave; l'&eacute;tape de conception d&eacute;taill&eacute;e :", "To proceed to the detailed design phase:")}</p>
+        <ul class="bullet-list">
+          <li>${t("Signer l'entente de design en ligne", "Sign the design agreement online")}</li>
+          <li>${t("Visite technique de votre b&acirc;timent sous 2 semaines", "Technical visit of your building within 2 weeks")}</li>
+          <li>${t("Conception finale et devis ferme garanti 60 jours", "Final design and firm quote guaranteed 60 days")}</li>
+          <li>${t("D&eacute;but des travaux sous 8-12 semaines", "Construction start within 8-12 weeks")}</li>
+        </ul>
+      </div>`;
+
+  const faqHtml = isSyntheticData
+    ? `<div class="section">
         <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
         <div class="info-box" style="font-size: 9pt;">
           <p><strong>${t("Combien &ccedil;a co&ucirc;te de signer la procuration?", "How much does signing the power of attorney cost?")}</strong><br>${t("Rien. L'&eacute;valuation d&eacute;taill&eacute;e est gratuite et sans engagement.", "Nothing. The detailed evaluation is free and without commitment.")}</p>
           <p><strong>${t("Quand est-ce que je paie quelque chose?", "When do I pay anything?")}</strong><br>${t("Seulement apr&egrave;s la visite technique, quand vous approuvez le devis formel.", "Only after the technical visit, when you approve the formal quote.")}</p>
           <p style="margin: 0;"><strong>${t("Le devis peut-il changer?", "Can the quote change?")}</strong><br>${t("Le devis formel est garanti 60 jours, prix ferme.", "The formal quote is guaranteed 60 days, firm price.")}</p>
         </div>
-      </div>
-    </div>
-    <div class="cta-box">
+      </div>`
+    : `<div class="section">
+        <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
+        <div class="info-box" style="font-size: 9pt;">
+          <p><strong>${t("Que couvre l'entente de design?", "What does the design agreement cover?")}</strong><br>${t("Visite de site compl&egrave;te, ing&eacute;nierie pr&eacute;liminaire, pr&eacute;paration du dossier d'interconnexion Hydro-Qu&eacute;bec, et soumission ferme d&eacute;taill&eacute;e.", "Complete site visit, preliminary engineering, Hydro-Qu&eacute;bec interconnection file preparation, and detailed firm quote.")}</p>
+          <p><strong>${t("Combien &ccedil;a co&ucirc;te?", "How much does it cost?")}</strong><br>${t("Consultez le lien ci-dessous pour les d&eacute;tails et le paiement s&eacute;curis&eacute; en ligne.", "See the link below for details and secure online payment.")}</p>
+          <p style="margin: 0;"><strong>${t("Le devis peut-il changer?", "Can the quote change?")}</strong><br>${t("Le devis formel est garanti 60 jours, prix ferme.", "The formal quote is guaranteed 60 days, firm price.")}</p>
+        </div>
+      </div>`;
+
+  const ctaHtml = isSyntheticData
+    ? `<div class="cta-box">
       <h3>${t("Pr&ecirc;t &agrave; passer &agrave; l'action?", "Ready to take action?")}</h3>
       <p>${t("Contactez-nous pour d&eacute;marrer votre &eacute;valuation d&eacute;taill&eacute;e gratuite", "Contact us to start your free detailed evaluation")}</p>
       <p style="font-size: 14pt; margin-top: 5mm;">
         <strong>evaluation@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>
       </p>
       <p style="font-size: 10pt; margin-top: 3mm; opacity: 0.8;">kwh.quebec</p>
+    </div>`
+    : `<div class="cta-box">
+      <h3>${t("Signez votre entente de design en ligne", "Sign your design agreement online")}</h3>
+      <p>${t("Un lien s&eacute;curis&eacute; vous sera envoy&eacute; par courriel pour signer et compl&eacute;ter le paiement en ligne.", "A secure link will be sent to you by email to sign and complete the payment online.")}</p>
+      <p style="font-size: 14pt; margin-top: 5mm;">
+        <strong>evaluation@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>
+      </p>
+      <p style="font-size: 10pt; margin-top: 3mm; opacity: 0.8;">kwh.quebec</p>
+    </div>`;
+
+  return `
+  <div class="page">
+    <h2>${t("Prochaines &eacute;tapes", "Next Steps")}</h2>
+    <p class="subtitle">${t("Un processus simple et transparent", "A simple and transparent process")}</p>
+    ${funnelStepsHtml}
+    <div class="two-column" style="margin-top: 6mm;">
+      ${immediateStepHtml}
+      ${faqHtml}
     </div>
+    ${ctaHtml}
     ${footerHtml(t, pageNum)}
   </div>`;
 }
