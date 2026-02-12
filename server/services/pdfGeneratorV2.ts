@@ -108,7 +108,7 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildAboutPage(simulation, t, nextPage()));
   pages.push(buildWhySolarNowPage(t, lang, nextPage()));
-  pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage()));
+  pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData));
   pages.push(buildResultsPage(simulation, t, totalProductionKWh, nextPage()));
   pages.push(buildNetInvestmentPage(simulation, t, nextPage()));
 
@@ -532,7 +532,8 @@ function buildProjectSnapshotPage(
   t: (fr: string, en: string) => string,
   totalProductionKWh: number,
   roofImageBase64: string | null,
-  pageNum: number
+  pageNum: number,
+  isSyntheticData: boolean = false
 ): string {
   const co2Trees = Math.round((sim.co2AvoidedTonnesPerYear * 1000) / 21.77);
   const co2Cars = Math.round((sim.co2AvoidedTonnesPerYear * 1000) / 4600);
@@ -817,11 +818,19 @@ function buildEnergyProfilePage(
         ${monthlyBarsSVG}
       </div>
       <div class="info-box" style="min-height: 35mm;">
+        ${isSyntheticData ? `
+        <h3 style="font-size: 11pt; color: #b45309; margin-bottom: 3mm;">${t("&Eacute;tude pr&eacute;liminaire", "Preliminary Study")}</h3>
+        <p style="font-size: 9pt;">${t(
+          "Cette analyse est bas&eacute;e sur des <strong>donn&eacute;es synth&eacute;tiques</strong> g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min et fournir une analyse d&eacute;finitive.",
+          "This analysis is based on <strong>synthetic data</strong> generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data and provide a definitive analysis."
+        )}</p>
+        ` : `
         <h3 style="font-size: 11pt; color: var(--primary); margin-bottom: 3mm;">${t("Analyse bas&eacute;e sur donn&eacute;es r&eacute;elles", "Analysis Based on Real Data")}</h3>
         <p style="font-size: 9pt;">${t(
           "Notre simulation utilise vos <strong>donn&eacute;es de consommation Hydro-Qu&eacute;bec r&eacute;elles</strong> (via procuration) crois&eacute;es avec les donn&eacute;es d'ensoleillement satellite <strong>Google Solar API</strong>.",
           "Our simulation uses your <strong>real Hydro-Qu&eacute;bec consumption data</strong> (via power of attorney) cross-referenced with <strong>Google Solar API</strong> satellite irradiance data."
         )}</p>
+        `}
       </div>
     </div>
     ${footerHtml(t, pageNum)}
