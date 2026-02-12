@@ -301,6 +301,28 @@ export default function SiteDetailPage() {
     },
   });
 
+  const captureAndSaveVisualization = async () => {
+    if (!visualizationCaptureRef.current || !site) return;
+    try {
+      const imageData = await visualizationCaptureRef.current();
+      if (imageData) {
+        const tkn = localStorage.getItem("token");
+        const resp = await fetch(`/api/sites/${site.id}/save-visualization`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(tkn ? { Authorization: `Bearer ${tkn}` } : {})
+          },
+          body: JSON.stringify({ imageData }),
+        });
+        if (!resp.ok) console.warn("Failed to save roof visualization before download");
+      }
+    } catch (e) {
+      console.error("Failed to capture roof visualization:", e);
+    }
+  };
+
   const handleDownloadDeliverables = async (simId: string) => {
     if (!site) return;
 
@@ -308,6 +330,7 @@ export default function SiteDetailPage() {
     const token = localStorage.getItem("token");
 
     try {
+      await captureAndSaveVisualization();
       const pdfResponse = await fetch(`/api/simulation-runs/${simId}/report-pdf?lang=${language}&opt=${optimizationTarget}`, {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -700,21 +723,7 @@ export default function SiteDetailPage() {
                 try {
                   const token = localStorage.getItem("token");
 
-                  if (visualizationCaptureRef.current) {
-                    toast({ title: language === "fr" ? "Capture de l'image..." : "Capturing image..." });
-                    const imageData = await visualizationCaptureRef.current();
-                    if (imageData) {
-                      await fetch(`/api/sites/${site.id}/save-visualization`, {
-                        method: "POST",
-                        credentials: "include",
-                        headers: {
-                          "Content-Type": "application/json",
-                          ...(token ? { Authorization: `Bearer ${token}` } : {})
-                        },
-                        body: JSON.stringify({ imageData }),
-                      });
-                    }
-                  }
+                  await captureAndSaveVisualization();
 
                   const response = await fetch(`/api/sites/${site.id}/project-info-sheet?lang=${language}`, {
                     credentials: "include",
@@ -746,6 +755,7 @@ export default function SiteDetailPage() {
                 simulationId={latestSimulation.id}
                 siteName={site.name}
                 optimizationTarget={optimizationTarget}
+                onBeforeDownload={captureAndSaveVisualization}
               />
               {isStaff && (
                 <Link href={`/app/analyses/${latestSimulation.id}/design`}>

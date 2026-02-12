@@ -14,10 +14,12 @@ export function DownloadReportButton({
   simulationId,
   siteName,
   optimizationTarget = 'npv',
+  onBeforeDownload,
 }: {
   simulationId: string;
   siteName: string;
   optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency';
+  onBeforeDownload?: () => Promise<void>;
 }) {
   const { t, language } = useI18n();
   const { toast } = useToast();
@@ -28,6 +30,7 @@ export function DownloadReportButton({
     setDownloading(true);
     setDownloadPhase("generating");
     try {
+      if (onBeforeDownload) await onBeforeDownload();
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/simulation-runs/${simulationId}/report-pdf?lang=${language}&opt=${optimizationTarget}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -61,7 +64,7 @@ export function DownloadReportButton({
     setDownloading(true);
     setDownloadPhase("generating");
     try {
-      // Download executive summary PDF from server
+      if (onBeforeDownload) await onBeforeDownload();
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/simulation-runs/${simulationId}/executive-summary-pdf?lang=${language}&opt=${optimizationTarget}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -95,6 +98,7 @@ export function DownloadReportButton({
     setDownloading(true);
     setDownloadPhase("generating");
     try {
+      if (onBeforeDownload) await onBeforeDownload();
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/simulation-runs/${simulationId}/presentation-pptx?lang=${language}&opt=${optimizationTarget}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
