@@ -549,16 +549,16 @@ function buildProjectSnapshotPage(
     <h2>${t("Aper&ccedil;u du projet", "Project Snapshot")}</h2>
     <div class="metrics-grid">
       <div class="metric-card metric-highlight">
-        <span class="metric-value">${fmt(sim.pvSizeKW)} kW</span>
         <span class="metric-label">${t("Puissance syst&egrave;me", "System Power")}</span>
+        <span class="metric-value">${fmt(sim.pvSizeKW)} kW</span>
       </div>
       <div class="metric-card">
-        <span class="metric-value">${fmt(totalProductionKWh)}</span>
-        <span class="metric-label">kWh/${t("an", "yr")} ${t("Production", "Production")}</span>
+        <span class="metric-label">${t("Production", "Production")}</span>
+        <span class="metric-value">${fmt(totalProductionKWh)} kWh/${t("an", "yr")}</span>
       </div>
       <div class="metric-card">
-        <span class="metric-value">${Math.round(sim.selfSufficiencyPercent)}%</span>
         <span class="metric-label">${t("Couverture &eacute;nerg&eacute;tique", "Energy Coverage")}</span>
+        <span class="metric-value">${Math.round(sim.selfSufficiencyPercent)}%</span>
       </div>
     </div>
     <div class="two-column">
