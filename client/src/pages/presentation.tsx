@@ -912,16 +912,104 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
   );
 }
 
-function CashflowSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+function computeAcquisitionSeries(simulation: SimulationRun) {
+  const capexGross = (simulation as any).capexGross || simulation.capexNet || 0;
+  const annualSavings = simulation.savingsYear1 || simulation.annualSavings || 0;
+  const hqSolar = (simulation as any).incentivesHQSolar || 0;
+  const hqBattery = (simulation as any).incentivesHQBattery || 0;
+  const federalITC = (simulation as any).incentivesFederal || 0;
+  const taxShield = (simulation as any).taxShield || 0;
+
+  const loanTermYears = 10;
+  const loanInterestRate = 7;
+  const loanDownPaymentPct = 30;
+  const leaseTermYears = 15;
+  const leaseImplicitRate = 8.5;
+
+  const loanDownPaymentAmount = capexGross * loanDownPaymentPct / 100;
+  const loanAmount = capexGross - loanDownPaymentAmount;
+  const monthlyRate = loanInterestRate / 100 / 12;
+  const numPayments = loanTermYears * 12;
+  const monthlyPayment = monthlyRate > 0
+    ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1)
+    : loanAmount / numPayments;
+  const annualLoanPayment = monthlyPayment * 12;
+
+  const leaseFinancedAmount = capexGross;
+  const leaseMonthlyRate = leaseImplicitRate / 100 / 12;
+  const leaseNumPayments = leaseTermYears * 12;
+  const leaseMonthlyPayment = leaseFinancedAmount > 0 && leaseMonthlyRate > 0
+    ? (leaseFinancedAmount * leaseMonthlyRate * Math.pow(1 + leaseMonthlyRate, leaseNumPayments)) / (Math.pow(1 + leaseMonthlyRate, leaseNumPayments) - 1)
+    : leaseFinancedAmount / Math.max(1, leaseNumPayments);
+  const annualLeasePayment = leaseMonthlyPayment * 12;
+
+  const upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5);
+  const year1Returns = (hqBattery * 0.5) + taxShield;
+  const year2Returns = federalITC;
+
+  let cashCumulative = -upfrontCashNeeded;
+  let loanCumulative = -loanDownPaymentAmount;
+  let leaseCumulative = (hqSolar * 0.5) + (hqBattery * 0.5);
+
   const cashflowData = simulation?.cashflows as CashflowEntry[] | undefined;
 
-  const chartData = cashflowData?.map((entry, index) => ({
-    year: entry.year || index + 1,
-    cumulative: entry.cumulative,
-    annual: entry.netCashflow
-  })) || [];
+  const data: { year: number; cash: number; loan: number; lease: number; annual: number }[] = [];
+  let cashPaybackYear: number | null = null;
 
-  const breakEvenYear = chartData.find(d => d.cumulative >= 0)?.year;
+  for (let year = 1; year <= 25; year++) {
+    const cf = cashflowData?.find(c => c.year === year);
+    if (cf) {
+      cashCumulative = cf.cumulative;
+    } else {
+      cashCumulative += annualSavings;
+      if (year === 1) cashCumulative += year1Returns;
+      if (year === 2) cashCumulative += year2Returns;
+    }
+
+    loanCumulative += annualSavings;
+    leaseCumulative += annualSavings;
+
+    if (year <= loanTermYears) loanCumulative -= annualLoanPayment;
+    if (year <= leaseTermYears) leaseCumulative -= annualLeasePayment;
+
+    if (year === 1) {
+      loanCumulative += year1Returns;
+      leaseCumulative += year1Returns + (hqSolar * 0.5);
+    }
+    if (year === 2) {
+      loanCumulative += year2Returns;
+      leaseCumulative += year2Returns;
+    }
+
+    if (cashPaybackYear === null && cashCumulative >= 0) cashPaybackYear = year;
+
+    data.push({
+      year,
+      cash: Math.round(cashCumulative),
+      loan: Math.round(loanCumulative),
+      lease: Math.round(leaseCumulative),
+      annual: cf?.netCashflow || 0,
+    });
+  }
+
+  return { data, cashPaybackYear };
+}
+
+function CashflowSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+  if (!simulation) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+        <div className="max-w-6xl w-full">
+          <SlideTitle>{language === 'fr' ? 'Projections financières' : 'Financial Projections'}</SlideTitle>
+          <div className="rounded-2xl p-12 text-center shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
+            <p style={{ color: '#6B7280' }}>{language === 'fr' ? 'Données de cash-flow non disponibles.' : 'Cash flow data not available.'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { data: chartData, cashPaybackYear } = computeAcquisitionSeries(simulation);
   const savingsYear1 = simulation?.savingsYear1 || 0;
   const costOfInaction = savingsYear1 * 25;
 
@@ -929,9 +1017,9 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
         <SlideTitle
-          subtitle={breakEvenYear ? (language === 'fr' ? `Rentable en ${breakEvenYear} ans` : `Payback in ${breakEvenYear} years`) : undefined}
+          subtitle={cashPaybackYear ? (language === 'fr' ? `Rentable en ${cashPaybackYear} ans (comptant)` : `Payback in ${cashPaybackYear} years (cash)`) : undefined}
         >
-          {language === 'fr' ? 'Projections financières' : 'Financial Projections'}
+          {language === 'fr' ? "Projections financières — Options d'acquisition" : 'Financial Projections — Acquisition Options'}
         </SlideTitle>
 
         {chartData.length > 0 ? (
@@ -953,35 +1041,42 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
                   <Tooltip
                     contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', color: '#1F2937' }}
                     labelStyle={{ color: '#1F2937', fontWeight: 'bold' }}
-                    formatter={(value: number, name: string) => [
-                      formatSmartCurrencyFull(value, language),
-                      name === 'cumulative' ? (language === 'fr' ? 'Cumulatif' : 'Cumulative') : (language === 'fr' ? 'Annuel' : 'Annual')
-                    ]}
+                    formatter={(value: number, name: string) => {
+                      const labels: Record<string, string> = language === 'fr'
+                        ? { cash: 'Comptant', loan: 'Prêt', lease: 'Crédit-bail 15 ans', annual: 'Cash-flow annuel' }
+                        : { cash: 'Cash', loan: 'Loan', lease: '15-yr Lease', annual: 'Annual cash flow' };
+                      return [formatSmartCurrencyFull(value, language), labels[name] || name];
+                    }}
                   />
                   <Legend
                     wrapperStyle={{ color: '#6B7280' }}
-                    formatter={(value) => value === 'cumulative'
-                      ? (language === 'fr' ? 'Cash-flow cumulatif' : 'Cumulative cash flow')
-                      : (language === 'fr' ? 'Cash-flow annuel' : 'Annual cash flow')}
+                    formatter={(value) => {
+                      const labels: Record<string, string> = language === 'fr'
+                        ? { cash: 'Comptant', loan: 'Prêt', lease: 'Crédit-bail 15 ans', annual: 'Cash-flow annuel (comptant)' }
+                        : { cash: 'Cash', loan: 'Loan', lease: '15-yr Lease', annual: 'Annual cash flow (cash)' };
+                      return labels[value] || value;
+                    }}
                   />
                   <Bar dataKey="annual" radius={[2, 2, 0, 0]}>
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.annual >= 0 ? '#16A34A' : '#DC2626'} opacity={0.6} />
+                      <Cell key={`cell-${index}`} fill={entry.annual >= 0 ? '#16A34A' : '#DC2626'} opacity={0.3} />
                     ))}
                   </Bar>
-                  <Line type="monotone" dataKey="cumulative" stroke={BRAND_COLORS.accentGold} strokeWidth={3} dot={false} />
-                  <Line type="monotone" dataKey={() => 0} stroke="#D1D5DB" strokeDasharray="5 5" dot={false} />
-                  {breakEvenYear && (
+                  <Line type="monotone" dataKey="cash" stroke={BRAND_COLORS.positive} strokeWidth={3} dot={false} />
+                  <Line type="monotone" dataKey="loan" stroke={BRAND_COLORS.primaryBlue} strokeWidth={2.5} dot={false} strokeDasharray="6 3" />
+                  <Line type="monotone" dataKey="lease" stroke={BRAND_COLORS.accentGold} strokeWidth={2.5} dot={false} strokeDasharray="4 2" />
+                  <Line type="monotone" dataKey={() => 0} stroke="#D1D5DB" strokeDasharray="5 5" dot={false} name="zero" legendType="none" />
+                  {cashPaybackYear && (
                     <ReferenceLine
-                      x={breakEvenYear}
-                      stroke="#FFB005"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
+                      x={cashPaybackYear}
+                      stroke={BRAND_COLORS.positive}
+                      strokeWidth={1.5}
+                      strokeDasharray="5 3"
                       label={{
-                        value: language === 'fr' ? `Rentable An ${breakEvenYear}` : `Payback Year ${breakEvenYear}`,
+                        value: language === 'fr' ? `Récup. An ${cashPaybackYear}` : `Payback Yr ${cashPaybackYear}`,
                         position: 'top',
-                        fill: '#FFB005',
-                        fontSize: 14,
+                        fill: BRAND_COLORS.positive,
+                        fontSize: 13,
                         fontWeight: 'bold'
                       }}
                     />

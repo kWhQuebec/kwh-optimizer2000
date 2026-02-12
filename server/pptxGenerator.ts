@@ -7,6 +7,7 @@ import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCu
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
 import type { DocumentSimulationData } from "./documentDataProvider";
 import { createLogger } from "./lib/logger";
+import { computeAcquisitionCashflows } from "./services/acquisitionCashflows";
 
 const log = createLogger("PPTXGenerator");
 
@@ -526,103 +527,123 @@ export async function generatePresentationPPTX(
   });
 
   // ================= SLIDE 6: FINANCIAL PROJECTIONS (Cashflow + Cost of Inaction) =================
-  if (simulation.cashflows && simulation.cashflows.length > 0) {
+  {
     const slideCashflow = pptx.addSlide({ masterName: "KWHMAIN" });
 
-    slideCashflow.addText(t("PROJECTIONS FINANCIÈRES", "FINANCIAL PROJECTIONS"), {
+    slideCashflow.addText(t("PROJECTIONS FINANCIÈRES — OPTIONS D'ACQUISITION", "FINANCIAL PROJECTIONS — ACQUISITION OPTIONS"), {
       x: 0.5, y: 0.8, w: 9, h: 0.5,
-      fontSize: 22, bold: true, color: COLORS.blue
+      fontSize: 20, bold: true, color: COLORS.blue
     });
 
     slideCashflow.addShape("rect", {
       x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
     });
 
-    const paybackVal = simulation.simplePaybackYears || 0;
-    if (paybackVal > 0) {
-      slideCashflow.addShape("rect", {
-        x: 2, y: 1.45, w: 6, h: 0.6,
-        fill: { color: COLORS.gold }
-      });
-      slideCashflow.addText(
-        t(`${paybackVal.toFixed(1)} ans`, `${paybackVal.toFixed(1)} years`), {
-        x: 2, y: 1.45, w: 6, h: 0.35,
-        fontSize: 20, bold: true, color: COLORS.white, align: "center"
-      });
-      slideCashflow.addText(
-        t("Retour sur investissement", "Payback period"), {
-        x: 2, y: 1.78, w: 6, h: 0.25,
-        fontSize: 10, color: COLORS.white, align: "center"
-      });
-    }
+    const acq = computeAcquisitionCashflows({
+      capexGross: simulation.capexGross,
+      capexNet: simulation.capexNet,
+      annualSavings: simulation.savingsYear1 || simulation.annualSavings,
+      incentivesHQSolar: simulation.incentivesHQSolar || 0,
+      incentivesHQBattery: simulation.incentivesHQBattery || 0,
+      incentivesFederal: simulation.incentivesFederal || 0,
+      taxShield: simulation.taxShield || 0,
+      cashflows: simulation.cashflows?.map(cf => ({ year: cf.year, cumulative: cf.cumulative, netCashflow: cf.netCashflow })),
+    });
 
-    const chartData = simulation.cashflows.slice(0, 26).map(cf => ({
-      year: cf.year,
-      value: Math.round(((cf as any).cumulative || (cf as any).cumulativeCashflow || 0) / 1000)
-    }));
+    const series = acq.series.filter(s => s.year >= 1);
+    const allVals = series.flatMap(s => [s.cash, s.loan, s.lease]);
+    const minVal = Math.min(...allVals, 0);
+    const maxVal = Math.max(...allVals, 1);
+    const range = maxVal - minVal || 1;
 
-    const maxVal = Math.max(...chartData.map(d => Math.abs(d.value)), 1);
-    const scale = 3.0 / maxVal;
-    const chartX = 0.5;
-    const chartY = 1.5;
-    const chartWidth = 9;
-    const chartHeight = 3.0;
-    const barWidth = (chartWidth / chartData.length) * 0.7;
-    const zeroLine = chartY + chartHeight / 2;
+    const chartX = 0.8;
+    const chartY = 1.6;
+    const chartWidth = 8.6;
+    const chartHeight = 2.8;
+
+    const toChartY = (val: number) => chartY + ((maxVal - val) / range) * chartHeight;
+    const toChartX = (idx: number) => chartX + (idx / (series.length - 1)) * chartWidth;
+    const zeroLine = toChartY(0);
 
     slideCashflow.addShape("line", {
       x: chartX, y: zeroLine, w: chartWidth, h: 0,
-      line: { color: COLORS.mediumGray, width: 1 }
+      line: { color: COLORS.mediumGray, width: 1, dashType: "dash" }
     });
 
-    // Y-axis labels
-    const yTicks = [0.25, 0.5, 0.75, 1.0];
-    yTicks.forEach(pct => {
-      const tickVal = Math.round(maxVal * pct);
-      const tickY = zeroLine - (chartHeight / 2) * pct;
-      slideCashflow.addText(`${tickVal}k$`, {
-        x: chartX - 0.6, y: tickY - 0.1, w: 0.55, h: 0.2,
-        fontSize: 7, color: COLORS.mediumGray, align: "right"
-      });
-      // Negative mirror
-      const negY = zeroLine + (chartHeight / 2) * pct;
-      slideCashflow.addText(`-${tickVal}k$`, {
-        x: chartX - 0.6, y: negY - 0.1, w: 0.55, h: 0.2,
-        fontSize: 7, color: COLORS.mediumGray, align: "right"
-      });
-    });
-    // Zero label
-    slideCashflow.addText("0", {
-      x: chartX - 0.35, y: zeroLine - 0.1, w: 0.3, h: 0.2,
+    slideCashflow.addText("0 $", {
+      x: chartX - 0.65, y: zeroLine - 0.1, w: 0.6, h: 0.2,
       fontSize: 7, color: COLORS.mediumGray, align: "right"
     });
 
-    chartData.forEach((d, i) => {
-      const x = chartX + (i / chartData.length) * chartWidth + (chartWidth / chartData.length) * 0.15;
-      const height = Math.max(0.02, Math.abs(d.value * scale));
-      const isNegative = d.value < 0;
-      const y = isNegative ? zeroLine : zeroLine - height;
-
-      slideCashflow.addShape("rect", {
-        x, y, w: barWidth, h: height,
-        fill: { color: isNegative ? "DC2626" : COLORS.blue }
+    const yTicks = 4;
+    for (let i = 0; i <= yTicks; i++) {
+      const val = minVal + (range * i / yTicks);
+      if (Math.abs(val) < range * 0.05) continue;
+      const y = toChartY(val);
+      const label = Math.abs(val) >= 1000000
+        ? `${(val / 1000000).toFixed(1)}M$`
+        : `${Math.round(val / 1000)}k$`;
+      slideCashflow.addShape("line", {
+        x: chartX, y, w: chartWidth, h: 0,
+        line: { color: COLORS.lightGray, width: 0.5 }
       });
+      slideCashflow.addText(label, {
+        x: chartX - 0.65, y: y - 0.1, w: 0.6, h: 0.2,
+        fontSize: 7, color: COLORS.mediumGray, align: "right"
+      });
+    }
 
-      if (i % 5 === 0 || i === chartData.length - 1) {
-        slideCashflow.addText(d.year.toString(), {
-          x: x - 0.1, y: zeroLine + chartHeight / 2 + 0.1, w: 0.5, h: 0.2,
-          fontSize: 8, color: COLORS.mediumGray, align: "center"
+    const xLabels = [1, 5, 10, 15, 20, 25];
+    series.forEach((s, i) => {
+      if (xLabels.includes(s.year)) {
+        const x = toChartX(i);
+        slideCashflow.addText(`${t("An", "Yr")} ${s.year}`, {
+          x: x - 0.2, y: chartY + chartHeight + 0.05, w: 0.4, h: 0.2,
+          fontSize: 7, color: COLORS.mediumGray, align: "center"
         });
       }
     });
 
-    slideCashflow.addText(t("Bleu = profit cumulé | Rouge = période de récupération",
-                     "Blue = cumulative profit | Red = payback period"), {
-      x: 0.5, y: 4.6, w: 9, h: 0.25,
-      fontSize: 9, color: COLORS.mediumGray, align: "center"
+    const drawPolyline = (points: { x: number; y: number }[], color: string, dashType?: string, width = 2) => {
+      for (let i = 0; i < points.length - 1; i++) {
+        const lineOpts: any = {
+          x: points[i].x,
+          y: points[i].y,
+          w: points[i + 1].x - points[i].x,
+          h: points[i + 1].y - points[i].y,
+          line: { color, width }
+        };
+        if (dashType) lineOpts.line.dashType = dashType;
+        slideCashflow.addShape("line", lineOpts);
+      }
+    };
+
+    const cashPts = series.map((s, i) => ({ x: toChartX(i), y: toChartY(s.cash) }));
+    const loanPts = series.map((s, i) => ({ x: toChartX(i), y: toChartY(s.loan) }));
+    const leasePts = series.map((s, i) => ({ x: toChartX(i), y: toChartY(s.lease) }));
+
+    drawPolyline(leasePts, COLORS.gold, "dash", 2);
+    drawPolyline(loanPts, COLORS.blue, "lgDash", 2);
+    drawPolyline(cashPts, COLORS.green, undefined, 2.5);
+
+    const legendY = 4.55;
+    const legendItems = [
+      { color: COLORS.green, label: t("Comptant", "Cash") },
+      { color: COLORS.blue, label: t("Prêt (10 ans, 7%)", "Loan (10 yr, 7%)") },
+      { color: COLORS.gold, label: t("Crédit-bail 15 ans", "15-yr Lease") },
+    ];
+    legendItems.forEach((item, i) => {
+      const lx = 1.5 + i * 3;
+      slideCashflow.addShape("rect", {
+        x: lx, y: legendY + 0.05, w: 0.3, h: 0.08,
+        fill: { color: item.color }
+      });
+      slideCashflow.addText(item.label, {
+        x: lx + 0.35, y: legendY - 0.02, w: 2.2, h: 0.2,
+        fontSize: 9, color: COLORS.darkGray
+      });
     });
 
-    // Cost of inaction callout
     slideCashflow.addShape("rect", {
       x: 1.5, y: 4.9, w: 7, h: 0.5,
       fill: { color: "FFF3CD" }

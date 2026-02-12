@@ -4,6 +4,7 @@ import * as fs from "fs";
 import type { DocumentSimulationData } from "../documentDataProvider";
 import { createLogger } from "../lib/logger";
 import { getWhySolarNow, getEquipmentTechnicalSummary } from "@shared/brandContent";
+import { computeAcquisitionCashflows, type CumulativePoint } from "./acquisitionCashflows";
 
 const log = createLogger("PDFv2");
 
@@ -940,69 +941,118 @@ function generateCashflowSVG(
   t: (fr: string, en: string) => string,
   totalProductionKWh: number
 ): string {
-  interface CFPoint { year: number; cumulative: number; }
-  let points: CFPoint[] = [];
+  const acq = computeAcquisitionCashflows({
+    capexGross: sim.capexGross,
+    capexNet: sim.capexNet,
+    annualSavings: sim.savingsYear1 || sim.annualSavings,
+    incentivesHQSolar: sim.incentivesHQSolar || 0,
+    incentivesHQBattery: sim.incentivesHQBattery || 0,
+    incentivesFederal: sim.incentivesFederal || 0,
+    taxShield: sim.taxShield || 0,
+    cashflows: sim.cashflows?.map(cf => ({ year: cf.year, cumulative: cf.cumulative, netCashflow: cf.netCashflow })),
+  });
 
-  if (sim.cashflows && sim.cashflows.length > 0) {
-    points = sim.cashflows.map(cf => ({ year: cf.year, cumulative: cf.cumulative }));
-  } else {
-    const baseSavings = sim.savingsYear1 || sim.annualSavings;
-    let cum = -(sim.capexNet || 0);
-    for (let y = 1; y <= 25; y++) {
-      const deg = Math.pow(0.995, y - 1);
-      const inf = Math.pow(1.035, y - 1);
-      const yearSavings = baseSavings * deg * inf;
-      cum += yearSavings;
-      points.push({ year: y, cumulative: Math.round(cum) });
-    }
-  }
+  const series = acq.series.filter(s => s.year >= 1);
+  if (series.length === 0) return "";
 
-  if (points.length === 0) return "";
-
-  const minVal = Math.min(...points.map(p => p.cumulative), 0);
-  const maxVal = Math.max(...points.map(p => p.cumulative), 1);
+  const allVals = series.flatMap(s => [s.cash, s.loan, s.lease]);
+  const minVal = Math.min(...allVals, 0);
+  const maxVal = Math.max(...allVals, 1);
   const range = maxVal - minVal || 1;
 
   const svgW = 580;
-  const svgH = 180;
-  const pad = { top: 20, bottom: 30, left: 50, right: 15 };
+  const svgH = 200;
+  const pad = { top: 20, bottom: 40, left: 55, right: 15 };
   const chartW = svgW - pad.left - pad.right;
   const chartH = svgH - pad.top - pad.bottom;
 
-  const zeroY = pad.top + (maxVal / range) * chartH;
-  const barW = chartW / points.length * 0.7;
+  const toY = (val: number) => pad.top + ((maxVal - val) / range) * chartH;
+  const toX = (idx: number) => pad.left + (idx / (series.length - 1)) * chartW;
 
-  let bars = "";
-  bars += `<line x1="${pad.left}" y1="${zeroY}" x2="${svgW - pad.right}" y2="${zeroY}" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3"/>`;
-  bars += `<text x="${pad.left - 5}" y="${zeroY + 3}" text-anchor="end" font-size="8" fill="#6b7280">0</text>`;
+  const zeroY = toY(0);
+  let svg = "";
 
-  let paybackYear = -1;
-  points.forEach((p, i) => {
-    const x = pad.left + i * (chartW / points.length) + (chartW / points.length - barW) / 2;
-    const valH = Math.abs(p.cumulative) / range * chartH;
-    const isPositive = p.cumulative >= 0;
-    const y = isPositive ? zeroY - valH : zeroY;
+  svg += `<line x1="${pad.left}" y1="${zeroY}" x2="${svgW - pad.right}" y2="${zeroY}" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,3"/>`;
+  svg += `<text x="${pad.left - 5}" y="${zeroY + 3}" text-anchor="end" font-size="8" fill="#6b7280">0 $</text>`;
 
-    if (isPositive && paybackYear < 0) paybackYear = p.year;
+  const yTicks = 4;
+  for (let i = 0; i <= yTicks; i++) {
+    const val = minVal + (range * i / yTicks);
+    if (Math.abs(val) < range * 0.05) continue;
+    const y = toY(val);
+    const label = Math.abs(val) >= 1000000
+      ? `${(val / 1000000).toFixed(1)}M$`
+      : `${Math.round(val / 1000)}k$`;
+    svg += `<line x1="${pad.left}" y1="${y}" x2="${svgW - pad.right}" y2="${y}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+    svg += `<text x="${pad.left - 5}" y="${y + 3}" text-anchor="end" font-size="7" fill="#9ca3af">${label}</text>`;
+  }
 
-    const color = isPositive ? "#16A34A" : "#DC2626";
-    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(valH, 1)}" fill="${color}" opacity="0.7" rx="1"/>`;
-
-    if (p.year === 1 || p.year === 5 || p.year === 10 || p.year === 15 || p.year === 20 || p.year === 25 || p.year === paybackYear) {
-      bars += `<text x="${x + barW / 2}" y="${svgH - 8}" text-anchor="middle" font-size="7" fill="#6b7280">${t("An", "Yr")} ${p.year}</text>`;
+  const xLabels = [1, 5, 10, 15, 20, 25];
+  series.forEach((s, i) => {
+    if (xLabels.includes(s.year)) {
+      const x = toX(i);
+      svg += `<text x="${x}" y="${svgH - pad.bottom + 14}" text-anchor="middle" font-size="7" fill="#6b7280">${t("An", "Yr")} ${s.year}</text>`;
     }
   });
 
-  if (paybackYear > 0) {
-    const pbIdx = points.findIndex(p => p.year === paybackYear);
-    if (pbIdx >= 0) {
-      const pbX = pad.left + pbIdx * (chartW / points.length) + (chartW / points.length) / 2;
-      bars += `<line x1="${pbX}" y1="${pad.top}" x2="${pbX}" y2="${pad.top + chartH}" stroke="#FFB005" stroke-width="2" stroke-dasharray="5,3"/>`;
-      bars += `<text x="${pbX}" y="${pad.top - 5}" text-anchor="middle" font-size="9" font-weight="600" fill="#FFB005">${t("R&eacute;cup&eacute;ration", "Payback")}</text>`;
-    }
+  const cashBars = series.filter(s => sim.cashflows?.find(cf => cf.year === s.year));
+  if (cashBars.length > 0 && sim.cashflows) {
+    const barW = chartW / series.length * 0.5;
+    sim.cashflows.filter(cf => cf.year >= 1 && cf.year <= 25).forEach(cf => {
+      const idx = cf.year - 1;
+      if (idx >= series.length) return;
+      const x = toX(idx) - barW / 2;
+      const valH = Math.abs(cf.netCashflow) / range * chartH;
+      const isPositive = cf.netCashflow >= 0;
+      const y = isPositive ? zeroY - valH : zeroY;
+      const color = isPositive ? "#16A34A" : "#DC2626";
+      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(valH, 1)}" fill="${color}" opacity="0.25" rx="1"/>`;
+    });
   }
 
-  return `<svg viewBox="0 0 ${svgW} ${svgH}" class="svg-chart" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+  function drawLine(points: { x: number; y: number }[], color: string, dashArray?: string, width = 2.5): string {
+    if (points.length < 2) return "";
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      d += ` L ${points[i].x} ${points[i].y}`;
+    }
+    const dashAttr = dashArray ? ` stroke-dasharray="${dashArray}"` : "";
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}"${dashAttr} stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  const cashPts = series.map((s, i) => ({ x: toX(i), y: toY(s.cash) }));
+  const loanPts = series.map((s, i) => ({ x: toX(i), y: toY(s.loan) }));
+  const leasePts = series.map((s, i) => ({ x: toX(i), y: toY(s.lease) }));
+
+  svg += drawLine(leasePts, "#FFB005", "6,3", 2);
+  svg += drawLine(loanPts, "#003DA6", "4,2", 2);
+  svg += drawLine(cashPts, "#16A34A", undefined, 2.5);
+
+  if (acq.cashPaybackYear && acq.cashPaybackYear > 0 && acq.cashPaybackYear <= 25) {
+    const pbIdx = acq.cashPaybackYear - 1;
+    const pbX = toX(pbIdx);
+    svg += `<line x1="${pbX}" y1="${pad.top}" x2="${pbX}" y2="${pad.top + chartH}" stroke="#16A34A" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.6"/>`;
+    svg += `<circle cx="${pbX}" cy="${toY(series[pbIdx].cash)}" r="4" fill="#16A34A" stroke="white" stroke-width="1.5"/>`;
+  }
+
+  const legendY = svgH - 10;
+  const legendItems = [
+    { color: "#16A34A", label: t("Comptant", "Cash"), dash: false },
+    { color: "#003DA6", label: t("Pr&ecirc;t", "Loan"), dash: true },
+    { color: "#FFB005", label: t("Cr&eacute;dit-bail 15 ans", "15-yr Lease"), dash: true },
+  ];
+  let legendX = pad.left;
+  legendItems.forEach(item => {
+    if (item.dash) {
+      svg += `<line x1="${legendX}" y1="${legendY}" x2="${legendX + 18}" y2="${legendY}" stroke="${item.color}" stroke-width="2.5" stroke-dasharray="4,2"/>`;
+    } else {
+      svg += `<line x1="${legendX}" y1="${legendY}" x2="${legendX + 18}" y2="${legendY}" stroke="${item.color}" stroke-width="2.5"/>`;
+    }
+    svg += `<text x="${legendX + 22}" y="${legendY + 3}" font-size="8" fill="#4b5563">${item.label}</text>`;
+    legendX += 130;
+  });
+
+  return `<svg viewBox="0 0 ${svgW} ${svgH}" class="svg-chart" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
 }
 
 function buildProjectionRows(
@@ -1116,7 +1166,7 @@ function buildFinancialProjectionsPage(
     <h2>${t("Projections financi&egrave;res", "Financial Projections")}</h2>
     <p class="subtitle">${t("&Eacute;volution sur 25 ans avec inflation &eacute;nerg&eacute;tique de 3,5%/an", "25-year evolution with 3.5%/yr energy inflation")}</p>
     ${cashflowSVG ? `<div class="chart-container">
-      <div class="chart-title">${t("Flux de tr&eacute;sorerie cumulatif", "Cumulative Cash Flow")}</div>
+      <div class="chart-title">${t("Flux de tr&eacute;sorerie cumulatif &mdash; Options d'acquisition", "Cumulative Cash Flow &mdash; Acquisition Options")}</div>
       ${cashflowSVG}
     </div>` : ""}
     <div class="section">
