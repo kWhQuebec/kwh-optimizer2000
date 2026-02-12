@@ -440,9 +440,9 @@ function buildAboutPage(
     <div class="section">
       <h3>${t("Ils nous font confiance", "They Trust Us")}</h3>
       <div class="logo-grid">
-        <div class="logo-item" style="font-size: 10pt; font-weight: 800; color: #1a365d; letter-spacing: -0.3px;">dream<span style="font-weight: 400;"> Industrial REIT</span></div>
-        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #2563eb; letter-spacing: 0.5px;">LAB<span style="font-weight: 400; color: #64748b;"> Space</span></div>
-        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #16a34a; letter-spacing: -0.2px;">Scale <span style="font-weight: 400;">Cleantech</span></div>
+        <div class="logo-item" style="font-size: 10pt; color: #1a2744;"><span style="font-weight: 800;">dream</span><sup style="font-size: 7pt; font-weight: 400;">Industrial<br/>REIT</sup></div>
+        <div class="logo-item" style="font-size: 10pt; color: #1a365d;"><span style="font-weight: 800;">LAB</span><span style="font-weight: 400; color: #4a5568;">Space</span></div>
+        <div class="logo-item" style="font-size: 10pt;"><span style="font-weight: 800; color: #003DA6;">Scale</span><span style="font-weight: 700; color: #16a34a;">Cleantech</span></div>
         <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">Hydro-Qu&eacute;bec</div>
       </div>
     </div>
