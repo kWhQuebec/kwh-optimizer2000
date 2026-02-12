@@ -502,8 +502,8 @@ function buildProjectSnapshotPage(
   roofImageBase64: string | null,
   pageNum: number
 ): string {
-  const co2Trees = Math.round(sim.co2AvoidedTonnesPerYear * 45);
-  const co2Cars = Math.round(sim.co2AvoidedTonnesPerYear / 4.6);
+  const co2Trees = Math.round((sim.co2AvoidedTonnesPerYear * 1000) / 21.77);
+  const co2Cars = Math.round((sim.co2AvoidedTonnesPerYear * 1000) / 4600);
 
   const satelliteHtml = roofImageBase64
     ? `<img src="${roofImageBase64}" style="width: 100%; height: 70mm; object-fit: cover; border-radius: 2mm;" />`
