@@ -768,7 +768,7 @@ function buildEnergyProfilePage(
     <div class="metrics-grid">
       <div class="metric-card">
         <span class="metric-value" style="font-size: 18pt;">${Math.round(sim.selfSufficiencyPercent)}%</span>
-        <span class="metric-label">${t("Taux autoconsommation", "Self-Consumption Rate")}</span>
+        <span class="metric-label">${t("Couverture &eacute;nerg&eacute;tique", "Energy Coverage")}</span>
       </div>
       <div class="metric-card">
         <span class="metric-value" style="font-size: 18pt;">${fmt(totalProductionKWh)}</span>
@@ -944,7 +944,7 @@ function generateCashflowSVG(
 
     if (isPositive && paybackYear < 0) paybackYear = p.year;
 
-    const color = isPositive ? "#003DA6" : "#DC2626";
+    const color = isPositive ? "#16A34A" : "#DC2626";
     bars += `<rect x="${x}" y="${y}" width="${barW}" height="${Math.max(valH, 1)}" fill="${color}" opacity="0.7" rx="1"/>`;
 
     if (p.year === 1 || p.year === 5 || p.year === 10 || p.year === 15 || p.year === 20 || p.year === 25 || p.year === paybackYear) {
