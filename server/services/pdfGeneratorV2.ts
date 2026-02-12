@@ -3,7 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import type { DocumentSimulationData } from "../documentDataProvider";
 import { createLogger } from "../lib/logger";
-import { getWhySolarNow } from "@shared/brandContent";
+import { getWhySolarNow, getEquipmentTechnicalSummary } from "@shared/brandContent";
 
 const log = createLogger("PDFv2");
 
@@ -125,7 +125,7 @@ export async function generateProfessionalPDFv2(
     pages.push(buildRoofConfigPage(simulation, t, roofImageBase64, nextPage()));
   }
 
-  pages.push(buildEquipmentPage(simulation, t, nextPage()));
+  pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
   pages.push(buildAssumptionsPage(simulation, t, nextPage()));
   pages.push(buildTimelinePage(simulation, t, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, nextPage()));
@@ -1138,14 +1138,15 @@ function buildRoofConfigPage(
 function buildEquipmentPage(
   sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
+  lang: "fr" | "en",
   pageNum: number
 ): string {
   const defaultEquipment = [
-    { name: t("Panneaux solaires", "Solar panels"), manufacturer: "Canadian Solar", warranty: t("25 ans produit, 30 ans performance", "25 yr product, 30 yr performance"), spec: "CS6W-400MS", category: "panels" },
-    { name: t("Onduleurs", "Inverters"), manufacturer: "SolarEdge", warranty: t("12 ans (extensible 25 ans)", "12 yr (ext. to 25 yr)"), spec: "SE100K", category: "inverters" },
-    { name: t("Optimiseurs", "Optimizers"), manufacturer: "SolarEdge", warranty: t("25 ans", "25 yr"), spec: "P401", category: "optimizers" },
-    { name: t("Structure de montage", "Racking"), manufacturer: "KB Racking", warranty: t("20 ans", "20 yr"), spec: "EcoFoot2+", category: "racking" },
-    { name: t("Monitoring", "Monitoring"), manufacturer: "SolarEdge", warranty: t("Inclus &agrave; vie", "Included for life"), spec: "Cloud Platform", category: "monitoring" },
+    { name: t("Panneaux solaires", "Solar panels"), manufacturer: "Canadian Solar", warranty: t("25 ans produit, 30 ans performance", "25 yr product, 30 yr performance"), spec: "≥ 580 Wc mono PERC", weight: "32.2 kg", dimensions: "2278 × 1134 × 35 mm", category: "panels" },
+    { name: t("Onduleurs", "Inverters"), manufacturer: "SolarEdge / Huawei", warranty: t("12 ans (extensible 25 ans)", "12 yr (ext. to 25 yr)"), spec: t("String triphasé ≥ 100 kW", "Three-phase string ≥ 100 kW"), weight: "88 kg", dimensions: "1035 × 700 × 363 mm", category: "inverters" },
+    { name: t("Optimiseurs", "Optimizers"), manufacturer: "SolarEdge", warranty: t("25 ans", "25 yr"), spec: "P401", weight: "—", dimensions: "—", category: "optimizers" },
+    { name: t("Structure de montage", "Racking"), manufacturer: "KB Racking", warranty: t("20 ans", "20 yr"), spec: "EcoFoot2+", weight: t("~4.5 kg/m²", "~4.5 kg/m²"), dimensions: "—", category: "racking" },
+    { name: t("Monitoring", "Monitoring"), manufacturer: "SolarEdge", warranty: t("Inclus &agrave; vie", "Included for life"), spec: "Cloud Platform", weight: "—", dimensions: "—", category: "monitoring" },
   ];
 
   if (sim.battEnergyKWh > 0) {
@@ -1154,6 +1155,8 @@ function buildEquipmentPage(
       manufacturer: "BYD",
       warranty: t("10 ans / 6 000 cycles", "10 yr / 6,000 cycles"),
       spec: "Battery-Box Premium",
+      weight: "—",
+      dimensions: "—",
       category: "battery",
     });
   }
@@ -1161,6 +1164,8 @@ function buildEquipmentPage(
   const equipment = sim.catalogEquipment && sim.catalogEquipment.length > 0
     ? sim.catalogEquipment
     : defaultEquipment;
+
+  const techSummary = getEquipmentTechnicalSummary(lang);
 
   return `
   <div class="page">
@@ -1170,6 +1175,8 @@ function buildEquipmentPage(
         <th>${t("Composant", "Component")}</th>
         <th>${t("Fabricant", "Manufacturer")}</th>
         <th>${t("Sp&eacute;cification", "Specification")}</th>
+        <th>${t("Poids", "Weight")}</th>
+        <th>${t("Dimensions", "Dimensions")}</th>
         <th>${t("Garantie", "Warranty")}</th>
       </tr>
       ${equipment.map(eq => `
@@ -1177,6 +1184,8 @@ function buildEquipmentPage(
         <td><strong>${eq.name}</strong></td>
         <td>${eq.manufacturer}</td>
         <td>${eq.spec}</td>
+        <td>${(eq as any).weight || "—"}</td>
+        <td>${(eq as any).dimensions || "—"}</td>
         <td>${eq.warranty}</td>
       </tr>`).join("")}
     </table>
@@ -1199,6 +1208,20 @@ function buildEquipmentPage(
           <p><strong>${t("Monitoring:", "Monitoring:")}</strong> ${t("Suivi continu inclus", "Continuous monitoring included")}</p>
         </div>
       </div>
+    </div>
+    <div class="section" style="margin-top: 6mm; padding: 4mm 5mm; background: #f0f4f8; border-radius: 2mm;">
+      <h3 style="margin-bottom: 3mm;">${t("Donn&eacute;es structurelles pour &eacute;valuation de toiture", "Structural Data for Roof Evaluation")}</h3>
+      <table class="data-table" style="margin-bottom: 0;">
+        <tr>
+          <th>${t("Param&egrave;tre", "Parameter")}</th>
+          <th>${t("Valeur", "Value")}</th>
+        </tr>
+        <tr><td>${techSummary.panelWeightKgPerM2.label}</td><td><strong>${techSummary.panelWeightKgPerM2.value} ${techSummary.panelWeightKgPerM2.unit}</strong></td></tr>
+        <tr><td>${techSummary.rackingWeightKgPerM2.label}</td><td><strong>${techSummary.rackingWeightKgPerM2.value} ${techSummary.rackingWeightKgPerM2.unit}</strong></td></tr>
+        <tr class="total-row"><td>${techSummary.totalSystemWeightKgPerM2.label}</td><td><strong>${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit} (${techSummary.totalSystemWeightPsfPerSf.value} ${techSummary.totalSystemWeightPsfPerSf.unit})</strong></td></tr>
+        <tr><td>${techSummary.windLoadDesign}</td><td>&#x2713;</td></tr>
+        <tr><td>${techSummary.snowLoadNote}</td><td>&#x2713;</td></tr>
+      </table>
     </div>
     ${footerHtml(t, pageNum)}
   </div>`;

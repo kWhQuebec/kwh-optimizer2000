@@ -1,7 +1,7 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawRoundedRect, drawPageHeader, drawPageFooter } from "../helpers";
-import { getEquipment } from "@shared/brandContent";
+import { getEquipment, getEquipmentTechnicalSummary } from "@shared/brandContent";
 
 export function renderEquipment(ctx: PDFContext) {
   const { doc, t, margin, contentWidth } = ctx;
@@ -45,7 +45,7 @@ export function renderEquipment(ctx: PDFContext) {
   } else {
     const equipment = getEquipment(ctx.lang);
     const eqCardWidth = (contentWidth - 30) / 4;
-    const eqCardHeight = 65;
+    const eqCardHeight = 85;
 
     equipment.forEach((eq: any, idx: number) => {
       const ex = margin + idx * (eqCardWidth + 10);
@@ -53,13 +53,26 @@ export function renderEquipment(ctx: PDFContext) {
       doc.roundedRect(ex, doc.y, eqCardWidth, eqCardHeight, 6).strokeColor(COLORS.lightGray).lineWidth(0.5).stroke();
 
       doc.fontSize(8).fillColor(COLORS.darkGray).font("Helvetica-Bold");
-      doc.text(eq.label, ex + 8, doc.y + 10, { width: eqCardWidth - 16, align: "center" });
+      doc.text(eq.label, ex + 8, doc.y + 8, { width: eqCardWidth - 16, align: "center" });
       doc.font("Helvetica");
+      
+      // Specs line
+      if (eq.specs) {
+        doc.fontSize(6).fillColor(COLORS.mediumGray);
+        doc.text(eq.specs, ex + 8, doc.y + 22, { width: eqCardWidth - 16, align: "center" });
+      }
+      
+      // Weight line
+      if (eq.weightKg) {
+        doc.fontSize(6).fillColor(COLORS.mediumGray);
+        doc.text(`${eq.weightKg} kg`, ex + 8, doc.y + 32, { width: eqCardWidth - 16, align: "center" });
+      }
+      
       doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-      doc.text(eq.warranty, ex + 8, doc.y + 35, { width: eqCardWidth - 16, align: "center" });
+      doc.text(eq.warranty, ex + 8, doc.y + 48, { width: eqCardWidth - 16, align: "center" });
       doc.font("Helvetica");
       doc.fontSize(7).fillColor(COLORS.mediumGray);
-      doc.text(t("garantie", "warranty"), ex + 8, doc.y + 50, { width: eqCardWidth - 16, align: "center" });
+      doc.text(t("garantie", "warranty"), ex + 8, doc.y + 63, { width: eqCardWidth - 16, align: "center" });
     });
 
     doc.y += eqCardHeight + 10;
@@ -68,5 +81,50 @@ export function renderEquipment(ctx: PDFContext) {
   doc.fontSize(8).fillColor(COLORS.mediumGray);
   doc.text(t("Équipement indicatif — sélection finale après conception détaillée", "Indicative equipment — final selection after detailed design"), margin, doc.y, { width: contentWidth, align: "center" });
 
-  doc.y += 20;
+  // Structural Load Summary
+  const techSummary = getEquipmentTechnicalSummary(ctx.lang);
+  doc.y += 5;
+
+  doc.fontSize(10).fillColor(COLORS.blue).font("Helvetica-Bold");
+  doc.text(t("DONNÉES STRUCTURELLES", "STRUCTURAL DATA"), margin, doc.y);
+  doc.font("Helvetica");
+  doc.y += 3;
+  doc.rect(margin, doc.y, 120, 2).fillColor(COLORS.gold).fill();
+  doc.y += 8;
+
+  const structRows = [
+    { label: techSummary.panelWeightKgPerM2.label, value: `${techSummary.panelWeightKgPerM2.value} ${techSummary.panelWeightKgPerM2.unit}` },
+    { label: techSummary.rackingWeightKgPerM2.label, value: `${techSummary.rackingWeightKgPerM2.value} ${techSummary.rackingWeightKgPerM2.unit}` },
+    { label: techSummary.totalSystemWeightKgPerM2.label, value: `${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit} (${techSummary.totalSystemWeightPsfPerSf.value} ${techSummary.totalSystemWeightPsfPerSf.unit})`, bold: true },
+  ];
+
+  const rowH = 16;
+  const labelColW = contentWidth * 0.65;
+  const valueColW = contentWidth * 0.35;
+
+  // Header
+  drawRoundedRect(doc, margin, doc.y, contentWidth, rowH, 0, COLORS.blue);
+  doc.fontSize(7).fillColor("#FFFFFF").font("Helvetica-Bold");
+  doc.text(t("Paramètre", "Parameter"), margin + 6, doc.y + 4, { width: labelColW - 12 });
+  doc.text(t("Valeur", "Value"), margin + labelColW + 6, doc.y + 4, { width: valueColW - 12 });
+  doc.font("Helvetica");
+  doc.y += rowH;
+
+  structRows.forEach((row, i) => {
+    const bg = i % 2 === 0 ? COLORS.background : "#FFFFFF";
+    drawRoundedRect(doc, margin, doc.y, contentWidth, rowH, 0, bg);
+    doc.fontSize(7).fillColor(COLORS.darkGray);
+    doc.text(row.label, margin + 6, doc.y + 4, { width: labelColW - 12 });
+    if ((row as any).bold) {
+      doc.font("Helvetica-Bold").fillColor(COLORS.blue);
+    }
+    doc.text(row.value, margin + labelColW + 6, doc.y + 4, { width: valueColW - 12 });
+    doc.font("Helvetica");
+    doc.y += rowH;
+  });
+
+  // Wind/snow note
+  doc.fontSize(6).fillColor(COLORS.mediumGray);
+  doc.text(`${techSummary.windLoadDesign} | ${techSummary.snowLoadNote}`, margin, doc.y + 2, { width: contentWidth, align: "center" });
+  doc.y += 15;
 }

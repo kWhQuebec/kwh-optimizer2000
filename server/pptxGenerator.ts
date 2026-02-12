@@ -2,7 +2,7 @@ import PptxGenJSModule from "pptxgenjs";
 const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import fs from "fs";
 import path from "path";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow } from "@shared/brandContent";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow } from "@shared/brandContent";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
 import type { DocumentSimulationData } from "./documentDataProvider";
@@ -876,11 +876,15 @@ export async function generatePresentationPPTX(
       [
         { text: t("Équipement", "Equipment"), options: { bold: true, color: COLORS.white } },
         { text: t("Fabricant", "Manufacturer"), options: { bold: true, color: COLORS.white } },
+        { text: t("Poids", "Weight"), options: { bold: true, color: COLORS.white } },
+        { text: t("Dimensions", "Dimensions"), options: { bold: true, color: COLORS.white } },
         { text: t("Garantie", "Warranty"), options: { bold: true, color: COLORS.white } },
       ],
       ...dynamicEquip.map(eq => [
         { text: eq.name },
         { text: eq.manufacturer },
+        { text: (eq as any).weight || "—" },
+        { text: (eq as any).dimensions || "—" },
         { text: eq.warranty, options: { bold: true, color: COLORS.blue } },
       ])
     ];
@@ -891,30 +895,35 @@ export async function generatePresentationPPTX(
       fontFace: "Arial",
       fontSize: 10,
       color: COLORS.darkGray,
-      colW: [4, 2.5, 2.5],
+      colW: [2.5, 2.0, 1.2, 2.0, 1.3],
       rowH: 0.35
     });
   } else {
     // Fallback to brandContent defaults
     const equipment = getEquipment(lang);
-    equipment.forEach((eq, i) => {
-      const x = 0.5 + i * 2.4;
-      slideEquip.addShape("rect", {
-        x, y: 1.7, w: 2.2, h: 1.8,
-        fill: { color: COLORS.lightGray }
-      });
-      slideEquip.addText(eq.label, {
-        x, y: 1.8, w: 2.2, h: 0.7,
-        fontSize: 12, color: COLORS.darkGray, align: "center", valign: "middle"
-      });
-      slideEquip.addText(eq.warranty, {
-        x, y: 2.5, w: 2.2, h: 0.5,
-        fontSize: 18, bold: true, color: COLORS.blue, align: "center"
-      });
-      slideEquip.addText(t("garantie", "warranty"), {
-        x, y: 3.0, w: 2.2, h: 0.3,
-        fontSize: 10, color: COLORS.mediumGray, align: "center"
-      });
+    const eqTableData: Array<Array<{ text: string; options?: any }>> = [
+      [
+        { text: t("Composant", "Component"), options: { bold: true, color: COLORS.white, fill: { color: COLORS.blue } } },
+        { text: t("Spécification", "Specification"), options: { bold: true, color: COLORS.white, fill: { color: COLORS.blue } } },
+        { text: t("Poids", "Weight"), options: { bold: true, color: COLORS.white, fill: { color: COLORS.blue } } },
+        { text: t("Garantie", "Warranty"), options: { bold: true, color: COLORS.white, fill: { color: COLORS.blue } } },
+      ],
+      ...equipment.map(eq => [
+        { text: eq.label },
+        { text: eq.specs || "—" },
+        { text: eq.weightKg ? `${eq.weightKg} kg` : "—" },
+        { text: eq.warranty, options: { bold: true, color: COLORS.blue } },
+      ])
+    ];
+    slideEquip.addTable(eqTableData, {
+      x: 0.5, y: 1.7, w: 9,
+      fill: { color: COLORS.white },
+      border: { pt: 0.5, color: COLORS.lightGray },
+      fontFace: "Arial",
+      fontSize: 10,
+      color: COLORS.darkGray,
+      colW: [2.5, 3.0, 1.5, 2.0],
+      rowH: 0.35
     });
   }
 
@@ -922,6 +931,50 @@ export async function generatePresentationPPTX(
                         "Indicative equipment — final brands and models confirmed in the firm quote"), {
     x: 0.5, y: 3.8, w: 9, h: 0.3,
     fontSize: 8, color: COLORS.mediumGray, align: "center"
+  });
+
+  // ================= STRUCTURAL DATA SUMMARY =================
+  const techSummary = getEquipmentTechnicalSummary(lang);
+
+  slideEquip.addShape("rect", {
+    x: 0.5, y: 4.2, w: 9, h: 1.5,
+    fill: { color: COLORS.lightGray },
+    rectRadius: 0.1
+  });
+
+  slideEquip.addText(t("DONNÉES STRUCTURELLES POUR ÉVALUATION DE TOITURE", "STRUCTURAL DATA FOR ROOF EVALUATION"), {
+    x: 0.7, y: 4.3, w: 8.6, h: 0.35,
+    fontSize: 11, bold: true, color: COLORS.blue
+  });
+
+  const structData: Array<Array<{ text: string; options?: any }>> = [
+    [
+      { text: techSummary.panelWeightKgPerM2.label, options: { fontSize: 9 } },
+      { text: `${techSummary.panelWeightKgPerM2.value} ${techSummary.panelWeightKgPerM2.unit}`, options: { bold: true, fontSize: 9 } },
+      { text: techSummary.rackingWeightKgPerM2.label, options: { fontSize: 9 } },
+      { text: `${techSummary.rackingWeightKgPerM2.value} ${techSummary.rackingWeightKgPerM2.unit}`, options: { bold: true, fontSize: 9 } },
+    ],
+    [
+      { text: techSummary.totalSystemWeightKgPerM2.label, options: { fontSize: 9, bold: true } },
+      { text: `${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit}`, options: { bold: true, fontSize: 9, color: COLORS.blue } },
+      { text: techSummary.totalSystemWeightPsfPerSf.label, options: { fontSize: 9, bold: true } },
+      { text: `${techSummary.totalSystemWeightPsfPerSf.value} ${techSummary.totalSystemWeightPsfPerSf.unit}`, options: { bold: true, fontSize: 9, color: COLORS.blue } },
+    ],
+  ];
+
+  slideEquip.addTable(structData, {
+    x: 0.7, y: 4.7, w: 8.6,
+    border: { pt: 0.5, color: COLORS.lightGray },
+    fontFace: "Arial",
+    fontSize: 9,
+    color: COLORS.darkGray,
+    colW: [3.0, 1.3, 3.0, 1.3],
+    rowH: 0.3
+  });
+
+  slideEquip.addText(`${techSummary.windLoadDesign} | ${techSummary.snowLoadNote}`, {
+    x: 0.7, y: 5.35, w: 8.6, h: 0.25,
+    fontSize: 7, color: COLORS.mediumGray, align: "center"
   });
 
   // ================= SLIDE 10: TIMELINE =================

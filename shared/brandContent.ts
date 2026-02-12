@@ -82,11 +82,73 @@ export const BRAND_CONTENT = {
 
   // === ÉQUIPEMENT INDICATIF ===
   equipment: [
-    { labelFr: "Panneaux solaires Tier-1", labelEn: "Tier-1 solar panels", warrantyFr: "25 ans", warrantyEn: "25 years", iconCode: "panel" },
-    { labelFr: "Onduleurs certifiés CSA/UL", labelEn: "CSA/UL certified inverters", warrantyFr: "10-15 ans", warrantyEn: "10-15 years", iconCode: "inverter" },
-    { labelFr: "Structure de montage KB Racking", labelEn: "KB Racking mounting structure", warrantyFr: "25 ans", warrantyEn: "25 years", iconCode: "mounting" },
-    { labelFr: "Main d'œuvre certifiée", labelEn: "Certified workmanship", warrantyFr: "10 ans", warrantyEn: "10 years", iconCode: "workmanship" },
+    {
+      labelFr: "Panneaux solaires Tier-1",
+      labelEn: "Tier-1 solar panels",
+      warrantyFr: "25 ans",
+      warrantyEn: "25 years",
+      iconCode: "panel",
+      specsFr: "≥ 580 Wc mono PERC bifacial",
+      specsEn: "≥ 580 Wp mono PERC bifacial",
+      weightKg: 32.2,
+      dimensionsMm: "2278 × 1134 × 35",
+      powerW: 580,
+      efficiencyPct: 22.5,
+      certifications: ["CSA", "UL 61730", "IEC 61215", "IEC 61730"],
+    },
+    {
+      labelFr: "Onduleurs certifiés CSA/UL",
+      labelEn: "CSA/UL certified inverters",
+      warrantyFr: "10-15 ans",
+      warrantyEn: "10-15 years",
+      iconCode: "inverter",
+      specsFr: "Onduleur string triphasé ≥ 100 kW",
+      specsEn: "Three-phase string inverter ≥ 100 kW",
+      weightKg: 88,
+      dimensionsMm: "1035 × 700 × 363",
+      powerW: 100000,
+      efficiencyPct: 98.3,
+      certifications: ["CSA C22.2", "UL 1741", "IEEE 1547"],
+    },
+    {
+      labelFr: "Structure de montage KB Racking",
+      labelEn: "KB Racking mounting structure",
+      warrantyFr: "25 ans",
+      warrantyEn: "25 years",
+      iconCode: "mounting",
+      specsFr: "Système ballasté toit plat EcoFoot2+",
+      specsEn: "EcoFoot2+ flat roof ballasted system",
+      weightKg: null,
+      dimensionsMm: null,
+      powerW: null,
+      efficiencyPct: null,
+      certifications: ["CSA S157", "NBCC 2020", "Ingénierie scellée / P.Eng. stamped"],
+    },
+    {
+      labelFr: "Main d'œuvre certifiée",
+      labelEn: "Certified workmanship",
+      warrantyFr: "10 ans",
+      warrantyEn: "10 years",
+      iconCode: "workmanship",
+      specsFr: "Maîtres-électriciens RBQ",
+      specsEn: "RBQ licensed master electricians",
+      weightKg: null,
+      dimensionsMm: null,
+      powerW: null,
+      efficiencyPct: null,
+      certifications: ["RBQ", "CanSIA", "Corp. maîtres-électriciens"],
+    },
   ],
+
+  // === RÉSUMÉ TECHNIQUE ÉQUIPEMENT ===
+  equipmentTechnicalSummary: {
+    panelWeightKgPerM2: { value: 11.5, labelFr: "Poids des panneaux par m²", labelEn: "Panel weight per m²", unit: "kg/m²" },
+    rackingWeightKgPerM2: { value: 4.5, labelFr: "Poids de la structure par m²", labelEn: "Racking weight per m²", unit: "kg/m²" },
+    totalSystemWeightKgPerM2: { value: 16.0, labelFr: "Poids total système par m²", labelEn: "Total system weight per m²", unit: "kg/m²" },
+    totalSystemWeightPsfPerSf: { value: 3.3, labelFr: "Charge totale (lb/pi²)", labelEn: "Total load (psf)", unit: "psf" },
+    windLoadDesign: { labelFr: "Conçu pour charges de vent selon NBCC 2020", labelEn: "Designed for wind loads per NBCC 2020" },
+    snowLoadNote: { labelFr: "Compatible avec charges de neige typiques au Québec (> 3.5 kPa)", labelEn: "Compatible with typical Quebec snow loads (> 3.5 kPa)" },
+  },
 
   // === ÉCHÉANCIER TYPE ===
   timeline: [
@@ -342,7 +404,26 @@ export function getEquipment(lang: Lang) {
   return BRAND_CONTENT.equipment.map(e => ({
     label: lang === "fr" ? e.labelFr : e.labelEn,
     warranty: lang === "fr" ? e.warrantyFr : e.warrantyEn,
+    specs: lang === "fr" ? e.specsFr : e.specsEn,
+    weightKg: e.weightKg,
+    dimensionsMm: e.dimensionsMm,
+    powerW: e.powerW,
+    efficiencyPct: e.efficiencyPct,
+    certifications: e.certifications,
+    iconCode: e.iconCode,
   }));
+}
+
+export function getEquipmentTechnicalSummary(lang: Lang) {
+  const s = BRAND_CONTENT.equipmentTechnicalSummary;
+  return {
+    panelWeightKgPerM2: { value: s.panelWeightKgPerM2.value, label: lang === "fr" ? s.panelWeightKgPerM2.labelFr : s.panelWeightKgPerM2.labelEn, unit: s.panelWeightKgPerM2.unit },
+    rackingWeightKgPerM2: { value: s.rackingWeightKgPerM2.value, label: lang === "fr" ? s.rackingWeightKgPerM2.labelFr : s.rackingWeightKgPerM2.labelEn, unit: s.rackingWeightKgPerM2.unit },
+    totalSystemWeightKgPerM2: { value: s.totalSystemWeightKgPerM2.value, label: lang === "fr" ? s.totalSystemWeightKgPerM2.labelFr : s.totalSystemWeightKgPerM2.labelEn, unit: s.totalSystemWeightKgPerM2.unit },
+    totalSystemWeightPsfPerSf: { value: s.totalSystemWeightPsfPerSf.value, label: lang === "fr" ? s.totalSystemWeightPsfPerSf.labelFr : s.totalSystemWeightPsfPerSf.labelEn, unit: s.totalSystemWeightPsfPerSf.unit },
+    windLoadDesign: lang === "fr" ? s.windLoadDesign.labelFr : s.windLoadDesign.labelEn,
+    snowLoadNote: lang === "fr" ? s.snowLoadNote.labelFr : s.snowLoadNote.labelEn,
+  };
 }
 
 export function getTimeline(lang: Lang) {
