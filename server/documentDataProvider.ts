@@ -225,6 +225,30 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     }
   }
 
+  if (!roofVisualizationBuffer && simulation.site.roofVisualizationImageUrl) {
+    try {
+      const imgUrl = simulation.site.roofVisualizationImageUrl;
+      if (imgUrl.startsWith("data:image/")) {
+        const base64Data = imgUrl.split(",")[1];
+        if (base64Data) {
+          roofVisualizationBuffer = Buffer.from(base64Data, "base64");
+        }
+      } else if (imgUrl.startsWith("http")) {
+        const mod = imgUrl.startsWith("https") ? await import("https") : await import("http");
+        roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
+          mod.get(imgUrl, (response: any) => {
+            const chunks: Buffer[] = [];
+            response.on("data", (chunk: Buffer) => chunks.push(chunk));
+            response.on("end", () => resolve(Buffer.concat(chunks)));
+            response.on("error", reject);
+          }).on("error", reject);
+        });
+      }
+    } catch (fallbackError) {
+      log.error("Failed to fetch stored roof visualization image:", fallbackError);
+    }
+  }
+
   // Fetch dynamic equipment data from BOM + catalog (for PDF Section 8)
   let catalogEquipment: DocumentData["catalogEquipment"];
   try {
