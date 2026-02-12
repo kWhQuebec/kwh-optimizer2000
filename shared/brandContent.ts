@@ -151,11 +151,12 @@ export const BRAND_CONTENT = {
 
   // === ÉCHÉANCIER TYPE ===
   timeline: [
-    { stepFr: "Signature", stepEn: "Contract", durationFr: "", durationEn: "", iconCode: "contract" },
-    { stepFr: "Conception", stepEn: "Design", durationFr: "2-4 sem.", durationEn: "2-4 wks", iconCode: "design" },
-    { stepFr: "Permis & autorisations", stepEn: "Permits & Authorizations", durationFr: "8-12 sem.", durationEn: "8-12 wks", iconCode: "permits" },
-    { stepFr: "Installation", stepEn: "Installation", durationFr: "2-4 sem.", durationEn: "2-4 wks", iconCode: "install" },
-    { stepFr: "Mise en service", stepEn: "Commissioning", durationFr: "1-2 sem.", durationEn: "1-2 wks", iconCode: "commissioning" },
+    { stepFr: "Visite technique & conception", stepEn: "Technical Visit & Design", durationFr: "Semaine 1-2", durationEn: "Week 1-2", iconCode: "design" },
+    { stepFr: "Permis & approbations", stepEn: "Permits & Approvals", durationFr: "Semaine 3-4", durationEn: "Week 3-4", iconCode: "permits" },
+    { stepFr: "Approvisionnement", stepEn: "Procurement", durationFr: "Semaine 5-6", durationEn: "Week 5-6", iconCode: "procurement" },
+    { stepFr: "Installation", stepEn: "Installation", durationFr: "Semaine 7-10", durationEn: "Week 7-10", iconCode: "install" },
+    { stepFr: "Inspection & raccordement", stepEn: "Inspection & Connection", durationFr: "Semaine 11", durationEn: "Week 11", iconCode: "inspection" },
+    { stepFr: "Mise en service & formation", stepEn: "Commissioning & Training", durationFr: "Semaine 12", durationEn: "Week 12", iconCode: "commissioning" },
   ],
 
   // === PROJECT SNAPSHOT LABELS ===

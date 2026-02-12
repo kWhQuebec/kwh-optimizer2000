@@ -126,7 +126,6 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
   pages.push(buildAssumptionsPage(simulation, t, isSyntheticData, nextPage()));
-  pages.push(buildTimelinePage(simulation, t, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, nextPage()));
 
   const watermarkLabel = t("\u00c9TUDE PR\u00c9LIMINAIRE", "PRELIMINARY STUDY");
