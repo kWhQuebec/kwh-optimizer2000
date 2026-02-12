@@ -123,9 +123,6 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildFinancialProjectionsPage(simulation, t, totalProductionKWh, nextPage()));
 
-  if (hasRoofPolygons) {
-    pages.push(buildRoofConfigPage(simulation, t, roofImageBase64, nextPage()));
-  }
 
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
   pages.push(buildAssumptionsPage(simulation, t, isSyntheticData, nextPage()));
