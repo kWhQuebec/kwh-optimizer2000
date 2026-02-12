@@ -340,7 +340,15 @@ function buildAboutPage(
   t: (fr: string, en: string) => string,
   pageNum: number
 ): string {
-  const pillarIcon = (color: string) => `<div class="pillar-icon" style="background: ${color};"></div>`;
+  const svgIcon = (svg: string, color: string) =>
+    `<div class="pillar-icon" style="background: ${color}15; display: flex; align-items: center; justify-content: center;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>
+    </div>`;
+
+  const iconSimplicity = `<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/>`;
+  const iconReliability = `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`;
+  const iconLongevity = `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`;
+  const iconPride = `<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>`;
 
   return `
   <div class="page">
@@ -375,22 +383,22 @@ function buildAboutPage(
       <h3>${t("Notre approche", "Our Approach")}</h3>
       <div class="metrics-grid-4">
         <div class="pillar-card">
-          ${pillarIcon("#FFB005")}
+          ${svgIcon(iconSimplicity, "#FFB005")}
           <div class="pillar-title">${t("Simplicit&eacute;", "Simplicity")}</div>
           <p class="pillar-desc">${t("Un seul interlocuteur de A &agrave; Z. Z&eacute;ro complexit&eacute; pour vous.", "One point of contact from A to Z. Zero complexity for you.")}</p>
         </div>
         <div class="pillar-card">
-          ${pillarIcon("#003DA6")}
+          ${svgIcon(iconReliability, "#003DA6")}
           <div class="pillar-title">${t("Fiabilit&eacute;", "Reliability")}</div>
           <p class="pillar-desc">${t("&Eacute;quipements certifi&eacute;s, installation par ma&icirc;tres &eacute;lectriciens.", "Certified equipment, installation by master electricians.")}</p>
         </div>
         <div class="pillar-card">
-          ${pillarIcon("#16a34a")}
+          ${svgIcon(iconLongevity, "#16a34a")}
           <div class="pillar-title">${t("Long&eacute;vit&eacute;", "Longevity")}</div>
           <p class="pillar-desc">${t("Syst&egrave;mes con&ccedil;us pour 25+ ans de performance garantie.", "Systems designed for 25+ years of guaranteed performance.")}</p>
         </div>
         <div class="pillar-card">
-          ${pillarIcon("#DC2626")}
+          ${svgIcon(iconPride, "#DC2626")}
           <div class="pillar-title">${t("Fiert&eacute;", "Pride")}</div>
           <p class="pillar-desc">${t("Entreprise qu&eacute;b&eacute;coise. Contribution &agrave; la transition &eacute;nerg&eacute;tique locale.", "Quebec company. Contributing to the local energy transition.")}</p>
         </div>
@@ -399,10 +407,10 @@ function buildAboutPage(
     <div class="section">
       <h3>${t("Ils nous font confiance", "They Trust Us")}</h3>
       <div class="logo-grid">
-        <div class="logo-item">Dream Industrial</div>
-        <div class="logo-item">Lab Space</div>
-        <div class="logo-item">Scale Cleantech</div>
-        <div class="logo-item">Hydro-Qu&eacute;bec</div>
+        <div class="logo-item" style="font-size: 10pt; font-weight: 800; color: #1a365d; letter-spacing: -0.3px;">dream<span style="font-weight: 400;"> Industrial REIT</span></div>
+        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #2563eb; letter-spacing: 0.5px;">LAB<span style="font-weight: 400; color: #64748b;"> Space</span></div>
+        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #16a34a; letter-spacing: -0.2px;">Scale <span style="font-weight: 400;">Cleantech</span></div>
+        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">Hydro-Qu&eacute;bec</div>
       </div>
     </div>
     <div class="two-column">
