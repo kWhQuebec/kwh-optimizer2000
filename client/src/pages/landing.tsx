@@ -1113,7 +1113,7 @@ export default function LandingPage() {
                 {language === "fr" ? "Simplicité" : "Simplicity"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Solution clé en main, on s'occupe de tout" : "Turnkey solution, we handle everything"}
+                {language === "fr" ? "Un seul interlocuteur de A à Z. Zéro complexité pour vous." : "One point of contact from A to Z. Zero complexity for you."}
               </p>
             </div>
             
@@ -1125,19 +1125,19 @@ export default function LandingPage() {
                 {language === "fr" ? "Fiabilité" : "Reliability"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Performance garantie, on respecte nos engagements" : "Guaranteed performance, we keep our commitments"}
+                {language === "fr" ? "Équipements certifiés, entrepreneur licencié RBQ." : "Certified equipment, RBQ licensed contractor."}
               </p>
             </div>
             
-            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-sustainability">
+            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-longevity">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
-                {language === "fr" ? "Pérennité" : "Sustainability"}
+                {language === "fr" ? "Longévité" : "Longevity"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Relations et solutions pour le long terme" : "Long-term relationships and solutions"}
+                {language === "fr" ? "Systèmes conçus pour 25+ ans de performance garantie." : "Systems designed for 25+ years of guaranteed performance."}
               </p>
             </div>
             
@@ -1149,7 +1149,7 @@ export default function LandingPage() {
                 {language === "fr" ? "Fierté" : "Pride"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Fiers de nos projets et de leur impact" : "Proud of our projects and their impact"}
+                {language === "fr" ? "Entreprise québécoise. Contribution à la transition énergétique locale." : "Quebec company. Contributing to the local energy transition."}
               </p>
             </div>
           </motion.div>
@@ -1200,7 +1200,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-2" data-testid="strength-rbq">
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm">
-                <span className="font-medium">{language === "fr" ? "Licence RBQ" : "RBQ License"}</span>
+                <span className="font-medium">{language === "fr" ? "Licence RBQ 1.3" : "RBQ License 1.3"}</span>
                 <span className="text-muted-foreground"> — {language === "fr" ? "Entrepreneur général" : "General contractor"}</span>
               </span>
             </div>
