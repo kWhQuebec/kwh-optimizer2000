@@ -77,7 +77,6 @@ function PageLoader() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const [, setLocation] = useLocation();
 
   if (isLoading) {
     return (
@@ -91,13 +90,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    setLocation("/login");
-    return null;
+    return <Redirect to="/login" />;
   }
 
   if (user?.forcePasswordChange) {
-    setLocation("/change-password");
-    return null;
+    return <Redirect to="/change-password" />;
   }
 
   return <>{children}</>;
