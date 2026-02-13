@@ -35,7 +35,7 @@ export const FINANCING_COLORS = {
 export function FinancingCalculator({ simulation, displayedScenario }: { simulation: SimulationRun; displayedScenario: DisplayedScenarioType }) {
   const { t, language } = useI18n();
   const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease" | "ppa">("cash");
-  const [loanTerm, setLoanTerm] = useState(15);
+  const [loanTerm, setLoanTerm] = useState(10);
   const [interestRate, setInterestRate] = useState(5.5);
   const [downPayment, setDownPayment] = useState(20);
   const [leaseImplicitRate, setLeaseImplicitRate] = useState(8.5);

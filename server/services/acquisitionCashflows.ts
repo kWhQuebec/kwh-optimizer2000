@@ -37,7 +37,7 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
     incentivesHQBattery: hqBattery = 0,
     incentivesFederal: federalITC = 0,
     taxShield = 0,
-    loanTermYears = 15,
+    loanTermYears = 10,
     loanInterestRate = 5.5,
     loanDownPaymentPct = 20,
     leaseTermYears = 15,
