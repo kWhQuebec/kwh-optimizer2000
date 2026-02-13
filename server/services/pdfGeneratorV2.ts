@@ -736,6 +736,117 @@ function buildNetInvestmentPage(
   </div>`;
 }
 
+function aggregateHourlyProfile(profile: DocumentSimulationData["hourlyProfile"]) {
+  if (!profile || profile.length === 0) return [];
+  const byHour: Map<number, { cSum: number; pSum: number; pbSum: number; paSum: number; n: number }> = new Map();
+  for (const e of profile) {
+    const d = byHour.get(e.hour) || { cSum: 0, pSum: 0, pbSum: 0, paSum: 0, n: 0 };
+    d.cSum += e.consumption;
+    d.pSum += e.production;
+    d.pbSum += e.peakBefore;
+    d.paSum += e.peakAfter;
+    d.n++;
+    byHour.set(e.hour, d);
+  }
+  const result = [];
+  for (let h = 0; h < 24; h++) {
+    const d = byHour.get(h);
+    if (d && d.n > 0) {
+      const consumptionAfter = Math.max(0, (d.cSum - d.pSum) / d.n);
+      result.push({
+        hour: h,
+        kwhBefore: d.cSum / d.n,
+        kwhAfter: consumptionAfter,
+        kwBefore: d.pbSum / d.n,
+        kwAfter: d.paSum / d.n,
+      });
+    } else {
+      result.push({ hour: h, kwhBefore: 0, kwhAfter: 0, kwBefore: 0, kwAfter: 0 });
+    }
+  }
+  return result;
+}
+
+function generateBeforeAfterProfileSVG(
+  profile: DocumentSimulationData["hourlyProfile"],
+  t: (fr: string, en: string) => string
+): string {
+  const data = aggregateHourlyProfile(profile);
+  if (data.length === 0) return "";
+
+  const maxKwh = Math.max(...data.map(d => Math.max(d.kwhBefore, d.kwhAfter)), 1);
+  const maxKw = Math.max(...data.map(d => Math.max(d.kwBefore, d.kwAfter)), 1);
+  const svgW = 600;
+  const svgH = 220;
+  const pad = { top: 20, bottom: 35, left: 50, right: 50 };
+  const chartW = svgW - pad.left - pad.right;
+  const chartH = svgH - pad.top - pad.bottom;
+  const barGroupW = chartW / 24;
+  const barW = barGroupW * 0.32;
+
+  let svg = "";
+
+  const niceSteps = (max: number, count: number) => {
+    const raw = max / count;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const nice = [1, 2, 5, 10].map(m => m * mag);
+    const step = nice.find(s => s >= raw) || raw;
+    const steps = [];
+    for (let v = 0; v <= max + step * 0.1; v += step) steps.push(Math.round(v));
+    return steps;
+  };
+
+  const yStepsKwh = niceSteps(maxKwh, 4);
+  const yStepsKw = niceSteps(maxKw, 4);
+  const topKwh = yStepsKwh[yStepsKwh.length - 1] || maxKwh;
+  const topKw = yStepsKw[yStepsKw.length - 1] || maxKw;
+
+  for (const v of yStepsKwh) {
+    const y = pad.top + chartH - (v / topKwh) * chartH;
+    svg += `<line x1="${pad.left}" y1="${y}" x2="${pad.left + chartW}" y2="${y}" stroke="#e5e7eb" stroke-width="0.5"/>`;
+    svg += `<text x="${pad.left - 4}" y="${y + 3}" text-anchor="end" font-size="7" fill="#6b7280">${fmt(v)}</text>`;
+  }
+
+  for (const v of yStepsKw) {
+    const y = pad.top + chartH - (v / topKw) * chartH;
+    svg += `<text x="${pad.left + chartW + 4}" y="${y + 3}" text-anchor="start" font-size="7" fill="#FFB005">${fmt(v)}</text>`;
+  }
+
+  svg += `<text x="${pad.left - 8}" y="${pad.top - 6}" text-anchor="end" font-size="8" fill="#6b7280">kWh</text>`;
+  svg += `<text x="${pad.left + chartW + 8}" y="${pad.top - 6}" text-anchor="start" font-size="8" fill="#FFB005">kW</text>`;
+
+  data.forEach((d, i) => {
+    const x = pad.left + i * barGroupW + (barGroupW - barW * 2 - 2) / 2;
+    const bH = (d.kwhBefore / topKwh) * chartH;
+    const aH = (d.kwhAfter / topKwh) * chartH;
+    svg += `<rect x="${x}" y="${pad.top + chartH - bH}" width="${barW}" height="${bH}" fill="#6B7280" opacity="0.5" rx="1"/>`;
+    svg += `<rect x="${x + barW + 2}" y="${pad.top + chartH - aH}" width="${barW}" height="${aH}" fill="#003DA6" rx="1"/>`;
+    svg += `<text x="${pad.left + i * barGroupW + barGroupW / 2}" y="${svgH - 8}" text-anchor="middle" font-size="7" fill="#6b7280">${d.hour}h</text>`;
+  });
+
+  svg += `<text x="${pad.left + chartW / 2}" y="${svgH}" text-anchor="middle" font-size="8" fill="#6b7280">${t("Heure", "Hour")}</text>`;
+
+  let kwBeforePath = "";
+  let kwAfterPath = "";
+  data.forEach((d, i) => {
+    const cx = pad.left + i * barGroupW + barGroupW / 2;
+    const yBefore = pad.top + chartH - (d.kwBefore / topKw) * chartH;
+    const yAfter = pad.top + chartH - (d.kwAfter / topKw) * chartH;
+    kwBeforePath += `${i === 0 ? "M" : "L"} ${cx} ${yBefore}`;
+    kwAfterPath += `${i === 0 ? "M" : "L"} ${cx} ${yAfter}`;
+    svg += `<circle cx="${cx}" cy="${yBefore}" r="2.5" fill="none" stroke="#6B7280" stroke-width="1.5"/>`;
+    svg += `<circle cx="${cx}" cy="${yAfter}" r="2.5" fill="#FFB005" stroke="#FFB005" stroke-width="1.5"/>`;
+  });
+  svg += `<path d="${kwBeforePath}" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="4 2"/>`;
+  svg += `<path d="${kwAfterPath}" fill="none" stroke="#FFB005" stroke-width="1.5"/>`;
+
+  svg += `<line x1="${pad.left}" y1="${pad.top + chartH}" x2="${pad.left + chartW}" y2="${pad.top + chartH}" stroke="#d1d5db" stroke-width="1"/>`;
+  svg += `<line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + chartH}" stroke="#d1d5db" stroke-width="0.5"/>`;
+  svg += `<line x1="${pad.left + chartW}" y1="${pad.top}" x2="${pad.left + chartW}" y2="${pad.top + chartH}" stroke="#d1d5db" stroke-width="0.5"/>`;
+
+  return `<svg viewBox="0 0 ${svgW} ${svgH}" class="svg-chart" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+}
+
 function buildEnergyProfilePage(
   sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
@@ -743,45 +854,7 @@ function buildEnergyProfilePage(
   pageNum: number,
   isSyntheticData: boolean = false
 ): string {
-  const profile = sim.hourlyProfile!;
-
-  const avgByHour: { hour: number; consumption: number; production: number }[] = [];
-  for (let h = 0; h < 24; h++) {
-    const entries = profile.filter(e => e.hour === h);
-    if (entries.length > 0) {
-      avgByHour.push({
-        hour: h,
-        consumption: entries.reduce((s, e) => s + e.consumption, 0) / entries.length,
-        production: entries.reduce((s, e) => s + e.production, 0) / entries.length,
-      });
-    } else {
-      avgByHour.push({ hour: h, consumption: 0, production: 0 });
-    }
-  }
-
-  const maxVal = Math.max(...avgByHour.map(d => Math.max(d.consumption, d.production)), 1);
-  const svgW = 600;
-  const svgH = 180;
-  const pad = { top: 20, bottom: 30, left: 40, right: 10 };
-  const chartW = svgW - pad.left - pad.right;
-  const chartH = svgH - pad.top - pad.bottom;
-  const barGroupW = chartW / 24;
-  const barW = barGroupW * 0.35;
-
-  let bars = "";
-  avgByHour.forEach((d, i) => {
-    const x = pad.left + i * barGroupW;
-    const cH = (d.consumption / maxVal) * chartH;
-    const sH = (d.production / maxVal) * chartH;
-    bars += `<rect x="${x}" y="${pad.top + chartH - cH}" width="${barW}" height="${cH}" fill="#003DA6" opacity="0.4" rx="1"/>`;
-    bars += `<rect x="${x + barW + 1}" y="${pad.top + chartH - sH}" width="${barW}" height="${sH}" fill="#FFB005" rx="1"/>`;
-    if (i % 3 === 0) {
-      bars += `<text x="${x + barGroupW / 2}" y="${svgH - 5}" text-anchor="middle" font-size="8" fill="#6b7280">${d.hour}h</text>`;
-    }
-  });
-  bars += `<line x1="${pad.left}" y1="${pad.top + chartH}" x2="${svgW - pad.right}" y2="${pad.top + chartH}" stroke="#e5e7eb" stroke-width="1"/>`;
-
-  const hourlyChartSVG = `<svg viewBox="0 0 ${svgW} ${svgH}" class="svg-chart" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+  const beforeAfterSVG = generateBeforeAfterProfileSVG(sim.hourlyProfile, t);
 
   const monthlyBarsSVG = generateMonthlyProductionSVG(totalProductionKWh, t);
 
@@ -790,12 +863,14 @@ function buildEnergyProfilePage(
     <h2>${t("Profil &eacute;nerg&eacute;tique", "Energy Profile")}</h2>
     <p class="subtitle">${t("Simulation heure par heure - votre consommation vs production solaire", "Hour-by-hour simulation - your consumption vs solar production")}</p>
     <div class="chart-container">
-      <div class="chart-title">${t("Profil journalier type", "Typical Daily Profile")}</div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background: var(--primary); opacity: 0.4;"></div> ${t("Consommation", "Consumption")}</div>
-        <div class="legend-item"><div class="legend-dot" style="background: var(--accent);"></div> ${t("Production solaire", "Solar production")}</div>
+      <div class="chart-title">${t("Profil moyen (Avant vs Apr&egrave;s)", "Average Profile (Before vs After)")}</div>
+      <div class="legend" style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <div class="legend-item"><div class="legend-dot" style="background: #6B7280; opacity: 0.5;"></div> ${t("kWh Avant", "kWh Before")}</div>
+        <div class="legend-item"><div class="legend-dot" style="background: #003DA6;"></div> ${t("kWh Apr&egrave;s", "kWh After")}</div>
+        <div class="legend-item"><div style="width: 16px; height: 2px; border-top: 2px dashed #6B7280; margin-right: 4px; margin-top: 4px; display: inline-block;"></div> ${t("kW Avant", "kW Before")}</div>
+        <div class="legend-item"><div style="width: 16px; height: 2px; border-top: 2px solid #FFB005; margin-right: 4px; margin-top: 4px; display: inline-block;"></div> ${t("kW Apr&egrave;s", "kW After")}</div>
       </div>
-      ${hourlyChartSVG}
+      ${beforeAfterSVG}
     </div>
     <div class="metrics-grid">
       <div class="metric-card">

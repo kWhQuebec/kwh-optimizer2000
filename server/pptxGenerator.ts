@@ -279,6 +279,73 @@ export async function generatePresentationPPTX(
     });
   }
 
+  // ================= SLIDE: ENERGY PROFILE (BEFORE VS AFTER) =================
+  if (simulation.hourlyProfile && (simulation.hourlyProfile as any[]).length > 0) {
+    const hourlyData = simulation.hourlyProfile as any[];
+    const hourlyAgg: { kwhBefore: number; kwhAfterRaw: number; kwBefore: number; kwAfter: number; count: number }[] = [];
+    for (let h = 0; h < 24; h++) {
+      hourlyAgg.push({ kwhBefore: 0, kwhAfterRaw: 0, kwBefore: 0, kwAfter: 0, count: 0 });
+    }
+    for (const entry of hourlyData) {
+      const h = entry.hour;
+      if (h >= 0 && h < 24) {
+        hourlyAgg[h].kwhBefore += (entry.consumption || 0);
+        hourlyAgg[h].kwhAfterRaw += ((entry.consumption || 0) - (entry.production || 0));
+        hourlyAgg[h].kwBefore += (entry.peakBefore || 0);
+        hourlyAgg[h].kwAfter += (entry.peakAfter || 0);
+        hourlyAgg[h].count += 1;
+      }
+    }
+    const profileLabels = Array.from({ length: 24 }, (_, i) => `${i}h`);
+    const kwhBeforeVals = hourlyAgg.map(a => a.count > 0 ? a.kwhBefore / a.count : 0);
+    const kwhAfterVals = hourlyAgg.map(a => a.count > 0 ? Math.max(0, a.kwhAfterRaw / a.count) : 0);
+    const kwBeforeVals = hourlyAgg.map(a => a.count > 0 ? a.kwBefore / a.count : 0);
+    const kwAfterVals = hourlyAgg.map(a => a.count > 0 ? a.kwAfter / a.count : 0);
+
+    const slideProfile = pptx.addSlide({ masterName: "KWHMAIN" });
+
+    slideProfile.addText(
+      t("PROFIL MOYEN (AVANT VS APRÈS)", "AVERAGE PROFILE (BEFORE VS AFTER)"), {
+      x: 0.5, y: 0.8, w: 9, h: 0.5,
+      fontSize: 22, bold: true, color: COLORS.blue
+    });
+
+    slideProfile.addShape("rect", {
+      x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+    });
+
+    const barData = [
+      { name: t("kWh Avant", "kWh Before"), labels: profileLabels, values: kwhBeforeVals },
+      { name: t("kWh Après", "kWh After"), labels: profileLabels, values: kwhAfterVals },
+    ];
+    const lineData = [
+      { name: t("kW Avant", "kW Before"), labels: profileLabels, values: kwBeforeVals },
+      { name: t("kW Après", "kW After"), labels: profileLabels, values: kwAfterVals },
+    ];
+
+    slideProfile.addChart(
+      [
+        { type: pptx.charts.BAR, data: barData, options: { barGapWidthPct: 50 } },
+        { type: pptx.charts.LINE, data: lineData, options: { secondaryValAxis: true, lineSmooth: false, lineSize: 2 } },
+      ] as any,
+      {
+        x: 0.5, y: 1.5, w: 9, h: 3.8,
+        showLegend: true,
+        legendPos: "b",
+        legendFontSize: 8,
+        valAxisTitle: "kWh",
+        secondaryValAxis: true,
+        secondaryValAxisTitle: "kW",
+        catAxisOrientation: "minMax",
+        valAxisOrientation: "minMax",
+        chartColors: ["6B7280", COLORS.blue, "6B7280", COLORS.gold],
+        catAxisLabelFontSize: 7,
+        valAxisLabelFontSize: 8,
+        showValue: false,
+      } as any
+    );
+  }
+
   // ================= SLIDE 3: PROJECT SNAPSHOT =================
   const slideSnap = pptx.addSlide({ masterName: "KWHMAIN" });
 

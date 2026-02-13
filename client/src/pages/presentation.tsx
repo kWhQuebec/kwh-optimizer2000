@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import {
@@ -67,7 +67,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
-import type { Site, Client, SimulationRun, CashflowEntry } from "@shared/schema";
+import type { Site, Client, SimulationRun, CashflowEntry, HourlyProfileEntry } from "@shared/schema";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency as sharedFormatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT } from "@shared/colors";
 import {
@@ -96,6 +96,7 @@ const SLIDES = [
   'hero',
   'whySolarNow',
   'billComparison',
+  'energyProfile',
   'snapshot',
   'kpi',
   'waterfall',
@@ -305,6 +306,7 @@ export default function PresentationPage() {
     hero: <HeroSlide site={site} simulation={displaySim} language={language} />,
     whySolarNow: <WhySolarNowSlide language={language} />,
     billComparison: <BillComparisonSlide simulation={displaySim} language={language} />,
+    energyProfile: <EnergyProfileSlide simulation={displaySim} language={language} />,
     snapshot: <SnapshotSlide simulation={displaySim} language={language} />,
     kpi: <KPIResultsSlide simulation={displaySim} language={language} />,
     waterfall: <WaterfallSlide simulation={displaySim} language={language} />,
@@ -621,6 +623,140 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function EnergyProfileSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+  const hourlyProfileData = useMemo(() => {
+    const rawProfile = simulation?.hourlyProfile as HourlyProfileEntry[] | null;
+    if (!rawProfile || rawProfile.length === 0) return null;
+
+    const byHour: Map<number, {
+      consumptionSum: number;
+      productionSum: number;
+      peakBeforeSum: number;
+      peakAfterSum: number;
+      count: number;
+    }> = new Map();
+
+    for (const entry of rawProfile) {
+      const existing = byHour.get(entry.hour) || {
+        consumptionSum: 0, productionSum: 0, peakBeforeSum: 0, peakAfterSum: 0, count: 0,
+      };
+      existing.consumptionSum += entry.consumption;
+      existing.productionSum += entry.production;
+      existing.peakBeforeSum += entry.peakBefore;
+      existing.peakAfterSum += entry.peakAfter;
+      existing.count++;
+      byHour.set(entry.hour, existing);
+    }
+
+    const result = [];
+    for (let h = 0; h < 24; h++) {
+      const data = byHour.get(h);
+      if (data && data.count > 0) {
+        const consumptionAfter = (data.consumptionSum - data.productionSum) / data.count;
+        result.push({
+          hour: `${h}h`,
+          consumptionBefore: Math.round(data.consumptionSum / data.count),
+          consumptionAfter: Math.max(0, Math.round(consumptionAfter)),
+          peakBefore: Math.round(data.peakBeforeSum / data.count),
+          peakAfter: Math.round(data.peakAfterSum / data.count),
+        });
+      }
+    }
+    return result;
+  }, [simulation?.hourlyProfile]);
+
+  if (!hourlyProfileData || hourlyProfileData.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <p style={{ color: '#9CA3AF' }}>
+          {language === 'fr' ? 'Données horaires non disponibles' : 'Hourly data not available'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+      <div className="max-w-6xl w-full">
+        <SlideTitle>
+          {language === 'fr' ? 'Profil moyen (Avant vs Après)' : 'Average Profile (Before vs After)'}
+        </SlideTitle>
+
+        <div className="rounded-2xl p-6 md:p-8 shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
+          <div style={{ height: 420 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={hourlyProfileData} margin={{ top: 10, right: 40, left: 10, bottom: 30 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  label={{ value: language === 'fr' ? 'Heure' : 'Hour', position: 'bottom', offset: 10, style: { fontSize: 12, fill: '#6B7280' } }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  label={{ value: 'kWh', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#6B7280' } }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  label={{ value: 'kW', angle: 90, position: 'insideRight', style: { fontSize: 12, fill: '#6B7280' } }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    fontSize: 13,
+                  }}
+                />
+                <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: 10, fontSize: 13 }} />
+                <Bar
+                  yAxisId="left"
+                  dataKey="consumptionBefore"
+                  fill="#6B7280"
+                  fillOpacity={0.4}
+                  name={language === 'fr' ? 'kWh Avant' : 'kWh Before'}
+                  radius={[2, 2, 0, 0]}
+                  barSize={10}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="consumptionAfter"
+                  fill={BRAND_COLORS.primaryBlue}
+                  name={language === 'fr' ? 'kWh Après' : 'kWh After'}
+                  radius={[2, 2, 0, 0]}
+                  barSize={10}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="peakBefore"
+                  stroke="#6B7280"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  name={language === 'fr' ? 'kW Avant' : 'kW Before'}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="peakAfter"
+                  stroke={BRAND_COLORS.accentGold}
+                  strokeWidth={2}
+                  dot={false}
+                  name={language === 'fr' ? 'kW Après' : 'kW After'}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
     </div>
   );
