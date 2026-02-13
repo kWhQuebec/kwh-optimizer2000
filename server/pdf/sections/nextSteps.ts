@@ -98,7 +98,7 @@ export function renderNextSteps(ctx: PDFContext) {
   drawRoundedRect(doc, margin, ctaBoxY, contentWidth, 55, 8, COLORS.blue);
 
   doc.fontSize(14).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(t("Contactez-nous pour planifier votre visite de site", "Contact us to schedule your site visit"), margin, ctaBoxY + 10, { width: contentWidth, align: "center" });
+  doc.text(t("Prêt à passer à l'action? Réservez votre mandat de conception.", "Ready to take action? Book your design mandate."), margin, ctaBoxY + 10, { width: contentWidth, align: "center" });
   doc.font("Helvetica");
 
   doc.fontSize(11).fillColor(COLORS.gold);

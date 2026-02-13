@@ -1117,30 +1117,32 @@ export async function generatePresentationPPTX(
   } else {
     // Fallback to brandContent defaults
     const timeline = getTimeline(lang);
+    const stepW = Math.min(1.5, (9 / timeline.length) - 0.2);
+    const stepSpacing = 9 / timeline.length;
     timeline.forEach((tl, i) => {
-      const x = 0.5 + i * 1.9;
+      const x = 0.5 + i * stepSpacing;
       const gradC = TIMELINE_GRADIENT_PPTX.getStepColor(i, timeline.length);
       const bgColor = gradC.bg;
       const txtColor = gradC.text;
 
       slideTimeline.addShape("rect", {
-        x, y: 2.0, w: 1.7, h: 1.3,
+        x, y: 2.0, w: stepW, h: 1.3,
         fill: { color: bgColor }
       });
       slideTimeline.addText(tl.step, {
-        x, y: 2.1, w: 1.7, h: 0.6,
-        fontSize: 12, bold: true, color: txtColor, align: "center", valign: "middle"
+        x, y: 2.1, w: stepW, h: 0.6,
+        fontSize: 11, bold: true, color: txtColor, align: "center", valign: "middle"
       });
       if (tl.duration) {
         slideTimeline.addText(tl.duration, {
-          x, y: 2.7, w: 1.7, h: 0.4,
-          fontSize: 11, color: gradC.text, align: "center"
+          x, y: 2.7, w: stepW, h: 0.4,
+          fontSize: 10, color: gradC.text, align: "center"
         });
       }
 
       if (i < timeline.length - 1) {
         slideTimeline.addText("▶", {
-          x: x + 1.7, y: 2.4, w: 0.2, h: 0.4,
+          x: x + stepW, y: 2.4, w: 0.2, h: 0.4,
           fontSize: 14, color: COLORS.gold
         });
       }

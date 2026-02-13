@@ -149,14 +149,17 @@ export const BRAND_CONTENT = {
     snowLoadNote: { labelFr: "Compatible avec charges de neige typiques au Québec (> 3.5 kPa)", labelEn: "Compatible with typical Quebec snow loads (> 3.5 kPa)" },
   },
 
-  // === ÉCHÉANCIER TYPE ===
+  // === PARCOURS CLIENT UNIFIÉ (6 étapes, 3 phases) ===
   timeline: [
-    { stepFr: "Visite technique & conception", stepEn: "Technical Visit & Design", durationFr: "Semaine 1-2", durationEn: "Week 1-2", iconCode: "design" },
-    { stepFr: "Permis & approbations", stepEn: "Permits & Approvals", durationFr: "Semaine 3-4", durationEn: "Week 3-4", iconCode: "permits" },
-    { stepFr: "Approvisionnement", stepEn: "Procurement", durationFr: "Semaine 5-6", durationEn: "Week 5-6", iconCode: "procurement" },
-    { stepFr: "Installation", stepEn: "Installation", durationFr: "Semaine 7-10", durationEn: "Week 7-10", iconCode: "install" },
-    { stepFr: "Inspection & raccordement", stepEn: "Inspection & Connection", durationFr: "Semaine 11", durationEn: "Week 11", iconCode: "inspection" },
-    { stepFr: "Mise en service & formation", stepEn: "Commissioning & Training", durationFr: "Semaine 12", durationEn: "Week 12", iconCode: "commissioning" },
+    // Phase Découverte (gratuit, sans engagement)
+    { stepFr: "Analyse gratuite", stepEn: "Free Analysis", durationFr: "Quelques minutes", durationEn: "A few minutes", iconCode: "analysis", phase: "discovery" },
+    { stepFr: "Étude personnalisée", stepEn: "Personalized Study", durationFr: "48-72h", durationEn: "48-72h", iconCode: "study", phase: "discovery" },
+    // Phase Conception (engagement initial)
+    { stepFr: "Mandat de conception", stepEn: "Design Mandate", durationFr: "Signature + frais", durationEn: "Signature + fees", iconCode: "mandate", phase: "design" },
+    { stepFr: "Visite technique & proposition", stepEn: "Site Visit & Proposal", durationFr: "2-3 semaines", durationEn: "2-3 weeks", iconCode: "visit", phase: "design" },
+    // Phase Réalisation (clé en main)
+    { stepFr: "Permis & approvisionnement", stepEn: "Permits & Procurement", durationFr: "6-10 semaines", durationEn: "6-10 weeks", iconCode: "permits", phase: "execution" },
+    { stepFr: "Installation & mise en service", stepEn: "Installation & Commissioning", durationFr: "4-8 semaines", durationEn: "4-8 weeks", iconCode: "install", phase: "execution" },
   ],
 
   // === PROJECT SNAPSHOT LABELS ===
@@ -172,10 +175,10 @@ export const BRAND_CONTENT = {
 
   // === NEXT STEPS AMÉLIORÉS ===
   designFeeCovers: [
-    { labelFr: "Visite de site complète", labelEn: "Complete site visit" },
-    { labelFr: "Ingénierie préliminaire", labelEn: "Preliminary engineering" },
+    { labelFr: "Visite technique sur site par ingénieur certifié", labelEn: "On-site technical visit by certified engineer" },
+    { labelFr: "Analyse structurelle et conception préliminaire", labelEn: "Structural analysis and preliminary design" },
     { labelFr: "Préparation dossier interconnexion Hydro-Québec", labelEn: "Hydro-Québec interconnection application prep" },
-    { labelFr: "Soumission ferme détaillée", labelEn: "Detailed firm quote" },
+    { labelFr: "Proposition ferme avec prix garanti et échéancier", labelEn: "Firm proposal with guaranteed price and timeline" },
   ],
 
   clientProvides: [

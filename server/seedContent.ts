@@ -68,8 +68,8 @@ const DEFAULT_CONTENT = [
         answer: { fr: "Oui. Les panneaux produisent 25-30% de leur capacité en hiver. Les journées froides et ensoleillées sont idéales — le froid améliore l'efficacité. La neige cause 5-10% de perte saisonnière, mais les panneaux sont conçus pour la rejeter.", en: "Yes. Panels produce 25-30% of capacity in winter. Cold, sunny days are ideal — cold improves efficiency. Snow causes 5-10% seasonal loss, but panels are designed to shed it." }
       },
       {
-        question: { fr: "Combien de temps prend l'installation?", en: "How long does installation take?" },
-        answer: { fr: "De l'étude à la mise en service: 2-4 mois selon la taille du projet. L'installation physique prend 2-4 semaines pour un système commercial typique.", en: "From study to commissioning: 2-4 months depending on project size. Physical installation takes 2-4 weeks for a typical commercial system." }
+        question: { fr: "Combien de temps prend le projet complet?", en: "How long does the full project take?" },
+        answer: { fr: "Du mandat de conception à la mise en service: 3-5 mois selon la taille du projet. La visite et proposition prennent 2-3 semaines, les permis 6-10 semaines, et l'installation + mise en service 4-8 semaines.", en: "From design mandate to commissioning: 3-5 months depending on project size. Visit and proposal take 2-3 weeks, permits 6-10 weeks, and installation + commissioning 4-8 weeks." }
       },
       {
         question: { fr: "Qu'est-ce que la procuration Hydro-Québec?", en: "What is the Hydro-Québec procuration?" },
@@ -99,8 +99,8 @@ const DEFAULT_CONTENT = [
     value: {
       price: 2500,
       currency: "CAD",
-      title: { fr: "Étude de design préliminaire", en: "Preliminary Design Study" },
-      subtitle: { fr: "L'étape intelligente avant d'investir", en: "The smart step before investing" },
+      title: { fr: "Mandat de conception", en: "Design Mandate" },
+      subtitle: { fr: "L'étape intelligente avant d'investir — 100% applicable au projet", en: "The smart step before investing — 100% applicable to the project" },
       items: {
         fr: [
           "Visite sur site par un ingénieur certifié",
@@ -125,7 +125,7 @@ const DEFAULT_CONTENT = [
         fr: "100% applicable à l'installation — Si vous allez de l'avant, ce montant est déduit du coût total du projet.",
         en: "100% applicable to installation — If you proceed, this amount is deducted from the total project cost."
       },
-      cta: { fr: "Réserver mon étude de design", en: "Book my design study" }
+      cta: { fr: "Réserver mon mandat de conception", en: "Book my design mandate" }
     },
   },
   {

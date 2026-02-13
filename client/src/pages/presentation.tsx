@@ -33,6 +33,8 @@ import {
   Settings,
   ClipboardCheck,
   Wrench,
+  BarChart3,
+  FileSignature,
 } from "lucide-react";
 
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
@@ -1595,7 +1597,7 @@ function TimelineSlide({ language }: { language: string }) {
             return (
               <div key={i} className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
                 <div
-                  className="rounded-xl px-5 py-4 text-center w-full md:w-[160px] shadow-sm flex flex-col items-center justify-center"
+                  className="rounded-xl px-3 py-4 text-center w-full md:w-[140px] shadow-sm flex flex-col items-center justify-center"
                   style={{
                     backgroundColor: TIMELINE_GRADIENT.getStepHex(i, timeline.length),
                     border: 'none',
@@ -1647,7 +1649,7 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
   const incentivePercent = capexGross > 0 ? Math.round((totalIncentives / capexGross) * 100) : 60;
 
   const timeline = getTimeline(lang);
-  const milestoneIcons = [FileText, Settings, ClipboardCheck, Wrench, Zap];
+  const milestoneIcons = [BarChart3, FileText, FileSignature, Settings, ClipboardCheck, Zap];
   const milestones = timeline.map((tl, i) => ({
     icon: milestoneIcons[Math.min(i, milestoneIcons.length - 1)],
     label: tl.step,

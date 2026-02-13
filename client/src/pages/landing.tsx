@@ -891,54 +891,69 @@ export default function LandingPage() {
             viewport={{ once: true }}
           >
             <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-              {language === "fr" ? "Le solaire simplifié pour votre entreprise" : "Streamlined solar for your business"}
+              {language === "fr" ? "Votre parcours simplifié" : "Your Simplified Journey"}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
-                ? "De l'analyse initiale à l'opération de votre système, nous vous accompagnons à chaque étape"
-                : "From initial analysis to system operation, we support you every step of the way"
+              {language === "fr"
+                ? "De l'analyse gratuite à la production d'énergie — en 6 étapes claires"
+                : "From free analysis to energy production — in 6 clear steps"
               }
             </p>
           </motion.div>
-          
-          {/* Process Timeline */}
-          <div className="relative">
-            {/* Connection line - centered between icons and duration badges */}
-            <div className="hidden md:block absolute top-[68px] left-0 right-0 h-0.5 bg-border z-0" />
-            
+
+          {/* Process Timeline - 6 steps, 3 phases */}
+          <div className="relative space-y-8">
             {(() => {
               const timeline = getTimeline(language === "fr" ? "fr" : "en");
-              const stepIcons = [FileSignature, FileText, ClipboardCheck, HardHat, Zap];
+              const stepIcons = [BarChart3, FileText, FileSignature, HardHat, ClipboardCheck, Zap];
               const totalSteps = timeline.length;
-              return (
-                <div className="grid md:grid-cols-5 gap-6 relative z-10">
-                  {timeline.map((tl, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
-                      className="text-center"
-                      data-testid={`process-step-${i + 1}`}
-                    >
-                      <div className="flex flex-col items-center">
-                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(i, totalSteps) }}>
-                          {(() => { const Icon = stepIcons[i] || Zap; return <Icon className="w-6 h-6" style={{ color: TIMELINE_GRADIENT.getStepTextColor(i, totalSteps) }} />; })()}
-                        </div>
-                        {tl.duration && (
-                          <Badge className="mb-3" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(i, totalSteps)}20`, color: TIMELINE_GRADIENT.getStepHex(i, totalSteps), borderColor: `${TIMELINE_GRADIENT.getStepHex(i, totalSteps)}33` }}>
-                            {tl.duration}
-                          </Badge>
-                        )}
-                        <h3 className="font-semibold text-sm mb-1">
-                          {tl.step}
-                        </h3>
-                      </div>
-                    </motion.div>
-                  ))}
+              const phases = [
+                { key: "discovery", labelFr: "Découverte", labelEn: "Discovery", descFr: "Gratuit, sans engagement", descEn: "Free, no commitment", steps: [0, 1] },
+                { key: "design", labelFr: "Conception", labelEn: "Design", descFr: "Engagement initial", descEn: "Initial commitment", steps: [2, 3] },
+                { key: "execution", labelFr: "Réalisation", labelEn: "Execution", descFr: "Clé en main", descEn: "Turnkey", steps: [4, 5] },
+              ];
+              return phases.map((phase, pi) => (
+                <div key={phase.key}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(phase.steps[0], totalSteps)}20`, color: TIMELINE_GRADIENT.getStepHex(phase.steps[1], totalSteps) }}>
+                      {language === "fr" ? phase.labelFr : phase.labelEn}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{language === "fr" ? phase.descFr : phase.descEn}</span>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {phase.steps.map((si) => {
+                      const tl = timeline[si];
+                      const Icon = stepIcons[si] || Zap;
+                      return (
+                        <motion.div
+                          key={si}
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: si * 0.08 }}
+                          className="flex items-start gap-4 p-4 rounded-xl border bg-card"
+                          data-testid={`process-step-${si + 1}`}
+                        >
+                          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(si, totalSteps) }}>
+                            <Icon className="w-5 h-5" style={{ color: TIMELINE_GRADIENT.getStepTextColor(si, totalSteps) }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-bold text-muted-foreground">0{si + 1}</span>
+                              <h3 className="font-semibold text-sm">{tl.step}</h3>
+                            </div>
+                            {tl.duration && (
+                              <Badge variant="secondary" className="text-xs mb-1" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(si, totalSteps)}15`, color: TIMELINE_GRADIENT.getStepHex(si, totalSteps) }}>
+                                {tl.duration}
+                              </Badge>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 </div>
-              );
+              ));
             })()}
           </div>
           

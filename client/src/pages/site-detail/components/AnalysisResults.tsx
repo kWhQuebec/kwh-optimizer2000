@@ -18,6 +18,7 @@ import type {
 import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@shared/schema";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
 import { getAssumptions, getExclusions, getEquipment, getTimeline, getAllStats, getFirstTestimonial, getNarrativeAct, getNarrativeTransition, getDesignFeeCovers, getClientProvides, getClientReceives } from "@shared/brandContent";
+import { TIMELINE_GRADIENT } from "@shared/colors";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1390,21 +1391,16 @@ export function AnalysisResults({
 
       <Card>
         <CardContent className="pt-6 pb-4">
-          <div className="flex items-center justify-between gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {getTimeline(language as "fr" | "en").map((tl, i, arr) => (
-              <React.Fragment key={i}>
-                <div className={`flex-1 text-center p-3 rounded-lg ${
-                  i === 0 ? "bg-primary text-primary-foreground" :
-                  i === arr.length - 1 ? "bg-green-600 text-white" :
-                  "bg-muted"
-                }`}>
-                  <p className="font-semibold text-sm">{tl.step}</p>
-                  {tl.duration && <p className="text-xs opacity-80 mt-1">{tl.duration}</p>}
-                </div>
-                {i < arr.length - 1 && (
-                  <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                )}
-              </React.Fragment>
+              <div key={i} className="text-center p-3 rounded-lg" style={{
+                backgroundColor: TIMELINE_GRADIENT.getStepHex(i, arr.length),
+                color: TIMELINE_GRADIENT.getStepTextColor(i, arr.length),
+              }}>
+                <p className="text-xs font-bold opacity-70 mb-1">0{i + 1}</p>
+                <p className="font-semibold text-sm">{tl.step}</p>
+                {tl.duration && <p className="text-xs opacity-80 mt-1">{tl.duration}</p>}
+              </div>
             ))}
           </div>
           <p className="text-xs text-muted-foreground text-center mt-3">{t("analysis.timeline.note")}</p>
