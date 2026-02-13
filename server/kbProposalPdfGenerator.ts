@@ -205,9 +205,9 @@ export function generateKBProposalPDF(
   y = drawLabelValue(
     y,
     t("panelModel"),
-    `Jinko Solar Tiger Neo 625W ${language === "fr" ? "Bifacial" : "Bifacial"}`
+    `Jinko Solar JKM660N-66QL6-BDV 660W ${language === "fr" ? "Bifacial" : "Bifacial"}`
   );
-  y = drawLabelValue(y, t("panelPower"), "625 W");
+  y = drawLabelValue(y, t("panelPower"), "660 W");
   y = drawLabelValue(y, t("totalCapacity"), `${estimate.kwDc.toFixed(2)} kW`);
   y = drawLabelValue(y, t("rackingSystem"), KB_RACKING_SPECS.systemName);
 

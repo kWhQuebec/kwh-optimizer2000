@@ -604,7 +604,7 @@ export default function AdminPricingPage() {
                     <FormItem>
                       <FormLabel>{language === "fr" ? "Nom" : "Name"}</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Jinko 625W Bifacial" {...field} data-testid="input-component-name" />
+                        <Input placeholder="e.g., Jinko 660W Bifacial" {...field} data-testid="input-component-name" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

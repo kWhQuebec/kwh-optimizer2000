@@ -1431,10 +1431,10 @@ export function runPotentialAnalysis(
   const annualConsumptionKWh = totalKWh * annualizationFactor;
   
   // Use pre-calculated maxPVFromRoofKw from traced polygons (KB Racking formula)
-  // Fallback: calculate locally using KB Racking formula: (usable_area_m² / 3.71) × 0.625
+  // Fallback: calculate locally using KB Racking formula: (usable_area_m² / 3.71) × 0.660
   const maxPVFromRoof = (h as AnalysisAssumptions & { maxPVFromRoofKw?: number }).maxPVFromRoofKw !== undefined
     ? (h as AnalysisAssumptions & { maxPVFromRoofKw?: number }).maxPVFromRoofKw!
-    : ((h.roofAreaSqFt / 10.764) * h.roofUtilizationRatio / 3.71) * 0.625;
+    : ((h.roofAreaSqFt / 10.764) * h.roofUtilizationRatio / 3.71) * 0.660;
   
   const storedYieldStrategy = (h as AnalysisAssumptions & { _yieldStrategy?: YieldStrategy })._yieldStrategy;
   let effectiveYield: number;

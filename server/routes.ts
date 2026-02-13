@@ -729,10 +729,10 @@ function runPotentialAnalysis(
   
   // ========== STEP 2: System sizing with roof constraint ==========
   // Use KB Racking-calculated maxPV if provided (from traced polygons), otherwise calculate locally
-  // KB Racking formula: (usable_area_m² / 3.71) × 0.625 kW
+  // KB Racking formula: (usable_area_m² / 3.71) × 0.660 kW
   const maxPVFromRoof = (h as any).maxPVFromRoofKw !== undefined
     ? (h as any).maxPVFromRoofKw
-    : ((h.roofAreaSqFt / 10.764) * h.roofUtilizationRatio / 3.71) * 0.625;
+    : ((h.roofAreaSqFt / 10.764) * h.roofUtilizationRatio / 3.71) * 0.660;
   
   // SIMPLIFIED YIELD CALCULATION (Jan 2026)
   // PRIORITY 1: Use pre-resolved yieldStrategy from caller (already includes bifacial if applicable)
@@ -2447,10 +2447,10 @@ function runSensitivityAnalysis(
   
   // Calculate max roof capacity for solar sweep
   // Use KB Racking-calculated maxPV if provided (from traced polygons), otherwise calculate locally
-  // KB Racking formula: (usable_area_m² / 3.71) × 0.625 kW
+  // KB Racking formula: (usable_area_m² / 3.71) × 0.660 kW
   const maxPVFromRoof = (assumptions as any).maxPVFromRoofKw !== undefined
     ? (assumptions as any).maxPVFromRoofKw
-    : ((assumptions.roofAreaSqFt / 10.764) * assumptions.roofUtilizationRatio / 3.71) * 0.625;
+    : ((assumptions.roofAreaSqFt / 10.764) * assumptions.roofUtilizationRatio / 3.71) * 0.660;
   
   // Solar sweep: 0 to max PV capacity in ~20 steps, with configured battery
   // CRITICAL: Limit to roof's actual capacity from traced polygons (not arbitrary large values)

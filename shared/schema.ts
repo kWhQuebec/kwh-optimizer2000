@@ -189,10 +189,10 @@ export const sites = pgTable("sites", {
   roofAreaValidatedBy: varchar("roof_area_validated_by"), // User ID who validated
   
   // KB Racking Design Data - Validated from real project quotes
-  // Product: AeroGrid 10° Landscape with Jinko 625W panels
+  // Product: AeroGrid 10° Landscape with Jinko 660W panels
   kbDesignStatus: text("kb_design_status").default("none"), // "none" | "pending" | "complete"
   kbPanelCount: integer("kb_panel_count"), // Number of panels from KB design
-  kbKwDc: real("kb_kw_dc"), // Total DC capacity in kW (panel count × 0.625)
+  kbKwDc: real("kb_kw_dc"), // Total DC capacity in kW (panel count × 0.660)
   kbPricePerPanel: real("kb_price_per_panel"), // $/panel from KB quote
   kbRackingSubtotal: real("kb_racking_subtotal"), // Total racking cost (panels × price)
   kbShippingCost: real("kb_shipping_cost"), // Shipping/handling estimate
@@ -410,7 +410,7 @@ export const componentCatalog = pgTable("component_catalog", {
 export const pricingComponents = pgTable("pricing_components", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   category: text("category").notNull(), // "panels" | "racking" | "inverters" | "bos_electrical" | "labor" | "soft_costs"
-  name: text("name").notNull(), // e.g., "Jinko 625W Bifacial", "KB Racking AeroGrid"
+  name: text("name").notNull(), // e.g., "Jinko 660W Bifacial", "KB Racking AeroGrid"
   description: text("description"), // Additional context
   pricePerUnit: real("price_per_unit").notNull(), // Variable cost in CAD (per unit)
   fixedCost: real("fixed_cost").default(0), // Fixed cost portion per project ($CAD) - doesn't scale with system size
@@ -454,7 +454,7 @@ export const priceHistory = pgTable("price_history", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   supplierId: varchar("supplier_id").references(() => suppliers.id),
   category: text("category").notNull(), // "panels" | "racking" | "inverters" | "bos_electrical" | "labor"
-  itemName: text("item_name").notNull(), // e.g., "Jinko 625W Bifacial", "AeroGrid 10°"
+  itemName: text("item_name").notNull(), // e.g., "Jinko 660W Bifacial", "AeroGrid 10°"
   pricePerUnit: real("price_per_unit").notNull(),
   unit: text("unit").notNull(), // "W" | "panel" | "kW" | "project" | "hour"
   quantity: real("quantity"), // Quantity for tiered pricing

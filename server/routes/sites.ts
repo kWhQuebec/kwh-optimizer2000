@@ -916,10 +916,10 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   analysisAssumptions.roofAreaSqFt = effectiveRoofAreaSqM * 10.764;
 
   // Calculate max PV capacity using KB Racking formula:
-  // maxPV = (usable_area / 3.71 m²) × 0.625 kW per panel
+  // maxPV = (usable_area / 3.71 m²) × 0.660 kW per panel
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
-  const kbMaxPvKw = (usableAreaSqM / 3.71) * 0.625;
+  const kbMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
   analysisAssumptions.maxPVFromRoofKw = kbMaxPvKw; // Keep as float for precision
 
   log.info(`Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +

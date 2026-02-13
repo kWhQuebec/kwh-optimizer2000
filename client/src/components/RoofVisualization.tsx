@@ -88,17 +88,17 @@ interface ArrayInfo {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // KB RACKING VALIDATED SPECIFICATIONS - Based on 18 real projects (~40 MW)
-// Product: AeroGrid 10° Landscape with Jinko 625W bifacial panels
+// Product: AeroGrid 10° Landscape with Jinko 660W bifacial panels
 // Source: KB Racking engineering drawings & quotes (Oct-Dec 2025)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Panel specifications - Jinko Solar 625W bifacial
-const PANEL_KW = 0.625;                   // 625W = 0.625 kW
+// Panel specifications - Jinko Solar JKM660N-66QL6-BDV 660W bifacial
+const PANEL_KW = 0.660;                   // 660W = 0.660 kW
 const PANEL_WIDTH_M = 2.382;              // Length in landscape orientation (mm: 2382)
 const PANEL_HEIGHT_M = 1.134;             // Width in landscape orientation (mm: 1134)
 const PANEL_THICKNESS_MM = 30;            // Panel thickness
-const PANEL_WEIGHT_KG = 32.4;             // Per KB Racking specs
-const PANEL_CELL_TYPE = 72;               // 72-cell bifacial
+const PANEL_WEIGHT_KG = 32.5;             // Per KB Racking specs
+const PANEL_CELL_TYPE = 264;              // 264-cell (66×4) N-type TOPCon bifacial
 
 // Racking specifications - AeroGrid 10° Landscape
 const RACKING_WEIGHT_KG_PER_PANEL = 12.838644;  // Per KB Racking ballast reports

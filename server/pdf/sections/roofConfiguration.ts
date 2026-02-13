@@ -150,9 +150,9 @@ export function renderRoofConfiguration(ctx: PDFContext) {
       doc.rect(tableX, ty, contentWidth, rowH).fillColor(bgColor).fill();
 
       const area = poly.areaSqM;
-      // KB Racking formula: (area_m² × utilization / 3.71) × 0.625 kW, assuming 500W panels
-      const panels = Math.floor(area / 3.71 * 0.625 / 0.5);
-      const kwc = panels * 0.5;
+      // KB Racking formula: (area_m² × utilization / 3.71) × 0.660 kW, assuming 660W panels
+      const panels = Math.floor(area / 3.71 * 0.660 / 0.66);
+      const kwc = panels * 0.66;
       totalPanels += panels;
       totalKWc += kwc;
 

@@ -48,12 +48,12 @@ interface SolarMockupProps {
   roofAreaSqM?: number;
 }
 
-// Panel dimensions in meters (590W commercial bifacial panel - IFC compliant)
-const PANEL_WIDTH_M = 2.0;  // East-West dimension
-const PANEL_HEIGHT_M = 1.0; // North-South dimension
+// Panel dimensions in meters (660W commercial bifacial N-type TOPCon panel)
+const PANEL_WIDTH_M = 2.382;  // East-West dimension
+const PANEL_HEIGHT_M = 1.134; // North-South dimension
 const PANEL_SPACING_M = 0.1; // Gap between panels
 const ROW_SPACING_M = 0.5;   // Additional spacing between rows (10° ballast systems)
-const PANEL_WATT = 590;      // Modern commercial panel wattage
+const PANEL_WATT = 660;      // Jinko JKM660N-66QL6-BDV
 
 // Generate algorithmic panel positions in a grid pattern
 function generateAlgorithmicPanels(

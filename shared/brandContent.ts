@@ -82,18 +82,18 @@ export const BRAND_CONTENT = {
   // === ÉQUIPEMENT INDICATIF ===
   equipment: [
     {
-      labelFr: "Panneaux solaires Tier-1",
-      labelEn: "Tier-1 solar panels",
-      warrantyFr: "25 ans",
-      warrantyEn: "25 years",
+      labelFr: "Panneaux Jinko Solar N-type TOPCon",
+      labelEn: "Jinko Solar N-type TOPCon panels",
+      warrantyFr: "30 ans",
+      warrantyEn: "30 years",
       iconCode: "panel",
-      specsFr: "≥ 580 Wc mono PERC bifacial",
-      specsEn: "≥ 580 Wp mono PERC bifacial",
-      weightKg: 32.2,
-      dimensionsMm: "2278 × 1134 × 35",
-      powerW: 580,
-      efficiencyPct: 22.5,
-      certifications: ["CSA", "UL 61730", "IEC 61215", "IEC 61730"],
+      specsFr: "JKM660N-66QL6-BDV 660 Wc bifacial",
+      specsEn: "JKM660N-66QL6-BDV 660 Wp bifacial",
+      weightKg: 32.5,
+      dimensionsMm: "2382 × 1134 × 30",
+      powerW: 660,
+      efficiencyPct: 24.43,
+      certifications: ["CSA", "UL 61730", "IEC 61215:2021", "IEC 61730:2023"],
     },
     {
       labelFr: "Onduleurs certifiés CSA/UL",
@@ -141,10 +141,10 @@ export const BRAND_CONTENT = {
 
   // === RÉSUMÉ TECHNIQUE ÉQUIPEMENT ===
   equipmentTechnicalSummary: {
-    panelWeightKgPerM2: { value: 11.5, labelFr: "Poids des panneaux par m²", labelEn: "Panel weight per m²", unit: "kg/m²" },
+    panelWeightKgPerM2: { value: 12.0, labelFr: "Poids des panneaux par m²", labelEn: "Panel weight per m²", unit: "kg/m²" },
     rackingWeightKgPerM2: { value: 4.5, labelFr: "Poids de la structure par m²", labelEn: "Racking weight per m²", unit: "kg/m²" },
-    totalSystemWeightKgPerM2: { value: 16.0, labelFr: "Poids total système par m²", labelEn: "Total system weight per m²", unit: "kg/m²" },
-    totalSystemWeightPsfPerSf: { value: 3.3, labelFr: "Charge totale (lb/pi²)", labelEn: "Total load (psf)", unit: "psf" },
+    totalSystemWeightKgPerM2: { value: 16.5, labelFr: "Poids total système par m²", labelEn: "Total system weight per m²", unit: "kg/m²" },
+    totalSystemWeightPsfPerSf: { value: 3.4, labelFr: "Charge totale (lb/pi²)", labelEn: "Total load (psf)", unit: "psf" },
     windLoadDesign: { labelFr: "Conçu pour charges de vent selon NBCC 2020", labelEn: "Designed for wind loads per NBCC 2020" },
     snowLoadNote: { labelFr: "Compatible avec charges de neige typiques au Québec (> 3.5 kPa)", labelEn: "Compatible with typical Quebec snow loads (> 3.5 kPa)" },
   },

@@ -1186,7 +1186,7 @@ const fr = {
           "Traçage manuel des toits: Source de vérité pour les surfaces de toit (Google n'est pas fiable pour C&I)",
           "Surface utilisable = Surface tracée × 85% (retrait périmètre 1.22m code IFC)",
           "Nombre de panneaux = Surface utilisable ÷ 3.71 m² (empreinte KB Racking)",
-          "Capacité = Nombre de panneaux × 625W (panneau Jinko bifacial)",
+          "Capacité = Nombre de panneaux × 660W (panneau Jinko N-type TOPCon bifacial)",
         ],
       },
       specs: {
@@ -1194,10 +1194,10 @@ const fr = {
         panelsLabel: "Panneaux",
         rackingLabel: "Structure de montage",
         panels: [
-          { name: "Modèle de panneau", value: "Jinko Solar 625W bifacial" },
+          { name: "Modèle de panneau", value: "Jinko Solar JKM660N-66QL6-BDV 660W bifacial" },
           { name: "Dimensions", value: "2382 × 1134 × 30 mm" },
-          { name: "Poids panneau", value: "32.4 kg" },
-          { name: "Type cellule", value: "72-cell bifacial" },
+          { name: "Poids panneau", value: "32.5 kg" },
+          { name: "Type cellule", value: "264-cell (66×4) N-type TOPCon bifacial" },
         ],
         racking: [
           { name: "Système", value: "AeroGrid 10° Landscape" },
@@ -1220,7 +1220,7 @@ const fr = {
       },
       comparison: {
         title: "Validation KB Racking",
-        description: "Basé sur l'analyse de 18 sites réels, le calcul direct (surface × 85% ÷ 3.71 m² × 625W) donne des résultats à ~6% des designs KB finaux. L'écart s'explique par les ajustements finaux: passages, câblage, obstacles spécifiques.",
+        description: "Basé sur l'analyse de 18 sites réels, le calcul direct (surface × 85% ÷ 3.71 m² × 660W) donne des résultats à ~6% des designs KB finaux. L'écart s'explique par les ajustements finaux: passages, câblage, obstacles spécifiques.",
       },
       rackingComparison: {
         title: "Comparaison KB vs Opsun",
@@ -1727,7 +1727,7 @@ const en = {
           "Manual roof tracing: Source of truth for roof surfaces (Google not reliable for C&I)",
           "Usable area = Traced area × 85% (1.22m perimeter setback per IFC code)",
           "Number of panels = Usable area ÷ 3.71 m² (KB Racking footprint)",
-          "Capacity = Number of panels × 625W (Jinko bifacial panel)",
+          "Capacity = Number of panels × 660W (Jinko N-type TOPCon bifacial panel)",
         ],
       },
       specs: {
@@ -1735,10 +1735,10 @@ const en = {
         panelsLabel: "Panels",
         rackingLabel: "Racking System",
         panels: [
-          { name: "Panel model", value: "Jinko Solar 625W bifacial" },
+          { name: "Panel model", value: "Jinko Solar JKM660N-66QL6-BDV 660W bifacial" },
           { name: "Dimensions", value: "2382 × 1134 × 30 mm" },
-          { name: "Panel weight", value: "32.4 kg" },
-          { name: "Cell type", value: "72-cell bifacial" },
+          { name: "Panel weight", value: "32.5 kg" },
+          { name: "Cell type", value: "264-cell (66×4) N-type TOPCon bifacial" },
         ],
         racking: [
           { name: "System", value: "AeroGrid 10° Landscape" },
@@ -1761,7 +1761,7 @@ const en = {
       },
       comparison: {
         title: "KB Racking Validation",
-        description: "Based on analysis of 18 real sites, the direct calculation (area × 85% ÷ 3.71 m² × 625W) yields results within ~6% of final KB designs. The difference is explained by final adjustments: walkways, wiring paths, specific obstacles.",
+        description: "Based on analysis of 18 real sites, the direct calculation (area × 85% ÷ 3.71 m² × 660W) yields results within ~6% of final KB designs. The difference is explained by final adjustments: walkways, wiring paths, specific obstacles.",
       },
       rackingComparison: {
         title: "KB vs Opsun Comparison",

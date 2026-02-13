@@ -122,7 +122,7 @@ export function AnalysisResults({
   }, [breakdown, simulation.pvSizeKW, assumptions.solarCostPerW]);
 
   const usableRoofSqM = (assumptions.roofAreaSqFt / 10.764) * assumptions.roofUtilizationRatio;
-  const maxPVFromRoof = (usableRoofSqM / 3.71) * 0.625;
+  const maxPVFromRoof = (usableRoofSqM / 3.71) * 0.660;
   const isRoofLimited = (simulation.pvSizeKW || 0) >= maxPVFromRoof * 0.95;
 
   const SectionDivider = ({ title, icon: Icon }: { title: string; icon?: any }) => (

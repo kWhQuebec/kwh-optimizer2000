@@ -201,7 +201,7 @@ router.post("/api/designs", authMiddleware, asyncHandler(async (req, res) => {
   const inverterItem = inverterModelId ? await storage.getCatalogItem(inverterModelId) : null;
   const batteryItem = batteryModelId ? await storage.getCatalogItem(batteryModelId) : null;
 
-  const moduleWattage = 410;
+  const moduleWattage = 660;
   const modulesCount = Math.ceil((pvSizeKW * 1000) / moduleWattage);
   const invertersCount = Math.ceil(pvSizeKW / 25);
   const batteryUnits = Math.ceil(batteryEnergyKWh / 16);

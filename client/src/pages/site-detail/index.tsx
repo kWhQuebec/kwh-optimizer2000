@@ -180,8 +180,8 @@ export default function SiteDetailPage() {
         },
         systemSizing: {
           maxCapacityKW: systemSizeKw,
-          numPanels: Math.ceil(systemSizeKw * 1000 / 625),
-          panelPowerW: 625,
+          numPanels: Math.ceil(systemSizeKw * 1000 / 660),
+          panelPowerW: 660,
         },
         production: {
           annualProductionKWh: annualProductionKwh,

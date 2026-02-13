@@ -1,7 +1,7 @@
 /**
  * KB Racking Cost Estimator
  * Based on validated pricing data from 18 real projects (~40 MW)
- * Product: AeroGrid 10° Landscape with Jinko 625W bifacial panels
+ * Product: AeroGrid 10° Landscape with Jinko 660W bifacial panels
  */
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -37,11 +37,11 @@ export interface KBRackingSpecs {
 
 // KB Racking standard specs (validated from engineering drawings)
 export const KB_RACKING_SPECS: KBRackingSpecs = {
-  panelPowerW: 625,
+  panelPowerW: 660,
   panelLengthMm: 2382,
   panelWidthMm: 1134,
   panelThicknessMm: 30,
-  panelWeightKg: 32.4,
+  panelWeightKg: 32.5,
   rackingWeightKgPerPanel: 12.838644,
   tiltDeg: 10,
   rowSpacingM: 1.557,
@@ -183,7 +183,7 @@ export function generateBOM(panelCount: number): BOMItem[] {
   return [
     {
       category: 'PANEL',
-      description: `Jinko Solar Tiger Neo N-type 625W Bifacial`,
+      description: `Jinko Solar JKM660N-66QL6-BDV 660W Bifacial`,
       quantity: panelCount,
       unit: 'each',
       unitCost: 185.00, // Panel cost (separate from racking)

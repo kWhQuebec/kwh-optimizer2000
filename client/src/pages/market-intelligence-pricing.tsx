@@ -1124,7 +1124,7 @@ export default function MarketIntelligencePricingPage() {
                     <FormItem className="md:col-span-2">
                       <FormLabel>{language === "fr" ? "Nom de l'article" : "Item Name"} *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., Jinko 625W Bifacial" data-testid="input-price-history-item-name" />
+                        <Input {...field} placeholder="e.g., Jinko 660W Bifacial" data-testid="input-price-history-item-name" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

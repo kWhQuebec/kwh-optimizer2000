@@ -127,10 +127,10 @@ async function getGoogleSolarData(lat: number, lng: number): Promise<GoogleSolar
 
 /**
  * Simulate Quick Analysis estimate based on roof area
- * Uses current parameters: 590W panels, 85% utilization, 3.15 m²/panel
+ * Uses current parameters: 660W panels, 85% utilization, 3.15 m²/panel
  */
 function simulateQuickAnalysis(roofAreaSqM: number): { panelCount: number; kwDc: number } {
-  const PANEL_POWER_W = 590;
+  const PANEL_POWER_W = 660;
   const UTILIZATION_RATIO = 0.85;
   const EFFECTIVE_PANEL_AREA_SQM = 3.15; // 2.1m x 1.5m grid cell
   

@@ -55,7 +55,7 @@ export class DatabaseStorage implements IStorage {
     const existingPricing = await db.select().from(pricingComponents).limit(1);
     if (existingPricing.length === 0) {
       const defaultPricing = [
-        { category: "panels", name: "Jinko 625W Bifacial", pricePerUnit: 0.35, unit: "W", source: "Industry benchmark", notes: "High-efficiency bifacial modules" },
+        { category: "panels", name: "Jinko 660W Bifacial", pricePerUnit: 0.35, unit: "W", source: "Industry benchmark", notes: "High-efficiency N-type TOPCon bifacial modules" },
         { category: "racking", name: "KB AeroGrid 10° (< 1,500 panels)", pricePerUnit: 115.50, unit: "panel", minQuantity: 0, maxQuantity: 1499, source: "KB Racking", notes: "Ballast-mount, 10° tilt landscape" },
         { category: "racking", name: "KB AeroGrid 10° (1,500-3,000 panels)", pricePerUnit: 113.00, unit: "panel", minQuantity: 1500, maxQuantity: 3000, source: "KB Racking", notes: "Ballast-mount, 10° tilt landscape" },
         { category: "racking", name: "KB AeroGrid 10° (3,000-5,000 panels)", pricePerUnit: 111.50, unit: "panel", minQuantity: 3001, maxQuantity: 5000, source: "KB Racking", notes: "Ballast-mount, 10° tilt landscape" },
