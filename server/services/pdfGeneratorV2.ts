@@ -1388,9 +1388,8 @@ function buildEquipmentPage(
           <th>${t("Param&egrave;tre", "Parameter")}</th>
           <th>${t("Valeur", "Value")}</th>
         </tr>
-        <tr><td>${techSummary.panelWeightKgPerM2.label}</td><td><strong>${techSummary.panelWeightKgPerM2.value} ${techSummary.panelWeightKgPerM2.unit}</strong></td></tr>
-        <tr><td>${techSummary.rackingWeightKgPerM2.label}</td><td><strong>${techSummary.rackingWeightKgPerM2.value} ${techSummary.rackingWeightKgPerM2.unit}</strong></td></tr>
-        <tr class="total-row"><td>${techSummary.totalSystemWeightKgPerM2.label}</td><td><strong>${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit} (${techSummary.totalSystemWeightPsfPerSf.value} ${techSummary.totalSystemWeightPsfPerSf.unit})</strong></td></tr>
+        <tr class="total-row"><td>${t("Charge totale du syst&egrave;me", "Total System Load")}</td><td><strong style="font-size:14px;color:#FFB005;">${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit}&nbsp;&nbsp;/&nbsp;&nbsp;${techSummary.totalSystemWeightPsfPerSf.value} ${techSummary.totalSystemWeightPsfPerSf.unit}</strong></td></tr>
+        <tr><td style="font-size:9px;color:#6B7280;">${t("D&eacute;tail", "Breakdown")}</td><td style="font-size:9px;color:#6B7280;">${t(`Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m&sup2; + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m&sup2;`, `Panels ${techSummary.panelWeightKgPerM2.value} kg/m&sup2; + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m&sup2;`)}</td></tr>
         <tr><td>${techSummary.windLoadDesign}</td><td>&#x2713;</td></tr>
         <tr><td>${techSummary.snowLoadNote}</td><td>&#x2713;</td></tr>
       </table>

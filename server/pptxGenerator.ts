@@ -1046,16 +1046,10 @@ export async function generatePresentationPPTX(
 
   const structData: Array<Array<{ text: string; options?: any }>> = [
     [
-      { text: techSummary.panelWeightKgPerM2.label, options: { fontSize: 9 } },
-      { text: `${techSummary.panelWeightKgPerM2.value} ${techSummary.panelWeightKgPerM2.unit}`, options: { bold: true, fontSize: 9 } },
-      { text: techSummary.rackingWeightKgPerM2.label, options: { fontSize: 9 } },
-      { text: `${techSummary.rackingWeightKgPerM2.value} ${techSummary.rackingWeightKgPerM2.unit}`, options: { bold: true, fontSize: 9 } },
-    ],
-    [
-      { text: techSummary.totalSystemWeightKgPerM2.label, options: { fontSize: 9, bold: true } },
-      { text: `${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit}`, options: { bold: true, fontSize: 9, color: COLORS.blue } },
-      { text: techSummary.totalSystemWeightPsfPerSf.label, options: { fontSize: 9, bold: true } },
-      { text: `${techSummary.totalSystemWeightPsfPerSf.value} ${techSummary.totalSystemWeightPsfPerSf.unit}`, options: { bold: true, fontSize: 9, color: COLORS.blue } },
+      { text: t("Charge totale du système", "Total System Load"), options: { fontSize: 10, bold: true } },
+      { text: `${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit}  /  ${techSummary.totalSystemWeightPsfPerSf.value} ${techSummary.totalSystemWeightPsfPerSf.unit}`, options: { bold: true, fontSize: 11, color: COLORS.gold } },
+      { text: t("Détail", "Breakdown"), options: { fontSize: 8, italic: true } },
+      { text: t(`Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m² + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m²`, `Panels ${techSummary.panelWeightKgPerM2.value} kg/m² + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m²`), options: { fontSize: 8 } },
     ],
   ];
 
@@ -1070,7 +1064,7 @@ export async function generatePresentationPPTX(
   });
 
   slideEquip.addText(`${techSummary.windLoadDesign} | ${techSummary.snowLoadNote}`, {
-    x: 0.7, y: 5.35, w: 8.6, h: 0.25,
+    x: 0.7, y: 5.05, w: 8.6, h: 0.25,
     fontSize: 7, color: COLORS.mediumGray, align: "center"
   });
 

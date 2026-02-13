@@ -941,6 +941,15 @@ export default function LandingPage() {
               const timeline = getTimeline(language === "fr" ? "fr" : "en");
               const stepIcons = [BarChart3, FileText, FileSignature, HardHat, ClipboardCheck, Zap];
 
+              const stepColors = [
+                "rgba(0,61,166,0.45)",
+                "rgba(0,61,166,0.55)",
+                "rgba(0,61,166,0.65)",
+                "rgba(0,61,166,0.78)",
+                "rgba(0,61,166,0.90)",
+                BRAND.primaryBlue,
+              ];
+
               const phases = [
                 { key: "discovery", labelFr: "Découverte", labelEn: "Discovery", descFr: "Gratuit, sans engagement", descEn: "Free, no commitment", steps: [0, 1] },
                 { key: "design", labelFr: "Conception", labelEn: "Design", descFr: "Étude détaillée", descEn: "Detailed study", steps: [2, 3] },
@@ -960,7 +969,7 @@ export default function LandingPage() {
                     style={{ backgroundColor: BRAND.primaryBlue, opacity: 0.2 }}
                   />
 
-                  <div className="space-y-6 md:space-y-0">
+                  <div className="space-y-4 md:space-y-0">
                     {phases.map((phase, pi) => (
                       <div key={phase.key}>
                         {/* Phase label */}
@@ -968,7 +977,7 @@ export default function LandingPage() {
                           initial={{ opacity: 0, y: 10 }}
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true }}
-                          className="flex items-center justify-center gap-3 mb-6 md:mb-8 mt-2"
+                          className="flex items-center justify-center gap-3 mb-4 md:mb-5 mt-1"
                         >
                           <div className="hidden md:block h-[1px] w-16" style={{ backgroundColor: BRAND.accentGold, opacity: 0.4 }} />
                           <span
@@ -1000,12 +1009,14 @@ export default function LandingPage() {
                             ? (language === "fr" ? "Conception détaillée" : "Detailed Design")
                             : tl.step;
 
+                          const stepColor = stepColors[si] || BRAND.primaryBlue;
+
                           return (
-                            <div key={si} className="relative pb-10 md:pb-14">
+                            <div key={si} className="relative pb-6 md:pb-8">
                               {/* Numbered circle on the line - desktop */}
                               <div
-                                className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-4 w-10 h-10 rounded-full items-center justify-center font-bold text-white text-sm z-10"
-                                style={{ backgroundColor: BRAND.primaryBlue }}
+                                className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-3 w-9 h-9 rounded-full items-center justify-center font-bold text-white text-sm z-10"
+                                style={{ backgroundColor: stepColor }}
                                 data-testid={`timeline-step-${stepNum}`}
                               >
                                 {stepNum}
@@ -1013,16 +1024,16 @@ export default function LandingPage() {
 
                               {/* Numbered circle on the line - mobile */}
                               <div
-                                className="md:hidden absolute left-[10px] top-4 w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs z-10 -translate-x-1/2"
-                                style={{ backgroundColor: BRAND.primaryBlue }}
+                                className="md:hidden absolute left-[10px] top-3 w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs z-10 -translate-x-1/2"
+                                style={{ backgroundColor: stepColor }}
                               >
                                 {stepNum}
                               </div>
 
                               {/* Horizontal connector - desktop */}
                               <div
-                                className={`hidden md:block absolute top-[28px] w-12 h-[2px] ${isLeft ? 'right-1/2 mr-5' : 'left-1/2 ml-5'}`}
-                                style={{ backgroundColor: BRAND.primaryBlue, opacity: 0.3 }}
+                                className={`hidden md:block absolute top-[24px] w-10 h-[2px] ${isLeft ? 'right-1/2 mr-5' : 'left-1/2 ml-5'}`}
+                                style={{ backgroundColor: stepColor, opacity: 0.4 }}
                               />
 
                               {/* Desktop layout: alternating left/right */}
@@ -1037,18 +1048,18 @@ export default function LandingPage() {
                                       className="flex justify-end"
                                     >
                                       <Card className="max-w-sm w-full">
-                                        <CardContent className="p-5">
-                                          <div className="flex items-start gap-4">
+                                        <CardContent className="p-4">
+                                          <div className="flex items-start gap-3">
                                             <div
-                                              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                                              style={{ backgroundColor: BRAND.primaryBlue }}
+                                              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                                              style={{ backgroundColor: stepColor }}
                                             >
-                                              <Icon className="w-5 h-5 text-white" />
+                                              <Icon className="w-4 h-4 text-white" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                              <h3 className="font-semibold text-foreground">{stepDisplay}</h3>
+                                              <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
                                               {tl.duration && (
-                                                <Badge variant="secondary" className="text-xs mt-2">
+                                                <Badge variant="secondary" className="text-xs mt-1.5">
                                                   <Clock className="w-3 h-3 mr-1" />
                                                   {tl.duration}
                                                 </Badge>
@@ -1070,18 +1081,18 @@ export default function LandingPage() {
                                       transition={{ delay: 0.1 }}
                                     >
                                       <Card className="max-w-sm w-full">
-                                        <CardContent className="p-5">
-                                          <div className="flex items-start gap-4">
+                                        <CardContent className="p-4">
+                                          <div className="flex items-start gap-3">
                                             <div
-                                              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                                              style={{ backgroundColor: BRAND.primaryBlue }}
+                                              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                                              style={{ backgroundColor: stepColor }}
                                             >
-                                              <Icon className="w-5 h-5 text-white" />
+                                              <Icon className="w-4 h-4 text-white" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                              <h3 className="font-semibold text-foreground">{stepDisplay}</h3>
+                                              <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
                                               {tl.duration && (
-                                                <Badge variant="secondary" className="text-xs mt-2">
+                                                <Badge variant="secondary" className="text-xs mt-1.5">
                                                   <Clock className="w-3 h-3 mr-1" />
                                                   {tl.duration}
                                                 </Badge>
@@ -1097,25 +1108,25 @@ export default function LandingPage() {
 
                               {/* Mobile layout: all on right of line */}
                               <motion.div
-                                className="md:hidden pl-12"
+                                className="md:hidden pl-10"
                                 initial={{ opacity: 0, x: -20 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: 0.1 }}
                               >
                                 <Card>
-                                  <CardContent className="p-4">
+                                  <CardContent className="p-3">
                                     <div className="flex items-start gap-3">
                                       <div
-                                        className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                                        style={{ backgroundColor: BRAND.primaryBlue }}
+                                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                                        style={{ backgroundColor: stepColor }}
                                       >
                                         <Icon className="w-4 h-4 text-white" />
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
                                         {tl.duration && (
-                                          <Badge variant="secondary" className="text-xs mt-2">
+                                          <Badge variant="secondary" className="text-xs mt-1.5">
                                             <Clock className="w-3 h-3 mr-1" />
                                             {tl.duration}
                                           </Badge>

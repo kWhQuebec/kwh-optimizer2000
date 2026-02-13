@@ -1541,26 +1541,27 @@ function EquipmentSlide({ language }: { language: string }) {
         </div>
 
         <div className="mt-8 rounded-xl p-5" style={{ backgroundColor: 'rgba(0,61,166,0.04)', border: '1px solid rgba(0,61,166,0.12)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: BRAND_COLORS.primaryBlue }}>
+          <h3 className="text-sm font-bold mb-4" style={{ color: BRAND_COLORS.primaryBlue }}>
             {language === 'fr' ? 'Données structurelles pour évaluation de toiture' : 'Structural Data for Roof Evaluation'}
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-xs" style={{ color: '#6B7280' }}>{techSummary.panelWeightKgPerM2.label}</p>
-              <p className="text-lg font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{techSummary.panelWeightKgPerM2.value} <span className="text-xs font-normal">{techSummary.panelWeightKgPerM2.unit}</span></p>
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-baseline gap-6 justify-center">
+              <div className="text-center" data-testid="text-total-weight-metric">
+                <p className="text-xs mb-1" style={{ color: '#6B7280' }}>{language === 'fr' ? 'Charge totale du système' : 'Total System Load'}</p>
+                <p className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightKgPerM2.value} <span className="text-sm font-normal">kg/m²</span></p>
+              </div>
+              <span className="text-muted-foreground text-lg font-light">/</span>
+              <div className="text-center" data-testid="text-total-weight-imperial">
+                <p className="text-xs mb-1" style={{ color: '#6B7280' }}>{language === 'fr' ? 'Charge totale (impérial)' : 'Total Load (imperial)'}</p>
+                <p className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightPsfPerSf.value} <span className="text-sm font-normal">lb/pi²</span></p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-xs" style={{ color: '#6B7280' }}>{techSummary.rackingWeightKgPerM2.label}</p>
-              <p className="text-lg font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{techSummary.rackingWeightKgPerM2.value} <span className="text-xs font-normal">{techSummary.rackingWeightKgPerM2.unit}</span></p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs" style={{ color: '#6B7280' }}>{techSummary.totalSystemWeightKgPerM2.label}</p>
-              <p className="text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightKgPerM2.value} <span className="text-xs font-normal">{techSummary.totalSystemWeightKgPerM2.unit}</span></p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs" style={{ color: '#6B7280' }}>{techSummary.totalSystemWeightPsfPerSf.label}</p>
-              <p className="text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightPsfPerSf.value} <span className="text-xs font-normal">{techSummary.totalSystemWeightPsfPerSf.unit}</span></p>
-            </div>
+            <p className="text-xs text-muted-foreground" data-testid="text-weight-breakdown">
+              {language === 'fr'
+                ? `(Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m² + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m²)`
+                : `(Panels ${techSummary.panelWeightKgPerM2.value} kg/m² + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m²)`
+              }
+            </p>
           </div>
           <div className="flex flex-wrap gap-4 justify-center mt-3">
             <span className="text-xs flex items-center gap-1" style={{ color: '#6B7280' }}>
