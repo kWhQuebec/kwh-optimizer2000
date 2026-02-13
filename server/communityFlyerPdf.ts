@@ -10,6 +10,9 @@ import { COMMUNITY_SESSIONS } from "@shared/communitySessionData";
 export { COMMUNITY_SESSIONS };
 
 const MEETING_BOX_BG = "#e8f0fe";
+const CONTACT_EMAIL = "info@kwh.quebec";
+const CONTACT_PHONE = "514.427.8871";
+const WEBSITE = "www.kwh.quebec";
 
 function loadLogo(filename: string): Buffer | null {
   const logoPath = path.join(process.cwd(), "attached_assets", filename);
@@ -30,9 +33,8 @@ function drawMeetingBox(
   width: number,
   items: { label: string; value: string }[]
 ): number {
-  const padding = 12;
-  const lineH = 14;
-  const boxHeight = padding * 2 + items.length * (lineH + 12) + 2;
+  const padding = 14;
+  const boxHeight = padding * 2 + items.length * 30;
 
   doc
     .roundedRect(x, y, width, boxHeight, 4)
@@ -41,17 +43,17 @@ function drawMeetingBox(
   doc
     .roundedRect(x, y, width, boxHeight, 4)
     .strokeColor(BRAND_COLORS.primary)
-    .lineWidth(1)
+    .lineWidth(0.75)
     .stroke();
 
   let cy = y + padding;
   for (const item of items) {
-    doc.fontSize(9).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
+    doc.fontSize(8.5).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
     doc.text(item.label, x + padding, cy, { width: width - padding * 2 });
-    cy += lineH;
+    cy += 13;
     doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
     doc.text(item.value, x + padding, cy, { width: width - padding * 2 });
-    cy += 12;
+    cy += 17;
   }
 
   return y + boxHeight;
@@ -66,9 +68,9 @@ function drawHeader(
 ): number {
   const { width: pageWidth } = PAGE_SIZES.letter;
 
-  doc.rect(0, 0, pageWidth, 6).fillColor(BRAND_COLORS.accent).fill();
+  doc.rect(0, 0, pageWidth, 5).fillColor(BRAND_COLORS.accent).fill();
 
-  let y = 16;
+  let y = 20;
 
   if (logo) {
     try {
@@ -80,11 +82,11 @@ function drawHeader(
   }
   if (scaleLogo) {
     try {
-      doc.image(scaleLogo, margin + 160, y + 10, { width: 130 });
+      doc.image(scaleLogo, pageWidth - margin - 130, y + 8, { width: 120 });
     } catch {}
   }
 
-  y = 68;
+  y = 72;
   doc
     .moveTo(margin, y)
     .lineTo(margin + contentWidth, y)
@@ -92,27 +94,153 @@ function drawHeader(
     .lineWidth(0.5)
     .stroke();
 
-  return y + 12;
+  return y + 20;
 }
 
 function drawFooter(doc: PDFKit.PDFDocument, margin: number, contentWidth: number) {
   const { width: pageWidth, height: pageHeight } = PAGE_SIZES.letter;
-  const footerH = 30;
+  const footerH = 26;
   const footerY = pageHeight - footerH;
   doc.rect(0, footerY, pageWidth, footerH).fillColor(BRAND_COLORS.primary).fill();
 
-  const ftY = footerY + (footerH - 8) / 2;
-  doc.fontSize(8).fillColor(BRAND_COLORS.white).font("Helvetica");
-  doc.text("514.427.8871", margin, ftY);
-  doc.text("etienne@kwh.quebec", pageWidth / 2 - 50, ftY, {
+  const ftY = footerY + (footerH - 7) / 2;
+  doc.fontSize(7.5).fillColor(BRAND_COLORS.white).font("Helvetica");
+  doc.text(CONTACT_PHONE, margin, ftY);
+  doc.text(CONTACT_EMAIL, pageWidth / 2 - 50, ftY, {
     width: 100,
     align: "center",
   });
   doc.font("Helvetica-Bold");
-  doc.text("www.kwh.quebec", margin, ftY, {
+  doc.text(WEBSITE, margin, ftY, {
     width: contentWidth,
     align: "right",
   });
+}
+
+function renderPage(
+  doc: PDFKit.PDFDocument,
+  session: typeof COMMUNITY_SESSIONS[number],
+  lang: "fr" | "en",
+  logo: Buffer | null,
+  scaleLogo: Buffer | null,
+  margin: number,
+  contentWidth: number,
+) {
+  const LINE_GAP = 3;
+  const PARA_GAP = 16;
+  const SECTION_GAP = 20;
+  const BULLET_GAP = 6;
+
+  let y = drawHeader(doc, logo, scaleLogo, margin, contentWidth);
+
+  doc.fontSize(10).fillColor(BRAND_COLORS.mediumText).font("Helvetica");
+  doc.text(lang === "fr" ? session.dateFr : session.dateEn, margin, y, { width: contentWidth });
+  y += SECTION_GAP;
+
+  const subject = lang === "fr"
+    ? "Objet : Invitation à une rencontre d'information – Projet solaire dans votre voisinage"
+    : "Subject: Community Information Meeting – Rooftop Solar Project in Your Neighbourhood";
+  doc.fontSize(12).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
+  doc.text(subject, margin, y, { width: contentWidth, lineGap: LINE_GAP });
+  y += doc.heightOfString(subject, { width: contentWidth, lineGap: LINE_GAP }) + SECTION_GAP;
+
+  const greeting = lang === "fr" ? "Bonjour," : "Hello,";
+  doc.fontSize(10.5).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+  doc.text(greeting, margin, y);
+  y += PARA_GAP;
+
+  const intro = lang === "fr"
+    ? "Nous souhaitons vous informer qu'un propriétaire de bâtiment dans votre voisinage prévoit installer un système solaire sur son toit. Le ou les bâtiments concernés sont situés au :"
+    : "We would like to inform you that a building owner in your neighbourhood is planning to install a rooftop solar system. The building(s) concerned are located at:";
+  doc.fontSize(10.5).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+  doc.text(intro, margin, y, { width: contentWidth, lineGap: LINE_GAP });
+  y += doc.heightOfString(intro, { width: contentWidth, lineGap: LINE_GAP }) + PARA_GAP;
+
+  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica-Bold");
+  for (const addr of session.buildings) {
+    const bullet = `\u2022  ${addr}`;
+    doc.text(bullet, margin + 14, y, { width: contentWidth - 28 });
+    y += doc.heightOfString(bullet, { width: contentWidth - 28 }) + BULLET_GAP;
+  }
+
+  y += PARA_GAP;
+
+  const invite = lang === "fr"
+    ? "Nous vous invitons à une rencontre d'information pour en apprendre davantage :"
+    : "We invite you to an information meeting to learn more:";
+  doc.fontSize(10.5).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+  doc.text(invite, margin, y, { width: contentWidth });
+  y += doc.heightOfString(invite, { width: contentWidth }) + PARA_GAP;
+
+  const meetingItems = lang === "fr"
+    ? [
+        { label: "Date :", value: session.dateFr },
+        { label: "Heure :", value: session.timeFr },
+        { label: "Lieu :", value: session.meetingAddressFr },
+      ]
+    : [
+        { label: "Date:", value: session.dateEn },
+        { label: "Time:", value: session.timeEn },
+        { label: "Location:", value: session.meetingAddressEn },
+      ];
+  y = drawMeetingBox(doc, margin, y, contentWidth, meetingItems);
+  y += SECTION_GAP;
+
+  const presentIntro = lang === "fr"
+    ? "Lors de cette rencontre, notre équipe présentera :"
+    : "During this meeting, our team will present:";
+  doc.fontSize(10.5).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+  doc.text(presentIntro, margin, y, { width: contentWidth });
+  y += doc.heightOfString(presentIntro, { width: contentWidth }) + PARA_GAP;
+
+  const points = lang === "fr"
+    ? [
+        "Les détails du projet solaire et ses bénéfices environnementaux",
+        "Le processus d'installation et le calendrier prévu",
+        "Les mesures de sécurité et la gestion du chantier",
+        "L'impact visuel et sonore minimal sur le voisinage",
+      ]
+    : [
+        "Details of the solar project and its environmental benefits",
+        "The installation process and expected timeline",
+        "Safety measures and site management",
+        "Minimal visual and noise impact on the neighbourhood",
+      ];
+  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+  for (const pt of points) {
+    const bullet = `\u2022  ${pt}`;
+    doc.text(bullet, margin + 14, y, { width: contentWidth - 28 });
+    y += doc.heightOfString(bullet, { width: contentWidth - 28 }) + BULLET_GAP;
+  }
+
+  y += PARA_GAP;
+
+  const reassurance = lang === "fr"
+    ? "Les installations solaires sont silencieuses, n'impliquent aucune modification structurelle visible depuis le sol et ne présentent aucun risque pour le voisinage."
+    : "Solar installations are quiet, involve no structural changes visible from the ground, and pose no risk to the neighbourhood.";
+  doc.fontSize(10.5).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+  doc.text(reassurance, margin, y, { width: contentWidth, lineGap: LINE_GAP });
+  y += doc.heightOfString(reassurance, { width: contentWidth, lineGap: LINE_GAP }) + SECTION_GAP;
+
+  const contactLine = lang === "fr"
+    ? `Pour toute question : ${CONTACT_EMAIL}`
+    : `For any questions: ${CONTACT_EMAIL}`;
+  doc.fontSize(10).fillColor(BRAND_COLORS.mediumText).font("Helvetica");
+  doc.text(contactLine, margin, y, { width: contentWidth });
+  y += SECTION_GAP;
+
+  const closing = lang === "fr" ? "Cordialement," : "Kind regards,";
+  doc.fontSize(10.5).fillColor(BRAND_COLORS.darkText).font("Helvetica");
+  doc.text(closing, margin, y);
+  y += SECTION_GAP;
+
+  const signoff = lang === "fr"
+    ? "L'équipe de kWh Québec et Scale Cleantech Inc."
+    : "The kWh Québec and Scale Cleantech Team";
+  doc.fontSize(10.5).fillColor(BRAND_COLORS.darkText).font("Helvetica-Bold");
+  doc.text(signoff, margin, y, { width: contentWidth });
+
+  drawFooter(doc, margin, contentWidth);
 }
 
 export async function generateCommunityFlyerPDF(
@@ -125,190 +253,21 @@ export async function generateCommunityFlyerPDF(
   }
 
   const session = COMMUNITY_SESSIONS[sessionIndex];
-  const { width: pageWidth } = PAGE_SIZES.letter;
-  const margin = 50;
-  const contentWidth = pageWidth - margin * 2;
+  const margin = 72;
+  const contentWidth = PAGE_SIZES.letter.width - margin * 2;
 
   const doc = createDocument("letter");
   const bufferPromise = collectBuffer(doc);
 
-  const frLogo = loadLogo(
-    "kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png"
-  );
-  const enLogo = loadLogo(
-    "kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png"
-  );
+  const frLogo = loadLogo("kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png");
+  const enLogo = loadLogo("kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png");
   const scaleLogo = loadLogo("scale_cleantech_colorHR_1769011389486.png");
 
-  // ═══════════════════════════════════════
-  // PAGE 1 — RECTO (FRANÇAIS)
-  // ═══════════════════════════════════════
-
-  let y = drawHeader(doc, frLogo, scaleLogo, margin, contentWidth);
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  doc.text(session.dateFr, margin, y, { width: contentWidth });
-  y += 18;
-
-  doc.fontSize(12).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
-  const frSubject = "Objet : Invitation à une rencontre d'information – Projet solaire dans votre voisinage";
-  doc.text(frSubject, margin, y, { width: contentWidth });
-  y += doc.heightOfString(frSubject, { width: contentWidth }) + 14;
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  const frIntro =
-    "Bonjour, nous souhaitons vous informer qu'un propriétaire de bâtiment dans votre voisinage prévoit installer un système solaire sur son toit. Le ou les bâtiments concernés sont situés au :";
-  doc.text(frIntro, margin, y, { width: contentWidth, lineGap: 2 });
-  y += doc.heightOfString(frIntro, { width: contentWidth, lineGap: 2 }) + 10;
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica-Bold");
-  for (const addr of session.buildings) {
-    doc.text(`  •  ${addr}`, margin + 8, y, { width: contentWidth - 16 });
-    y += doc.heightOfString(`  •  ${addr}`, { width: contentWidth - 16 }) + 4;
-  }
-
-  y += 12;
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  doc.text(
-    "Nous vous invitons à une rencontre d'information pour en apprendre davantage :",
-    margin,
-    y,
-    { width: contentWidth }
-  );
-  y += 16;
-
-  y = drawMeetingBox(doc, margin, y, contentWidth, [
-    { label: "Date :", value: session.dateFr },
-    { label: "Heure :", value: session.timeFr },
-    { label: "Lieu :", value: session.meetingAddressFr },
-  ]);
-  y += 14;
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  doc.text("Lors de cette rencontre, notre équipe présentera :", margin, y, { width: contentWidth });
-  y += 16;
-
-  const frPoints = [
-    "Les détails du projet solaire et ses bénéfices environnementaux",
-    "Le processus d'installation et le calendrier prévu",
-    "Les mesures de sécurité et la gestion du chantier",
-    "L'impact visuel et sonore minimal sur le voisinage",
-  ];
-  doc.fontSize(9.5).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  for (const pt of frPoints) {
-    doc.text(`  •  ${pt}`, margin + 8, y, { width: contentWidth - 16 });
-    y += doc.heightOfString(`  •  ${pt}`, { width: contentWidth - 16 }) + 4;
-  }
-
-  y += 10;
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  const frReassurance =
-    "Les installations solaires sont silencieuses, n'impliquent aucune modification structurelle visible depuis le sol et ne présentent aucun risque pour le voisinage.";
-  doc.text(frReassurance, margin, y, { width: contentWidth, lineGap: 2 });
-  y += doc.heightOfString(frReassurance, { width: contentWidth, lineGap: 2 }) + 14;
-
-  doc.fontSize(9).fillColor(BRAND_COLORS.mediumText).font("Helvetica");
-  doc.text("Pour toute question : etienne@kwh.quebec", margin, y, {
-    width: contentWidth,
-  });
-  y += 16;
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  doc.text("Cordialement,", margin, y);
-  y += 14;
-  doc.font("Helvetica-Bold");
-  doc.text("L'équipe de kWh Québec et Scale Cleantech Inc.", margin, y, {
-    width: contentWidth,
-  });
-
-  drawFooter(doc, margin, contentWidth);
-
-  // ═══════════════════════════════════════
-  // PAGE 2 — VERSO (ENGLISH)
-  // ═══════════════════════════════════════
+  renderPage(doc, session, "fr", frLogo, scaleLogo, margin, contentWidth);
 
   doc.addPage({ size: "LETTER", margin: 0 });
 
-  y = drawHeader(doc, enLogo, scaleLogo, margin, contentWidth);
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  doc.text(session.dateEn, margin, y, { width: contentWidth });
-  y += 18;
-
-  doc.fontSize(12).fillColor(BRAND_COLORS.primary).font("Helvetica-Bold");
-  const enSubject = "Subject: Community Information Meeting – Rooftop Solar Project in Your Neighbourhood";
-  doc.text(enSubject, margin, y, { width: contentWidth });
-  y += doc.heightOfString(enSubject, { width: contentWidth }) + 14;
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  const enIntro =
-    "Hello, we would like to inform you that a building owner in your neighbourhood is planning to install a rooftop solar system. The building(s) concerned are located at:";
-  doc.text(enIntro, margin, y, { width: contentWidth, lineGap: 2 });
-  y += doc.heightOfString(enIntro, { width: contentWidth, lineGap: 2 }) + 10;
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica-Bold");
-  for (const addr of session.buildings) {
-    doc.text(`  •  ${addr}`, margin + 8, y, { width: contentWidth - 16 });
-    y += doc.heightOfString(`  •  ${addr}`, { width: contentWidth - 16 }) + 4;
-  }
-
-  y += 12;
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  doc.text(
-    "We invite you to an information meeting to learn more:",
-    margin,
-    y,
-    { width: contentWidth }
-  );
-  y += 16;
-
-  y = drawMeetingBox(doc, margin, y, contentWidth, [
-    { label: "Date:", value: session.dateEn },
-    { label: "Time:", value: session.timeEn },
-    { label: "Location:", value: session.meetingAddressEn },
-  ]);
-  y += 14;
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  doc.text("During this meeting, our team will present:", margin, y, {
-    width: contentWidth,
-  });
-  y += 16;
-
-  const enPoints = [
-    "Details of the solar project and its environmental benefits",
-    "The installation process and expected timeline",
-    "Safety measures and site management",
-    "Minimal visual and noise impact on the neighbourhood",
-  ];
-  doc.fontSize(9.5).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  for (const pt of enPoints) {
-    doc.text(`  •  ${pt}`, margin + 8, y, { width: contentWidth - 16 });
-    y += doc.heightOfString(`  •  ${pt}`, { width: contentWidth - 16 }) + 4;
-  }
-
-  y += 10;
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  const enReassurance =
-    "Solar installations are quiet, involve no structural changes visible from the ground, and pose no risk to the neighbourhood.";
-  doc.text(enReassurance, margin, y, { width: contentWidth, lineGap: 2 });
-  y += doc.heightOfString(enReassurance, { width: contentWidth, lineGap: 2 }) + 14;
-
-  doc.fontSize(9).fillColor(BRAND_COLORS.mediumText).font("Helvetica");
-  doc.text("For any questions: etienne@kwh.quebec", margin, y, {
-    width: contentWidth,
-  });
-  y += 16;
-
-  doc.fontSize(10).fillColor(BRAND_COLORS.darkText).font("Helvetica");
-  doc.text("Kind regards,", margin, y);
-  y += 14;
-  doc.font("Helvetica-Bold");
-  doc.text("The kWh Québec and Scale Cleantech Team", margin, y, {
-    width: contentWidth,
-  });
-
-  drawFooter(doc, margin, contentWidth);
+  renderPage(doc, session, "en", enLogo, scaleLogo, margin, contentWidth);
 
   doc.end();
   return bufferPromise;
