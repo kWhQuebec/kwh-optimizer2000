@@ -158,10 +158,10 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const ppaProviderKeepsIncentives = totalIncentives;
   // Buyout cost at end of PPA term (fair market value, typically 10% of original CAPEX)
   const ppaBuyoutCost = capexGross * (ppaBuyoutPct / 100);
-  // Post-PPA savings: After buyout, client owns system (energy-only savings with degradation)
+  // Post-PPA savings: After buyout, client owns system — same total savings as ownership (includes demand savings, surplus credits, etc.)
   let postPpaSavings = 0;
   for (let y = ppaTerm + 1; y <= analysisHorizon; y++) {
-    postPpaSavings += totalAnnualProductionKWh * hqTariffRate * Math.pow(1 - degradationRate, y - 1);
+    postPpaSavings += annualSavings * Math.pow(1 - degradationRate, y - 1);
   }
   // PPA savings during term = what they would have paid HQ - what they pay PPA provider
   const ppaSavingsDuringTerm = hqCostDuringPpa - ppaTotalPayments;
@@ -269,9 +269,8 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
             ppaCumulative -= ppaBuyoutCost;
           }
         } else {
-          // After buyout: client owns system, energy-only savings with degradation
-          const postPpaEnergySavings = totalAnnualProductionKWh * hqTariffRate * Math.pow(1 - degradationRate, year - 1);
-          ppaCumulative += postPpaEnergySavings;
+          // After buyout: client owns system — same total savings as ownership options (includes demand savings, surplus credits, etc.)
+          ppaCumulative += degradedSavings;
         }
 
         // Subtract payments for loan (if still in term)
