@@ -351,14 +351,14 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-3 py-3 md:px-4 md:py-4">
-        <Link href={isClient ? "/app/portal" : "/app"}>
+        <a href="/">
           <img 
             src={currentLogo} 
             alt="kWh Québec" 
             className="h-[3.75rem] w-auto"
             data-testid="logo-sidebar"
           />
-        </Link>
+        </a>
       </SidebarHeader>
 
       <SidebarContent>
