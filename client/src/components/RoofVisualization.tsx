@@ -2006,22 +2006,30 @@ export function RoofVisualization({
             />
             
             <div className="absolute bottom-0 text-xs text-muted-foreground slider-markers" style={{ left: 10, right: 10 }}>
-              {sliderMarkers.filter(m => m.value <= maxCapacity).map((marker, idx) => {
-                const position = ((marker.value - minCapacity) / (maxCapacity - minCapacity)) * 100;
-                const isRecommended = marker.value === currentPVSizeKW;
-                return (
-                  <div 
-                    key={idx}
-                    className="absolute flex flex-col items-center"
-                    style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
-                  >
-                    <div className={`h-1.5 w-0.5 ${isRecommended ? 'bg-primary' : 'bg-muted-foreground/50'}`} />
-                    <span className={`mt-0.5 whitespace-nowrap ${isRecommended ? 'text-primary font-medium' : ''}`}>
-                      {marker.label}
-                    </span>
-                  </div>
-                );
-              })}
+              {(() => {
+                const filtered = sliderMarkers.filter(m => m.value <= maxCapacity);
+                const positions = filtered.map(m => ((m.value - minCapacity) / (maxCapacity - minCapacity)) * 100);
+                return filtered.map((marker, idx) => {
+                  const position = positions[idx];
+                  const isRecommended = marker.value === currentPVSizeKW;
+                  const tooCloseToAnother = positions.some((p, j) => j !== idx && Math.abs(p - position) < 12);
+                  const hideLabel = tooCloseToAnother && !isRecommended;
+                  return (
+                    <div 
+                      key={idx}
+                      className="absolute flex flex-col items-center"
+                      style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+                    >
+                      <div className={`h-1.5 w-0.5 ${isRecommended ? 'bg-primary' : 'bg-muted-foreground/50'}`} />
+                      {!hideLabel && (
+                        <span className={`mt-0.5 whitespace-nowrap ${isRecommended ? 'text-primary font-medium' : ''}`}>
+                          {marker.label}
+                        </span>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
 
