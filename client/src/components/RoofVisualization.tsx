@@ -2004,14 +2004,24 @@ export function RoofVisualization({
               className="w-full"
               data-testid="capacity-slider"
             />
-            <div className="flex items-center justify-between mt-1 text-[10px] text-muted-foreground">
-              <span>Min</span>
+            <div className="relative mt-1 text-[10px] text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>Min</span>
+                <span>Max</span>
+              </div>
               {currentPVSizeKW && currentPVSizeKW > minCapacity && currentPVSizeKW < maxCapacity && (
-                <span className="text-primary font-medium" data-testid="slider-recommended-label">
+                <span
+                  className="absolute text-primary font-medium whitespace-nowrap"
+                  style={{
+                    left: `${((currentPVSizeKW - minCapacity) / (maxCapacity - minCapacity)) * 100}%`,
+                    transform: "translateX(-50%)",
+                    top: 0,
+                  }}
+                  data-testid="slider-recommended-label"
+                >
                   {language === "fr" ? "▲ Recommandé" : "▲ Recommended"}
                 </span>
               )}
-              <span>Max</span>
             </div>
           </div>
 
