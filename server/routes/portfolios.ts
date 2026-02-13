@@ -488,4 +488,24 @@ router.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, asy
   res.json(updated);
 }));
 
+router.get("/api/portfolios/:id/community-flyer/:sessionIndex", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const sessionIndex = parseInt(req.params.sessionIndex);
+  const { COMMUNITY_SESSIONS, generateCommunityFlyerPDF } = await import("../communityFlyerPdf");
+
+  if (isNaN(sessionIndex) || sessionIndex < 0 || sessionIndex >= COMMUNITY_SESSIONS.length) {
+    throw new BadRequestError(`Invalid session index. Must be 0-${COMMUNITY_SESSIONS.length - 1}`);
+  }
+
+  const session = COMMUNITY_SESSIONS[sessionIndex];
+  const pdfBuffer = await generateCommunityFlyerPDF(sessionIndex);
+  const filename = `Community_Flyer_${sessionIndex + 1}_${session.regionEn.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Content-Length": pdfBuffer.length.toString(),
+  });
+  res.send(pdfBuffer);
+}));
+
 export default router;
