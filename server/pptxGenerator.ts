@@ -282,17 +282,17 @@ export async function generatePresentationPPTX(
   // ================= SLIDE: ENERGY PROFILE (BEFORE VS AFTER) =================
   if (simulation.hourlyProfile && (simulation.hourlyProfile as any[]).length > 0) {
     const hourlyData = simulation.hourlyProfile as any[];
-    const hourlyAgg: { kwhBefore: number; kwhAfterRaw: number; kwBefore: number; kwAfter: number; count: number }[] = [];
+    const hourlyAgg: { kwhBefore: number; kwhAfterRaw: number; prodSum: number; kwBefore: number; count: number }[] = [];
     for (let h = 0; h < 24; h++) {
-      hourlyAgg.push({ kwhBefore: 0, kwhAfterRaw: 0, kwBefore: 0, kwAfter: 0, count: 0 });
+      hourlyAgg.push({ kwhBefore: 0, kwhAfterRaw: 0, prodSum: 0, kwBefore: 0, count: 0 });
     }
     for (const entry of hourlyData) {
       const h = entry.hour;
       if (h >= 0 && h < 24) {
         hourlyAgg[h].kwhBefore += (entry.consumption || 0);
         hourlyAgg[h].kwhAfterRaw += ((entry.consumption || 0) - (entry.production || 0));
+        hourlyAgg[h].prodSum += (entry.production || 0);
         hourlyAgg[h].kwBefore += (entry.peakBefore || 0);
-        hourlyAgg[h].kwAfter += (entry.peakAfter || 0);
         hourlyAgg[h].count += 1;
       }
     }
@@ -300,7 +300,10 @@ export async function generatePresentationPPTX(
     const kwhBeforeVals = hourlyAgg.map(a => a.count > 0 ? a.kwhBefore / a.count : 0);
     const kwhAfterVals = hourlyAgg.map(a => a.count > 0 ? Math.max(0, a.kwhAfterRaw / a.count) : 0);
     const kwBeforeVals = hourlyAgg.map(a => a.count > 0 ? a.kwBefore / a.count : 0);
-    const kwAfterVals = hourlyAgg.map(a => a.count > 0 ? a.kwAfter / a.count : 0);
+    const kwAfterVals = kwBeforeVals.map((kwB, i) => {
+      const prodAvg = hourlyAgg[i].count > 0 ? hourlyAgg[i].prodSum / hourlyAgg[i].count : 0;
+      return Math.max(0, kwB - prodAvg);
+    });
 
     const slideProfile = pptx.addSlide({ masterName: "KWHMAIN" });
 

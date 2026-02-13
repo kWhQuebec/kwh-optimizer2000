@@ -758,7 +758,7 @@ function aggregateHourlyProfile(profile: DocumentSimulationData["hourlyProfile"]
         kwhBefore: d.cSum / d.n,
         kwhAfter: consumptionAfter,
         kwBefore: d.pbSum / d.n,
-        kwAfter: d.paSum / d.n,
+        kwAfter: Math.max(0, (d.pbSum / d.n) - (d.pSum / d.n)),
       });
     } else {
       result.push({ hour: h, kwhBefore: 0, kwhAfter: 0, kwBefore: 0, kwAfter: 0 });
