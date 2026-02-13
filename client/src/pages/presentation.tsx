@@ -339,12 +339,12 @@ export default function PresentationPage() {
           borderBottom: '1px solid #E5E7EB',
         }}
       >
-        <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center justify-between px-6 py-2">
           <div className="flex items-center gap-4">
             <img
               src={currentLogo}
               alt="kWh Québec"
-              className="h-20 w-auto"
+              className="h-14 w-auto"
               data-testid="logo-kwh-quebec"
             />
             <div className="h-8 w-px" style={{ backgroundColor: '#E5E7EB' }} />
@@ -371,7 +371,7 @@ export default function PresentationPage() {
         </div>
       </div>
 
-      <div className="pt-16 pb-24 min-h-screen">
+      <div className="pt-20 pb-24 min-h-screen">
         {slideComponents[slideContent]}
       </div>
 
@@ -1655,15 +1655,6 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
   const totalIncentives = hqSolar + hqBattery + itcFederal + taxShield;
   const incentivePercent = capexGross > 0 ? Math.round((totalIncentives / capexGross) * 100) : 60;
 
-  const timeline = getTimeline(lang);
-  const milestoneIcons = [BarChart3, FileText, FileSignature, Settings, ClipboardCheck, Zap];
-  const milestones = timeline.map((tl, i) => ({
-    icon: milestoneIcons[Math.min(i, milestoneIcons.length - 1)],
-    label: tl.step,
-    duration: tl.duration,
-    color: TIMELINE_GRADIENT.getStepHex(i, timeline.length),
-  }));
-
   const columns = [
     {
       title: language === 'fr' ? 'Le Design Fee couvre' : 'The design fee covers',
@@ -1714,52 +1705,6 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
             </p>
           </div>
         )}
-
-        <div className="rounded-2xl p-4 md:p-6 mb-8 shadow-sm" style={{ border: '1px solid #E5E7EB' }} data-testid="timeline-milestones">
-          <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4 md:gap-0 relative">
-            {milestones.map((milestone, i) => (
-              <div key={i} className="flex flex-col md:flex-col items-center relative z-10" style={{ flex: 1 }}>
-                <div className="flex flex-row md:flex-col items-center gap-3 md:gap-0">
-                  <div
-                    className="h-11 w-11 md:h-12 md:w-12 rounded-full flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: milestone.color }}
-                    data-testid={`milestone-circle-${i + 1}`}
-                  >
-                    <milestone.icon className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-left md:text-center md:mt-2">
-                    <p className="text-xs md:text-sm font-semibold" style={{ color: '#1F2937' }}>{milestone.label}</p>
-                    <p className="text-xs" style={{ color: '#6B7280' }}>{milestone.duration}</p>
-                  </div>
-                </div>
-                {i < milestones.length - 1 && (
-                  <>
-                    <div
-                      className="hidden md:block absolute top-5 md:top-6"
-                      style={{
-                        left: '50%',
-                        width: '100%',
-                        height: '2px',
-                        backgroundColor: BRAND_COLORS.accentGold,
-                        transform: 'translateX(50%)',
-                      }}
-                    />
-                    <div
-                      className="md:hidden"
-                      style={{
-                        width: '2px',
-                        height: '16px',
-                        backgroundColor: BRAND_COLORS.accentGold,
-                        marginLeft: '22px',
-                        alignSelf: 'flex-start',
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mb-10">
           {columns.map((col, i) => (
