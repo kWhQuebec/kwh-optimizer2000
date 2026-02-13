@@ -1991,7 +1991,7 @@ export function RoofVisualization({
             </div>
           </div>
 
-          <div className="relative pt-1 pb-10">
+          <div className="pt-1">
             <Slider
               value={[selectedCapacityKW]}
               onValueChange={(values) => {
@@ -2004,32 +2004,14 @@ export function RoofVisualization({
               className="w-full"
               data-testid="capacity-slider"
             />
-            
-            <div className="absolute bottom-0 text-xs text-muted-foreground slider-markers" style={{ left: 10, right: 10 }}>
-              {(() => {
-                const filtered = sliderMarkers.filter(m => m.value <= maxCapacity);
-                const positions = filtered.map(m => ((m.value - minCapacity) / (maxCapacity - minCapacity)) * 100);
-                return filtered.map((marker, idx) => {
-                  const position = positions[idx];
-                  const isRecommended = marker.value === currentPVSizeKW;
-                  const tooCloseToAnother = positions.some((p, j) => j !== idx && Math.abs(p - position) < 12);
-                  const hideLabel = tooCloseToAnother && !isRecommended;
-                  return (
-                    <div 
-                      key={idx}
-                      className="absolute flex flex-col items-center"
-                      style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
-                    >
-                      <div className={`h-1.5 w-0.5 ${isRecommended ? 'bg-primary' : 'bg-muted-foreground/50'}`} />
-                      {!hideLabel && (
-                        <span className={`mt-0.5 whitespace-nowrap ${isRecommended ? 'text-primary font-medium' : ''}`}>
-                          {marker.label}
-                        </span>
-                      )}
-                    </div>
-                  );
-                });
-              })()}
+            <div className="flex items-center justify-between mt-1 text-[10px] text-muted-foreground">
+              <span>Min</span>
+              {currentPVSizeKW && currentPVSizeKW > minCapacity && currentPVSizeKW < maxCapacity && (
+                <span className="text-primary font-medium" data-testid="slider-recommended-label">
+                  {language === "fr" ? "▲ Recommandé" : "▲ Recommended"}
+                </span>
+              )}
+              <span>Max</span>
             </div>
           </div>
 
