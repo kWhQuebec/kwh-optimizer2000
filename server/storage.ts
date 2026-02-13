@@ -519,7 +519,7 @@ export class MemStorage implements IStorage {
 
     // Seed some default catalog items
     const defaultModules: InsertComponentCatalog[] = [
-      { category: "MODULE", manufacturer: "Canadian Solar", model: "CS6R-410MS", unitCost: 180, unitSellPrice: 250, active: true },
+      { category: "MODULE", manufacturer: "Jinko Solar", model: "JKM660N-66QL6-BDV", unitCost: 180, unitSellPrice: 250, active: true },
       { category: "MODULE", manufacturer: "JA Solar", model: "JAM72S20-455", unitCost: 195, unitSellPrice: 270, active: true },
       { category: "MODULE", manufacturer: "Longi", model: "LR5-72HBD-545M", unitCost: 210, unitSellPrice: 290, active: true },
     ];

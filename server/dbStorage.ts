@@ -39,7 +39,7 @@ export class DatabaseStorage implements IStorage {
     const existingCatalog = await db.select().from(componentCatalog).limit(1);
     if (existingCatalog.length === 0) {
       const defaultItems = [
-        { category: "MODULE", manufacturer: "Canadian Solar", model: "CS6R-410MS", unitCost: 180, unitSellPrice: 250, active: true },
+        { category: "MODULE", manufacturer: "Jinko Solar", model: "JKM660N-66QL6-BDV", unitCost: 180, unitSellPrice: 250, active: true },
         { category: "MODULE", manufacturer: "JA Solar", model: "JAM72S20-455", unitCost: 195, unitSellPrice: 270, active: true },
         { category: "MODULE", manufacturer: "Longi", model: "LR5-72HBD-545M", unitCost: 210, unitSellPrice: 290, active: true },
         { category: "INVERTER", manufacturer: "SMA", model: "Sunny Tripower 25000TL", unitCost: 3500, unitSellPrice: 4500, active: true },

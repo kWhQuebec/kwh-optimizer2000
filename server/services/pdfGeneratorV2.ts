@@ -1314,7 +1314,7 @@ function buildEquipmentPage(
   pageNum: number
 ): string {
   const defaultEquipment = [
-    { name: t("Panneaux solaires", "Solar panels"), manufacturer: "Canadian Solar", warranty: t("25 ans produit, 30 ans performance", "25 yr product, 30 yr performance"), spec: "≥ 580 Wc mono PERC", weight: "32.2 kg", dimensions: "2278 × 1134 × 35 mm", category: "panels" },
+    { name: t("Panneaux solaires", "Solar panels"), manufacturer: "Jinko Solar", warranty: t("30 ans performance", "30 yr performance"), spec: "JKM660N-66QL6-BDV 660W N-type TOPCon", weight: "32.5 kg", dimensions: "2382 × 1134 × 30 mm", category: "panels" },
     { name: t("Onduleurs", "Inverters"), manufacturer: "SolarEdge / Huawei", warranty: t("12 ans (extensible 25 ans)", "12 yr (ext. to 25 yr)"), spec: t("String triphasé ≥ 100 kW", "Three-phase string ≥ 100 kW"), weight: "88 kg", dimensions: "1035 × 700 × 363 mm", category: "inverters" },
     { name: t("Optimiseurs", "Optimizers"), manufacturer: "SolarEdge", warranty: t("25 ans", "25 yr"), spec: "P401", weight: "—", dimensions: "—", category: "optimizers" },
     { name: t("Structure de montage", "Racking"), manufacturer: "KB Racking", warranty: t("20 ans", "20 yr"), spec: "EcoFoot2+", weight: t("~4.5 kg/m²", "~4.5 kg/m²"), dimensions: "—", category: "racking" },
