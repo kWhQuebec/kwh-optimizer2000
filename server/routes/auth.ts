@@ -13,23 +13,23 @@ const log = createLogger("Auth");
 const router = Router();
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many login attempts, please try again in 15 minutes" },
   keyGenerator: (req) => req.body?.email?.toLowerCase() || "unknown",
-  validate: { ip: false },
+  validate: { ip: false, xForwardedForHeader: false },
 });
 
 const forgotPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many password reset requests, please try again later" },
   keyGenerator: (req) => req.body?.email?.toLowerCase() || "unknown",
-  validate: { ip: false },
+  validate: { ip: false, xForwardedForHeader: false },
 });
 
 const emailSchema = z.string().email().transform(e => e.toLowerCase().trim());

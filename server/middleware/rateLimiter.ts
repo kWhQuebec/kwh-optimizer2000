@@ -6,6 +6,7 @@ export const publicApiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
+  validate: { ip: false, xForwardedForHeader: false },
 });
 
 export const leadSubmissionLimiter = rateLimit({
@@ -14,6 +15,7 @@ export const leadSubmissionLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many submissions, please try again later." },
+  validate: { ip: false, xForwardedForHeader: false },
 });
 
 export const estimateLimiter = rateLimit({
@@ -22,4 +24,5 @@ export const estimateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many estimate requests, please try again later." },
+  validate: { ip: false, xForwardedForHeader: false },
 });
