@@ -82,9 +82,9 @@ export const COMMUNITY_SESSIONS: CommunitySession[] = [
     timeEn: "10:00 AM to 12:00 PM",
     buildings: ["1313 Autoroute Chomedey"],
     meetingAddressFr:
-      "Hotel Sheraton Laval, 2440 Autoroute des Laurentides, Laval, QC H7T 1X5 (Salle GIOTTO2, Rez-De-Chaussée)",
+      "Hotel Sheraton Laval, 2440 Autoroute des Laurentides, Laval, QC H7T 1X5 (Salle GIOTTO4, Rez-De-Chaussée)",
     meetingAddressEn:
-      "Hotel Sheraton Laval, 2440 Laurentian Autoroute, Laval, QC H7T 1X5 (Room GIOTTO2, Ground Floor)",
+      "Hotel Sheraton Laval, 2440 Laurentian Autoroute, Laval, QC H7T 1X5 (Room GIOTTO4, Ground Floor)",
   },
   {
     regionFr: "Boucherville / Rive-Sud",
