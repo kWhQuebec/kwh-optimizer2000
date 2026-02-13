@@ -648,6 +648,8 @@ export function RoofVisualization({
   const sectionRef = useRef<HTMLDivElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
+  const sliderContainerRef = useRef<HTMLDivElement>(null);
+  const [recommendedMarkerLeft, setRecommendedMarkerLeft] = useState<string | null>(null);
   const panelPolygonsRef = useRef<google.maps.Polygon[]>([]);
   const roofPolygonObjectsRef = useRef<google.maps.Polygon[]>([]);
   
@@ -757,12 +759,36 @@ export function RoofVisualization({
 
   useEffect(() => {
     if (!hasUserAdjusted && maxCapacity > 0) {
-      // If currentPVSizeKW is provided (detailed analysis), use it
-      // If NOT provided (quick potential mode), show 100% of max capacity
       const defaultCapacity = currentPVSizeKW || maxCapacity;
       setSelectedCapacityKW(Math.min(defaultCapacity, maxCapacity));
     }
   }, [maxCapacity, currentPVSizeKW, hasUserAdjusted]);
+
+  useEffect(() => {
+    if (!currentPVSizeKW || !sliderContainerRef.current || maxCapacity <= minCapacity) {
+      setRecommendedMarkerLeft(null);
+      return;
+    }
+    const snapped = Math.round(currentPVSizeKW / 10) * 10;
+    const clamped = Math.max(minCapacity, Math.min(maxCapacity, snapped));
+    if (clamped <= minCapacity || clamped >= maxCapacity) {
+      setRecommendedMarkerLeft(null);
+      return;
+    }
+    const computeMarkerLeft = () => {
+      const container = sliderContainerRef.current;
+      if (!container) return;
+      const thumb = container.querySelector<HTMLElement>('[role="slider"]');
+      if (!thumb) return;
+      const thumbWidth = thumb.getBoundingClientRect().width || 20;
+      const halfWidth = thumbWidth / 2;
+      const pct = ((clamped - minCapacity) / (maxCapacity - minCapacity)) * 100;
+      const offset = halfWidth - (pct / 50) * halfWidth;
+      setRecommendedMarkerLeft(`calc(${pct}% + ${offset}px)`);
+    };
+    const timer = setTimeout(computeMarkerLeft, 150);
+    return () => clearTimeout(timer);
+  }, [currentPVSizeKW, minCapacity, maxCapacity, allPanelPositions.length]);
 
   // NEW: Generate panels with UNIFIED axis but PER-POLYGON iteration for performance
   // This calculates a shared axis from all polygons but iterates each polygon's bbox separately
@@ -1991,7 +2017,7 @@ export function RoofVisualization({
             </div>
           </div>
 
-          <div className="pt-1">
+          <div className="pt-1" ref={sliderContainerRef}>
             <Slider
               value={[selectedCapacityKW]}
               onValueChange={(values) => {
@@ -2008,27 +2034,21 @@ export function RoofVisualization({
               <span>Min</span>
               <span>Max</span>
             </div>
-            {currentPVSizeKW && currentPVSizeKW > minCapacity && currentPVSizeKW < maxCapacity && (() => {
-              const snappedValue = Math.round(currentPVSizeKW / 10) * 10;
-              const clampedValue = Math.max(minCapacity, Math.min(maxCapacity, snappedValue));
-              const pct = ((clampedValue - minCapacity) / (maxCapacity - minCapacity)) * 100;
-              const thumbRadius = 10;
-              return (
-                <div className="relative h-4 mt-0.5">
-                  <span
-                    className="absolute text-[10px] text-primary font-medium whitespace-nowrap"
-                    style={{
-                      left: `calc(${pct}% + ${thumbRadius - pct * 2 * thumbRadius / 100}px)`,
-                      transform: "translateX(-50%)",
-                      top: 0,
-                    }}
-                    data-testid="slider-recommended-label"
-                  >
-                    {language === "fr" ? "▲ Recommandé" : "▲ Recommended"}
-                  </span>
-                </div>
-              );
-            })()}
+            {recommendedMarkerLeft && (
+              <div className="relative h-4 mt-0.5">
+                <span
+                  className="absolute text-[10px] text-primary font-medium whitespace-nowrap"
+                  style={{
+                    left: recommendedMarkerLeft,
+                    transform: "translateX(-50%)",
+                    top: 0,
+                  }}
+                  data-testid="slider-recommended-label"
+                >
+                  {language === "fr" ? "▲ Recommandé" : "▲ Recommended"}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-2 mt-1">
