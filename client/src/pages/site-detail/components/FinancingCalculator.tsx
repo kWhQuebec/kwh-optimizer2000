@@ -35,9 +35,9 @@ export const FINANCING_COLORS = {
 export function FinancingCalculator({ simulation, displayedScenario }: { simulation: SimulationRun; displayedScenario: DisplayedScenarioType }) {
   const { t, language } = useI18n();
   const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease" | "ppa">("cash");
-  const [loanTerm, setLoanTerm] = useState(10);
-  const [interestRate, setInterestRate] = useState(7);
-  const [downPayment, setDownPayment] = useState(30);
+  const [loanTerm, setLoanTerm] = useState(15);
+  const [interestRate, setInterestRate] = useState(5.5);
+  const [downPayment, setDownPayment] = useState(20);
   const [leaseImplicitRate, setLeaseImplicitRate] = useState(8.5);
   const [leaseTerm, setLeaseTerm] = useState(15); // Default 15-year lease term
 
@@ -45,7 +45,8 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   // Note: More conservative defaults to show realistic competitor comparison
   const [ppaTerm, setPpaTerm] = useState(15); // 15 years typical for TRC
   const [ppaYear1Rate, setPpaYear1Rate] = useState(100); // Year 1: 100% of HQ rate (no savings)
-  const [ppaYear2Rate, setPpaYear2Rate] = useState(75); // Year 2+: 75% of HQ rate (25% savings - realistic)
+  const [ppaYear2Rate, setPpaYear2Rate] = useState(85); // Year 2+: 85% of HQ rate (15% savings - conservative)
+  const [ppaBuyoutPct, setPpaBuyoutPct] = useState(10); // Buyout cost as % of original CAPEX at end of term
 
   const degradationRate = 0.005; // 0.5% per year panel degradation
 
@@ -139,8 +140,9 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   // PPA (Third-Party Power Purchase Agreement) calculation:
   // Based on TRC Solar model - client pays for electricity, not the system
   // Year 1: 100% of HQ rate (no savings in year 1)
-  // Year 2+: 75% of HQ rate (25% savings vs HQ)
-  // After term: System transfers to client for $1 (free electricity thereafter)
+  // Year 2+: 85% of HQ rate (15% savings vs HQ)
+  // After term: Client must buy out system at fair market value (~10% of original CAPEX)
+  // Post-buyout: Client owns system and gets 100% energy savings
   // IMPORTANT: All incentives (HQ rebates, federal ITC, tax shield) are RETAINED by PPA provider
   const hqTariffRate = assumptions?.tariffCode === "M" ? 0.06061 : 0.11933; // $/kWh based on tariff
   // Compute degradation-aware PPA totals
@@ -154,17 +156,19 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   }
   // PPA provider keeps ALL incentives - this is where they profit
   const ppaProviderKeepsIncentives = totalIncentives;
-  // Post-PPA savings: After term ends, client owns system for $1 (energy-only savings with degradation)
+  // Buyout cost at end of PPA term (fair market value, typically 10% of original CAPEX)
+  const ppaBuyoutCost = capexGross * (ppaBuyoutPct / 100);
+  // Post-PPA savings: After buyout, client owns system (energy-only savings with degradation)
   let postPpaSavings = 0;
   for (let y = ppaTerm + 1; y <= analysisHorizon; y++) {
     postPpaSavings += totalAnnualProductionKWh * hqTariffRate * Math.pow(1 - degradationRate, y - 1);
   }
   // PPA savings during term = what they would have paid HQ - what they pay PPA provider
   const ppaSavingsDuringTerm = hqCostDuringPpa - ppaTotalPayments;
-  // Total PPA "cost" = payments to PPA provider (no ownership benefit during term)
-  const ppaEffectiveCost = ppaTotalPayments;
-  // Net savings over 25 years = savings during PPA + free electricity after PPA
-  const ppaNetSavings = ppaSavingsDuringTerm + postPpaSavings;
+  // Total PPA "cost" = payments to PPA provider + buyout cost
+  const ppaEffectiveCost = ppaTotalPayments + ppaBuyoutCost;
+  // Net savings over 25 years = savings during PPA + free electricity after PPA - buyout cost
+  const ppaNetSavings = ppaSavingsDuringTerm + postPpaSavings - ppaBuyoutCost;
   // Display values for PPA cost breakdown UI
   const ppaYear1Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear1Rate / 100);
   const ppaYear2Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear2Rate / 100);
@@ -253,15 +257,19 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
         leaseCumulative += degradedSavings;
 
         // PPA: During term, client saves vs HQ rate but pays PPA provider (energy-only, with degradation)
-        // After term, client gets energy-only savings (consistent with during-term basis)
+        // At end of term, client must buy out system at fair market value
+        // After buyout, client gets energy-only savings (consistent with during-term basis)
         if (year <= ppaTerm) {
           const degradedProduction = totalAnnualProductionKWh * Math.pow(1 - degradationRate, year - 1);
           const ppaRateThisYear = year === 1 ? (ppaYear1Rate / 100) : (ppaYear2Rate / 100);
           const hqCostThisYear = degradedProduction * hqTariffRate;
           const ppaCostThisYear = degradedProduction * hqTariffRate * ppaRateThisYear;
           ppaCumulative += (hqCostThisYear - ppaCostThisYear);
+          if (year === ppaTerm) {
+            ppaCumulative -= ppaBuyoutCost;
+          }
         } else {
-          // After PPA term: client owns system for $1, energy-only savings with degradation
+          // After buyout: client owns system, energy-only savings with degradation
           const postPpaEnergySavings = totalAnnualProductionKWh * hqTariffRate * Math.pow(1 - degradationRate, year - 1);
           ppaCumulative += postPpaEnergySavings;
         }
@@ -463,7 +471,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                 <Zap className="w-4 h-4" />
                 <span>{t("financing.ppaCompetitorModel")}</span>
               </div>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{t("financing.ppaTerm")}</Label>
                   <div className="flex items-center gap-2">
@@ -498,12 +506,26 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                     <Slider
                       value={[ppaYear2Rate]}
                       onValueChange={([v]) => setPpaYear2Rate(v)}
-                      min={40}
-                      max={80}
+                      min={50}
+                      max={95}
                       step={5}
                       data-testid="slider-ppa-year2-rate"
                     />
                     <span className="text-sm font-mono w-12">{ppaYear2Rate}%</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{language === "fr" ? "Rachat fin de terme" : "End-of-term buyout"}</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[ppaBuyoutPct]}
+                      onValueChange={([v]) => setPpaBuyoutPct(v)}
+                      min={0}
+                      max={25}
+                      step={1}
+                      data-testid="slider-ppa-buyout"
+                    />
+                    <span className="text-sm font-mono w-12">{ppaBuyoutPct}%</span>
                   </div>
                 </div>
               </div>
@@ -526,8 +548,14 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                   <span>{t("financing.ppaNoIncentives")}:</span>
                   <span className="font-mono">-{formatCurrency(ppaProviderKeepsIncentives)}</span>
                 </p>
+                {ppaBuyoutCost > 0 && (
+                  <p className="flex justify-between gap-2 text-xs text-red-600 dark:text-red-400">
+                    <span>{language === "fr" ? `Rachat An ${ppaTerm} (${ppaBuyoutPct}% CAPEX):` : `Buyout Year ${ppaTerm} (${ppaBuyoutPct}% CAPEX):`}</span>
+                    <span className="font-mono">-{formatCurrency(ppaBuyoutCost)}</span>
+                  </p>
+                )}
                 <p className="flex justify-between gap-2 text-xs text-[#16A34A] dark:text-green-400">
-                  <span>{t("financing.ppaTransfer")} ({language === "fr" ? "pour 1$" : "for $1"}):</span>
+                  <span>{language === "fr" ? `Propriété post-rachat:` : `Post-buyout ownership:`}</span>
                   <span className="font-mono">+{formatCurrency(postPpaSavings)} ({postPpaYears} {language === "fr" ? "ans" : "yrs"})</span>
                 </p>
               </div>
