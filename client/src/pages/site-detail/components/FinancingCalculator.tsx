@@ -47,6 +47,8 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const [ppaYear1Rate, setPpaYear1Rate] = useState(100); // Year 1: 100% of HQ rate (no savings)
   const [ppaYear2Rate, setPpaYear2Rate] = useState(75); // Year 2+: 75% of HQ rate (25% savings - realistic)
 
+  const degradationRate = 0.005; // 0.5% per year panel degradation
+
   const scenarioBreakdown = displayedScenario.scenarioBreakdown;
   const assumptions = simulation.assumptions as AnalysisAssumptions | null;
 
@@ -89,21 +91,21 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
 
   // Capital Lease (Crédit-bail) calculation:
   // In a capital lease, the lessee is treated as owner for tax purposes
-  // Full CAPEX is financed - ALL incentives return to client as cash:
-  //   - HQ solar rebate: Client receives (50% Year 0, 50% Year 1) - applied to bill, not to EPC
-  //   - HQ battery rebate: Client receives (50% Year 0, 50% Year 1)
+  // HQ solar rebate and 50% HQ battery rebate reduce the financed amount (not received as cash)
+  // Remaining incentives return to client as cash:
+  //   - 50% HQ battery rebate: Client receives in Year 1
   //   - Federal ITC: Client receives in Year 2
   //   - Tax shield (CCA): Client receives in Year 1
   // Uses standard amortization formula (same as loan) for realistic payment calculation
-  const leaseFinancedAmount = capexGross; // Full CAPEX financed - HQ rebates go to client, not bank
+  const leaseFinancedAmount = capexGross - hqSolar - (hqBattery * 0.5); // Rebates reduce financed amount
   const leaseMonthlyRate = leaseImplicitRate / 100 / 12;
   const leaseNumPayments = leaseTerm * 12;
   const leaseMonthlyPayment = leaseFinancedAmount > 0 && leaseMonthlyRate > 0
     ? (leaseFinancedAmount * leaseMonthlyRate * Math.pow(1 + leaseMonthlyRate, leaseNumPayments)) / (Math.pow(1 + leaseMonthlyRate, leaseNumPayments) - 1)
     : leaseFinancedAmount / Math.max(1, leaseNumPayments);
   const leaseTotalPayments = leaseMonthlyPayment * leaseNumPayments;
-  // ALL incentives return to client as cash (HQ rebates go to client's bill, not to EPC/bank)
-  const leaseTotalIncentives = hqSolar + hqBattery + federalITC + taxShield;
+  // Only incentives NOT already netted from financed amount
+  const leaseTotalIncentives = (hqBattery * 0.5) + federalITC + taxShield;
   const effectiveLeaseCost = leaseTotalPayments - leaseTotalIncentives;
 
   const formatCurrency = (value: number) => {
@@ -125,32 +127,48 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   // Use consistent 25-year horizon for all financing comparisons
   const analysisHorizon = 25;
 
-  // Capital Lease: 20-year payments with incentives, then 5 years of free energy (you own the system)
-  // Net savings = Total savings over 25 years - effective cost (lease payments - incentives)
-  const leaseNetSavings = annualSavings * analysisHorizon - effectiveLeaseCost;
+  // Total degraded savings over analysis horizon (accounts for 0.5%/yr panel degradation)
+  const totalDegradedSavings = Array.from({ length: analysisHorizon }, (_, i) =>
+    annualSavings * Math.pow(1 - degradationRate, i)
+  ).reduce((a, b) => a + b, 0);
+
+  // Capital Lease: payments with incentives, then free energy after lease term (you own the system)
+  // Net savings = Total degraded savings over 25 years - effective cost (lease payments - incentives)
+  const leaseNetSavings = totalDegradedSavings - effectiveLeaseCost;
 
   // PPA (Third-Party Power Purchase Agreement) calculation:
   // Based on TRC Solar model - client pays for electricity, not the system
   // Year 1: 100% of HQ rate (no savings in year 1)
-  // Year 2+: 60% of HQ rate (40% savings vs HQ)
+  // Year 2+: 75% of HQ rate (25% savings vs HQ)
   // After term: System transfers to client for $1 (free electricity thereafter)
   // IMPORTANT: All incentives (HQ rebates, federal ITC, tax shield) are RETAINED by PPA provider
   const hqTariffRate = assumptions?.tariffCode === "M" ? 0.06061 : 0.11933; // $/kWh based on tariff
-  const ppaYear1Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear1Rate / 100);
-  const ppaYear2Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear2Rate / 100);
-  const ppaTotalPayments = ppaYear1Annual + (ppaYear2Annual * (ppaTerm - 1));
+  // Compute degradation-aware PPA totals
+  let ppaTotalPayments = 0;
+  let hqCostDuringPpa = 0;
+  for (let y = 1; y <= ppaTerm; y++) {
+    const degradedProd = totalAnnualProductionKWh * Math.pow(1 - degradationRate, y - 1);
+    const ppaRate = y === 1 ? (ppaYear1Rate / 100) : (ppaYear2Rate / 100);
+    ppaTotalPayments += degradedProd * hqTariffRate * ppaRate;
+    hqCostDuringPpa += degradedProd * hqTariffRate;
+  }
   // PPA provider keeps ALL incentives - this is where they profit
   const ppaProviderKeepsIncentives = totalIncentives;
-  // Post-PPA savings: After term ends, client owns system for $1 and gets free electricity
-  const postPpaYears = Math.max(0, analysisHorizon - ppaTerm);
-  const postPpaSavings = annualSavings * postPpaYears;
+  // Post-PPA savings: After term ends, client owns system for $1 (energy-only savings with degradation)
+  let postPpaSavings = 0;
+  for (let y = ppaTerm + 1; y <= analysisHorizon; y++) {
+    postPpaSavings += totalAnnualProductionKWh * hqTariffRate * Math.pow(1 - degradationRate, y - 1);
+  }
   // PPA savings during term = what they would have paid HQ - what they pay PPA provider
-  const hqCostDuringPpa = totalAnnualProductionKWh * hqTariffRate * ppaTerm;
   const ppaSavingsDuringTerm = hqCostDuringPpa - ppaTotalPayments;
   // Total PPA "cost" = payments to PPA provider (no ownership benefit during term)
   const ppaEffectiveCost = ppaTotalPayments;
   // Net savings over 25 years = savings during PPA + free electricity after PPA
   const ppaNetSavings = ppaSavingsDuringTerm + postPpaSavings;
+  // Display values for PPA cost breakdown UI
+  const ppaYear1Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear1Rate / 100);
+  const ppaYear2Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear2Rate / 100);
+  const postPpaYears = Math.max(0, analysisHorizon - ppaTerm);
   // Average monthly "payment" for display purposes
   const ppaMonthlyPayment = ppaTotalPayments / (ppaTerm * 12);
 
@@ -162,7 +180,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
       upfrontCost: upfrontCashNeeded, // Realistic cash needed at signing
       totalCost: capexNet, // Net after all incentives return
       monthlyPayment: 0,
-      netSavings: annualSavings * analysisHorizon - capexNet,
+      netSavings: totalDegradedSavings - capexNet,
     },
     {
       type: "loan" as const,
@@ -172,7 +190,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
       totalCost: effectiveLoanCost, // Net after incentives return
       totalPayments: totalLoanPayments, // Gross cash out
       monthlyPayment: monthlyPayment,
-      netSavings: annualSavings * analysisHorizon - effectiveLoanCost,
+      netSavings: totalDegradedSavings - effectiveLoanCost,
     },
     {
       type: "lease" as const,
@@ -209,11 +227,10 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
     let loanCumulative = -loanDownPaymentAmount;
     const annualLoanPayment = monthlyPayment * 12;
 
-    // Capital Lease (Crédit-bail): no upfront cash, monthly payments, savings + incentive returns
-    // Client receives ALL incentives as cash (HQ rebates go to client's bill, not to EPC/bank)
-    // Year 0: Receive 50% HQ Solar + 50% HQ Battery as bill credits/cash
+    // Capital Lease (Crédit-bail): rebates reduce financed amount, so no upfront cash received
+    // Year 0 starts at 0 (rebates already netted from the financed amount)
     const annualLeasePayment = leaseMonthlyPayment * 12;
-    let leaseCumulative = (hqSolar * 0.5) + (hqBattery * 0.5); // 50% of both HQ rebates at Year 0
+    let leaseCumulative = 0;
 
     // PPA: No upfront cost, pay for electricity during term, free after term
     let ppaCumulative = 0;
@@ -229,22 +246,24 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
           ppa: ppaCumulative / 1000,
         });
       } else {
-        // Add savings each year for ownership options (cash, loan, lease)
-        cashCumulative += annualSavings;
-        loanCumulative += annualSavings;
-        leaseCumulative += annualSavings;
+        // Add degraded savings each year for ownership options (cash, loan, lease)
+        const degradedSavings = annualSavings * Math.pow(1 - degradationRate, year - 1);
+        cashCumulative += degradedSavings;
+        loanCumulative += degradedSavings;
+        leaseCumulative += degradedSavings;
 
-        // PPA: During term, client saves vs HQ rate but pays PPA provider
-        // After term, client gets free electricity (full savings)
+        // PPA: During term, client saves vs HQ rate but pays PPA provider (energy-only, with degradation)
+        // After term, client gets energy-only savings (consistent with during-term basis)
         if (year <= ppaTerm) {
-          // During PPA term: savings = HQ rate - PPA rate
+          const degradedProduction = totalAnnualProductionKWh * Math.pow(1 - degradationRate, year - 1);
           const ppaRateThisYear = year === 1 ? (ppaYear1Rate / 100) : (ppaYear2Rate / 100);
-          const hqCostThisYear = totalAnnualProductionKWh * hqTariffRate;
-          const ppaCostThisYear = totalAnnualProductionKWh * hqTariffRate * ppaRateThisYear;
+          const hqCostThisYear = degradedProduction * hqTariffRate;
+          const ppaCostThisYear = degradedProduction * hqTariffRate * ppaRateThisYear;
           ppaCumulative += (hqCostThisYear - ppaCostThisYear);
         } else {
-          // After PPA term: client owns system for $1, gets full savings
-          ppaCumulative += annualSavings;
+          // After PPA term: client owns system for $1, energy-only savings with degradation
+          const postPpaEnergySavings = totalAnnualProductionKWh * hqTariffRate * Math.pow(1 - degradationRate, year - 1);
+          ppaCumulative += postPpaEnergySavings;
         }
 
         // Subtract payments for loan (if still in term)
@@ -258,14 +277,13 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
         }
 
         // Add incentive returns for cash, loan, and capital lease
-        // Capital lease client is treated as owner for tax purposes
-        // Lease gets additional 50% HQ solar that cash/loan don't get (they got it upfront)
+        // Capital lease: rebates already netted from financed amount, only remaining incentives return
         // PPA: NO incentives return to client (provider keeps them all)
         if (year === 1) {
           cashCumulative += year1Returns;
           loanCumulative += year1Returns;
-          // Lease Year 1: 50% HQ battery + tax shield (same as cash/loan) PLUS 50% HQ solar
-          leaseCumulative += year1Returns + (hqSolar * 0.5); // Crédit-bail: includes HQ solar tranche
+          // Lease Year 1: 50% HQ battery + tax shield (NO extra hqSolar — already netted from financed amount)
+          leaseCumulative += year1Returns;
         }
         if (year === 2) {
           cashCumulative += year2Returns;

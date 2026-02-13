@@ -28,6 +28,8 @@ export interface AcquisitionResult {
   leasePaybackYear: number | null;
 }
 
+const DEGRADATION_RATE = 0.005;
+
 export function computeAcquisitionCashflows(inputs: AcquisitionInputs): AcquisitionResult {
   const {
     annualSavings,
@@ -55,7 +57,7 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
     : loanAmount / numPayments;
   const annualLoanPayment = monthlyPayment * 12;
 
-  const leaseFinancedAmount = capexGross;
+  const leaseFinancedAmount = capexGross - hqSolar - (hqBattery * 0.5);
   const leaseMonthlyRate = leaseImplicitRate / 100 / 12;
   const leaseNumPayments = leaseTermYears * 12;
   const leaseMonthlyPayment = leaseFinancedAmount > 0 && leaseMonthlyRate > 0
@@ -69,7 +71,7 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
 
   let cashCumulative = -upfrontCashNeeded;
   let loanCumulative = -loanDownPaymentAmount;
-  let leaseCumulative = (hqSolar * 0.5) + (hqBattery * 0.5);
+  let leaseCumulative = 0;
 
   const series: CumulativePoint[] = [];
   let cashPaybackYear: number | null = null;
@@ -89,19 +91,21 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
       continue;
     }
 
+    const degradedSavings = annualSavings * Math.pow(1 - DEGRADATION_RATE, year - 1);
+
     if (existingCashflows && existingCashflows.length > 0) {
       const cf = existingCashflows.find(c => c.year === year);
       if (cf) {
         cashCumulative = cf.cumulative;
       } else {
-        cashCumulative += annualSavings;
+        cashCumulative += degradedSavings;
       }
     } else {
-      cashCumulative += annualSavings;
+      cashCumulative += degradedSavings;
     }
 
-    loanCumulative += annualSavings;
-    leaseCumulative += annualSavings;
+    loanCumulative += degradedSavings;
+    leaseCumulative += degradedSavings;
 
     if (year <= loanTermYears) {
       loanCumulative -= annualLoanPayment;
@@ -116,7 +120,7 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
         cashCumulative += year1Returns;
       }
       loanCumulative += year1Returns;
-      leaseCumulative += year1Returns + (hqSolar * 0.5);
+      leaseCumulative += year1Returns;
     }
     if (year === 2) {
       if (!existingCashflows || existingCashflows.length === 0) {
