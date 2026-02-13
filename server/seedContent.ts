@@ -97,10 +97,10 @@ const DEFAULT_CONTENT = [
     sortOrder: 3,
     isActive: true,
     value: {
-      price: 2500,
+      price: 5500,
       currency: "CAD",
       title: { fr: "Mandat de conception", en: "Design Mandate" },
-      subtitle: { fr: "L'étape intelligente avant d'investir — 100% applicable au projet", en: "The smart step before investing — 100% applicable to the project" },
+      subtitle: { fr: "L'étape intelligente avant d'investir — rapport complet et utilisable", en: "The smart step before investing — complete and usable report" },
       items: {
         fr: [
           "Visite sur site par un ingénieur certifié",
@@ -122,8 +122,8 @@ const DEFAULT_CONTENT = [
         ]
       },
       guarantee: {
-        fr: "100% applicable à l'installation — Si vous allez de l'avant, ce montant est déduit du coût total du projet.",
-        en: "100% applicable to installation — If you proceed, this amount is deducted from the total project cost."
+        fr: "Le rapport de conception est complet et utilisable indépendamment du fournisseur choisi pour l'installation.",
+        en: "The design report is complete and usable regardless of which provider you choose for installation."
       },
       cta: { fr: "Réserver mon mandat de conception", en: "Book my design mandate" }
     },

@@ -1314,12 +1314,12 @@ export function AnalysisResults({
               </div>
               <div>
                 <p className="font-medium">
-                  {language === "fr" ? "Prêt à passer à l'étape suivante?" : "Ready for the next step?"}
+                  {language === "fr" ? "Intéressé par ce projet?" : "Interested in this project?"}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {language === "fr"
-                    ? "Demandez une conception détaillée et une soumission ferme"
-                    : "Request detailed engineering and a firm quote"}
+                    ? "Voyez les détails de la prochaine étape et les frais associés"
+                    : "See the details of the next step and associated fees"}
                 </p>
               </div>
             </div>
@@ -1421,69 +1421,87 @@ export function AnalysisResults({
 
       <Card className="border-primary/20" id="next-steps-cta">
         <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2">
-            <FileSignature className="w-6 h-6 text-primary" />
-            {language === "fr" ? "Prêt à passer à l'action?" : "Ready to Take Action?"}
-          </CardTitle>
-          <CardDescription>
-            {language === "fr"
-              ? "Signez l'entente de conception et d'ingénierie pour démarrer votre projet solaire"
-              : "Sign the Design & Engineering Agreement to start your solar project"}
-          </CardDescription>
+          {isStaff ? (
+            <>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FileSignature className="w-6 h-6 text-primary" />
+                {language === "fr" ? "Prêt à passer à l'action?" : "Ready to Take Action?"}
+              </CardTitle>
+              <CardDescription>
+                {language === "fr"
+                  ? "Signez le mandat de conception pour démarrer votre projet solaire"
+                  : "Sign the Design Mandate to start your solar project"}
+              </CardDescription>
+            </>
+          ) : (
+            <>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FileSignature className="w-6 h-6 text-primary" />
+                {language === "fr" ? "Prochaine étape" : "Next Step"}
+              </CardTitle>
+              <CardDescription>
+                {language === "fr"
+                  ? "Votre conseiller kWh Québec vous contactera pour discuter de votre projet et planifier les prochaines étapes, incluant le Mandat de conception."
+                  : "Your kWh Québec advisor will contact you to discuss your project and plan the next steps, including the Design Mandate."}
+              </CardDescription>
+            </>
+          )}
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Column 1: Design fee covers */}
-            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <h4 className="font-semibold text-sm text-primary mb-3 flex items-center gap-2">
-                <FileSignature className="w-4 h-4" />
-                {language === "fr" ? "L'entente couvre" : "Design fee covers"}
-              </h4>
-              <ul className="space-y-2">
-                {getDesignFeeCovers(language as "fr" | "en").map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {isStaff && (
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Column 1: Design fee covers */}
+              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <h4 className="font-semibold text-sm text-primary mb-3 flex items-center gap-2">
+                  <FileSignature className="w-4 h-4" />
+                  {language === "fr" ? "L'entente couvre" : "Design fee covers"}
+                </h4>
+                <ul className="space-y-2">
+                  {getDesignFeeCovers(language as "fr" | "en").map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-            {/* Column 2: Client provides */}
-            <div className="p-4 bg-muted/30 rounded-lg border">
-              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                {language === "fr" ? "Vous fournissez" : "You provide"}
-              </h4>
-              <ul className="space-y-2">
-                {getClientProvides(language as "fr" | "en").map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <ArrowRight className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+              {/* Column 2: Client provides */}
+              <div className="p-4 bg-muted/30 rounded-lg border">
+                <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  {language === "fr" ? "Vous fournissez" : "You provide"}
+                </h4>
+                <ul className="space-y-2">
+                  {getClientProvides(language as "fr" | "en").map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <ArrowRight className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-            {/* Column 3: Client receives */}
-            <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-              <h4 className="font-semibold text-sm text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                {language === "fr" ? "Vous recevez" : "You receive"}
-              </h4>
-              <ul className="space-y-2">
-                {getClientReceives(language as "fr" | "en").map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <Star className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Column 3: Client receives */}
+              <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <h4 className="font-semibold text-sm text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  {language === "fr" ? "Vous recevez" : "You receive"}
+                </h4>
+                <ul className="space-y-2">
+                  {getClientReceives(language as "fr" | "en").map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <Star className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
-            {isStaff ? (
+          {isStaff ? (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
                 size="lg"
                 className="gap-2 px-8"
@@ -1491,24 +1509,36 @@ export function AnalysisResults({
                 data-testid="button-cta-create-design"
               >
                 <FileSignature className="w-5 h-5" />
-                {language === "fr" ? "Créer l'entente de design" : "Create Design Agreement"}
+                {language === "fr" ? "Créer le mandat de conception" : "Create Design Mandate"}
               </Button>
-            ) : (
-              <Button size="lg" className="gap-2 px-8" data-testid="button-cta-sign-agreement">
-                <FileSignature className="w-5 h-5" />
-                {language === "fr" ? "Signer l'entente" : "Sign Agreement"}
+              <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
+                <Phone className="w-5 h-5" />
+                {language === "fr" ? "Nous contacter" : "Contact Us"}
               </Button>
-            )}
-            <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
-              <Phone className="w-5 h-5" />
-              {language === "fr" ? "Nous contacter" : "Contact Us"}
-            </Button>
-          </div>
+            </div>
+          ) : (
+            <div className="mt-6 flex justify-center">
+              <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
+                <Phone className="w-5 h-5" />
+                {language === "fr" ? "Nous contacter" : "Contact Us"}
+              </Button>
+            </div>
+          )}
 
           <p className="text-center text-xs text-muted-foreground mt-4">
-            {language === "fr"
-              ? "L'entente de conception est sans engagement pour le projet complet. Frais de conception: 2 500$ + taxes (crédité si vous procédez)."
-              : "The design agreement is non-binding for the full project. Design fee: $2,500 + taxes (credited if you proceed)."}
+            {isStaff ? (
+              <>
+                {language === "fr"
+                  ? "Le mandat de conception est sans engagement pour le projet complet. Frais de conception: 5 500$ + taxes. Le rapport a une valeur complète indépendamment du choix du fournisseur."
+                  : "The design mandate is non-binding for the full project. Design fee: $5,500 + taxes. The report has complete value regardless of provider choice."}
+              </>
+            ) : (
+              <>
+                {language === "fr"
+                  ? "Mandat de conception : 5 500$ + taxes"
+                  : "Design Mandate: $5,500 + taxes"}
+              </>
+            )}
           </p>
         </CardContent>
       </Card>

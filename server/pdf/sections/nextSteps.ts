@@ -30,7 +30,7 @@ export function renderNextSteps(ctx: PDFContext) {
 
   doc.fontSize(9).fillColor(COLORS.blue).font("Helvetica-Bold");
   doc.text(t("Ce que couvre le", "What the design"), margin + 10, nsY + 10, { width: nsColWidth - 20 });
-  doc.text(t("Design Fee (2 500$ + taxes)", "fee covers ($2,500 + taxes)"), margin + 10, nsY + 22, { width: nsColWidth - 20 });
+  doc.text(t("Design Mandate (5 500$ + taxes)", "fee covers ($5,500 + taxes)"), margin + 10, nsY + 22, { width: nsColWidth - 20 });
   doc.font("Helvetica");
 
   const designCovers = getDesignFeeCovers(ctx.lang);

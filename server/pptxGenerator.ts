@@ -2,7 +2,7 @@ import PptxGenJSModule from "pptxgenjs";
 const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import fs from "fs";
 import path from "path";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow } from "@shared/brandContent";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes } from "@shared/brandContent";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
 import type { DocumentSimulationData } from "./documentDataProvider";
@@ -1158,94 +1158,7 @@ export async function generatePresentationPPTX(
     fontSize: 9, color: COLORS.mediumGray, align: "center"
   });
 
-  // ================= SLIDE 11: NEXT STEPS =================
-  const slide5 = pptx.addSlide({ masterName: "KWHMAIN" });
-
-  slide5.addText(t("PASSONS À L'ACTION", "LET'S TAKE ACTION"), {
-    x: 0.5, y: 0.8, w: 9, h: 0.5,
-    fontSize: 22, bold: true, color: COLORS.blue
-  });
-
-  slide5.addShape("rect", {
-    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
-  });
-
-  const act4 = getNarrativeAct("act4_action", lang);
-  const transition3 = getNarrativeTransition("resultsToAction", lang);
-  slide5.addText(
-    isSyntheticData
-      ? t("Les incitatifs actuels couvrent jusqu'à 60% de votre projet — ces programmes peuvent changer à tout moment.",
-          "Current incentives cover up to 60% of your project — these programs can change at any time.")
-      : t("Votre analyse est complétée. La prochaine étape: signer l'entente de design pour démarrer la conception.",
-          "Your analysis is complete. Next step: sign the design agreement to begin engineering."), {
-    x: 0.5, y: 1.15, w: 9, h: 0.3,
-    fontSize: 9, italic: true, color: COLORS.mediumGray
-  });
-
-  slide5.addShape("rect", {
-    x: 0.3, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.blue }
-  });
-  slide5.addText(t("Le Design Fee couvre", "The design fee covers"), {
-    x: 0.3, y: 1.45, w: 3.1, h: 0.35,
-    fontSize: 11, bold: true, color: COLORS.white, align: "center"
-  });
-
-  const designCovers = getDesignFeeCovers(lang);
-  designCovers.forEach((item, i) => {
-    slide5.addText(`✓  ${item}`, {
-      x: 0.4, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
-      fontSize: 9, color: COLORS.darkGray
-    });
-  });
-
-  slide5.addShape("rect", {
-    x: 3.5, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.gold }
-  });
-  slide5.addText(t("Le client fournit", "The client provides"), {
-    x: 3.5, y: 1.45, w: 3.1, h: 0.35,
-    fontSize: 11, bold: true, color: COLORS.darkGray, align: "center"
-  });
-
-  const clientProvides = getClientProvides(lang);
-  clientProvides.forEach((item, i) => {
-    slide5.addText(`□  ${item}`, {
-      x: 3.6, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
-      fontSize: 9, color: COLORS.darkGray
-    });
-  });
-
-  slide5.addShape("rect", {
-    x: 6.7, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.green }
-  });
-  slide5.addText(t("Le client reçoit", "The client receives"), {
-    x: 6.7, y: 1.45, w: 3.1, h: 0.35,
-    fontSize: 11, bold: true, color: COLORS.white, align: "center"
-  });
-
-  const clientReceives = getClientReceives(lang);
-  clientReceives.forEach((item, i) => {
-    slide5.addText(`→  ${item}`, {
-      x: 6.8, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
-      fontSize: 9, color: COLORS.darkGray
-    });
-  });
-
-  slide5.addShape("rect", {
-    x: 0.5, y: 4.5, w: 9, h: 0.8, fill: { color: COLORS.blue }
-  });
-  slide5.addText(
-    isSyntheticData
-      ? t("Contactez-nous pour planifier votre évaluation détaillée", "Contact us to schedule your detailed evaluation")
-      : t("Signez votre entente de design en ligne", "Sign your design agreement online"), {
-    x: 0.5, y: 4.65, w: 9, h: 0.25,
-    fontSize: 14, bold: true, color: COLORS.white, align: "center"
-  });
-  slide5.addText("info@kwh.quebec | 514.427.8871 | www.kwh.quebec", {
-    x: 0.5, y: 4.95, w: 9, h: 0.2,
-    fontSize: 11, color: COLORS.gold, align: "center"
-  });
-
-  // ================= SLIDE 12: THEY TRUST US =================
+  // ================= SLIDE 11: THEY TRUST US =================
   const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
 
   // Titre - utilise brandContent
@@ -1313,6 +1226,113 @@ export async function generatePresentationPPTX(
   slideRef.addText(getContactString(), {
     x: 2.5, y: 4.72, w: 5, h: 0.4,
     fontSize: 14, bold: true, color: COLORS.gold, align: "center"
+  });
+
+  // ================= SLIDE 12: NEXT STEPS =================
+  const slide5 = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slide5.addText(t("PASSONS À L'ACTION", "LET'S TAKE ACTION"), {
+    x: 0.5, y: 0.8, w: 9, h: 0.5,
+    fontSize: 22, bold: true, color: COLORS.blue
+  });
+
+  slide5.addShape("rect", {
+    x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  const act4 = getNarrativeAct("act4_action", lang);
+  const transition3 = getNarrativeTransition("resultsToAction", lang);
+  slide5.addText(
+    isSyntheticData
+      ? t("Les incitatifs actuels couvrent jusqu'à 60% de votre projet — ces programmes peuvent changer à tout moment.",
+          "Current incentives cover up to 60% of your project — these programs can change at any time.")
+      : t("Votre analyse est complétée. La prochaine étape: signer le mandat de conception pour démarrer la conception.",
+          "Your analysis is complete. Next step: sign the design mandate to begin engineering."), {
+    x: 0.5, y: 1.15, w: 9, h: 0.3,
+    fontSize: 9, italic: true, color: COLORS.mediumGray
+  });
+
+  slide5.addShape("rect", {
+    x: 0.3, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.blue }
+  });
+  slide5.addText(t("Le Design Fee couvre", "The design fee covers"), {
+    x: 0.3, y: 1.45, w: 3.1, h: 0.35,
+    fontSize: 11, bold: true, color: COLORS.white, align: "center"
+  });
+
+  const designCovers = getDesignFeeCovers(lang);
+  designCovers.forEach((item, i) => {
+    slide5.addText(`✓  ${item}`, {
+      x: 0.4, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
+    });
+  });
+
+  slide5.addShape("rect", {
+    x: 3.5, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.gold }
+  });
+  slide5.addText(t("Le client fournit", "The client provides"), {
+    x: 3.5, y: 1.45, w: 3.1, h: 0.35,
+    fontSize: 11, bold: true, color: COLORS.darkGray, align: "center"
+  });
+
+  const clientProvides = getClientProvides(lang);
+  clientProvides.forEach((item, i) => {
+    slide5.addText(`□  ${item}`, {
+      x: 3.6, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
+    });
+  });
+
+  slide5.addShape("rect", {
+    x: 6.7, y: 1.4, w: 3.1, h: 0.45, fill: { color: COLORS.green }
+  });
+  slide5.addText(t("Le client reçoit", "The client receives"), {
+    x: 6.7, y: 1.45, w: 3.1, h: 0.35,
+    fontSize: 11, bold: true, color: COLORS.white, align: "center"
+  });
+
+  const clientReceives = getClientReceives(lang);
+  clientReceives.forEach((item, i) => {
+    slide5.addText(`→  ${item}`, {
+      x: 6.8, y: 1.95 + i * 0.35, w: 2.9, h: 0.3,
+      fontSize: 9, color: COLORS.darkGray
+    });
+  });
+
+  if (!isSyntheticData) {
+    slide5.addShape("rect", {
+      x: 0.3, y: 3.75, w: 9.4, h: 0.55, fill: { color: COLORS.gold }
+    });
+    slide5.addText(getDesignMandatePrice(lang), {
+      x: 0.3, y: 3.8, w: 9.4, h: 0.35,
+      fontSize: 14, bold: true, color: COLORS.darkGray, align: "center"
+    });
+
+    const designMandateIncludes = getDesignMandateIncludes(lang).slice(0, 4);
+    let yOffset = 4.4;
+    designMandateIncludes.forEach((item) => {
+      slide5.addText(`✓  ${item}`, {
+        x: 0.5, y: yOffset, w: 9, h: 0.25,
+        fontSize: 8, color: COLORS.darkGray
+      });
+      yOffset += 0.25;
+    });
+  }
+
+  slide5.addShape("rect", {
+    x: 0.5, y: 4.5, w: 9, h: 0.8, fill: { color: COLORS.blue }
+  });
+  slide5.addText(
+    isSyntheticData
+      ? t("Contactez-nous pour planifier votre évaluation détaillée", "Contact us to schedule your detailed evaluation")
+      : t("Signez votre mandat de conception en ligne", "Sign your design mandate online"), {
+    x: 0.5, y: 4.65, w: 9, h: 0.25,
+    fontSize: 14, bold: true, color: COLORS.white, align: "center"
+  });
+  slide5.addText("info@kwh.quebec | 514.427.8871 | www.kwh.quebec", {
+    x: 0.5, y: 4.95, w: 9, h: 0.2,
+    fontSize: 11, color: COLORS.gold, align: "center"
   });
 
   // ================= APPENDIX: ROOF CONFIGURATION =================

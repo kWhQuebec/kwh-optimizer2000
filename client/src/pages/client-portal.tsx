@@ -328,9 +328,9 @@ export default function ClientPortalPage() {
                   <div className="flex items-center gap-2">
                     <PenLine className="w-4 h-4 text-amber-600" />
                     <span>
-                      {language === "fr" 
-                        ? `Signer l'entente de design pour ${site.name}`
-                        : `Sign design agreement for ${site.name}`
+                      {language === "fr"
+                        ? `Signer le mandat de conception pour ${site.name}`
+                        : `Sign design mandate for ${site.name}`
                       }
                     </span>
                   </div>
@@ -515,7 +515,7 @@ export default function ClientPortalPage() {
                     <div>
                       <p className="font-medium text-sm">{site.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Entente de design signée" : "Signed Design Agreement"}
+                        {language === "fr" ? "Mandat de conception signé" : "Signed Design Mandate"}
                       </p>
                     </div>
                   </div>

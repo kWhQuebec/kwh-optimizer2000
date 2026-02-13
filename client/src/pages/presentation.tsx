@@ -87,6 +87,8 @@ import {
   getClientReceives,
   getNarrativeAct,
   getWhySolarNow,
+  getDesignMandatePrice,
+  getDesignMandateIncludes,
 } from "@shared/brandContent";
 
 interface SiteWithDetails extends Site {
@@ -107,9 +109,9 @@ const SLIDES = [
   'financing',
   'assumptions',
   'equipment',
-  'timeline',
-  'nextSteps',
   'credibility',
+  'nextSteps',
+  'timeline',
 ] as const;
 type SlideType = typeof SLIDES[number];
 
@@ -1706,8 +1708,8 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
             </div>
             <p className="text-sm" style={{ color: '#4B5563' }}>
               {language === 'fr'
-                ? 'La prochaine étape : signer l\'entente de design pour démarrer la conception détaillée.'
-                : 'Next step: sign the design agreement to begin detailed engineering.'}
+                ? 'La prochaine étape : signer le mandat de conception pour démarrer la conception détaillée.'
+                : 'Next step: sign the design mandate to begin detailed engineering.'}
             </p>
           </div>
         )}
@@ -1776,6 +1778,27 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
           ))}
         </div>
 
+        {!isSyntheticData && (
+          <div
+            className="rounded-2xl px-6 md:px-8 py-6 mb-10 shadow-sm"
+            style={{ backgroundColor: 'rgba(255,176,5,0.06)', border: `2px solid ${BRAND_COLORS.accentGold}` }}
+          >
+            <h3 className="text-lg md:text-xl font-bold mb-3 text-center" style={{ color: BRAND_COLORS.accentGold }}>
+              {getDesignMandatePrice(language as "fr" | "en")}
+            </h3>
+            <div className="max-w-2xl mx-auto">
+              <div className="space-y-2">
+                {getDesignMandateIncludes(language as "fr" | "en").slice(0, 4).map((item, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: BRAND_COLORS.accentGold }} />
+                    <span className="text-sm" style={{ color: '#4B5563' }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div
           className="rounded-2xl px-6 md:px-8 py-6 text-center shadow-sm"
           style={{ backgroundColor: 'rgba(0,61,166,0.05)', border: `2px solid ${BRAND_COLORS.primaryBlue}` }}
@@ -1783,7 +1806,7 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
           <p className="text-lg md:text-xl font-bold mb-2" style={{ color: BRAND_COLORS.primaryBlue }}>
             {isSyntheticData
               ? (language === 'fr' ? 'Prêt à transformer vos coûts d\'énergie? Contactez-nous pour planifier votre visite de site.' : 'Ready to transform your energy costs? Contact us to schedule your site visit.')
-              : (language === 'fr' ? 'Signez votre entente de design en ligne' : 'Sign your design agreement online')
+              : (language === 'fr' ? 'Signez votre mandat de conception en ligne' : 'Sign your design mandate online')
             }
           </p>
           {!isSyntheticData && (

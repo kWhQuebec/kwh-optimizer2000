@@ -10,9 +10,9 @@ import {
   Building2, Factory, School, HelpCircle,
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, Wrench, HardHat,
-  Rocket, BatteryCharging, BadgePercent, MapPin,
+  BatteryCharging, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ClipboardCheck, ChevronUp,
-  Phone, Mail, Building, CalendarDays, User, Info, Upload, Sparkles, FileSignature,
+  Phone, Mail, Building, User, Info, Upload, Sparkles, FileSignature,
   Snowflake, XCircle, Star, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -918,8 +918,8 @@ export default function LandingPage() {
       {/* ========== FULL PROCESS SECTION ========== */}
       <section id="process" className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <motion.div 
-            className="text-center mb-12"
+          <motion.div
+            className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -935,74 +935,262 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          {/* Process Timeline - 6 steps, 3 phases */}
-          <div className="relative space-y-8">
+          {/* Process Timeline - 6 steps, 3 phases with visual connectors */}
+          <div className="space-y-12">
             {(() => {
               const timeline = getTimeline(language === "fr" ? "fr" : "en");
               const stepIcons = [BarChart3, FileText, FileSignature, HardHat, ClipboardCheck, Zap];
-              const totalSteps = timeline.length;
+
+              // Phase color mapping (phase-specific, not gradient-based)
+              const phaseColors = {
+                discovery: { bg: "#16A34A", bgLight: "#dcfce7", text: "#ffffff" }, // Green
+                design: { bg: "#3B82F6", bgLight: "#dbeafe", text: "#ffffff" },     // Blue
+                execution: { bg: "#D97706", bgLight: "#fed7aa", text: "#ffffff" },  // Amber
+              };
+
               const phases = [
-                { key: "discovery", labelFr: "Découverte", labelEn: "Discovery", descFr: "Gratuit, sans engagement", descEn: "Free, no commitment", steps: [0, 1] },
-                { key: "design", labelFr: "Conception", labelEn: "Design", descFr: "Engagement initial", descEn: "Initial commitment", steps: [2, 3] },
-                { key: "execution", labelFr: "Réalisation", labelEn: "Execution", descFr: "Clé en main", descEn: "Turnkey", steps: [4, 5] },
+                { key: "discovery", labelFr: "Découverte", labelEn: "Discovery", descFr: "Gratuit, sans engagement", descEn: "Free, no commitment", steps: [0, 1], color: phaseColors.discovery },
+                { key: "design", labelFr: "Conception", labelEn: "Design", descFr: "Étude détaillée", descEn: "Detailed study", steps: [2, 3], color: phaseColors.design },
+                { key: "execution", labelFr: "Réalisation", labelEn: "Execution", descFr: "Clé en main", descEn: "Turnkey", steps: [4, 5], color: phaseColors.execution },
               ];
+
               return phases.map((phase, pi) => (
                 <div key={phase.key}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(phase.steps[0], totalSteps)}20`, color: TIMELINE_GRADIENT.getStepHex(phase.steps[1], totalSteps) }}>
+                  {/* Phase Header with Badge */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <span
+                      className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full text-white"
+                      style={{ backgroundColor: phase.color.bg }}
+                    >
                       {language === "fr" ? phase.labelFr : phase.labelEn}
                     </span>
                     <span className="text-xs text-muted-foreground">{language === "fr" ? phase.descFr : phase.descEn}</span>
+                    {pi === 0 && (
+                      <Badge variant="secondary" className="ml-auto bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs">
+                        {language === "fr" ? "GRATUIT" : "FREE"}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {phase.steps.map((si) => {
-                      const tl = timeline[si];
-                      const Icon = stepIcons[si] || Zap;
-                      return (
-                        <motion.div
-                          key={si}
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: si * 0.08 }}
-                          className="flex items-start gap-4 p-4 rounded-xl border bg-card"
-                          data-testid={`process-step-${si + 1}`}
-                        >
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: TIMELINE_GRADIENT.getStepHex(si, totalSteps) }}>
-                            <Icon className="w-5 h-5" style={{ color: TIMELINE_GRADIENT.getStepTextColor(si, totalSteps) }} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-bold text-muted-foreground">0{si + 1}</span>
-                              <h3 className="font-semibold text-sm">{tl.step}</h3>
+
+                  {/* Steps container with desktop horizontal layout and mobile vertical */}
+                  <div className="relative">
+                    {/* Desktop: Horizontal layout with SVG connector */}
+                    <div className="hidden md:block relative pb-8">
+                      <svg
+                        className="absolute inset-0 w-full h-24"
+                        style={{ top: '24px', pointerEvents: 'none' }}
+                        preserveAspectRatio="none"
+                      >
+                        {phase.steps.length > 1 && (
+                          <line
+                            x1={`${12.5}%`}
+                            y1="20"
+                            x2={`${87.5}%`}
+                            y2="20"
+                            stroke={phase.color.bg}
+                            strokeWidth="2"
+                            strokeDasharray="5,5"
+                            opacity="0.5"
+                          />
+                        )}
+                        {/* Animated arrows between steps */}
+                        {phase.steps.slice(0, -1).map((_, idx) => {
+                          const x1 = 12.5 + idx * 75;
+                          const x2 = x1 + 75;
+                          return (
+                            <defs key={`defs-${pi}-${idx}`}>
+                              <marker
+                                id={`arrowhead-${pi}-${idx}`}
+                                markerWidth="10"
+                                markerHeight="10"
+                                refX="9"
+                                refY="3"
+                                orient="auto"
+                              >
+                                <polygon points="0 0, 10 3, 0 6" fill={phase.color.bg} fillOpacity="0.6" />
+                              </marker>
+                            </defs>
+                          );
+                        })}
+                      </svg>
+
+                      {/* Step cards in grid */}
+                      <div className="grid grid-cols-2 gap-6">
+                        {phase.steps.map((si) => {
+                          const tl = timeline[si];
+                          const Icon = stepIcons[si] || Zap;
+                          const stepNum = si + 1;
+
+                          // Override step 3 display text for public landing page (don't mention fee)
+                          const stepDisplay = si === 2
+                            ? (language === "fr" ? "Conception détaillée" : "Detailed Design")
+                            : tl.step;
+
+                          return (
+                            <motion.div
+                              key={si}
+                              initial={{ opacity: 0, y: 20 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ delay: si * 0.1 }}
+                              className="relative"
+                            >
+                              {/* Step card */}
+                              <div
+                                className="p-5 rounded-xl border-2 transition-all hover:shadow-lg"
+                                style={{
+                                  borderColor: phase.color.bg,
+                                  backgroundColor: phase.color.bgLight,
+                                }}
+                              >
+                                {/* Numbered circle badge at top */}
+                                <div
+                                  className="absolute -top-5 left-1/2 transform -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm"
+                                  style={{ backgroundColor: phase.color.bg }}
+                                >
+                                  {stepNum}
+                                </div>
+
+                                <div className="flex items-start gap-4 mt-2">
+                                  <div
+                                    className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                                    style={{ backgroundColor: phase.color.bg }}
+                                  >
+                                    <Icon className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
+                                    {tl.duration && (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs mt-2"
+                                        style={{
+                                          backgroundColor: `${phase.color.bg}20`,
+                                          color: phase.color.bg,
+                                          border: `1px solid ${phase.color.bg}40`
+                                        }}
+                                      >
+                                        {tl.duration}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Arrow between steps */}
+                              {si !== phase.steps[phase.steps.length - 1] && (
+                                <motion.div
+                                  className="absolute -right-6 top-1/2 transform -translate-y-1/2"
+                                  initial={{ opacity: 0, scale: 0.5 }}
+                                  whileInView={{ opacity: 1, scale: 1 }}
+                                  viewport={{ once: true }}
+                                  transition={{ delay: (si + 0.5) * 0.1 }}
+                                >
+                                  <ArrowRight
+                                    className="w-5 h-5"
+                                    style={{ color: phase.color.bg, opacity: 0.6 }}
+                                  />
+                                </motion.div>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Mobile: Vertical layout with left-side connector */}
+                    <div className="md:hidden space-y-4 relative pl-8">
+                      {/* Vertical line on left side */}
+                      <div
+                        className="absolute left-3 top-0 bottom-0 w-1"
+                        style={{ backgroundColor: phase.color.bg, opacity: 0.3 }}
+                      />
+
+                      {phase.steps.map((si) => {
+                        const tl = timeline[si];
+                        const Icon = stepIcons[si] || Zap;
+                        const stepNum = si + 1;
+
+                        // Override step 3 display text for public landing page (don't mention fee)
+                        const stepDisplay = si === 2
+                          ? (language === "fr" ? "Conception détaillée" : "Detailed Design")
+                          : tl.step;
+
+                        return (
+                          <motion.div
+                            key={si}
+                            initial={{ opacity: 0, x: -20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: si * 0.1 }}
+                            className="relative"
+                          >
+                            {/* Dot on timeline */}
+                            <div
+                              className="absolute -left-5 top-6 w-4 h-4 rounded-full border-4"
+                              style={{
+                                backgroundColor: phase.color.bg,
+                                borderColor: phase.color.bgLight,
+                              }}
+                            />
+
+                            {/* Step card */}
+                            <div
+                              className="p-4 rounded-lg border-2"
+                              style={{
+                                borderColor: phase.color.bg,
+                                backgroundColor: phase.color.bgLight,
+                              }}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-white text-xs"
+                                  style={{ backgroundColor: phase.color.bg }}
+                                >
+                                  {stepNum}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
+                                  {tl.duration && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs mt-2"
+                                      style={{
+                                        backgroundColor: `${phase.color.bg}20`,
+                                        color: phase.color.bg,
+                                        border: `1px solid ${phase.color.bg}40`
+                                      }}
+                                    >
+                                      {tl.duration}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            {tl.duration && (
-                              <Badge variant="secondary" className="text-xs mb-1" style={{ backgroundColor: `${TIMELINE_GRADIENT.getStepHex(si, totalSteps)}15`, color: TIMELINE_GRADIENT.getStepHex(si, totalSteps) }}>
-                                {tl.duration}
-                              </Badge>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ));
             })()}
           </div>
-          
+
           {/* CTA to start */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center mt-10"
+            className="text-center mt-16"
           >
             <div className="flex flex-col items-center gap-2">
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs">
-                {language === "fr" ? "GRATUIT" : "FREE"}
-              </Badge>
-              <a href="#paths">
+              <p className="text-sm text-muted-foreground mb-2">
+                {language === "fr"
+                  ? "Prêt à commencer votre parcours?"
+                  : "Ready to start your journey?"}
+              </p>
+              <a href="#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-start-journey">
                   {language === "fr" ? "Commencer mon analyse" : "Start my analysis"}
                   <ArrowRight className="w-4 h-4" />
@@ -1180,10 +1368,10 @@ export default function LandingPage() {
           </section>
         );
       })()}
-      {/* ========== CREDIBILITY SECTION ========== */}
-      <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      {/* ========== CREDIBILITY SECTION (Merged: Values + Team + Testimonials) ========== */}
+      <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-credibility">
         <div className="max-w-6xl mx-auto">
-          <motion.div 
+          <motion.div
             className="text-center mb-10"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1193,13 +1381,13 @@ export default function LandingPage() {
               {language === "fr" ? "Pourquoi kWh Québec?" : "Why kWh Québec?"}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
+              {language === "fr"
                 ? "Nous accompagnons les entreprises dans leurs projets d'énergie renouvelable depuis 2011. En tant que Québécois, nous sommes fiers de vous offrir des solutions solaires maintenant rentables ici au Québec."
                 : "We've been supporting businesses in renewable energy projects since 2011. As Quebecers, we're proud to offer solar solutions that are now profitable here in Quebec."
               }
             </p>
           </motion.div>
-          
+
           {/* Core Values */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1218,7 +1406,7 @@ export default function LandingPage() {
                 {language === "fr" ? "Un seul interlocuteur de A à Z. Zéro complexité pour vous." : "One point of contact from A to Z. Zero complexity for you."}
               </p>
             </div>
-            
+
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-reliability">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-primary" />
@@ -1230,7 +1418,7 @@ export default function LandingPage() {
                 {language === "fr" ? "Équipements certifiés, entrepreneur licencié RBQ." : "Certified equipment, RBQ licensed contractor."}
               </p>
             </div>
-            
+
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-longevity">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-primary" />
@@ -1242,7 +1430,7 @@ export default function LandingPage() {
                 {language === "fr" ? "Systèmes conçus pour 25+ ans de performance garantie." : "Systems designed for 25+ years of guaranteed performance."}
               </p>
             </div>
-            
+
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-pride">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
                 <Award className="w-5 h-5 text-primary" />
@@ -1255,13 +1443,13 @@ export default function LandingPage() {
               </p>
             </div>
           </motion.div>
-          
-          {/* Stats - Full width like core values */}
+
+          {/* Stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="grid grid-cols-3 gap-4 mb-8"
+            className="grid grid-cols-3 gap-4 mb-10"
           >
             <div className="text-center p-4 sm:p-6 rounded-xl bg-background border" data-testid="strength-experience">
               <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">15+</p>
@@ -1272,7 +1460,7 @@ export default function LandingPage() {
                 {language === "fr" ? "d'expérience" : "experience"}
               </p>
             </div>
-            
+
             <div className="text-center p-4 sm:p-6 rounded-xl bg-background border" data-testid="strength-capacity">
               <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">120</p>
               <p className="text-sm sm:text-base font-medium mt-1">MW</p>
@@ -1280,7 +1468,7 @@ export default function LandingPage() {
                 {language === "fr" ? "installés" : "installed"}
               </p>
             </div>
-            
+
             <div className="text-center p-4 sm:p-6 rounded-xl bg-background border" data-testid="strength-projects">
               <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">25+</p>
               <p className="text-sm sm:text-base font-medium mt-1">
@@ -1291,209 +1479,140 @@ export default function LandingPage() {
               </p>
             </div>
           </motion.div>
-          
-          {/* Checklist Benefits - Centered */}
+
+          {/* Team Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="flex flex-wrap justify-center gap-x-8 gap-y-3"
+            className="mb-10"
+            data-testid="section-team"
+          >
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="order-2 md:order-1"
+              >
+                <div className="relative rounded-xl overflow-hidden shadow-lg">
+                  <img
+                    src={installationPhoto}
+                    alt={language === "fr" ? "Équipe kWh Québec sur un toit" : "kWh Québec team on a rooftop"}
+                    className="w-full h-[300px] md:h-[350px] object-cover"
+                    data-testid="img-team-photo"
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="order-1 md:order-2 space-y-4"
+              >
+                <div>
+                  <Badge variant="outline" className="mb-3">
+                    {language === "fr" ? "Notre équipe" : "Our Team"}
+                  </Badge>
+                  <h3 className="text-xl sm:text-2xl font-bold mb-3" data-testid="text-team-title">
+                    {language === "fr"
+                      ? "Des experts dédiés à votre projet"
+                      : "Experts dedicated to your project"
+                    }
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {language === "fr"
+                      ? "Ingénieurs, techniciens certifiés et gestionnaires de projet travaillent ensemble pour assurer le succès de votre installation."
+                      : "Engineers, certified technicians, and project managers work together to ensure your solar installation's success."
+                    }
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
+                    <HardHat className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <p className="font-medium text-xs">{language === "fr" ? "Installation" : "Installation"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
+                    <FileCheck className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <p className="font-medium text-xs">{language === "fr" ? "Ingénierie" : "Engineering"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
+                    <ClipboardCheck className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <p className="font-medium text-xs">{language === "fr" ? "Gestion" : "Management"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
+                    <Wrench className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <p className="font-medium text-xs">{language === "fr" ? "Maintenance" : "Maintenance"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                    <Shield className="w-3 h-3 mr-1" />
+                    {language === "fr" ? "Licence RBQ" : "RBQ Licensed"}
+                  </Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                    <Award className="w-3 h-3 mr-1" />
+                    {language === "fr" ? "15+ ans" : "15+ yrs"}
+                  </Badge>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Key Benefits Checklist */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-12 py-6 border-y"
           >
             <div className="flex items-center gap-2" data-testid="strength-rbq">
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <span className="text-sm">
-                <span className="font-medium">{language === "fr" ? "Licence RBQ 1.3" : "RBQ License 1.3"}</span>
-                <span className="text-muted-foreground"> — {language === "fr" ? "Entrepreneur général" : "General contractor"}</span>
-              </span>
+              <span className="text-sm"><span className="font-medium">{language === "fr" ? "RBQ" : "RBQ"}</span></span>
             </div>
-            
+
             <div className="flex items-center gap-2" data-testid="strength-financing">
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <span className="text-sm">
-                <span className="font-medium">{language === "fr" ? "Financement flexible" : "Flexible financing"}</span>
-                <span className="text-muted-foreground"> — {language === "fr" ? "Options disponibles" : "Options available"}</span>
-              </span>
+              <span className="text-sm"><span className="font-medium">{language === "fr" ? "Financement flexible" : "Flexible financing"}</span></span>
             </div>
-            
+
             <div className="flex items-center gap-2" data-testid="strength-coverage">
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <span className="text-sm font-medium">{language === "fr" ? "Service partout au Québec" : "Service across Quebec"}</span>
+              <span className="text-sm font-medium">{language === "fr" ? "Partout au Québec" : "All Quebec"}</span>
             </div>
-            
+
             <div className="flex items-center gap-2" data-testid="strength-warranty">
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <span className="text-sm">
-                <span className="font-medium">{language === "fr" ? "Garantie 25 ans" : "25-year warranty"}</span>
-                <span className="text-muted-foreground"> — {language === "fr" ? "Performance garantie" : "Performance guaranteed"}</span>
-              </span>
+              <span className="text-sm"><span className="font-medium">{language === "fr" ? "Garantie 25 ans" : "25-yr warranty"}</span></span>
             </div>
           </motion.div>
-        </div>
-      </section>
-      {/* ========== TEAM SECTION ========== */}
-      <section id="team" className="py-16 px-4 sm:px-6 lg:px-8" data-testid="section-team">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="order-2 md:order-1"
-            >
-              <div className="relative rounded-xl overflow-hidden shadow-lg">
-                <img 
-                  src={installationPhoto} 
-                  alt={language === "fr" ? "Équipe kWh Québec sur un toit" : "kWh Québec team on a rooftop"}
-                  className="w-full h-[300px] md:h-[400px] object-cover"
-                  data-testid="img-team-photo"
-                />
-              </div>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="order-1 md:order-2 space-y-6"
-            >
-              <div>
-                <Badge variant="outline" className="mb-3">
-                  {language === "fr" ? "Notre équipe" : "Our Team"}
-                </Badge>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-team-title">
-                  {language === "fr" 
-                    ? "Des experts dédiés à votre projet"
-                    : "Experts dedicated to your project"
-                  }
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  {language === "fr" 
-                    ? "De la première analyse jusqu'à la mise en service et au-delà, notre équipe multidisciplinaire s'occupe de tout. Ingénieurs, techniciens certifiés et gestionnaires de projet travaillent ensemble pour assurer le succès de votre installation solaire."
-                    : "From the initial analysis to commissioning and beyond, our multidisciplinary team handles everything. Engineers, certified technicians, and project managers work together to ensure the success of your solar installation."
-                  }
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <HardHat className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">
-                      {language === "fr" ? "Installation" : "Installation"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr" ? "Techniciens certifiés" : "Certified technicians"}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <FileCheck className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">
-                      {language === "fr" ? "Ingénierie" : "Engineering"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr" ? "Plans et calculs" : "Plans & calculations"}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <ClipboardCheck className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">
-                      {language === "fr" ? "Gestion" : "Management"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr" ? "Suivi de projet" : "Project tracking"}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Wrench className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">
-                      {language === "fr" ? "Maintenance" : "Maintenance"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "fr" ? "Support 25 ans" : "25-year support"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-2 pt-2">
-                <Badge className="bg-primary/10 text-primary border-primary/20">
-                  <Shield className="w-3 h-3 mr-1" />
-                  {language === "fr" ? "Licence RBQ" : "RBQ Licensed"}
-                </Badge>
-                <Badge className="bg-primary/10 text-primary border-primary/20">
-                  <Award className="w-3 h-3 mr-1" />
-                  {language === "fr" ? "15+ ans d'expérience" : "15+ years experience"}
-                </Badge>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-      {/* ========== SOCIAL PROOF SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-social-proof">
-        <div className="max-w-6xl mx-auto">
+
+          {/* Select Testimonials (1-2) from Social Proof */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-8"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold mb-3" data-testid="text-social-proof-title">
-              {language === "fr" ? "Ils nous font confiance" : "They trust us"}
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
-                ? "Des entreprises québécoises de toutes tailles font confiance à notre expertise"
-                : "Quebec businesses of all sizes trust our expertise"
-              }
-            </p>
+            <h3 className="text-lg sm:text-xl font-bold mb-6">
+              {language === "fr" ? "Ils nous font confiance" : "Client success stories"}
+            </h3>
           </motion.div>
-          
-          {/* Client Logos */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex flex-wrap items-center justify-center gap-12 mb-16"
-          >
-            <img 
-              src={dreamIndustrialLogo} 
-              alt="Dream Industrial REIT" 
-              className="h-20 object-contain"
-              data-testid="logo-dream-industrial"
-            />
-            <img 
-              src={labSpaceLogo} 
-              alt="Lab.Space Construction" 
-              className="h-10 object-contain dark:invert"
-              data-testid="logo-labspace"
-            />
-            <img 
-              src={scaleCleantechLogo} 
-              alt="Scale Cleantech" 
-              className="h-10 object-contain"
-              data-testid="logo-scale-cleantech"
-            />
-          </motion.div>
-          
-          {/* Testimonials */}
+
           <div className="grid md:grid-cols-2 gap-6" data-testid="container-testimonials">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1508,10 +1627,10 @@ export default function LandingPage() {
                       <Zap key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                     ))}
                   </div>
-                  <blockquote className="text-muted-foreground flex-1 mb-4">
-                    "{language === "fr" 
+                  <blockquote className="text-sm text-muted-foreground flex-1 mb-4">
+                    "{language === "fr"
                       ? "L'analyse détaillée nous a permis de prendre une décision éclairée. Le retour sur investissement prévu s'est avéré exact à 2% près après la première année d'opération."
-                      : "The detailed analysis allowed us to make an informed decision. The projected ROI proved accurate within 2% after the first year of operation."
+                      : "The detailed analysis allowed us to make an informed decision. The projected ROI proved accurate within 2% after the first year."
                     }"
                   </blockquote>
                   <div className="flex items-center gap-3 pt-4 border-t">
@@ -1520,13 +1639,13 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">L. Hodgkinson</p>
-                      <p className="text-xs text-muted-foreground">dream Industrial REIT</p>
+                      <p className="text-xs text-muted-foreground">Dream Industrial REIT</p>
                     </div>
                   </div>
                 </div>
               </Card>
             </motion.div>
-            
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1540,10 +1659,10 @@ export default function LandingPage() {
                       <Zap key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                     ))}
                   </div>
-                  <blockquote className="text-muted-foreground flex-1 mb-4">
-                    "{language === "fr" 
+                  <blockquote className="text-sm text-muted-foreground flex-1 mb-4">
+                    "{language === "fr"
                       ? "Service professionnel du début à la fin. L'équipe a géré toutes les démarches avec Hydro-Québec et nous avons économisé 35% sur notre facture d'électricité dès la première année."
-                      : "Professional service from start to finish. The team handled all the steps with Hydro-Québec and we saved 35% on our electricity bill in the first year."
+                      : "Professional service from start to finish. The team handled all steps with Hydro-Québec and we saved 35% on our electricity bill in the first year."
                     }"
                   </blockquote>
                   <div className="flex items-center gap-3 pt-4 border-t">
@@ -1552,7 +1671,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">{language === "fr" ? "Propriétaire" : "Owner"}</p>
-                      <p className="text-xs text-muted-foreground">{language === "fr" ? "Centre de distribution, Québec" : "Distribution center, Quebec City"}</p>
+                      <p className="text-xs text-muted-foreground">{language === "fr" ? "Centre de distribution" : "Distribution center"}</p>
                     </div>
                   </div>
                 </div>
@@ -1561,168 +1680,32 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      {/* ========== TRIPWIRE: PRELIMINARY DESIGN STUDY ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20" data-testid="section-tripwire">
+      {/* ========== CONTACT SECTION (Merged: Expert + Final Contact) ========== */}
+      <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="section-contact">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="space-y-8"
           >
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Wrench className="w-8 h-8 text-amber-600" />
-              <h2 className="text-3xl sm:text-4xl font-bold" data-testid="tripwire-title">
-                {t("tripwire.title")}
-              </h2>
-            </div>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t("tripwire.subtitle")}
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            {/* Left: Description and guarantee */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="space-y-6"
-            >
-              <div>
-                <h3 className="text-3xl sm:text-4xl font-bold text-amber-600 mb-4" data-testid="tripwire-price">
-                  {t("tripwire.price")}
-                </h3>
-                <p className="text-muted-foreground text-lg">
-                  {t("tripwire.description")}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-4 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  {t("tripwire.includes.title")}
-                </h4>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
-                    <span className="text-sm">{t("tripwire.includes.siteVisit")}</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Sun className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
-                    <span className="text-sm">{t("tripwire.includes.shadeAnalysis")}</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Building2 className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
-                    <span className="text-sm">{t("tripwire.includes.roofModel")}</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Zap className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
-                    <span className="text-sm">{t("tripwire.includes.optimalDesign")}</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <TrendingUp className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
-                    <span className="text-sm">{t("tripwire.includes.roiProjections")}</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <DollarSign className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
-                    <span className="text-sm">{t("tripwire.includes.financingComparison")}</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <BadgePercent className="w-4 h-4 text-amber-600 mt-1 shrink-0" />
-                    <span className="text-sm">{t("tripwire.includes.incentiveOptimization")}</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border-2 border-green-200 dark:border-green-900">
-                <div className="flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-semibold text-sm text-green-800 dark:text-green-200 mb-1">
-                      {t("tripwire.guarantee.label")}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {t("tripwire.guarantee")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Right: CTA and reasoning */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="space-y-6"
-            >
-              <Card className="p-6 border-amber-200 dark:border-amber-900">
-                <div className="text-center space-y-4">
-                  <Wrench className="w-12 h-12 text-amber-600 mx-auto" />
-                  <div>
-                    <h4 className="font-bold mb-2">{t("tripwire.whyTripwire")}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {t("tripwire.whyTripwire.description")}
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs mb-2">
-                    {language === "fr" ? "100% applicable au projet final" : "100% applicable to final project"}
-                  </Badge>
-                  <Button
-                    size="lg"
-                    className="w-full gap-2 bg-amber-600 hover:bg-amber-700"
-                    onClick={() => {
-                      FunnelEvents.ctaClicked('design_study', 'landing_tripwire');
-                      if (import.meta.env.VITE_CALENDLY_URL) {
-                        window.open(import.meta.env.VITE_CALENDLY_URL, '_blank');
-                      } else {
-                        navigate('/contact?service=design_study');
-                      }
-                    }}
-                    data-testid="button-book-design-study"
-                  >
-                    <CalendarDays className="w-4 h-4" />
-                    {t("tripwire.cta")}
-                  </Button>
-                </div>
-              </Card>
-
-              <Card className="p-4 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-                <p className="text-sm text-muted-foreground">
-                  <strong>💡 {language === "fr" ? "Conseil:" : "Tip:"}</strong> {language === "fr"
-                    ? " Beaucoup de projets solaires échouent faute d'une analyse préalable robuste. Notre étude de design est votre assurance."
-                    : " Many solar projects fail due to lack of robust preliminary analysis. Our design study is your insurance."}
-                </p>
-              </Card>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-      {/* ========== EXPERT CONSULTATION SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="section-expert">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center space-y-8"
-          >
-            <div className="space-y-3">
+            {/* Header */}
+            <div className="text-center space-y-3">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <Phone className="w-8 h-8 text-primary" />
-                <h2 className="text-3xl sm:text-4xl font-bold" data-testid="expert-title">
-                  {t("expert.title")}
+                <h2 className="text-3xl sm:text-4xl font-bold" data-testid="contact-title">
+                  {language === "fr" ? "Contactez-nous" : "Contact us"}
                 </h2>
               </div>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {t("expert.subtitle")}
-              </p>
-              <p className="text-muted-foreground">
-                {t("expert.description")}
+                {language === "fr"
+                  ? "Réservez une consultation gratuite avec nos experts ou contactez-nous directement"
+                  : "Book a free consultation with our experts or contact us directly"
+                }
               </p>
             </div>
 
+            {/* Calendly / Consultation Section */}
             {import.meta.env.VITE_CALENDLY_URL ? (
               <div className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 min-h-[600px]">
                 <iframe
@@ -1741,48 +1724,17 @@ export default function LandingPage() {
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs mb-2">
                   {language === "fr" ? "SANS FRAIS · Sans engagement" : "NO COST · No commitment"}
                 </Badge>
-                <Button
-                  size="lg"
-                  className="gap-2"
-                  onClick={() => {
-                    FunnelEvents.ctaClicked('expert_call', 'landing_expert');
-                    window.open('mailto:info@kwh.quebec?subject=Expert%20Consultation%20Request', '_blank');
-                  }}
-                  data-testid="button-expert-contact"
-                >
-                  <Mail className="w-4 h-4" />
-                  {language === "fr" ? "Nous contacter" : "Contact us"}
-                </Button>
               </Card>
             )}
-          </motion.div>
-        </div>
-      </section>
-      {/* ========== FINAL CTA / CONTACT SECTION ========== */}
-      <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <Card className="p-8 text-center space-y-6 border-0 shadow-none">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                <Phone className="w-8 h-8 text-primary" />
-              </div>
-              
-              <div className="space-y-2">
-                <h2 className="text-2xl sm:text-3xl font-bold">
-                  {language === "fr" ? "Prêt à passer au solaire?" : "Ready to go solar?"}
-                </h2>
-                <p className="text-muted-foreground max-w-lg mx-auto">
-                  {language === "fr" 
-                    ? "Contactez-nous pour discuter de votre projet ou demandez une analyse directement ci-dessus."
-                    : "Contact us to discuss your project or request an analysis directly above."
-                  }
-                </p>
-              </div>
-              
+
+            {/* Direct Contact Options */}
+            <div className="border-t pt-8">
+              <p className="text-center text-sm font-medium mb-6">
+                {language === "fr"
+                  ? "Ou contactez-nous directement:"
+                  : "Or reach us directly:"
+                }
+              </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a href="mailto:info@kwh.quebec">
                   <Button variant="outline" size="lg" className="gap-2" data-testid="button-email-contact">
@@ -1797,147 +1749,20 @@ export default function LandingPage() {
                   </Button>
                 </a>
               </div>
-              
-              <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr" 
-                    ? "Ou utilisez les options d'analyse ci-dessus pour commencer immédiatement"
-                    : "Or use the analysis options above to get started immediately"
-                  }
-                </p>
-                <a href="#paths">
+              <p className="text-center text-xs text-muted-foreground mt-4">
+                {language === "fr"
+                  ? "Ou retournez à l'analyse gratuite pour commencer immédiatement"
+                  : "Or go back to the free analysis to get started now"
+                }
+              </p>
+              <div className="flex justify-center mt-3">
+                <a href="#analyse">
                   <Button variant="ghost" className="gap-1 text-primary" data-testid="button-back-to-paths">
                     <ChevronUp className="w-4 h-4" />
                     {language === "fr" ? "Retour aux options d'analyse" : "Back to analysis options"}
                   </Button>
                 </a>
               </div>
-            </Card>
-          </motion.div>
-        </div>
-      </section>
-      {/* ========== TESTIMONIALS SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-muted/50 to-background">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-14"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-              {t("testimonials.title")}
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              {t("testimonials.subtitle")}
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <Card className="h-full flex flex-col p-6 hover:shadow-lg transition-shadow">
-                  {/* Stars */}
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(5)].map((_, idx) => (
-                      <Star
-                        key={idx}
-                        className="w-4 h-4 fill-amber-400 text-amber-400"
-                      />
-                    ))}
-                  </div>
-
-                  {/* Quote */}
-                  <p className="text-sm leading-relaxed mb-6 flex-grow text-muted-foreground">
-                    "{t(`testimonials.item${i}.text`)}"
-                  </p>
-
-                  {/* Author */}
-                  <div className="border-t pt-4">
-                    <p className="font-semibold text-sm">
-                      {t(`testimonials.item${i}.name`)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t(`testimonials.item${i}.role`)} • {t(`testimonials.item${i}.company`)}
-                    </p>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Économies annuelles</p>
-                      <p className="font-bold text-sm text-green-600">
-                        {t(`testimonials.item${i}.savings`)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Système</p>
-                      <p className="font-bold text-sm">
-                        {t(`testimonials.item${i}.system`)}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-      {/* ========== REFERRAL PROGRAM SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            className="bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-950/30 dark:to-blue-950/10 rounded-2xl p-10 md:p-16 border border-blue-200/50 dark:border-blue-800/30"
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-          >
-            <div className="text-center mb-12">
-              <Rocket className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-                {t("referral.title")}
-              </h2>
-              <p className="text-lg text-muted-foreground">
-                {t("referral.subtitle")}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-              {[
-                { icon: User, step: "1", key: "step1" },
-                { icon: CheckCircle2, step: "2", key: "step2" },
-                { icon: Award, step: "3", key: "step3" },
-              ].map((item, idx) => (
-                <div key={item.key} className="text-center">
-                  <div className="flex items-center justify-center mb-3 gap-2">
-                    <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                      {item.step}
-                    </div>
-                    {idx < 2 && (
-                      <ArrowRight className="w-5 h-5 text-blue-400 hidden md:block" />
-                    )}
-                  </div>
-                  <p className="font-semibold mb-1">{t(`referral.${item.key}`)}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center">
-              <a
-                href="mailto:info@kwh.quebec?subject=Programme%20de%20r%C3%A9f%C3%A9ral"
-                onClick={() => FunnelEvents.ctaClicked('referral_program', 'landing_referral')}
-              >
-                <Button size="lg" className="gap-2">
-                  {t("referral.cta")}
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </a>
             </div>
           </motion.div>
         </div>
@@ -1958,7 +1783,7 @@ export default function LandingPage() {
             </div>
             
             <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
-              <a href="#paths" className="hover:text-foreground transition-colors">
+              <a href="#analyse" className="hover:text-foreground transition-colors">
                 {language === "fr" ? "Analyser" : "Analyze"}
               </a>
               <Link href="/ressources" className="hover:text-foreground transition-colors">

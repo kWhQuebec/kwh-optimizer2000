@@ -90,9 +90,9 @@ const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
     fr: "Analyse solaire et proposition financière remises au client", 
     en: "Solar analysis and financial proposal delivered to client" 
   },
-  design_signed: { 
-    fr: "Client a signé l'entente de design pour les plans détaillés", 
-    en: "Client signed the design agreement for detailed plans" 
+  design_signed: {
+    fr: "Client a signé le mandat de conception pour les plans détaillés",
+    en: "Client signed the design mandate for detailed plans"
   },
   negotiation: { 
     fr: "Négociation du contrat de construction en cours", 

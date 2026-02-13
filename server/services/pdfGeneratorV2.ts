@@ -1551,7 +1551,7 @@ function buildNextStepsPage(
       </div>
       <div class="funnel-step" style="border: 2px solid var(--accent); border-radius: 3mm;">
         <div class="funnel-step-number">2</div>
-        <div class="funnel-step-title">${t("Entente de design", "Design Agreement")}</div>
+        <div class="funnel-step-title">${t("Mandat de conception", "Design Mandate")}</div>
         <p class="funnel-step-desc">${t("Visite technique, ing&eacute;nierie pr&eacute;liminaire, devis ferme garanti 60 jours.", "Technical visit, preliminary engineering, firm quote guaranteed 60 days.")}</p>
         <span class="funnel-step-tag">${t("PROCHAINE &Eacute;TAPE", "NEXT STEP")}</span>
       </div>
@@ -1584,7 +1584,7 @@ function buildNextStepsPage(
         <h3>${t("Prochaine &eacute;tape imm&eacute;diate", "Immediate next step")}</h3>
         <p>${t("Pour passer &agrave; l'&eacute;tape de conception d&eacute;taill&eacute;e :", "To proceed to the detailed design phase:")}</p>
         <ul class="bullet-list">
-          <li>${t("Signer l'entente de design en ligne", "Sign the design agreement online")}</li>
+          <li>${t("Signer le mandat de conception en ligne", "Sign the design mandate online")}</li>
           <li>${t("Visite technique de votre b&acirc;timent sous 2 semaines", "Technical visit of your building within 2 weeks")}</li>
           <li>${t("Conception finale et devis ferme garanti 60 jours", "Final design and firm quote guaranteed 60 days")}</li>
           <li>${t("D&eacute;but des travaux sous 8-12 semaines", "Construction start within 8-12 weeks")}</li>
@@ -1603,7 +1603,7 @@ function buildNextStepsPage(
     : `<div class="section">
         <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
         <div class="info-box" style="font-size: 9pt;">
-          <p><strong>${t("Que couvre l'entente de design?", "What does the design agreement cover?")}</strong><br>${t("Visite de site compl&egrave;te, ing&eacute;nierie pr&eacute;liminaire, pr&eacute;paration du dossier d'interconnexion Hydro-Qu&eacute;bec, et soumission ferme d&eacute;taill&eacute;e.", "Complete site visit, preliminary engineering, Hydro-Qu&eacute;bec interconnection file preparation, and detailed firm quote.")}</p>
+          <p><strong>${t("Que couvre le mandat de conception?", "What does the design mandate cover?")}</strong><br>${t("Visite de site compl&egrave;te, ing&eacute;nierie pr&eacute;liminaire, pr&eacute;paration du dossier d'interconnexion Hydro-Qu&eacute;bec, et soumission ferme d&eacute;taill&eacute;e.", "Complete site visit, preliminary engineering, Hydro-Qu&eacute;bec interconnection file preparation, and detailed firm quote.")}</p>
           <p><strong>${t("Combien &ccedil;a co&ucirc;te?", "How much does it cost?")}</strong><br>${t("Consultez le lien ci-dessous pour les d&eacute;tails et le paiement s&eacute;curis&eacute; en ligne.", "See the link below for details and secure online payment.")}</p>
           <p style="margin: 0;"><strong>${t("Le devis peut-il changer?", "Can the quote change?")}</strong><br>${t("Le devis formel est garanti 60 jours, prix ferme.", "The formal quote is guaranteed 60 days, firm price.")}</p>
         </div>
@@ -1619,7 +1619,7 @@ function buildNextStepsPage(
       <p style="font-size: 10pt; margin-top: 3mm; opacity: 0.8;">kwh.quebec</p>
     </div>`
     : `<div class="cta-box">
-      <h3>${t("Signez votre entente de design en ligne", "Sign your design agreement online")}</h3>
+      <h3>${t("Signez votre mandat de conception en ligne", "Sign your design mandate online")}</h3>
       <p>${t("Un lien s&eacute;curis&eacute; vous sera envoy&eacute; par courriel pour signer et compl&eacute;ter le paiement en ligne.", "A secure link will be sent to you by email to sign and complete the payment online.")}</p>
       <p style="font-size: 14pt; margin-top: 5mm;">
         <strong>evaluation@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>

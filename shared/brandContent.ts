@@ -181,6 +181,30 @@ export const BRAND_CONTENT = {
     { labelFr: "Proposition ferme avec prix garanti et échéancier", labelEn: "Firm proposal with guaranteed price and timeline" },
   ],
 
+  // === MANDAT DE CONCEPTION — PRIX ET POSITIONNEMENT ===
+  designMandate: {
+    price: 5500,
+    currency: "CAD",
+    labelFr: "Mandat de conception",
+    labelEn: "Design Mandate",
+    priceLabelFr: "5 500$ + taxes",
+    priceLabelEn: "$5,500 + taxes",
+    descriptionFr: "Étude complète de conception et d'ingénierie pour votre projet solaire.",
+    descriptionEn: "Complete design and engineering study for your solar project.",
+    includes: [
+      { labelFr: "Visite de site avec ingénieur en structure, électricien et technicien kWh", labelEn: "On-site visit with structural engineer, electrician, and kWh technician" },
+      { labelFr: "Analyse d'ombrage sur site", labelEn: "On-site shade analysis" },
+      { labelFr: "Plans complets pour soumission", labelEn: "Complete plans for submission" },
+      { labelFr: "Modèle 3D de l'installation", labelEn: "3D installation model" },
+      { labelFr: "Projections financières détaillées", labelEn: "Detailed financial projections" },
+      { labelFr: "Optimisation des incitatifs disponibles", labelEn: "Available incentives optimization" },
+      { labelFr: "Comparaison des options de financement", labelEn: "Financing options comparison" },
+      { labelFr: "Rapport complet livré même si des travaux correctifs sont requis", labelEn: "Complete report delivered even if corrective work is required" },
+    ],
+    valuePropositionFr: "Rapport complet et utilisable indépendamment du fournisseur choisi. L'étude a une valeur concrète pour votre décision.",
+    valuePropositionEn: "Complete and usable report regardless of which provider you choose. The study has concrete value for your decision.",
+  },
+
   clientProvides: [
     { labelFr: "Factures Hydro-Québec (12-24 mois)", labelEn: "Hydro-Québec bills (12-24 months)" },
     { labelFr: "Informations toiture (âge, état)", labelEn: "Roof information (age, condition)" },
@@ -514,4 +538,24 @@ export function getWhySolarNow(lang: Lang): {
       reality: lang === "fr" ? m.realityFr : m.realityEn,
     })),
   };
+}
+
+export function getDesignMandatePrice(lang: Lang): string {
+  return lang === "fr" ? BRAND_CONTENT.designMandate.priceLabelFr : BRAND_CONTENT.designMandate.priceLabelEn;
+}
+
+export function getDesignMandateLabel(lang: Lang): string {
+  return lang === "fr" ? BRAND_CONTENT.designMandate.labelFr : BRAND_CONTENT.designMandate.labelEn;
+}
+
+export function getDesignMandateIncludes(lang: Lang): string[] {
+  return BRAND_CONTENT.designMandate.includes.map(i => (lang === "fr" ? i.labelFr : i.labelEn));
+}
+
+export function getDesignMandateDescription(lang: Lang): string {
+  return lang === "fr" ? BRAND_CONTENT.designMandate.descriptionFr : BRAND_CONTENT.designMandate.descriptionEn;
+}
+
+export function getDesignMandateValueProp(lang: Lang): string {
+  return lang === "fr" ? BRAND_CONTENT.designMandate.valuePropositionFr : BRAND_CONTENT.designMandate.valuePropositionEn;
 }

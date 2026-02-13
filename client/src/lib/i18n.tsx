@@ -71,8 +71,8 @@ const translations: Translations = {
   // Phase Conception
   "landing.step3.title": { fr: "Mandat de conception", en: "Design Mandate" },
   "landing.step3.description": {
-    fr: "Vous signez le mandat de conception (2 500$ + taxes). Ce montant couvre la visite technique, l'ingénierie préliminaire et la proposition finale — 100% applicable si vous allez de l'avant.",
-    en: "You sign the design mandate ($2,500 + taxes). This covers the technical visit, preliminary engineering and final proposal — 100% applicable if you proceed."
+    fr: "Vous signez le mandat de conception (5 500$ + taxes). Ce montant couvre la visite technique, l'ingénierie préliminaire et la proposition finale — le rapport est complet et utilisable peu importe le fournisseur choisi.",
+    en: "You sign the design mandate ($5,500 + taxes). This covers the technical visit, preliminary engineering and final proposal — the report is complete and usable regardless of which provider you choose."
   },
   "landing.step3.time": { fr: "Signature + frais", en: "Signature + fees" },
   "landing.step4.title": { fr: "Visite & proposition", en: "Visit & Proposal" },
@@ -630,7 +630,7 @@ const translations: Translations = {
   "siteVisit.notes": { fr: "Notes", en: "Notes" },
   "siteVisit.noVisits": { fr: "Aucune visite technique planifiée", en: "No technical visit scheduled" },
   "siteVisit.createFirst": { fr: "Planifier une première visite technique", en: "Schedule a first technical visit" },
-  "siteVisit.signAgreementFirst": { fr: "Obtenez d'abord une entente de design signée pour planifier une visite technique.", en: "Get a signed design agreement first to schedule a technical visit." },
+  "siteVisit.signAgreementFirst": { fr: "Obtenez d'abord un mandat de conception signé pour planifier une visite technique.", en: "Get a signed design mandate first to schedule a technical visit." },
   
   // Site Visit - Location
   "siteVisit.location": { fr: "Emplacement", en: "Location" },
@@ -729,11 +729,11 @@ const translations: Translations = {
   "siteVisit.updateError": { fr: "Erreur lors de la mise à jour", en: "Error updating visit" },
   "siteVisit.deleteError": { fr: "Erreur lors de la suppression", en: "Error deleting visit" },
 
-  // Design Agreement (Step 3)
-  "designAgreement.title": { fr: "Entente de design (Étape 3)", en: "Design Agreement (Step 3)" },
+  // Design Mandate (Step 3)
+  "designAgreement.title": { fr: "Mandat de conception (Étape 3)", en: "Design Mandate (Step 3)" },
   "designAgreement.subtitle": { fr: "Première étape payante vers votre projet solaire", en: "First paid step toward your solar project" },
   "designAgreement.generate": { fr: "Générer l'entente", en: "Generate Agreement" },
-  "designAgreement.generateDescription": { fr: "Créez une entente de design pour formaliser les coûts de visite technique et livrables.", en: "Create a design agreement to formalize technical visit costs and deliverables." },
+  "designAgreement.generateDescription": { fr: "Créez un mandat de conception pour formaliser les coûts de visite technique et livrables.", en: "Create a design mandate to formalize technical visit costs and deliverables." },
   "designAgreement.status": { fr: "Statut", en: "Status" },
   "designAgreement.status.draft": { fr: "Brouillon", en: "Draft" },
   "designAgreement.status.sent": { fr: "Envoyée", en: "Sent" },
@@ -762,7 +762,7 @@ const translations: Translations = {
   "designAgreement.send": { fr: "Envoyer au client", en: "Send to Client" },
   "designAgreement.markAccepted": { fr: "Marquer comme acceptée", en: "Mark as Accepted" },
   "designAgreement.noVisit": { fr: "Aucune visite technique planifiée", en: "No technical visit scheduled" },
-  "designAgreement.scheduleVisitFirst": { fr: "Planifiez d'abord une visite technique pour générer une entente de design.", en: "Schedule a technical visit first to generate a design agreement." },
+  "designAgreement.scheduleVisitFirst": { fr: "Planifiez d'abord une visite technique pour générer un mandat de conception.", en: "Schedule a technical visit first to generate a design mandate." },
   "designAgreement.created": { fr: "Entente créée", en: "Agreement created" },
   "designAgreement.sent": { fr: "Entente envoyée", en: "Agreement sent" },
   "designAgreement.accepted": { fr: "Entente acceptée", en: "Agreement accepted" },
@@ -776,7 +776,7 @@ const translations: Translations = {
   
   // Design agreement - detailed terms
   "designAgreement.introduction": { fr: "À propos de cette entente", en: "About This Agreement" },
-  "designAgreement.introText": { fr: "Cette entente couvre les frais de conception technique préalables à une soumission à prix fixe pour votre projet solaire. Les travaux inclus vous permettent d'obtenir tous les documents nécessaires pour prendre une décision éclairée.", en: "This agreement covers the technical design fees required before providing a fixed-price quote for your solar project. The included work provides you with all the documents needed to make an informed decision." },
+  "designAgreement.introText": { fr: "Ce mandat couvre les frais de conception technique préalables à une soumission à prix fixe pour votre projet solaire. Les travaux inclus vous permettent d'obtenir tous les documents nécessaires pour prendre une décision éclairée.", en: "This mandate covers the technical design fees required before providing a fixed-price quote for your solar project. The included work provides you with all the documents needed to make an informed decision." },
   
   "designAgreement.deliverablesDetailed": { fr: "Ce qui est inclus", en: "What's Included" },
   "designAgreement.deliverableDetail1": { fr: "Visite technique complète du site par un technicien certifié", en: "Complete on-site technical visit by a certified technician" },
@@ -798,12 +798,12 @@ const translations: Translations = {
   "designAgreement.timelineVisit": { fr: "Visite technique: 2-3 semaines après signature", en: "Technical visit: 2-3 weeks after signing" },
   "designAgreement.timelineDelivery": { fr: "Livraison des documents: 2-3 semaines après la visite", en: "Document delivery: 2-3 weeks after visit" },
   
-  "designAgreement.creditPolicy": { fr: "Politique de crédit", en: "Credit Policy" },
-  "designAgreement.creditPolicyText": { fr: "Le dépôt sera crédité intégralement sur votre projet si vous procédez à l'installation avec kWh Québec dans les 90 jours suivant la livraison des documents.", en: "The deposit will be fully credited to your project if you proceed with installation through kWh Québec within 90 days of document delivery." },
+  "designAgreement.creditPolicy": { fr: "Valeur du rapport", en: "Report Value" },
+  "designAgreement.creditPolicyText": { fr: "Le rapport de conception est complet et utilisable. Il fournit une valeur concrète indépendamment de votre décision d'installation ou du fournisseur choisi.", en: "The design report is complete and usable. It provides concrete value independently of your installation decision or choice of provider." },
   
   // Pricing Configuration Dialog
   "designAgreement.pricingConfig": { fr: "Configuration des coûts", en: "Pricing Configuration" },
-  "designAgreement.pricingConfigDescription": { fr: "Configurez les coûts de l'entente de design basés sur le système et les services requis.", en: "Configure design agreement costs based on the system and required services." },
+  "designAgreement.pricingConfigDescription": { fr: "Configurez les coûts du mandat de conception basés sur le système et les services requis.", en: "Configure design mandate costs based on the system and required services." },
   "designAgreement.systemConfig": { fr: "Configuration du système", en: "System Configuration" },
   "designAgreement.numBuildings": { fr: "Nombre de bâtiments", en: "Number of Buildings" },
   "designAgreement.travelDays": { fr: "Jours de déplacement", en: "Travel Days" },
@@ -819,7 +819,7 @@ const translations: Translations = {
   "designAgreement.travelFee": { fr: "Frais de déplacement", en: "Travel Fee" },
   
   "designAgreement.importantNotes": { fr: "Notes importantes", en: "Important Notes" },
-  "designAgreement.note1": { fr: "Le dépôt de 50% est non remboursable une fois la visite technique effectuée.", en: "The 50% deposit is non-refundable once the technical visit is completed." },
+  "designAgreement.note1": { fr: "Le mandat de conception couvre les services d'ingénierie complets et la visite est incluse dans ce coût. Le rapport final livré a une valeur indépendante.", en: "The design mandate covers complete engineering services and the site visit is included in this cost. The final report delivered has independent value." },
   "designAgreement.note2": { fr: "Cette entente est valide pour 30 jours à compter de la date d'émission.", en: "This agreement is valid for 30 days from the issue date." },
   "designAgreement.note3": { fr: "Les travaux de conception appartiennent à kWh Québec jusqu'au paiement final.", en: "Design work belongs to kWh Québec until final payment." },
   
@@ -828,10 +828,10 @@ const translations: Translations = {
   "designAgreement.deleted": { fr: "Entente supprimée", en: "Agreement deleted" },
   "designAgreement.deleteError": { fr: "Erreur lors de la suppression", en: "Error deleting agreement" },
   "designAgreement.deleteConfirmTitle": { fr: "Supprimer cette entente?", en: "Delete this agreement?" },
-  "designAgreement.deleteConfirmDescription": { fr: "Cette action est irréversible. L'entente de design sera supprimée définitivement et vous pourrez en créer une nouvelle.", en: "This action cannot be undone. The design agreement will be permanently deleted and you can create a new one." },
+  "designAgreement.deleteConfirmDescription": { fr: "Cette action est irréversible. Le mandat de conception sera supprimé définitivement et vous pourrez en créer un nouveau.", en: "This action cannot be undone. The design mandate will be permanently deleted and you can create a new one." },
   
   // Public signing page
-  "publicAgreement.title": { fr: "Entente de design", en: "Design Agreement" },
+  "publicAgreement.title": { fr: "Mandat de conception", en: "Design Mandate" },
   "publicAgreement.preparedFor": { fr: "Préparé pour", en: "Prepared for" },
   "publicAgreement.site": { fr: "Site", en: "Site" },
   "publicAgreement.projectScope": { fr: "Portée du projet", en: "Project Scope" },
@@ -840,7 +840,7 @@ const translations: Translations = {
   "publicAgreement.term1": { fr: "Les travaux débuteront dans les 10 jours ouvrables suivant la réception du dépôt.", en: "Work will begin within 10 business days of receiving the deposit." },
   "publicAgreement.term2": { fr: "Les livrables seront fournis sous forme électronique.", en: "Deliverables will be provided in electronic format." },
   "publicAgreement.term3": { fr: "Cette soumission est valide pour 30 jours.", en: "This quote is valid for 30 days." },
-  "publicAgreement.term4": { fr: "Le dépôt de 50% est non remboursable.", en: "The 50% deposit is non-refundable." },
+  "publicAgreement.term4": { fr: "Le dépôt de 50% couvre les services d'ingénierie et la visite technique inclus dans le mandat de conception.", en: "The 50% deposit covers the engineering services and technical visit included in the design mandate." },
   "publicAgreement.signatureSection": { fr: "Signature", en: "Signature" },
   "publicAgreement.yourName": { fr: "Votre nom", en: "Your Name" },
   "publicAgreement.yourEmail": { fr: "Votre courriel", en: "Your Email" },
@@ -887,7 +887,7 @@ const translations: Translations = {
 
   // Email Dialog for Design Agreement
   "designAgreement.emailDialog.title": { fr: "Envoyer l'entente par courriel", en: "Send Agreement by Email" },
-  "designAgreement.emailDialog.description": { fr: "Personnalisez le message avant d'envoyer l'entente de design au client.", en: "Customize the message before sending the design agreement to the client." },
+  "designAgreement.emailDialog.description": { fr: "Personnalisez le message avant d'envoyer le mandat de conception au client.", en: "Customize the message before sending the design mandate to the client." },
   "designAgreement.emailDialog.recipientEmail": { fr: "Courriel du destinataire", en: "Recipient Email" },
   "designAgreement.emailDialog.recipientName": { fr: "Nom du destinataire", en: "Recipient Name" },
   "designAgreement.emailDialog.subject": { fr: "Sujet", en: "Subject" },
@@ -896,8 +896,8 @@ const translations: Translations = {
   "designAgreement.emailDialog.sending": { fr: "Envoi en cours...", en: "Sending..." },
   "designAgreement.emailDialog.success": { fr: "Courriel envoyé avec succès!", en: "Email sent successfully!" },
   "designAgreement.emailDialog.error": { fr: "Erreur lors de l'envoi du courriel", en: "Error sending email" },
-  "designAgreement.emailDialog.defaultSubject": { fr: "Entente de design - {{siteName}}", en: "Design Agreement - {{siteName}}" },
-  "designAgreement.emailDialog.defaultBody": { fr: "Bonjour {{clientName}},\n\nVeuillez trouver ci-joint votre entente de design pour le site {{siteName}}.\n\nCette entente détaille les coûts et livrables pour la conception technique de votre projet solaire.\n\nCordialement,\nL'équipe kWh Québec", en: "Hello {{clientName}},\n\nPlease find attached your design agreement for the site {{siteName}}.\n\nThis agreement details the costs and deliverables for the technical design of your solar project.\n\nBest regards,\nThe kWh Québec team" },
+  "designAgreement.emailDialog.defaultSubject": { fr: "Mandat de conception - {{siteName}}", en: "Design Mandate - {{siteName}}" },
+  "designAgreement.emailDialog.defaultBody": { fr: "Bonjour {{clientName}},\n\nVeuillez trouver ci-joint votre mandat de conception pour le site {{siteName}}.\n\nCe mandat détaille les coûts et livrables pour la conception technique de votre projet solaire.\n\nCordialement,\nL'équipe kWh Québec", en: "Hello {{clientName}},\n\nPlease find attached your design mandate for the site {{siteName}}.\n\nThis mandate details the costs and deliverables for the technical design of your solar project.\n\nBest regards,\nThe kWh Québec team" },
   "designAgreement.emailHistory": { fr: "Historique d'envois", en: "Email History" },
   "designAgreement.emailSentOn": { fr: "Envoyé le {{date}} à {{email}}", en: "Sent on {{date}} to {{email}}" },
   "designAgreement.noEmailsSent": { fr: "Aucun courriel envoyé", en: "No emails sent" },
@@ -979,13 +979,13 @@ const translations: Translations = {
   "kbRacking.min": { fr: "Min", en: "Min" },
   "kbRacking.max": { fr: "Max", en: "Max" },
 
-  // Tripwire - Preliminary Design Study
-  "tripwire.title": { fr: "Étude de design préliminaire", en: "Preliminary Design Study" },
+  // Tripwire - Design Mandate
+  "tripwire.title": { fr: "Mandat de conception", en: "Design Mandate" },
   "tripwire.subtitle": { fr: "L'étape intelligente avant d'investir", en: "The smart step before investing" },
-  "tripwire.price": { fr: "$2,500", en: "$2,500" },
+  "tripwire.price": { fr: "$5,500", en: "$5,500" },
   "tripwire.description": {
-    fr: "Avant d'engager plusieurs centaines de milliers de dollars, validez votre projet avec une étude de design complète et professionnelle.",
-    en: "Before committing hundreds of thousands, validate your project with a complete, professional design study."
+    fr: "Avant d'engager plusieurs centaines de milliers de dollars, validez votre projet avec un mandat de conception complet et professionnel.",
+    en: "Before committing hundreds of thousands, validate your project with a complete, professional design mandate."
   },
   "tripwire.includes.title": { fr: "L'étude comprend:", en: "The study includes:" },
   "tripwire.includes.siteVisit": { fr: "Visite sur site avec mesures précises", en: "On-site visit with precise measurements" },
@@ -995,19 +995,19 @@ const translations: Translations = {
   "tripwire.includes.roiProjections": { fr: "Projections de ROI sur 25 ans", en: "25-year ROI projections" },
   "tripwire.includes.financingComparison": { fr: "Comparaison des options de financement", en: "Financing options comparison" },
   "tripwire.includes.incentiveOptimization": { fr: "Optimisation des incitatifs", en: "Incentive optimization strategy" },
-  "tripwire.cta": { fr: "Réserver mon étude de design", en: "Book my design study" },
+  "tripwire.cta": { fr: "Réserver mon mandat de conception", en: "Book my design mandate" },
   "tripwire.guarantee": {
-    fr: "100% applicable à l'installation — Si vous allez de l'avant, ce montant est déduit du coût total du projet.",
-    en: "100% applicable to installation — If you proceed, this amount is deducted from the total project cost."
+    fr: "Le rapport de conception est complet et utilisable indépendamment du fournisseur choisi pour l'installation.",
+    en: "The design report is complete and usable regardless of which provider you choose for installation."
   },
   "tripwire.guarantee.label": { fr: "Garantie", en: "Guarantee" },
   "tripwire.whyTripwire": {
-    fr: "Pourquoi une étude de design?",
-    en: "Why a design study?"
+    fr: "Pourquoi un mandat de conception?",
+    en: "Why a design mandate?"
   },
   "tripwire.whyTripwire.description": {
-    fr: "Chaque toiture est unique. Les ombres, l'orientation, la structure — tout compte. Une étude professionnelle évite les erreurs coûteuses et maximise votre retour.",
-    en: "Every roof is unique. Shadows, orientation, structure — it all matters. A professional study avoids costly mistakes and maximizes your return."
+    fr: "Chaque toiture est unique. Les ombres, l'orientation, la structure — tout compte. Un mandat professionnel évite les erreurs coûteuses et maximise votre retour.",
+    en: "Every roof is unique. Shadows, orientation, structure — it all matters. A professional mandate avoids costly mistakes and maximizes your return."
   },
 
   // Expert consultation section

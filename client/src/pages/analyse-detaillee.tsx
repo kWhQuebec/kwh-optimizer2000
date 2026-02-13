@@ -951,7 +951,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
             >
               <Card className="p-6 lg:p-8 border-2 border-accent/30">
                 {submitted ? (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-center py-8"
@@ -959,10 +959,19 @@ The data obtained will be used exclusively for solar potential analysis and phot
                     <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
                       <CheckCircle2 className="w-8 h-8 text-green-500" />
                     </div>
-                    <h3 className="text-2xl font-bold mb-3">
-                      {language === "fr" ? "Demande complétée!" : "Request completed!"}
+                    <h3 className="text-2xl font-bold mb-2">
+                      {language === "fr" ? "Procuration envoyée avec succès!" : "Authorization submitted successfully!"}
                     </h3>
-                    
+
+                    {(form.getValues().firstName || form.getValues().lastName) && (
+                      <p className="text-lg text-muted-foreground mb-6">
+                        {language === "fr"
+                          ? `Merci, ${form.getValues().firstName}${form.getValues().lastName ? ' ' + form.getValues().lastName : ''}!`
+                          : `Thank you, ${form.getValues().firstName}${form.getValues().lastName ? ' ' + form.getValues().lastName : ''}!`
+                        }
+                      </p>
+                    )}
+
                     <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6">
                       <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-2">
                         <FileSignature className="w-5 h-5" />
@@ -970,12 +979,20 @@ The data obtained will be used exclusively for solar potential analysis and phot
                           {language === "fr" ? "Procuration signée" : "Authorization Signed"}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground mb-3">
                         {language === "fr"
-                          ? "Votre procuration a été signée électroniquement et enregistrée. Nous devrions avoir accès à vos données de consommation Hydro-Québec d'ici 3 à 4 jours ouvrables."
-                          : "Your authorization has been electronically signed and recorded. We should have access to your Hydro-Québec consumption data within 3 to 4 business days."
+                          ? "Votre procuration a été signée électroniquement et enregistrée."
+                          : "Your authorization has been electronically signed and recorded."
                         }
                       </p>
+                      {form.getValues().email && (
+                        <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                          {language === "fr"
+                            ? `Un courriel de confirmation sera envoyé à ${form.getValues().email}`
+                            : `A confirmation email will be sent to ${form.getValues().email}`
+                          }
+                        </p>
+                      )}
                     </div>
 
                     <div className="bg-muted/50 border border-border rounded-lg p-4 mb-6 text-left">
@@ -990,7 +1007,10 @@ The data obtained will be used exclusively for solar potential analysis and phot
                           </div>
                           <div>
                             <p className="font-medium">
-                              {language === "fr" ? "Accès Hydro-Québec (3 jours ouvrables)" : "Hydro-Québec Access (3 business days)"}
+                              {language === "fr" ? "Accès aux données Hydro-Québec" : "Hydro-Québec Data Access"}
+                            </p>
+                            <p className="text-primary font-semibold text-xs mb-1">
+                              {language === "fr" ? "3-4 jours ouvrables" : "3-4 business days"}
                             </p>
                             <p className="text-muted-foreground">
                               {language === "fr"
@@ -1006,7 +1026,10 @@ The data obtained will be used exclusively for solar potential analysis and phot
                           </div>
                           <div>
                             <p className="font-medium">
-                              {language === "fr" ? "Analyse complète (48h)" : "Complete Analysis (48h)"}
+                              {language === "fr" ? "Analyse détaillée de votre bâtiment" : "Detailed analysis of your building"}
+                            </p>
+                            <p className="text-primary font-semibold text-xs mb-1">
+                              {language === "fr" ? "5-7 jours ouvrables" : "5-7 business days"}
                             </p>
                             <p className="text-muted-foreground">
                               {language === "fr"
@@ -1021,23 +1044,39 @@ The data obtained will be used exclusively for solar potential analysis and phot
                             <span className="text-xs font-bold text-primary">3</span>
                           </div>
                           <div>
-                            <p className="font-medium">
-                              {language === "fr" ? "Rapport envoyé par courriel" : "Report Sent by Email"}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {language === "fr"
-                                ? "Vous recevrez votre analyse détaillée avec recommandations de dimensionnement et projections financières."
-                                : "You will receive your detailed analysis with sizing recommendations and financial projections."
-                              }
-                            </p>
+                            {/* Show personalized presentation for high-value projects (annual bill >= $30k) */}
+                            {(form.getValues("estimatedMonthlyBill") && form.getValues("estimatedMonthlyBill")! >= 2500) ? (
+                              <>
+                                <p className="font-medium">
+                                  {language === "fr" ? "Présentation personnalisée de vos résultats" : "Personalized presentation of your results"}
+                                </p>
+                                <p className="text-muted-foreground">
+                                  {language === "fr"
+                                    ? "Un conseiller vous contactera pour planifier un rendez-vous et vous présenter l'analyse en détail avec les opportunités de savoir et les investissements recommandés."
+                                    : "An advisor will contact you to schedule a meeting and present the analysis in detail with savings opportunities and recommended investments."
+                                  }
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className="font-medium">
+                                  {language === "fr" ? "Rapport envoyé par courriel" : "Report sent by email"}
+                                </p>
+                                <p className="text-muted-foreground">
+                                  {language === "fr"
+                                    ? "Vous recevrez votre analyse complète par courriel avec un lien vers votre portail client pour explorer tous les détails de votre analyse."
+                                    : "You will receive your complete analysis by email with a link to your client portal to explore all the details of your analysis."
+                                  }
+                                </p>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Show personalized presentation offer for large projects: $5k+/month or 600k+ kWh/year */}
-                    {((form.getValues("estimatedMonthlyBill") && form.getValues("estimatedMonthlyBill")! >= 5000) || 
-                      (parsedBillData?.annualConsumptionKwh && parsedBillData.annualConsumptionKwh >= 600000)) && (
+                    {/* Show personalized presentation offer for large projects: $2.5k+/month (approx $30k/year) */}
+                    {(form.getValues("estimatedMonthlyBill") && form.getValues("estimatedMonthlyBill")! >= 2500) && (
                       <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
                         <div className="flex items-center gap-2 text-primary mb-2">
                           <Calendar className="w-5 h-5" />
@@ -1047,26 +1086,20 @@ The data obtained will be used exclusively for solar potential analysis and phot
                         </div>
                         <p className="text-sm text-muted-foreground mb-4">
                           {language === "fr"
-                            ? "Compte tenu de la taille de votre projet, nous vous invitons à planifier un appel de 30 minutes avec notre équipe pour vous présenter l'analyse en détail."
-                            : "Given the size of your project, we invite you to schedule a 30-minute call with our team to present the analysis in detail."
+                            ? "Compte tenu de la taille de votre projet, un conseiller kWh Québec vous contactera dans les prochains jours pour planifier une présentation personnalisée."
+                            : "Given the size of your project, a kWh Québec advisor will contact you in the coming days to schedule a personalized presentation."
                           }
                         </p>
-                        <Button 
-                          onClick={() => window.open("https://calendly.com/kwh-quebec/presentation-analyse", "_blank")}
-                          className="w-full"
-                          data-testid="button-schedule-presentation"
-                        >
-                          <Calendar className="w-4 h-4 mr-2" />
-                          {language === "fr" ? "Planifier une présentation" : "Schedule a Presentation"}
-                        </Button>
                       </div>
                     )}
 
-                    <Link href="/">
-                      <Button variant="outline" data-testid="button-back-after-submit">
-                        {language === "fr" ? "Retour à l'accueil" : "Back to home"}
-                      </Button>
-                    </Link>
+                    <div className="flex gap-3 justify-center">
+                      <Link href="/">
+                        <Button data-testid="button-back-after-submit">
+                          {language === "fr" ? "Retour à l'accueil" : "Back to home"}
+                        </Button>
+                      </Link>
+                    </div>
                   </motion.div>
                 ) : (
                   <>
@@ -1906,9 +1939,9 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                       {language === "fr" ? "Procuration Hydro-Québec" : "Hydro-Québec Authorization"}
                                     </h3>
                                     <p className="text-sm text-muted-foreground">
-                                      {language === "fr" 
-                                        ? "Pour accéder à vos données de consommation détaillées, nous avons besoin de votre autorisation."
-                                        : "To access your detailed consumption data, we need your authorization."
+                                      {language === "fr"
+                                        ? "Cette autorisation permet à kWh Québec d'accéder à vos données de consommation Hydro-Québec pour produire votre analyse détaillée gratuite sous 5-7 jours ouvrables."
+                                        : "This authorization allows kWh Québec to access your Hydro-Québec consumption data to produce your free detailed analysis within 5-7 business days."
                                       }
                                     </p>
                                   </div>
@@ -2044,7 +2077,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 ) : (
                                   <>
                                     <CheckCircle2 className="w-4 h-4" />
-                                    {language === "fr" ? "Soumettre la demande" : "Submit request"}
+                                    {language === "fr" ? "Signer et envoyer ma procuration" : "Sign and submit my authorization"}
                                   </>
                                 )}
                               </Button>
