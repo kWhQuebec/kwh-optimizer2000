@@ -2008,21 +2008,27 @@ export function RoofVisualization({
               <span>Min</span>
               <span>Max</span>
             </div>
-            {currentPVSizeKW && currentPVSizeKW > minCapacity && currentPVSizeKW < maxCapacity && (
-              <div className="relative h-4 mt-0.5">
-                <span
-                  className="absolute text-[10px] text-primary font-medium whitespace-nowrap"
-                  style={{
-                    left: `${((currentPVSizeKW - minCapacity) / (maxCapacity - minCapacity)) * 100}%`,
-                    transform: "translateX(-50%)",
-                    top: 0,
-                  }}
-                  data-testid="slider-recommended-label"
-                >
-                  {language === "fr" ? "▲ Recommandé" : "▲ Recommended"}
-                </span>
-              </div>
-            )}
+            {currentPVSizeKW && currentPVSizeKW > minCapacity && currentPVSizeKW < maxCapacity && (() => {
+              const snappedValue = Math.round(currentPVSizeKW / 10) * 10;
+              const clampedValue = Math.max(minCapacity, Math.min(maxCapacity, snappedValue));
+              const pct = ((clampedValue - minCapacity) / (maxCapacity - minCapacity)) * 100;
+              const thumbRadius = 10;
+              return (
+                <div className="relative h-4 mt-0.5">
+                  <span
+                    className="absolute text-[10px] text-primary font-medium whitespace-nowrap"
+                    style={{
+                      left: `calc(${pct}% + ${thumbRadius - pct * 2 * thumbRadius / 100}px)`,
+                      transform: "translateX(-50%)",
+                      top: 0,
+                    }}
+                    data-testid="slider-recommended-label"
+                  >
+                    {language === "fr" ? "▲ Recommandé" : "▲ Recommended"}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex flex-col gap-2 mt-1">
