@@ -1974,23 +1974,58 @@ export function RoofVisualization({
 
       {hasPolygons && allPanelPositions.length > 0 && (
         <div className="bg-card border-t p-4 pb-6" data-testid="capacity-slider-section">
-          <div className="flex flex-col gap-2 mb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sun className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">
-                  {language === "fr" ? "Taille du système" : "System Size"}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="font-mono" data-testid="panel-count-badge">
-                  {formatNumber(panelsToShow, language)} {language === "fr" ? "panneaux" : "panels"}
-                </Badge>
-                <Badge className="bg-primary text-primary-foreground font-mono" data-testid="capacity-badge">
-                  {formatNumber(displayedCapacityKW, language)} kWc
-                </Badge>
-              </div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Sun className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">
+                {language === "fr" ? "Taille du système" : "System Size"}
+              </span>
             </div>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="font-mono" data-testid="panel-count-badge">
+                {formatNumber(panelsToShow, language)} {language === "fr" ? "panneaux" : "panels"}
+              </Badge>
+              <Badge className="bg-primary text-primary-foreground font-mono" data-testid="capacity-badge">
+                {formatNumber(displayedCapacityKW, language)} kWc
+              </Badge>
+            </div>
+          </div>
+
+          <div className="relative pt-1 pb-8 mb-3">
+            <Slider
+              value={[selectedCapacityKW]}
+              onValueChange={(values) => {
+                setSelectedCapacityKW(values[0]);
+                setHasUserAdjusted(true);
+              }}
+              min={minCapacity}
+              max={maxCapacity}
+              step={10}
+              className="w-full"
+              data-testid="capacity-slider"
+            />
+            
+            <div className="absolute bottom-0 text-xs text-muted-foreground slider-markers" style={{ left: 10, right: 10 }}>
+              {sliderMarkers.filter(m => m.value <= maxCapacity).map((marker, idx) => {
+                const position = ((marker.value - minCapacity) / (maxCapacity - minCapacity)) * 100;
+                const isRecommended = marker.value === currentPVSizeKW;
+                return (
+                  <div 
+                    key={idx}
+                    className="absolute flex flex-col items-center"
+                    style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+                  >
+                    <div className={`h-1.5 w-0.5 ${isRecommended ? 'bg-primary' : 'bg-muted-foreground/50'}`} />
+                    <span className={`mt-0.5 whitespace-nowrap ${isRecommended ? 'text-primary font-medium' : ''}`}>
+                      {marker.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
             {/* Technical Parameters Row 1 */}
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
@@ -2192,40 +2227,6 @@ export function RoofVisualization({
                 })()}
               </div>
             )}
-          </div>
-          
-          <div className="relative pt-1 pb-8">
-            <Slider
-              value={[selectedCapacityKW]}
-              onValueChange={(values) => {
-                setSelectedCapacityKW(values[0]);
-                setHasUserAdjusted(true);
-              }}
-              min={minCapacity}
-              max={maxCapacity}
-              step={10}
-              className="w-full"
-              data-testid="capacity-slider"
-            />
-            
-            <div className="absolute bottom-0 text-xs text-muted-foreground slider-markers" style={{ left: 10, right: 10 }}>
-              {sliderMarkers.filter(m => m.value <= maxCapacity).map((marker, idx) => {
-                const position = ((marker.value - minCapacity) / (maxCapacity - minCapacity)) * 100;
-                const isRecommended = marker.value === currentPVSizeKW;
-                return (
-                  <div 
-                    key={idx}
-                    className="absolute flex flex-col items-center"
-                    style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
-                  >
-                    <div className={`h-1.5 w-0.5 ${isRecommended ? 'bg-primary' : 'bg-muted-foreground/50'}`} />
-                    <span className={`mt-0.5 whitespace-nowrap ${isRecommended ? 'text-primary font-medium' : ''}`}>
-                      {marker.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </div>
       )}
