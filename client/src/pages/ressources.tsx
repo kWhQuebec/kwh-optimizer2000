@@ -643,7 +643,7 @@ export default function RessourcesPage() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <a href="mailto:info@kwhquebec.com">
+            <a href="mailto:info@kwh.quebec">
               <Button size="lg" variant="outline" className="gap-2">
                 {language === "fr" ? "Nous contacter" : "Contact us"}
               </Button>

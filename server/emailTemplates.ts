@@ -188,7 +188,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
           </div>
           <div class="footer">
             <p>kWh Québec - Solaire + Stockage</p>
-            <p>info@kwhquebec.com | (514) 555-1234</p>
+            <p>info@kwh.quebec | 514.427.8871</p>
           </div>
         </div>
       </body></html>`,
@@ -223,14 +223,14 @@ export const emailTemplates: Record<string, EmailTemplate> = {
           </div>
           <div class="footer">
             <p>kWh Québec - Turnkey solar + storage</p>
-            <p>info@kwhquebec.com | (514) 555-1234</p>
+            <p>info@kwh.quebec | 514.427.8871</p>
           </div>
         </div>
       </body></html>`,
     },
     text: {
-      fr: `Merci {{contactName}}!\n\nNous avons bien reçu votre demande d'analyse détaillée pour {{companyName}}.\n\nProchaines étapes:\n1. Signature de la procuration HQ\n2. Récupération des données\n3. Analyse complète (simulation 8 760h)\n4. Rapport dans 5 jours ouvrables\n\nkWh Québec\ninfo@kwhquebec.com`,
-      en: `Thank you {{contactName}}!\n\nWe have received your detailed analysis request for {{companyName}}.\n\nNext Steps:\n1. HQ Authorization Signature\n2. Data Retrieval\n3. Complete Analysis (8,760h simulation)\n4. Report within 5 business days\n\nkWh Québec\ninfo@kwhquebec.com`,
+      fr: `Merci {{contactName}}!\n\nNous avons bien reçu votre demande d'analyse détaillée pour {{companyName}}.\n\nProchaines étapes:\n1. Signature de la procuration HQ\n2. Récupération des données\n3. Analyse complète (simulation 8 760h)\n4. Rapport dans 5 jours ouvrables\n\nkWh Québec\ninfo@kwh.quebec`,
+      en: `Thank you {{contactName}}!\n\nWe have received your detailed analysis request for {{companyName}}.\n\nNext Steps:\n1. HQ Authorization Signature\n2. Data Retrieval\n3. Complete Analysis (8,760h simulation)\n4. Report within 5 business days\n\nkWh Québec\ninfo@kwh.quebec`,
     },
   },
 
@@ -774,7 +774,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
           </div>
           <div class="footer">
             <p>kWh Québec - Solaire + Stockage</p>
-            <p>info@kwhquebec.com | (514) 555-1234</p>
+            <p>info@kwh.quebec | 514.427.8871</p>
           </div>
         </div>
       </body></html>`,
@@ -805,7 +805,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
           </div>
           <div class="footer">
             <p>kWh Québec - Turnkey solar + storage</p>
-            <p>info@kwhquebec.com | (514) 555-1234</p>
+            <p>info@kwh.quebec | 514.427.8871</p>
           </div>
         </div>
       </body></html>`,

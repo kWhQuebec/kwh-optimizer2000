@@ -550,8 +550,8 @@ export default function ClientPortalPage() {
               <Mail className="w-4 h-4" />
               info@kwhquebec.ca
             </a>
-            <a 
-              href="tel:+15141234567" 
+            <a
+              href="tel:+15144278871"
               className="flex items-center gap-2 text-primary hover:underline"
               data-testid="link-contact-phone"
             >

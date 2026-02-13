@@ -101,8 +101,8 @@ export const organizationSchema: StructuredData = {
   "@type": "Organization",
   "name": "kWh Québec",
   "description": "Solutions solaires et stockage clé en main pour bâtiments commerciaux et industriels au Québec",
-  "url": "https://kwhquebec.com",
-  "logo": "https://kwhquebec.com/logo.png",
+  "url": "https://kwh.quebec",
+  "logo": "https://kwh.quebec/logo.png",
   "areaServed": {
     "@type": "AdministrativeArea",
     "name": "Québec, Canada"
@@ -119,8 +119,8 @@ export const getLocalBusinessSchema = (lang: "fr" | "en"): StructuredData => ({
   "description": lang === "fr" 
     ? "Solutions solaires et stockage clé en main pour bâtiments commerciaux et industriels au Québec"
     : "Turnkey solar and storage solutions for commercial and industrial buildings in Quebec",
-  "@id": "https://kwhquebec.com",
-  "url": "https://kwhquebec.com",
+  "@id": "https://kwh.quebec",
+  "url": "https://kwh.quebec",
   "priceRange": "$$",
   "address": {
     "@type": "PostalAddress",

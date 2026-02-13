@@ -2,9 +2,12 @@ import { Router } from "express";
 import { storage } from "../storage";
 import { createLogger } from "../lib/logger";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
+import { publicApiLimiter } from "../middleware/rateLimiter";
 
 const log = createLogger("Public");
 const router = Router();
+
+router.use(publicApiLimiter);
 
 router.get("/api/public/agreements/:token", asyncHandler(async (req, res) => {
   const { token } = req.params;

@@ -1691,16 +1691,16 @@ export default function LandingPage() {
               </div>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="mailto:info@kwhquebec.com">
+                <a href="mailto:info@kwh.quebec">
                   <Button variant="outline" size="lg" className="gap-2" data-testid="button-email-contact">
                     <Mail className="w-4 h-4" />
-                    info@kwhquebec.com
+                    info@kwh.quebec
                   </Button>
                 </a>
-                <a href="tel:+15145551234">
+                <a href="tel:+15144278871">
                   <Button variant="outline" size="lg" className="gap-2" data-testid="button-phone-contact">
                     <Phone className="w-4 h-4" />
-                    (514) 555-1234
+                    514.427.8871
                   </Button>
                 </a>
               </div>
@@ -1837,7 +1837,7 @@ export default function LandingPage() {
 
             <div className="text-center">
               <a
-                href="mailto:info@kwhquebec.com?subject=Programme%20de%20r%C3%A9f%C3%A9ral"
+                href="mailto:info@kwh.quebec?subject=Programme%20de%20r%C3%A9f%C3%A9ral"
                 onClick={() => FunnelEvents.ctaClicked('referral_program', 'landing_referral')}
               >
                 <Button size="lg" className="gap-2">
@@ -1922,7 +1922,7 @@ export default function LandingPage() {
               <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="link-privacy">
                 {language === "fr" ? "Confidentialité" : "Privacy"}
               </Link>
-              <a href="mailto:info@kwhquebec.com" className="hover:text-foreground transition-colors">
+              <a href="mailto:info@kwh.quebec" className="hover:text-foreground transition-colors">
                 {t("footer.contact")}
               </a>
             </div>

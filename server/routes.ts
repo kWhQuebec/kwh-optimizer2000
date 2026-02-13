@@ -211,6 +211,96 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== SEO: robots.txt & sitemap ====================
+  app.get("/robots.txt", (req, res) => {
+    res.type("text/plain").send(
+`User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /pipeline/
+Disallow: /clients/
+Disallow: /sites/
+
+Sitemap: https://kwh.quebec/sitemap.xml`
+    );
+  });
+
+  app.get("/sitemap.xml", async (req, res) => {
+    const baseUrl = "https://kwh.quebec";
+    const now = new Date().toISOString().split("T")[0];
+
+    let blogEntries = "";
+    try {
+      const { storage } = await import("./storage");
+      const articles = await storage.getBlogArticles("published");
+      blogEntries = articles.map(a => `
+    <url>
+      <loc>${baseUrl}/blog/${a.slug}</loc>
+      <lastmod>${new Date(String(a.updatedAt || a.createdAt || new Date())).toISOString().split("T")[0]}</lastmod>
+      <changefreq>monthly</changefreq>
+      <priority>0.6</priority>
+    </url>`).join("");
+    } catch (e) {
+      // Blog articles optional
+    }
+
+    res.type("application/xml").send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/analyse-detaillee</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/services</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/ressources</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/portfolio</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/conditions</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/confidentialite</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/blog</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>${blogEntries}
+</urlset>`
+    );
+  });
+
   // ==================== AUTH ROUTES ====================
   app.use(authRoutes);
 

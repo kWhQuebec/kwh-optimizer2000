@@ -46,7 +46,7 @@ router.post("/api/work-queue/delegate", authMiddleware, requireStaff, asyncHandl
     return lang === "fr" ? "Générer le rapport" : "Generate Report";
   };
 
-  const appUrl = process.env.REPLIT_DEPLOYMENT_URL || process.env.REPLIT_DEV_DOMAIN || "https://app.kwhquebec.com";
+  const appUrl = process.env.REPLIT_DEPLOYMENT_URL || process.env.REPLIT_DEV_DOMAIN || "https://app.kwh.quebec";
   const baseUrl = appUrl.startsWith("http") ? appUrl : `https://${appUrl}`;
 
   const subject = lang === "fr"
@@ -131,7 +131,7 @@ router.post("/api/work-queue/delegate", authMiddleware, requireStaff, asyncHandl
     <p style="margin: 0; font-size: 14px; color: #003DA6; font-weight: 600;">kWh Québec</p>
     <p style="margin: 5px 0 0; font-size: 13px; color: #666;">${lang === "fr" ? "Solaire + Stockage" : "Solar + Storage"}</p>
     <p style="margin: 10px 0 0; font-size: 12px; color: #888;">
-      <a href="mailto:info@kwhquebec.com" style="color: #003DA6; text-decoration: none;">info@kwhquebec.com</a>
+      <a href="mailto:info@kwh.quebec" style="color: #003DA6; text-decoration: none;">info@kwh.quebec</a>
     </p>
   </div>
 </div>

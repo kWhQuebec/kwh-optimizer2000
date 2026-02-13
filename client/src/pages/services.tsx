@@ -262,7 +262,7 @@ export default function ServicesPage() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <a href="mailto:info@kwhquebec.com">
+            <a href="mailto:info@kwh.quebec">
               <Button size="lg" variant="outline" className="gap-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
                 <Mail className="w-4 h-4" />
                 {language === "fr" ? "Nous contacter" : "Contact us"}

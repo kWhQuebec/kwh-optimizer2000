@@ -378,7 +378,7 @@ function SuccessConfirmation({
         </Card>
 
         <div className="text-center text-sm text-muted-foreground py-4">
-          <p>kWh Québec inc. | info@kwhquebec.com</p>
+          <p>kWh Québec inc. | info@kwh.quebec</p>
         </div>
       </div>
     </div>
@@ -999,7 +999,7 @@ function SignAgreementContent() {
         </Card>
 
         <div className="text-center text-sm text-muted-foreground py-4">
-          <p>kWh Québec inc. | info@kwhquebec.com</p>
+          <p>kWh Québec inc. | info@kwh.quebec</p>
         </div>
       </div>
     </div>

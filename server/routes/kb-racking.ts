@@ -208,7 +208,7 @@ router.post("/api/kb-racking/proposal-pdf/:siteId", authMiddleware, requireStaff
   const pdfOptions: KBProposalPDFOptions = {
     companyName: 'kWh Québec Inc.',
     companyPhone: '514-427-8871',
-    companyEmail: 'info@kwhquebec.com',
+    companyEmail: 'info@kwh.quebec',
   };
 
   if (siteData.kbQuoteDate) {

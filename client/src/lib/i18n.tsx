@@ -882,8 +882,8 @@ const translations: Translations = {
   "publicAgreement.nextStep4Time": { fr: "2-3 semaines", en: "2-3 weeks" },
   "publicAgreement.downloadAgreement": { fr: "Télécharger l'entente signée", en: "Download Signed Agreement" },
   "publicAgreement.contactUs": { fr: "Des questions? Contactez-nous", en: "Questions? Contact us" },
-  "publicAgreement.contactEmail": { fr: "info@kwhquebec.com", en: "info@kwhquebec.com" },
-  "publicAgreement.contactPhone": { fr: "514-555-0123", en: "514-555-0123" },
+  "publicAgreement.contactEmail": { fr: "info@kwh.quebec", en: "info@kwh.quebec" },
+  "publicAgreement.contactPhone": { fr: "514.427.8871", en: "514.427.8871" },
 
   // Email Dialog for Design Agreement
   "designAgreement.emailDialog.title": { fr: "Envoyer l'entente par courriel", en: "Send Agreement by Email" },

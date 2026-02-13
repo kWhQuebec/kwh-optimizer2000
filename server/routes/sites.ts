@@ -6,6 +6,7 @@ import path from "path";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import * as googleSolar from "../googleSolarService";
+import { sanitizeFilename, validatePathWithinBase } from "../lib/pathValidation";
 import {
   insertSiteSchema,
   insertMeterFileSchema,
@@ -606,16 +607,28 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
 
   const results = [];
   for (const file of files) {
+    // Sanitize the uploaded filename to prevent path traversal in database storage
+    const sanitizedFilename = sanitizeFilename(file.originalname);
+
+    // Validate that the temporary file path is within /tmp/meter-uploads/
+    const tmpBaseDir = path.resolve("/tmp/meter-uploads/");
+    try {
+      validatePathWithinBase(file.path, tmpBaseDir);
+    } catch (err) {
+      log.error(`Path traversal attempt in uploaded file: ${file.path}`);
+      throw new BadRequestError("Invalid file path");
+    }
+
     const meterFile = await storage.createMeterFile({
       siteId,
-      filename: file.originalname,
+      filename: sanitizedFilename,
       mimeType: file.mimetype,
       filePath: file.path,
       uploadedBy: req.userId!,
       status: "processing"
     });
 
-    const granularity = file.originalname.toLowerCase().includes("15min") ? "15MIN" : "HOUR";
+    const granularity = sanitizedFilename.toLowerCase().includes("15min") ? "15MIN" : "HOUR";
 
     const { parseHydroQuebecCSV } = await import("./siteAnalysisHelpers");
     const readings = await parseHydroQuebecCSV(file.path, meterFile.id, granularity);

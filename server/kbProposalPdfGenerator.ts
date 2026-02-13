@@ -328,7 +328,7 @@ export function generateKBProposalPDF(
   y += 16;
   doc.text(`${t("phone")}: ${options.companyPhone || "514-427-8871"}`, margin, y);
   y += 16;
-  doc.text(`${t("email")}: ${options.companyEmail || "info@kwhquebec.com"}`, margin, y);
+  doc.text(`${t("email")}: ${options.companyEmail || "info@kwh.quebec"}`, margin, y);
   y += 16;
 
   if (options.companyAddress) {

@@ -12,10 +12,37 @@ import { startEmailScheduler } from "./emailScheduler";
 import { renderEmailTemplate } from "./emailTemplates";
 import { storage } from "./storage";
 import { seedDefaultContent } from "./seedContent";
+import helmet from "helmet";
+import cors from "cors";
 
 const serverLog = createLogger("Server");
 
 const app = express();
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com", "https://maps.googleapis.com", "https://www.googletagmanager.com", "https://www.google-analytics.com", "https://js.stripe.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'", "https:", "wss:"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === "production"
+    ? [/\.kwh\.quebec$/, /\.replit\.dev$/, /\.repl\.co$/]
+    : true,
+  credentials: true,
+}));
+
 const httpServer = createServer(app);
 
 declare module "http" {

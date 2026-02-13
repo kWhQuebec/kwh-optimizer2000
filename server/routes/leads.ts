@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { authMiddleware, requireStaff, requireAdmin, type AuthRequest } from "../middleware/auth";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
+import { estimateLimiter, leadSubmissionLimiter } from "../middleware/rateLimiter";
 import { storage } from "../storage";
 import { insertLeadSchema } from "@shared/schema";
 import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLeadNotification, sendTemplateEmail } from "../emailService";
@@ -16,6 +17,7 @@ import { objectStorageClient } from "../replit_integrations/object_storage";
 import { createLogger } from "../lib/logger";
 import { scheduleNurtureSequence } from "../emailScheduler";
 import { sendSMSNotification, formatHotLeadMessage } from "../smsService";
+import { sanitizeFilename, sanitizeReferenceId, validatePathWithinBase } from "../lib/pathValidation";
 
 const log = createLogger("Leads");
 
@@ -49,7 +51,7 @@ const upload = multer({
 
 // Quick estimate endpoint for landing page calculator (no auth required)
 // Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
-router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
+router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res) => {
   const { address, email, clientName, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
 
   // Either annualConsumptionKwh or monthlyBill is required
@@ -652,7 +654,7 @@ router.post("/api/quick-estimate", asyncHandler(async (req, res) => {
 }));
 
 // Detailed analysis request with procuration and file uploads
-router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (req, res) => {
+router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(), asyncHandler(async (req, res) => {
   const {
     companyName,
     firstName,
@@ -870,7 +872,23 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
   // Use lead.id for new leads, or clientId for existing clients
   const referenceId = lead?.id || clientId;
 
-  const uploadDir = path.join('uploads', 'bills', referenceId);
+  // Validate referenceId to prevent path traversal attacks
+  if (!referenceId) {
+    throw new BadRequestError("Invalid reference ID");
+  }
+  const sanitizedReferenceId = sanitizeReferenceId(referenceId);
+
+  const baseUploadDir = path.resolve('uploads');
+  const uploadDir = path.join(baseUploadDir, 'bills', sanitizedReferenceId);
+
+  // Validate that the upload directory stays within the base uploads directory
+  try {
+    validatePathWithinBase(uploadDir, baseUploadDir);
+  } catch (err) {
+    log.error(`Path traversal attempt detected: ${uploadDir}`);
+    throw new BadRequestError("Invalid upload path");
+  }
+
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
@@ -880,7 +898,18 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
   // Process newly uploaded files
   if (files && files.length > 0) {
     for (const file of files) {
-      const destPath = path.join(uploadDir, file.originalname);
+      // Sanitize the original filename to prevent path traversal
+      const sanitizedFilename = sanitizeFilename(file.originalname);
+      const destPath = path.join(uploadDir, sanitizedFilename);
+
+      // Double-check that the destination stays within uploadDir
+      try {
+        validatePathWithinBase(destPath, uploadDir);
+      } catch (err) {
+        log.error(`Path traversal attempt in filename: ${file.originalname}`);
+        throw new BadRequestError("Invalid filename in upload");
+      }
+
       fs.renameSync(file.path, destPath);
       if (!firstBillPath) {
         firstBillPath = destPath;
@@ -934,11 +963,22 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
       const maxSizeBytes = 500 * 1024;
 
       if (isValidFormat && sizeInBytes <= maxSizeBytes) {
-        const signatureDir = path.join('uploads', 'signatures');
-        if (!fs.existsSync(signatureDir)) {
-          fs.mkdirSync(signatureDir, { recursive: true });
+        const baseSignatureDir = path.resolve('uploads', 'signatures');
+        if (!fs.existsSync(baseSignatureDir)) {
+          fs.mkdirSync(baseSignatureDir, { recursive: true });
         }
-        const signaturePath = path.join(signatureDir, `${referenceId}_signature.png`);
+
+        // Use sanitizedReferenceId to prevent path traversal in signature filename
+        const signaturePath = path.join(baseSignatureDir, `${sanitizedReferenceId}_signature.png`);
+
+        // Validate that the signature path stays within the signatures directory
+        try {
+          validatePathWithinBase(signaturePath, baseSignatureDir);
+        } catch (err) {
+          log.error(`Path traversal attempt in signature file: ${signaturePath}`);
+          throw new Error("Invalid signature file path");
+        }
+
         fs.writeFileSync(signaturePath, Buffer.from(base64Data, 'base64'));
         log.info(`Signature image saved: ${signaturePath} (${Math.round(sizeInBytes / 1024)}KB)`);
       } else {
@@ -970,12 +1010,23 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
 
     const pdfBuffer = await generateProcurationPDF(procurationData);
 
-    const procurationDir = path.join('uploads', 'procurations');
-    if (!fs.existsSync(procurationDir)) {
-      fs.mkdirSync(procurationDir, { recursive: true });
+    const baseProcurationDir = path.resolve('uploads', 'procurations');
+    if (!fs.existsSync(baseProcurationDir)) {
+      fs.mkdirSync(baseProcurationDir, { recursive: true });
     }
-    const pdfFilename = `procuration_${referenceId}_${Date.now()}.pdf`;
-    const pdfPath = path.join(procurationDir, pdfFilename);
+
+    // Use sanitizedReferenceId in the PDF filename to prevent path traversal
+    const pdfFilename = `procuration_${sanitizedReferenceId}_${Date.now()}.pdf`;
+    const pdfPath = path.join(baseProcurationDir, pdfFilename);
+
+    // Validate that the PDF path stays within the procurations directory
+    try {
+      validatePathWithinBase(pdfPath, baseProcurationDir);
+    } catch (err) {
+      log.error(`Path traversal attempt in PDF file: ${pdfPath}`);
+      throw new Error("Invalid PDF file path");
+    }
+
     fs.writeFileSync(pdfPath, pdfBuffer);
     log.info(`Procuration PDF saved: ${pdfPath}`);
 
@@ -1176,7 +1227,7 @@ router.post("/api/detailed-analysis-request", upload.any(), asyncHandler(async (
   });
 }));
 
-router.post("/api/leads", asyncHandler(async (req, res) => {
+router.post("/api/leads", leadSubmissionLimiter, asyncHandler(async (req, res) => {
   const parsed = insertLeadSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new BadRequestError("Validation error", parsed.error.errors);
