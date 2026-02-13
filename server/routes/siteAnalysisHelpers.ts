@@ -950,13 +950,17 @@ function runScenarioWithSizing(
   for (let hIdx = 0; hIdx < 24; hIdx++) {
     const data = byHourAgg.get(hIdx);
     if (data && data.count > 0) {
-      const consumptionAfter = (data.consumptionSum - data.productionSum) / data.count;
+      const avgConsumption = data.consumptionSum / data.count;
+      const avgProduction = data.productionSum / data.count;
+      const avgPeakBefore = data.peakBeforeSum / data.count;
+      const consumptionAfter = avgConsumption - avgProduction;
+      const peakAfterNet = Math.max(0, avgPeakBefore - avgProduction);
       hourlyProfileSummary.push({
         hour: `${hIdx}h`,
-        consumptionBefore: Math.round(data.consumptionSum / data.count),
+        consumptionBefore: Math.round(avgConsumption),
         consumptionAfter: Math.max(0, Math.round(consumptionAfter)),
-        peakBefore: Math.round(data.peakBeforeSum / data.count),
-        peakAfter: Math.round(data.peakAfterSum / data.count),
+        peakBefore: Math.round(avgPeakBefore),
+        peakAfter: Math.round(peakAfterNet),
       });
     }
   }
