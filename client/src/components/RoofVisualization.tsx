@@ -744,8 +744,13 @@ export function RoofVisualization({
     return arrays;
   }, [allPanelPositions, panelsToShow]);
 
+  const prevPVSizeRef = useRef(currentPVSizeKW);
   useEffect(() => {
-    if (!hasUserAdjusted && currentPVSizeKW) {
+    if (currentPVSizeKW && currentPVSizeKW !== prevPVSizeRef.current) {
+      prevPVSizeRef.current = currentPVSizeKW;
+      setSelectedCapacityKW(currentPVSizeKW);
+      setHasUserAdjusted(false);
+    } else if (!hasUserAdjusted && currentPVSizeKW) {
       setSelectedCapacityKW(currentPVSizeKW);
     }
   }, [currentPVSizeKW, hasUserAdjusted]);
@@ -2091,8 +2096,21 @@ export function RoofVisualization({
                     {language === "fr" ? "Comparaison d'orientation" : "Orientation Comparison"}
                   </span>
                 </div>
+                {(() => {
+                  const buildingPanelCount = Math.min(panelsToShow, buildingAlignedPanels.length);
+                  const southPanelCount = Math.min(panelsToShow, trueSouthPanels.length);
+                  const buildingCapacityKW = Math.round(buildingPanelCount * PANEL_KW);
+                  const southCapacityKW = Math.round(southPanelCount * PANEL_KW);
+                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, PANEL_TILT_DEG);
+                  const southYield = calculateEstimatedYield(0, PANEL_TILT_DEG);
+                  const buildingProduction = buildingPanelCount * PANEL_KW * buildingYield;
+                  const southProduction = southPanelCount * PANEL_KW * southYield;
+                  const difference = southProduction - buildingProduction;
+                  const percentDiff = buildingProduction > 0 ? ((difference / buildingProduction) * 100) : 0;
+
+                  return (
+                    <>
                 <div className="grid grid-cols-2 gap-2">
-                  {/* Building-aligned option */}
                   <button
                     onClick={() => setSelectedOrientation("building")}
                     className={`p-2 rounded-md border text-left transition-all ${
@@ -2109,10 +2127,10 @@ export function RoofVisualization({
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground space-y-0.5">
-                      <div>{buildingAlignedPanels.length} {language === "fr" ? "panneaux" : "panels"} • {Math.round(buildingAlignedPanels.length * PANEL_KW)} kWc</div>
+                      <div>{buildingPanelCount} {language === "fr" ? "panneaux" : "panels"} • {buildingCapacityKW} kWc</div>
                       <div className="flex items-center gap-1">
                         <Zap className="w-3 h-3" />
-                        {calculateEstimatedYield(buildingAlignedAngle, PANEL_TILT_DEG)} kWh/kWp
+                        {buildingYield} kWh/kWp
                         {(() => {
                           const { deviationDeg } = calculateOrientationYieldFactor(buildingAlignedAngle);
                           const loss = Math.round(deviationDeg * 0.35);
@@ -2122,7 +2140,6 @@ export function RoofVisualization({
                     </div>
                   </button>
                   
-                  {/* True south option */}
                   <button
                     onClick={() => setSelectedOrientation("south")}
                     className={`p-2 rounded-md border text-left transition-all ${
@@ -2139,27 +2156,17 @@ export function RoofVisualization({
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground space-y-0.5">
-                      <div>{trueSouthPanels.length} {language === "fr" ? "panneaux" : "panels"} • {Math.round(trueSouthPanels.length * PANEL_KW)} kWc</div>
+                      <div>{southPanelCount} {language === "fr" ? "panneaux" : "panels"} • {southCapacityKW} kWc</div>
                       <div className="flex items-center gap-1">
                         <Zap className="w-3 h-3" />
-                        {calculateEstimatedYield(0, PANEL_TILT_DEG)} kWh/kWp
+                        {southYield} kWh/kWp
                         <span className="text-green-600">(optimal)</span>
                       </div>
                     </div>
                   </button>
                 </div>
                 
-                {/* Production difference summary */}
-                {(() => {
-                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, PANEL_TILT_DEG);
-                  const southYield = calculateEstimatedYield(0, PANEL_TILT_DEG);
-                  const buildingProduction = buildingAlignedPanels.length * PANEL_KW * buildingYield;
-                  const southProduction = trueSouthPanels.length * PANEL_KW * southYield;
-                  const difference = southProduction - buildingProduction;
-                  const percentDiff = buildingProduction > 0 ? ((difference / buildingProduction) * 100) : 0;
-                  
-                  return (
-                    <div className="mt-2 pt-2 border-t text-xs">
+                <div className="mt-2 pt-2 border-t text-xs">
                       {difference > 0 ? (
                         <span className="text-green-700">
                           {language === "fr" 
@@ -2170,8 +2177,8 @@ export function RoofVisualization({
                       ) : difference < 0 ? (
                         <span className="text-amber-700">
                           {language === "fr"
-                            ? `Aligné bâtiment produit ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/an de plus grâce à ${buildingAlignedPanels.length - trueSouthPanels.length} panneaux additionnels`
-                            : `Building-aligned produces ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/yr more due to ${buildingAlignedPanels.length - trueSouthPanels.length} additional panels`
+                            ? `Aligné bâtiment produit ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/an de plus grâce à ${buildingPanelCount - southPanelCount} panneaux additionnels`
+                            : `Building-aligned produces ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/yr more due to ${buildingPanelCount - southPanelCount} additional panels`
                           }
                         </span>
                       ) : (
@@ -2180,6 +2187,7 @@ export function RoofVisualization({
                         </span>
                       )}
                     </div>
+                    </>
                   );
                 })()}
               </div>
