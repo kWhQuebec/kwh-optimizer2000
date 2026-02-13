@@ -801,7 +801,8 @@ export async function generatePresentationPPTX(
     const leaseRate = 0.07;
     const leaseTermMonths = 180;
     const leaseMonthlyRate = leaseRate / 12;
-    const leaseMonthly = finCapexNet > 0 ? finCapexNet * leaseMonthlyRate / (1 - Math.pow(1 + leaseMonthlyRate, -leaseTermMonths)) : 0;
+    const leaseCapex = (simulation.capexGross || 0) - (simulation.incentivesFederal || 0);
+    const leaseMonthly = leaseCapex > 0 ? leaseCapex * leaseMonthlyRate / (1 - Math.pow(1 + leaseMonthlyRate, -leaseTermMonths)) : 0;
 
     const slideFinancing = pptx.addSlide({ masterName: "KWHMAIN" });
 

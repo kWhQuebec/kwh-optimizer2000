@@ -57,7 +57,7 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
     : loanAmount / numPayments;
   const annualLoanPayment = monthlyPayment * 12;
 
-  const leaseFinancedAmount = capexGross - hqSolar - (hqBattery * 0.5);
+  const leaseFinancedAmount = capexGross - federalITC;
   const leaseMonthlyRate = leaseImplicitRate / 100 / 12;
   const leaseNumPayments = leaseTermYears * 12;
   const leaseMonthlyPayment = leaseFinancedAmount > 0 && leaseMonthlyRate > 0
@@ -68,6 +68,8 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
   const upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5);
   const year1Returns = (hqBattery * 0.5) + taxShield;
   const year2Returns = federalITC;
+  const leaseYear1Returns = 0;
+  const leaseYear2Returns = 0;
 
   let cashCumulative = -upfrontCashNeeded;
   let loanCumulative = -loanDownPaymentAmount;
@@ -120,14 +122,14 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
         cashCumulative += year1Returns;
       }
       loanCumulative += year1Returns;
-      leaseCumulative += year1Returns;
+      leaseCumulative += leaseYear1Returns;
     }
     if (year === 2) {
       if (!existingCashflows || existingCashflows.length === 0) {
         cashCumulative += year2Returns;
       }
       loanCumulative += year2Returns;
-      leaseCumulative += year2Returns;
+      leaseCumulative += leaseYear2Returns;
     }
 
     series.push({

@@ -91,23 +91,19 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const effectiveLoanCost = totalLoanPayments - totalIncentives; // Net after incentives return
 
   // Capital Lease (Crédit-bail) calculation:
-  // In a capital lease, the lessee is treated as owner for tax purposes
-  // HQ solar rebate and 50% HQ battery rebate reduce the financed amount (not received as cash)
-  // Remaining incentives return to client as cash:
-  //   - 50% HQ battery rebate: Client receives in Year 1
-  //   - Federal ITC: Client receives in Year 2
-  //   - Tax shield (CCA): Client receives in Year 1
-  // Uses standard amortization formula (same as loan) for realistic payment calculation
-  const leaseFinancedAmount = capexGross - hqSolar - (hqBattery * 0.5); // Rebates reduce financed amount
+  // In Quebec, HQ requires the client to be both owner AND operator for incentive eligibility.
+  // In a lease, the lessor owns the system — client is NOT eligible for HQ incentives.
+  // Only the federal ITC (30%) applies: claimed by lessor, reflected in reduced lease payments.
+  // No HQ solar, no HQ battery, no tax shield for the lessee.
+  const leaseFinancedAmount = capexGross - federalITC;
   const leaseMonthlyRate = leaseImplicitRate / 100 / 12;
   const leaseNumPayments = leaseTerm * 12;
   const leaseMonthlyPayment = leaseFinancedAmount > 0 && leaseMonthlyRate > 0
     ? (leaseFinancedAmount * leaseMonthlyRate * Math.pow(1 + leaseMonthlyRate, leaseNumPayments)) / (Math.pow(1 + leaseMonthlyRate, leaseNumPayments) - 1)
     : leaseFinancedAmount / Math.max(1, leaseNumPayments);
   const leaseTotalPayments = leaseMonthlyPayment * leaseNumPayments;
-  // Only incentives NOT already netted from financed amount
-  const leaseTotalIncentives = (hqBattery * 0.5) + federalITC + taxShield;
-  const effectiveLeaseCost = leaseTotalPayments - leaseTotalIncentives;
+  const leaseTotalIncentives = 0;
+  const effectiveLeaseCost = leaseTotalPayments;
 
   const formatCurrency = (value: number) => {
     // For values >= 1M, show as "X,XM$" format
@@ -283,19 +279,16 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
           leaseCumulative -= annualLeasePayment;
         }
 
-        // Add incentive returns for cash, loan, and capital lease
-        // Capital lease: rebates already netted from financed amount, only remaining incentives return
+        // Add incentive returns for cash and loan (client IS owner)
+        // Lease: NO incentives return — HQ requires owner/operator; ITC already in reduced payments
         // PPA: NO incentives return to client (provider keeps them all)
         if (year === 1) {
           cashCumulative += year1Returns;
           loanCumulative += year1Returns;
-          // Lease Year 1: 50% HQ battery + tax shield (NO extra hqSolar — already netted from financed amount)
-          leaseCumulative += year1Returns;
         }
         if (year === 2) {
           cashCumulative += year2Returns;
           loanCumulative += year2Returns;
-          leaseCumulative += year2Returns; // Crédit-bail: Federal ITC
         }
 
         data.push({
@@ -406,50 +399,55 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
         )}
 
         {financingType === "lease" && (
-          <div className="p-4 bg-muted/50 rounded-lg space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{language === "fr" ? "Durée du bail" : "Lease term"}</Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={[leaseTerm]}
-                    onValueChange={([v]) => setLeaseTerm(v)}
-                    min={5}
-                    max={20}
-                    step={1}
-                    data-testid="slider-lease-term"
-                  />
-                  <span className="text-sm font-mono w-16">{leaseTerm} {language === "fr" ? "ans" : "yrs"}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("financing.leaseImplicitRate")}</Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={[leaseImplicitRate]}
-                    onValueChange={([v]) => setLeaseImplicitRate(v)}
-                    min={5}
-                    max={15}
-                    step={0.5}
-                    data-testid="slider-lease-implicit-rate"
-                  />
-                  <span className="text-sm font-mono w-12">{leaseImplicitRate}%</span>
-                </div>
-              </div>
+          <div className="space-y-4">
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700 rounded-lg">
+              <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+                {language === "fr"
+                  ? "Au Québec, Hydro-Québec exige que le client soit propriétaire et exploitant de l'installation pour être admissible aux incitatifs. Dans un crédit-bail, le bailleur est propriétaire du système. Les incitatifs Hydro-Québec ne s'appliquent pas. Le CII fédéral (30%) est réclamé par le bailleur et reflété dans les paiements réduits."
+                  : "In Quebec, Hydro-Québec requires the client to be both owner and operator to be eligible for incentives. In a lease, the lessor owns the system. Hydro-Québec incentives do not apply. The federal ITC (30%) is claimed by the lessor and reflected in reduced payments."}
+              </p>
             </div>
-            <div className="text-sm space-y-1 text-muted-foreground">
-              <p className="flex justify-between gap-2 font-medium">
-                <span>{language === "fr" ? "Montant financé (CAPEX total):" : "Financed amount (total CAPEX):"}</span>
-                <span className="font-mono">{formatCurrency(leaseFinancedAmount)}</span>
-              </p>
-              <p className="flex justify-between gap-2 pt-2 border-t">
-                <span>{language === "fr" ? "Paiement mensuel:" : "Monthly payment:"}</span>
-                <span className="font-mono font-semibold">{formatCurrency(leaseMonthlyPayment)}</span>
-              </p>
-              <p className="flex justify-between gap-2 pt-2 border-t text-xs">
-                <span>{language === "fr" ? "Incitatifs retournés au client:" : "Incentives returned to client:"}</span>
-                <span className="font-mono text-primary">+{formatCurrency(leaseTotalIncentives)}</span>
-              </p>
+            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{language === "fr" ? "Durée du bail" : "Lease term"}</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[leaseTerm]}
+                      onValueChange={([v]) => setLeaseTerm(v)}
+                      min={5}
+                      max={20}
+                      step={1}
+                      data-testid="slider-lease-term"
+                    />
+                    <span className="text-sm font-mono w-16">{leaseTerm} {language === "fr" ? "ans" : "yrs"}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("financing.leaseImplicitRate")}</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[leaseImplicitRate]}
+                      onValueChange={([v]) => setLeaseImplicitRate(v)}
+                      min={5}
+                      max={15}
+                      step={0.5}
+                      data-testid="slider-lease-implicit-rate"
+                    />
+                    <span className="text-sm font-mono w-12">{leaseImplicitRate}%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-sm space-y-1 text-muted-foreground">
+                <p className="flex justify-between gap-2 font-medium">
+                  <span>{language === "fr" ? "Montant financé (CAPEX brut − CII fédéral):" : "Financed amount (Gross CAPEX − federal ITC):"}</span>
+                  <span className="font-mono">{formatCurrency(leaseFinancedAmount)}</span>
+                </p>
+                <p className="flex justify-between gap-2 pt-2 border-t">
+                  <span>{language === "fr" ? "Paiement mensuel:" : "Monthly payment:"}</span>
+                  <span className="font-mono font-semibold">{formatCurrency(leaseMonthlyPayment)}</span>
+                </p>
+              </div>
             </div>
           </div>
         )}
