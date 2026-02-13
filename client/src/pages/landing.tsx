@@ -168,6 +168,24 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, [analysisSlides.length]);
 
+  // Scroll depth tracking
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPercent = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100);
+      const milestones = [25, 50, 75, 100];
+      const reached = milestones.filter(m => scrollPercent >= m);
+      reached.forEach(milestone => {
+        const key = `scroll_${milestone}_tracked`;
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, 'true');
+          FunnelEvents.scrollDepth(milestone, 'landing');
+        }
+      });
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
     defaultValues: {
@@ -190,7 +208,8 @@ export default function LandingPage() {
       return apiRequest("POST", "/api/leads", data);
     },
     onSuccess: () => {
-      setSubmitted(true);
+      const name = form.getValues('contactName') || form.getValues('email');
+      navigate(`/merci?type=lead&name=${encodeURIComponent(name)}`);
     },
   });
 
@@ -208,6 +227,8 @@ export default function LandingPage() {
   // Dropzone for bill upload
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
+
+    FunnelEvents.formStarted('bill_upload');
 
     const file = acceptedFiles[0];
     const isValidType = file.type === 'application/pdf' || file.type.startsWith('image/');
@@ -255,6 +276,7 @@ export default function LandingPage() {
         FunnelEvents.billParsed(result.data.annualConsumptionKwh || 0, result.data.confidence || 0);
       })
       .catch(() => {
+        FunnelEvents.formError('bill_upload', 'parse_failed');
         setFlowStep('upload');
         setParseError(language === "fr"
           ? "Impossible d'analyser la facture. Réessayez ou entrez votre consommation manuellement."
@@ -302,6 +324,7 @@ export default function LandingPage() {
       setFlowStep('quickResult');
     },
     onError: () => {
+      FunnelEvents.formError('quick_analysis', 'api_error');
       toast({
         title: language === "fr" ? "Erreur" : "Error",
         description: language === "fr"
@@ -338,6 +361,9 @@ export default function LandingPage() {
 
     // Track email capture event
     FunnelEvents.emailCaptured('quick_estimate');
+
+    // Track form submission method
+    FunnelEvents.formSubmitted('quick_analysis', parsedBillData ? 'bill_upload' : 'manual_entry');
 
     quickAnalysisMutation.mutate({
       email: quickEmail,
@@ -467,18 +493,23 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <Button 
-                size="lg" 
-                className="gap-2 text-lg px-8 py-6"
-                onClick={() => {
-                  document.getElementById('analyse')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                data-testid="button-hero-cta"
-              >
-                <Sun className="w-5 h-5" />
-                {language === "fr" ? "Obtenir mon analyse" : "Get my analysis"}
-                <ArrowRight className="w-5 h-5" />
-              </Button>
+              <div className="flex flex-col items-start gap-2">
+                <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs">
+                  {language === "fr" ? "GRATUIT · 2 minutes" : "FREE · 2 minutes"}
+                </Badge>
+                <Button
+                  size="lg"
+                  className="gap-2 text-lg px-8 py-6"
+                  onClick={() => {
+                    document.getElementById('analyse')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  data-testid="button-hero-cta"
+                >
+                  <Sun className="w-5 h-5" />
+                  {language === "fr" ? "Obtenir mon analyse" : "Get my analysis"}
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </div>
             </motion.div>
           </motion.div>
           
@@ -604,7 +635,10 @@ export default function LandingPage() {
                       {/* Manual entry fallback */}
                       <div className="text-center pt-2">
                         <button
-                          onClick={() => setFlowStep('manualEntry')}
+                          onClick={() => {
+                            FunnelEvents.formStarted('manual_entry');
+                            setFlowStep('manualEntry');
+                          }}
                           className="text-sm text-muted-foreground hover:text-primary underline"
                           data-testid="link-manual-entry"
                         >
@@ -964,12 +998,65 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mt-10"
           >
-            <a href="#paths">
-              <Button size="lg" className="gap-2" data-testid="button-start-journey">
-                {language === "fr" ? "Commencer mon analyse" : "Start my analysis"}
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </a>
+            <div className="flex flex-col items-center gap-2">
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs">
+                {language === "fr" ? "GRATUIT" : "FREE"}
+              </Badge>
+              <a href="#paths">
+                <Button size="lg" className="gap-2" data-testid="button-start-journey">
+                  {language === "fr" ? "Commencer mon analyse" : "Start my analysis"}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+      {/* ========== FAQ SECTION ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-3xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+              {t("faq.title")}
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              {t("faq.subtitle")}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Accordion
+              type="multiple"
+              value={expandedFaqItems}
+              onValueChange={setExpandedFaqItems}
+              className="space-y-3"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <AccordionItem
+                  key={`item${i}`}
+                  value={`item${i}`}
+                  className="border border-border rounded-lg px-5 py-2 hover:border-primary/50 transition-colors"
+                >
+                  <AccordionTrigger className="font-semibold hover:no-underline">
+                    <span className="text-left">
+                      {t(`faq.item${i}.question`)}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground leading-relaxed pt-2">
+                    {t(`faq.item${i}.answer`)}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </motion.div>
         </div>
       </section>
@@ -1579,6 +1666,9 @@ export default function LandingPage() {
                       {t("tripwire.whyTripwire.description")}
                     </p>
                   </div>
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs mb-2">
+                    {language === "fr" ? "100% applicable au projet final" : "100% applicable to final project"}
+                  </Badge>
                   <Button
                     size="lg"
                     className="w-full gap-2 bg-amber-600 hover:bg-amber-700"
@@ -1648,6 +1738,9 @@ export default function LandingPage() {
               <Card className="p-8 text-center space-y-4">
                 <Phone className="w-12 h-12 text-primary mx-auto opacity-50" />
                 <p className="text-muted-foreground">{t("expert.calendlyPlaceholder")}</p>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs mb-2">
+                  {language === "fr" ? "SANS FRAIS · Sans engagement" : "NO COST · No commitment"}
+                </Badge>
                 <Button
                   size="lg"
                   className="gap-2"
@@ -1846,54 +1939,6 @@ export default function LandingPage() {
                 </Button>
               </a>
             </div>
-          </motion.div>
-        </div>
-      </section>
-      {/* ========== FAQ SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-3xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-              {t("faq.title")}
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              {t("faq.subtitle")}
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <Accordion
-              type="multiple"
-              value={expandedFaqItems}
-              onValueChange={setExpandedFaqItems}
-              className="space-y-3"
-            >
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <AccordionItem
-                  key={`item${i}`}
-                  value={`item${i}`}
-                  className="border border-border rounded-lg px-5 py-2 hover:border-primary/50 transition-colors"
-                >
-                  <AccordionTrigger className="font-semibold hover:no-underline">
-                    <span className="text-left">
-                      {t(`faq.item${i}.question`)}
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground leading-relaxed pt-2">
-                    {t(`faq.item${i}.answer`)}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
           </motion.div>
         </div>
       </section>

@@ -53,6 +53,17 @@ export const FunnelEvents = {
   procurationSigned: () => trackEvent('procuration_signed'),
   reportOpened: (format: string) => trackEvent('report_opened', { format }),
   ctaClicked: (ctaName: string, location: string) => trackEvent('cta_clicked', { cta_name: ctaName, location }),
+  // Form interaction tracking
+  formStarted: (formName: string) => trackEvent('form_started', { form_name: formName }),
+  formFieldInteracted: (formName: string, fieldName: string) => trackEvent('form_field_interacted', { form_name: formName, field_name: fieldName }),
+  formAbandoned: (formName: string, lastField: string, completedFields: number) => trackEvent('form_abandoned', { form_name: formName, last_field: lastField, completed_fields: completedFields }),
+  formSubmitted: (formName: string, method: string) => trackEvent('form_submitted', { form_name: formName, method }),
+  formError: (formName: string, errorType: string) => trackEvent('form_error', { form_name: formName, error_type: errorType }),
+  // Page engagement
+  scrollDepth: (depth: number, page: string) => trackEvent('scroll_depth', { depth_percent: depth, page }),
+  timeOnPage: (seconds: number, page: string) => trackEvent('time_on_page', { seconds, page }),
+  // Thank-you page
+  thankYouViewed: (type: string) => trackEvent('thank_you_viewed', { type }),
 };
 
 // UTM parameter capture
