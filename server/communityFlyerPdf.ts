@@ -55,11 +55,11 @@ function drawHeader(
   }
   if (scaleLogo) {
     try {
-      doc.image(scaleLogo, pageWidth - margin - 140, y + 6, { width: 130 });
+      doc.image(scaleLogo, pageWidth - margin - 140, y + 12, { width: 130 });
     } catch {}
   }
 
-  y = 90;
+  y = 104;
   doc
     .moveTo(margin, y)
     .lineTo(margin + contentWidth, y)
