@@ -935,8 +935,8 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          {/* Process Timeline - 6 steps, 3 phases with vertical center line */}
-          <div className="relative">
+          {/* Process Timeline - 3-column grid: left content | center line+numbers | right content */}
+          <div>
             {(() => {
               const timeline = getTimeline(language === "fr" ? "fr" : "en");
               const stepIcons = [BarChart3, FileText, FileSignature, HardHat, ClipboardCheck, Zap];
@@ -956,193 +956,179 @@ export default function LandingPage() {
                 { key: "execution", labelFr: "Réalisation", labelEn: "Execution", descFr: "Clé en main", descEn: "Turnkey", steps: [4, 5] },
               ];
 
-              return (
-                <>
-                  {/* Vertical center line - desktop */}
-                  <div
-                    className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[2px] -translate-x-1/2"
-                    style={{ backgroundColor: BRAND.primaryBlue, opacity: 0.2 }}
-                  />
-                  {/* Vertical left line - mobile */}
-                  <div
-                    className="md:hidden absolute left-5 top-0 bottom-0 w-[2px]"
-                    style={{ backgroundColor: BRAND.primaryBlue, opacity: 0.2 }}
-                  />
+              const allRows: Array<{ type: "phase"; phase: typeof phases[0]; pi: number } | { type: "step"; si: number }> = [];
+              phases.forEach((phase, pi) => {
+                allRows.push({ type: "phase", phase, pi });
+                phase.steps.forEach((si) => allRows.push({ type: "step", si }));
+              });
 
-                  <div className="space-y-4 md:space-y-0">
-                    {phases.map((phase, pi) => (
-                      <div key={phase.key}>
-                        {/* Phase label */}
+              return (
+                <div className="flex flex-col items-stretch">
+                  {allRows.map((row, ri) => {
+                    if (row.type === "phase") {
+                      const { phase, pi } = row;
+                      return (
                         <motion.div
+                          key={`phase-${phase.key}`}
                           initial={{ opacity: 0, y: 10 }}
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true }}
-                          className="flex items-center justify-center gap-3 mb-4 md:mb-5 mt-1"
                         >
-                          <div className="hidden md:block h-[1px] w-16" style={{ backgroundColor: BRAND.accentGold, opacity: 0.4 }} />
-                          <span
-                            className="text-xs font-bold uppercase tracking-widest px-4 py-1.5"
-                            style={{ color: BRAND.accentGold }}
-                            data-testid={`text-phase-${phase.key}`}
-                          >
-                            {language === "fr" ? phase.labelFr : phase.labelEn}
-                            <span className="text-muted-foreground font-normal normal-case tracking-normal ml-2">
-                              — {language === "fr" ? phase.descFr : phase.descEn}
-                            </span>
-                          </span>
-                          {pi === 0 && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs no-default-hover-elevate no-default-active-elevate" data-testid="badge-free">
-                              {language === "fr" ? "GRATUIT" : "FREE"}
-                            </Badge>
-                          )}
-                          <div className="hidden md:block h-[1px] w-16" style={{ backgroundColor: BRAND.accentGold, opacity: 0.4 }} />
-                        </motion.div>
-
-                        {/* Steps */}
-                        {phase.steps.map((si) => {
-                          const tl = timeline[si];
-                          const Icon = stepIcons[si] || Zap;
-                          const stepNum = si + 1;
-                          const isLeft = si % 2 === 0;
-
-                          const stepDisplay = si === 2
-                            ? (language === "fr" ? "Conception détaillée" : "Detailed Design")
-                            : tl.step;
-
-                          const stepColor = stepColors[si] || BRAND.primaryBlue;
-
-                          return (
-                            <div key={si} className="relative pb-6 md:pb-8">
-                              {/* Numbered circle on the line - desktop */}
+                          {/* Desktop: 3 columns with phase label spanning full width above */}
+                          <div className="hidden md:grid md:grid-cols-[1fr_48px_1fr] gap-0">
+                            <div />
+                            <div className="flex justify-center">
                               <div
-                                className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-3 w-9 h-9 rounded-full items-center justify-center font-bold text-white text-sm z-10"
-                                style={{ backgroundColor: stepColor }}
-                                data-testid={`timeline-step-${stepNum}`}
-                              >
-                                {stepNum}
-                              </div>
-
-                              {/* Numbered circle on the line - mobile */}
-                              <div
-                                className="md:hidden absolute left-[10px] top-3 w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs z-10 -translate-x-1/2"
-                                style={{ backgroundColor: stepColor }}
-                              >
-                                {stepNum}
-                              </div>
-
-                              {/* Horizontal connector - desktop */}
-                              <div
-                                className={`hidden md:block absolute top-[24px] w-10 h-[2px] ${isLeft ? 'right-1/2 mr-5' : 'left-1/2 ml-5'}`}
-                                style={{ backgroundColor: stepColor, opacity: 0.4 }}
+                                className="w-[2px] h-6"
+                                style={{ backgroundColor: BRAND.primaryBlue, opacity: pi === 0 ? 0 : 0.15 }}
                               />
+                            </div>
+                            <div />
+                          </div>
+                          <div className="flex items-center justify-center gap-3 py-2">
+                            <div className="hidden md:block h-[1px] w-12" style={{ backgroundColor: BRAND.accentGold, opacity: 0.4 }} />
+                            <span
+                              className="text-xs font-bold uppercase tracking-widest"
+                              style={{ color: BRAND.accentGold }}
+                              data-testid={`text-phase-${phase.key}`}
+                            >
+                              {language === "fr" ? phase.labelFr : phase.labelEn}
+                              <span className="text-muted-foreground font-normal normal-case tracking-normal ml-2">
+                                — {language === "fr" ? phase.descFr : phase.descEn}
+                              </span>
+                            </span>
+                            {pi === 0 && (
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs no-default-hover-elevate no-default-active-elevate" data-testid="badge-free">
+                                {language === "fr" ? "GRATUIT" : "FREE"}
+                              </Badge>
+                            )}
+                            <div className="hidden md:block h-[1px] w-12" style={{ backgroundColor: BRAND.accentGold, opacity: 0.4 }} />
+                          </div>
+                        </motion.div>
+                      );
+                    }
 
-                              {/* Desktop layout: alternating left/right */}
-                              <div className="hidden md:grid md:grid-cols-2 md:gap-10">
-                                {isLeft ? (
-                                  <>
-                                    <motion.div
-                                      initial={{ opacity: 0, x: -30 }}
-                                      whileInView={{ opacity: 1, x: 0 }}
-                                      viewport={{ once: true }}
-                                      transition={{ delay: 0.1 }}
-                                      className="flex justify-end"
-                                    >
-                                      <Card className="max-w-sm w-full">
-                                        <CardContent className="p-4">
-                                          <div className="flex items-start gap-3">
-                                            <div
-                                              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                                              style={{ backgroundColor: stepColor }}
-                                            >
-                                              <Icon className="w-4 h-4 text-white" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
-                                              {tl.duration && (
-                                                <Badge variant="secondary" className="text-xs mt-1.5">
-                                                  <Clock className="w-3 h-3 mr-1" />
-                                                  {tl.duration}
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </CardContent>
-                                      </Card>
-                                    </motion.div>
-                                    <div />
-                                  </>
-                                ) : (
-                                  <>
-                                    <div />
-                                    <motion.div
-                                      initial={{ opacity: 0, x: 30 }}
-                                      whileInView={{ opacity: 1, x: 0 }}
-                                      viewport={{ once: true }}
-                                      transition={{ delay: 0.1 }}
-                                    >
-                                      <Card className="max-w-sm w-full">
-                                        <CardContent className="p-4">
-                                          <div className="flex items-start gap-3">
-                                            <div
-                                              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                                              style={{ backgroundColor: stepColor }}
-                                            >
-                                              <Icon className="w-4 h-4 text-white" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
-                                              {tl.duration && (
-                                                <Badge variant="secondary" className="text-xs mt-1.5">
-                                                  <Clock className="w-3 h-3 mr-1" />
-                                                  {tl.duration}
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </CardContent>
-                                      </Card>
-                                    </motion.div>
-                                  </>
-                                )}
-                              </div>
+                    const { si } = row;
+                    const tl = timeline[si];
+                    const Icon = stepIcons[si] || Zap;
+                    const stepNum = si + 1;
+                    const isLeft = si % 2 === 0;
+                    const isLast = si === 5;
+                    const stepColor = stepColors[si] || BRAND.primaryBlue;
+                    const stepDisplay = si === 2
+                      ? (language === "fr" ? "Conception détaillée" : "Detailed Design")
+                      : tl.step;
 
-                              {/* Mobile layout: all on right of line */}
+                    const cardContent = (
+                      <Card className="w-full">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div
+                              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: stepColor }}
+                            >
+                              <Icon className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
+                              {tl.duration && (
+                                <Badge variant="secondary" className="text-xs mt-1.5">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {tl.duration}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+
+                    return (
+                      <div key={`step-${si}`}>
+                        {/* Desktop: 3-column grid */}
+                        <div className="hidden md:grid md:grid-cols-[1fr_48px_1fr] gap-0">
+                          {/* Left column */}
+                          <div className={`flex ${isLeft ? "justify-end pr-6" : ""}`}>
+                            {isLeft && (
                               <motion.div
-                                className="md:hidden pl-10"
-                                initial={{ opacity: 0, x: -20 }}
+                                initial={{ opacity: 0, x: -30 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: 0.1 }}
+                                className="max-w-sm w-full"
                               >
-                                <Card>
-                                  <CardContent className="p-3">
-                                    <div className="flex items-start gap-3">
-                                      <div
-                                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                                        style={{ backgroundColor: stepColor }}
-                                      >
-                                        <Icon className="w-4 h-4 text-white" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
-                                        {tl.duration && (
-                                          <Badge variant="secondary" className="text-xs mt-1.5">
-                                            <Clock className="w-3 h-3 mr-1" />
-                                            {tl.duration}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
+                                {cardContent}
                               </motion.div>
+                            )}
+                          </div>
+
+                          {/* Center column: line segment + numbered circle + line segment */}
+                          <div className="flex flex-col items-center">
+                            <div
+                              className="w-[2px] flex-1 min-h-[8px]"
+                              style={{ backgroundColor: BRAND.primaryBlue, opacity: 0.15 }}
+                            />
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0 z-10"
+                              style={{ backgroundColor: stepColor }}
+                              data-testid={`timeline-step-${stepNum}`}
+                            >
+                              {stepNum}
                             </div>
-                          );
-                        })}
+                            <div
+                              className="w-[2px] flex-1 min-h-[8px]"
+                              style={{ backgroundColor: BRAND.primaryBlue, opacity: isLast ? 0 : 0.15 }}
+                            />
+                          </div>
+
+                          {/* Right column */}
+                          <div className={`flex ${!isLeft ? "justify-start pl-6" : ""}`}>
+                            {!isLeft && (
+                              <motion.div
+                                initial={{ opacity: 0, x: 30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.1 }}
+                                className="max-w-sm w-full"
+                              >
+                                {cardContent}
+                              </motion.div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Mobile: left line + card */}
+                        <div className="md:hidden flex gap-3">
+                          <div className="flex flex-col items-center w-10 shrink-0">
+                            <div
+                              className="w-[2px] flex-1 min-h-[4px]"
+                              style={{ backgroundColor: BRAND.primaryBlue, opacity: 0.15 }}
+                            />
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shrink-0"
+                              style={{ backgroundColor: stepColor }}
+                            >
+                              {stepNum}
+                            </div>
+                            <div
+                              className="w-[2px] flex-1 min-h-[4px]"
+                              style={{ backgroundColor: BRAND.primaryBlue, opacity: isLast ? 0 : 0.15 }}
+                            />
+                          </div>
+                          <motion.div
+                            className="flex-1 py-1"
+                            initial={{ opacity: 0, x: -20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.1 }}
+                          >
+                            {cardContent}
+                          </motion.div>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </>
+                    );
+                  })}
+                </div>
               );
             })()}
           </div>
