@@ -273,7 +273,7 @@ function generateNextSteps(
     steps.push('Considérer pour projets résidentiels ou référence à partenaire');
   }
 
-  return [...new Set(steps)]; // Remove duplicates
+  return Array.from(new Set(steps)); // Remove duplicates
 }
 
 /**
@@ -337,43 +337,129 @@ export function quickQualificationScore(monthlyBill: number | null): {
 }
 
 /**
- * Compute lead color classification based on qualification result
+ * Compute lead color classification based on qualification result + business context.
+ *
+ * VERT (viable) :
+ *   - Propriétaire (ou locataire autorisé bail > 10 ans)
+ *   - L'entreprise paie la facture
+ *   - Toiture < 10 ans ou bon état, toit plat
+ *   - Score qualification ≥ 70, aucun blocage critique/majeur
+ *
+ * JAUNE (à explorer) :
+ *   - Locataire avec autorisation partielle, ou bail mixte
+ *   - Toiture 10-20 ans, ou infos manquantes
+ *   - Toit incliné (faisable mais plus complexe)
+ *   - Score 30-69, ou blocages majeurs
+ *
+ * ROUGE (non viable) :
+ *   - Locataire sans autorisation possible
+ *   - Le propriétaire paie la facture (zéro incitatif prospect)
+ *   - Toiture > 25 ans en mauvais état sans plan de réfection
+ *   - Score < 30 ou blocages critiques
  */
-export function computeLeadColor(result: QualificationResult): { color: 'green' | 'yellow' | 'red'; reason: string } {
+export interface LeadBusinessContext {
+  propertyRelationship?: string | null;
+  billPayer?: string | null;
+  roofCondition?: string | null;
+  roofAgeYears?: number | null;
+  roofSlope?: string | null;
+  roofRemainingLifeYears?: number | null;
+  plannedRoofWork?: string | null;
+}
+
+export function computeLeadColor(
+  result: QualificationResult,
+  context?: LeadBusinessContext
+): { color: 'green' | 'yellow' | 'red'; reason: string } {
   const criticalBlockers = result.blockers.filter(b => b.severity === 'critical');
   const majorBlockers = result.blockers.filter(b => b.severity === 'major');
+  const reasons: string[] = [];
 
-  // RED: score < 30 OR any critical blockers
+  // === RED FLAGS (any one = rouge) ===
+
+  // Locataire sans autorisation
+  if (context?.propertyRelationship === 'tenant_no_auth') {
+    reasons.push('Locataire sans autorisation du propriétaire');
+    return { color: 'red', reason: reasons.join('. ') };
+  }
+
+  // Propriétaire paie la facture (zéro incitatif pour le prospect locataire)
+  if (context?.billPayer === 'landlord' && context?.propertyRelationship !== 'owner') {
+    reasons.push('Le propriétaire paie la facture — aucun incitatif économique pour le prospect');
+    return { color: 'red', reason: reasons.join('. ') };
+  }
+
+  // Toiture > 25 ans en mauvais état sans plan de réfection
+  if (context?.roofAgeYears && context.roofAgeYears > 25 && context?.roofCondition === 'needs_replacement' && !context?.plannedRoofWork) {
+    reasons.push('Toiture > 25 ans nécessitant remplacement, sans plan de réfection');
+    return { color: 'red', reason: reasons.join('. ') };
+  }
+
+  // Vie utile restante < 5 ans (pas assez pour justifier le solaire)
+  if (context?.roofRemainingLifeYears != null && context.roofRemainingLifeYears < 5 && !context?.plannedRoofWork) {
+    reasons.push(`Vie utile de la toiture restante insuffisante (${context.roofRemainingLifeYears} ans)`);
+    return { color: 'red', reason: reasons.join('. ') };
+  }
+
+  // Score très bas ou blocages critiques
   if (result.score < 30 || criticalBlockers.length > 0) {
-    let reason = '';
-    if (result.score < 30) {
-      reason = `Score insuffisant (${result.score}/100)`;
-    } else {
-      reason = `Blocages critiques identifiés (${criticalBlockers.length})`;
-    }
-    return { color: 'red', reason };
+    if (result.score < 30) reasons.push(`Score insuffisant (${result.score}/100)`);
+    if (criticalBlockers.length > 0) reasons.push(`${criticalBlockers.length} blocage(s) critique(s)`);
+    return { color: 'red', reason: reasons.join('. ') };
   }
 
-  // GREEN: score >= 70 AND no critical/major blockers AND status is "hot" or "warm"
-  if (result.score >= 70 && criticalBlockers.length === 0 && majorBlockers.length === 0 && (result.status === 'hot' || result.status === 'warm')) {
-    return { color: 'green', reason: `Prospect de haute qualité (score: ${result.score}/100, statut: ${result.status})` };
+  // === YELLOW FLAGS (accumulate) ===
+  const yellowFlags: string[] = [];
+
+  // Locataire avec autorisation partielle ou bail mixte
+  if (context?.propertyRelationship === 'tenant_pending') {
+    yellowFlags.push('Autorisation du propriétaire en attente');
+  }
+  if (context?.billPayer === 'shared') {
+    yellowFlags.push('Facture partagée — vérifier la répartition');
   }
 
-  // YELLOW: score 30-69 OR any major blockers OR status is "nurture"
-  let reason = '';
-  if (result.score < 70) {
-    reason = `Score modéré (${result.score}/100)`;
+  // Toiture 10-20 ans ou condition moyenne
+  if (context?.roofAgeYears && context.roofAgeYears >= 10 && context.roofAgeYears <= 20) {
+    yellowFlags.push(`Toiture de ${context.roofAgeYears} ans — vérifier état`);
   }
+  if (context?.roofCondition === 'needs_repair') {
+    yellowFlags.push('Toiture nécessitant des réparations');
+  }
+
+  // Vie utile restante 5-15 ans
+  if (context?.roofRemainingLifeYears != null && context.roofRemainingLifeYears >= 5 && context.roofRemainingLifeYears < 15) {
+    yellowFlags.push(`Vie utile restante de ${context.roofRemainingLifeYears} ans — coordonner avec réfection`);
+  }
+
+  // Toit incliné (faisable mais plus complexe/coûteux)
+  if (context?.roofSlope === 'steep') {
+    yellowFlags.push('Toit à forte pente — installation plus complexe');
+  }
+
+  // Blocages majeurs du scoring
   if (majorBlockers.length > 0) {
-    reason = reason ? reason + ' et blocages majeurs' : `Blocages majeurs identifiés (${majorBlockers.length})`;
+    yellowFlags.push(`${majorBlockers.length} blocage(s) majeur(s)`);
+  }
+  if (result.score < 70) {
+    yellowFlags.push(`Score modéré (${result.score}/100)`);
   }
   if (result.status === 'nurture') {
-    reason = reason ? reason + ' et en phase de nurturing' : 'En phase de nurturing';
+    yellowFlags.push('En phase de nurturing');
   }
-  if (!reason) {
-    reason = `Prospect en cours de qualification (statut: ${result.status})`;
+
+  // Si on a des yellow flags, c'est jaune
+  if (yellowFlags.length > 0) {
+    return { color: 'yellow', reason: yellowFlags.join('. ') };
   }
-  return { color: 'yellow', reason };
+
+  // === GREEN (tout est bon) ===
+  if (result.score >= 70 && criticalBlockers.length === 0 && majorBlockers.length === 0) {
+    return { color: 'green', reason: `Prospect qualifié (score: ${result.score}/100)` };
+  }
+
+  // Default: yellow si on ne peut pas confirmer vert
+  return { color: 'yellow', reason: 'Qualification en cours — informations à compléter' };
 }
 
 /**

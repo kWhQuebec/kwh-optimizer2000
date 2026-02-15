@@ -52,6 +52,8 @@ const callScriptSchema = z.object({
   loadChangeTimeline: z.string().optional(),
   procurementProcess: z.string().optional(),
   roofMaterialType: z.string().optional(),
+  roofSlope: z.string().optional(),
+  roofRemainingLifeYears: z.number().optional(),
   roofWarrantyYears: z.number().optional(),
   leadColor: z.string().optional(),
   leadColorReason: z.string().optional(),
@@ -81,6 +83,8 @@ export default function CallScriptWizard({
       loadChangeTimeline: "",
       procurementProcess: "",
       roofMaterialType: "",
+      roofSlope: "",
+      roofRemainingLifeYears: undefined,
       roofWarrantyYears: undefined,
       leadColor: "",
       leadColorReason: "",
@@ -433,28 +437,86 @@ export default function CallScriptWizard({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="elastomere">
+                              {language === "fr" ? "Membrane élastomère (bitume modifié SBS)" : "Elastomeric membrane (SBS modified bitumen)"}
+                            </SelectItem>
+                            <SelectItem value="tpo">
+                              {language === "fr" ? "TPO (thermoplastique)" : "TPO (thermoplastic)"}
+                            </SelectItem>
+                            <SelectItem value="epdm">
+                              {language === "fr" ? "EPDM (caoutchouc synthétique)" : "EPDM (synthetic rubber)"}
+                            </SelectItem>
+                            <SelectItem value="bur_gravel">
+                              {language === "fr" ? "Asphalte et gravier (multicouche BUR)" : "Asphalt & gravel (BUR built-up)"}
+                            </SelectItem>
                             <SelectItem value="metal">
-                              {language === "fr" ? "Métal" : "Metal"}
-                            </SelectItem>
-                            <SelectItem value="asphalt">
-                              {language === "fr" ? "Asphalte" : "Asphalt"}
-                            </SelectItem>
-                            <SelectItem value="concrete">
-                              {language === "fr" ? "Béton" : "Concrete"}
-                            </SelectItem>
-                            <SelectItem value="tar_gravel">
-                              {language === "fr"
-                                ? "Goudron et gravier"
-                                : "Tar & Gravel"}
-                            </SelectItem>
-                            <SelectItem value="membrane">
-                              {language === "fr" ? "Membrane" : "Membrane"}
+                              {language === "fr" ? "Métal (acier/aluminium)" : "Metal (steel/aluminum)"}
                             </SelectItem>
                             <SelectItem value="other">
-                              {language === "fr" ? "Autre" : "Other"}
+                              {language === "fr" ? "Autre (voir notes)" : "Other (see notes)"}
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="roofSlope"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {language === "fr" ? "Pente de la toiture" : "Roof Slope"}
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="flat">
+                              {language === "fr" ? "Plat (< 2°)" : "Flat (< 2°)"}
+                            </SelectItem>
+                            <SelectItem value="low_slope">
+                              {language === "fr" ? "Faible pente (2-15°)" : "Low slope (2-15°)"}
+                            </SelectItem>
+                            <SelectItem value="steep">
+                              {language === "fr" ? "Forte pente (> 15°)" : "Steep (> 15°)"}
+                            </SelectItem>
+                            <SelectItem value="unknown">
+                              {language === "fr" ? "Inconnu" : "Unknown"}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="roofRemainingLifeYears"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {language === "fr" ? "Vie utile restante estimée (années)" : "Estimated Remaining Life (Years)"}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="15"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          {language === "fr"
+                            ? "< 5 ans = rouge, 5-15 ans = jaune, > 15 ans = vert"
+                            : "< 5 yrs = red, 5-15 yrs = yellow, > 15 yrs = green"}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -581,6 +643,25 @@ export default function CallScriptWizard({
                 </TabsContent>
 
                 <TabsContent value="notes" className="space-y-4 mt-4">
+                  {/* Live color badge */}
+                  {form.watch("leadColor") && (
+                    <div className="flex items-center gap-3 p-4 rounded-lg border-2" style={{
+                      backgroundColor: form.watch("leadColor") === "green" ? "#DCFCE7" : form.watch("leadColor") === "yellow" ? "#FEF9C3" : "#FEE2E2",
+                      borderColor: form.watch("leadColor") === "green" ? "#16A34A" : form.watch("leadColor") === "yellow" ? "#EAB308" : "#DC2626",
+                    }}>
+                      <div className="w-5 h-5 rounded-full" style={{
+                        backgroundColor: form.watch("leadColor") === "green" ? "#16A34A" : form.watch("leadColor") === "yellow" ? "#EAB308" : "#DC2626",
+                      }} />
+                      <span className="font-bold text-sm" style={{
+                        color: form.watch("leadColor") === "green" ? "#16A34A" : form.watch("leadColor") === "yellow" ? "#92400E" : "#991B1B",
+                      }}>
+                        {form.watch("leadColor") === "green" ? (language === "fr" ? "VERT — Prospect viable" : "GREEN — Viable prospect") :
+                         form.watch("leadColor") === "yellow" ? (language === "fr" ? "JAUNE — À explorer" : "YELLOW — To explore") :
+                         (language === "fr" ? "ROUGE — Non viable" : "RED — Not viable")}
+                      </span>
+                    </div>
+                  )}
+
                   <FormField
                     control={form.control}
                     name="leadColor"
@@ -588,8 +669,8 @@ export default function CallScriptWizard({
                       <FormItem>
                         <FormLabel>
                           {language === "fr"
-                            ? "Couleur du prospect"
-                            : "Lead Color"}
+                            ? "Classification du prospect"
+                            : "Lead Classification"}
                         </FormLabel>
                         <Select
                           onValueChange={field.onChange}

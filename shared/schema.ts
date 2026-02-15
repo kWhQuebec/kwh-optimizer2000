@@ -102,9 +102,11 @@ export const leads = pgTable("leads", {
   procurementNotes: text("procurement_notes"),
 
   // Blueprint Oleg — Roof Details (risk flags)
-  roofMaterialType: text("roof_material_type"), // "tpo" | "epdm" | "pvc" | "bur" | "metal_standing_seam" | "metal_corrugated" | "shingle" | "other" | "unknown"
+  roofMaterialType: text("roof_material_type"), // "elastomere" | "tpo" | "epdm" | "bur_gravel" | "metal" | "other" | "unknown"
+  roofSlope: text("roof_slope"), // "flat" | "low_slope" | "steep" | "unknown"
   roofWarrantyYears: integer("roof_warranty_years"),
   roofWarrantyExpiry: timestamp("roof_warranty_expiry"),
+  roofRemainingLifeYears: integer("roof_remaining_life_years"), // Estimated remaining useful life
 
   // Blueprint Oleg — Lead Color Classification (Green/Yellow/Red)
   leadColor: text("lead_color"), // "green" | "yellow" | "red" | null

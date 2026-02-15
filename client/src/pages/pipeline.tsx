@@ -1802,12 +1802,33 @@ export default function PipelinePage() {
           </DialogHeader>
           {selectedOpportunity && (
             <Form {...editForm}>
-              <form 
-                onSubmit={editForm.handleSubmit((data) => 
+              <form
+                onSubmit={editForm.handleSubmit((data) =>
                   updateMutation.mutate({ id: selectedOpportunity.id, data })
-                )} 
+                )}
                 className="space-y-4"
               >
+                {/* Lead Color Badge — prominent display */}
+                {selectedOpportunity.lead && (selectedOpportunity.lead as any).leadColor && (() => {
+                  const lc = (selectedOpportunity.lead as any).leadColor;
+                  const reason = (selectedOpportunity.lead as any).leadColorReason;
+                  const bgColor = lc === "green" ? "#DCFCE7" : lc === "yellow" ? "#FEF9C3" : "#FEE2E2";
+                  const borderColor = lc === "green" ? "#16A34A" : lc === "yellow" ? "#EAB308" : "#DC2626";
+                  const textColor = lc === "green" ? "#16A34A" : lc === "yellow" ? "#92400E" : "#991B1B";
+                  const label = lc === "green" ? (language === "fr" ? "VERT — Viable" : "GREEN — Viable") :
+                                lc === "yellow" ? (language === "fr" ? "JAUNE — À explorer" : "YELLOW — To explore") :
+                                (language === "fr" ? "ROUGE — Non viable" : "RED — Not viable");
+                  return (
+                    <div className="flex items-center gap-3 p-3 rounded-lg border-2" style={{ backgroundColor: bgColor, borderColor }}>
+                      <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: borderColor }} />
+                      <div>
+                        <span className="font-bold text-sm" style={{ color: textColor }}>{label}</span>
+                        {reason && <p className="text-xs mt-0.5" style={{ color: textColor, opacity: 0.8 }}>{reason}</p>}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <Tabs defaultValue="opportunity" className="w-full">
                   <TabsList className="flex w-full flex-wrap h-auto gap-1 p-1" data-testid="tabs-edit-opportunity">
                     <TabsTrigger value="opportunity" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-opportunity">
