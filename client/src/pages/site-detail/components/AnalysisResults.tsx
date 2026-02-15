@@ -19,6 +19,7 @@ import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@sha
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
 import { getAssumptions, getExclusions, getEquipment, getTimeline, getAllStats, getFirstTestimonial, getNarrativeAct, getNarrativeTransition, getDesignFeeCovers, getClientProvides, getClientReceives } from "@shared/brandContent";
 import { TIMELINE_GRADIENT } from "@shared/colors";
+import { computeFitScore } from "@shared/fitScore";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1120,6 +1121,31 @@ export function AnalysisResults({
             <span className={`text-sm ${showExtendedLifeAnalysis ? 'font-medium text-primary' : 'text-muted-foreground'}`}>30 {language === "fr" ? "ans" : "yrs"}</span>
           </div>
         </div>
+
+        {/* Fit Score Badge */}
+        {(() => {
+          const fitResult = computeFitScore({
+            simplePaybackYears: simulation.simplePaybackYears,
+            irr25: simulation.irr25,
+            annualSavings: simulation.annualSavings,
+            annualCostBefore: simulation.annualCostBefore,
+            selfSufficiencyPercent: simulation.selfSufficiencyPercent,
+            capexNet: simulation.capexNet,
+          });
+          return (
+            <div className="mb-4 px-3 py-2 rounded-lg flex items-center gap-2" style={{ backgroundColor: `${fitResult.color}10`, border: `1px solid ${fitResult.color}30` }}>
+              <span className="text-lg">{fitResult.icon}</span>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: fitResult.color }}>
+                  {language === 'fr' ? fitResult.labelFr : fitResult.labelEn}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'fr' ? `Score : ${fitResult.score}/100` : `Score: ${fitResult.score}/100`}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         <div id="pdf-section-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border-primary/20">

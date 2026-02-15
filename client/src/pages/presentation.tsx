@@ -72,6 +72,7 @@ import { useI18n } from "@/lib/i18n";
 import type { Site, Client, SimulationRun, CashflowEntry, HourlyProfileEntry } from "@shared/schema";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency as sharedFormatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT } from "@shared/colors";
+import { computeFitScore } from "@shared/fitScore";
 import {
   getAssumptions,
   getExclusions,
@@ -1705,6 +1706,31 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
             </p>
           </div>
         )}
+
+        {/* Fit Score Banner */}
+        {simulation && (() => {
+          const fitResult = computeFitScore({
+            simplePaybackYears: simulation.simplePaybackYears,
+            irr25: simulation.irr25,
+            annualSavings: simulation.annualSavings,
+            annualCostBefore: simulation.annualCostBefore,
+            selfSufficiencyPercent: simulation.selfSufficiencyPercent,
+            capexNet: simulation.capexNet,
+          });
+          return (
+            <div className="flex items-center justify-center gap-3 mb-6 px-4 py-3 rounded-xl" style={{ backgroundColor: `${fitResult.color}10`, border: `1px solid ${fitResult.color}30` }}>
+              <span className="text-2xl">{fitResult.icon}</span>
+              <div className="text-center">
+                <p className="text-sm font-bold" style={{ color: fitResult.color }}>
+                  {language === 'fr' ? fitResult.labelFr : fitResult.labelEn}
+                </p>
+                <p className="text-xs" style={{ color: '#6B7280' }}>
+                  {language === 'fr' ? `Score de compatibilité : ${fitResult.score}/100` : `Compatibility score: ${fitResult.score}/100`}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mb-10">
           {columns.map((col, i) => (
