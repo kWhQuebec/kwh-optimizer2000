@@ -208,4 +208,14 @@ router.delete("/api/activities/:id", authMiddleware, requireStaff, asyncHandler(
   res.status(204).send();
 }));
 
+// ==================== ANALYTICS ====================
+
+router.get("/api/analytics/conversion-funnel", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { periodDays } = req.query;
+  const period = periodDays ? parseInt(periodDays as string, 10) : 90;
+
+  const metrics = await storage.getConversionFunnelMetrics(period);
+  res.json(metrics);
+}));
+
 export default router;

@@ -610,6 +610,133 @@ export async function getPipelineStats(): Promise<{
   };
 }
 
+// ==================== CONVERSION FUNNEL METRICS ====================
+
+export async function getConversionFunnelMetrics(periodDays: number = 90): Promise<{
+  funnel: Array<{
+    stage: string;
+    count: number;
+    conversionToNext: number;
+    avgDaysInStage: number;
+  }>;
+  winRate: number;
+  avgDealCycle: number;
+  lostReasons: Record<string, number>;
+  totalOpportunities: number;
+  periodDays: number;
+}> {
+  const stages = ['prospect', 'contacted', 'qualified', 'analysis_done', 'design_mandate_signed', 'epc_proposal_sent', 'negotiation', 'won_to_be_delivered', 'won_in_construction', 'won_delivered'];
+  const periodStartDate = new Date();
+  periodStartDate.setDate(periodStartDate.getDate() - periodDays);
+
+  // Get all opportunities created in the period
+  const periodOpps = await db
+    .select({
+      id: opportunities.id,
+      stage: opportunities.stage,
+      createdAt: opportunities.createdAt,
+      updatedAt: opportunities.updatedAt,
+      lostReason: opportunities.lostReason,
+    })
+    .from(opportunities)
+    .where(
+      sql`${opportunities.createdAt} >= ${periodStartDate}`
+    );
+
+  // Also get some historical data to calculate conversion rates
+  const allOpps = await db
+    .select({
+      id: opportunities.id,
+      stage: opportunities.stage,
+      createdAt: opportunities.createdAt,
+      updatedAt: opportunities.updatedAt,
+      lostReason: opportunities.lostReason,
+    })
+    .from(opportunities);
+
+  const WON_STAGES = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
+  const LOST_STAGES = ['lost', 'disqualified'];
+
+  // Count opportunities at each stage (all time for conversion rates)
+  const stageCounts = new Map<string, number>();
+  const stageTimings = new Map<string, { totalDays: number; count: number }>();
+
+  for (const opp of allOpps) {
+    const stage = opp.stage;
+    stageCounts.set(stage, (stageCounts.get(stage) || 0) + 1);
+
+    // Calculate days in stage (from created to last update)
+    if (opp.createdAt && opp.updatedAt) {
+      const daysInStage = (new Date(opp.updatedAt).getTime() - new Date(opp.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      const existing = stageTimings.get(stage) || { totalDays: 0, count: 0 };
+      stageTimings.set(stage, {
+        totalDays: existing.totalDays + daysInStage,
+        count: existing.count + 1,
+      });
+    }
+  }
+
+  // Build funnel with conversion rates
+  const funnel = [];
+  for (let i = 0; i < stages.length; i++) {
+    const stage = stages[i];
+    const count = stageCounts.get(stage) || 0;
+
+    // Conversion to next stage
+    let conversionToNext = 0;
+    if (i < stages.length - 1) {
+      const nextStage = stages[i + 1];
+      const nextCount = stageCounts.get(nextStage) || 0;
+      conversionToNext = count > 0 ? nextCount / count : 0;
+    }
+
+    // Average days in stage
+    const stageData = stageTimings.get(stage);
+    const avgDaysInStage = stageData ? stageData.totalDays / stageData.count : 0;
+
+    funnel.push({
+      stage,
+      count,
+      conversionToNext: Math.round(conversionToNext * 10000) / 10000,
+      avgDaysInStage: Math.round(avgDaysInStage * 10) / 10,
+    });
+  }
+
+  // Calculate win rate (opportunities that reached won stages / total created)
+  const totalOpportunities = allOpps.length;
+  const wonCount = allOpps.filter(o => WON_STAGES.includes(o.stage)).length;
+  const winRate = totalOpportunities > 0 ? wonCount / totalOpportunities : 0;
+
+  // Calculate average deal cycle (for won opportunities only)
+  let totalDealCycle = 0;
+  let wonWithDates = 0;
+  for (const opp of allOpps) {
+    if (WON_STAGES.includes(opp.stage) && opp.createdAt && opp.updatedAt) {
+      const daysToWin = (new Date(opp.updatedAt).getTime() - new Date(opp.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      totalDealCycle += daysToWin;
+      wonWithDates++;
+    }
+  }
+  const avgDealCycle = wonWithDates > 0 ? Math.round(totalDealCycle / wonWithDates * 10) / 10 : 0;
+
+  // Lost reasons breakdown
+  const lostReasons: Record<string, number> = {};
+  for (const opp of allOpps) {
+    if (opp.stage === 'lost' && opp.lostReason) {
+      lostReasons[opp.lostReason] = (lostReasons[opp.lostReason] || 0) + 1;
+    }
+  }
+
+  return {
+    funnel,
+    winRate: Math.round(winRate * 10000) / 10000,
+    avgDealCycle,
+    lostReasons,
+    totalOpportunities,
+    periodDays,
+  };
+}
+
 // ==================== ACTIVITIES ====================
 
 export async function getActivities(): Promise<Activity[]> {

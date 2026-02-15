@@ -31,7 +31,7 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { FunnelEvents, getStoredUTMParams } from "@/lib/analytics";
-import { SEOHead, seoContent, getLocalBusinessSchema } from "@/components/seo-head";
+import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getFAQSchema, organizationSchema } from "@/components/seo-head";
 import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
 import { getWhySolarNow, getTimeline } from "@shared/brandContent";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
@@ -561,14 +561,24 @@ export default function LandingPage() {
 
   const seo = language === "fr" ? seoContent.home.fr : seoContent.home.en;
 
+  // Build comprehensive schema markup for better SEO
+  const schemas = [
+    organizationSchema,
+    getLocalBusinessSchema(language),
+    getServiceSchema(language),
+    getFAQSchema(language),
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead 
-        title={seo.title} 
-        description={seo.description} 
+      <SEOHead
+        title={seo.title}
+        description={seo.description}
         keywords={seo.keywords}
-        structuredData={getLocalBusinessSchema(language)}
+        structuredData={schemas}
         locale={language}
+        canonical="https://kwh.quebec"
+        includeHreflang={true}
       />
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-background backdrop-blur-md border-b">

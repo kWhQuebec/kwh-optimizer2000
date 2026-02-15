@@ -68,6 +68,8 @@ const WorkQueuePage = lazy(() => import("@/pages/work-queue"));
 const ContentManager = lazy(() => import("@/pages/content-manager"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin-settings"));
 const CallScriptPage = lazy(() => import("@/pages/call-script"));
+const ConversionDashboardPage = lazy(() => import("@/pages/conversion-dashboard"));
+const LcoeComparisonPage = lazy(() => import("@/pages/lcoe-comparison"));
 
 function PageLoader() {
   return (
@@ -537,6 +539,17 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
+      {/* LCOE Comparison Tool */}
+      <Route path="/app/tools/lcoe-comparison">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <LcoeComparisonPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
       {/* Partnerships */}
       <Route path="/app/partnerships">
         <ProtectedRoute>
@@ -564,6 +577,15 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <CallScriptPage />
+          </Suspense>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Conversion Dashboard - Analytics */}
+      <Route path="/app/analytics/conversion">
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <ConversionDashboardPage />
           </Suspense>
         </ProtectedRoute>
       </Route>

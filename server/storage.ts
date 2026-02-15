@@ -226,6 +226,21 @@ export interface IStorage {
     };
   }>;
 
+  // Conversion Funnel Metrics for Analytics
+  getConversionFunnelMetrics(periodDays?: number): Promise<{
+    funnel: Array<{
+      stage: string;
+      count: number;
+      conversionToNext: number;
+      avgDaysInStage: number;
+    }>;
+    winRate: number;
+    avgDealCycle: number;
+    lostReasons: Record<string, number>;
+    totalOpportunities: number;
+    periodDays: number;
+  }>;
+
   // Site Visits
   getSiteVisits(): Promise<SiteVisitWithSite[]>;
   getSiteVisit(id: string): Promise<SiteVisitWithSite | undefined>;
@@ -1192,6 +1207,31 @@ export class MemStorage implements IStorage {
       recentWins: [],
       pendingTasks: [],
       pendingTasksCount: { roofDrawing: 0, runAnalysis: 0, total: 0 },
+    };
+  }
+
+  // Conversion Funnel Metrics
+  async getConversionFunnelMetrics(periodDays: number = 90): Promise<{
+    funnel: Array<{
+      stage: string;
+      count: number;
+      conversionToNext: number;
+      avgDaysInStage: number;
+    }>;
+    winRate: number;
+    avgDealCycle: number;
+    lostReasons: Record<string, number>;
+    totalOpportunities: number;
+    periodDays: number;
+  }> {
+    // Simple implementation for MemStorage - returns empty data
+    return {
+      funnel: [],
+      winRate: 0,
+      avgDealCycle: 0,
+      lostReasons: {},
+      totalOpportunities: 0,
+      periodDays,
     };
   }
 

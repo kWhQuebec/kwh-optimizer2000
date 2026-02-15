@@ -313,6 +313,7 @@ export class DatabaseStorage implements IStorage {
   searchOpportunities = pipelineRepo.searchOpportunities;
   getDashboardStats = pipelineRepo.getDashboardStats;
   getPipelineStats = pipelineRepo.getPipelineStats;
+  getConversionFunnelMetrics = pipelineRepo.getConversionFunnelMetrics;
   getActivities = pipelineRepo.getActivities;
   getActivity = pipelineRepo.getActivity;
   getActivitiesByLeadId = pipelineRepo.getActivitiesByLeadId;

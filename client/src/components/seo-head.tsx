@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "wouter";
 import logoImage from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 
 interface StructuredData {
@@ -12,11 +13,13 @@ interface SEOHeadProps {
   description: string;
   keywords?: string;
   ogImage?: string;
+  ogUrl?: string;
   ogType?: "website" | "article";
   canonical?: string;
   noIndex?: boolean;
-  structuredData?: StructuredData;
+  structuredData?: StructuredData | StructuredData[];
   locale?: "fr" | "en";
+  includeHreflang?: boolean;
 }
 
 export function SEOHead({
@@ -24,12 +27,16 @@ export function SEOHead({
   description,
   keywords,
   ogImage = logoImage,
+  ogUrl,
   ogType = "website",
   canonical,
   noIndex = false,
   structuredData,
   locale = "fr",
+  includeHreflang = false,
 }: SEOHeadProps) {
+  const [location] = useLocation();
+
   useEffect(() => {
     document.title = title;
 
@@ -44,27 +51,33 @@ export function SEOHead({
       meta.content = content;
     };
 
+    // Standard meta tags
     setMeta("description", description);
     if (keywords) setMeta("keywords", keywords);
-    
+
+    // Open Graph tags
     setMeta("og:title", title, true);
     setMeta("og:description", description, true);
     setMeta("og:type", ogType, true);
     setMeta("og:image", ogImage, true);
-    setMeta("twitter:image", ogImage);
+    setMeta("og:url", ogUrl || `https://kwh.quebec${location}`, true);
     setMeta("og:site_name", "kWh Québec", true);
     setMeta("og:locale", locale === "fr" ? "fr_CA" : "en_CA", true);
-    
+
+    // Twitter Card tags
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
+    setMeta("twitter:image", ogImage);
 
+    // Additional SEO tags
     if (noIndex) {
       setMeta("robots", "noindex, nofollow");
     } else {
-      setMeta("robots", "index, follow");
+      setMeta("robots", "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1");
     }
 
+    // Canonical URL
     if (canonical) {
       let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
       if (!link) {
@@ -75,23 +88,56 @@ export function SEOHead({
       link.href = canonical;
     }
 
-    if (structuredData) {
-      const existingScript = document.querySelector('script[data-seo-ld]');
-      if (existingScript) {
-        existingScript.remove();
+    // Hreflang tags for multilingual pages
+    if (includeHreflang) {
+      const basePath = location.replace(/\/$/, "");
+      const frLink = document.querySelector('link[hreflang="fr-CA"]') as HTMLLinkElement;
+      const enLink = document.querySelector('link[hreflang="en-CA"]') as HTMLLinkElement;
+      const defaultLink = document.querySelector('link[hreflang="x-default"]') as HTMLLinkElement;
+
+      const updateOrCreateLink = (hreflang: string, href: string) => {
+        let link = document.querySelector(`link[hreflang="${hreflang}"]`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement("link");
+          link.rel = "alternate";
+          link.setAttribute("hreflang", hreflang);
+          document.head.appendChild(link);
+        }
+        link.href = href;
+      };
+
+      if (basePath === "" || basePath === "/") {
+        updateOrCreateLink("fr-CA", "https://kwh.quebec");
+        updateOrCreateLink("en-CA", "https://kwh.quebec/en");
+        updateOrCreateLink("x-default", "https://kwh.quebec");
+      } else {
+        updateOrCreateLink("fr-CA", `https://kwh.quebec${basePath}`);
+        updateOrCreateLink("en-CA", `https://kwh.quebec/en${basePath}`);
+        updateOrCreateLink("x-default", `https://kwh.quebec${basePath}`);
       }
-      const script = document.createElement("script");
-      script.type = "application/ld+json";
-      script.setAttribute("data-seo-ld", "true");
-      script.textContent = JSON.stringify(structuredData);
-      document.head.appendChild(script);
+    }
+
+    // JSON-LD Schema markup
+    if (structuredData) {
+      // Remove old scripts
+      document.querySelectorAll('script[data-seo-ld]').forEach(s => s.remove());
+
+      // Add new schemas
+      const schemas = Array.isArray(structuredData) ? structuredData : [structuredData];
+      schemas.forEach((schema, index) => {
+        const script = document.createElement("script");
+        script.type = "application/ld+json";
+        script.setAttribute("data-seo-ld", "true");
+        script.setAttribute("data-seo-index", index.toString());
+        script.textContent = JSON.stringify(schema);
+        document.head.appendChild(script);
+      });
     }
 
     return () => {
-      const ldScript = document.querySelector('script[data-seo-ld]');
-      if (ldScript) ldScript.remove();
+      document.querySelectorAll('script[data-seo-ld]').forEach(s => s.remove());
     };
-  }, [title, description, keywords, ogImage, ogType, canonical, noIndex, structuredData]);
+  }, [title, description, keywords, ogImage, ogUrl, ogType, canonical, noIndex, structuredData, includeHreflang, location]);
 
   return null;
 }
@@ -116,61 +162,53 @@ export const getLocalBusinessSchema = (lang: "fr" | "en"): StructuredData => ({
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
   "name": "kWh Québec",
-  "description": lang === "fr" 
-    ? "Solutions solaires et stockage clé en main pour bâtiments commerciaux et industriels au Québec"
-    : "Turnkey solar and storage solutions for commercial and industrial buildings in Quebec",
+  "description": lang === "fr"
+    ? "Installation solaire commerciale et industrielle au Québec"
+    : "Commercial and industrial solar installation in Quebec",
   "@id": "https://kwh.quebec",
   "url": "https://kwh.quebec",
-  "priceRange": "$$",
+  "telephone": "+1-514-427-8871",
+  "email": "info@kwh.quebec",
+  "priceRange": "$$$",
   "address": {
     "@type": "PostalAddress",
+    "addressLocality": "Montréal",
     "addressRegion": "QC",
     "addressCountry": "CA"
   },
   "areaServed": {
-    "@type": "AdministrativeArea",
+    "@type": "Province",
     "name": "Québec"
   },
-  "hasOfferCatalog": {
-    "@type": "OfferCatalog",
-    "name": lang === "fr" ? "Services solaires" : "Solar Services",
-    "itemListElement": [
-      {
-        "@type": "Offer",
-        "itemOffered": {
-          "@type": "Service",
-          "name": lang === "fr" ? "Analyse solaire gratuite" : "Free Solar Analysis"
-        }
-      },
-      {
-        "@type": "Offer",
-        "itemOffered": {
-          "@type": "Service",
-          "name": lang === "fr" ? "Installation clé en main" : "Turnkey Installation"
-        }
-      }
-    ]
-  }
+  "serviceType": [
+    "Installation solaire commerciale",
+    "Conception de systèmes photovoltaïques",
+    "Ingénierie solaire"
+  ]
 });
 
 export const getServiceSchema = (lang: "fr" | "en"): StructuredData => ({
   "@context": "https://schema.org",
   "@type": "Service",
-  "serviceType": lang === "fr" ? "Installation solaire commerciale" : "Commercial Solar Installation",
+  "name": lang === "fr" ? "Mandat de conception préliminaire" : "Preliminary Design Mandate",
+  "description": lang === "fr"
+    ? "Validation technique et financière d'un projet solaire commercial"
+    : "Technical and financial validation of a commercial solar project",
   "provider": {
-    "@type": "Organization",
+    "@type": "LocalBusiness",
     "name": "kWh Québec"
   },
   "areaServed": {
     "@type": "AdministrativeArea",
-    "name": "Québec, Canada"
+    "name": "Québec"
   },
-  "description": lang === "fr"
-    ? "Services EPC complets: analyse, ingénierie, construction et maintenance de systèmes solaires commerciaux"
-    : "Complete EPC services: analysis, engineering, construction and maintenance of commercial solar systems",
   "offers": {
     "@type": "Offer",
-    "description": lang === "fr" ? "Analyse gratuite" : "Free analysis"
+    "price": "2500",
+    "priceCurrency": "CAD",
+    "description": lang === "fr"
+      ? "Crédité intégralement sur le contrat EPC si vous procédez"
+      : "Fully credited toward EPC contract if you proceed"
   }
 });
 
@@ -178,7 +216,7 @@ export const getHowToSchema = (lang: "fr" | "en"): StructuredData => ({
   "@context": "https://schema.org",
   "@type": "HowTo",
   "name": lang === "fr" ? "Comment obtenir une analyse solaire" : "How to get a solar analysis",
-  "description": lang === "fr" 
+  "description": lang === "fr"
     ? "Processus simple en 6 étapes pour votre projet solaire commercial"
     : "Simple 6-step process for your commercial solar project",
   "step": [
@@ -227,32 +265,74 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
   "mainEntity": [
     {
       "@type": "Question",
-      "name": lang === "fr" ? "Quels sont les incitatifs disponibles au Québec?" : "What incentives are available in Quebec?",
+      "name": lang === "fr"
+        ? "Quel est le retour sur investissement typique pour un projet solaire commercial au Québec?"
+        : "What is the typical return on investment for a commercial solar project in Quebec?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": lang === "fr" 
-          ? "Hydro-Québec offre jusqu'à 40% du coût en crédit, le fédéral offre 30% pour technologies propres, et l'amortissement accéléré permet une déduction de 100% en première année."
-          : "Hydro-Québec offers up to 40% of cost as credit, federal offers 30% for clean technology, and accelerated depreciation allows 100% deduction in year one."
+        "text": lang === "fr"
+          ? "Le retour sur investissement typique pour un projet solaire commercial au Québec est de 4 à 7 ans, avec un TRI (taux de rendement interne) de 15% à 25%, en tenant compte des incitatifs Hydro-Québec et du crédit d'impôt fédéral."
+          : "The typical payback for a commercial solar project in Quebec is 4 to 7 years, with an IRR of 15% to 25%, considering Hydro-Québec incentives and federal tax credits."
       }
     },
     {
       "@type": "Question",
-      "name": lang === "fr" ? "Combien de temps prend l'analyse détaillée?" : "How long does the detailed analysis take?",
+      "name": lang === "fr"
+        ? "Est-ce que le solaire fonctionne en hiver au Québec?"
+        : "Does solar work in winter in Quebec?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": lang === "fr" 
-          ? "L'analyse détaillée prend environ 5 jours ouvrables après la signature de la procuration Hydro-Québec."
-          : "The detailed analysis takes about 5 business days after signing the Hydro-Québec authorization."
+        "text": lang === "fr"
+          ? "Oui, absolument. Les panneaux solaires sont dimensionnés sur la production annuelle complète. Bien que la production soit plus basse en hiver, le système bénéficie du mesurage net qui accumule les crédits sur 24 mois. Le froid améliore en fait l'efficacité des panneaux (+0,4% par degré sous 25°C), et l'effet albédo de la neige ajoute 5-10% de production supplémentaire."
+          : "Yes, absolutely. Panels are sized on annual production. While winter output is lower, net metering accumulates credits over 24 months. Cold actually improves panel efficiency (+0.4% per degree below 25°C), and snow albedo adds 5-10% extra production."
       }
     },
     {
       "@type": "Question",
-      "name": lang === "fr" ? "Quel est le retour sur investissement typique?" : "What is the typical return on investment?",
+      "name": lang === "fr"
+        ? "Quels sont les incitatifs disponibles au Québec pour les projets solaires commerciaux?"
+        : "What incentives are available in Quebec for commercial solar projects?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": lang === "fr" 
-          ? "Le retour sur investissement typique pour un projet solaire commercial au Québec est de 4 à 7 ans, avec un TRI de 15% à 25%."
-          : "The typical payback for a commercial solar project in Quebec is 4 to 7 years, with an IRR of 15% to 25%."
+        "text": lang === "fr"
+          ? "Le Québec offre plusieurs incitatifs: Hydro-Québec offre jusqu'à 1 000 $/kW de crédit d'autoproduction, le gouvernement fédéral offre 30% de crédit d'impôt pour les investissements dans les technologies propres (CII), et l'amortissement accéléré (DPA 43.1/43.2) permet une déduction de 100% en première année pour fins fiscales."
+          : "Quebec offers multiple incentives: Hydro-Québec offers up to $1,000/kW self-generation credit, federal government offers 30% investment tax credit for clean technology (ITC), and accelerated depreciation (CCA 43.1/43.2) allows 100% first-year deduction for tax purposes."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Combien de temps prend le processus complet d'un projet solaire?"
+        : "How long does the complete solar project process take?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Le processus typique prend 4 à 6 mois: analyse gratuite (2 min), analyse détaillée (5-7 jours), rapport personnalisé (1-2 semaines), soumission (1-2 semaines), et finalement l'installation (2-4 mois selon la complexité du projet)."
+          : "The typical process takes 4 to 6 months: free analysis (2 min), detailed analysis (5-7 days), personalized report (1-2 weeks), quote (1-2 weeks), and installation (2-4 months depending on project complexity)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Quel est le coût d'un mandat de conception préliminaire?"
+        : "What is the cost of a preliminary design mandate?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Le mandat de conception préliminaire coûte 2 500$ plus taxes. Cependant, ce montant est crédité intégralement sur le contrat EPC (ingénierie-approvisionnement-construction) si vous décidez de procéder avec kWh Québec."
+          : "The preliminary design mandate costs $2,500 plus taxes. However, this amount is fully credited toward the EPC contract (engineering-procurement-construction) if you decide to proceed with kWh Québec."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Avez-vous une expérience avec des projets industriels et commerciaux?"
+        : "Do you have experience with industrial and commercial projects?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Oui, nous avons plus de 15 ans d'expérience avec 120+ MW installés et 25+ projets C&I (commercial & industriel) complétés au Québec. Nous travaillons avec des partenaires comme dream Industrial REIT et d'autres gestionnaires immobiliers majeurs."
+          : "Yes, we have over 15 years of experience with 120+ MW installed and 25+ C&I (commercial & industrial) projects completed in Quebec. We work with partners like dream Industrial REIT and other major real estate managers."
       }
     }
   ]

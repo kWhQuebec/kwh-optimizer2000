@@ -24,7 +24,8 @@ import {
   Loader2,
   Ban,
   Trash2,
-  Phone
+  Phone,
+  TrendingDown
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -2277,9 +2278,21 @@ export default function PipelinePage() {
                       </Button>
                     </>
                   )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsDetailOpen(false);
+                      setLocation("/app/tools/lcoe-comparison");
+                    }}
+                    className="gap-2"
+                  >
+                    <TrendingDown className="w-4 h-4" />
+                    {language === "fr" ? "Comparer LCOE" : "Compare LCOE"}
+                  </Button>
                   <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-opportunity">
-                    {updateMutation.isPending 
-                      ? (language === "fr" ? "Sauvegarde..." : "Saving...") 
+                    {updateMutation.isPending
+                      ? (language === "fr" ? "Sauvegarde..." : "Saving...")
                       : (language === "fr" ? "Sauvegarder" : "Save")}
                   </Button>
                 </DialogFooter>

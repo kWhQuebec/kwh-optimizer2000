@@ -1723,6 +1723,36 @@ router.patch("/api/leads/:id/business-context", authMiddleware, requireStaff, as
     }
   }
 
+  // TASK 2: Schedule yellow lead follow-up email if lead color is yellow
+  // Scheduled 1 hour after the call to give agent time to add notes
+  if (leadColor === 'yellow' && updatedLead?.email) {
+    try {
+      // Check if we already sent this follow-up (avoid duplicates)
+      const existingEmails = await storage.getScheduledEmailsByLead(lead.id);
+      const alreadySentFollowup = existingEmails.some(e =>
+        e.templateKey === 'yellowLeadFollowup' && (e.sentAt || !e.cancelled)
+      );
+
+      if (!alreadySentFollowup) {
+        // Schedule email 1 hour from now
+        const scheduledFor = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+        await storage.createScheduledEmail({
+          leadId: lead.id,
+          templateKey: 'yellowLeadFollowup',
+          scheduledFor,
+        });
+
+        log.info(`Scheduled yellow lead follow-up email for lead ${lead.id} at ${scheduledFor}`);
+      } else {
+        log.info(`Yellow lead follow-up already scheduled/sent for lead ${lead.id}, skipping duplicate`);
+      }
+    } catch (emailError) {
+      log.error(`Failed to schedule yellow lead follow-up email for lead ${lead.id}:`, emailError);
+      // Non-blocking error - continue
+    }
+  }
+
   res.json({ success: true, data: updatedLead });
 }));
 

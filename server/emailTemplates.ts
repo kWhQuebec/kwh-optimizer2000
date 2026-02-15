@@ -1426,6 +1426,101 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       en: `Welcome {{userName}}!\n\nAn account has been created for you on the kWh Québec platform.\n\nYour information:\n- Email: {{userEmail}}\n- Temporary password: {{tempPassword}}\n- Role: {{userRole}}\n\nImportant: On your first login, you will need to choose a new password.\n\nSign in: {{loginUrl}}\n\nkWh Québec\nTel: 514.427.8871 | info@kwh.quebec`,
     },
   },
+
+  // Yellow lead follow-up after discovery call
+  // Sent 1 hour after call to request missing information
+  yellowLeadFollowup: {
+    subject: {
+      fr: "{{companyName}} — Informations complémentaires pour votre projet solaire",
+      en: "{{companyName}} — Additional information for your solar project",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Merci pour votre appel, {{contactName}}!</h2>
+      <p>Nous avons vraiment apprécié discuter de votre projet solaire pour {{companyName}}. Pour valider votre projet et avancer, nous aurions besoin de quelques informations complémentaires:</p>
+
+      <div class="highlight">
+        <h3>Informations à nous envoyer:</h3>
+        <ul>
+          {{missingItemsFr}}
+        </ul>
+      </div>
+
+      <p>Ces informations nous permettront de:</p>
+      <ul>
+        <li><strong>Affiner nos estimations</strong> de production et d'économies</li>
+        <li><strong>Valider la faisabilité</strong> technique de votre installation</li>
+        <li><strong>Proposer un financement</strong> adapté à votre situation</li>
+      </ul>
+
+      <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;"><strong>Économies potentielles:</strong> Basé sur notre appel, votre projet pourrait générer {{estimatedSavings}} par année en économies d'électricité.</p>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{replyLink}}" class="button">Répondre à ce courriel avec les informations →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">Vous pouvez simplement répondre à ce courriel avec les documents ou réponses. Si vous préférez, nous pouvons aussi planifier un appel de suivi. Contactez-nous!</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage C&I</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
+    </div>
+  </div>
+</body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Thank you for your call, {{contactName}}!</h2>
+      <p>We really enjoyed discussing your solar project for {{companyName}}. To validate your project and move forward, we'll need some additional information:</p>
+
+      <div class="highlight">
+        <h3>Information to send us:</h3>
+        <ul>
+          {{missingItemsEn}}
+        </ul>
+      </div>
+
+      <p>This information will help us to:</p>
+      <ul>
+        <li><strong>Refine our estimates</strong> for production and savings</li>
+        <li><strong>Validate the technical feasibility</strong> of your installation</li>
+        <li><strong>Propose financing</strong> tailored to your situation</li>
+      </ul>
+
+      <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;"><strong>Potential savings:</strong> Based on our call, your project could generate {{estimatedSavings}} per year in electricity savings.</p>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{replyLink}}" class="button">Reply to this email with the information →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">You can simply reply to this email with the documents or answers. If you prefer, we can also schedule a follow-up call. Contact us!</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey C&I Solar + Storage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+    </div>
+  </div>
+</body></html>`,
+    },
+    text: {
+      fr: `Merci pour votre appel, {{contactName}}!\n\nPour valider votre projet, nous aurions besoin des informations suivantes:\n\n{{missingItemsFr}}\n\nCes informations nous aideront à:\n- Affiner nos estimations\n- Valider la faisabilité technique\n- Proposer un financement adapté\n\nÉconomies potentielles: {{estimatedSavings}} par année\n\nRépondez à ce courriel avec les informations!\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
+      en: `Thank you for your call, {{contactName}}!\n\nTo validate your project, we'll need the following information:\n\n{{missingItemsEn}}\n\nThis information will help us to:\n- Refine our estimates\n- Validate technical feasibility\n- Propose tailored financing\n\nPotential savings: {{estimatedSavings}} per year\n\nReply to this email with the information!\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
+    },
+  },
 };
 
 /**

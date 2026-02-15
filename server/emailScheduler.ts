@@ -17,6 +17,7 @@
 import { eq, lte, and, isNull } from "drizzle-orm";
 import { createLogger } from "./lib/logger";
 import type { IStorage } from "./storage";
+import { getMissingItemsFromReason } from "./yellowLeadEmailHelper";
 
 const log = createLogger("EmailScheduler");
 
@@ -246,6 +247,16 @@ export async function processScheduledEmails(deps: SchedulerDeps) {
           } else {
             data.riskFlags = riskItems.join("\n");
           }
+        }
+
+        // Yellow lead follow-up email - map missing items from leadColorReason
+        if (scheduled.templateKey === "yellowLeadFollowup") {
+          const missingItems = getMissingItemsFromReason(lead.leadColorReason);
+          data.missingItemsFr = missingItems.missingItemsFr;
+          data.missingItemsEn = missingItems.missingItemsEn;
+
+          // Add reply link (typically the email address)
+          data.replyLink = `mailto:info@kwh.quebec?subject=Réponse: ${encodeURIComponent(lead.companyName || 'Projet Solaire')}`;
         }
 
         // Add estimated savings for last chance email
