@@ -1531,7 +1531,7 @@ export default function LandingPage() {
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
                     <FileCheck className="w-4 h-4 text-primary shrink-0" />
                     <div>
-                      <p className="font-medium text-xs">{language === "fr" ? "Ingénierie & construction" : "Engineering & construction"}</p>
+                      <p className="font-medium text-xs">{language === "fr" ? "Ingénierie" : "Engineering"}</p>
                     </div>
                   </div>
 

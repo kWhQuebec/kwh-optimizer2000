@@ -455,10 +455,10 @@ function buildAboutPage(
       <div class="info-box">
         <h3 style="color: var(--primary); margin-bottom: 2mm; font-size: 11pt;">${t("Nos services", "Our Services")}</h3>
         <ul class="bullet-list" style="font-size: 9pt;">
-          <li>${t("Analyse & conception solaire", "Solar analysis & design")}</li>
-          <li>${t("Stockage par batteries (BESS)", "Battery storage (BESS)")}</li>
-          <li>${t("Ing&eacute;nierie & construction", "Engineering & construction")}</li>
-          <li>${t("Op&eacute;ration & maintenance", "Operations & maintenance")}</li>
+          <li>${t("Analyse & Design", "Analysis & Design")}</li>
+          <li>${t("Ing&eacute;nierie", "Engineering")}</li>
+          <li>Construction</li>
+          <li>${t("Op&eacute;ration & Maintenance", "Operation & Maintenance")}</li>
         </ul>
       </div>
     </div>
