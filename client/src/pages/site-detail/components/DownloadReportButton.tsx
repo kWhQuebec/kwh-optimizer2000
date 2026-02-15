@@ -15,11 +15,13 @@ export function DownloadReportButton({
   siteName,
   optimizationTarget = 'npv',
   onBeforeDownload,
+  isQualified = true,
 }: {
   simulationId: string;
   siteName: string;
   optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency';
   onBeforeDownload?: () => Promise<void>;
+  isQualified?: boolean;
 }) {
   const { t, language } = useI18n();
   const { toast } = useToast();
@@ -138,6 +140,22 @@ export function DownloadReportButton({
       >
         <Loader2 className="w-4 h-4 animate-spin" />
         {language === "fr" ? "Génération PDF..." : "Generating PDF..."}
+      </Button>
+    );
+  }
+
+  if (!isQualified) {
+    return (
+      <Button
+        variant="outline"
+        className="gap-2 min-w-[160px] opacity-50 cursor-not-allowed"
+        disabled
+        data-testid="button-download-report-locked"
+        title={language === "fr" ? "Rapport verrouillé jusqu'à la qualification" : "Report locked until qualification"}
+      >
+        <Download className="w-4 h-4" />
+        {t("site.downloadReport")}
+        <ChevronDown className="w-4 h-4 ml-1" />
       </Button>
     );
   }

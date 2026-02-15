@@ -63,6 +63,20 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
     if (!site || site.clientId !== req.userClientId) {
       throw new ForbiddenError("Access denied");
     }
+
+    // Check qualification status for client
+    const opportunities = await storage.getOpportunitiesBySiteId(site.id);
+    const designAgreement = await storage.getDesignAgreementBySite(site.id);
+
+    // Allow if design agreement exists or if opportunity is past "qualified" stage
+    const isQualified = !!designAgreement || opportunities.some(opp => {
+      const stages = ["qualified", "proposal", "design_signed", "negotiation", "won"];
+      return stages.includes(opp.stage);
+    });
+
+    if (!isQualified) {
+      throw new ForbiddenError("PDF report locked until qualification call is completed");
+    }
   }
 
   const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
@@ -113,6 +127,20 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
     const site = await storage.getSite(docData.simulation.siteId);
     if (!site || site.clientId !== req.userClientId) {
       throw new ForbiddenError("Access denied");
+    }
+
+    // Check qualification status for client
+    const opportunities = await storage.getOpportunitiesBySiteId(site.id);
+    const designAgreement = await storage.getDesignAgreementBySite(site.id);
+
+    // Allow if design agreement exists or if opportunity is past "qualified" stage
+    const isQualified = !!designAgreement || opportunities.some(opp => {
+      const stages = ["qualified", "proposal", "design_signed", "negotiation", "won"];
+      return stages.includes(opp.stage);
+    });
+
+    if (!isQualified) {
+      throw new ForbiddenError("PDF report locked until qualification call is completed");
     }
   }
 

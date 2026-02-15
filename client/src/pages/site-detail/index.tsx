@@ -133,6 +133,23 @@ export default function SiteDetailPage() {
     enabled: !!id && isStaff,
   });
 
+  // Fetch opportunities for the site to check qualification status
+  const { data: opportunities = [] } = useQuery<Array<{ id: string; stage: string }>>({
+    queryKey: ["/api/sites", id, "opportunities"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/sites/${id}/opportunities`, {
+        credentials: "include",
+        headers
+      });
+      if (res.status === 404) return [];
+      if (!res.ok) throw new Error("Failed to fetch opportunities");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
   // Effect to open roof drawing modal after site data is refreshed with coordinates
   useEffect(() => {
     if (pendingModalOpen && site?.latitude && site?.longitude) {
@@ -751,12 +768,20 @@ export default function SiteDetailPage() {
           )}
           {latestSimulation && (
             <>
-              <DownloadReportButton
-                simulationId={latestSimulation.id}
-                siteName={site.name}
-                optimizationTarget={optimizationTarget}
-                onBeforeDownload={captureAndSaveVisualization}
-              />
+              {(() => {
+                // Determine if site is qualified for PDF downloads
+                const qualifiedStages = ["qualified", "proposal", "design_signed", "negotiation", "won"];
+                const isQualified = !!designAgreement || opportunities.some(opp => qualifiedStages.includes(opp.stage));
+                return (
+                  <DownloadReportButton
+                    simulationId={latestSimulation.id}
+                    siteName={site.name}
+                    optimizationTarget={optimizationTarget}
+                    onBeforeDownload={captureAndSaveVisualization}
+                    isQualified={isQualified || isStaff}
+                  />
+                );
+              })()}
               {isStaff && (
                 <Link href={`/app/analyses/${latestSimulation.id}/design`}>
                   <Button className="gap-2" data-testid="button-create-design">

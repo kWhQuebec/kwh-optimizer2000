@@ -1670,4 +1670,9 @@ router.post("/:siteId/analyze-company-website", authMiddleware, requireStaff, as
   res.json(result);
 }));
 
+router.get("/:siteId/opportunities", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const opportunities = await storage.getOpportunitiesBySiteId(req.params.siteId);
+  res.json(opportunities);
+}));
+
 export default router;

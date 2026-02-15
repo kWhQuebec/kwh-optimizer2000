@@ -36,6 +36,17 @@ export const BRAND_CONTENT = {
     website: "www.kwh.quebec",
   },
 
+  // === CALENDLY BOOKING ===
+  calendly: {
+    urlEnvVar: "VITE_CALENDLY_URL",
+    fallbackUrl: "https://calendly.com/kwh-quebec/consultation",
+    height: "650px",
+    labelFr: "Réserver un appel de qualification",
+    labelEn: "Book a qualification call",
+    descriptionFr: "Un appel de 10 minutes pour valider votre projet et débloquer votre rapport personnalisé.",
+    descriptionEn: "A 10-minute call to validate your project and unlock your personalized report.",
+  },
+
   // === TITRES DE SECTIONS ===
   sectionTitles: {
     trustUs: { fr: "ILS NOUS FONT CONFIANCE", en: "THEY TRUST US" },
@@ -372,6 +383,50 @@ export const BRAND_CONTENT = {
       },
     ],
   },
+
+  // === MESSAGING LANES (Business Driver) ===
+  messagingLanes: {
+    cost_savings: {
+      headlineFr: "Réduisez vos coûts énergétiques de façon permanente",
+      headlineEn: "Permanently reduce your energy costs",
+      sublineFr: "Un investissement qui génère des économies dès le premier jour, avec un retour garanti par les données réelles de votre bâtiment.",
+      sublineEn: "An investment that generates savings from day one, with returns backed by your building's actual data.",
+      iconEmoji: "💰",
+      color: "#16A34A",
+    },
+    resilience: {
+      headlineFr: "Protégez vos opérations contre les pannes et hausses tarifaires",
+      headlineEn: "Protect your operations from outages and rate increases",
+      sublineFr: "Le solaire avec stockage assure la continuité de vos activités critiques, peu importe ce qui arrive au réseau.",
+      sublineEn: "Solar with storage ensures continuity of your critical operations, regardless of what happens to the grid.",
+      iconEmoji: "🛡️",
+      color: "#2563EB",
+    },
+    sustainability: {
+      headlineFr: "Décarbonez vos opérations avec un impact mesurable",
+      headlineEn: "Decarbonize your operations with measurable impact",
+      sublineFr: "Atteignez vos objectifs ESG avec des données vérifiables et un plan d'action concret pour chaque bâtiment.",
+      sublineEn: "Achieve your ESG goals with verifiable data and a concrete action plan for each building.",
+      iconEmoji: "🌱",
+      color: "#059669",
+    },
+    tax_capital: {
+      headlineFr: "Optimisez votre fiscalité avec l'accélération de l'amortissement",
+      headlineEn: "Optimize your tax position with accelerated depreciation",
+      sublineFr: "Profitez de la DPA catégorie 43.1/43.2 et du crédit d'impôt fédéral pour maximiser le rendement net de votre investissement.",
+      sublineEn: "Leverage CCA Class 43.1/43.2 and the federal ITC to maximize the net return on your investment.",
+      iconEmoji: "📊",
+      color: "#7C3AED",
+    },
+    other: {
+      headlineFr: "Découvrez le potentiel solaire de votre bâtiment",
+      headlineEn: "Discover your building's solar potential",
+      sublineFr: "Une analyse personnalisée basée sur les données réelles de votre consommation et de votre toiture.",
+      sublineEn: "A personalized analysis based on the actual data from your consumption and rooftop.",
+      iconEmoji: "☀️",
+      color: "#F59E0B",
+    },
+  },
 };
 
 // === HELPER FUNCTIONS ===
@@ -570,6 +625,20 @@ export function getDesignMandateValueProp(lang: Lang): string {
 
 export function getDesignMandateExcludes(lang: Lang): string[] {
   return BRAND_CONTENT.designMandate.excludes.map(i => (lang === "fr" ? i.labelFr : i.labelEn));
+}
+
+// === MESSAGING LANES ===
+
+export type BusinessDriver = "cost_savings" | "resilience" | "sustainability" | "tax_capital" | "other";
+
+export function getMessagingLane(driver: BusinessDriver | null | undefined, lang: Lang) {
+  const lane = BRAND_CONTENT.messagingLanes[driver || "other"];
+  return {
+    headline: lang === "fr" ? lane.headlineFr : lane.headlineEn,
+    subline: lang === "fr" ? lane.sublineFr : lane.sublineEn,
+    iconEmoji: lane.iconEmoji,
+    color: lane.color,
+  };
 }
 
 export function getDesignMandateCreditPolicy(lang: Lang): string {

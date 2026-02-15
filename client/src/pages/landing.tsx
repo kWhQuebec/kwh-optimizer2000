@@ -13,7 +13,7 @@ import {
   BatteryCharging, MapPin,
   Sun, Battery, FileText, Hammer, Loader2, FileCheck, ClipboardCheck, ChevronUp,
   Phone, Mail, Building, User, Info, Upload, Sparkles, FileSignature,
-  Snowflake, XCircle, Star, ChevronDown
+  Snowflake, XCircle, Star, ChevronDown, Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -821,6 +821,41 @@ export default function LandingPage() {
                           <FileSignature className="w-4 h-4" />
                           {language === "fr" ? "Obtenir mon analyse détaillée gratuite" : "Get my free detailed analysis"}
                         </Button>
+                      </div>
+
+                      {/* Calendly CTA - Book qualification call */}
+                      <div className="mt-6 p-4 rounded-xl" style={{ backgroundColor: 'rgba(0,61,166,0.05)', border: '1px solid rgba(0,61,166,0.15)' }}>
+                        <div className="flex items-center gap-3 mb-2">
+                          <Calendar className="h-5 w-5" style={{ color: '#003DA6' }} />
+                          <p className="font-semibold text-sm" style={{ color: '#003DA6' }}>
+                            {language === 'fr' ? 'Prochaine étape : validez votre projet' : 'Next step: validate your project'}
+                          </p>
+                        </div>
+                        <p className="text-xs mb-3" style={{ color: '#6B7280' }}>
+                          {language === 'fr'
+                            ? 'Un appel de 10 minutes pour confirmer la faisabilité et débloquer votre rapport PDF personnalisé.'
+                            : 'A 10-minute call to confirm feasibility and unlock your personalized PDF report.'}
+                        </p>
+                        {import.meta.env.VITE_CALENDLY_URL ? (
+                          <a
+                            href={import.meta.env.VITE_CALENDLY_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: '#003DA6' }}
+                          >
+                            <Calendar className="h-4 w-4" />
+                            {language === 'fr' ? 'Réserver mon appel' : 'Book my call'}
+                          </a>
+                        ) : (
+                          <a
+                            href="mailto:info@kwh.quebec?subject=Demande de consultation"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: '#003DA6' }}
+                          >
+                            {language === 'fr' ? 'Nous contacter' : 'Contact us'}
+                          </a>
+                        )}
                       </div>
 
                       <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">

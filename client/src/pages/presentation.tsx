@@ -35,6 +35,7 @@ import {
   Wrench,
   BarChart3,
   FileSignature,
+  Calendar,
 } from "lucide-react";
 
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
@@ -90,6 +91,8 @@ import {
   getWhySolarNow,
   getDesignMandatePrice,
   getDesignMandateIncludes,
+  getMessagingLane,
+  type BusinessDriver,
 } from "@shared/brandContent";
 
 interface SiteWithDetails extends Site {
@@ -911,6 +914,23 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
           ))}
         </div>
 
+        {/* Business Driver Messaging Lane */}
+        {(() => {
+          const driver = ((simulation as any)?.businessDriver || "other") as BusinessDriver;
+          const lane = getMessagingLane(driver, language as "fr" | "en");
+          return (
+            <div className="text-center mb-8 px-4 py-6 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid #E5E7EB' }}>
+              <span className="text-3xl mb-2 block">{lane.iconEmoji}</span>
+              <h2 className="text-xl md:text-2xl font-bold mb-2" style={{ color: lane.color }}>
+                {lane.headline}
+              </h2>
+              <p className="text-sm max-w-2xl mx-auto" style={{ color: '#6B7280' }}>
+                {lane.subline}
+              </p>
+            </div>
+          );
+        })()}
+
         <div
           className="rounded-xl py-3 px-4 md:px-6 mb-4 shadow-sm"
           style={{ border: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}
@@ -956,7 +976,101 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
             </div>
           </div>
         )}
+
+        {/* Collapsible Assumptions Section */}
+        <AssumptionsCollapsible simulation={simulation} language={language} />
       </div>
+    </div>
+  );
+}
+
+// Collapsible Assumptions Component
+function AssumptionsCollapsible({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const marketingAssumptions = [
+    { label: language === 'fr' ? 'Escalade prix électricité' : 'Utility price escalation', value: '3.5%/yr' },
+    { label: language === 'fr' ? 'Dégradation panneaux' : 'Panel degradation', value: '0.5%/yr' },
+    { label: language === 'fr' ? 'Durée de vie système' : 'System lifespan', value: '25 years' },
+    { label: language === 'fr' ? 'Autoconsommation estimée' : 'Est. self-consumption', value: '~90%' },
+    { label: language === 'fr' ? 'Taux d\'actualisation (WACC)' : 'Discount rate (WACC)', value: '7%' },
+    { label: language === 'fr' ? 'O&M solaire (% CAPEX)' : 'Solar O&M (% CAPEX)', value: '1.0%/yr' },
+  ];
+
+  return (
+    <div className="mt-8 border border-gray-200 rounded-xl overflow-hidden bg-white">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        style={{ borderBottom: isExpanded ? '1px solid #E5E7EB' : 'none' }}
+      >
+        <span className="text-base md:text-lg font-semibold" style={{ color: BRAND_COLORS.primaryBlue }}>
+          {language === 'fr' ? 'Hypothèses de calcul' : 'Calculation Assumptions'}
+        </span>
+        <ChevronLeft
+          className="h-5 w-5 transition-transform duration-300"
+          style={{
+            color: BRAND_COLORS.primaryBlue,
+            transform: isExpanded ? 'rotate(-90deg)' : 'rotate(0deg)'
+          }}
+        />
+      </button>
+
+      {isExpanded && (
+        <div className="px-6 py-4">
+          <div className="space-y-3">
+            {marketingAssumptions.map((assumption, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                <span className="text-sm" style={{ color: '#6B7280' }}>
+                  {assumption.label}
+                </span>
+                <span className="text-sm font-semibold" style={{ color: '#1F2937' }}>
+                  {assumption.value}
+                </span>
+              </div>
+            ))}
+
+            {(simulation?.assumptions as any)?.tariffCode && (
+              <>
+                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm" style={{ color: '#6B7280' }}>
+                    {language === 'fr' ? 'Code tarifaire' : 'Tariff code'}
+                  </span>
+                  <span className="text-sm font-semibold" style={{ color: '#1F2937' }}>
+                    {(simulation?.assumptions as any)?.tariffCode}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {simulation?.pvSizeKW && (
+              <>
+                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm" style={{ color: '#6B7280' }}>
+                    {language === 'fr' ? 'Puissance solaire' : 'Solar capacity'}
+                  </span>
+                  <span className="text-sm font-semibold" style={{ color: '#1F2937' }}>
+                    {formatSmartPower(Number(simulation.pvSizeKW), language, 'kWc')}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {simulation?.lcoe && (
+              <>
+                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm" style={{ color: '#6B7280' }}>
+                    {language === 'fr' ? 'Coût nivelé (LCOE)' : 'Levelized Cost (LCOE)'}
+                  </span>
+                  <span className="text-sm font-semibold" style={{ color: '#1F2937' }}>
+                    {Number(simulation.lcoe).toFixed(2)} ¢/kWh
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1771,32 +1885,71 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
           </div>
         )}
 
-        <div
-          className="rounded-2xl px-6 md:px-8 py-6 text-center shadow-sm"
-          style={{ backgroundColor: 'rgba(0,61,166,0.05)', border: `2px solid ${BRAND_COLORS.primaryBlue}` }}
-        >
-          <p className="text-lg md:text-xl font-bold mb-2" style={{ color: BRAND_COLORS.primaryBlue }}>
-            {isSyntheticData
-              ? (language === 'fr' ? 'Prêt à transformer vos coûts d\'énergie? Contactez-nous pour planifier votre visite de site.' : 'Ready to transform your energy costs? Contact us to schedule your site visit.')
-              : (language === 'fr' ? 'Signez votre mandat de conception préliminaire en ligne' : 'Sign your Preliminary Design Mandate online')
-            }
-          </p>
-          {!isSyntheticData && (
+        {isSyntheticData ? (
+          // Unqualified lead: Show Calendly booking CTA
+          <div
+            className="rounded-2xl px-6 md:px-8 py-6 shadow-sm"
+            style={{ backgroundColor: 'rgba(0,61,166,0.05)', border: `2px solid ${BRAND_COLORS.primaryBlue}` }}
+          >
+            <div className="flex items-center gap-3 mb-4 justify-center">
+              <Calendar className="h-6 w-6" style={{ color: BRAND_COLORS.primaryBlue }} />
+              <h3 className="text-lg md:text-xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>
+                {language === 'fr' ? 'Prochaine étape : validez votre projet' : 'Next step: validate your project'}
+              </h3>
+            </div>
+            <p className="text-sm mb-4 text-center" style={{ color: '#4B5563' }}>
+              {language === 'fr'
+                ? 'Un appel de 10 minutes avec notre équipe pour confirmer la faisabilité et débloquer votre rapport PDF personnalisé.'
+                : 'A 10-minute call with our team to confirm feasibility and unlock your personalized PDF report.'}
+            </p>
+            {import.meta.env.VITE_CALENDLY_URL ? (
+              <div className="flex justify-center mb-4">
+                <a
+                  href={import.meta.env.VITE_CALENDLY_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-base font-medium transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: BRAND_COLORS.primaryBlue }}
+                >
+                  <Calendar className="h-5 w-5" />
+                  {language === 'fr' ? 'Réserver un appel' : 'Book a call'}
+                </a>
+              </div>
+            ) : (
+              <div className="flex justify-center mb-4">
+                <a
+                  href="mailto:info@kwh.quebec?subject=Demande de consultation"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-base font-medium transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: BRAND_COLORS.primaryBlue }}
+                >
+                  {language === 'fr' ? 'Nous contacter' : 'Contact us'}
+                </a>
+              </div>
+            )}
+            <p className="text-base md:text-lg font-semibold text-center" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
+            <p className="text-sm mt-4 text-center" style={{ color: '#DC2626' }}>
+              {language === 'fr'
+                ? `Les incitatifs couvrent jusqu'à ${incentivePercent} % du projet — ces programmes peuvent changer à tout moment.`
+                : `Incentives cover up to ${incentivePercent}% of the project — these programs can change at any time.`}
+            </p>
+          </div>
+        ) : (
+          // Qualified lead: Show design mandate signing CTA
+          <div
+            className="rounded-2xl px-6 md:px-8 py-6 text-center shadow-sm"
+            style={{ backgroundColor: 'rgba(0,61,166,0.05)', border: `2px solid ${BRAND_COLORS.primaryBlue}` }}
+          >
+            <p className="text-lg md:text-xl font-bold mb-2" style={{ color: BRAND_COLORS.primaryBlue }}>
+              {language === 'fr' ? 'Signez votre mandat de conception préliminaire en ligne' : 'Sign your Preliminary Design Mandate online'}
+            </p>
             <p className="text-sm mb-3" style={{ color: '#4B5563' }}>
               {language === 'fr'
                 ? 'Un lien sécurisé vous sera envoyé par courriel pour signer et compléter le paiement en ligne.'
                 : 'A secure link will be sent to you by email to sign and complete the payment online.'}
             </p>
-          )}
-          <p className="text-base md:text-lg font-semibold mb-4" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
-          {isSyntheticData && (
-            <p className="text-sm" style={{ color: '#DC2626' }}>
-              {language === 'fr'
-                ? `Les incitatifs couvrent jusqu'à ${incentivePercent} % du projet — ces programmes peuvent changer à tout moment.`
-                : `Incentives cover up to ${incentivePercent}% of the project — these programs can change at any time.`}
-            </p>
-          )}
-        </div>
+            <p className="text-base md:text-lg font-semibold" style={{ color: BRAND_COLORS.accentGold }}>{contact}</p>
+          </div>
+        )}
       </div>
     </div>
   );
