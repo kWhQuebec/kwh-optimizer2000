@@ -360,15 +360,18 @@ export async function getPipelineStats(): Promise<{
 }> {
   const STAGE_PROBABILITIES: Record<string, number> = {
     prospect: 5,
-    qualified: 15,
-    proposal: 25,
-    design_signed: 50,
-    negotiation: 75,
+    contacted: 10,
+    qualified: 20,
+    analysis_done: 25,
+    design_mandate_signed: 50,
+    epc_proposal_sent: 75,
+    negotiation: 90,
     won_to_be_delivered: 100,
     won_in_construction: 100,
     won_delivered: 100,
     won: 100,
     lost: 0,
+    disqualified: 0,
   };
 
   const allOppsRaw = await db
@@ -460,7 +463,7 @@ export async function getPipelineStats(): Promise<{
   const deliveryBacklogCount = allOpps.filter(o => o.stage === 'won_to_be_delivered' || o.stage === 'won_in_construction').length;
   const deliveredCount = allOpps.filter(o => o.stage === 'won_delivered').length;
 
-  const stages = ['prospect', 'qualified', 'proposal', 'design_signed', 'negotiation', 'won_to_be_delivered', 'won_in_construction', 'won_delivered', 'lost'];
+  const stages = ['prospect', 'contacted', 'qualified', 'analysis_done', 'design_mandate_signed', 'epc_proposal_sent', 'negotiation', 'won_to_be_delivered', 'won_in_construction', 'won_delivered', 'lost', 'disqualified'];
   const stageBreakdown = stages.map(stage => {
     const stageOpps = allOpps.filter(o => o.stage === stage);
     const totalValue = stageOpps.reduce((sum, o) => sum + (o.estimatedValue || 0), 0);

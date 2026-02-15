@@ -770,7 +770,7 @@ export default function SiteDetailPage() {
             <>
               {(() => {
                 // Determine if site is qualified for PDF downloads
-                const qualifiedStages = ["qualified", "proposal", "design_signed", "negotiation", "won"];
+                const qualifiedStages = ["qualified", "analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won"];
                 const isQualified = !!designAgreement || opportunities.some(opp => qualifiedStages.includes(opp.stage));
                 return (
                   <DownloadReportButton

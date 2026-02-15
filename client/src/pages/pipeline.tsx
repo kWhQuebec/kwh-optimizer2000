@@ -64,15 +64,17 @@ function formatCompactCurrency(value: number | null | undefined): string {
   return `$${Math.round(value)}`;
 }
 
-const STAGES = ["prospect", "qualified", "proposal", "design_signed", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered", "lost", "disqualified"] as const;
+const STAGES = ["prospect", "contacted", "qualified", "analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered", "lost", "disqualified"] as const;
 type Stage = typeof STAGES[number];
 
 const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
   prospect: { fr: "Prospect (5%)", en: "Prospect (5%)" },
-  qualified: { fr: "Qualifié (15%)", en: "Qualified (15%)" },
-  proposal: { fr: "Proposition (25%)", en: "Proposal (25%)" },
-  design_signed: { fr: "Design signé (50%)", en: "Design Signed (50%)" },
-  negotiation: { fr: "Négociation (75%)", en: "Negotiation (75%)" },
+  contacted: { fr: "Contacté (10%)", en: "Contacted (10%)" },
+  qualified: { fr: "Qualifié (20%)", en: "Qualified (20%)" },
+  analysis_done: { fr: "Analyse détaillée réalisée (25%)", en: "Detailed Analysis Done (25%)" },
+  design_mandate_signed: { fr: "Mandat de conception signé (50%)", en: "Design Mandate Signed (50%)" },
+  epc_proposal_sent: { fr: "Proposition EPC envoyée (75%)", en: "EPC Proposal Sent (75%)" },
+  negotiation: { fr: "Négociation (90%)", en: "Negotiation (90%)" },
   won_to_be_delivered: { fr: "Gagné - À livrer (100%)", en: "Won - To be Delivered (100%)" },
   won_in_construction: { fr: "Gagné - En construction (100%)", en: "Won - In Construction (100%)" },
   won_delivered: { fr: "Gagné - Livré (100%)", en: "Won - Delivered (100%)" },
@@ -80,26 +82,49 @@ const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
   disqualified: { fr: "Non qualifié (0%)", en: "Disqualified (0%)" },
 };
 
+const STAGE_SHORT_LABELS: Record<string, { fr: string; en: string }> = {
+  prospect: { fr: "Prospect", en: "Prospect" },
+  contacted: { fr: "Contacté", en: "Contacted" },
+  qualified: { fr: "Qualifié", en: "Qualified" },
+  analysis_done: { fr: "Analyse", en: "Analysis" },
+  design_mandate_signed: { fr: "Mandat signé", en: "Mandate Signed" },
+  epc_proposal_sent: { fr: "Prop. EPC", en: "EPC Prop." },
+  negotiation: { fr: "Négociation", en: "Negotiation" },
+  won_to_be_delivered: { fr: "Gagné - À livrer", en: "Won - To Deliver" },
+  won_in_construction: { fr: "En construction", en: "In Construction" },
+  won_delivered: { fr: "Livré", en: "Delivered" },
+  lost: { fr: "Perdu", en: "Lost" },
+  disqualified: { fr: "Non qualifié", en: "Disqualified" },
+};
+
 const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
   prospect: { 
-    fr: "Premier contact – lead entrant ou identifié, aucune qualification faite encore", 
-    en: "First contact – incoming or identified lead, no qualification done yet" 
+    fr: "Nouveau lead entrant ou identifié, pas encore contacté", 
+    en: "New incoming or identified lead, not yet contacted" 
+  },
+  contacted: { 
+    fr: "Premier contact réalisé, en cours d'évaluation et collecte d'informations", 
+    en: "First contact made, evaluating and gathering information" 
   },
   qualified: { 
-    fr: "Intérêt confirmé, site viable pour le solaire, budget réaliste et décideur identifié", 
-    en: "Confirmed interest, viable solar site, realistic budget and decision-maker identified" 
+    fr: "Lead vert — projet solaire viable confirmé, toutes les infos de qualification obtenues", 
+    en: "Green lead — viable solar project confirmed, all qualification info obtained" 
   },
-  proposal: { 
-    fr: "Analyse solaire et proposition financière remises au client", 
-    en: "Solar analysis and financial proposal delivered to client" 
+  analysis_done: { 
+    fr: "Analyse détaillée de consommation et simulation solaire complétée", 
+    en: "Detailed consumption analysis and solar simulation completed" 
   },
-  design_signed: {
-    fr: "Client a signé le mandat de conception pour les plans détaillés",
-    en: "Client signed the design mandate for detailed plans"
+  design_mandate_signed: {
+    fr: "Client a signé le mandat de conception préliminaire",
+    en: "Client signed the preliminary design mandate"
+  },
+  epc_proposal_sent: {
+    fr: "Proposition EPC complète soumise au client",
+    en: "Complete EPC proposal submitted to client"
   },
   negotiation: { 
-    fr: "Négociation du contrat de construction en cours", 
-    en: "Construction contract negotiation in progress" 
+    fr: "Négociation finale du contrat de construction", 
+    en: "Final construction contract negotiation" 
   },
   won_to_be_delivered: { 
     fr: "Contrat signé – en attente de démarrage de la construction", 
@@ -125,10 +150,12 @@ const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
 
 const STAGE_PROBABILITIES: Record<Stage, number> = {
   prospect: 5,
-  qualified: 15,
-  proposal: 25,
-  design_signed: 50,
-  negotiation: 75,
+  contacted: 10,
+  qualified: 20,
+  analysis_done: 25,
+  design_mandate_signed: 50,
+  epc_proposal_sent: 75,
+  negotiation: 90,
   won_to_be_delivered: 100,
   won_in_construction: 100,
   won_delivered: 100,
@@ -415,14 +442,16 @@ function StageColumn({
   
   const stageColors: Record<Stage, string> = {
     prospect: "border-t-blue-200",
-    qualified: "border-t-blue-300",
-    proposal: "border-t-[#003DA6]",
-    design_signed: "border-t-amber-400",
-    negotiation: "border-t-amber-500",
+    contacted: "border-t-blue-300",
+    qualified: "border-t-blue-400",
+    analysis_done: "border-t-blue-500",
+    design_mandate_signed: "border-t-amber-400",
+    epc_proposal_sent: "border-t-amber-500",
+    negotiation: "border-t-amber-600",
     won_to_be_delivered: "border-t-green-300",
-    won_in_construction: "border-t-green-600",
-    won_delivered: "border-t-green-700",
-    lost: "border-t-red-500",
+    won_in_construction: "border-t-green-400",
+    won_delivered: "border-t-green-500",
+    lost: "border-t-red-400",
     disqualified: "border-t-gray-400",
   };
 
@@ -435,7 +464,7 @@ function StageColumn({
         <div className="p-3 border-b">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
-              <h3 className="font-semibold text-sm">{STAGE_LABELS[stage][language]}</h3>
+              <h3 className="font-semibold text-sm">{STAGE_SHORT_LABELS[stage]?.[language] || STAGE_LABELS[stage][language]}</h3>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button className="text-muted-foreground hover:text-foreground transition-colors" data-testid={`tooltip-trigger-${stage}`}>
@@ -485,16 +514,18 @@ function OpportunityListView({
   const { language } = useI18n();
 
   const stageColors: Record<Stage, string> = {
-    prospect: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-    qualified: "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200",
-    proposal: "bg-[#003DA6]/10 text-[#003DA6] dark:bg-[#003DA6]/30 dark:text-blue-200",
-    design_signed: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-    negotiation: "bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200",
-    won_to_be_delivered: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    prospect: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    contacted: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+    qualified: "bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-blue-100",
+    analysis_done: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+    design_mandate_signed: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+    epc_proposal_sent: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+    negotiation: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+    won_to_be_delivered: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
     won_in_construction: "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200",
     won_delivered: "bg-green-300 text-green-900 dark:bg-green-700 dark:text-green-100",
     lost: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-    disqualified: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+    disqualified: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
   };
 
   if (opportunities.length === 0) {

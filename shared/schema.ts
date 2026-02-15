@@ -1475,13 +1475,18 @@ export const opportunities = pgTable("opportunities", {
   description: text("description"),
   
   // Pipeline stage with probability mapping:
-  // "prospect" (5%) - Nouveau site, analyse rapide en ligne
-  // "qualified" (15%) - Procuration HQ signée, analyse détaillée en cours  
-  // "proposal" (25%) - Analyse détaillée envoyée avec proposition design
-  // "design_signed" (50%) - Entente design signée, dépôt reçu
-  // "negotiation" (75%) - Proposition construction présentée, en négociation
-  // "won" (100%) - Contrat construction signé
-  // "lost" (0%) - Projet abandonné
+  // "prospect" (5%) - Nouveau lead entrant ou identifié, pas encore contacté
+  // "contacted" (10%) - Premier contact réalisé, en cours d'évaluation
+  // "qualified" (20%) - Lead vert, projet solaire viable confirmé
+  // "analysis_done" (25%) - Analyse détaillée de consommation et simulation complétée
+  // "design_mandate_signed" (50%) - Client a signé le mandat de conception préliminaire
+  // "epc_proposal_sent" (75%) - Proposition EPC complète soumise au client
+  // "negotiation" (90%) - Négociation finale du contrat de construction
+  // "won_to_be_delivered" (100%) - Contrat signé, en attente de construction
+  // "won_in_construction" (100%) - Construction en cours
+  // "won_delivered" (100%) - Projet complété et livré
+  // "lost" (0%) - Opportunité fermée sans succès
+  // "disqualified" (0%) - Lead non qualifié
   stage: text("stage").notNull().default("prospect"),
   probability: integer("probability").default(5), // % likelihood to close - auto-set by stage
   

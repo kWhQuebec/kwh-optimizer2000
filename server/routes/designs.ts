@@ -70,7 +70,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
 
     // Allow if design agreement exists or if opportunity is past "qualified" stage
     const isQualified = !!designAgreement || opportunities.some(opp => {
-      const stages = ["qualified", "proposal", "design_signed", "negotiation", "won"];
+      const stages = ["qualified", "analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won"];
       return stages.includes(opp.stage);
     });
 
@@ -135,7 +135,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
 
     // Allow if design agreement exists or if opportunity is past "qualified" stage
     const isQualified = !!designAgreement || opportunities.some(opp => {
-      const stages = ["qualified", "proposal", "design_signed", "negotiation", "won"];
+      const stages = ["qualified", "analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won"];
       return stages.includes(opp.stage);
     });
 

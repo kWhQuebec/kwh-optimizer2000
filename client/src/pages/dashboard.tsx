@@ -98,26 +98,32 @@ interface PipelineStats {
 
 const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
   prospect: { fr: "Prospect", en: "Prospect" },
+  contacted: { fr: "Contacté", en: "Contacted" },
   qualified: { fr: "Qualifié", en: "Qualified" },
-  proposal: { fr: "Proposition", en: "Proposal" },
-  design_signed: { fr: "Design signé", en: "Design Signed" },
+  analysis_done: { fr: "Analyse", en: "Analysis" },
+  design_mandate_signed: { fr: "Mandat signé", en: "Mandate Signed" },
+  epc_proposal_sent: { fr: "Prop. EPC", en: "EPC Prop." },
   negotiation: { fr: "Négociation", en: "Negotiation" },
   won_to_be_delivered: { fr: "Gagné - À livrer", en: "Won - To be Delivered" },
   won_in_construction: { fr: "Gagné - En construction", en: "Won - In Construction" },
   won_delivered: { fr: "Gagné - Livré", en: "Won - Delivered" },
   lost: { fr: "Perdu", en: "Lost" },
+  disqualified: { fr: "Non qualifié", en: "Disqualified" },
 };
 
 const STAGE_COLORS: Record<string, string> = {
   prospect: "bg-blue-200",
-  qualified: "bg-blue-300",
-  proposal: "bg-[#003DA6]",
-  design_signed: "bg-amber-400",
-  negotiation: "bg-amber-500",
+  contacted: "bg-blue-300",
+  qualified: "bg-blue-400",
+  analysis_done: "bg-indigo-400",
+  design_mandate_signed: "bg-amber-400",
+  epc_proposal_sent: "bg-amber-500",
+  negotiation: "bg-yellow-500",
   won_to_be_delivered: "bg-green-300",
-  won_in_construction: "bg-green-600",
+  won_in_construction: "bg-green-500",
   won_delivered: "bg-green-700",
   lost: "bg-red-500",
+  disqualified: "bg-gray-400",
 };
 
 const WON_STAGES = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
@@ -125,14 +131,17 @@ const isWonStage = (stage: string) => WON_STAGES.includes(stage);
 
 const STAGE_BAR_COLORS: Record<string, string> = {
   prospect: "#93C5FD",
+  contacted: "#93C5FD",
   qualified: "#60A5FA",
-  proposal: "#003DA6",
-  design_signed: "#FFB005",
-  negotiation: "#F59E0B",
+  analysis_done: "#6366F1",
+  design_mandate_signed: "#FFB005",
+  epc_proposal_sent: "#F59E0B",
+  negotiation: "#EAB308",
   won_to_be_delivered: "#4ADE80",
   won_in_construction: "#16A34A",
   won_delivered: "#15803D",
   lost: "#DC2626",
+  disqualified: "#6B7280",
 };
 
 // Format currency compactly: k for < 1M, M for >= 1M
@@ -388,7 +397,7 @@ function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDism
 }
 
 function WeightedVsActualChart({ stageBreakdown, language }: { stageBreakdown: PipelineStats['stageBreakdown']; language: 'fr' | 'en' }) {
-  const activeStages = ['prospect', 'qualified', 'proposal', 'design_signed', 'negotiation'];
+  const activeStages = ['prospect', 'contacted', 'qualified', 'analysis_done', 'design_mandate_signed', 'epc_proposal_sent', 'negotiation'];
   const data = stageBreakdown
     .filter(s => activeStages.includes(s.stage))
     .map(item => ({

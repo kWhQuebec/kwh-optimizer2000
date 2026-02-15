@@ -13,14 +13,17 @@ export const SEMANTIC = {
 
 export const PIPELINE = {
   prospect: { bg: "#BFDBFE", text: "#1E3A5F", border: "#93C5FD", solid: "#93C5FD" },
+  contacted: { bg: "#BFDBFE", text: "#1E3A5F", border: "#93C5FD", solid: "#93C5FD" },
   qualified: { bg: "#93C5FD", text: "#1E3A5F", border: "#60A5FA", solid: "#60A5FA" },
-  proposal: { bg: "#003DA6", text: "#FFFFFF", border: "#003DA6", solid: "#003DA6" },
-  design_signed: { bg: "#FEF3C7", text: "#92400E", border: "#FCD34D", solid: "#FFB005" },
-  negotiation: { bg: "#FFB005", text: "#78350F", border: "#F59E0B", solid: "#F59E0B" },
+  analysis_done: { bg: "#818CF8", text: "#FFFFFF", border: "#6366F1", solid: "#6366F1" },
+  design_mandate_signed: { bg: "#FEF3C7", text: "#92400E", border: "#FCD34D", solid: "#FFB005" },
+  epc_proposal_sent: { bg: "#FFB005", text: "#78350F", border: "#F59E0B", solid: "#F59E0B" },
+  negotiation: { bg: "#FDE68A", text: "#78350F", border: "#F59E0B", solid: "#EAB308" },
   won_to_be_delivered: { bg: "#BBF7D0", text: "#14532D", border: "#86EFAC", solid: "#4ADE80" },
   won_in_construction: { bg: "#16A34A", text: "#FFFFFF", border: "#16A34A", solid: "#16A34A" },
   won_delivered: { bg: "#15803D", text: "#FFFFFF", border: "#15803D", solid: "#15803D" },
   lost: { bg: "#FECACA", text: "#991B1B", border: "#FCA5A5", solid: "#DC2626" },
+  disqualified: { bg: "#F3F4F6", text: "#4B5563", border: "#D1D5DB", solid: "#6B7280" },
 } as const;
 
 export const CHART = {
