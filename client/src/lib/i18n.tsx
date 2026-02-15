@@ -119,7 +119,7 @@ const translations: Translations = {
   "landing.benefits.financial": { fr: "Projections financières", en: "Financial projections" },
   "landing.benefits.financialDesc": { fr: "ROI, VAN, TRI sur 25 ans avec tous les incitatifs", en: "ROI, NPV, IRR over 25 years with all incentives" },
   "landing.benefits.design": { fr: "Design détaillé", en: "Detailed design" },
-  "landing.benefits.designDesc": { fr: "Liste de matériaux et devis complet", en: "Bill of materials and complete quote" },
+  "landing.benefits.designDesc": { fr: "Liste de matériaux et soumission complète", en: "Bill of materials and complete quote" },
   "landing.benefits.installation": { fr: "Installation clé en main", en: "Turnkey installation" },
   "landing.benefits.installationDesc": { fr: "Ingénierie, fourniture et construction", en: "Engineering, procurement and construction" },
   
@@ -275,7 +275,7 @@ const translations: Translations = {
   "analysis.timeline": { fr: "Échéancier type", en: "Typical Timeline" },
   "analysis.timeline.note": { fr: "Délais sujets à approbation Hydro-Québec", en: "Timelines subject to Hydro-Québec approval" },
   "analysis.credibility": { fr: "Ils nous font confiance", en: "They Trust Us" },
-  "analysis.equipment.note": { fr: "Équipement indicatif — marques et modèles confirmés dans la soumission ferme", en: "Indicative equipment — brands and models confirmed in the firm quote" },
+  "analysis.equipment.note": { fr: "Équipement indicatif — marques et modèles confirmés dans la soumission forfaitaire", en: "Indicative equipment — brands and models confirmed in the firm quote" },
 
   // Presentation slides (interactive HTML)
   "presentation.snapshot": { fr: "Aperçu du projet", en: "Project Snapshot" },
@@ -758,7 +758,7 @@ const translations: Translations = {
   "designAgreement.deliverable2": { fr: "Rapport d'évaluation technique", en: "Technical evaluation report" },
   "designAgreement.deliverable3": { fr: "Dessins d'implantation solaire", en: "Solar layout drawings" },
   "designAgreement.deliverable4": { fr: "Schéma unifilaire (si requis)", en: "Single line diagram (if required)" },
-  "designAgreement.deliverable5": { fr: "Soumission détaillée à prix fixe", en: "Detailed fixed-price quote" },
+  "designAgreement.deliverable5": { fr: "Soumission forfaitaire détaillée", en: "Detailed firm quote" },
   "designAgreement.send": { fr: "Envoyer au client", en: "Send to Client" },
   "designAgreement.markAccepted": { fr: "Marquer comme acceptée", en: "Mark as Accepted" },
   "designAgreement.noVisit": { fr: "Aucune visite technique planifiée", en: "No technical visit scheduled" },
@@ -776,7 +776,7 @@ const translations: Translations = {
   
   // Design agreement - detailed terms
   "designAgreement.introduction": { fr: "À propos de cette entente", en: "About This Agreement" },
-  "designAgreement.introText": { fr: "Ce mandat couvre les frais de conception technique préalables à une soumission à prix fixe pour votre projet solaire. Les travaux inclus vous permettent d'obtenir tous les documents nécessaires pour prendre une décision éclairée.", en: "This mandate covers the technical design fees required before providing a fixed-price quote for your solar project. The included work provides you with all the documents needed to make an informed decision." },
+  "designAgreement.introText": { fr: "Ce mandat couvre les frais de conception technique préalables à une soumission forfaitaire pour votre projet solaire. Les travaux inclus vous permettent d'obtenir tous les documents nécessaires pour prendre une décision éclairée.", en: "This mandate covers the technical design fees required before providing a firm quote for your solar project. The included work provides you with all the documents needed to make an informed decision." },
   
   "designAgreement.deliverablesDetailed": { fr: "Ce qui est inclus", en: "What's Included" },
   "designAgreement.deliverableDetail1": { fr: "Visite technique complète du site par un technicien certifié", en: "Complete on-site technical visit by a certified technician" },
@@ -786,7 +786,7 @@ const translations: Translations = {
   "designAgreement.deliverableDetail5": { fr: "Dessins d'implantation solaire (layout) professionnels", en: "Professional solar layout drawings" },
   "designAgreement.deliverableDetail6": { fr: "Schéma unifilaire électrique (SLD) si requis", en: "Electrical single-line diagram (SLD) if required" },
   "designAgreement.deliverableDetail7": { fr: "Rapport technique avec recommandations personnalisées", en: "Technical report with personalized recommendations" },
-  "designAgreement.deliverableDetail8": { fr: "Soumission à prix fixe valide 30 jours", en: "Fixed-price quote valid for 30 days" },
+  "designAgreement.deliverableDetail8": { fr: "Soumission forfaitaire valide 30 jours", en: "Firm quote valid for 30 days" },
   
   "designAgreement.exclusions": { fr: "Ce qui n'est PAS inclus", en: "What's NOT Included" },
   "designAgreement.exclusion1": { fr: "Analyse structurale par ingénieur (si requise par la municipalité)", en: "Structural analysis by engineer (if required by municipality)" },

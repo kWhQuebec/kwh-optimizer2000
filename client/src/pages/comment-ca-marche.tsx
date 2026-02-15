@@ -65,14 +65,14 @@ export default function CommentCaMarchePage() {
     {
       number: 4,
       icon: FileCheck,
-      title: language === "fr" ? "Visite & Devis" : "Site Visit & Quote",
+      title: language === "fr" ? "Visite & Soumission" : "Site Visit & Quote",
       duration: language === "fr" ? "~1 semaine" : "~1 week",
       description: language === "fr"
-        ? "Notre équipe visite votre site pour valider les conditions techniques et préparer un devis détaillé à prix fixe."
-        : "Our team visits your site to validate technical conditions and prepare a detailed fixed-price quote.",
+        ? "Notre équipe visite votre site pour valider les conditions techniques et préparer une soumission forfaitaire détaillée."
+        : "Our team visits your site to validate technical conditions and prepare a detailed firm quote.",
       deliverables: language === "fr"
-        ? ["Inspection technique sur site", "Dessins préliminaires", "Devis ferme et détaillé"]
-        : ["On-site technical inspection", "Preliminary drawings", "Firm and detailed quote"],
+        ? ["Inspection technique sur site", "Dessins préliminaires", "Soumission forfaitaire détaillée"]
+        : ["On-site technical inspection", "Preliminary drawings", "Detailed firm quote"],
       accuracy: null,
       free: false
     },

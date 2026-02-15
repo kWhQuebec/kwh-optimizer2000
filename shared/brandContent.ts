@@ -232,7 +232,7 @@ export const BRAND_CONTENT = {
   ],
 
   clientReceives: [
-    { labelFr: "Soumission ferme avec prix garantis", labelEn: "Firm quote with guaranteed pricing" },
+    { labelFr: "Soumission forfaitaire avec prix garantis", labelEn: "Firm quote with guaranteed pricing" },
     { labelFr: "Échéancier de réalisation détaillé", labelEn: "Detailed implementation schedule" },
     { labelFr: "Portée et exclusions clarifiées", labelEn: "Clarified scope and exclusions" },
     { labelFr: "Dossier prêt pour demande Hydro-Québec", labelEn: "File ready for Hydro-Québec application" },

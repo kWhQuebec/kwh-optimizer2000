@@ -1692,7 +1692,7 @@ function EquipmentSlide({ language }: { language: string }) {
 
         <p className="text-center text-xs mt-4" style={{ color: '#9CA3AF' }}>
           {language === 'fr'
-            ? 'Équipement indicatif — marques et modèles confirmés dans la soumission ferme'
+            ? 'Équipement indicatif — marques et modèles confirmés dans la soumission forfaitaire'
             : 'Indicative equipment — brands and models confirmed in the firm quote'}
         </p>
       </div>

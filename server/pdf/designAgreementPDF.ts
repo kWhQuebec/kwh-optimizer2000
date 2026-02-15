@@ -173,7 +173,7 @@ export function generateDesignAgreementPDF(
     t("Rapport d'évaluation technique", "Technical evaluation report"),
     t("Dessins d'implantation PV", "PV layout drawings"),
     t("Schéma unifilaire (si requis)", "Single line diagram (if required)"),
-    t("Soumission détaillée à prix fixe", "Detailed fixed-price quote"),
+    t("Soumission forfaitaire détaillée", "Detailed firm quote"),
   ];
 
   deliverables.forEach(item => {

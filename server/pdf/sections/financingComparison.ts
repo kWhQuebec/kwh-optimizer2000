@@ -119,7 +119,7 @@ export function renderFinancingComparison(ctx: PDFContext) {
 
   doc.fontSize(8).fillColor(COLORS.lightGray);
   doc.text(t(
-    "Les taux et termes sont indicatifs. Les options d'acquisition seront précisées dans la soumission ferme.",
+    "Les taux et termes sont indicatifs. Les options d'acquisition seront précisées dans la soumission forfaitaire.",
     "Rates and terms are indicative. Acquisition options will be detailed in the firm quote."
   ), margin, doc.y, { width: contentWidth, align: "center" });
 }

@@ -1025,7 +1025,7 @@ export async function generatePresentationPPTX(
     });
   }
 
-  slideEquip.addText(t("Équipement indicatif — marques et modèles finaux confirmés dans la soumission ferme",
+  slideEquip.addText(t("Équipement indicatif — marques et modèles finaux confirmés dans la soumission forfaitaire",
                         "Indicative equipment — final brands and models confirmed in the firm quote"), {
     x: 0.5, y: 3.8, w: 9, h: 0.3,
     fontSize: 8, color: COLORS.mediumGray, align: "center"

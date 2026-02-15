@@ -1460,7 +1460,7 @@ function buildAssumptionsPage(
     <div class="info-box highlight">
       <p style="margin: 0; color: rgba(255,255,255,0.95);">
         <strong>Important:</strong> ${t(
-          "Cette &eacute;tude pr&eacute;liminaire est bas&eacute;e sur les informations disponibles et une analyse &agrave; distance. Une visite technique et une analyse d&eacute;taill&eacute;e confirmeront les param&egrave;tres finaux, l'admissibilit&eacute; aux incitatifs, et le devis d&eacute;finitif.",
+          "Cette &eacute;tude pr&eacute;liminaire est bas&eacute;e sur les informations disponibles et une analyse &agrave; distance. Une visite technique et une analyse d&eacute;taill&eacute;e confirmeront les param&egrave;tres finaux, l'admissibilit&eacute; aux incitatifs, et la soumission forfaitaire d&eacute;finitive.",
           "This preliminary study is based on available information and remote analysis. A technical visit and detailed analysis will confirm final parameters, incentive eligibility, and the final quote."
         )}
       </p>
@@ -1531,8 +1531,8 @@ function buildNextStepsPage(
       <div class="funnel-step">
         <div class="funnel-step-number">2</div>
         <div class="funnel-step-title">${t("Visite & design", "Visit & Design")}</div>
-        <p class="funnel-step-desc">${t("Inspection sur site, conception finale, devis ferme garanti 60 jours.", "On-site inspection, final design, firm quote guaranteed 60 days.")}</p>
-        <span class="funnel-step-tag paid">${t("DEVIS FORMEL", "FORMAL QUOTE")}</span>
+        <p class="funnel-step-desc">${t("Inspection sur site, conception finale, soumission forfaitaire garantie 60 jours.", "On-site inspection, final design, firm quote guaranteed 60 days.")}</p>
+        <span class="funnel-step-tag paid">${t("SOUMISSION FORFAITAIRE", "FIRM QUOTE")}</span>
       </div>
       <div class="funnel-step">
         <div class="funnel-step-number">3</div>
@@ -1557,7 +1557,7 @@ function buildNextStepsPage(
       <div class="funnel-step" style="border: 2px solid var(--accent); border-radius: 3mm;">
         <div class="funnel-step-number">2</div>
         <div class="funnel-step-title">${t("Mandat de conception préliminaire", "Preliminary Design Mandate")}</div>
-        <p class="funnel-step-desc">${t("Visite technique, ing&eacute;nierie pr&eacute;liminaire, devis ferme garanti 60 jours.", "Technical visit, preliminary engineering, firm quote guaranteed 60 days.")}</p>
+        <p class="funnel-step-desc">${t("Visite technique, ing&eacute;nierie pr&eacute;liminaire, soumission forfaitaire garantie 60 jours.", "Technical visit, preliminary engineering, firm quote guaranteed 60 days.")}</p>
         <span class="funnel-step-tag">${t("PROCHAINE &Eacute;TAPE", "NEXT STEP")}</span>
       </div>
       <div class="funnel-step">
@@ -1591,7 +1591,7 @@ function buildNextStepsPage(
         <ul class="bullet-list">
           <li>${t("Signer le mandat de conception en ligne", "Sign the design mandate online")}</li>
           <li>${t("Visite technique de votre b&acirc;timent sous 2 semaines", "Technical visit of your building within 2 weeks")}</li>
-          <li>${t("Conception finale et devis ferme garanti 60 jours", "Final design and firm quote guaranteed 60 days")}</li>
+          <li>${t("Conception finale et soumission forfaitaire garantie 60 jours", "Final design and firm quote guaranteed 60 days")}</li>
           <li>${t("D&eacute;but des travaux sous 8-12 semaines", "Construction start within 8-12 weeks")}</li>
         </ul>
       </div>`;
@@ -1601,16 +1601,16 @@ function buildNextStepsPage(
         <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
         <div class="info-box" style="font-size: 9pt;">
           <p><strong>${t("Combien &ccedil;a co&ucirc;te de signer la procuration?", "How much does signing the power of attorney cost?")}</strong><br>${t("Rien. L'&eacute;valuation d&eacute;taill&eacute;e est gratuite et sans engagement.", "Nothing. The detailed evaluation is free and without commitment.")}</p>
-          <p><strong>${t("Quand est-ce que je paie quelque chose?", "When do I pay anything?")}</strong><br>${t("Seulement apr&egrave;s la visite technique, quand vous approuvez le devis formel.", "Only after the technical visit, when you approve the formal quote.")}</p>
-          <p style="margin: 0;"><strong>${t("Le devis peut-il changer?", "Can the quote change?")}</strong><br>${t("Le devis formel est garanti 60 jours, prix ferme.", "The formal quote is guaranteed 60 days, firm price.")}</p>
+          <p><strong>${t("Quand est-ce que je paie quelque chose?", "When do I pay anything?")}</strong><br>${t("Seulement apr&egrave;s la visite technique, quand vous approuvez la soumission forfaitaire.", "Only after the technical visit, when you approve the firm quote.")}</p>
+          <p style="margin: 0;"><strong>${t("La soumission peut-elle changer?", "Can the quote change?")}</strong><br>${t("La soumission forfaitaire est garantie 60 jours.", "The firm quote is guaranteed 60 days.")}</p>
         </div>
       </div>`
     : `<div class="section">
         <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
         <div class="info-box" style="font-size: 9pt;">
-          <p><strong>${t("Que couvre le mandat de conception?", "What does the design mandate cover?")}</strong><br>${t("Visite de site compl&egrave;te, ing&eacute;nierie pr&eacute;liminaire, pr&eacute;paration du dossier d'interconnexion Hydro-Qu&eacute;bec, et soumission ferme d&eacute;taill&eacute;e.", "Complete site visit, preliminary engineering, Hydro-Qu&eacute;bec interconnection file preparation, and detailed firm quote.")}</p>
+          <p><strong>${t("Que couvre le mandat de conception?", "What does the design mandate cover?")}</strong><br>${t("Visite de site compl&egrave;te, ing&eacute;nierie pr&eacute;liminaire, pr&eacute;paration du dossier d'interconnexion Hydro-Qu&eacute;bec, et soumission forfaitaire d&eacute;taill&eacute;e.", "Complete site visit, preliminary engineering, Hydro-Qu&eacute;bec interconnection file preparation, and detailed firm quote.")}</p>
           <p><strong>${t("Combien &ccedil;a co&ucirc;te?", "How much does it cost?")}</strong><br>${t("Consultez le lien ci-dessous pour les d&eacute;tails et le paiement s&eacute;curis&eacute; en ligne.", "See the link below for details and secure online payment.")}</p>
-          <p style="margin: 0;"><strong>${t("Le devis peut-il changer?", "Can the quote change?")}</strong><br>${t("Le devis formel est garanti 60 jours, prix ferme.", "The formal quote is guaranteed 60 days, firm price.")}</p>
+          <p style="margin: 0;"><strong>${t("La soumission peut-elle changer?", "Can the quote change?")}</strong><br>${t("La soumission forfaitaire est garantie 60 jours.", "The firm quote is guaranteed 60 days.")}</p>
         </div>
       </div>`;
 
