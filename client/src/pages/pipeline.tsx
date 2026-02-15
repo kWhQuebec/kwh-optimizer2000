@@ -720,6 +720,7 @@ export default function PipelinePage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  const [isEditCreatingNewClient, setIsEditCreatingNewClient] = useState(false);
   const [isCreatingNewSite, setIsCreatingNewSite] = useState(false);
   
   // Stage advance modal state
@@ -872,16 +873,34 @@ export default function PipelinePage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<OpportunityFormValues> }) => {
+      let clientId = data.clientId;
+
+      if (clientId === CREATE_NEW_CLIENT_VALUE && data.newClientName) {
+        const newClient = await createClientMutation.mutateAsync({
+          name: data.newClientName,
+          email: data.newClientEmail || undefined,
+          phone: data.newClientPhone || undefined,
+        });
+        clientId = newClient.id;
+      }
+
+      const normalizedClientId = clientId && clientId !== CREATE_NEW_CLIENT_VALUE ? clientId : undefined;
+
+      const { newClientName, newClientEmail, newClientPhone, newSiteName, newSiteAddress, newSiteCity, newSiteProvince, ...opportunityData } = data;
+
       const payload = {
-        ...data,
+        ...opportunityData,
+        clientId: normalizedClientId,
         expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate).toISOString() : undefined,
       };
       return apiRequest("PATCH", `/api/opportunities/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       setIsDetailOpen(false);
       setSelectedOpportunity(null);
+      setIsEditCreatingNewClient(false);
       toast({
         title: language === "fr" ? "Opportunité mise à jour" : "Opportunity updated",
       });
@@ -1029,7 +1048,11 @@ export default function PipelinePage() {
       priority: actualOpp.priority || "medium",
       source: actualOpp.source || undefined,
       clientId: actualOpp.clientId || undefined,
+      newClientName: "",
+      newClientEmail: "",
+      newClientPhone: "",
     });
+    setIsEditCreatingNewClient(false);
     setIsDetailOpen(true);
   };
 
@@ -1803,9 +1826,16 @@ export default function PipelinePage() {
           {selectedOpportunity && (
             <Form {...editForm}>
               <form
-                onSubmit={editForm.handleSubmit((data) =>
-                  updateMutation.mutate({ id: selectedOpportunity.id, data })
-                )}
+                onSubmit={editForm.handleSubmit((data) => {
+                  if (data.clientId === CREATE_NEW_CLIENT_VALUE && !data.newClientName?.trim()) {
+                    editForm.setError("newClientName", {
+                      type: "required",
+                      message: language === "fr" ? "Le nom du client est requis" : "Client name is required"
+                    });
+                    return;
+                  }
+                  updateMutation.mutate({ id: selectedOpportunity.id, data });
+                })}
                 className="space-y-4"
               >
                 {/* Lead Color Badge — prominent display */}
@@ -1883,13 +1913,34 @@ export default function PipelinePage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{language === "fr" ? "Client" : "Client"}</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select 
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              const isNewClient = value === CREATE_NEW_CLIENT_VALUE;
+                              setIsEditCreatingNewClient(isNewClient);
+                              if (!isNewClient) {
+                                editForm.setValue("newClientName", "");
+                                editForm.setValue("newClientEmail", "");
+                                editForm.setValue("newClientPhone", "");
+                              }
+                            }} 
+                            value={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger data-testid="select-edit-client">
                                 <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
+                              <SelectItem value={CREATE_NEW_CLIENT_VALUE} className="text-primary font-medium">
+                                <span className="flex items-center gap-1.5">
+                                  <Plus className="w-3.5 h-3.5" />
+                                  {language === "fr" ? "Créer un nouveau client" : "Create new client"}
+                                </span>
+                              </SelectItem>
+                              {clients.length > 0 && (
+                                <SelectSeparator />
+                              )}
                               {clients.map((client) => (
                                 <SelectItem key={client.id} value={client.id}>
                                   {client.name}
@@ -1901,6 +1952,55 @@ export default function PipelinePage() {
                         </FormItem>
                       )}
                     />
+
+                    {isEditCreatingNewClient && (
+                      <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {language === "fr" ? "Nouveau client" : "New Client"}
+                        </p>
+                        <FormField
+                          control={editForm.control}
+                          name="newClientName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{language === "fr" ? "Nom du client" : "Client Name"} *</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder={language === "fr" ? "Nom de l'entreprise" : "Company name"} data-testid="input-edit-new-client-name" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-2 gap-3">
+                          <FormField
+                            control={editForm.control}
+                            name="newClientEmail"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{language === "fr" ? "Courriel" : "Email"}</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="email" placeholder="email@example.com" data-testid="input-edit-new-client-email" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="newClientPhone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{language === "fr" ? "Téléphone" : "Phone"}</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="tel" placeholder="514-555-0000" data-testid="input-edit-new-client-phone" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <FormField
                       control={editForm.control}
