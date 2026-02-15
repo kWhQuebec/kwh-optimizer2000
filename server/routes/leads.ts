@@ -1692,6 +1692,37 @@ router.patch("/api/leads/:id/business-context", authMiddleware, requireStaff, as
   }
 
   const updatedLead = await storage.updateLead(lead.id, updateData);
+
+  // TASK 1: Auto-transition opportunity to qualified if leadColor is green or yellow
+  // Only transition from prospect or contacted stage
+  if (leadColor === 'green' || leadColor === 'yellow') {
+    try {
+      const opportunities = await storage.getOpportunitiesByLeadId(lead.id);
+      for (const opportunity of opportunities) {
+        // Only transition if still at prospect or contacted stage
+        if (opportunity.stage === 'prospect' || opportunity.stage === 'contacted') {
+          await storage.updateOpportunityStage(opportunity.id, 'qualified', 20);
+          log.info(`Auto-transitioned opportunity ${opportunity.id} from ${opportunity.stage} to qualified (leadColor: ${leadColor})`);
+        }
+      }
+
+      // Also update lead's qualification timestamps
+      const qualificationUpdate: Record<string, any> = {};
+      if (!lead.qualifiedAt) {
+        qualificationUpdate.qualifiedAt = new Date();
+      }
+      if (!lead.qualifiedBy && (req as any).userId) {
+        qualificationUpdate.qualifiedBy = (req as any).userId;
+      }
+      if (Object.keys(qualificationUpdate).length > 0) {
+        await storage.updateLead(lead.id, qualificationUpdate);
+      }
+    } catch (oppError) {
+      log.error(`Failed to auto-transition opportunity for lead ${lead.id}:`, oppError);
+      // Non-blocking error - continue
+    }
+  }
+
   res.json({ success: true, data: updatedLead });
 }));
 

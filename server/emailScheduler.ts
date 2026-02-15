@@ -20,14 +20,22 @@ import type { IStorage } from "./storage";
 
 const log = createLogger("EmailScheduler");
 
-// Nurture sequence definition
+// Nurture sequence definition - Aligned with Oleg sales funnel stages
+// Day 0: Instant Indicative (estimator results)
+// Day 1: Qualification Gate (10-min discovery call)
+// Day 3: Risk flags or value reinforcement
+// Day 7: Tripwire - Design mandate offer
+// Day 14: Case study / social proof
+// Day 21: Last chance / FOMO with incentive expiry
+// Day 30: Re-engagement check
 const NURTURE_SEQUENCE = [
-  { templateKey: "nurturingIncentives", delayDays: 3 },
-  { templateKey: "nurturingCaseStudy", delayDays: 7 },
-  { templateKey: "nurturingRisingCosts", delayDays: 10 },
-  { templateKey: "nurturingMythBusting", delayDays: 14 },
-  { templateKey: "nurturingTimeSensitive", delayDays: 21 },
-  { templateKey: "nurturingLastChance", delayDays: 30 },
+  { templateKey: "nurtureWelcome", delayDays: 0 },          // Day 0: Welcome + quick results
+  { templateKey: "nurtureCTA1", delayDays: 1 },              // Day 1: Discovery call CTA
+  { templateKey: "nurtureRiskFlags", delayDays: 3 },         // Day 3: Risk flags or value
+  { templateKey: "nurtureTripwire", delayDays: 7 },          // Day 7: Design mandate ($2,500)
+  { templateKey: "nurturingCaseStudy", delayDays: 14 },      // Day 14: Case study/social proof
+  { templateKey: "nurturingLastChance", delayDays: 21 },     // Day 21: Last chance/FOMO
+  { templateKey: "nurtureReengagement", delayDays: 30 },     // Day 30: Re-engagement check
 ];
 
 export interface SchedulerDeps {
@@ -125,6 +133,38 @@ export async function processScheduledEmails(deps: SchedulerDeps) {
           continue;
         }
 
+        // CONVERSION DETECTION: Stop nurture if lead has converted
+        // Stages that indicate conversion/advancement beyond nurture
+        const CONVERSION_STAGES = [
+          "design_mandate_signed",  // Lead signed design mandate (Stage 3)
+          "epc_proposal_sent",      // EPC proposal sent (Stage 4)
+          "negotiation",            // In negotiation
+          "won",                    // Deal won
+        ];
+
+        if (CONVERSION_STAGES.includes(lead.stage)) {
+          log.info(`Skipping email ${scheduled.id}: lead has converted to stage "${lead.stage}"`);
+          await deps.storage.updateScheduledEmail(scheduled.id, {
+            cancelled: true,
+            lastError: `Lead converted to stage: ${lead.stage}`,
+          });
+          // Cancel ALL remaining emails in this sequence
+          await deps.storage.cancelScheduledEmails(lead.id);
+          continue;
+        }
+
+        // Check if lead has been disqualified
+        if (lead.qualificationStatus === "disqualified") {
+          log.warn(`Skipping email ${scheduled.id}: lead is disqualified`);
+          await deps.storage.updateScheduledEmail(scheduled.id, {
+            cancelled: true,
+            lastError: "Lead disqualified",
+          });
+          // Cancel ALL remaining emails
+          await deps.storage.cancelScheduledEmails(lead.id);
+          continue;
+        }
+
         // Check if lead has unsubscribed
         if (lead.unsubscribed) {
           log.warn(`Skipping email ${scheduled.id}: lead is unsubscribed`);
@@ -135,6 +175,7 @@ export async function processScheduledEmails(deps: SchedulerDeps) {
           continue;
         }
 
+        // Check nurture status
         if (lead.nurtureStatus === "paused" || lead.nurtureStatus === "stopped") {
           log.info(`Skipping email ${scheduled.id}: lead nurture is ${lead.nurtureStatus}`);
           if (lead.nurtureStatus === "stopped") {
@@ -149,54 +190,69 @@ export async function processScheduledEmails(deps: SchedulerDeps) {
         // Detect language from lead data (prefer explicitly set language, fall back to French)
         const lang = lead.language || "fr";
 
-        // Build template data
+        // Build template data - Standard personalization variables
         const baseUrl = process.env.BASE_URL || "https://app.kwh.quebec";
+        const calendlyUrl = process.env.VITE_CALENDLY_URL || "https://calendly.com/kwh-quebec/consultation";
+
         const data: Record<string, string> = {
+          // Personalization variables (4.2 spec) - Dynamic data from lead
+          companyName: lead.companyName || "",
           contactName: lead.contactName || lead.companyName || "there",
+          monthlyBill: lead.estimatedMonthlyBill ? `$${Math.round(lead.estimatedMonthlyBill)}` : "",
+          // Use quickAnalysis fields if available (from quick estimate)
+          estimatedSavings: lead.quickAnalysisAnnualSavings
+            ? `$${Math.round(lead.quickAnalysisAnnualSavings)}`
+            : (lead.estimatedMonthlyBill
+              ? `$${Math.round(lead.estimatedMonthlyBill * 12 * 0.15)}`  // Conservative 15% savings estimate
+              : "TBD"),
+          estimatedSystemSize: lead.pvSizeKW
+            ? `${lead.pvSizeKW} kW`
+            : "TBD",
+          estimatedROI: lead.quickAnalysisPaybackYears
+            ? `${Math.round(lead.quickAnalysisPaybackYears)} ans`
+            : (lead.estimatedMonthlyBill
+              ? `~4-6 ans`  // Conservative estimate
+              : "TBD"),
+          fitScore: lead.qualificationStatus || "pending",
+          leadColor: lead.qualificationStatus || "pending",
+
+          // URLs
+          calendlyUrl,
           analysisUrl: `${baseUrl}/#detailed`,
           unsubscribeUrl: `${baseUrl}/api/leads/${lead.id}/unsubscribe`,
-          companyName: lead.companyName || "",
+
+          // Basic info
           address: lead.streetAddress || "",
         };
 
-        // Add financial data for specific templates
-        if (
-          scheduled.templateKey === "nurturingRisingCosts" &&
-          lead.estimatedMonthlyBill
-        ) {
-          const monthlyBill = lead.estimatedMonthlyBill;
-          const annualBill = monthlyBill * 12;
-          const escalationRate = 0.035; // 3.5% annually
-
-          data.currentAnnualBill = Math.round(annualBill).toString();
-          data.bill5Years = Math.round(
-            annualBill * Math.pow(1 + escalationRate, 5)
-          ).toString();
-          data.increase5Years = Math.round(
-            annualBill * (Math.pow(1 + escalationRate, 5) - 1)
-          ).toString();
-          data.bill10Years = Math.round(
-            annualBill * Math.pow(1 + escalationRate, 10)
-          ).toString();
-          data.increase10Years = Math.round(
-            annualBill * (Math.pow(1 + escalationRate, 10) - 1)
-          ).toString();
-          data.bill25Years = Math.round(
-            annualBill * Math.pow(1 + escalationRate, 25)
-          ).toString();
-          data.increase25Years = Math.round(
-            annualBill * (Math.pow(1 + escalationRate, 25) - 1)
-          ).toString();
+        // Risk flags (if any blockers identified)
+        if (scheduled.templateKey === "nurtureRiskFlags") {
+          // Build risk flags list from lead data
+          const riskItems: string[] = [];
+          if (lead.roofCondition && lead.roofCondition.includes("poor")) {
+            riskItems.push(lang === "fr" ? "• État de la toiture à évaluer" : "• Roof condition to assess");
+          }
+          if (lead.structuralPassStatus === "no") {
+            riskItems.push(lang === "fr" ? "• Charges structurales insuffisantes" : "• Insufficient structural capacity");
+          }
+          if (lead.electricalCapacity && lead.electricalCapacity < 100) {
+            riskItems.push(lang === "fr" ? "• Mise à niveau électrique possible" : "• Possible electrical upgrade needed");
+          }
+          // If no specific risks, provide positive message
+          if (riskItems.length === 0) {
+            data.riskFlags = lang === "fr"
+              ? "Aucun blocage identifié — votre projet est très prometteur!"
+              : "No blockers identified — your project is very promising!";
+          } else {
+            data.riskFlags = riskItems.join("\n");
+          }
         }
 
-        // Add monthly value for last chance email
-        if (
-          scheduled.templateKey === "nurturingLastChance" &&
-          lead.estimatedMonthlyBill
-        ) {
+        // Add estimated savings for last chance email
+        if (scheduled.templateKey === "nurturingLastChance" && lead.estimatedMonthlyBill) {
           // Estimate monthly savings at roughly 15-20% of bill (conservative for solar)
           const monthlyValue = Math.round(lead.estimatedMonthlyBill * 0.15);
-          data.monthlyValue = monthlyValue.toString();
+          data.estimatedSavings = `$${monthlyValue}`;
         }
 
         // Send the email

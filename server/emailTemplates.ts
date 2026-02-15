@@ -234,83 +234,323 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     },
   },
 
-  // Nurturing email 1: Incentives reminder (Day 3)
-  nurturingIncentives: {
+  // DAY 0: Welcome + Quick Results Summary
+  nurtureWelcome: {
     subject: {
-      fr: "Saviez-vous? Jusqu'à 60% de votre projet solaire couvert",
-      en: "Did you know? Up to 60% of your solar project covered",
+      fr: "{{contactName}}, votre potentiel solaire découvert - Résumé de l'estimation",
+      en: "{{contactName}}, your solar potential uncovered - Estimate summary",
     },
     html: {
       fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1>kWh Québec</h1>
-          </div>
-          <div class="content">
-            <h2>Bonjour {{contactName}},</h2>
-            <p>Suite à votre intérêt pour le solaire, voici un rappel des incitatifs disponibles au Québec:</p>
-            
-            <div class="highlight">
-              <h3>💰 Incitatifs cumulables:</h3>
-              <ul>
-                <li><strong>Crédit Hydro-Québec:</strong> Jusqu'à 40% du coût (plafonné)</li>
-                <li><strong>Crédit fédéral:</strong> 30% pour technologies propres</li>
-                <li><strong>Amortissement accéléré:</strong> 100% déductible en 1ère année</li>
-              </ul>
-              <p><strong>Total potentiel: jusqu'à 60% du projet!</strong></p>
-            </div>
-            
-            <p>Ces programmes peuvent changer à tout moment. Le meilleur moment pour agir, c'est maintenant.</p>
-            
-            <p style="text-align: center; margin: 30px 0;">
-              <a href="{{analysisUrl}}" class="button">Obtenir mon analyse gratuite</a>
-            </p>
-          </div>
-          <div class="footer">
-            <p>kWh Québec - Solaire + Stockage</p>
-            <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
-          </div>
-        </div>
-      </body></html>`,
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Bienvenue {{contactName}},</h2>
+      <p>Merci de votre intérêt envers le solaire pour {{companyName}}. Voici votre estimation rapide basée sur les données que vous avez fournies.</p>
+
+      <div class="highlight">
+        <p style="font-size:14px;color:#6b7280;margin-bottom:12px;">Votre potentiel solaire estimé</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Taille du système</td>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span class="metric">{{estimatedSystemSize}}</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Économies annuelles estimées</td>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span class="metric">{{estimatedSavings}}</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;">Retour sur investissement</td>
+            <td style="padding:8px 0;text-align:right;"><span class="metric">{{estimatedROI}}</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Validons ensemble votre projet en 10 minutes →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">Cet appel nous permettra de confirmer nos estimations et de répondre à vos questions. Aucun engagement après l'appel.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage C&I</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
+    </div>
+  </div>
+</body></html>`,
       en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1>kWh Québec</h1>
-          </div>
-          <div class="content">
-            <h2>Hello {{contactName}},</h2>
-            <p>Following your interest in solar, here's a reminder of available incentives in Quebec:</p>
-            
-            <div class="highlight">
-              <h3>💰 Stackable Incentives:</h3>
-              <ul>
-                <li><strong>Hydro-Québec Credit:</strong> Up to 40% of cost (capped)</li>
-                <li><strong>Federal Credit:</strong> 30% for clean technology</li>
-                <li><strong>Accelerated Depreciation:</strong> 100% deductible in year 1</li>
-              </ul>
-              <p><strong>Total potential: up to 60% of the project!</strong></p>
-            </div>
-            
-            <p>These programs can change at any time. The best time to act is now.</p>
-            
-            <p style="text-align: center; margin: 30px 0;">
-              <a href="{{analysisUrl}}" class="button">Get My Free Analysis</a>
-            </p>
-          </div>
-          <div class="footer">
-            <p>kWh Québec - Turnkey solar + storage</p>
-            <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
-          </div>
-        </div>
-      </body></html>`,
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Welcome {{contactName}},</h2>
+      <p>Thank you for your interest in solar for {{companyName}}. Here is your quick estimate based on the data you provided.</p>
+
+      <div class="highlight">
+        <p style="font-size:14px;color:#6b7280;margin-bottom:12px;">Your estimated solar potential</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">System Size</td>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span class="metric">{{estimatedSystemSize}}</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Estimated Annual Savings</td>
+            <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span class="metric">{{estimatedSavings}}</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;">Return on Investment</td>
+            <td style="padding:8px 0;text-align:right;"><span class="metric">{{estimatedROI}}</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Let's validate your project in 10 minutes →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">This call will help us confirm our estimates and answer your questions. No commitment after the call.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey C&I Solar + Storage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+    </div>
+  </div>
+</body></html>`,
     },
     text: {
-      fr: `Bonjour {{contactName}},\n\nIncitatifs solaires au Québec:\n- Hydro-Québec: jusqu'à 40%\n- Fédéral: 30%\n- Amortissement: 100% an 1\n\nTotal: jusqu'à 60%!\n\nAnalyse gratuite: {{analysisUrl}}\n\nkWh Québec`,
-      en: `Hello {{contactName}},\n\nQuebec Solar Incentives:\n- Hydro-Québec: up to 40%\n- Federal: 30%\n- Depreciation: 100% year 1\n\nTotal: up to 60%!\n\nFree analysis: {{analysisUrl}}\n\nkWh Québec`,
+      fr: `Bienvenue {{contactName}},\n\nVotre estimation rapide pour {{companyName}}:\n- Taille du système: {{estimatedSystemSize}}\n- Économies annuelles: {{estimatedSavings}}\n- Retour: {{estimatedROI}}\n\nProchaine étape: réservez un appel de 10 minutes pour valider ensemble.\n\nRéserver un appel: {{calendlyUrl}}\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
+      en: `Welcome {{contactName}},\n\nYour quick estimate for {{companyName}}:\n- System Size: {{estimatedSystemSize}}\n- Annual Savings: {{estimatedSavings}}\n- Payback: {{estimatedROI}}\n\nNext step: Book a 10-minute call to validate together.\n\nBook a call: {{calendlyUrl}}\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
     },
   },
 
-  // Nurturing email 2: Case study / social proof (Day 7)
+  // DAY 1: Discovery Call CTA
+  nurtureCTA1: {
+    subject: {
+      fr: "Validons ensemble votre projet en 10 minutes",
+      en: "Let's validate your project in 10 minutes",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Bonjour {{contactName}},</h2>
+      <p>Un appel rapide peut changer les choses. En 10 minutes, nous pouvons:</p>
+
+      <ul style="padding-left: 20px;">
+        <li>Confirmer notre estimation initiale</li>
+        <li>Répondre à vos objections ou préoccupations</li>
+        <li>Débloquer votre rapport personnalisé détaillé</li>
+      </ul>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Réserver mon appel de qualification →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">Pas maintenant? Pas de problème — nous continuerons à partager des insights utiles.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage C&I</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
+    </div>
+  </div>
+</body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Hello {{contactName}},</h2>
+      <p>A quick call can make a difference. In 10 minutes, we can:</p>
+
+      <ul style="padding-left: 20px;">
+        <li>Confirm our initial estimate</li>
+        <li>Address any concerns or questions</li>
+        <li>Unlock your detailed personalized report</li>
+      </ul>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Book my qualification call →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">Not now? No problem — we'll continue sharing useful insights.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey C&I Solar + Storage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+    </div>
+  </div>
+</body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\nUn appel de 10 minutes peut valider votre projet et débloquer votre rapport personnalisé.\n\nRéserver: {{calendlyUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nA 10-minute call can validate your project and unlock your personalized report.\n\nBook: {{calendlyUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // DAY 3: Risk Flags / Blockers (if any)
+  nurtureRiskFlags: {
+    subject: {
+      fr: "Points d'attention identifiés pour votre projet {{companyName}}",
+      en: "Points of attention identified for {{companyName}}",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Bonjour {{contactName}},</h2>
+      <p>Dans notre analyse préliminaire, nous avons identifié quelques points à clarifier pour {{companyName}}:</p>
+
+      <div class="highlight">
+        <h3>Points à valider:</h3>
+        <p>{{riskFlags}}</p>
+      </div>
+
+      <p>Aucun de ces points n'élimine votre projet — ils sont simplement des éléments que nous devons valider ensemble lors de notre appel de qualification.</p>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Discutons de ces points en 10 minutes →</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage C&I</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
+    </div>
+  </div>
+</body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Hello {{contactName}},</h2>
+      <p>In our preliminary analysis, we identified a few points to clarify for {{companyName}}:</p>
+
+      <div class="highlight">
+        <h3>Points to validate:</h3>
+        <p>{{riskFlags}}</p>
+      </div>
+
+      <p>None of these eliminate your project — they're simply items we need to validate together during our qualification call.</p>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Let's discuss in 10 minutes →</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey C&I Solar + Storage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+    </div>
+  </div>
+</body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\nPoints d'attention identifiés:\n\n{{riskFlags}}\n\nRéservons un appel pour en discuter: {{calendlyUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nPoints of attention:\n\n{{riskFlags}}\n\nLet's book a call to discuss: {{calendlyUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // DAY 7: Tripwire - Design Mandate Offer ($2,500 + taxes, credited on EPC)
+  nurtureTripwire: {
+    subject: {
+      fr: "{{companyName}}: Passer à l'étape de conception - Mandat à 2 500$",
+      en: "{{companyName}}: Move to design phase - Design Mandate $2,500",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Bonjour {{contactName}},</h2>
+      <p>Après notre appel de qualification, l'étape suivante est la <strong>validation sur terrain</strong>. Voici ce qui est inclus:</p>
+
+      <div class="highlight">
+        <h3>Mandat de conception préliminaire - 2 500$ + taxes</h3>
+        <ul>
+          <li>Visite technique sur site</li>
+          <li>Validation de la toiture et structure</li>
+          <li>Évaluation salle électrique</li>
+          <li>Layout préliminaire et confirmation faisabilité</li>
+          <li>Photos et documentation</li>
+        </ul>
+      </div>
+
+      <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;"><strong>Montant crédité intégralement</strong> sur le contrat EPC si vous procédez avec kWh Québec. Aucune perte — c'est une validation essentielleavant de s'engager.</p>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Réserver ma visite technique →</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage C&I</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Se désabonner</a></p>
+    </div>
+  </div>
+</body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Hello {{contactName}},</h2>
+      <p>After our qualification call, the next step is <strong>on-site validation</strong>. Here's what's included:</p>
+
+      <div class="highlight">
+        <h3>Preliminary Design Mandate - $2,500 + tax</h3>
+        <ul>
+          <li>On-site technical visit</li>
+          <li>Roof and structural validation</li>
+          <li>Electrical room assessment</li>
+          <li>Preliminary layout and feasibility confirmation</li>
+          <li>Photos and documentation</li>
+        </ul>
+      </div>
+
+      <div style="background:#FFF7E6;border-left:4px solid #FFB005;padding:16px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;"><strong>Amount fully credited</strong> toward your EPC contract if you proceed with kWh Québec. No loss — it's essential validation before committing.</p>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Book my site visit →</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey C&I Solar + Storage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+      <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+    </div>
+  </div>
+</body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\nProchaine étape: Mandat de conception préliminaire - 2 500$ + taxes\n\nInclus:\n- Visite technique\n- Validation toiture/structure\n- Évaluation électrique\n- Layout préliminaire\n- Feasibility confirmation\n\nMontant crédité sur l'EPC si vous procédez.\n\nRéserver: {{calendlyUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nNext step: Preliminary Design Mandate - $2,500 + tax\n\nIncludes:\n- Site visit\n- Roof/structural validation\n- Electrical assessment\n- Preliminary layout\n- Feasibility confirmation\n\nAmount credited toward EPC if you proceed.\n\nBook: {{calendlyUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // DAY 14: Case Study / Social Proof
   nurturingCaseStudy: {
     subject: {
       fr: "Comment une entreprise québécoise économise 45 000$/an avec le solaire",
@@ -325,7 +565,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
           <div class="content">
             <h2>Bonjour {{contactName}},</h2>
             <p>Voici l'histoire d'un projet récent qui pourrait vous inspirer:</p>
-            
+
             <div class="highlight">
               <h3>📍 Entrepôt industriel, Région de Montréal</h3>
               <ul>
@@ -336,11 +576,11 @@ export const emailTemplates: Record<string, EmailTemplate> = {
                 <li><strong>TRI:</strong> 22%</li>
               </ul>
             </div>
-            
+
             <p>Chaque bâtiment est unique. Votre potentiel pourrait être encore meilleur!</p>
-            
+
             <p style="text-align: center; margin: 30px 0;">
-              <a href="{{analysisUrl}}" class="button">Découvrir mon potentiel</a>
+              <a href="{{calendlyUrl}}" class="button">Découvrir mon potentiel</a>
             </p>
           </div>
           <div class="footer">
@@ -357,7 +597,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
           <div class="content">
             <h2>Hello {{contactName}},</h2>
             <p>Here's a recent project story that might inspire you:</p>
-            
+
             <div class="highlight">
               <h3>📍 Industrial Warehouse, Montreal Region</h3>
               <ul>
@@ -368,11 +608,11 @@ export const emailTemplates: Record<string, EmailTemplate> = {
                 <li><strong>IRR:</strong> 22%</li>
               </ul>
             </div>
-            
+
             <p>Every building is unique. Your potential could be even better!</p>
-            
+
             <p style="text-align: center; margin: 30px 0;">
-              <a href="{{analysisUrl}}" class="button">Discover My Potential</a>
+              <a href="{{calendlyUrl}}" class="button">Discover My Potential</a>
             </p>
           </div>
           <div class="footer">
@@ -383,8 +623,158 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       </body></html>`,
     },
     text: {
-      fr: `Bonjour {{contactName}},\n\nÉtude de cas - Entrepôt Montréal:\n- Système: 200 kW + 100 kWh\n- Investissement net: 180 000$\n- Économies: 45 000$/an\n- Retour: 4 ans\n\nDécouvrez votre potentiel: {{analysisUrl}}\n\nkWh Québec`,
-      en: `Hello {{contactName}},\n\nCase Study - Montreal Warehouse:\n- System: 200 kW + 100 kWh\n- Net investment: $180,000\n- Savings: $45,000/year\n- Payback: 4 years\n\nDiscover your potential: {{analysisUrl}}\n\nkWh Québec`,
+      fr: `Bonjour {{contactName}},\n\nÉtude de cas - Entrepôt Montréal:\n- Système: 200 kW + 100 kWh\n- Investissement net: 180 000$\n- Économies: 45 000$/an\n- Retour: 4 ans\n\nDécouvrez votre potentiel: {{calendlyUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nCase Study - Montreal Warehouse:\n- System: 200 kW + 100 kWh\n- Net investment: $180,000\n- Savings: $45,000/year\n- Payback: 4 years\n\nDiscover your potential: {{calendlyUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // DAY 21: Last Chance / FOMO + Incentive Expiry Warning
+  nurturingLastChance: {
+    subject: {
+      fr: "Dernière question: est-ce le bon moment pour {{companyName}}?",
+      en: "Last question: is it the right time for {{companyName}}?",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Bonjour {{contactName}},</h2>
+      <p>On va être honnête: le timing compte. Parfois, ce n'est pas le bon moment, et c'est OK.</p>
+
+      <div class="highlight">
+        <h3>Avant de vous décider:</h3>
+        <ul>
+          <li><strong>Chaque mois de délai:</strong> Vous laissez {{estimatedSavings}}/mois sur la table.</li>
+          <li><strong>Les incitatifs actuels:</strong> Historiquement les plus généreux. Aucune garantie qu'ils restent.</li>
+          <li><strong>L'appel est gratuit:</strong> 10 minutes. Zéro engagement.</li>
+        </ul>
+      </div>
+
+      <p>Si maintenant n'est pas le bon moment — budgetaire, timing, ou autre — c'est totalement compréhensible. On respecte ça.</p>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Réserver mon appel gratuit →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">Si vous décidez de ne pas continuer, nous n'enverrons plus de courriels. Pas de spam, pas de suivi agressif. Juste du respect.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage</p>
+      <p><a href="{{unsubscribeUrl}}">Se désabonner définitivement</a></p>
+    </div>
+  </div>
+</body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Hello {{contactName}},</h2>
+      <p>Let's be honest: timing matters. Sometimes now isn't the right time, and that's OK.</p>
+
+      <div class="highlight">
+        <h3>Before you decide:</h3>
+        <ul>
+          <li><strong>Every month of delay:</strong> You're leaving {{estimatedSavings}}/month on the table.</li>
+          <li><strong>Current incentives:</strong> Historically the most generous. Zero guarantee they stay.</li>
+          <li><strong>The call is free:</strong> 10 minutes. Zero commitment.</li>
+        </ul>
+      </div>
+
+      <p>If now isn't the right time for you — for budget, timing, or anything else — that's totally understandable. We respect that.</p>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Book my free call →</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">If you decide not to continue, we won't send more emails. No spam, no aggressive follow-up. Just respect.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey solar + storage</p>
+      <p><a href="{{unsubscribeUrl}}">Unsubscribe permanently</a></p>
+    </div>
+  </div>
+</body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\nLe timing compte. Parfois, ce n'est pas le bon moment, et c'est OK.\n\nMais avant de décider:\n- Chaque mois: {{estimatedSavings}}/mois de perdu\n- Les incitatifs actuels sont les plus généreux de l'histoire\n- L'appel est gratuit - 10 minutes, zéro engagement\n\nSi maintenant n'est pas le bon moment, on comprend. On respecte votre décision.\n\nRéserver: {{calendlyUrl}}\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nTiming matters. Sometimes now isn't the right time, and that's OK.\n\nBut before you decide:\n- Every month: {{estimatedSavings}}/month lost\n- Current incentives are the most generous ever\n- The call is free - 10 minutes, zero commitment\n\nIf now isn't right, we understand. We respect your decision.\n\nBook: {{calendlyUrl}}\n\nkWh Québec`,
+    },
+  },
+
+  // DAY 30: Re-engagement — Check if still interested, offer updated analysis
+  nurtureReengagement: {
+    subject: {
+      fr: "Une dernière mise à jour - Avez-vous des questions sur votre projet?",
+      en: "One final update - Do you have questions about your project?",
+    },
+    html: {
+      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Bonjour {{contactName}},</h2>
+      <p>Nous avons une question simple: êtes-vous toujours intéressé par le solaire pour {{companyName}}?</p>
+
+      <p>Si oui, on aimerais vous aider. Voici trois façons de continuer:</p>
+
+      <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:20px 0;">
+        <p><strong>Option 1:</strong> Réservez un appel rapide — 10 minutes pour discuter de vos questions</p>
+        <p style="margin-top: 12px;"><strong>Option 2:</strong> Envoyez un courriel — Posez vos questions directement</p>
+        <p style="margin-top: 12px;"><strong>Option 3:</strong> Demandez une mise à jour — Les incitatifs et prix évoluent</p>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Réserver un appel</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">Si vous ne souhaitez plus recevoir de courriels de notre part, <a href="{{unsubscribeUrl}}">cliquez ici</a>. Aucune question.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Solaire + Stockage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+    </div>
+  </div>
+</body></html>`,
+      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
+  <div class="container">
+    <div class="header">
+      <h1>kWh Québec</h1>
+    </div>
+    <div class="content">
+      <h2>Hello {{contactName}},</h2>
+      <p>We have a simple question: are you still interested in solar for {{companyName}}?</p>
+
+      <p>If yes, we'd like to help. Here are three ways to continue:</p>
+
+      <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:20px 0;">
+        <p><strong>Option 1:</strong> Book a quick call — 10 minutes to discuss your questions</p>
+        <p style="margin-top: 12px;"><strong>Option 2:</strong> Send us an email — Ask your questions directly</p>
+        <p style="margin-top: 12px;"><strong>Option 3:</strong> Get an update — Incentives and pricing evolve</p>
+      </div>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{calendlyUrl}}" class="button">Book a call</a>
+      </p>
+
+      <p style="font-size:13px;color:#6b7280;">If you'd prefer not to receive emails from us, <a href="{{unsubscribeUrl}}">click here</a>. No questions asked.</p>
+    </div>
+    <div class="footer">
+      <p>kWh Québec - Turnkey solar + storage</p>
+      <p>514.427.8871 | info@kwh.quebec</p>
+    </div>
+  </div>
+</body></html>`,
+    },
+    text: {
+      fr: `Bonjour {{contactName}},\n\nSimple question: êtes-vous toujours intéressé par le solaire pour {{companyName}}?\n\nSi oui, on peut vous aider.\n\nOptions:\n1. Réservez un appel - {{calendlyUrl}}\n2. Envoyez un courriel - info@kwh.quebec\n3. Demandez une mise à jour\n\nSi non, <{{unsubscribeUrl}}> pour se désabonner.\n\nkWh Québec`,
+      en: `Hello {{contactName}},\n\nSimple question: are you still interested in solar for {{companyName}}?\n\nIf yes, we can help.\n\nOptions:\n1. Book a call - {{calendlyUrl}}\n2. Send us an email - info@kwh.quebec\n3. Get an update\n\nIf not, click {{unsubscribeUrl}} to unsubscribe.\n\nkWh Québec`,
     },
   },
 
@@ -662,83 +1052,6 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     },
   },
 
-  // Nurturing email 6: Last chance / respectful closing (Day 30)
-  nurturingLastChance: {
-    subject: {
-      fr: "Dernière question: est-ce le bon moment pour vous?",
-      en: "Last question: is it the right time for you?",
-    },
-    html: {
-      fr: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1>kWh Québec</h1>
-          </div>
-          <div class="content">
-            <h2>Bonjour {{contactName}},</h2>
-            <p>On va être honnête: le timing compte. Parfois, ce n'est pas le bon moment, et c'est OK.</p>
-
-            <div class="highlight">
-              <h3>Avant que vous décidiez:</h3>
-              <ul>
-                <li><strong>Chaque mois de délai:</strong> Vous laissez de l'argent sur la table. Avec une économie estimée de {{monthlyValue}}$/mois, c'est {{monthlyValue}}$ de perdu par mois d'attente.</li>
-                <li><strong>Les incitatifs actuels:</strong> Historiquement les plus généreux offerts au Québec. Zéro garantie qu'ils restent.</li>
-                <li><strong>L'analyse est gratuite:</strong> 2 minutes pour démarrer. Aucun engagement, aucune obligation.</li>
-              </ul>
-            </div>
-
-            <p>Si maintenant n'est pas le bon moment pour vous — pour des raisons budgétaires, de timing, ou autre — c'est totalement compréhensible. On respecte ça.</p>
-
-            <p style="text-align: center; margin: 30px 0;">
-              <a href="{{analysisUrl}}" class="button">Commencer mon analyse gratuite →</a>
-            </p>
-
-            <p style="font-size:13px;color:#6b7280;">Si vous décidez de ne pas continuer, nous n'enverrons plus de courriels. Pas de spam, pas de suivi agressif. Juste du respect pour votre décision.</p>
-          </div>
-          <div class="footer">
-            <p>kWh Québec - Solaire + Stockage</p>
-            <p><a href="{{unsubscribeUrl}}">Se désabonner définitivement</a></p>
-          </div>
-        </div>
-      </body></html>`,
-      en: `<!DOCTYPE html><html><head>${baseStyles}</head><body>
-        <div class="container">
-          <div class="header">
-            <h1>kWh Québec</h1>
-          </div>
-          <div class="content">
-            <h2>Hello {{contactName}},</h2>
-            <p>Let's be honest: timing matters. Sometimes now isn't the right time, and that's OK.</p>
-
-            <div class="highlight">
-              <h3>Before you decide:</h3>
-              <ul>
-                <li><strong>Every month of delay:</strong> You're leaving money on the table. With an estimated {{monthlyValue}}$/month in savings, that's {{monthlyValue}}$ lost per month of waiting.</li>
-                <li><strong>Current incentives:</strong> Historically the most generous ever offered in Quebec. Zero guarantee they stay.</li>
-                <li><strong>The analysis is free:</strong> 2 minutes to start. No commitment, no obligation.</li>
-              </ul>
-            </div>
-
-            <p>If now isn't the right time for you — for budget reasons, timing, or anything else — that's totally understandable. We respect that.</p>
-
-            <p style="text-align: center; margin: 30px 0;">
-              <a href="{{analysisUrl}}" class="button">Start my free analysis →</a>
-            </p>
-
-            <p style="font-size:13px;color:#6b7280;">If you decide not to continue, we won't send more emails. No spam, no aggressive follow-up. Just respect for your decision.</p>
-          </div>
-          <div class="footer">
-            <p>kWh Québec - Turnkey solar + storage</p>
-            <p><a href="{{unsubscribeUrl}}">Unsubscribe permanently</a></p>
-          </div>
-        </div>
-      </body></html>`,
-    },
-    text: {
-      fr: `Bonjour {{contactName}},\n\nLe timing compte. Parfois, ce n'est pas le bon moment, et c'est OK.\n\nMais avant de décider:\n- Chaque mois de délai: {{monthlyValue}}$ de perdu\n- Les incitatifs actuels sont les plus généreux de l'histoire\n- L'analyse est gratuite et prend 2 minutes\n\nSi maintenant n'est pas le bon moment, on respecte. Pas de spam après ça.\n\nCommencer: {{analysisUrl}}\n\nkWh Québec`,
-      en: `Hello {{contactName}},\n\nTiming matters. Sometimes now isn't the right time, and that's OK.\n\nBut before you decide:\n- Every month of delay: {{monthlyValue}}$ lost\n- Current incentives are the most generous in history\n- The analysis is free and takes 2 minutes\n\nIf now isn't the right time, we understand. No spam after that.\n\nStart: {{analysisUrl}}\n\nkWh Québec`,
-    },
-  },
 
   // Analysis report ready notification
   analysisReportReady: {

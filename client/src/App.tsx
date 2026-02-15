@@ -24,6 +24,7 @@ import ChangePasswordPage from "@/pages/change-password";
 import AnalyseDetailleePage from "@/pages/analyse-detaillee";
 import AutorisationHQPage from "@/pages/autorisation-hq";
 import ThankYouPage from "@/pages/thank-you";
+import MandatConceptionPage from "@/pages/mandat-conception";
 import DashboardPage from "@/pages/dashboard";
 import ClientsPage from "@/pages/clients";
 import SitesPage from "@/pages/sites";
@@ -210,6 +211,7 @@ function AppRoutes() {
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/autorisation-hq" component={AutorisationHQPage} />
       <Route path="/merci" component={ThankYouPage} />
+      <Route path="/mandat-de-conception-preliminaire" component={MandatConceptionPage} />
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
       <Route path="/privacy" component={PrivacyPage} />

@@ -63,6 +63,16 @@ import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
 import scaleCleantechLogo from "@assets/scale-cleantech-color_small-VSYW5GJE_1769527536419.webp";
 import hqLogo from "@assets/Screenshot_2026-01-27_at_5.26.14_PM_1769552778826.png";
 
+// Step 1: Low friction - only email + company name
+const leadFormStep1Schema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  email: z.string().email("Invalid email"),
+  phone: z.string().optional(),
+});
+
+type LeadFormStep1Values = z.infer<typeof leadFormStep1Schema>;
+
+// Complete form with all fields
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
   contactName: z.string().min(1, "Ce champ est requis"),
@@ -99,7 +109,23 @@ export default function LandingPage() {
   const [, navigate] = useLocation();
   const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
-  
+
+  // 2-Step progressive profiling form state
+  const [profileFormStep, setProfileFormStep] = useState<1 | 2>(1);
+  const [profileFormData, setProfileFormData] = useState<LeadFormStep1Values>({
+    companyName: '',
+    email: '',
+    phone: '',
+  });
+  const [profileFormStep2Data, setProfileFormStep2Data] = useState({
+    streetAddress: '',
+    city: '',
+    buildingType: '',
+    estimatedMonthlyBill: '',
+    roofAreaKnown: false,
+    roofAreaSqM: '',
+  });
+
   // Upload-first flow state
   const [flowStep, setFlowStep] = useState<FlowStep>('upload');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -334,6 +360,138 @@ export default function LandingPage() {
       });
     },
   });
+
+  // Progressive form Step 1 mutation
+  const profileFormStep1Mutation = useMutation({
+    mutationFn: async (data: LeadFormStep1Values) => {
+      return apiRequest("POST", "/api/leads", {
+        companyName: data.companyName,
+        contactName: data.companyName, // Use company name as contact for now
+        email: data.email,
+        phone: data.phone || null,
+        streetAddress: null,
+        city: null,
+        province: "Québec",
+        postalCode: null,
+        estimatedMonthlyBill: null,
+        buildingType: null,
+        notes: null,
+      });
+    },
+    onSuccess: () => {
+      // Track step 1 completion
+      FunnelEvents.emailCaptured('progressive_form');
+      FunnelEvents.formSubmitted('progressive_form_step1', 'step1_completed');
+
+      // Move to step 2
+      setProfileFormStep(2);
+    },
+    onError: () => {
+      FunnelEvents.formError('progressive_form', 'step1_failed');
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr"
+          ? "Impossible d'enregistrer votre profil. Veuillez réessayer."
+          : "Unable to save your profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Progressive form Step 2 mutation
+  const profileFormStep2Mutation = useMutation({
+    mutationFn: async (data: typeof profileFormStep2Data) => {
+      // Create complete lead with step 2 data
+      return apiRequest("POST", "/api/leads", {
+        companyName: profileFormData.companyName,
+        contactName: profileFormData.companyName,
+        email: profileFormData.email,
+        phone: profileFormData.phone || null,
+        streetAddress: data.streetAddress || null,
+        city: data.city || null,
+        province: "Québec",
+        postalCode: null,
+        estimatedMonthlyBill: data.estimatedMonthlyBill ? parseFloat(data.estimatedMonthlyBill) : null,
+        buildingType: data.buildingType || null,
+        notes: data.roofAreaKnown && data.roofAreaSqM ? `Roof area: ${data.roofAreaSqM} m²` : null,
+      });
+    },
+    onSuccess: () => {
+      FunnelEvents.formSubmitted('progressive_form_step2', 'step2_completed');
+
+      // Show success state
+      toast({
+        title: language === "fr" ? "Succès!" : "Success!",
+        description: language === "fr"
+          ? "Votre profil a été enregistré avec succès."
+          : "Your profile has been saved successfully.",
+        variant: "default",
+      });
+
+      // Reset form and go back to step 1
+      setProfileFormStep(1);
+      setProfileFormData({ companyName: '', email: '', phone: '' });
+      setProfileFormStep2Data({
+        streetAddress: '',
+        city: '',
+        buildingType: '',
+        estimatedMonthlyBill: '',
+        roofAreaKnown: false,
+        roofAreaSqM: '',
+      });
+    },
+    onError: () => {
+      FunnelEvents.formError('progressive_form', 'step2_failed');
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr"
+          ? "Impossible de compléter votre profil. Veuillez réessayer."
+          : "Unable to complete your profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleProfileFormStep1Submit = () => {
+    if (!profileFormData.companyName.trim()) {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr"
+          ? "Veuillez entrer le nom de votre entreprise."
+          : "Please enter your company name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!profileFormData.email.includes('@')) {
+      toast({
+        title: language === "fr" ? "Courriel invalide" : "Invalid email",
+        description: language === "fr"
+          ? "Veuillez entrer une adresse courriel valide."
+          : "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    profileFormStep1Mutation.mutate(profileFormData);
+  };
+
+  const handleProfileFormStep2Submit = () => {
+    if (!profileFormStep2Data.streetAddress.trim() || !profileFormStep2Data.city.trim()) {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr"
+          ? "L'adresse et la ville sont obligatoires."
+          : "Address and city are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    profileFormStep2Mutation.mutate(profileFormStep2Data);
+  };
 
   const handleQuickAnalysis = () => {
     if (!quickEmail || !quickEmail.includes('@')) {
@@ -950,6 +1108,292 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* ========== 2-STEP PROGRESSIVE PROFILING FORM SECTION ========== */}
+      <section id="lead-capture" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/20">
+        <div className="max-w-3xl mx-auto">
+          <motion.div
+            className="space-y-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Section Header */}
+            <div className="text-center space-y-2 mb-8">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                {language === "fr" ? "Dites-nous qui vous êtes" : "Tell us about yourself"}
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                {language === "fr"
+                  ? "Un profil complet en 2 étapes rapides"
+                  : "Complete your profile in 2 quick steps"}
+              </p>
+            </div>
+
+            {/* Progress Indicator */}
+            <div className="flex items-center justify-center gap-4">
+              <div className={`text-center flex-1 ${profileFormStep === 1 ? 'opacity-100' : 'opacity-50'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white mx-auto mb-2 ${profileFormStep === 1 ? 'bg-primary' : 'bg-muted-foreground'}`}>
+                  1
+                </div>
+                <p className="text-sm font-medium">
+                  {language === "fr" ? "Essentiels" : "Essentials"}
+                </p>
+              </div>
+              <div className={`h-[2px] flex-1 ${profileFormStep === 2 ? 'bg-primary' : 'bg-muted'}`} />
+              <div className={`text-center flex-1 ${profileFormStep === 2 ? 'opacity-100' : 'opacity-50'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white mx-auto mb-2 ${profileFormStep === 2 ? 'bg-primary' : 'bg-muted-foreground'}`}>
+                  2
+                </div>
+                <p className="text-sm font-medium">
+                  {language === "fr" ? "Détails" : "Details"}
+                </p>
+              </div>
+            </div>
+
+            {/* Form Card */}
+            <Card className="border-2 border-primary/20 shadow-lg">
+              <CardContent className="p-8">
+                <AnimatePresence mode="wait">
+                  {/* Step 1: Company Name, Email, Phone */}
+                  {profileFormStep === 1 && (
+                    <motion.div
+                      key="step1"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="space-y-5"
+                    >
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {language === "fr" ? "Nom de l'entreprise" : "Company Name"}
+                          <span className="text-destructive ml-1">*</span>
+                        </label>
+                        <Input
+                          placeholder={language === "fr" ? "Ex: Acme Inc." : "Ex: Acme Inc."}
+                          value={profileFormData.companyName}
+                          onChange={(e) => setProfileFormData({ ...profileFormData, companyName: e.target.value })}
+                          className="h-11"
+                          data-testid="input-profile-company"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {language === "fr" ? "Courriel" : "Email"}
+                          <span className="text-destructive ml-1">*</span>
+                        </label>
+                        <Input
+                          type="email"
+                          placeholder={language === "fr" ? "vous@entreprise.com" : "you@company.com"}
+                          value={profileFormData.email}
+                          onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })}
+                          className="h-11"
+                          data-testid="input-profile-email"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {language === "fr" ? "Téléphone" : "Phone"}
+                          <span className="text-muted-foreground ml-1 text-xs font-normal">({language === "fr" ? "optionnel" : "optional"})</span>
+                        </label>
+                        <Input
+                          type="tel"
+                          placeholder="+1 (555) 123-4567"
+                          value={profileFormData.phone}
+                          onChange={(e) => setProfileFormData({ ...profileFormData, phone: e.target.value })}
+                          className="h-11"
+                          data-testid="input-profile-phone"
+                        />
+                      </div>
+
+                      <Button
+                        onClick={handleProfileFormStep1Submit}
+                        disabled={profileFormStep1Mutation.isPending}
+                        className="w-full h-11 mt-6 gap-2"
+                        data-testid="button-profile-step1"
+                      >
+                        {profileFormStep1Mutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4" />
+                        )}
+                        {language === "fr" ? "Continuer" : "Continue"}
+                      </Button>
+
+                      <p className="text-xs text-center text-muted-foreground mt-4">
+                        {language === "fr"
+                          ? "Vous pouvez sauter l'étape suivante si vous préférez"
+                          : "You can skip the next step if you prefer"}
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {/* Step 2: Address, Building Type, Monthly Bill, Roof Area */}
+                  {profileFormStep === 2 && (
+                    <motion.div
+                      key="step2"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-5"
+                    >
+                      <div className="bg-primary/5 rounded-lg p-4 mb-4">
+                        <p className="text-sm font-medium">
+                          {language === "fr"
+                            ? `Bienvenue, ${profileFormData.companyName}!`
+                            : `Welcome, ${profileFormData.companyName}!`}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {language === "fr"
+                            ? "Parlons-nous de votre bâtiment et de votre consommation"
+                            : "Let's talk about your building and energy consumption"}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            {language === "fr" ? "Adresse" : "Address"}
+                            <span className="text-destructive ml-1">*</span>
+                          </label>
+                          <Input
+                            placeholder={language === "fr" ? "123 rue principale" : "123 Main Street"}
+                            value={profileFormStep2Data.streetAddress}
+                            onChange={(e) => setProfileFormStep2Data({ ...profileFormStep2Data, streetAddress: e.target.value })}
+                            className="h-11"
+                            data-testid="input-profile-address"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            {language === "fr" ? "Ville" : "City"}
+                            <span className="text-destructive ml-1">*</span>
+                          </label>
+                          <Input
+                            placeholder={language === "fr" ? "Montréal" : "Montreal"}
+                            value={profileFormStep2Data.city}
+                            onChange={(e) => setProfileFormStep2Data({ ...profileFormStep2Data, city: e.target.value })}
+                            className="h-11"
+                            data-testid="input-profile-city"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {language === "fr" ? "Type de bâtiment" : "Building Type"}
+                        </label>
+                        <Select value={profileFormStep2Data.buildingType} onValueChange={(value) => setProfileFormStep2Data({ ...profileFormStep2Data, buildingType: value })}>
+                          <SelectTrigger className="h-11" data-testid="select-profile-building-type">
+                            <SelectValue placeholder={language === "fr" ? "Sélectionnez un type" : "Select a type"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="commercial">{language === "fr" ? "Commercial" : "Commercial"}</SelectItem>
+                            <SelectItem value="industrial">{language === "fr" ? "Industriel" : "Industrial"}</SelectItem>
+                            <SelectItem value="institutional">{language === "fr" ? "Institutionnel" : "Institutional"}</SelectItem>
+                            <SelectItem value="multi-residential">{language === "fr" ? "Multi-résidentiel" : "Multi-residential"}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {language === "fr" ? "Facture électrique mensuelle" : "Monthly Electricity Bill"}
+                          <span className="text-muted-foreground ml-1 text-xs font-normal">({language === "fr" ? "optionnel" : "optional"})</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            type="number"
+                            placeholder="5000"
+                            value={profileFormStep2Data.estimatedMonthlyBill}
+                            onChange={(e) => setProfileFormStep2Data({ ...profileFormStep2Data, estimatedMonthlyBill: e.target.value })}
+                            className="h-11 pl-7"
+                            data-testid="input-profile-bill"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="roof-area"
+                            checked={profileFormStep2Data.roofAreaKnown}
+                            onCheckedChange={(checked) => setProfileFormStep2Data({ ...profileFormStep2Data, roofAreaKnown: checked as boolean })}
+                            data-testid="checkbox-profile-roof"
+                          />
+                          <label htmlFor="roof-area" className="text-sm font-medium cursor-pointer">
+                            {language === "fr" ? "Je connais ma surface de toiture" : "I know my roof area"}
+                          </label>
+                        </div>
+
+                        {profileFormStep2Data.roofAreaKnown && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                          >
+                            <label className="block text-sm font-medium mb-2">
+                              {language === "fr" ? "Surface de toiture (m²)" : "Roof Area (m²)"}
+                            </label>
+                            <Input
+                              type="number"
+                              placeholder="500"
+                              value={profileFormStep2Data.roofAreaSqM}
+                              onChange={(e) => setProfileFormStep2Data({ ...profileFormStep2Data, roofAreaSqM: e.target.value })}
+                              className="h-11"
+                              data-testid="input-profile-roof-area"
+                            />
+                          </motion.div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <Button
+                          onClick={() => {
+                            profileFormStep2Mutation.mutate(profileFormStep2Data);
+                          }}
+                          disabled={profileFormStep2Mutation.isPending}
+                          className="flex-1 h-11 gap-2"
+                          data-testid="button-profile-step2-submit"
+                        >
+                          {profileFormStep2Mutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
+                          )}
+                          {language === "fr" ? "Compléter mon profil" : "Complete Profile"}
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => setProfileFormStep(1)}
+                          disabled={profileFormStep2Mutation.isPending}
+                          className="h-11"
+                          data-testid="button-profile-back"
+                        >
+                          {language === "fr" ? "Retour" : "Back"}
+                        </Button>
+                      </div>
+
+                      <p className="text-xs text-center text-muted-foreground mt-4">
+                        {language === "fr"
+                          ? "Les champs avec * sont obligatoires. Les autres sont facultatifs."
+                          : "Fields marked with * are required. Others are optional."}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ========== FULL PROCESS SECTION ========== */}
       <section id="process" className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
