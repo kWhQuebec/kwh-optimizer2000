@@ -9,12 +9,13 @@ import { Play, Pause, Square, RotateCcw, Mail, Check, Clock, XCircle, AlertTrian
 import { format } from "date-fns";
 
 const TEMPLATE_LABELS: Record<string, { fr: string; en: string; day: number }> = {
-  nurturingIncentives: { fr: "Incitatifs financiers", en: "Financial Incentives", day: 3 },
-  nurturingCaseStudy: { fr: "Étude de cas", en: "Case Study", day: 7 },
-  nurturingRisingCosts: { fr: "Hausse des coûts", en: "Rising Costs", day: 10 },
-  nurturingMythBusting: { fr: "Mythes solaires", en: "Myth Busting", day: 14 },
-  nurturingTimeSensitive: { fr: "Offre limitée", en: "Time-Sensitive", day: 21 },
-  nurturingLastChance: { fr: "Dernier suivi", en: "Last Follow-up", day: 30 },
+  nurtureWelcome: { fr: "Bienvenue", en: "Welcome", day: 0 },
+  nurtureCTA1: { fr: "Appel découverte", en: "Discovery Call", day: 1 },
+  nurtureRiskFlags: { fr: "Risques / valeur", en: "Risk Flags", day: 3 },
+  nurtureTripwire: { fr: "Mandat conception", en: "Design Mandate", day: 7 },
+  nurturingCaseStudy: { fr: "Étude de cas", en: "Case Study", day: 14 },
+  nurturingLastChance: { fr: "Dernière chance", en: "Last Chance", day: 21 },
+  nurtureReengagement: { fr: "Réengagement", en: "Re-engagement", day: 30 },
 };
 
 interface NurtureStatusData {

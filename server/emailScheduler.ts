@@ -5,13 +5,14 @@
  * Uses a simple polling approach (setInterval) since we don't have
  * a task queue like Bull/Redis in this stack.
  *
- * Nurture sequence:
- * - Day 3: Incentives reminder
- * - Day 7: Case study / social proof
- * - Day 10: Rising energy costs
- * - Day 14: Myth busting
- * - Day 21: Time-sensitive incentives
- * - Day 30: Last respectful follow-up
+ * Nurture sequence (7 emails, 30 days):
+ * - Day 0: Welcome + quick results
+ * - Day 1: Discovery call CTA
+ * - Day 3: Risk flags / value reinforcement
+ * - Day 7: Tripwire — design mandate offer
+ * - Day 14: Case study / social proof
+ * - Day 21: Last chance / FOMO
+ * - Day 30: Re-engagement check
  */
 
 import { eq, lte, and, isNull } from "drizzle-orm";

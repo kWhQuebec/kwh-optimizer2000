@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, ChevronDown, Loader2, FileText, Mail, Presentation } from "lucide-react";
+import { Download, ChevronDown, Loader2, FileText, Mail, Presentation, Lock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -146,17 +146,27 @@ export function DownloadReportButton({
 
   if (!isQualified) {
     return (
-      <Button
-        variant="outline"
-        className="gap-2 min-w-[160px] opacity-50 cursor-not-allowed"
-        disabled
-        data-testid="button-download-report-locked"
-        title={language === "fr" ? "Rapport verrouillé jusqu'à la qualification" : "Report locked until qualification"}
-      >
-        <Download className="w-4 h-4" />
-        {t("site.downloadReport")}
-        <ChevronDown className="w-4 h-4 ml-1" />
-      </Button>
+      <div className="flex flex-col items-end gap-2" data-testid="button-download-report-locked">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-3 border border-dashed border-muted-foreground/30">
+          <Lock className="w-4 h-4 shrink-0" />
+          <span>
+            {language === "fr"
+              ? "Rapport débloqué après un appel découverte de 10 min"
+              : "Report unlocked after a 10-min discovery call"}
+          </span>
+        </div>
+        <Button
+          variant="default"
+          className="gap-2"
+          onClick={() => {
+            window.open("https://calendly.com/kwh-quebec/decouverte", "_blank");
+          }}
+          data-testid="button-book-call-unlock"
+        >
+          <Calendar className="w-4 h-4" />
+          {language === "fr" ? "Réserver mon appel →" : "Book my call →"}
+        </Button>
+      </div>
     );
   }
 
