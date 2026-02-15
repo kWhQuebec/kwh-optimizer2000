@@ -1529,14 +1529,14 @@ export function AnalysisResults({
             {isStaff ? (
               <>
                 {language === "fr"
-                  ? "Le mandat de conception est sans engagement pour le projet complet. Frais de conception: 5 500$ + taxes. Le rapport a une valeur complète indépendamment du choix du fournisseur."
-                  : "The design mandate is non-binding for the full project. Design fee: $5,500 + taxes. The report has complete value regardless of provider choice."}
+                  ? "Frais de conception préliminaire: 2 500$ + taxes. Crédité sur le contrat EPC si vous procédez. Le rapport a une valeur complète indépendamment du choix du fournisseur."
+                  : "Preliminary design fee: $2,500 + taxes. Credited toward the EPC contract if you proceed. The report has complete value regardless of provider choice."}
               </>
             ) : (
               <>
                 {language === "fr"
-                  ? "Mandat de conception : 5 500$ + taxes"
-                  : "Design Mandate: $5,500 + taxes"}
+                  ? "Mandat de conception préliminaire : 2 500$ + taxes"
+                  : "Preliminary Design Mandate: $2,500 + taxes"}
               </>
             )}
           </p>

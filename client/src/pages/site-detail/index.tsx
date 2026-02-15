@@ -1260,7 +1260,7 @@ export default function SiteDetailPage() {
                 },
                 {
                   value: "design-agreement",
-                  label: language === "fr" ? "Mandat de conception" : "Design Mandate",
+                  label: language === "fr" ? "Mandat de conception préliminaire" : "Preliminary Design Mandate",
                   showAlways: false,
                   status: hasDesignAgreement ? "complete" : hasAnalysis ? "available" : "pending"
                 },
@@ -1332,7 +1332,7 @@ export default function SiteDetailPage() {
           <TabsTrigger value="consumption">{t("site.consumption")}</TabsTrigger>
           <TabsTrigger value="analysis">{t("analysis.title")}</TabsTrigger>
           {isStaff && <TabsTrigger value="site-visit">{language === "fr" ? "Visite technique" : "Technical Visit"}</TabsTrigger>}
-          {isStaff && <TabsTrigger value="design-agreement">{language === "fr" ? "Mandat de conception" : "Design Mandate"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="design-agreement">{language === "fr" ? "Mandat de conception préliminaire" : "Preliminary Design Mandate"}</TabsTrigger>}
           {isStaff && <TabsTrigger value="activities">{t("activity.title")}</TabsTrigger>}
           <TabsTrigger value="compare">{language === "fr" ? "Comparer" : "Compare"}</TabsTrigger>
         </TabsList>

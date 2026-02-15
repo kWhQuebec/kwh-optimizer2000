@@ -175,34 +175,42 @@ export const BRAND_CONTENT = {
 
   // === NEXT STEPS AMÉLIORÉS ===
   designFeeCovers: [
-    { labelFr: "Visite technique sur site par ingénieur certifié", labelEn: "On-site technical visit by certified engineer" },
-    { labelFr: "Analyse structurelle et conception préliminaire", labelEn: "Structural analysis and preliminary design" },
-    { labelFr: "Préparation dossier interconnexion Hydro-Québec", labelEn: "Hydro-Québec interconnection application prep" },
-    { labelFr: "Proposition ferme avec prix garanti et échéancier", labelEn: "Firm proposal with guaranteed price and timeline" },
+    { labelFr: "Visite technique sur site", labelEn: "On-site technical visit" },
+    { labelFr: "Validation toiture et structure", labelEn: "Roof and structural validation" },
+    { labelFr: "Évaluation salle électrique", labelEn: "Electrical room assessment" },
+    { labelFr: "Layout préliminaire et confirmation de faisabilité", labelEn: "Preliminary layout and feasibility confirmation" },
   ],
 
-  // === MANDAT DE CONCEPTION — PRIX ET POSITIONNEMENT ===
+  // === MANDAT DE CONCEPTION PRÉLIMINAIRE — PRIX ET POSITIONNEMENT ===
   designMandate: {
-    price: 5500,
+    price: 2500,
     currency: "CAD",
-    labelFr: "Mandat de conception",
-    labelEn: "Design Mandate",
-    priceLabelFr: "5 500$ + taxes",
-    priceLabelEn: "$5,500 + taxes",
-    descriptionFr: "Étude complète de conception et d'ingénierie pour votre projet solaire.",
-    descriptionEn: "Complete design and engineering study for your solar project.",
+    labelFr: "Mandat de conception préliminaire",
+    labelEn: "Preliminary Design Mandate",
+    priceLabelFr: "2 500$ + taxes",
+    priceLabelEn: "$2,500 + taxes",
+    pricePer: "building",
+    descriptionFr: "Validation terrain et faisabilité de votre projet solaire. Ne comprend pas l'ingénierie détaillée ni les plans de construction.",
+    descriptionEn: "On-site validation and feasibility assessment for your solar project. Does not include detailed engineering or construction plans.",
     includes: [
-      { labelFr: "Visite de site avec ingénieur en structure, électricien et technicien kWh", labelEn: "On-site visit with structural engineer, electrician, and kWh technician" },
-      { labelFr: "Analyse d'ombrage sur site", labelEn: "On-site shade analysis" },
-      { labelFr: "Plans complets pour soumission", labelEn: "Complete plans for submission" },
-      { labelFr: "Modèle 3D de l'installation", labelEn: "3D installation model" },
-      { labelFr: "Projections financières détaillées", labelEn: "Detailed financial projections" },
-      { labelFr: "Optimisation des incitatifs disponibles", labelEn: "Available incentives optimization" },
-      { labelFr: "Comparaison des options de financement", labelEn: "Financing options comparison" },
-      { labelFr: "Rapport complet livré même si des travaux correctifs sont requis", labelEn: "Complete report delivered even if corrective work is required" },
+      { labelFr: "Visite de site avec technicien kWh qualifié", labelEn: "On-site visit with qualified kWh technician" },
+      { labelFr: "Validation de l'état de la toiture et de la structure", labelEn: "Roof and structural condition validation" },
+      { labelFr: "Évaluation de la salle électrique et de la capacité", labelEn: "Electrical room assessment and capacity evaluation" },
+      { labelFr: "Layout préliminaire du système", labelEn: "Preliminary system layout" },
+      { labelFr: "Validation des hypothèses de l'étude initiale", labelEn: "Validation of initial study assumptions" },
+      { labelFr: "Photos et documentation du site", labelEn: "Site photos and documentation" },
+      { labelFr: "Confirmation de faisabilité (go / no-go)", labelEn: "Feasibility confirmation (go / no-go)" },
     ],
-    valuePropositionFr: "Rapport complet et utilisable indépendamment du fournisseur choisi. L'étude a une valeur concrète pour votre décision.",
-    valuePropositionEn: "Complete and usable report regardless of which provider you choose. The study has concrete value for your decision.",
+    excludes: [
+      { labelFr: "Ingénierie structurelle détaillée", labelEn: "Detailed structural engineering" },
+      { labelFr: "Plans et devis pour construction", labelEn: "Construction plans and specifications" },
+      { labelFr: "Demande d'interconnexion Hydro-Québec", labelEn: "Hydro-Québec interconnection application" },
+      { labelFr: "Permis de construction", labelEn: "Building permits" },
+    ],
+    creditPolicyFr: "Montant crédité intégralement sur le contrat EPC si vous procédez avec kWh Québec.",
+    creditPolicyEn: "Amount fully credited toward the EPC contract if you proceed with kWh Québec.",
+    valuePropositionFr: "Étape essentielle pour valider la faisabilité avant de s'engager dans un contrat EPC complet. Montant crédité si vous procédez.",
+    valuePropositionEn: "Essential step to validate feasibility before committing to a full EPC contract. Amount credited if you proceed.",
   },
 
   clientProvides: [
@@ -558,4 +566,12 @@ export function getDesignMandateDescription(lang: Lang): string {
 
 export function getDesignMandateValueProp(lang: Lang): string {
   return lang === "fr" ? BRAND_CONTENT.designMandate.valuePropositionFr : BRAND_CONTENT.designMandate.valuePropositionEn;
+}
+
+export function getDesignMandateExcludes(lang: Lang): string[] {
+  return BRAND_CONTENT.designMandate.excludes.map(i => (lang === "fr" ? i.labelFr : i.labelEn));
+}
+
+export function getDesignMandateCreditPolicy(lang: Lang): string {
+  return lang === "fr" ? BRAND_CONTENT.designMandate.creditPolicyFr : BRAND_CONTENT.designMandate.creditPolicyEn;
 }

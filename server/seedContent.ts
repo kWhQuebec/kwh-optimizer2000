@@ -97,9 +97,9 @@ const DEFAULT_CONTENT = [
     sortOrder: 3,
     isActive: true,
     value: {
-      price: 5500,
+      price: 2500,
       currency: "CAD",
-      title: { fr: "Mandat de conception", en: "Design Mandate" },
+      title: { fr: "Mandat de conception préliminaire", en: "Preliminary Design Mandate" },
       subtitle: { fr: "L'étape intelligente avant d'investir — rapport complet et utilisable", en: "The smart step before investing — complete and usable report" },
       items: {
         fr: [

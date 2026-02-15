@@ -515,7 +515,7 @@ export default function ClientPortalPage() {
                     <div>
                       <p className="font-medium text-sm">{site.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Mandat de conception signé" : "Signed Design Mandate"}
+                        {language === "fr" ? "Mandat de conception préliminaire signé" : "Signed Preliminary Design Mandate"}
                       </p>
                     </div>
                   </div>

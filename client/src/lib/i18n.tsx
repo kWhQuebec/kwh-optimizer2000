@@ -69,10 +69,10 @@ const translations: Translations = {
   },
   "landing.step2.time": { fr: "48-72h", en: "48-72h" },
   // Phase Conception
-  "landing.step3.title": { fr: "Mandat de conception", en: "Design Mandate" },
+  "landing.step3.title": { fr: "Mandat de conception préliminaire", en: "Preliminary Design Mandate" },
   "landing.step3.description": {
-    fr: "Vous signez le mandat de conception (5 500$ + taxes). Ce montant couvre la visite technique, l'ingénierie préliminaire et la proposition finale — le rapport est complet et utilisable peu importe le fournisseur choisi.",
-    en: "You sign the design mandate ($5,500 + taxes). This covers the technical visit, preliminary engineering and final proposal — the report is complete and usable regardless of which provider you choose."
+    fr: "Vous signez le mandat de conception préliminaire (2 500$ + taxes). Ce montant couvre la visite technique et la validation terrain. Crédité intégralement si vous signez le contrat EPC.",
+    en: "You sign the preliminary design mandate ($2,500 + taxes). This covers the technical visit and site validation. Fully credited if you sign the EPC contract."
   },
   "landing.step3.time": { fr: "Signature + frais", en: "Signature + fees" },
   "landing.step4.title": { fr: "Visite & proposition", en: "Visit & Proposal" },
@@ -730,7 +730,7 @@ const translations: Translations = {
   "siteVisit.deleteError": { fr: "Erreur lors de la suppression", en: "Error deleting visit" },
 
   // Design Mandate (Step 3)
-  "designAgreement.title": { fr: "Mandat de conception (Étape 3)", en: "Design Mandate (Step 3)" },
+  "designAgreement.title": { fr: "Mandat de conception préliminaire (Étape 3)", en: "Preliminary Design Mandate (Step 3)" },
   "designAgreement.subtitle": { fr: "Première étape payante vers votre projet solaire", en: "First paid step toward your solar project" },
   "designAgreement.generate": { fr: "Générer l'entente", en: "Generate Agreement" },
   "designAgreement.generateDescription": { fr: "Créez un mandat de conception pour formaliser les coûts de visite technique et livrables.", en: "Create a design mandate to formalize technical visit costs and deliverables." },
@@ -798,8 +798,8 @@ const translations: Translations = {
   "designAgreement.timelineVisit": { fr: "Visite technique: 2-3 semaines après signature", en: "Technical visit: 2-3 weeks after signing" },
   "designAgreement.timelineDelivery": { fr: "Livraison des documents: 2-3 semaines après la visite", en: "Document delivery: 2-3 weeks after visit" },
   
-  "designAgreement.creditPolicy": { fr: "Valeur du rapport", en: "Report Value" },
-  "designAgreement.creditPolicyText": { fr: "Le rapport de conception est complet et utilisable. Il fournit une valeur concrète indépendamment de votre décision d'installation ou du fournisseur choisi.", en: "The design report is complete and usable. It provides concrete value independently of your installation decision or choice of provider." },
+  "designAgreement.creditPolicy": { fr: "Politique de crédit", en: "Credit Policy" },
+  "designAgreement.creditPolicyText": { fr: "Le montant du mandat de conception préliminaire est crédité intégralement sur votre contrat EPC si vous procédez avec kWh Québec.", en: "The preliminary design mandate amount is fully credited toward your EPC contract if you proceed with kWh Québec." },
   
   // Pricing Configuration Dialog
   "designAgreement.pricingConfig": { fr: "Configuration des coûts", en: "Pricing Configuration" },
@@ -819,7 +819,7 @@ const translations: Translations = {
   "designAgreement.travelFee": { fr: "Frais de déplacement", en: "Travel Fee" },
   
   "designAgreement.importantNotes": { fr: "Notes importantes", en: "Important Notes" },
-  "designAgreement.note1": { fr: "Le mandat de conception couvre les services d'ingénierie complets et la visite est incluse dans ce coût. Le rapport final livré a une valeur indépendante.", en: "The design mandate covers complete engineering services and the site visit is included in this cost. The final report delivered has independent value." },
+  "designAgreement.note1": { fr: "Le montant du mandat est crédité sur le contrat EPC si vous procédez. L'ingénierie structurelle et les plans détaillés sont inclus dans le contrat EPC.", en: "The mandate amount is credited toward the EPC contract if you proceed. Structural engineering and detailed plans are included in the EPC contract." },
   "designAgreement.note2": { fr: "Cette entente est valide pour 30 jours à compter de la date d'émission.", en: "This agreement is valid for 30 days from the issue date." },
   "designAgreement.note3": { fr: "Les travaux de conception appartiennent à kWh Québec jusqu'au paiement final.", en: "Design work belongs to kWh Québec until final payment." },
   
@@ -831,7 +831,7 @@ const translations: Translations = {
   "designAgreement.deleteConfirmDescription": { fr: "Cette action est irréversible. Le mandat de conception sera supprimé définitivement et vous pourrez en créer un nouveau.", en: "This action cannot be undone. The design mandate will be permanently deleted and you can create a new one." },
   
   // Public signing page
-  "publicAgreement.title": { fr: "Mandat de conception", en: "Design Mandate" },
+  "publicAgreement.title": { fr: "Mandat de conception préliminaire", en: "Preliminary Design Mandate" },
   "publicAgreement.preparedFor": { fr: "Préparé pour", en: "Prepared for" },
   "publicAgreement.site": { fr: "Site", en: "Site" },
   "publicAgreement.projectScope": { fr: "Portée du projet", en: "Project Scope" },
@@ -896,7 +896,7 @@ const translations: Translations = {
   "designAgreement.emailDialog.sending": { fr: "Envoi en cours...", en: "Sending..." },
   "designAgreement.emailDialog.success": { fr: "Courriel envoyé avec succès!", en: "Email sent successfully!" },
   "designAgreement.emailDialog.error": { fr: "Erreur lors de l'envoi du courriel", en: "Error sending email" },
-  "designAgreement.emailDialog.defaultSubject": { fr: "Mandat de conception - {{siteName}}", en: "Design Mandate - {{siteName}}" },
+  "designAgreement.emailDialog.defaultSubject": { fr: "Mandat de conception préliminaire - {{siteName}}", en: "Preliminary Design Mandate - {{siteName}}" },
   "designAgreement.emailDialog.defaultBody": { fr: "Bonjour {{clientName}},\n\nVeuillez trouver ci-joint votre mandat de conception pour le site {{siteName}}.\n\nCe mandat détaille les coûts et livrables pour la conception technique de votre projet solaire.\n\nCordialement,\nL'équipe kWh Québec", en: "Hello {{clientName}},\n\nPlease find attached your design mandate for the site {{siteName}}.\n\nThis mandate details the costs and deliverables for the technical design of your solar project.\n\nBest regards,\nThe kWh Québec team" },
   "designAgreement.emailHistory": { fr: "Historique d'envois", en: "Email History" },
   "designAgreement.emailSentOn": { fr: "Envoyé le {{date}} à {{email}}", en: "Sent on {{date}} to {{email}}" },
@@ -980,9 +980,9 @@ const translations: Translations = {
   "kbRacking.max": { fr: "Max", en: "Max" },
 
   // Tripwire - Design Mandate
-  "tripwire.title": { fr: "Mandat de conception", en: "Design Mandate" },
+  "tripwire.title": { fr: "Mandat de conception préliminaire", en: "Preliminary Design Mandate" },
   "tripwire.subtitle": { fr: "L'étape intelligente avant d'investir", en: "The smart step before investing" },
-  "tripwire.price": { fr: "$5,500", en: "$5,500" },
+  "tripwire.price": { fr: "2 500$", en: "$2,500" },
   "tripwire.description": {
     fr: "Avant d'engager plusieurs centaines de milliers de dollars, validez votre projet avec un mandat de conception complet et professionnel.",
     en: "Before committing hundreds of thousands, validate your project with a complete, professional design mandate."

@@ -1550,7 +1550,7 @@ function buildNextStepsPage(
       </div>
       <div class="funnel-step" style="border: 2px solid var(--accent); border-radius: 3mm;">
         <div class="funnel-step-number">2</div>
-        <div class="funnel-step-title">${t("Mandat de conception", "Design Mandate")}</div>
+        <div class="funnel-step-title">${t("Mandat de conception préliminaire", "Preliminary Design Mandate")}</div>
         <p class="funnel-step-desc">${t("Visite technique, ing&eacute;nierie pr&eacute;liminaire, devis ferme garanti 60 jours.", "Technical visit, preliminary engineering, firm quote guaranteed 60 days.")}</p>
         <span class="funnel-step-tag">${t("PROCHAINE &Eacute;TAPE", "NEXT STEP")}</span>
       </div>

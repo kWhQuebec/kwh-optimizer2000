@@ -138,8 +138,8 @@ router.post("/api/public/agreements/:token/create-checkout", asyncHandler(async 
         unit_amount: depositAmount,
         product_data: {
           name: language === "fr"
-            ? `Dépôt - Mandat de conception: ${site.name}`
-            : `Deposit - Design Mandate: ${site.name}`,
+            ? `Dépôt - Mandat de conception préliminaire: ${site.name}`
+            : `Deposit - Preliminary Design Mandate: ${site.name}`,
           description: language === "fr"
             ? `Dépôt 50% pour les services de conception technique - ${client.name}`
             : `50% deposit for technical design services - ${client.name}`,

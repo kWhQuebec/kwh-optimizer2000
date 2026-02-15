@@ -1700,8 +1700,8 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
             </div>
             <p className="text-sm" style={{ color: '#4B5563' }}>
               {language === 'fr'
-                ? 'La prochaine étape : signer le mandat de conception pour démarrer la conception détaillée.'
-                : 'Next step: sign the design mandate to begin detailed engineering.'}
+                ? 'La prochaine étape : signer le mandat de conception préliminaire pour valider les conditions de votre site.'
+                : 'Next step: sign the Preliminary Design Mandate to validate your site conditions.'}
             </p>
           </div>
         )}
@@ -1752,7 +1752,7 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
           <p className="text-lg md:text-xl font-bold mb-2" style={{ color: BRAND_COLORS.primaryBlue }}>
             {isSyntheticData
               ? (language === 'fr' ? 'Prêt à transformer vos coûts d\'énergie? Contactez-nous pour planifier votre visite de site.' : 'Ready to transform your energy costs? Contact us to schedule your site visit.')
-              : (language === 'fr' ? 'Signez votre mandat de conception en ligne' : 'Sign your design mandate online')
+              : (language === 'fr' ? 'Signez votre mandat de conception préliminaire en ligne' : 'Sign your Preliminary Design Mandate online')
             }
           </p>
           {!isSyntheticData && (

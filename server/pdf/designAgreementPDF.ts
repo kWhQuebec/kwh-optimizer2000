@@ -69,7 +69,7 @@ export function generateDesignAgreementPDF(
   doc.fontSize(24).fillColor(COLORS.white).font("Helvetica-Bold");
   doc.text("kWh Québec", margin, 35, { width: contentWidth });
   doc.fontSize(16).font("Helvetica");
-  doc.text(t("Mandat de conception - Étape 3", "Design Mandate - Step 3"), margin, 65, { width: contentWidth });
+  doc.text(t("Mandat de conception préliminaire - Étape 3", "Preliminary Design Mandate - Step 3"), margin, 65, { width: contentWidth });
   doc.fontSize(10);
   doc.text(t("Votre première étape vers un projet solaire", "Your first step toward a solar project"), margin, 90, { width: contentWidth });
 
