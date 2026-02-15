@@ -68,6 +68,7 @@ export async function generateProfessionalPDFv2(
   const scaleCleantechLogoBase64 = loadImageAsBase64(path.join(process.cwd(), "attached_assets", "scale-cleantech-color_small-VSYW5GJE_1771188382228.webp"));
   const hydroQuebecLogoBase64 = loadImageAsBase64(path.join(process.cwd(), "attached_assets", "Screenshot_2026-02-15_at_3.45.19_PM_1771188469569.png"));
   const dreamIndustrialLogoBase64 = loadImageAsBase64(path.join(process.cwd(), "attached_assets", "Screenshot_2026-02-15_at_3.48.30_PM_1771188521355.png"));
+  const labspaceLogoBase64 = loadImageAsBase64(path.join(process.cwd(), "attached_assets", "Logo_full_black_1771188620610.png"));
 
   simulation.annualCostBefore = simulation.annualCostBefore || 0;
   simulation.annualCostAfter = simulation.annualCostAfter || 0;
@@ -111,7 +112,7 @@ export async function generateProfessionalPDFv2(
   pages.push(buildCoverPage(simulation, t, logoBase64, coverImageBase64, lang, isSyntheticData));
   nextPage();
 
-  pages.push(buildAboutPage(simulation, t, nextPage(), { scaleCleantechLogoBase64, hydroQuebecLogoBase64, dreamIndustrialLogoBase64 }));
+  pages.push(buildAboutPage(simulation, t, nextPage(), { scaleCleantechLogoBase64, hydroQuebecLogoBase64, dreamIndustrialLogoBase64, labspaceLogoBase64 }));
   pages.push(buildWhySolarNowPage(t, lang, nextPage()));
   pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData));
   pages.push(buildResultsPage(simulation, t, totalProductionKWh, nextPage()));
@@ -372,7 +373,7 @@ function buildAboutPage(
   _sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
   pageNum: number,
-  partnerLogos?: { scaleCleantechLogoBase64?: string | null; hydroQuebecLogoBase64?: string | null; dreamIndustrialLogoBase64?: string | null }
+  partnerLogos?: { scaleCleantechLogoBase64?: string | null; hydroQuebecLogoBase64?: string | null; dreamIndustrialLogoBase64?: string | null; labspaceLogoBase64?: string | null }
 ): string {
   const svgIcon = (svg: string, color: string) =>
     `<div class="pillar-icon" style="background: ${color}15; display: flex; align-items: center; justify-content: center;">
@@ -442,7 +443,7 @@ function buildAboutPage(
       <h3>${t("Ils nous font confiance", "They Trust Us")}</h3>
       <div class="logo-grid">
         ${partnerLogos?.dreamIndustrialLogoBase64 ? `<div class="logo-item"><img src="${partnerLogos.dreamIndustrialLogoBase64}" style="max-height: 14mm; max-width: 90%; object-fit: contain;" /></div>` : `<div class="logo-item" style="font-size: 10pt; color: #1a2744;"><span style="font-weight: 800;">dream</span> <span style="font-weight: 400;">Industrial REIT</span></div>`}
-        <div class="logo-item" style="font-size: 10pt; color: #1a365d;"><span style="font-weight: 800;">LAB</span><span style="font-weight: 400; color: #4a5568;">Space</span></div>
+        ${partnerLogos?.labspaceLogoBase64 ? `<div class="logo-item"><img src="${partnerLogos.labspaceLogoBase64}" style="max-height: 14mm; max-width: 90%; object-fit: contain;" /></div>` : `<div class="logo-item" style="font-size: 10pt; color: #1a365d;"><span style="font-weight: 800;">LAB</span><span style="font-weight: 400; color: #4a5568;">Space</span></div>`}
         ${partnerLogos?.scaleCleantechLogoBase64 ? `<div class="logo-item"><img src="${partnerLogos.scaleCleantechLogoBase64}" style="max-height: 14mm; max-width: 90%; object-fit: contain;" /></div>` : `<div class="logo-item" style="font-size: 10pt;"><span style="font-weight: 800; color: #003DA6;">Scale</span><span style="font-weight: 700; color: #16a34a;">Cleantech</span></div>`}
         ${partnerLogos?.hydroQuebecLogoBase64 ? `<div class="logo-item"><img src="${partnerLogos.hydroQuebecLogoBase64}" style="max-height: 14mm; max-width: 90%; object-fit: contain;" /></div>` : `<div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">Hydro-Qu&eacute;bec</div>`}
       </div>
