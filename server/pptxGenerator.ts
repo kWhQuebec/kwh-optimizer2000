@@ -1048,7 +1048,7 @@ export async function generatePresentationPPTX(
   const structData: Array<Array<{ text: string; options?: any }>> = [
     [
       { text: t("Charge totale du système", "Total System Load"), options: { fontSize: 10, bold: true } },
-      { text: `${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit}  /  ${techSummary.totalSystemWeightPsfPerSf.value} ${techSummary.totalSystemWeightPsfPerSf.unit}`, options: { bold: true, fontSize: 11, color: COLORS.gold } },
+      { text: `${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit}  /  ${techSummary.totalSystemWeightPsfPerSf.value} ${t(techSummary.totalSystemWeightPsfPerSf.unitFr, techSummary.totalSystemWeightPsfPerSf.unitEn)}`, options: { bold: true, fontSize: 11, color: COLORS.gold } },
       { text: t("Détail", "Breakdown"), options: { fontSize: 8, italic: true } },
       { text: t(`Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m² + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m²`, `Panels ${techSummary.panelWeightKgPerM2.value} kg/m² + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m²`), options: { fontSize: 8 } },
     ],

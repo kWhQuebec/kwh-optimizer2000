@@ -155,7 +155,7 @@ export const BRAND_CONTENT = {
     panelWeightKgPerM2: { value: 12.0, labelFr: "Poids des panneaux par m²", labelEn: "Panel weight per m²", unit: "kg/m²" },
     rackingWeightKgPerM2: { value: 4.5, labelFr: "Poids de la structure par m²", labelEn: "Racking weight per m²", unit: "kg/m²" },
     totalSystemWeightKgPerM2: { value: 16.5, labelFr: "Poids total système par m²", labelEn: "Total system weight per m²", unit: "kg/m²" },
-    totalSystemWeightPsfPerSf: { value: 3.4, labelFr: "Charge totale (lb/pi²)", labelEn: "Total load (psf)", unit: "psf" },
+    totalSystemWeightPsfPerSf: { value: 3.4, labelFr: "Charge totale (lb/p²)", labelEn: "Total load (lb/sf)", unitFr: "lb/p²", unitEn: "lb/sf" },
     windLoadDesign: { labelFr: "Conçu pour charges de vent selon NBCC 2020", labelEn: "Designed for wind loads per NBCC 2020" },
     snowLoadNote: { labelFr: "Compatible avec charges de neige typiques au Québec (> 3.5 kPa)", labelEn: "Compatible with typical Quebec snow loads (> 3.5 kPa)" },
   },
@@ -526,7 +526,7 @@ export function getEquipmentTechnicalSummary(lang: Lang) {
     panelWeightKgPerM2: { value: s.panelWeightKgPerM2.value, label: lang === "fr" ? s.panelWeightKgPerM2.labelFr : s.panelWeightKgPerM2.labelEn, unit: s.panelWeightKgPerM2.unit },
     rackingWeightKgPerM2: { value: s.rackingWeightKgPerM2.value, label: lang === "fr" ? s.rackingWeightKgPerM2.labelFr : s.rackingWeightKgPerM2.labelEn, unit: s.rackingWeightKgPerM2.unit },
     totalSystemWeightKgPerM2: { value: s.totalSystemWeightKgPerM2.value, label: lang === "fr" ? s.totalSystemWeightKgPerM2.labelFr : s.totalSystemWeightKgPerM2.labelEn, unit: s.totalSystemWeightKgPerM2.unit },
-    totalSystemWeightPsfPerSf: { value: s.totalSystemWeightPsfPerSf.value, label: lang === "fr" ? s.totalSystemWeightPsfPerSf.labelFr : s.totalSystemWeightPsfPerSf.labelEn, unit: s.totalSystemWeightPsfPerSf.unit },
+    totalSystemWeightPsfPerSf: { value: s.totalSystemWeightPsfPerSf.value, label: lang === "fr" ? s.totalSystemWeightPsfPerSf.labelFr : s.totalSystemWeightPsfPerSf.labelEn, unit: lang === "fr" ? s.totalSystemWeightPsfPerSf.unitFr : s.totalSystemWeightPsfPerSf.unitEn, unitFr: s.totalSystemWeightPsfPerSf.unitFr, unitEn: s.totalSystemWeightPsfPerSf.unitEn },
     windLoadDesign: lang === "fr" ? s.windLoadDesign.labelFr : s.windLoadDesign.labelEn,
     snowLoadNote: lang === "fr" ? s.snowLoadNote.labelFr : s.snowLoadNote.labelEn,
   };

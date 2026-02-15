@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { 
-  Sun, Battery, Wrench, HardHat, FileBarChart, Shield, 
+  Sun, Battery, Wrench, FileBarChart, Shield, 
   CheckCircle2, ArrowRight, Building2, Factory, School,
   Zap, Clock, DollarSign, Award, Phone, Mail
 } from "lucide-react";
@@ -22,7 +22,7 @@ export default function ServicesPage() {
   const services = [
     {
       icon: FileBarChart,
-      title: language === "fr" ? "Analyse & Design" : "Analysis & Design",
+      title: language === "fr" ? "Analyse & conception solaire" : "Solar analysis & design",
       description: language === "fr" 
         ? "Analyse heure par heure de votre système optimal basée sur vos données de consommation réelles Hydro-Québec."
         : "Hour-by-hour analysis of your optimal system based on your real Hydro-Québec consumption data.",
@@ -31,28 +31,28 @@ export default function ServicesPage() {
         : ["Detailed consumption profile", "Solar + storage optimization", "25-year financial projections", "Sensitivity analysis"]
     },
     {
-      icon: Wrench,
-      title: language === "fr" ? "Ingénierie" : "Engineering",
+      icon: Battery,
+      title: language === "fr" ? "Stockage par batteries (BESS)" : "Battery storage (BESS)",
       description: language === "fr"
-        ? "Conception technique complète par nos ingénieurs certifiés selon les normes québécoises."
-        : "Complete technical design by our certified engineers according to Quebec standards.",
+        ? "Solutions de stockage d'énergie par batteries pour optimiser votre consommation et réduire vos coûts de pointe."
+        : "Battery energy storage solutions to optimize your consumption and reduce peak demand costs.",
       features: language === "fr"
-        ? ["Plans électriques et structuraux", "Études de connexion réseau", "Permis et approbations", "Coordination Hydro-Québec"]
-        : ["Electrical and structural plans", "Grid connection studies", "Permits and approvals", "Hydro-Québec coordination"]
+        ? ["Écrêtage de pointe (peak shaving)", "Gestion de la demande", "Alimentation de secours", "Arbitrage tarifaire"]
+        : ["Peak shaving", "Demand management", "Backup power", "Rate arbitrage"]
     },
     {
-      icon: HardHat,
-      title: language === "fr" ? "Construction" : "Construction",
+      icon: Wrench,
+      title: language === "fr" ? "Ingénierie & construction" : "Engineering & construction",
       description: language === "fr"
-        ? "Installation clé en main par notre équipe d'installateurs certifiés et assurés."
-        : "Turnkey installation by our certified and insured installation team.",
+        ? "Conception technique et installation clé en main par nos ingénieurs et installateurs certifiés."
+        : "Technical design and turnkey installation by our certified engineers and installers.",
       features: language === "fr"
-        ? ["Gestion de projet complète", "Installation professionnelle", "Tests et mise en service", "Documentation as-built"]
-        : ["Complete project management", "Professional installation", "Testing and commissioning", "As-built documentation"]
+        ? ["Plans électriques et structuraux", "Permis et approbations", "Gestion de projet complète", "Installation professionnelle", "Tests et mise en service", "Coordination Hydro-Québec"]
+        : ["Electrical and structural plans", "Permits and approvals", "Complete project management", "Professional installation", "Testing and commissioning", "Hydro-Québec coordination"]
     },
     {
       icon: Shield,
-      title: language === "fr" ? "Opération & Maintenance" : "Operation & Maintenance",
+      title: language === "fr" ? "Opération & maintenance" : "Operations & maintenance",
       description: language === "fr"
         ? "Suivi de performance et maintenance préventive pour maximiser votre retour sur investissement."
         : "Performance monitoring and preventive maintenance to maximize your ROI.",

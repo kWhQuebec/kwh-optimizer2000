@@ -1668,7 +1668,7 @@ function EquipmentSlide({ language }: { language: string }) {
               <span className="text-muted-foreground text-lg font-light">/</span>
               <div className="text-center" data-testid="text-total-weight-imperial">
                 <p className="text-xs mb-1" style={{ color: '#6B7280' }}>{language === 'fr' ? 'Charge totale (impérial)' : 'Total Load (imperial)'}</p>
-                <p className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightPsfPerSf.value} <span className="text-sm font-normal">lb/pi²</span></p>
+                <p className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightPsfPerSf.value} <span className="text-sm font-normal">{language === 'fr' ? 'lb/p²' : 'lb/sf'}</span></p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground" data-testid="text-weight-breakdown">
