@@ -178,8 +178,8 @@ function renderPage(
   y += 18;
 
   const presentText = lang === "fr"
-    ? "Lors de cette rencontre, notre équipe présentera les détails du projet solaire et ses bénéfices environnementaux, le processus d'installation et le calendrier prévu, les mesures de sécurité et la gestion du chantier, ainsi que l'impact visuel et sonore minimal sur le voisinage."
-    : "During this meeting, our team will present details of the solar project and its environmental benefits, the installation process and expected timeline, safety measures and site management, as well as the minimal visual and noise impact on the neighbourhood.";
+    ? "Lors de cette rencontre, notre équipe expliquera ce qu'est un projet solaire et pourquoi ce type d'initiative prend de l'ampleur au Québec, présentera les bâtiments visés ainsi que le fonctionnement général des installations, décrira les principales étapes et l'échéancier envisagé, et répondra à vos questions tout en recueillant vos commentaires."
+    : "During this meeting, our team will explain what a solar project is and why this type of initiative is gaining momentum in Quebec, present the targeted buildings and general operation of the installations, describe the main steps and expected timeline, and answer your questions while gathering your feedback.";
   doc.fontSize(BODY_SIZE).fillColor(BRAND_COLORS.darkText).font(BODY_FONT);
   doc.text(presentText, margin, y, { width: contentWidth, lineGap: LINE_GAP });
   y += textHeight(doc, presentText, { width: contentWidth, lineGap: LINE_GAP });
