@@ -82,6 +82,35 @@ export const leads = pgTable("leads", {
   nurtureStatus: text("nurture_status"),
   nurtureStartedAt: timestamp("nurture_started_at"),
 
+  // Blueprint Oleg — Business Driver (messaging lane)
+  businessDriver: text("business_driver"), // "cost_savings" | "resilience" | "sustainability" | "tax_capital" | "other"
+  businessDriverNotes: text("business_driver_notes"),
+
+  // Blueprint Oleg — Lease Economics
+  leaseType: text("lease_type"), // "owner" | "net_lease" | "gross_lease" | "triple_net" | "ground_lease" | "other" | "unknown"
+  billPayer: text("bill_payer"), // "tenant" | "landlord" | "shared" | "unknown"
+  leaseExpiryDate: timestamp("lease_expiry_date"),
+  leaseNotes: text("lease_notes"),
+
+  // Blueprint Oleg — Load Changes (planned equipment that affects consumption)
+  plannedLoadChanges: text("planned_load_changes"), // "none" | "ev_fleet" | "heat_pump" | "expansion" | "reduction" | "other"
+  loadChangeDetails: text("load_change_details"),
+  loadChangeTimeline: text("load_change_timeline"), // "0-6mo" | "6-12mo" | "12-24mo" | "24mo+" | "unknown"
+
+  // Blueprint Oleg — Procurement Process
+  procurementProcess: text("procurement_process"), // "owner_direct" | "committee" | "rfp_required" | "government" | "unknown"
+  procurementNotes: text("procurement_notes"),
+
+  // Blueprint Oleg — Roof Details (risk flags)
+  roofMaterialType: text("roof_material_type"), // "tpo" | "epdm" | "pvc" | "bur" | "metal_standing_seam" | "metal_corrugated" | "shingle" | "other" | "unknown"
+  roofWarrantyYears: integer("roof_warranty_years"),
+  roofWarrantyExpiry: timestamp("roof_warranty_expiry"),
+
+  // Blueprint Oleg — Lead Color Classification (Green/Yellow/Red)
+  leadColor: text("lead_color"), // "green" | "yellow" | "red" | null
+  leadColorReason: text("lead_color_reason"), // Why this color was assigned
+  leadColorUpdatedAt: timestamp("lead_color_updated_at"),
+
   // UTM Tracking Parameters
   utmSource: text("utm_source"),
   utmMedium: text("utm_medium"),
@@ -1748,6 +1777,15 @@ export const qualificationFormSchema = z.object({
   budgetReadiness: z.enum(["budget_allocated", "budget_possible", "budget_needed", "no_budget", "unknown"]),
   timelineUrgency: z.enum(["immediate", "this_year", "next_year", "exploring", "unknown"]),
   targetDecisionQuarter: z.string().optional(),
+  businessDriver: z.enum(["cost_savings", "resilience", "sustainability", "tax_capital", "other"]).optional(),
+  businessDriverNotes: z.string().optional(),
+  leaseType: z.enum(["owner", "net_lease", "gross_lease", "triple_net", "ground_lease", "other", "unknown"]).optional(),
+  billPayer: z.enum(["tenant", "landlord", "shared", "unknown"]).optional(),
+  plannedLoadChanges: z.enum(["none", "ev_fleet", "heat_pump", "expansion", "reduction", "other"]).optional(),
+  loadChangeDetails: z.string().optional(),
+  procurementProcess: z.enum(["owner_direct", "committee", "rfp_required", "government", "unknown"]).optional(),
+  roofMaterialType: z.enum(["tpo", "epdm", "pvc", "bur", "metal_standing_seam", "metal_corrugated", "shingle", "other", "unknown"]).optional(),
+  roofWarrantyYears: z.number().optional(),
 });
 
 export type QualificationFormData = z.infer<typeof qualificationFormSchema>;

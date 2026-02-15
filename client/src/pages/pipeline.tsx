@@ -171,6 +171,7 @@ interface OpportunityWithRelations extends Opportunity {
   client?: Client | null;
   site?: Site | null;
   rfpBreakdown?: RfpBreakdown;
+  lead?: Lead | null;
 }
 
 // Extended opportunity type for display (includes virtual split opportunities)
@@ -249,8 +250,38 @@ function OpportunityCard({
       <CardContent className="p-4">
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-2">
-            <h4 className="font-medium text-sm leading-tight line-clamp-2">{displayName}</h4>
-            <Badge 
+            <div className="flex items-center gap-2 flex-1">
+              <h4 className="font-medium text-sm leading-tight line-clamp-2">{displayName}</h4>
+              {/* Lead Color Indicator */}
+              {opportunity.lead && (opportunity.lead as any).leadColor && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="shrink-0 rounded-full"
+                      style={{
+                        width: "8px",
+                        height: "8px",
+                        backgroundColor:
+                          (opportunity.lead as any).leadColor === "green" ? "#16A34A" :
+                          (opportunity.lead as any).leadColor === "yellow" ? "#EAB308" :
+                          (opportunity.lead as any).leadColor === "red" ? "#DC2626" :
+                          "#9CA3AF",
+                      }}
+                      data-testid={`indicator-lead-color-${opportunity.id}`}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {(opportunity.lead as any).leadColorReason || (
+                      (opportunity.lead as any).leadColor === "green" ? "Qualified - good to go" :
+                      (opportunity.lead as any).leadColor === "yellow" ? "Missing info - needs nurture" :
+                      (opportunity.lead as any).leadColor === "red" ? "Not qualified" :
+                      "Not yet classified"
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+            <Badge
               className={`shrink-0 text-xs ${PRIORITY_COLORS[opportunity.priority || "medium"]}`}
               data-testid={`badge-priority-${opportunity.id}`}
             >
@@ -489,14 +520,44 @@ function OpportunityListView({
             >
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h4 className="font-medium text-sm truncate">{displayName}</h4>
-                    {opp.client && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <Building2 className="w-3 h-3" />
-                        <span className="truncate">{opp.client.name}</span>
-                      </p>
+                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                    {/* Lead Color Indicator */}
+                    {opp.lead && (opp.lead as any).leadColor && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="shrink-0 rounded-full mt-0.5"
+                            style={{
+                              width: "8px",
+                              height: "8px",
+                              backgroundColor:
+                                (opp.lead as any).leadColor === "green" ? "#16A34A" :
+                                (opp.lead as any).leadColor === "yellow" ? "#EAB308" :
+                                (opp.lead as any).leadColor === "red" ? "#DC2626" :
+                                "#9CA3AF",
+                            }}
+                            data-testid={`indicator-lead-color-${opp.id}`}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {(opp.lead as any).leadColorReason || (
+                            (opp.lead as any).leadColor === "green" ? "Qualified - good to go" :
+                            (opp.lead as any).leadColor === "yellow" ? "Missing info - needs nurture" :
+                            (opp.lead as any).leadColor === "red" ? "Not qualified" :
+                            "Not yet classified"
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
                     )}
+                    <div className="min-w-0">
+                      <h4 className="font-medium text-sm truncate">{displayName}</h4>
+                      {opp.client && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Building2 className="w-3 h-3" />
+                          <span className="truncate">{opp.client.name}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <Badge className={`shrink-0 text-xs ${PRIORITY_COLORS[opp.priority || "medium"]}`}>
                     {PRIORITY_LABELS[opp.priority || "medium"]?.[language] || opp.priority}
@@ -568,6 +629,34 @@ function OpportunityListView({
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
+                      {/* Lead Color Indicator */}
+                      {opp.lead && (opp.lead as any).leadColor && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="shrink-0 rounded-full"
+                              style={{
+                                width: "8px",
+                                height: "8px",
+                                backgroundColor:
+                                  (opp.lead as any).leadColor === "green" ? "#16A34A" :
+                                  (opp.lead as any).leadColor === "yellow" ? "#EAB308" :
+                                  (opp.lead as any).leadColor === "red" ? "#DC2626" :
+                                  "#9CA3AF",
+                              }}
+                              data-testid={`indicator-lead-color-${opp.id}`}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {(opp.lead as any).leadColorReason || (
+                              (opp.lead as any).leadColor === "green" ? "Qualified - good to go" :
+                              (opp.lead as any).leadColor === "yellow" ? "Missing info - needs nurture" :
+                              (opp.lead as any).leadColor === "red" ? "Not qualified" :
+                              "Not yet classified"
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       {displayName}
                       {opp.isVirtualSplit && (
                         <Badge className={`text-xs ${opp.splitType === 'rfp' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>

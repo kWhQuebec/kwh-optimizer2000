@@ -5,6 +5,7 @@ import { qualificationFormSchema } from "@shared/schema";
 import {
   calculateQualification,
   calculateEconomicStatus,
+  computeLeadColor,
   QualificationData,
 } from "@shared/qualification";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
@@ -113,6 +114,9 @@ router.put("/api/leads/:id/qualification", authMiddleware, requireStaff, asyncHa
   // Calculate qualification result
   const result = calculateQualification(qualificationData);
 
+  // Compute lead color classification
+  const { color: leadColor, reason: leadColorReason } = computeLeadColor(result);
+
   // Update lead with qualification data
   const updatedLead = await storage.updateLead(id, {
     estimatedMonthlyBill: formData.estimatedMonthlyBill,
@@ -134,6 +138,8 @@ router.put("/api/leads/:id/qualification", authMiddleware, requireStaff, asyncHa
     qualificationStatus: result.status,
     qualificationBlockers: result.blockers,
     qualificationNextSteps: result.suggestedNextSteps,
+    leadColor,
+    leadColorReason,
     qualifiedAt: new Date(),
     qualifiedBy: req.userId,
   } as any);

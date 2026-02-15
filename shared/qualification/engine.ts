@@ -337,6 +337,46 @@ export function quickQualificationScore(monthlyBill: number | null): {
 }
 
 /**
+ * Compute lead color classification based on qualification result
+ */
+export function computeLeadColor(result: QualificationResult): { color: 'green' | 'yellow' | 'red'; reason: string } {
+  const criticalBlockers = result.blockers.filter(b => b.severity === 'critical');
+  const majorBlockers = result.blockers.filter(b => b.severity === 'major');
+
+  // RED: score < 30 OR any critical blockers
+  if (result.score < 30 || criticalBlockers.length > 0) {
+    let reason = '';
+    if (result.score < 30) {
+      reason = `Score insuffisant (${result.score}/100)`;
+    } else {
+      reason = `Blocages critiques identifiés (${criticalBlockers.length})`;
+    }
+    return { color: 'red', reason };
+  }
+
+  // GREEN: score >= 70 AND no critical/major blockers AND status is "hot" or "warm"
+  if (result.score >= 70 && criticalBlockers.length === 0 && majorBlockers.length === 0 && (result.status === 'hot' || result.status === 'warm')) {
+    return { color: 'green', reason: `Prospect de haute qualité (score: ${result.score}/100, statut: ${result.status})` };
+  }
+
+  // YELLOW: score 30-69 OR any major blockers OR status is "nurture"
+  let reason = '';
+  if (result.score < 70) {
+    reason = `Score modéré (${result.score}/100)`;
+  }
+  if (majorBlockers.length > 0) {
+    reason = reason ? reason + ' et blocages majeurs' : `Blocages majeurs identifiés (${majorBlockers.length})`;
+  }
+  if (result.status === 'nurture') {
+    reason = reason ? reason + ' et en phase de nurturing' : 'En phase de nurturing';
+  }
+  if (!reason) {
+    reason = `Prospect en cours de qualification (statut: ${result.status})`;
+  }
+  return { color: 'yellow', reason };
+}
+
+/**
  * Solution templates and resources
  */
 export const SOLUTION_RESOURCES: Record<SolutionType, { fr: string; en: string; templatePath?: string }> = {
