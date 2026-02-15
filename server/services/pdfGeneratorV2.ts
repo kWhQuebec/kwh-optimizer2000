@@ -278,8 +278,8 @@ p { margin-bottom: 3mm; color: var(--dark); }
 .timeline-week { font-size: 10pt; font-weight: 700; color: var(--primary); }
 .timeline-title { font-size: 11pt; font-weight: 600; margin: 1mm 0; }
 .timeline-desc { font-size: 9pt; color: var(--gray); }
-.logo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5mm; margin: 6mm 0; }
-.logo-item { background: var(--light-gray); border-radius: 3mm; padding: 5mm; display: flex; align-items: center; justify-content: center; min-height: 18mm; font-size: 8pt; color: var(--gray); font-weight: 600; }
+.logo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5mm; margin: 3mm 0; }
+.logo-item { background: #ffffff; border: 0.5px solid #e5e7eb; border-radius: 3mm; padding: 4mm; display: flex; align-items: center; justify-content: center; min-height: 16mm; font-size: 8pt; color: var(--gray); font-weight: 600; }
 .cta-box { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border-radius: 4mm; padding: 8mm; text-align: center; margin: 8mm 0; }
 .cta-box h3 { color: white; font-size: 16pt; margin-bottom: 3mm; }
 .cta-box p { color: rgba(255,255,255,0.9); font-size: 11pt; }
