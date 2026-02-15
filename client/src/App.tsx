@@ -66,6 +66,7 @@ const MarketIntelligencePricingPage = lazy(() => import("@/pages/market-intellig
 const WorkQueuePage = lazy(() => import("@/pages/work-queue"));
 const ContentManager = lazy(() => import("@/pages/content-manager"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin-settings"));
+const CallScriptPage = lazy(() => import("@/pages/call-script"));
 
 function PageLoader() {
   return (
@@ -553,6 +554,15 @@ function AppRoutes() {
               <BatchImportPage />
             </Suspense>
           </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Call Script Wizard - Standalone view for agents */}
+      <Route path="/app/leads/:id/call-script">
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <CallScriptPage />
+          </Suspense>
         </ProtectedRoute>
       </Route>
 

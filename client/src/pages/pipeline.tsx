@@ -1,15 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { 
-  Target, 
-  Plus, 
-  Building2, 
-  DollarSign, 
-  Calendar, 
-  User, 
-  ChevronRight, 
+import {
+  Target,
+  Plus,
+  Building2,
+  DollarSign,
+  Calendar,
+  User,
+  ChevronRight,
   Filter,
   X,
   TrendingUp,
@@ -23,7 +23,8 @@ import {
   Clock as ClockIcon,
   Loader2,
   Ban,
-  Trash2
+  Trash2,
+  Phone
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,8 @@ import { z } from "zod";
 import type { Opportunity, User as UserType, Client, Site, Lead } from "@shared/schema";
 import { QualificationForm } from "@/components/qualification";
 import { NurtureStatusPanel } from "@/components/nurture-status-panel";
+
+const CallScriptWizard = lazy(() => import("@/components/qualification/call-script-wizard"));
 
 // Format currency in a compact, readable way (e.g., "$128M", "$1.5M", "$250k")
 function formatCompactCurrency(value: number | null | undefined): string {
@@ -729,6 +732,10 @@ export default function PipelinePage() {
   // Qualification state
   const [isQualificationOpen, setIsQualificationOpen] = useState(false);
   const [selectedLeadForQualification, setSelectedLeadForQualification] = useState<Lead | null>(null);
+
+  // Call Script Wizard state
+  const [isCallScriptOpen, setIsCallScriptOpen] = useState(false);
+  const [selectedLeadForCallScript, setSelectedLeadForCallScript] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
@@ -2085,24 +2092,38 @@ export default function PipelinePage() {
                     {language === "fr" ? "Annuler" : "Cancel"}
                   </Button>
                   {(selectedOpportunity as any)?.leadId && (
-                    <Button 
-                      type="button" 
-                      variant="secondary"
-                      onClick={async () => {
-                        try {
-                          // apiRequest already returns parsed JSON
-                          const lead = await apiRequest("GET", `/api/leads/${(selectedOpportunity as any).leadId}`) as any;
-                          setSelectedLeadForQualification(lead as any);
-                          setIsQualificationOpen(true);
-                        } catch (error) {
-                          console.error("Failed to fetch lead:", error);
-                        }
-                      }}
-                      data-testid="button-qualify-lead"
-                    >
-                      <Target className="w-4 h-4 mr-2" />
-                      {language === "fr" ? "Qualifier" : "Qualify"}
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={async () => {
+                          try {
+                            // apiRequest already returns parsed JSON
+                            const lead = await apiRequest("GET", `/api/leads/${(selectedOpportunity as any).leadId}`) as any;
+                            setSelectedLeadForQualification(lead as any);
+                            setIsQualificationOpen(true);
+                          } catch (error) {
+                            console.error("Failed to fetch lead:", error);
+                          }
+                        }}
+                        data-testid="button-qualify-lead"
+                      >
+                        <Target className="w-4 h-4 mr-2" />
+                        {language === "fr" ? "Qualifier" : "Qualify"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedLeadForCallScript((selectedOpportunity as any).leadId);
+                          setIsCallScriptOpen(true);
+                        }}
+                        data-testid="button-call-script"
+                      >
+                        <Phone className="w-4 h-4 mr-2" />
+                        {language === "fr" ? "Appel de qualification" : "Call Script"}
+                      </Button>
+                    </>
                   )}
                   <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-opportunity">
                     {updateMutation.isPending 
@@ -2246,6 +2267,25 @@ export default function PipelinePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Call Script Wizard Dialog */}
+      {selectedLeadForCallScript && isCallScriptOpen && (
+        <Suspense fallback={<div className="text-center py-8">{language === "fr" ? "Chargement..." : "Loading..."}</div>}>
+          <CallScriptWizard
+            leadId={selectedLeadForCallScript}
+            open={isCallScriptOpen}
+            onClose={() => {
+              setIsCallScriptOpen(false);
+              setSelectedLeadForCallScript(null);
+            }}
+            onComplete={() => {
+              setIsCallScriptOpen(false);
+              setSelectedLeadForCallScript(null);
+              queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

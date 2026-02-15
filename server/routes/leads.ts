@@ -1646,4 +1646,53 @@ router.get("/api/leads/:id/nurture/status", authMiddleware, requireStaff, asyncH
   });
 }));
 
+// ==================== LEAD BUSINESS CONTEXT ROUTES ====================
+
+// PATCH /api/leads/:id/business-context
+// Updates business-related fields for the Call Script Wizard
+router.patch("/api/leads/:id/business-context", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const lead = await storage.getLead(req.params.id);
+  if (!lead) throw new NotFoundError("Lead not found");
+
+  const {
+    businessDriver,
+    businessDriverNotes,
+    leaseType,
+    billPayer,
+    plannedLoadChanges,
+    loadChangeTimeline,
+    procurementProcess,
+    roofMaterialType,
+    roofWarrantyYears,
+    leadColor,
+    leadColorReason,
+    leadColorUpdatedAt,
+    qualificationNotes
+  } = req.body;
+
+  const updateData: Record<string, any> = {};
+
+  // Only include fields that were provided
+  if (businessDriver !== undefined) updateData.businessDriver = businessDriver;
+  if (businessDriverNotes !== undefined) updateData.businessDriverNotes = businessDriverNotes;
+  if (leaseType !== undefined) updateData.leaseType = leaseType;
+  if (billPayer !== undefined) updateData.billPayer = billPayer;
+  if (plannedLoadChanges !== undefined) updateData.plannedLoadChanges = plannedLoadChanges;
+  if (loadChangeTimeline !== undefined) updateData.loadChangeTimeline = loadChangeTimeline;
+  if (procurementProcess !== undefined) updateData.procurementProcess = procurementProcess;
+  if (roofMaterialType !== undefined) updateData.roofMaterialType = roofMaterialType;
+  if (roofWarrantyYears !== undefined) updateData.roofWarrantyYears = roofWarrantyYears;
+  if (leadColor !== undefined) updateData.leadColor = leadColor;
+  if (leadColorReason !== undefined) updateData.leadColorReason = leadColorReason;
+  if (leadColorUpdatedAt !== undefined) updateData.leadColorUpdatedAt = leadColorUpdatedAt;
+  if (qualificationNotes !== undefined) updateData.qualificationNotes = qualificationNotes;
+
+  if (Object.keys(updateData).length === 0) {
+    return res.json({ success: true, message: "No fields to update", data: lead });
+  }
+
+  const updatedLead = await storage.updateLead(lead.id, updateData);
+  res.json({ success: true, data: updatedLead });
+}));
+
 export default router;
