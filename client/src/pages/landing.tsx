@@ -855,10 +855,10 @@ export default function LandingPage() {
                       <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
                         <p className="text-sm font-medium text-center">
                           {language === "fr"
-                            ? "Vous voulez des résultats basés sur vos vraies données Hydro-Québec?"
-                            : "Want results based on your real Hydro-Québec data?"}
+                            ? "Vous voulez des résultats basés sur le profil énergétique de votre bâtiment?"
+                            : "Want results based on your building's energy profile?"}
                         </p>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Précision 95%" : "95% accuracy"}</div>
                           <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Options financement" : "Financing options"}</div>
                           <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Gratuit" : "Free"}</div>
