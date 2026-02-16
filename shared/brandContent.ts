@@ -164,7 +164,7 @@ export const BRAND_CONTENT = {
   timeline: [
     // Phase Découverte (gratuit, sans engagement)
     { stepFr: "Analyse gratuite", stepEn: "Free Analysis", durationFr: "Quelques minutes", durationEn: "A few minutes", iconCode: "analysis", phase: "discovery" },
-    { stepFr: "Étude personnalisée", stepEn: "Personalized Study", durationFr: "48-72h", durationEn: "48-72h", iconCode: "study", phase: "discovery" },
+    { stepFr: "Étude personnalisée", stepEn: "Personalized Study", durationFr: "7 jours ouvrables", durationEn: "7 business days", iconCode: "study", phase: "discovery" },
     // Phase Conception (engagement initial)
     { stepFr: "Mandat de conception", stepEn: "Design Mandate", durationFr: "Signature + frais", durationEn: "Signature + fees", iconCode: "mandate", phase: "design" },
     { stepFr: "Visite technique & proposition", stepEn: "Site Visit & Proposal", durationFr: "2-3 semaines", durationEn: "2-3 weeks", iconCode: "visit", phase: "design" },
