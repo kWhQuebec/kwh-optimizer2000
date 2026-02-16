@@ -1408,6 +1408,11 @@ export default function LandingPage() {
                                 — {language === "fr" ? phase.descFr : phase.descEn}
                               </span>
                             </span>
+                            {pi === 0 && (
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs no-default-hover-elevate no-default-active-elevate" data-testid="badge-free">
+                                {language === "fr" ? "GRATUIT" : "FREE"}
+                              </Badge>
+                            )}
                             {pi === 1 && (
                               <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs no-default-hover-elevate no-default-active-elevate" data-testid="badge-creditable">
                                 {language === "fr" ? "2 500$ créditable" : "$2,500 creditable"}
