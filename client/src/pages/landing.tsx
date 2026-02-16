@@ -1619,10 +1619,10 @@ export default function LandingPage() {
                 { id: 3, slug: "guide-solaire-commercial-quebec" },
                 { id: 4, slug: "programme-autoproduction-hydro-quebec-2026" },
                 { id: 5, slug: "comprendre-facture-hydro-quebec" },
-                { id: 6, slug: "solaire-commercial-vs-residentiel" },
-                { id: 7, slug: "solaire-valeur-immobiliere-commercial" },
-                { id: 8, slug: "etude-de-cas-projet-solaire-industriel" },
-                { id: 9, slug: "telecharger-donnees-espace-client-hydro-quebec" },
+                { id: 6, slug: "telecharger-donnees-espace-client-hydro-quebec" },
+                { id: 7, slug: "solaire-commercial-vs-residentiel" },
+                { id: 8, slug: "solaire-valeur-immobiliere-commercial" },
+                { id: 9, slug: "etude-de-cas-projet-solaire-industriel" },
               ]).map(({ id: i, slug }) => (
                 <AccordionItem
                   key={`item${i}`}
