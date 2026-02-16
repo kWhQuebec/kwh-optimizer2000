@@ -194,7 +194,7 @@ export async function processScheduledEmails(deps: SchedulerDeps) {
 
         // Build template data - Standard personalization variables
         const baseUrl = process.env.BASE_URL || "https://app.kwh.quebec";
-        const calendlyUrl = process.env.VITE_CALENDLY_URL || "https://calendly.com/kwh-quebec/consultation";
+        const calendlyUrl = process.env.VITE_CALENDLY_URL || "https://calendly.com/kwh-quebec/decouverte";
 
         const data: Record<string, string> = {
           // Personalization variables (4.2 spec) - Dynamic data from lead
