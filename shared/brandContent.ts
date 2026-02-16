@@ -166,9 +166,9 @@ export const BRAND_CONTENT = {
     { stepFr: "Analyse gratuite en ligne", stepEn: "Free Online Analysis", durationFr: "Quelques minutes", durationEn: "A few minutes", iconCode: "analysis", phase: "discovery" },
     { stepFr: "Validation économique", stepEn: "Economic Validation", durationFr: "7 jours", durationEn: "7 days", iconCode: "study", phase: "discovery" },
     // Phase Conception (engagement initial — mandat 2 500$)
-    { stepFr: "Conception préliminaire", stepEn: "Preliminary Design", durationFr: "2 semaines", durationEn: "2 weeks", iconCode: "design", phase: "design" },
+    { stepFr: "Validation technique", stepEn: "Technical Validation", durationFr: "2 semaines", durationEn: "2 weeks", iconCode: "design", phase: "design" },
     // Phase Réalisation (clé en main)
-    { stepFr: "Plans & soumission forfaitaire", stepEn: "Plans & Fixed-Price Quote", durationFr: "4-8 semaines", durationEn: "4-8 weeks", iconCode: "plans", phase: "execution" },
+    { stepFr: "Ingénierie, plans & devis", stepEn: "Engineering, Plans & Quotes", durationFr: "4-8 semaines", durationEn: "4-8 weeks", iconCode: "plans", phase: "execution" },
     { stepFr: "Permis & installation clé en main", stepEn: "Permits & Turnkey Installation", durationFr: "10-18 semaines", durationEn: "10-18 weeks", iconCode: "install", phase: "execution" },
   ],
 
