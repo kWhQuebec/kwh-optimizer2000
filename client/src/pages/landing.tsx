@@ -1593,7 +1593,16 @@ export default function LandingPage() {
               onValueChange={setExpandedFaqItems}
               className="space-y-3"
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              {([
+                { id: 1, slug: "calculer-rentabilite-projet-solaire" },
+                { id: 2, slug: "incitatifs-solaires-quebec-2025" },
+                { id: 3, slug: "guide-solaire-commercial-quebec" },
+                { id: 4, slug: "programme-autoproduction-hydro-quebec-2026" },
+                { id: 5, slug: "comprendre-facture-hydro-quebec" },
+                { id: 6, slug: "solaire-commercial-vs-residentiel" },
+                { id: 7, slug: "solaire-valeur-immobiliere-commercial" },
+                { id: 8, slug: "etude-de-cas-projet-solaire-industriel" },
+              ]).map(({ id: i, slug }) => (
                 <AccordionItem
                   key={`item${i}`}
                   value={`item${i}`}
@@ -1605,7 +1614,12 @@ export default function LandingPage() {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground leading-relaxed pt-2">
-                    {t(`faq.item${i}.answer`)}
+                    <p>{t(`faq.item${i}.answer`)}</p>
+                    <Link href={`/blog/${slug}`}>
+                      <span className="inline-flex items-center gap-1 mt-3 text-sm font-medium hover:underline" style={{ color: BRAND.primaryBlue }} data-testid={`link-faq-blog-${i}`}>
+                        {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </Link>
                   </AccordionContent>
                 </AccordionItem>
               ))}
