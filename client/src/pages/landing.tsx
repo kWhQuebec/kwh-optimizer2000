@@ -1585,69 +1585,6 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-      {/* ========== FAQ SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-3xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-              {t("faq.title")}
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              {t("faq.subtitle")}
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <Accordion
-              type="multiple"
-              value={expandedFaqItems}
-              onValueChange={setExpandedFaqItems}
-              className="space-y-3"
-            >
-              {([
-                { id: 1, slug: "calculer-rentabilite-projet-solaire" },
-                { id: 2, slug: "incitatifs-solaires-quebec-2026" },
-                { id: 3, slug: "guide-solaire-commercial-quebec" },
-                { id: 4, slug: "programme-autoproduction-hydro-quebec-2026" },
-                { id: 5, slug: "comprendre-facture-hydro-quebec" },
-                { id: 6, slug: "telecharger-donnees-espace-client-hydro-quebec" },
-                { id: 7, slug: "solaire-commercial-vs-residentiel" },
-                { id: 8, slug: "solaire-valeur-immobiliere-commercial" },
-                { id: 9, slug: "etude-de-cas-projet-solaire-industriel" },
-              ]).map(({ id: i, slug }) => (
-                <AccordionItem
-                  key={`item${i}`}
-                  value={`item${i}`}
-                  className="border border-border rounded-lg px-5 py-2 hover:border-primary/50 transition-colors"
-                >
-                  <AccordionTrigger className="font-semibold hover:no-underline">
-                    <span className="text-left">
-                      {t(`faq.item${i}.question`)}
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground leading-relaxed pt-2">
-                    <p>{t(`faq.item${i}.answer`)}</p>
-                    <Link href={`/blog/${slug}`}>
-                      <span className="inline-flex items-center gap-1 mt-3 text-sm font-medium hover:underline" style={{ color: BRAND.primaryBlue }} data-testid={`link-faq-blog-${i}`}>
-                        {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
-                    </Link>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </motion.div>
-        </div>
-      </section>
       {/* ========== WHY SOLAR NOW SECTION ========== */}
       {(() => {
         const whySolarContent = getWhySolarNow(language as "fr" | "en");
@@ -1768,6 +1705,68 @@ export default function LandingPage() {
           </section>
         );
       })()}
+      {/* ========== FAQ SECTION ========== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-3xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+              {t("faq.title")}
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              {t("faq.subtitle")}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Accordion
+              type="multiple"
+              value={expandedFaqItems}
+              onValueChange={setExpandedFaqItems}
+              className="space-y-3"
+            >
+              {([
+                { id: 1, slug: "calculer-rentabilite-projet-solaire" },
+                { id: 2, slug: "incitatifs-solaires-quebec-2026" },
+                { id: 3, slug: "programme-autoproduction-hydro-quebec-2026" },
+                { id: 4, slug: "comprendre-facture-hydro-quebec" },
+                { id: 5, slug: "telecharger-donnees-espace-client-hydro-quebec" },
+                { id: 6, slug: "solaire-commercial-vs-residentiel" },
+                { id: 7, slug: "solaire-valeur-immobiliere-commercial" },
+                { id: 8, slug: "etude-de-cas-projet-solaire-industriel" },
+              ]).map(({ id: i, slug }) => (
+                <AccordionItem
+                  key={`item${i}`}
+                  value={`item${i}`}
+                  className="border border-border rounded-lg px-5 py-2 hover:border-primary/50 transition-colors"
+                >
+                  <AccordionTrigger className="font-semibold hover:no-underline">
+                    <span className="text-left">
+                      {t(`faq.item${i}.question`)}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground leading-relaxed pt-2">
+                    <p>{t(`faq.item${i}.answer`)}</p>
+                    <Link href={`/blog/${slug}`}>
+                      <span className="inline-flex items-center gap-1 mt-3 text-sm font-medium hover:underline" style={{ color: BRAND.primaryBlue }} data-testid={`link-faq-blog-${i}`}>
+                        {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </Link>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </motion.div>
+        </div>
+      </section>
       {/* ========== CREDIBILITY SECTION (Merged: Values + Team + Testimonials) ========== */}
       <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-credibility">
         <div className="max-w-6xl mx-auto">
