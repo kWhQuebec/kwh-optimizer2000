@@ -237,13 +237,13 @@ router.get("/api/admin/procuration-pdfs/:filename", authMiddleware, requireStaff
 router.post("/api/admin/seed-blog", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   const seedArticles = [
     {
-      slug: "incitatifs-solaires-quebec-2025",
-      titleFr: "Guide complet des incitatifs solaires au Québec en 2025",
-      titleEn: "Complete Guide to Solar Incentives in Quebec 2025",
+      slug: "incitatifs-solaires-quebec-2026",
+      titleFr: "Guide complet des incitatifs solaires au Québec en 2026",
+      titleEn: "Complete Guide to Solar Incentives in Quebec 2026",
       excerptFr: "Découvrez tous les programmes d'aide financière pour votre projet solaire commercial au Québec : subventions Hydro-Québec, crédits d'impôt fédéraux et plus encore.",
       excerptEn: "Discover all financial assistance programs for your commercial solar project in Quebec: Hydro-Québec subsidies, federal tax credits and more.",
-      metaDescriptionFr: "Guide 2025 des incitatifs solaires au Québec : programme Autoproduction Hydro-Québec, amortissement accéléré CCA 43.2, crédits d'impôt et mesurage net.",
-      metaDescriptionEn: "2025 guide to Quebec solar incentives: Hydro-Québec Autoproduction program, CCA Class 43.2 accelerated depreciation, tax credits and net metering.",
+      metaDescriptionFr: "Guide 2026 des incitatifs solaires au Québec : programme Autoproduction Hydro-Québec, amortissement accéléré CCA 43.2, crédits d'impôt et mesurage net.",
+      metaDescriptionEn: "2026 guide to Quebec solar incentives: Hydro-Québec Autoproduction program, CCA Class 43.2 accelerated depreciation, tax credits and net metering.",
       keywords: ["incitatifs solaires québec", "subvention hydro-québec", "autoproduction", "CCA 43.2", "mesurage net", "crédit d'impôt solaire", "solar incentives quebec"],
       category: "program",
       status: "published",

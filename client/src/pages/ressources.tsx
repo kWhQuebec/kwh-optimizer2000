@@ -224,7 +224,7 @@ export default function RessourcesPage() {
         : "Everything you need to know about the Hydro-Québec program, federal credit, and tax benefits.",
       category: "incentives",
       readTime: "8 min",
-      slug: "incitatifs-solaires-quebec-2025"
+      slug: "incitatifs-solaires-quebec-2026"
     },
     {
       title: language === "fr" ? "Comprendre votre facture Hydro-Québec" : "Understanding Your Hydro-Québec Bill",

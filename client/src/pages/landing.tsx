@@ -1595,7 +1595,7 @@ export default function LandingPage() {
             >
               {([
                 { id: 1, slug: "calculer-rentabilite-projet-solaire" },
-                { id: 2, slug: "incitatifs-solaires-quebec-2025" },
+                { id: 2, slug: "incitatifs-solaires-quebec-2026" },
                 { id: 3, slug: "guide-solaire-commercial-quebec" },
                 { id: 4, slug: "programme-autoproduction-hydro-quebec-2026" },
                 { id: 5, slug: "comprendre-facture-hydro-quebec" },
