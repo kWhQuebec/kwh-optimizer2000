@@ -244,6 +244,15 @@ export default function RessourcesPage() {
       readTime: "6 min",
       slug: "solaire-commercial-vs-residentiel"
     },
+    {
+      title: language === "fr" ? "Télécharger vos données depuis l'Espace Client Hydro-Québec" : "Download Your Data from Hydro-Québec's Online Portal",
+      description: language === "fr"
+        ? "Guide étape par étape pour télécharger vos 12-24 fichiers CSV de consommation (~30 min)."
+        : "Step-by-step guide to downloading your 12-24 consumption CSV files (~30 min).",
+      category: "technical",
+      readTime: "5 min",
+      slug: "telecharger-donnees-espace-client-hydro-quebec"
+    },
   ];
 
   // Glossaire solaire bilingue

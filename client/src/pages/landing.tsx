@@ -1612,6 +1612,7 @@ export default function LandingPage() {
                 { id: 6, slug: "solaire-commercial-vs-residentiel" },
                 { id: 7, slug: "solaire-valeur-immobiliere-commercial" },
                 { id: 8, slug: "etude-de-cas-projet-solaire-industriel" },
+                { id: 9, slug: "telecharger-donnees-espace-client-hydro-quebec" },
               ]).map(({ id: i, slug }) => (
                 <AccordionItem
                   key={`item${i}`}

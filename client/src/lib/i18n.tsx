@@ -1086,6 +1086,9 @@ const translations: Translations = {
 
   "faq.item8.question": { fr: "Que se passe-t-il si je vends mon bâtiment?", en: "What happens if I sell my building?" },
   "faq.item8.answer": { fr: "Le système solaire reste avec le bâtiment et augmente sa valeur de revente. Les contrats d'achat-vente standard incluent le transfert du système au nouveau propriétaire. Si vous avez un contrat de financement, il peut généralement être assumé par le nouveau propriétaire ou refinancé à des conditions compétitives. La plupart des acheteurs voient le système solaire comme un atout majeur.", en: "The solar system stays with the building and increases its resale value. Standard purchase agreements include system transfer to the new owner. If you have financing, it can typically be assumed by the new owner or refinanced at competitive rates. Most buyers see the solar system as a major asset." },
+
+  "faq.item9.question": { fr: "Puis-je fournir mes données de consommation moi-même?", en: "Can I provide my consumption data myself?" },
+  "faq.item9.answer": { fr: "Oui! Si vous préférez ne pas nous donner de procuration, vous pouvez télécharger vous-même vos fichiers CSV depuis votre Espace Client Hydro-Québec. Comptez environ 30 minutes pour télécharger les 12 à 24 fichiers nécessaires (un par période de facturation). Nous avons préparé un guide détaillé pour vous accompagner.", en: "Yes! If you prefer not to give us authorization, you can download your CSV files yourself from Hydro-Québec's Online Portal. Allow approximately 30 minutes to download the 12 to 24 required files (one per billing period). We've prepared a detailed guide to walk you through the process." },
 };
 
 interface I18nContextType {
