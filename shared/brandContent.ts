@@ -605,6 +605,9 @@ export function getTimeline(lang: Lang) {
   return BRAND_CONTENT.timeline.map(t => ({
     step: lang === "fr" ? t.stepFr : t.stepEn,
     duration: lang === "fr" ? t.durationFr : t.durationEn,
+    iconCode: t.iconCode,
+    phase: t.phase,
+    bullets: lang === "fr" ? (t.bulletsFr || []) : (t.bulletsEn || []),
   }));
 }
 
