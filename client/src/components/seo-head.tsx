@@ -307,8 +307,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le processus typique prend 4 à 6 mois: analyse gratuite (2 min), analyse détaillée (5-7 jours), rapport personnalisé (1-2 semaines), soumission (1-2 semaines), et finalement l'installation (2-4 mois selon la complexité du projet)."
-          : "The typical process takes 4 to 6 months: free analysis (2 min), detailed analysis (5-7 days), personalized report (1-2 weeks), quote (1-2 weeks), and installation (2-4 months depending on project complexity)."
+          ? "Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données HQ réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."
+          : "The complete process typically takes 4-8 months depending on project complexity: free estimate (a few minutes), personalized study with real HQ data (7 days), preliminary design and site visit (2 weeks), plans and fixed-price quote (4-8 weeks), and permits and turnkey installation (10-18 weeks). Every project is unique — the 10-minute discovery call lets us give you a precise timeline."
       }
     },
     {
