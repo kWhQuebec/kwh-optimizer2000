@@ -1362,7 +1362,7 @@ export default function LandingPage() {
               ];
 
               const phases = [
-                { key: "discovery", labelFr: "Découverte", labelEn: "Discovery", descFr: "Gratuit, sans engagement", descEn: "Free, no commitment", steps: [0, 1] },
+                { key: "discovery", labelFr: "Exploration", labelEn: "Exploration", descFr: "Sans engagement", descEn: "No commitment", steps: [0, 1] },
                 { key: "design", labelFr: "Conception", labelEn: "Design", descFr: "Mandat préliminaire", descEn: "Preliminary mandate", steps: [2] },
                 { key: "execution", labelFr: "Réalisation", labelEn: "Execution", descFr: "Clé en main", descEn: "Turnkey", steps: [3, 4] },
               ];
@@ -1408,11 +1408,6 @@ export default function LandingPage() {
                                 — {language === "fr" ? phase.descFr : phase.descEn}
                               </span>
                             </span>
-                            {pi === 0 && (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs no-default-hover-elevate no-default-active-elevate" data-testid="badge-free">
-                                {language === "fr" ? "GRATUIT" : "FREE"}
-                              </Badge>
-                            )}
                             {pi === 1 && (
                               <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs no-default-hover-elevate no-default-active-elevate" data-testid="badge-creditable">
                                 {language === "fr" ? "2 500$ créditable" : "$2,500 creditable"}
