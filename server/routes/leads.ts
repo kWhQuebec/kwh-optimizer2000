@@ -365,6 +365,9 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   // CO2: Quebec grid factor 0.002 kg CO2/kWh (~2 g/kWh, Env. Canada)
   const co2ReductionTons = Math.round(primaryScenario.annualProductionKWh * 0.002 * 10) / 10;
 
+  // Calculate before/after HQ bill comparison (based on conservative scenario)
+  const annualBillBefore = estimatedMonthlyBill * 12;
+
   // Cost of inaction: Cumulative electricity cost increase over 5 years
   // Assuming 3.5% annual electricity escalation (Quebec historical average)
   const ELECTRICITY_ESCALATION_RATE = 0.035;
@@ -374,9 +377,6 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
     costOfInaction += annualBillBefore * Math.pow(1 + ELECTRICITY_ESCALATION_RATE, year - 1);
   }
   costOfInaction = Math.round(costOfInaction);
-
-  // Calculate before/after HQ bill comparison (based on conservative scenario)
-  const annualBillBefore = estimatedMonthlyBill * 12;
   const annualBillAfter = Math.max(0, annualBillBefore - primaryScenario.annualSavings);
   const monthlyBillAfter = Math.round(annualBillAfter / 12);
   const monthlySavings = estimatedMonthlyBill - monthlyBillAfter;
