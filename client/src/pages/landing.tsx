@@ -116,27 +116,45 @@ export default function LandingPage() {
   // FAQ accordion state
   const [expandedFaqItems, setExpandedFaqItems] = useState<string[]>(['item1']);
 
-  // Client-side preview calculation
+  // Client-side preview calculation — aligned with Quick Analysis methodology (leads.ts)
   const clientPreview = useMemo(() => {
     if (!parsedBillData?.annualConsumptionKwh) return null;
     const annualKwh = parsedBillData.annualConsumptionKwh;
     const monthlyBill = parsedBillData.estimatedMonthlyBill || (annualKwh * 0.07 / 12);
     const annualBill = monthlyBill * 12;
 
-    // Estimated system size (Quebec: ~1150 kWh/kWp)
-    const systemSizeKw = Math.round(annualKwh * 0.7 / 1150); // 70% offset target
+    // === UNIFIED METHODOLOGY (matches potentialAnalysis.ts & leads.ts) ===
+    const BASELINE_YIELD = 1150;
+    const TEMP_COEFF = -0.004;
+    const AVG_CELL_TEMP = 35;
+    const STC_TEMP = 25;
+    const WIRE_LOSS = 0.02;
+    const INVERTER_EFF = 0.96;
+    const tempLoss = 1 + TEMP_COEFF * (AVG_CELL_TEMP - STC_TEMP);
+    const EFFECTIVE_YIELD = BASELINE_YIELD * tempLoss * (1 - WIRE_LOSS) * INVERTER_EFF; // ~1035 kWh/kWp
 
-    // Estimated annual savings (simplified)
-    const estimatedSavings = Math.round(annualBill * 0.35); // ~35% bill reduction typical
+    // System size: 70% offset target, capped at 1 MW (HQ Net Metering limit for incentives)
+    const HQ_MW_LIMIT = 1000;
+    const rawSystemSize = Math.round((annualKwh * 0.7) / EFFECTIVE_YIELD);
+    const systemSizeKw = Math.min(rawSystemSize, HQ_MW_LIMIT);
+    const isCapped = rawSystemSize > HQ_MW_LIMIT;
 
-    // Cost of inaction: 5-year projection at 3.5%/yr escalation
+    // Energy rate: derive from bill data or default M tariff rate
+    const energyRate = annualKwh > 0 ? (annualBill * 0.60) / annualKwh : 0.06061;
+    const clampedRate = Math.max(0.03, Math.min(energyRate, 0.15));
+
+    // Annual savings = solar production × energy rate (same formula as leads.ts line 162)
+    const annualProductionKwh = systemSizeKw * EFFECTIVE_YIELD;
+    const estimatedSavings = Math.round(annualProductionKwh * clampedRate);
+
+    // Cost of inaction: 5-year projection at 3.5%/yr tariff escalation
     let costOfInaction5yr = 0;
     for (let y = 0; y < 5; y++) {
       costOfInaction5yr += annualBill * Math.pow(1.035, y);
     }
     const extraCost5yr = Math.round(costOfInaction5yr - (annualBill * 5));
 
-    return { systemSizeKw, estimatedSavings, annualBill, extraCost5yr, costOfInaction5yr: Math.round(costOfInaction5yr) };
+    return { systemSizeKw, isCapped, estimatedSavings, annualBill, extraCost5yr, costOfInaction5yr: Math.round(costOfInaction5yr) };
   }, [parsedBillData]);
 
   const currentLogo = language === "fr" ? logoFr : logoEn;
@@ -733,22 +751,39 @@ export default function LandingPage() {
                           </p>
                           <div className="grid grid-cols-3 gap-2">
                             <div className="bg-primary/5 rounded-lg p-3 text-center">
-                              <p className="text-2xl font-bold text-primary">{clientPreview.systemSizeKw}</p>
-                              <p className="text-xs text-muted-foreground">kW {language === "fr" ? "solaire" : "solar"}</p>
+                              <p className="text-2xl font-bold text-primary" data-testid="text-system-size-kw">{clientPreview.systemSizeKw}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {language === "fr" ? "kWc recommandés" : "kWp recommended"}
+                              </p>
+                              {clientPreview.isCapped && (
+                                <p className="text-[10px] text-amber-600 mt-0.5">
+                                  {language === "fr" ? "plafonné à 1 MW (incitatifs)" : "capped at 1 MW (incentives)"}
+                                </p>
+                              )}
                             </div>
                             <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 text-center">
-                              <p className="text-2xl font-bold text-green-600">${clientPreview.estimatedSavings.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">{language === "fr" ? "économies/an" : "savings/yr"}</p>
+                              <p className="text-2xl font-bold text-green-600" data-testid="text-estimated-savings">${clientPreview.estimatedSavings.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {language === "fr" ? "économies estimées/an" : "est. savings/yr"}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                                {language === "fr" ? "sur votre facture" : "on your bill"}
+                              </p>
                             </div>
                             <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3 text-center">
-                              <p className="text-2xl font-bold text-red-500">+${clientPreview.extraCost5yr.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">{language === "fr" ? "surcoût en 5 ans" : "extra cost in 5 yrs"}</p>
+                              <p className="text-2xl font-bold text-red-500" data-testid="text-inaction-cost">+${clientPreview.extraCost5yr.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {language === "fr" ? "hausse prévue sur 5 ans" : "projected increase over 5 yrs"}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                                {language === "fr" ? "sans solaire" : "without solar"}
+                              </p>
                             </div>
                           </div>
                           <p className="text-xs text-center text-red-500/80">
                             {language === "fr"
-                              ? `Ne rien faire vous coûtera ${clientPreview.costOfInaction5yr.toLocaleString()}$ sur 5 ans avec la hausse des tarifs.`
-                              : `Doing nothing will cost you $${clientPreview.costOfInaction5yr.toLocaleString()} over 5 years with rising rates.`}
+                              ? `Ne rien faire vous coûtera ${clientPreview.costOfInaction5yr.toLocaleString()}$ sur 5 ans avec la hausse des tarifs Hydro-Québec.`
+                              : `Doing nothing will cost you $${clientPreview.costOfInaction5yr.toLocaleString()} over 5 years with Hydro-Québec rate increases.`}
                           </p>
                         </div>
                       )}
