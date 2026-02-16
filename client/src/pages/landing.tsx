@@ -92,7 +92,79 @@ interface HQBillData {
   confidence: number;
 }
 
-type FlowStep = 'upload' | 'parsing' | 'extracted' | 'quickResult' | 'manualEntry' | 'submitted';
+type FlowStep = 'upload' | 'parsing' | 'extracted' | 'quickResult' | 'qualifying' | 'qualifiedResult' | 'manualEntry' | 'submitted';
+
+// Client-side self-qualification types and logic
+type LeadColor = 'green' | 'yellow' | 'red';
+
+interface SelfQualData {
+  ownershipType: 'owner' | 'tenant_authorized' | 'tenant_pending' | 'tenant_no_auth' | '';
+  paysHydroDirectly: 'yes' | 'no' | 'unknown' | '';
+  roofAgeRange: 'new' | 'recent' | 'mature' | 'old' | '';
+  roofUsageRight: 'yes' | 'no' | 'unknown' | '';
+}
+
+interface QualBlocker {
+  key: string;
+  messageFr: string;
+  messageEn: string;
+  actionFr: string;
+  actionEn: string;
+}
+
+interface QualOutcome {
+  color: LeadColor;
+  blockers: QualBlocker[];
+  nextStepFr: string;
+  nextStepEn: string;
+}
+
+function classifyLead(data: SelfQualData, monthlyBill?: number): QualOutcome {
+  const redBlockers: QualBlocker[] = [];
+  const yellowBlockers: QualBlocker[] = [];
+
+  // RED: Tenant without auth AND no roof right
+  if (data.ownershipType === 'tenant_no_auth' && data.roofUsageRight === 'no') {
+    redBlockers.push({ key: 'no_roof_auth', messageFr: "Pas d'autorisation du propriétaire pour la toiture", messageEn: "No landlord authorization for roof usage", actionFr: "Obtenir une lettre d'autorisation de votre propriétaire pour l'utilisation de la toiture", actionEn: "Obtain written authorization from your landlord for roof usage" });
+  }
+  // RED: Electricity included in lease
+  if (data.paysHydroDirectly === 'no') {
+    redBlockers.push({ key: 'hydro_in_lease', messageFr: "L'électricité est incluse dans le bail", messageEn: "Electricity is included in the lease", actionFr: "Négocier un bail séparant les frais d'électricité, ou impliquer votre propriétaire dans le projet", actionEn: "Negotiate separate electricity costs in lease, or involve your landlord" });
+  }
+  // RED: Roof 25+ years
+  if (data.roofAgeRange === 'old') {
+    redBlockers.push({ key: 'roof_old', messageFr: "Toiture de plus de 25 ans", messageEn: "Roof over 25 years old", actionFr: "Planifier le remplacement de la toiture. Le solaire peut être installé immédiatement après", actionEn: "Plan roof replacement. Solar can be installed immediately after" });
+  }
+  // RED: Bill too low
+  if (monthlyBill !== undefined && monthlyBill > 0 && monthlyBill < 1500) {
+    redBlockers.push({ key: 'bill_low', messageFr: "Facture mensuelle trop basse pour un projet C&I viable", messageEn: "Monthly bill too low for viable C&I project", actionFr: "Le solaire commercial est optimal pour des factures de 2 500$/mois et plus", actionEn: "Commercial solar is optimal for bills of $2,500/month and above" });
+  }
+  if (redBlockers.length > 0) {
+    return { color: 'red', blockers: redBlockers, nextStepFr: "Le solaire n'est peut-être pas la meilleure option pour vous en ce moment. Voici ce qui pourrait changer la donne:", nextStepEn: "Solar may not be the best option for you right now. Here's what could change that:" };
+  }
+
+  // YELLOW: Authorization pending
+  if (data.ownershipType === 'tenant_pending') {
+    yellowBlockers.push({ key: 'auth_pending', messageFr: "Autorisation du propriétaire en cours", messageEn: "Landlord authorization in progress", actionFr: "Accélérer le processus d'approbation auprès de votre propriétaire", actionEn: "Accelerate the approval process with your landlord" });
+  }
+  // YELLOW: Roof 15-25 years
+  if (data.roofAgeRange === 'mature') {
+    yellowBlockers.push({ key: 'roof_mature', messageFr: "Toiture de 15-25 ans — inspection recommandée", messageEn: "Roof 15-25 years old — inspection recommended", actionFr: "Faire inspecter la toiture par un professionnel avant l'installation", actionEn: "Have roof professionally inspected before installation" });
+  }
+  // YELLOW: Hydro payment unknown
+  if (data.paysHydroDirectly === 'unknown') {
+    yellowBlockers.push({ key: 'hydro_unknown', messageFr: "À confirmer: paiement direct à Hydro-Québec", messageEn: "To confirm: direct payment to Hydro-Québec", actionFr: "Vérifier votre dernier compte ou contacter Hydro-Québec", actionEn: "Check your latest bill or contact Hydro-Québec directly" });
+  }
+  // YELLOW: Roof usage unknown (tenant)
+  if (data.ownershipType.startsWith('tenant') && data.roofUsageRight === 'unknown') {
+    yellowBlockers.push({ key: 'roof_right_unknown', messageFr: "Droit d'utilisation de la toiture à confirmer", messageEn: "Roof usage rights to be confirmed", actionFr: "Clarifier avec votre propriétaire si vous avez le droit d'utiliser la toiture", actionEn: "Clarify with your landlord whether you have roof usage rights" });
+  }
+  if (yellowBlockers.length > 0) {
+    return { color: 'yellow', blockers: yellowBlockers, nextStepFr: "Quelques points à clarifier avant l'appel. Votre projet reste prometteur!", nextStepEn: "A few points to clarify before the call. Your project remains promising!" };
+  }
+
+  return { color: 'green', blockers: [], nextStepFr: "Votre projet a un excellent potentiel! Réservez votre appel découverte.", nextStepEn: "Your project has excellent potential! Book your discovery call." };
+}
 
 export default function LandingPage() {
   const { t, language } = useI18n();
@@ -112,6 +184,12 @@ export default function LandingPage() {
   // Qualification fields
   const [roofAgeYears, setRoofAgeYears] = useState<string>('');
   const [ownershipType, setOwnershipType] = useState<'owner' | 'tenant' | ''>('');
+
+  // Self-qualification state (post quick-result)
+  const [selfQualData, setSelfQualData] = useState<SelfQualData>({
+    ownershipType: '', paysHydroDirectly: '', roofAgeRange: '', roofUsageRight: '',
+  });
+  const [qualOutcome, setQualOutcome] = useState<QualOutcome | null>(null);
 
   // FAQ accordion state
   const [expandedFaqItems, setExpandedFaqItems] = useState<string[]>(['item1']);
@@ -830,7 +908,7 @@ export default function LandingPage() {
                     </motion.div>
                   )}
 
-                  {/* Step 3: Quick results */}
+                  {/* Step 3: Quick results — single CTA to qualification */}
                   {flowStep === 'quickResult' && quickAnalysisResult && (
                     <motion.div
                       key="quickResult"
@@ -851,62 +929,314 @@ export default function LandingPage() {
                         </p>
                       </div>
 
-                      {/* Strong push to procuration */}
                       <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
                         <p className="text-sm font-medium text-center">
                           {language === "fr"
-                            ? "Vous voulez des résultats basés sur le profil énergétique de votre bâtiment?"
-                            : "Want results based on your building's energy profile?"}
+                            ? "Voyons si votre bâtiment est un bon candidat pour le solaire"
+                            : "Let's see if your building is a good solar candidate"}
                         </p>
-                        <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Précision 95%" : "95% accuracy"}</div>
-                          <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Options financement" : "Financing options"}</div>
-                          <div className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-green-500" />{language === "fr" ? "Gratuit" : "Free"}</div>
-                        </div>
-                        <Button onClick={handleDetailedPath} className="w-full gap-2" data-testid="button-upgrade-detailed">
-                          <FileSignature className="w-4 h-4" />
-                          {language === "fr" ? "Obtenir mon analyse détaillée gratuite" : "Get my free detailed analysis"}
+                        <p className="text-xs text-muted-foreground text-center">
+                          {language === "fr"
+                            ? "4 questions rapides (30 secondes) pour une recommandation personnalisée"
+                            : "4 quick questions (30 seconds) for a personalized recommendation"}
+                        </p>
+                        <Button
+                          onClick={() => setFlowStep('qualifying')}
+                          className="w-full gap-2"
+                          data-testid="button-start-qualification"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                          {language === "fr" ? "Continuer →" : "Continue →"}
                         </Button>
-                      </div>
-
-                      {/* Calendly CTA - Book qualification call */}
-                      <div className="mt-6 p-4 rounded-xl" style={{ backgroundColor: 'rgba(0,61,166,0.05)', border: '1px solid rgba(0,61,166,0.15)' }}>
-                        <div className="flex items-center gap-3 mb-2">
-                          <Calendar className="h-5 w-5" style={{ color: '#003DA6' }} />
-                          <p className="font-semibold text-sm" style={{ color: '#003DA6' }}>
-                            {language === 'fr' ? 'Prochaine étape : validez votre projet' : 'Next step: validate your project'}
-                          </p>
-                        </div>
-                        <p className="text-xs mb-3" style={{ color: '#6B7280' }}>
-                          {language === 'fr'
-                            ? 'Un appel de 10 minutes pour confirmer la faisabilité et débloquer votre rapport PDF personnalisé.'
-                            : 'A 10-minute call to confirm feasibility and unlock your personalized PDF report.'}
-                        </p>
-                        {import.meta.env.VITE_CALENDLY_URL ? (
-                          <a
-                            href={import.meta.env.VITE_CALENDLY_URL}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90"
-                            style={{ backgroundColor: '#003DA6' }}
-                          >
-                            <Calendar className="h-4 w-4" />
-                            {language === 'fr' ? 'Réserver mon appel' : 'Book my call'}
-                          </a>
-                        ) : (
-                          <a
-                            href="mailto:info@kwh.quebec?subject=Demande de consultation"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90"
-                            style={{ backgroundColor: '#003DA6' }}
-                          >
-                            {language === 'fr' ? 'Nous contacter' : 'Contact us'}
-                          </a>
-                        )}
                       </div>
 
                       <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
                         {language === "fr" ? "Nouvelle analyse" : "New analysis"}
                       </button>
+                    </motion.div>
+                  )}
+
+                  {/* Step 4: Self-Qualification Questions */}
+                  {flowStep === 'qualifying' && (
+                    <motion.div
+                      key="qualifying"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-6"
+                    >
+                      <div className="text-center space-y-1">
+                        <h3 className="text-lg font-semibold">
+                          {language === "fr" ? "Parlons de votre bâtiment" : "Tell us about your building"}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {language === "fr" ? "4 questions, 30 secondes" : "4 questions, 30 seconds"}
+                        </p>
+                      </div>
+
+                      {/* Q1: Ownership */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold">
+                          {language === "fr" ? "Êtes-vous propriétaire de l'immeuble?" : "Do you own the building?"}
+                        </label>
+                        <div className="grid grid-cols-1 gap-2">
+                          {([
+                            { value: 'owner', fr: 'Propriétaire', en: 'Owner' },
+                            { value: 'tenant_authorized', fr: 'Locataire avec autorisation', en: 'Tenant with authorization' },
+                            { value: 'tenant_pending', fr: 'Locataire (en attente)', en: 'Tenant (pending auth)' },
+                            { value: 'tenant_no_auth', fr: 'Locataire (sans autorisation)', en: 'Tenant (no authorization)' },
+                          ] as const).map((opt) => (
+                            <div
+                              key={opt.value}
+                              onClick={() => setSelfQualData({ ...selfQualData, ownershipType: opt.value })}
+                              className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium ${
+                                selfQualData.ownershipType === opt.value
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'border-input hover:border-primary'
+                              }`}
+                            >
+                              {language === "fr" ? opt.fr : opt.en}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Q2: Hydro payment */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold">
+                          {language === "fr" ? "Payez-vous Hydro-Québec directement?" : "Do you pay Hydro-Québec directly?"}
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {([
+                            { value: 'yes', fr: 'Oui', en: 'Yes' },
+                            { value: 'no', fr: 'Non (bail)', en: 'No (lease)' },
+                            { value: 'unknown', fr: 'Je ne sais pas', en: 'Not sure' },
+                          ] as const).map((opt) => (
+                            <div
+                              key={opt.value}
+                              onClick={() => setSelfQualData({ ...selfQualData, paysHydroDirectly: opt.value })}
+                              className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium text-center ${
+                                selfQualData.paysHydroDirectly === opt.value
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'border-input hover:border-primary'
+                              }`}
+                            >
+                              {language === "fr" ? opt.fr : opt.en}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Q3: Roof age */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold">
+                          {language === "fr" ? "Âge approximatif de la toiture?" : "Approximate roof age?"}
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {([
+                            { value: 'new', fr: '0-5 ans', en: '0-5 years' },
+                            { value: 'recent', fr: '5-15 ans', en: '5-15 years' },
+                            { value: 'mature', fr: '15-25 ans', en: '15-25 years' },
+                            { value: 'old', fr: '25+ ans', en: '25+ years' },
+                          ] as const).map((opt) => (
+                            <div
+                              key={opt.value}
+                              onClick={() => setSelfQualData({ ...selfQualData, roofAgeRange: opt.value })}
+                              className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium text-center ${
+                                selfQualData.roofAgeRange === opt.value
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'border-input hover:border-primary'
+                              }`}
+                            >
+                              {language === "fr" ? opt.fr : opt.en}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Q4: Roof usage right (only if tenant) */}
+                      {selfQualData.ownershipType.startsWith('tenant') && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2">
+                          <label className="block text-sm font-semibold">
+                            {language === "fr" ? "Avez-vous le droit d'utiliser la toiture?" : "Do you have roof usage rights?"}
+                          </label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {([
+                              { value: 'yes', fr: 'Oui', en: 'Yes' },
+                              { value: 'no', fr: 'Non', en: 'No' },
+                              { value: 'unknown', fr: 'Je ne sais pas', en: 'Not sure' },
+                            ] as const).map((opt) => (
+                              <div
+                                key={opt.value}
+                                onClick={() => setSelfQualData({ ...selfQualData, roofUsageRight: opt.value })}
+                                className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium text-center ${
+                                  selfQualData.roofUsageRight === opt.value
+                                    ? 'bg-primary text-primary-foreground border-primary'
+                                    : 'border-input hover:border-primary'
+                                }`}
+                              >
+                                {language === "fr" ? opt.fr : opt.en}
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* Submit */}
+                      <Button
+                        onClick={async () => {
+                          const outcome = classifyLead(selfQualData, quickAnalysisResult?.estimatedMonthlyBill);
+                          setQualOutcome(outcome);
+                          setFlowStep('qualifiedResult');
+                          if (quickAnalysisResult?.leadId) {
+                            try {
+                              await fetch(`/api/leads/${quickAnalysisResult.leadId}/self-qualification`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ...selfQualData, leadColor: outcome.color }),
+                              });
+                            } catch (e) { console.error('Failed to save qualification:', e); }
+                          }
+                        }}
+                        disabled={
+                          !selfQualData.ownershipType ||
+                          !selfQualData.paysHydroDirectly ||
+                          !selfQualData.roofAgeRange ||
+                          (selfQualData.ownershipType.startsWith('tenant') && !selfQualData.roofUsageRight)
+                        }
+                        className="w-full gap-2"
+                        data-testid="button-submit-qualification"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        {language === "fr" ? "Voir mes résultats →" : "See my results →"}
+                      </Button>
+                    </motion.div>
+                  )}
+
+                  {/* Step 5: Qualified Result — Conditional CTA (Green/Yellow/Red) */}
+                  {flowStep === 'qualifiedResult' && qualOutcome && (
+                    <motion.div
+                      key="qualifiedResult"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-4"
+                    >
+                      {/* GREEN */}
+                      {qualOutcome.color === 'green' && (
+                        <div className="text-center space-y-4">
+                          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                            <CheckCircle2 className="w-8 h-8 text-green-600" />
+                          </div>
+                          <h3 className="text-xl font-bold text-green-700">
+                            {language === "fr" ? "Excellent potentiel solaire!" : "Excellent solar potential!"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {language === "fr"
+                              ? "Votre bâtiment a toutes les conditions réunies pour un projet solaire rentable."
+                              : "Your building meets all conditions for a profitable solar project."}
+                          </p>
+                          <a
+                            href={import.meta.env.VITE_CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 bg-green-600"
+                          >
+                            <Calendar className="w-4 h-4" />
+                            {language === "fr" ? "Réserver mon appel découverte (10 min) →" : "Book my discovery call (10 min) →"}
+                          </a>
+                          <button onClick={handleDetailedPath} className="block w-full text-sm text-primary hover:underline">
+                            {language === "fr" ? "Ou voir mon analyse complète" : "Or view my complete analysis"}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* YELLOW */}
+                      {qualOutcome.color === 'yellow' && (
+                        <div className="text-center space-y-4">
+                          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
+                            <Info className="w-8 h-8 text-amber-600" />
+                          </div>
+                          <h3 className="text-xl font-bold text-amber-700">
+                            {language === "fr" ? "Bon potentiel — quelques points à clarifier" : "Good potential — a few points to clarify"}
+                          </h3>
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-left space-y-1">
+                            {qualOutcome.blockers.map((b, i) => (
+                              <p key={i} className="text-sm text-amber-900">• {language === "fr" ? b.messageFr : b.messageEn}</p>
+                            ))}
+                          </div>
+                          <a
+                            href={import.meta.env.VITE_CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: '#003DA6' }}
+                          >
+                            <Calendar className="w-4 h-4" />
+                            {language === "fr" ? "Réserver mon appel découverte (10 min) →" : "Book my discovery call (10 min) →"}
+                          </a>
+                          <p className="text-xs text-muted-foreground">
+                            {language === "fr"
+                              ? "Nos experts vous aideront à résoudre ces points"
+                              : "Our experts will help resolve these points"}
+                          </p>
+                          <button onClick={handleDetailedPath} className="block w-full text-sm text-primary hover:underline">
+                            {language === "fr" ? "Ou voir mon analyse complète" : "Or view my complete analysis"}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* RED */}
+                      {qualOutcome.color === 'red' && (
+                        <div className="text-center space-y-4">
+                          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
+                            <Info className="w-8 h-8 text-slate-500" />
+                          </div>
+                          <h3 className="text-lg font-bold">
+                            {language === "fr"
+                              ? "Le solaire n'est pas optimal pour vous en ce moment"
+                              : "Solar isn't optimal for you right now"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {language === "fr"
+                              ? "Mais voici ce qui pourrait changer la donne:"
+                              : "But here's what could change that:"}
+                          </p>
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-left space-y-3">
+                            {qualOutcome.blockers.map((b, i) => (
+                              <div key={i} className="text-sm">
+                                <p className="font-semibold text-slate-800">• {language === "fr" ? b.messageFr : b.messageEn}</p>
+                                <p className="text-slate-600 ml-4 text-xs italic">
+                                  {language === "fr" ? "→ " : "→ "}{language === "fr" ? b.actionFr : b.actionEn}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {language === "fr"
+                              ? "Quand ces points seront réglés, n'hésitez pas à nous recontacter."
+                              : "When these points are resolved, don't hesitate to reach out again."}
+                          </p>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              toast({
+                                title: language === "fr" ? "Merci!" : "Thank you!",
+                                description: language === "fr"
+                                  ? "Vous recevrez nos conseils et mises à jour par courriel."
+                                  : "You'll receive our tips and updates by email.",
+                              });
+                            }}
+                            className="gap-2"
+                          >
+                            <Mail className="w-4 h-4" />
+                            {language === "fr" ? "Restez informé — recevez nos conseils" : "Stay informed — get our tips"}
+                          </Button>
+                          <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
+                            {language === "fr" ? "Nouvelle analyse" : "New analysis"}
+                          </button>
+                        </div>
+                      )}
                     </motion.div>
                   )}
 

@@ -1648,6 +1648,51 @@ router.get("/api/leads/:id/nurture/status", authMiddleware, requireStaff, asyncH
 
 // ==================== LEAD BUSINESS CONTEXT ROUTES ====================
 
+// PATCH /api/leads/:id/self-qualification
+// Public endpoint — called from the landing page after self-qualification
+router.patch("/api/leads/:id/self-qualification", asyncHandler(async (req, res) => {
+  const lead = await storage.getLead(req.params.id);
+  if (!lead) throw new NotFoundError("Lead not found");
+
+  const { ownershipType, paysHydroDirectly, roofAgeRange, roofUsageRight, leadColor } = req.body;
+
+  const updateData: Record<string, any> = {};
+  if (ownershipType) updateData.ownershipType = ownershipType;
+  if (paysHydroDirectly) updateData.billPayer = paysHydroDirectly === 'yes' ? 'direct' : paysHydroDirectly === 'no' ? 'included_in_lease' : 'unknown';
+  if (roofAgeRange) {
+    const ageMap: Record<string, number> = { new: 3, recent: 10, mature: 20, old: 30 };
+    updateData.roofAgeYears = ageMap[roofAgeRange] || 0;
+  }
+  if (roofUsageRight) updateData.roofUsageRight = roofUsageRight;
+  if (leadColor) {
+    updateData.leadColor = leadColor;
+    updateData.leadColorReason = 'self_qualification';
+    updateData.leadColorUpdatedAt = new Date().toISOString();
+  }
+
+  const updatedLead = await storage.updateLead(req.params.id, updateData);
+
+  // Auto-transition: if green or yellow, move to qualified stage
+  if ((leadColor === 'green' || leadColor === 'yellow') && updatedLead) {
+    try {
+      const opportunities = await storage.getOpportunitiesByLeadId?.(req.params.id);
+      if (opportunities && opportunities.length > 0) {
+        const opp = opportunities[0];
+        if (opp.stage === 'prospect' || opp.stage === 'contacted') {
+          await storage.updateOpportunity(opp.id, {
+            stage: 'qualified',
+            probability: 20,
+          });
+        }
+      }
+    } catch (e) {
+      log.warn("Auto-transition failed for self-qualification", e);
+    }
+  }
+
+  res.json({ success: true, leadColor });
+}));
+
 // PATCH /api/leads/:id/business-context
 // Updates business-related fields for the Call Script Wizard
 router.patch("/api/leads/:id/business-context", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
