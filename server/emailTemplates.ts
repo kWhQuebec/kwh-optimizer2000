@@ -172,7 +172,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
                 <li><strong>Signature de la procuration HQ</strong> - Vous recevrez un lien de signature électronique dans les prochaines heures.</li>
                 <li><strong>Récupération des données</strong> - Nous obtiendrons votre historique de consommation Hydro-Québec.</li>
                 <li><strong>Analyse complète</strong> - Simulation 8 760 heures de votre système optimal.</li>
-                <li><strong>Rapport</strong> - Vous recevrez votre rapport détaillé dans 5 jours ouvrables.</li>
+                <li><strong>Rapport</strong> - Vous recevrez votre rapport détaillé dans 7 jours ouvrables.</li>
               </ol>
             </div>
             
@@ -207,7 +207,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
                 <li><strong>HQ Authorization Signature</strong> - You will receive an e-signature link within the next few hours.</li>
                 <li><strong>Data Retrieval</strong> - We will obtain your Hydro-Québec consumption history.</li>
                 <li><strong>Complete Analysis</strong> - 8,760-hour simulation of your optimal system.</li>
-                <li><strong>Report</strong> - You will receive your detailed report within 5 business days.</li>
+                <li><strong>Report</strong> - You will receive your detailed report within 7 business days.</li>
               </ol>
             </div>
             
@@ -229,8 +229,8 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       </body></html>`,
     },
     text: {
-      fr: `Merci {{contactName}}!\n\nNous avons bien reçu votre demande d'analyse détaillée pour {{companyName}}.\n\nProchaines étapes:\n1. Signature de la procuration HQ\n2. Récupération des données\n3. Analyse complète (simulation 8 760h)\n4. Rapport dans 5 jours ouvrables\n\nkWh Québec\ninfo@kwh.quebec`,
-      en: `Thank you {{contactName}}!\n\nWe have received your detailed analysis request for {{companyName}}.\n\nNext Steps:\n1. HQ Authorization Signature\n2. Data Retrieval\n3. Complete Analysis (8,760h simulation)\n4. Report within 5 business days\n\nkWh Québec\ninfo@kwh.quebec`,
+      fr: `Merci {{contactName}}!\n\nNous avons bien reçu votre demande d'analyse détaillée pour {{companyName}}.\n\nProchaines étapes:\n1. Signature de la procuration HQ\n2. Récupération des données\n3. Analyse complète (simulation 8 760h)\n4. Rapport dans 7 jours ouvrables\n\nkWh Québec\ninfo@kwh.quebec`,
+      en: `Thank you {{contactName}}!\n\nWe have received your detailed analysis request for {{companyName}}.\n\nNext Steps:\n1. HQ Authorization Signature\n2. Data Retrieval\n3. Complete Analysis (8,760h simulation)\n4. Report within 7 business days\n\nkWh Québec\ninfo@kwh.quebec`,
     },
   },
 
@@ -351,7 +351,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       </ul>
 
       <p style="text-align: center; margin: 30px 0;">
-        <a href="{{calendlyUrl}}" class="button">Réserver mon appel de qualification →</a>
+        <a href="{{calendlyUrl}}" class="button">Réserver mon appel découverte →</a>
       </p>
 
       <p style="font-size:13px;color:#6b7280;">Pas maintenant? Pas de problème — nous continuerons à partager des insights utiles.</p>
@@ -379,7 +379,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       </ul>
 
       <p style="text-align: center; margin: 30px 0;">
-        <a href="{{calendlyUrl}}" class="button">Book my qualification call →</a>
+        <a href="{{calendlyUrl}}" class="button">Book my discovery call →</a>
       </p>
 
       <p style="font-size:13px;color:#6b7280;">Not now? No problem — we'll continue sharing useful insights.</p>
@@ -1169,17 +1169,17 @@ export const emailTemplates: Record<string, EmailTemplate> = {
 
       <h3 style="margin-top:24px;margin-bottom:12px;color:#1f2937;">Prochaines étapes:</h3>
       <ol style="padding-left:20px;color:#666;">
-        <li style="margin:8px 0;"><strong>Données réelles Hydro-Québec:</strong> Avec votre procuration, nous accédons à votre profil de consommation heure par heure — la clé pour optimiser davantage.</li>
-        <li style="margin:8px 0;"><strong>Analyse détaillée:</strong> Simulation 8 760 heures pour trouver votre configuration optimale (PV + stockage si applicable).</li>
+        <li style="margin:8px 0;"><strong>Appel découverte (10 min):</strong> Validons ensemble votre projet et répondons à vos questions.</li>
+        <li style="margin:8px 0;"><strong>Étude personnalisée (7 jours):</strong> Avec votre procuration HQ, nous accédons à vos données réelles pour une simulation complète sur 8 760 heures.</li>
         <li style="margin:8px 0;"><strong>Rapport complet:</strong> Projections financières, comparaison de scénarios d'acquisition, et stratégie d'incitatifs.</li>
       </ol>
 
       <p style="text-align:center;margin:30px 0;">
-        <a href="{{procurationUrl}}" class="button">Obtenez votre analyse complète avec données réelles →</a>
+        <a href="{{calendlyUrl}}" class="button">Réserver mon appel découverte →</a>
       </p>
 
       <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:20px 0;">
-        <p style="margin:0;font-size:13px;color:#666;"><strong>Pourquoi cette démarche en deux étapes?</strong> La première analyse utilise l'imagerie satellite — rapide et gratuit. La deuxième utilise vos vraies données de consommation heure par heure, ce qui change tout pour optimiser votre investissement et maximiser vos retours.</p>
+        <p style="margin:0;font-size:13px;color:#666;"><strong>Pourquoi un appel d'abord?</strong> L'estimation par satellite est rapide et gratuite. L'appel nous permet de valider votre projet et de lancer l'étude personnalisée avec vos vraies données Hydro-Québec — ce qui change tout pour maximiser vos retours.</p>
       </div>
 
       <p style="font-size:13px;color:#6b7280;margin-top:24px;">Questions? Répondez simplement à ce courriel — un humain vous répondra dans les 24h.</p>
@@ -1237,17 +1237,17 @@ export const emailTemplates: Record<string, EmailTemplate> = {
 
       <h3 style="margin-top:24px;margin-bottom:12px;color:#1f2937;">Next Steps:</h3>
       <ol style="padding-left:20px;color:#666;">
-        <li style="margin:8px 0;"><strong>Real Hydro-Québec Data:</strong> With your authorization, we access your hour-by-hour consumption profile — the key to further optimization.</li>
-        <li style="margin:8px 0;"><strong>Detailed Analysis:</strong> 8,760-hour simulation to find your optimal configuration (PV + storage if applicable).</li>
+        <li style="margin:8px 0;"><strong>Discovery call (10 min):</strong> Let's validate your project together and answer your questions.</li>
+        <li style="margin:8px 0;"><strong>Personalized study (7 days):</strong> With your HQ authorization, we access your real data for a full 8,760-hour simulation.</li>
         <li style="margin:8px 0;"><strong>Complete Report:</strong> Financial projections, acquisition scenario comparison, and incentive strategy.</li>
       </ol>
 
       <p style="text-align:center;margin:30px 0;">
-        <a href="{{procurationUrl}}" class="button">Get your complete analysis with real data →</a>
+        <a href="{{calendlyUrl}}" class="button">Book my discovery call →</a>
       </p>
 
       <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:20px 0;">
-        <p style="margin:0;font-size:13px;color:#666;"><strong>Why this two-step approach?</strong> The first analysis uses satellite imagery — fast and free. The second uses your real hour-by-hour consumption data, which changes everything for optimization and maximizing your returns.</p>
+        <p style="margin:0;font-size:13px;color:#666;"><strong>Why a call first?</strong> The satellite estimate is fast and free. The call lets us validate your project and launch the personalized study with your real Hydro-Québec data — which changes everything for maximizing your returns.</p>
       </div>
 
       <p style="font-size:13px;color:#6b7280;margin-top:24px;">Questions? Just reply to this email — a human will respond within 24 hours.</p>
@@ -1260,8 +1260,8 @@ export const emailTemplates: Record<string, EmailTemplate> = {
 </body></html>`,
     },
     text: {
-      fr: `Bienvenue {{contactName}}!\n\nMerci de votre confiance. Nous avons reçu votre demande d'analyse solaire.\n\nVotre bâtiment:\n- Adresse: {{address}}\n- Type: {{buildingType}}\n- Consommation: {{annualConsumptionKwh}} kWh/an\n\nVotre potentiel:\n- Système: {{systemSizeKw}} kW\n- Économies annuelles: {{annualSavings}}$\n- Coût de l'inaction (5 ans): {{costOfInaction}}$\n\nProchaines étapes:\n1. Procuration Hydro-Québec (données réelles heure par heure)\n2. Analyse détaillée (simulation 8 760 heures)\n3. Rapport complet avec projections financières\n\nObtenez votre analyse: {{procurationUrl}}\n\nQuestions? Répondez à ce courriel.\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
-      en: `Welcome {{contactName}}!\n\nThank you for your interest. We've received your solar analysis request.\n\nYour building:\n- Address: {{address}}\n- Type: {{buildingType}}\n- Consumption: {{annualConsumptionKwh}} kWh/year\n\nYour potential:\n- System: {{systemSizeKw}} kW\n- Annual savings: \${{annualSavings}}\n- Cost of inaction (5 years): \${{costOfInaction}}\n\nNext steps:\n1. Hydro-Québec authorization (real hour-by-hour data)\n2. Detailed analysis (8,760-hour simulation)\n3. Complete report with financial projections\n\nGet your analysis: {{procurationUrl}}\n\nQuestions? Reply to this email.\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
+      fr: `Bienvenue {{contactName}}!\n\nMerci de votre confiance. Nous avons reçu votre demande d'analyse solaire.\n\nVotre bâtiment:\n- Adresse: {{address}}\n- Type: {{buildingType}}\n- Consommation: {{annualConsumptionKwh}} kWh/an\n\nVotre potentiel:\n- Système: {{systemSizeKw}} kW\n- Économies annuelles: {{annualSavings}}$\n- Coût de l'inaction (5 ans): {{costOfInaction}}$\n\nProchaines étapes:\n1. Appel découverte (10 min) pour valider votre projet\n2. Étude personnalisée (7 jours) avec vos données HQ réelles\n3. Rapport complet avec projections financières\n\nRéserver mon appel: {{calendlyUrl}}\n\nQuestions? Répondez à ce courriel.\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
+      en: `Welcome {{contactName}}!\n\nThank you for your interest. We've received your solar analysis request.\n\nYour building:\n- Address: {{address}}\n- Type: {{buildingType}}\n- Consumption: {{annualConsumptionKwh}} kWh/year\n\nYour potential:\n- System: {{systemSizeKw}} kW\n- Annual savings: \${{annualSavings}}\n- Cost of inaction (5 years): \${{costOfInaction}}\n\nNext steps:\n1. Discovery call (10 min) to validate your project\n2. Personalized study (7 days) with your real HQ data\n3. Complete report with financial projections\n\nBook my call: {{calendlyUrl}}\n\nQuestions? Reply to this email.\n\nkWh Québec\n514.427.8871 | info@kwh.quebec`,
     },
   },
 

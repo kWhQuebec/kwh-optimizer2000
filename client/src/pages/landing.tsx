@@ -1341,8 +1341,8 @@ export default function LandingPage() {
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               {language === "fr"
-                ? "De l'analyse gratuite à la production d'énergie — en 6 étapes claires"
-                : "From free analysis to energy production — in 6 clear steps"
+                ? "De l'analyse gratuite à la production d'énergie — en 5 étapes claires"
+                : "From free analysis to energy production — in 5 clear steps"
               }
             </p>
           </motion.div>
@@ -1351,21 +1351,20 @@ export default function LandingPage() {
           <div>
             {(() => {
               const timeline = getTimeline(language === "fr" ? "fr" : "en");
-              const stepIcons = [BarChart3, FileText, FileSignature, HardHat, ClipboardCheck, Zap];
+              const stepIcons = [BarChart3, FileText, HardHat, ClipboardCheck, Zap];
 
               const stepColors = [
-                "rgba(0,61,166,0.45)",
+                "rgba(0,61,166,0.40)",
                 "rgba(0,61,166,0.55)",
-                "rgba(0,61,166,0.65)",
-                "rgba(0,61,166,0.78)",
-                "rgba(0,61,166,0.90)",
+                "rgba(0,61,166,0.70)",
+                "rgba(0,61,166,0.85)",
                 BRAND.primaryBlue,
               ];
 
               const phases = [
                 { key: "discovery", labelFr: "Découverte", labelEn: "Discovery", descFr: "Gratuit, sans engagement", descEn: "Free, no commitment", steps: [0, 1] },
-                { key: "design", labelFr: "Conception", labelEn: "Design", descFr: "Étude détaillée", descEn: "Detailed study", steps: [2, 3] },
-                { key: "execution", labelFr: "Réalisation", labelEn: "Execution", descFr: "Clé en main", descEn: "Turnkey", steps: [4, 5] },
+                { key: "design", labelFr: "Conception", labelEn: "Design", descFr: "Mandat préliminaire", descEn: "Preliminary mandate", steps: [2] },
+                { key: "execution", labelFr: "Réalisation", labelEn: "Execution", descFr: "Clé en main", descEn: "Turnkey", steps: [3, 4] },
               ];
 
               const allRows: Array<{ type: "phase"; phase: typeof phases[0]; pi: number } | { type: "step"; si: number }> = [];
@@ -1425,11 +1424,9 @@ export default function LandingPage() {
                     const Icon = stepIcons[si] || Zap;
                     const stepNum = si + 1;
                     const isLeft = si % 2 === 0;
-                    const isLast = si === 5;
+                    const isLast = si === 4;
                     const stepColor = stepColors[si] || BRAND.primaryBlue;
-                    const stepDisplay = si === 2
-                      ? (language === "fr" ? "Conception détaillée" : "Detailed Design")
-                      : tl.step;
+                    const stepDisplay = tl.step;
 
                     const cardContent = (
                       <Card className="w-full">

@@ -159,7 +159,7 @@ export function DownloadReportButton({
           variant="default"
           className="gap-2"
           onClick={() => {
-            window.open("https://calendly.com/kwh-quebec/decouverte", "_blank");
+            window.open(import.meta.env.VITE_CALENDLY_URL || "https://calendly.com/kwh-quebec/decouverte", "_blank");
           }}
           data-testid="button-book-call-unlock"
         >
