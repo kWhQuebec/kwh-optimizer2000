@@ -217,44 +217,38 @@ export const getHowToSchema = (lang: "fr" | "en"): StructuredData => ({
   "@type": "HowTo",
   "name": lang === "fr" ? "Comment obtenir une analyse solaire" : "How to get a solar analysis",
   "description": lang === "fr"
-    ? "Processus simple en 6 étapes pour votre projet solaire commercial"
-    : "Simple 6-step process for your commercial solar project",
+    ? "Processus simple en 5 étapes pour votre projet solaire commercial"
+    : "Simple 5-step process for your commercial solar project",
   "step": [
     {
       "@type": "HowToStep",
       "position": 1,
-      "name": lang === "fr" ? "Analyse rapide" : "Quick Analysis",
-      "text": lang === "fr" ? "Obtenez une estimation en 2 minutes" : "Get an estimate in 2 minutes"
+      "name": lang === "fr" ? "Analyse rapide du potentiel" : "Quick Potential Analysis",
+      "text": lang === "fr" ? "Estimation gratuite basée sur votre facture Hydro-Québec" : "Free estimate based on your Hydro-Québec bill"
     },
     {
       "@type": "HowToStep",
       "position": 2,
-      "name": lang === "fr" ? "Analyse détaillée" : "Detailed Analysis",
-      "text": lang === "fr" ? "Signez la procuration Hydro-Québec" : "Sign Hydro-Québec authorization"
+      "name": lang === "fr" ? "Validation économique" : "Economic Validation",
+      "text": lang === "fr" ? "Rapport détaillé des impacts financiers et environnementaux" : "Detailed financial and environmental impact report"
     },
     {
       "@type": "HowToStep",
       "position": 3,
-      "name": lang === "fr" ? "Rapport" : "Report",
-      "text": lang === "fr" ? "Recevez votre rapport personnalisé" : "Receive your personalized report"
+      "name": lang === "fr" ? "Validation technique" : "Technical Validation",
+      "text": lang === "fr" ? "Visite de site, conception détaillée et soumission forfaitaire" : "Site visit, detailed design and fixed-price quote"
     },
     {
       "@type": "HowToStep",
       "position": 4,
-      "name": lang === "fr" ? "Proposition" : "Proposal",
-      "text": lang === "fr" ? "Obtenez votre soumission détaillée" : "Get your detailed quote"
+      "name": lang === "fr" ? "Ingénierie, plans et devis" : "Engineering, Plans and Quotes",
+      "text": lang === "fr" ? "Plans d'ingénieur et dossier de financement" : "Engineer plans and financing dossier"
     },
     {
       "@type": "HowToStep",
       "position": 5,
-      "name": lang === "fr" ? "Installation" : "Installation",
-      "text": lang === "fr" ? "Installation clé en main" : "Turnkey installation"
-    },
-    {
-      "@type": "HowToStep",
-      "position": 6,
-      "name": lang === "fr" ? "Économies" : "Savings",
-      "text": lang === "fr" ? "Commencez à économiser" : "Start saving"
+      "name": lang === "fr" ? "Permis et installation clé en main" : "Permits and Turnkey Installation",
+      "text": lang === "fr" ? "Permis municipal, installation et mise en service" : "Municipal permits, installation and commissioning"
     }
   ]
 });
@@ -307,8 +301,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le processus complet prend généralement 6-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données Hydro-Québec réelles (5 jours ouvrables), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."
-          : "The complete process typically takes 6-8 months depending on project complexity: free estimate (a few minutes), personalized study with real Hydro-Québec data (5 business days), preliminary design and site visit (2 weeks), plans and fixed-price quote (4-8 weeks), and permits and turnkey installation (10-18 weeks). Every project is unique — the 10-minute discovery call lets us give you a precise timeline."
+          ? "Le processus complet prend généralement 6-8 mois selon la complexité du projet: analyse rapide du potentiel (quelques minutes), validation économique avec données Hydro-Québec réelles (7 jours), validation technique avec visite de site (2-3 semaines), ingénierie et plans d'ingénieur (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."
+          : "The complete process typically takes 6-8 months depending on project complexity: quick potential analysis (a few minutes), economic validation with real Hydro-Québec data (7 days), technical validation with site visit (2-3 weeks), engineering plans and quotes (4-8 weeks), and permits and turnkey installation (10-18 weeks). Every project is unique — the 10-minute discovery call lets us give you a precise timeline."
       }
     },
     {
@@ -366,12 +360,12 @@ export const seoContent = {
   howItWorks: {
     fr: {
       title: "Comment ça marche | Processus d'analyse solaire | kWh Québec",
-      description: "Découvrez notre processus en 6 étapes: de l'analyse gratuite à l'installation clé en main. Analyse GRATUITE en 2 minutes.",
+      description: "Découvrez notre processus en 5 étapes: de l'analyse gratuite à l'installation clé en main. Analyse GRATUITE en 2 minutes.",
       keywords: "processus solaire, analyse gratuite, installation solaire étapes, projet solaire commercial",
     },
     en: {
       title: "How It Works | Solar Analysis Process | kWh Québec",
-      description: "Discover our 6-step process: from free analysis to turnkey installation. FREE analysis in 2 minutes.",
+      description: "Discover our 5-step process: from free analysis to turnkey installation. FREE analysis in 2 minutes.",
       keywords: "solar process, free analysis, solar installation steps, commercial solar project",
     },
   },

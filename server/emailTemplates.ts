@@ -169,10 +169,9 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             <div class="highlight">
               <h3>Prochaines étapes:</h3>
               <ol>
-                <li><strong>Signature de la procuration HQ</strong> - Vous recevrez un lien de signature électronique dans les prochaines heures.</li>
-                <li><strong>Récupération des données</strong> - Nous obtiendrons votre historique de consommation Hydro-Québec.</li>
-                <li><strong>Analyse complète</strong> - Simulation 8 760 heures de votre système optimal.</li>
-                <li><strong>Rapport</strong> - Vous recevrez votre rapport détaillé dans 7 jours ouvrables.</li>
+                <li><strong>Accès à vos données Hydro-Québec</strong> - Nous vous enverrons les instructions dans les prochaines heures.</li>
+                <li><strong>Analyse complète</strong> - Simulation sur 8 760 heures de votre système optimal.</li>
+                <li><strong>Rapport détaillé</strong> - Vous recevrez votre rapport dans 7 jours ouvrables.</li>
               </ol>
             </div>
             
@@ -204,10 +203,9 @@ export const emailTemplates: Record<string, EmailTemplate> = {
             <div class="highlight">
               <h3>Next Steps:</h3>
               <ol>
-                <li><strong>HQ Authorization Signature</strong> - You will receive an e-signature link within the next few hours.</li>
-                <li><strong>Data Retrieval</strong> - We will obtain your Hydro-Québec consumption history.</li>
+                <li><strong>Access to your Hydro-Québec data</strong> - We will send you instructions shortly.</li>
                 <li><strong>Complete Analysis</strong> - 8,760-hour simulation of your optimal system.</li>
-                <li><strong>Report</strong> - You will receive your detailed report within 7 business days.</li>
+                <li><strong>Detailed Report</strong> - You will receive your report within 7 business days.</li>
               </ol>
             </div>
             
@@ -229,8 +227,8 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       </body></html>`,
     },
     text: {
-      fr: `Merci {{contactName}}!\n\nNous avons bien reçu votre demande d'analyse détaillée pour {{companyName}}.\n\nProchaines étapes:\n1. Signature de la procuration HQ\n2. Récupération des données\n3. Analyse complète (simulation 8 760h)\n4. Rapport dans 7 jours ouvrables\n\nkWh Québec\ninfo@kwh.quebec`,
-      en: `Thank you {{contactName}}!\n\nWe have received your detailed analysis request for {{companyName}}.\n\nNext Steps:\n1. HQ Authorization Signature\n2. Data Retrieval\n3. Complete Analysis (8,760h simulation)\n4. Report within 7 business days\n\nkWh Québec\ninfo@kwh.quebec`,
+      fr: `Merci {{contactName}}!\n\nNous avons bien reçu votre demande d'analyse détaillée pour {{companyName}}.\n\nProchaines étapes:\n1. Accès à vos données Hydro-Québec\n2. Analyse complète (simulation 8 760h)\n3. Rapport détaillé dans 7 jours ouvrables\n\nkWh Québec\ninfo@kwh.quebec`,
+      en: `Thank you {{contactName}}!\n\nWe have received your detailed analysis request for {{companyName}}.\n\nNext Steps:\n1. Access to your Hydro-Québec data\n2. Complete Analysis (8,760h simulation)\n3. Detailed report within 7 business days\n\nkWh Québec\ninfo@kwh.quebec`,
     },
   },
 
@@ -419,7 +417,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
         <p>{{riskFlags}}</p>
       </div>
 
-      <p>Aucun de ces points n'élimine votre projet — ils sont simplement des éléments que nous devons valider ensemble lors de notre appel de qualification.</p>
+      <p>Aucun de ces points n'élimine votre projet — ils sont simplement des éléments que nous devons valider ensemble lors de notre appel découverte.</p>
 
       <p style="text-align: center; margin: 30px 0;">
         <a href="{{calendlyUrl}}" class="button">Discutons de ces points en 10 minutes →</a>
@@ -446,7 +444,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
         <p>{{riskFlags}}</p>
       </div>
 
-      <p>None of these eliminate your project — they're simply items we need to validate together during our qualification call.</p>
+      <p>None of these eliminate your project — they're simply items we need to validate together during our discovery call.</p>
 
       <p style="text-align: center; margin: 30px 0;">
         <a href="{{calendlyUrl}}" class="button">Let's discuss in 10 minutes →</a>
@@ -480,7 +478,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     </div>
     <div class="content">
       <h2>Bonjour {{contactName}},</h2>
-      <p>Après notre appel de qualification, l'étape suivante est la <strong>validation sur terrain</strong>. Voici ce qui est inclus:</p>
+      <p>Après notre appel découverte, l'étape suivante est la <strong>validation technique sur site</strong>. Voici ce qui est inclus:</p>
 
       <div class="highlight">
         <h3>Mandat de conception préliminaire - 2 500$ + taxes</h3>
@@ -515,7 +513,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
     </div>
     <div class="content">
       <h2>Hello {{contactName}},</h2>
-      <p>After our qualification call, the next step is <strong>on-site validation</strong>. Here's what's included:</p>
+      <p>After our discovery call, the next step is <strong>on-site technical validation</strong>. Here's what's included:</p>
 
       <div class="highlight">
         <h3>Preliminary Design Mandate - $2,500 + tax</h3>
@@ -1170,7 +1168,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       <h3 style="margin-top:24px;margin-bottom:12px;color:#1f2937;">Prochaines étapes:</h3>
       <ol style="padding-left:20px;color:#666;">
         <li style="margin:8px 0;"><strong>Appel découverte (10 min):</strong> Validons ensemble votre projet et répondons à vos questions.</li>
-        <li style="margin:8px 0;"><strong>Étude personnalisée (7 jours):</strong> Avec votre procuration HQ, nous accédons à vos données réelles pour une simulation complète sur 8 760 heures.</li>
+        <li style="margin:8px 0;"><strong>Étude personnalisée (7 jours):</strong> Avec vos données Hydro-Québec réelles, nous réalisons une simulation complète sur 8 760 heures.</li>
         <li style="margin:8px 0;"><strong>Rapport complet:</strong> Projections financières, comparaison de scénarios d'acquisition, et stratégie d'incitatifs.</li>
       </ol>
 
@@ -1238,7 +1236,7 @@ export const emailTemplates: Record<string, EmailTemplate> = {
       <h3 style="margin-top:24px;margin-bottom:12px;color:#1f2937;">Next Steps:</h3>
       <ol style="padding-left:20px;color:#666;">
         <li style="margin:8px 0;"><strong>Discovery call (10 min):</strong> Let's validate your project together and answer your questions.</li>
-        <li style="margin:8px 0;"><strong>Personalized study (7 days):</strong> With your HQ authorization, we access your real data for a full 8,760-hour simulation.</li>
+        <li style="margin:8px 0;"><strong>Personalized study (7 days):</strong> With your real Hydro-Québec data, we run a full 8,760-hour simulation.</li>
         <li style="margin:8px 0;"><strong>Complete Report:</strong> Financial projections, acquisition scenario comparison, and incentive strategy.</li>
       </ol>
 
