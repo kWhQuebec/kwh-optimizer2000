@@ -39,12 +39,12 @@ export const BRAND_CONTENT = {
   // === CALENDLY BOOKING ===
   calendly: {
     urlEnvVar: "VITE_CALENDLY_URL",
-    fallbackUrl: "https://calendly.com/kwh-quebec/decouverte",
+    fallbackUrl: "https://calendly.com/kwh-quebec/consultation",
     height: "650px",
-    labelFr: "Réserver un appel découverte",
-    labelEn: "Book a discovery call",
-    descriptionFr: "Un appel découverte de 10 minutes pour valider votre projet et planifier les prochaines étapes.",
-    descriptionEn: "A 10-minute discovery call to validate your project and plan next steps.",
+    labelFr: "Réserver un appel de qualification",
+    labelEn: "Book a qualification call",
+    descriptionFr: "Un appel de 10 minutes pour valider votre projet et débloquer votre rapport personnalisé.",
+    descriptionEn: "A 10-minute call to validate your project and unlock your personalized report.",
   },
 
   // === TITRES DE SECTIONS ===
@@ -160,16 +160,17 @@ export const BRAND_CONTENT = {
     snowLoadNote: { labelFr: "Compatible avec charges de neige typiques au Québec (> 3.5 kPa)", labelEn: "Compatible with typical Quebec snow loads (> 3.5 kPa)" },
   },
 
-  // === PARCOURS CLIENT UNIFIÉ (5 étapes) ===
+  // === PARCOURS CLIENT UNIFIÉ (6 étapes, 3 phases) ===
   timeline: [
     // Phase Découverte (gratuit, sans engagement)
     { stepFr: "Analyse gratuite", stepEn: "Free Analysis", durationFr: "Quelques minutes", durationEn: "A few minutes", iconCode: "analysis", phase: "discovery" },
-    { stepFr: "Étude personnalisée", stepEn: "Personalized Study", durationFr: "7 jours", durationEn: "7 days", iconCode: "study", phase: "discovery" },
-    // Phase Conception (engagement initial — mandat 2 500$)
-    { stepFr: "Conception préliminaire", stepEn: "Preliminary Design", durationFr: "2 semaines", durationEn: "2 weeks", iconCode: "design", phase: "design" },
+    { stepFr: "Étude personnalisée", stepEn: "Personalized Study", durationFr: "7 jours ouvrables", durationEn: "7 business days", iconCode: "study", phase: "discovery" },
+    // Phase Conception (engagement initial)
+    { stepFr: "Mandat de conception", stepEn: "Design Mandate", durationFr: "2 500$ créditable", durationEn: "$2,500 creditable", iconCode: "mandate", phase: "design" },
+    { stepFr: "Visite technique & proposition", stepEn: "Site Visit & Proposal", durationFr: "2-3 semaines", durationEn: "2-3 weeks", iconCode: "visit", phase: "design" },
     // Phase Réalisation (clé en main)
-    { stepFr: "Plans & soumission forfaitaire", stepEn: "Plans & Fixed-Price Quote", durationFr: "4-8 semaines", durationEn: "4-8 weeks", iconCode: "plans", phase: "execution" },
-    { stepFr: "Permis & installation clé en main", stepEn: "Permits & Turnkey Installation", durationFr: "10-18 semaines", durationEn: "10-18 weeks", iconCode: "install", phase: "execution" },
+    { stepFr: "Permis & approvisionnement", stepEn: "Permits & Procurement", durationFr: "6-10 semaines", durationEn: "6-10 weeks", iconCode: "permits", phase: "execution" },
+    { stepFr: "Installation & mise en service", stepEn: "Installation & Commissioning", durationFr: "4-8 semaines", durationEn: "4-8 weeks", iconCode: "install", phase: "execution" },
   ],
 
   // === PROJECT SNAPSHOT LABELS ===
