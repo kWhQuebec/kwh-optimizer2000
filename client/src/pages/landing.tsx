@@ -1341,8 +1341,8 @@ export default function LandingPage() {
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               {language === "fr"
-                ? "De l'analyse gratuite à la production d'énergie — en 5 étapes claires"
-                : "From free analysis to energy production — in 5 clear steps"
+                ? "De l'estimation gratuite à l'installation — en 5 étapes claires"
+                : "From free estimate to installation — in 5 clear steps"
               }
             </p>
           </motion.div>
@@ -1455,6 +1455,16 @@ export default function LandingPage() {
                                   <Clock className="w-3 h-3 mr-1" />
                                   {tl.duration}
                                 </Badge>
+                              )}
+                              {tl.bullets && tl.bullets.length > 0 && (
+                                <ul className="mt-2 space-y-1">
+                                  {tl.bullets.map((b: string, bi: number) => (
+                                    <li key={bi} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                      <span className="text-primary/60 mt-0.5 shrink-0">•</span>
+                                      <span>{b}</span>
+                                    </li>
+                                  ))}
+                                </ul>
                               )}
                             </div>
                           </div>

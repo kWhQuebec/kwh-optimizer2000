@@ -307,8 +307,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le processus complet prend généralement 4 à 6 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données Hydro-Québec réelles (5 jours ouvrables), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."
-          : "The complete process typically takes 4 to 6 months depending on project complexity: free estimate (a few minutes), personalized study with real Hydro-Québec data (5 business days), preliminary design and site visit (2 weeks), plans and fixed-price quote (4-8 weeks), and permits and turnkey installation (10-18 weeks). Every project is unique — the 10-minute discovery call lets us give you a precise timeline."
+          ? "Le processus complet prend généralement 6-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données Hydro-Québec réelles (5 jours ouvrables), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."
+          : "The complete process typically takes 6-8 months depending on project complexity: free estimate (a few minutes), personalized study with real Hydro-Québec data (5 business days), preliminary design and site visit (2 weeks), plans and fixed-price quote (4-8 weeks), and permits and turnkey installation (10-18 weeks). Every project is unique — the 10-minute discovery call lets us give you a precise timeline."
       }
     },
     {

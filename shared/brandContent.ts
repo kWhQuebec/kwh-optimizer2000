@@ -162,14 +162,84 @@ export const BRAND_CONTENT = {
 
   // === PARCOURS CLIENT UNIFIÉ (5 étapes) ===
   timeline: [
-    // Phase Découverte (gratuit, sans engagement)
-    { stepFr: "Analyse rapide du potentiel", stepEn: "Quick Potential Analysis", durationFr: "Quelques minutes", durationEn: "A few minutes", iconCode: "analysis", phase: "discovery" },
-    { stepFr: "Validation économique", stepEn: "Economic Validation", durationFr: "7 jours", durationEn: "7 days", iconCode: "study", phase: "discovery" },
-    // Phase Conception (engagement initial — mandat 2 500$)
-    { stepFr: "Validation technique", stepEn: "Technical Validation", durationFr: "2 semaines", durationEn: "2 weeks", iconCode: "design", phase: "design" },
+    // Phase Exploration (gratuit, sans engagement)
+    {
+      stepFr: "Analyse rapide du potentiel", stepEn: "Quick Potential Analysis",
+      durationFr: "Quelques minutes", durationEn: "A few minutes",
+      iconCode: "analysis", phase: "discovery",
+      bulletsFr: [
+        "Calcul basé sur votre facture Hydro-Québec",
+        "Estimation des économies et du retour sur investissement",
+        "Résultats instantanés envoyés par courriel",
+      ],
+      bulletsEn: [
+        "Calculation based on your Hydro-Québec bill",
+        "Savings and ROI estimate",
+        "Instant results sent by email",
+      ],
+    },
+    {
+      stepFr: "Validation économique", stepEn: "Economic Validation",
+      durationFr: "7 jours", durationEn: "7 days",
+      iconCode: "study", phase: "discovery",
+      bulletsFr: [
+        "Analyse du profil énergétique de votre immeuble",
+        "Rapport détaillé des impacts financiers et environnementaux",
+        "Outils de présentation clairs et faciles à partager (PDF, présentation PPT, portail en ligne)",
+      ],
+      bulletsEn: [
+        "Energy profile analysis of your building",
+        "Detailed financial and environmental impact report",
+        "Clear, shareable presentation tools (PDF, PPT presentation, online portal)",
+      ],
+    },
+    // Phase Conception (engagement initial — mandat 2 500$ créditable)
+    {
+      stepFr: "Validation technique", stepEn: "Technical Validation",
+      durationFr: "2-3 semaines", durationEn: "2-3 weeks",
+      iconCode: "design", phase: "design",
+      bulletsFr: [
+        "Visite de site, inspection du toit et revue de la salle électrique",
+        "Confirmation de la possibilité de raccordement au réseau Hydro-Québec",
+        "Conception détaillée, liste des équipements et soumission forfaitaire pour l'ensemble du projet",
+      ],
+      bulletsEn: [
+        "Site visit, roof inspection and electrical room review",
+        "Confirmation of Hydro-Québec grid connection feasibility",
+        "Detailed design, equipment list and fixed-price quote for the entire project",
+      ],
+    },
     // Phase Réalisation (clé en main)
-    { stepFr: "Ingénierie, plans & devis", stepEn: "Engineering, Plans & Quotes", durationFr: "4-8 semaines", durationEn: "4-8 weeks", iconCode: "plans", phase: "execution" },
-    { stepFr: "Permis & installation clé en main", stepEn: "Permits & Turnkey Installation", durationFr: "10-18 semaines", durationEn: "10-18 weeks", iconCode: "install", phase: "execution" },
+    {
+      stepFr: "Ingénierie, plans & devis", stepEn: "Engineering, Plans & Quotes",
+      durationFr: "4-8 semaines", durationEn: "4-8 weeks",
+      iconCode: "plans", phase: "execution",
+      bulletsFr: [
+        "Validation de la capacité portante du toit par ingénieur en structure",
+        "Plans et devis pour construction préparés par ingénieur électrique",
+        "Dossier complet pour financement et incitatifs",
+      ],
+      bulletsEn: [
+        "Roof load capacity validation by structural engineer",
+        "Construction plans and specs prepared by electrical engineer",
+        "Complete file for financing and incentives",
+      ],
+    },
+    {
+      stepFr: "Permis & installation clé en main", stepEn: "Permits & Turnkey Installation",
+      durationFr: "10-18 semaines", durationEn: "10-18 weeks",
+      iconCode: "install", phase: "execution",
+      bulletsFr: [
+        "Permis municipal et approbation Hydro-Québec",
+        "Installation par techniciens kWh compétents et assurés (CCQ & CNESST)",
+        "Mise en service, monitoring et garanties",
+      ],
+      bulletsEn: [
+        "Municipal permit and Hydro-Québec approval",
+        "Installation by qualified and insured kWh technicians (CCQ & CNESST)",
+        "Commissioning, monitoring and warranties",
+      ],
+    },
   ],
 
   // === PROJECT SNAPSHOT LABELS ===

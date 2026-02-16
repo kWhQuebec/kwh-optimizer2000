@@ -54,52 +54,46 @@ const translations: Translations = {
   "landing.whyNow.fiscal.description": { fr: "Traitement fiscal avantageux", en: "Advantageous fiscal treatment" },
   "landing.whyNow.deadline": { fr: "Ces incitatifs peuvent changer à tout moment", en: "These incentives can change at any time" },
   
-  // Landing Page - Process Steps (6 steps, 3 phases)
-  // Phase Découverte
-  "landing.step1.title": { fr: "Analyse gratuite", en: "Free Analysis" },
+  // Landing Page - Process Steps (5 steps, 3 phases)
+  // Phase Exploration (gratuit)
+  "landing.step1.title": { fr: "Analyse rapide du potentiel", en: "Quick Potential Analysis" },
   "landing.step1.description": {
-    fr: "Téléversez votre facture Hydro-Québec — notre IA calcule instantanément votre potentiel solaire, vos économies et votre ROI. Zéro engagement.",
-    en: "Upload your Hydro-Québec bill — our AI instantly calculates your solar potential, savings and ROI. Zero commitment."
+    fr: "Calcul basé sur votre facture Hydro-Québec. Estimation des économies et du retour sur investissement. Résultats instantanés envoyés par courriel.",
+    en: "Calculation based on your Hydro-Québec bill. Savings and ROI estimate. Instant results sent by email."
   },
   "landing.step1.time": { fr: "Quelques minutes", en: "A few minutes" },
-  "landing.step2.title": { fr: "Étude personnalisée", en: "Personalized Study" },
+  "landing.step2.title": { fr: "Validation économique", en: "Economic Validation" },
   "landing.step2.description": {
-    fr: "Signez une procuration Hydro-Québec (2 min) — on accède à vos données réelles de consommation heure par heure pour produire un rapport détaillé personnalisé.",
-    en: "Sign a Hydro-Québec proxy (2 min) — we access your real hour-by-hour consumption data to produce a detailed personalized report."
+    fr: "Analyse du profil énergétique de votre immeuble. Rapport détaillé des impacts financiers et environnementaux. Outils de présentation clairs et faciles à partager.",
+    en: "Energy profile analysis of your building. Detailed financial and environmental impact report. Clear, shareable presentation tools."
   },
-  "landing.step2.time": { fr: "7 jours ouvrables", en: "7 business days" },
-  // Phase Conception
-  "landing.step3.title": { fr: "Mandat de conception préliminaire", en: "Preliminary Design Mandate" },
+  "landing.step2.time": { fr: "7 jours", en: "7 days" },
+  // Phase Conception (mandat 2 500$ créditable)
+  "landing.step3.title": { fr: "Validation technique", en: "Technical Validation" },
   "landing.step3.description": {
-    fr: "Vous signez le mandat de conception préliminaire (2 500$ + taxes). Ce montant couvre la visite technique et la validation terrain. Crédité intégralement si vous signez le contrat EPC.",
-    en: "You sign the preliminary design mandate ($2,500 + taxes). This covers the technical visit and site validation. Fully credited if you sign the EPC contract."
+    fr: "Visite de site, inspection du toit et revue de la salle électrique. Confirmation du raccordement Hydro-Québec. Conception détaillée et soumission forfaitaire.",
+    en: "Site visit, roof inspection and electrical room review. Hydro-Québec connection confirmation. Detailed design and fixed-price quote."
   },
-  "landing.step3.time": { fr: "Signature + frais", en: "Signature + fees" },
-  "landing.step4.title": { fr: "Visite & proposition", en: "Visit & Proposal" },
+  "landing.step3.time": { fr: "2-3 semaines", en: "2-3 weeks" },
+  // Phase Réalisation (clé en main)
+  "landing.step4.title": { fr: "Ingénierie, plans & devis", en: "Engineering, Plans & Quotes" },
   "landing.step4.description": {
-    fr: "Visite sur site par un ingénieur certifié, analyse structurelle, conception préliminaire — puis proposition ferme avec prix garanti et échéancier détaillé.",
-    en: "On-site visit by certified engineer, structural analysis, preliminary design — then firm proposal with guaranteed price and detailed timeline."
+    fr: "Validation structurelle par ingénieur. Plans et devis de construction par ingénieur électrique. Dossier complet pour financement et incitatifs.",
+    en: "Structural validation by engineer. Construction plans and specs by electrical engineer. Complete file for financing and incentives."
   },
-  "landing.step4.time": { fr: "2-3 semaines", en: "2-3 weeks" },
-  // Phase Réalisation
-  "landing.step5.title": { fr: "Permis & approvisionnement", en: "Permits & Procurement" },
+  "landing.step4.time": { fr: "4-8 semaines", en: "4-8 weeks" },
+  "landing.step5.title": { fr: "Permis & installation clé en main", en: "Permits & Turnkey Installation" },
   "landing.step5.description": {
-    fr: "Plans finaux, permis municipaux et électriques, demande d'interconnexion Hydro-Québec, commande d'équipement — on gère tout, vous recevez des mises à jour régulières.",
-    en: "Final plans, municipal and electrical permits, Hydro-Québec interconnection application, equipment ordering — we handle everything, you receive regular updates."
+    fr: "Permis municipal et approbation Hydro-Québec. Installation par techniciens kWh compétents et assurés (CCQ & CNESST). Mise en service, monitoring et garanties.",
+    en: "Municipal permit and Hydro-Québec approval. Installation by qualified and insured kWh technicians (CCQ & CNESST). Commissioning, monitoring and warranties."
   },
-  "landing.step5.time": { fr: "6-10 semaines", en: "6-10 weeks" },
-  "landing.step6.title": { fr: "Installation & mise en service", en: "Installation & Commissioning" },
-  "landing.step6.description": {
-    fr: "Montage, câblage, onduleurs, inspections, raccordement Hydro-Québec, activation du système — début de vos économies. Monitoring et support continu inclus.",
-    en: "Mounting, wiring, inverters, inspections, Hydro-Québec connection, system activation — start saving. Monitoring and ongoing support included."
-  },
-  "landing.step6.time": { fr: "4-8 semaines", en: "4-8 weeks" },
+  "landing.step5.time": { fr: "10-18 semaines", en: "10-18 weeks" },
 
   // Landing Page - Process
   "landing.process.title": { fr: "Votre parcours simplifié", en: "Your Simplified Journey" },
   "landing.process.subtitle": {
-    fr: "De l'analyse gratuite à la production d'énergie — en 6 étapes claires",
-    en: "From free analysis to energy production — in 6 clear steps"
+    fr: "De l'estimation gratuite à l'installation — en 5 étapes claires",
+    en: "From free estimate to installation — in 5 clear steps"
   },
   "landing.process.phase.discovery": { fr: "Découverte", en: "Discovery" },
   "landing.process.phase.design": { fr: "Conception", en: "Design" },
