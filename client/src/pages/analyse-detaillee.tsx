@@ -784,7 +784,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
             <div className="flex items-center justify-center gap-4 text-muted-foreground mb-4">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                <span>5 {language === "fr" ? "jours ouvrables" : "business days"}</span>
+                <span>7 {language === "fr" ? "jours ouvrables" : "business days"}</span>
               </div>
               <div className="flex items-center gap-1">
                 <CheckCircle2 className="w-4 h-4 text-green-500" />

@@ -67,7 +67,7 @@ const translations: Translations = {
     fr: "Signez une procuration Hydro-Québec (2 min) — on accède à vos données réelles de consommation heure par heure pour produire un rapport détaillé personnalisé.",
     en: "Sign a Hydro-Québec proxy (2 min) — we access your real hour-by-hour consumption data to produce a detailed personalized report."
   },
-  "landing.step2.time": { fr: "48-72h", en: "48-72h" },
+  "landing.step2.time": { fr: "7 jours ouvrables", en: "7 business days" },
   // Phase Conception
   "landing.step3.title": { fr: "Mandat de conception préliminaire", en: "Preliminary Design Mandate" },
   "landing.step3.description": {

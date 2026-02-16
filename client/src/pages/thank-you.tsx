@@ -61,7 +61,7 @@ export default function ThankYouPage() {
         {
           step: "2",
           title: "Rapport envoyé par courriel",
-          description: "Délai: 48-72 heures",
+          description: "Délai: 7 jours ouvrables",
         },
         {
           step: "3",
@@ -78,7 +78,7 @@ export default function ThankYouPage() {
         {
           step: "2",
           title: "Report sent by email",
-          description: "Timeline: 48-72 hours",
+          description: "Timeline: 7 business days",
         },
         {
           step: "3",

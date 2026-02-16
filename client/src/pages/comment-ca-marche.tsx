@@ -52,7 +52,7 @@ export default function CommentCaMarchePage() {
       number: 3,
       icon: BarChart3,
       title: language === "fr" ? "Analyse DÉTAILLÉE" : "Detailed Analysis",
-      duration: language === "fr" ? "5 jours ouvrables" : "5 business days",
+      duration: language === "fr" ? "7 jours ouvrables" : "7 business days",
       description: language === "fr"
         ? "Analyse heure par heure de votre système optimal basée sur vos données de consommation réelles. Nous optimisons la taille du solaire et du stockage pour maximiser votre retour sur investissement."
         : "Hour-by-hour analysis of your optimal system based on your real consumption data. We optimize solar and storage sizing to maximize your ROI.",
