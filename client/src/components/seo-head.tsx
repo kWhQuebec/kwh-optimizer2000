@@ -271,7 +271,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le retour sur investissement typique pour un projet solaire commercial au Québec est de 4 à 7 ans, avec un TRI (taux de rendement interne) de 15% à 25%, en tenant compte des incitatifs Hydro-Québec et du crédit d'impôt fédéral."Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données HQ réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."The typical payback for a commercial solar project in Quebec is 4 to 7 years, with an IRR of 15% to 25%, considering Hydro-Québec incentives and federal tax credits."
+          ? "Le retour sur investissement typique pour un projet solaire commercial au Québec est de 4 à 7 ans, avec un TRI (taux de rendement interne) de 15% à 25%, en tenant compte des incitatifs Hydro-Québec et du crédit d'impôt fédéral."
+          : "The typical payback for a commercial solar project in Quebec is 4 to 7 years, with an IRR of 15% to 25%, considering Hydro-Québec incentives and federal tax credits."
       }
     },
     {
@@ -282,7 +283,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Oui, absolument. Les panneaux solaires sont dimensionnés sur la production annuelle complète. Bien que la production soit plus basse en hiver, le système bénéficie du mesurage net qui accumule les crédits sur 24 mois. Le froid améliore en fait l'efficacité des panneaux (+0,4% par degré sous 25°C), et l'effet albédo de la neige ajoute 5-10% de production supplémentaire."Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données HQ réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."Yes, absolutely. Panels are sized on annual production. While winter output is lower, net metering accumulates credits over 24 months. Cold actually improves panel efficiency (+0.4% per degree below 25°C), and snow albedo adds 5-10% extra production."
+          ? "Oui, absolument. Les panneaux solaires sont dimensionnés sur la production annuelle complète. Bien que la production soit plus basse en hiver, le système bénéficie du mesurage net qui accumule les crédits sur 24 mois. Le froid améliore en fait l'efficacité des panneaux (+0,4% par degré sous 25°C), et l'effet albédo de la neige ajoute 5-10% de production supplémentaire."
+          : "Yes, absolutely. Panels are sized on annual production. While winter output is lower, net metering accumulates credits over 24 months. Cold actually improves panel efficiency (+0.4% per degree below 25°C), and snow albedo adds 5-10% extra production."
       }
     },
     {
@@ -293,7 +295,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le Québec offre plusieurs incitatifs: Hydro-Québec offre jusqu'à 1 000 $/kW de crédit d'autoproduction, le gouvernement fédéral offre 30% de crédit d'impôt pour les investissements dans les technologies propres (CII), et l'amortissement accéléré (DPA 43.1/43.2) permet une déduction de 100% en première année pour fins fiscales."Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données HQ réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."Quebec offers multiple incentives: Hydro-Québec offers up to $1,000/kW self-generation credit, federal government offers 30% investment tax credit for clean technology (ITC), and accelerated depreciation (CCA 43.1/43.2) allows 100% first-year deduction for tax purposes."
+          ? "Le Québec offre plusieurs incitatifs: Hydro-Québec offre jusqu'à 1 000 $/kW de crédit d'autoproduction, le gouvernement fédéral offre 30% de crédit d'impôt pour les investissements dans les technologies propres (CII), et l'amortissement accéléré (DPA 43.1/43.2) permet une déduction de 100% en première année pour fins fiscales."
+          : "Quebec offers multiple incentives: Hydro-Québec offers up to $1,000/kW self-generation credit, federal government offers 30% investment tax credit for clean technology (ITC), and accelerated depreciation (CCA 43.1/43.2) allows 100% first-year deduction for tax purposes."
       }
     },
     {
@@ -304,7 +307,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données HQ réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données HQ réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."The complete process typically takes 4-8 months depending on project complexity: free estimate (a few minutes), personalized study with real HQ data (7 days), preliminary design and site visit (2 weeks), plans and fixed-price quote (4-8 weeks), and permits and turnkey installation (10-18 weeks). Every project is unique — the 10-minute discovery call lets us give you a precise timeline."
+          ? "Le processus complet prend généralement 4 à 6 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données Hydro-Québec réelles (5 jours ouvrables), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."
+          : "The complete process typically takes 4 to 6 months depending on project complexity: free estimate (a few minutes), personalized study with real Hydro-Québec data (5 business days), preliminary design and site visit (2 weeks), plans and fixed-price quote (4-8 weeks), and permits and turnkey installation (10-18 weeks). Every project is unique — the 10-minute discovery call lets us give you a precise timeline."
       }
     },
     {
@@ -315,7 +319,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le mandat de conception préliminaire coûte 2 500$ plus taxes. Cependant, ce montant est crédité intégralement sur le contrat EPC (ingénierie-approvisionnement-construction) si vous décidez de procéder avec kWh Québec."Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données HQ réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."The preliminary design mandate costs $2,500 plus taxes. However, this amount is fully credited toward the EPC contract (engineering-procurement-construction) if you decide to proceed with kWh Québec."
+          ? "Le mandat de conception préliminaire coûte 2 500$ plus taxes. Cependant, ce montant est crédité intégralement sur le contrat EPC (ingénierie-approvisionnement-construction) si vous décidez de procéder avec kWh Québec."
+          : "The preliminary design mandate costs $2,500 plus taxes. However, this amount is fully credited toward the EPC contract (engineering-procurement-construction) if you decide to proceed with kWh Québec."
       }
     },
     {
@@ -326,7 +331,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Oui, nous avons plus de 15 ans d'expérience avec 120+ MW installés et 25+ projets C&I (commercial & industriel) complétés au Québec. Nous travaillons avec des partenaires comme dream Industrial REIT et d'autres gestionnaires immobiliers majeurs."Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données HQ réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines). Chaque projet est unique — l'appel découverte de 10 minutes permet de vous donner un échéancier précis."Yes, we have over 15 years of experience with 120+ MW installed and 25+ C&I (commercial & industrial) projects completed in Quebec. We work with partners like dream Industrial REIT and other major real estate managers."
+          ? "Oui, nous avons plus de 15 ans d'expérience avec 120+ MW installés et 25+ projets C&I (commercial & industriel) complétés au Québec. Nous travaillons avec des partenaires comme dream Industrial REIT et d'autres gestionnaires immobiliers majeurs."
+          : "Yes, we have over 15 years of experience with 120+ MW installed and 25+ C&I (commercial & industrial) projects completed in Quebec. We work with partners like dream Industrial REIT and other major real estate managers."
       }
     }
   ]
