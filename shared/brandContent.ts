@@ -163,7 +163,7 @@ export const BRAND_CONTENT = {
   // === PARCOURS CLIENT UNIFIÉ (5 étapes) ===
   timeline: [
     // Phase Découverte (gratuit, sans engagement)
-    { stepFr: "Analyse gratuite en ligne", stepEn: "Free Online Analysis", durationFr: "Quelques minutes", durationEn: "A few minutes", iconCode: "analysis", phase: "discovery" },
+    { stepFr: "Analyse rapide du potentiel", stepEn: "Quick Potential Analysis", durationFr: "Quelques minutes", durationEn: "A few minutes", iconCode: "analysis", phase: "discovery" },
     { stepFr: "Validation économique", stepEn: "Economic Validation", durationFr: "7 jours", durationEn: "7 days", iconCode: "study", phase: "discovery" },
     // Phase Conception (engagement initial — mandat 2 500$)
     { stepFr: "Validation technique", stepEn: "Technical Validation", durationFr: "2 semaines", durationEn: "2 weeks", iconCode: "design", phase: "design" },
