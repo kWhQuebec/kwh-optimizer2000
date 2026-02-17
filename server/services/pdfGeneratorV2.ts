@@ -3,7 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import type { DocumentSimulationData } from "../documentDataProvider";
 import { createLogger } from "../lib/logger";
-import { getWhySolarNow, getEquipmentTechnicalSummary, getExclusions } from "@shared/brandContent";
+import { getWhySolarNow, getEquipmentTechnicalSummary, getExclusions, getEquipment, getBatteryEquipment, getTimeline } from "@shared/brandContent";
 import { computeAcquisitionCashflows, type CumulativePoint } from "./acquisitionCashflows";
 
 const log = createLogger("PDFv2");
@@ -1319,23 +1319,28 @@ function buildEquipmentPage(
   lang: "fr" | "en",
   pageNum: number
 ): string {
-  const defaultEquipment = [
-    { name: t("Panneaux solaires", "Solar panels"), manufacturer: "Jinko Solar", warranty: t("30 ans performance", "30 yr performance"), spec: "JKM660N-66QL6-BDV 660W N-type TOPCon", weight: "32.5 kg", dimensions: "2382 × 1134 × 30 mm", category: "panels" },
-    { name: t("Onduleurs", "Inverters"), manufacturer: "SolarEdge / Huawei", warranty: t("12 ans (extensible 25 ans)", "12 yr (ext. to 25 yr)"), spec: t("String triphasé ≥ 100 kW", "Three-phase string ≥ 100 kW"), weight: "88 kg", dimensions: "1035 × 700 × 363 mm", category: "inverters" },
-    { name: t("Optimiseurs", "Optimizers"), manufacturer: "SolarEdge", warranty: t("25 ans", "25 yr"), spec: "P401", weight: "—", dimensions: "—", category: "optimizers" },
-    { name: t("Structure de montage", "Racking"), manufacturer: "KB Racking", warranty: t("20 ans", "20 yr"), spec: "EcoFoot2+", weight: t("~4.5 kg/m²", "~4.5 kg/m²"), dimensions: "—", category: "racking" },
-    { name: t("Monitoring", "Monitoring"), manufacturer: "SolarEdge", warranty: t("Inclus &agrave; vie", "Included for life"), spec: "Cloud Platform", weight: "—", dimensions: "—", category: "monitoring" },
-  ];
+  const iconCodeToCategory: Record<string, string> = { panel: "panels", inverter: "inverters", mounting: "racking", workmanship: "workmanship", battery: "battery" };
+  const brandEquipment = getEquipment(lang);
+  const defaultEquipment = brandEquipment.map(eq => ({
+    name: eq.label,
+    manufacturer: eq.manufacturer,
+    warranty: eq.warranty,
+    spec: eq.specs || "",
+    weight: eq.weightKg ? `${eq.weightKg} kg` : "—",
+    dimensions: eq.dimensionsMm ? `${eq.dimensionsMm} mm` : "—",
+    category: iconCodeToCategory[eq.iconCode] || eq.iconCode,
+  }));
 
   if (sim.battEnergyKWh > 0) {
+    const battEq = getBatteryEquipment(lang);
     defaultEquipment.splice(3, 0, {
-      name: t("Batterie BESS", "BESS Battery"),
-      manufacturer: "BYD",
-      warranty: t("10 ans / 6 000 cycles", "10 yr / 6,000 cycles"),
-      spec: "Battery-Box Premium",
-      weight: "—",
-      dimensions: "—",
-      category: "battery",
+      name: battEq.label,
+      manufacturer: battEq.manufacturer,
+      warranty: battEq.warranty,
+      spec: battEq.specs || "",
+      weight: battEq.weightKg ? `${battEq.weightKg} kg` : "—",
+      dimensions: battEq.dimensionsMm ? `${battEq.dimensionsMm} mm` : "—",
+      category: iconCodeToCategory[battEq.iconCode] || battEq.iconCode,
     });
   }
 
@@ -1382,7 +1387,7 @@ function buildEquipmentPage(
         <div class="info-box">
           <p><strong>${t("Main d'oeuvre:", "Labor:")}</strong> ${t("10 ans", "10 years")}</p>
           <p><strong>${t("&Eacute;tanch&eacute;it&eacute;:", "Waterproofing:")}</strong> ${t("10 ans", "10 years")}</p>
-          <p><strong>${t("Performance garantie:", "Guaranteed performance:")}</strong> ${t("90% &agrave; 10 ans, 85% &agrave; 25 ans", "90% at 10 yrs, 85% at 25 yrs")}</p>
+          <p><strong>${t("Performance garantie:", "Guaranteed performance:")}</strong> ${t("96% &agrave; 10 ans, 90% &agrave; 25 ans", "96% at 10 yrs, 90% at 25 yrs")}</p>
           <p><strong>${t("Monitoring:", "Monitoring:")}</strong> ${t("Suivi continu inclus", "Continuous monitoring included")}</p>
         </div>
       </div>
@@ -1472,16 +1477,15 @@ function buildAssumptionsPage(
 function buildTimelinePage(
   sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
+  lang: "fr" | "en",
   pageNum: number
 ): string {
-  const defaultTimeline = [
-    { step: t("Visite technique & conception", "Technical Visit & Design"), duration: t("Semaine 1-2", "Week 1-2"), desc: t("Relev&eacute;s sur site, analyse structurale, conception finale du syst&egrave;me", "On-site measurements, structural analysis, final system design") },
-    { step: t("Permis & approbations", "Permits & Approvals"), duration: t("Semaine 3-4", "Week 3-4"), desc: t("Demande de permis municipal, approbation Hydro-Qu&eacute;bec pour le raccordement", "Municipal permit application, Hydro-Qu&eacute;bec connection approval") },
-    { step: t("Approvisionnement", "Procurement"), duration: t("Semaine 5-6", "Week 5-6"), desc: t("Commande et livraison des &eacute;quipements sur site", "Equipment ordering and on-site delivery") },
-    { step: t("Installation", "Installation"), duration: t("Semaine 7-10", "Week 7-10"), desc: t("Montage structure, installation panneaux et batterie, c&acirc;blage &eacute;lectrique", "Racking assembly, panel and battery installation, electrical wiring") },
-    { step: t("Inspection & raccordement", "Inspection & Connection"), duration: t("Semaine 11", "Week 11"), desc: t("Inspection &eacute;lectrique, raccordement au r&eacute;seau Hydro-Qu&eacute;bec", "Electrical inspection, Hydro-Qu&eacute;bec grid connection") },
-    { step: t("Mise en service & formation", "Commissioning & Training"), duration: t("Semaine 12", "Week 12"), desc: t("Activation du syst&egrave;me, configuration monitoring, formation &eacute;quipe client", "System activation, monitoring setup, client team training") },
-  ];
+  const brandTimeline = getTimeline(lang);
+  const defaultTimeline = brandTimeline.map(item => ({
+    step: item.step,
+    duration: item.duration,
+    desc: item.bullets.join(", "),
+  }));
 
   const useCustom = sim.constructionTimeline && sim.constructionTimeline.length > 0;
   const timelineItems = useCustom

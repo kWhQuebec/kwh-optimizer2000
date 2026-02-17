@@ -96,6 +96,7 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Panneaux Jinko Solar N-type TOPCon",
       labelEn: "Jinko Solar N-type TOPCon panels",
+      manufacturer: "Jinko Solar",
       warrantyFr: "30 ans",
       warrantyEn: "30 years",
       iconCode: "panel",
@@ -110,6 +111,7 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Onduleurs Kaco Blueplanet",
       labelEn: "Kaco Blueplanet inverters",
+      manufacturer: "Kaco New Energy",
       warrantyFr: "10 ans (ext. 15 ans)",
       warrantyEn: "10 yrs (ext. 15 yrs)",
       iconCode: "inverter",
@@ -124,6 +126,7 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Structure de montage KB Racking",
       labelEn: "KB Racking mounting structure",
+      manufacturer: "KB Racking",
       warrantyFr: "25 ans",
       warrantyEn: "25 years",
       iconCode: "mounting",
@@ -138,6 +141,7 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Main d'œuvre certifiée",
       labelEn: "Certified workmanship",
+      manufacturer: "kWh Québec",
       warrantyFr: "10 ans",
       warrantyEn: "10 years",
       iconCode: "workmanship",
@@ -150,6 +154,21 @@ export const BRAND_CONTENT = {
       certifications: ["RBQ 1.3", "CNESST", "CCQ"],
     },
   ],
+
+  // === ÉQUIPEMENT BATTERIE (conditionnel) ===
+  batteryEquipment: {
+    labelFr: "Batterie BESS",
+    labelEn: "BESS Battery",
+    manufacturer: "BYD",
+    warrantyFr: "10 ans / 6 000 cycles",
+    warrantyEn: "10 yr / 6,000 cycles",
+    iconCode: "battery",
+    specsFr: "Battery-Box Premium",
+    specsEn: "Battery-Box Premium",
+    weightKg: null,
+    dimensionsMm: null,
+    certifications: ["UL 9540A", "IEC 62619"],
+  },
 
   // === RÉSUMÉ TECHNIQUE ÉQUIPEMENT ===
   equipmentTechnicalSummary: {
@@ -579,6 +598,7 @@ export function getExclusions(lang: Lang) {
 export function getEquipment(lang: Lang) {
   return BRAND_CONTENT.equipment.map(e => ({
     label: lang === "fr" ? e.labelFr : e.labelEn,
+    manufacturer: e.manufacturer,
     warranty: lang === "fr" ? e.warrantyFr : e.warrantyEn,
     specs: lang === "fr" ? e.specsFr : e.specsEn,
     weightKg: e.weightKg,
@@ -588,6 +608,20 @@ export function getEquipment(lang: Lang) {
     certifications: e.certifications,
     iconCode: e.iconCode,
   }));
+}
+
+export function getBatteryEquipment(lang: Lang) {
+  const b = BRAND_CONTENT.batteryEquipment;
+  return {
+    label: lang === "fr" ? b.labelFr : b.labelEn,
+    manufacturer: b.manufacturer,
+    warranty: lang === "fr" ? b.warrantyFr : b.warrantyEn,
+    specs: lang === "fr" ? b.specsFr : b.specsEn,
+    weightKg: b.weightKg,
+    dimensionsMm: b.dimensionsMm,
+    certifications: b.certifications,
+    iconCode: b.iconCode,
+  };
 }
 
 export function getEquipmentTechnicalSummary(lang: Lang) {
