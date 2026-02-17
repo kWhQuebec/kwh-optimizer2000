@@ -42,7 +42,7 @@ export async function generatePresentationPPTX(
   const simData: any = simulation;
   const hiddenInsights = computeHiddenInsights(simData as any);
 
-  const isSyntheticData = !(simulation.hourlyProfile && (simulation.hourlyProfile as any[]).length > 0);
+  const isSyntheticData = typeof (simulation as any).isSynthetic === 'boolean' ? (simulation as any).isSynthetic : !(simulation.hourlyProfile && (simulation.hourlyProfile as any[]).length > 0);
 
   const fmtCurrency = (value: number | null | undefined): string => formatSmartCurrencyFull(value, lang);
   const fmtSmartCurrency = (value: number | null | undefined): string => formatSmartCurrency(value, lang);

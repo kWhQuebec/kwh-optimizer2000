@@ -83,6 +83,7 @@ export interface DocumentSimulationData {
   hiddenInsights?: HiddenInsights;
   productionP50KWh?: number;
   productionP90KWh?: number;
+  isSynthetic?: boolean;
 }
 
 export interface HiddenInsights {
@@ -105,8 +106,9 @@ export interface HiddenInsights {
 export function computeHiddenInsights(sim: DocumentSimulationData): HiddenInsights {
   // Data confidence based on whether we have hourly consumption data
   const hasHourlyData = sim.hourlyProfile && sim.hourlyProfile.length > 100;
-  const dataConfidence = hasHourlyData ? 'hq_actual' as const : 'satellite' as const;
-  const dataConfidencePercent = hasHourlyData ? 95 : 75;
+  const isSynthetic = typeof sim.isSynthetic === 'boolean' ? sim.isSynthetic : !hasHourlyData;
+  const dataConfidence = !isSynthetic && hasHourlyData ? 'hq_actual' as const : 'satellite' as const;
+  const dataConfidencePercent = !isSynthetic && hasHourlyData ? 95 : 75;
 
   // Peak demand reduction
   const peakDemandReductionKw = sim.demandShavingSetpointKW > 0 && sim.peakDemandKW > 0
@@ -160,6 +162,7 @@ export interface DocumentData {
   roofPolygons: RoofPolygonData[];
   roofVisualizationBuffer?: Buffer;
   siteSimulations: (SimulationRun & { site: Site & { client: Client } })[];
+  isSynthetic: boolean;
   catalogEquipment?: Array<{
     name: string;
     manufacturer: string;
@@ -181,10 +184,13 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     throw new Error("Simulation not found");
   }
 
-  const [allSimulations, roofPolygonsRaw] = await Promise.all([
+  const [allSimulations, roofPolygonsRaw, meterFiles] = await Promise.all([
     storage.getSimulationRuns(),
     storage.getRoofPolygons(simulation.siteId),
+    storage.getMeterFiles(simulation.siteId),
   ]);
+
+  const isSynthetic = meterFiles.length === 0 || meterFiles.every(f => f.isSynthetic === true);
 
   const siteSimulations = allSimulations.filter(s => s.siteId === simulation.siteId);
 
@@ -310,6 +316,7 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     roofPolygons,
     roofVisualizationBuffer,
     siteSimulations,
+    isSynthetic,
     catalogEquipment,
     constructionTimeline,
   };

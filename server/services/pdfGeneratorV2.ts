@@ -100,7 +100,7 @@ export async function generateProfessionalPDFv2(
   const totalProductionKWh = (simulation as any).totalProductionKWh || Math.round(simulation.annualConsumptionKWh * simulation.selfSufficiencyPercent / 100);
 
   const hasHourlyProfile = !!(simulation.hourlyProfile && simulation.hourlyProfile.length > 0);
-  const isSyntheticData = !hasHourlyProfile;
+  const isSyntheticData = typeof simulation.isSynthetic === 'boolean' ? simulation.isSynthetic : !hasHourlyProfile;
   const hasBattery = simulation.battEnergyKWh > 0;
   const hasRoofPolygons = !!(simulation.roofPolygons && simulation.roofPolygons.length > 0);
 
@@ -1586,7 +1586,7 @@ function buildNextStepsPage(
           <li>${t("Signer la procuration Hydro-Qu&eacute;bec (&eacute;lectronique, 2 minutes)", "Sign the Hydro-Qu&eacute;bec power of attorney (electronic, 2 minutes)")}</li>
           <li>${t("Nous acc&eacute;dons &agrave; votre historique de consommation complet", "We access your complete consumption history")}</li>
           <li>${t("Simulation heure par heure personnalis&eacute;e", "Personalized hour-by-hour simulation")}</li>
-          <li>${t("R&eacute;sultat en 5 jours ouvrables", "Results within 5 business days")}</li>
+          <li>${t("R&eacute;sultat en 7 jours ouvrables", "Results within 7 business days")}</li>
         </ul>
       </div>`
     : `<div class="section">

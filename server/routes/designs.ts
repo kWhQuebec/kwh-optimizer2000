@@ -89,6 +89,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
       roofVisualizationBuffer: docData.roofVisualizationBuffer,
       catalogEquipment: docData.catalogEquipment,
       constructionTimeline: docData.constructionTimeline,
+      isSynthetic: docData.isSynthetic,
     };
 
     const pdfBuffer = await generateProfessionalPDFv2(simData as any, lang);
@@ -110,6 +111,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
     ...optimizedSimulation,
     roofPolygons: docData.roofPolygons,
     roofVisualizationBuffer: docData.roofVisualizationBuffer,
+    isSynthetic: docData.isSynthetic,
   };
 
   const { generateProfessionalPDF } = await import("../pdf");
@@ -155,6 +157,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
   const simulationWithRoof = {
     ...optimizedSimulation,
     roofVisualizationBuffer: docData.roofVisualizationBuffer,
+    isSynthetic: docData.isSynthetic,
   };
 
   const { generateExecutiveSummaryPDF } = await import("../pdf");
@@ -176,17 +179,18 @@ router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, asyncHa
   }
 
   const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
+  const simWithSyntheticFlag = { ...optimizedSimulation, isSynthetic: docData.isSynthetic };
   const { generatePresentationPPTX } = await import("../pptxGenerator");
   const pptxOptions = {
-    catalogEquipment: optimizedSimulation.catalogEquipment,
-    constructionTimeline: optimizedSimulation.constructionTimeline,
-    roofPolygons: optimizedSimulation.roofPolygons?.map(p => ({
+    catalogEquipment: (optimizedSimulation as any).catalogEquipment,
+    constructionTimeline: (optimizedSimulation as any).constructionTimeline,
+    roofPolygons: (optimizedSimulation as any).roofPolygons?.map((p: any) => ({
       label: p.label,
       areaSqM: p.areaSqM,
       orientation: p.orientation,
     })),
   };
-  const pptxBuffer = await generatePresentationPPTX(optimizedSimulation, docData.roofVisualizationBuffer, lang, pptxOptions);
+  const pptxBuffer = await generatePresentationPPTX(simWithSyntheticFlag as any, docData.roofVisualizationBuffer, lang, pptxOptions);
 
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
   res.setHeader("Content-Disposition", `attachment; filename="proposition-${docData.simulation.site.name.replace(/\s+/g, '-')}.pptx"`);
