@@ -12,7 +12,7 @@ const SEO_CONTENT = {
   fr: {
     title: "Calculateur ROI Solaire Commercial | kWh Québec",
     h1: "Calculateur de retour sur investissement solaire",
-    subtitle: "Estimez la rentabilité d'une installation solaire pour votre bâtiment commercial ou industriel au Québec. Résultats instantanés basés sur les tarifs Hydro-Québec 2025.",
+    subtitle: "Estimez la rentabilité d'une installation solaire pour votre bâtiment commercial ou industriel au Québec. Analyse gratuite basée sur les tarifs Hydro-Québec 2026.",
     ctaTitle: "Obtenez une analyse personnalisée gratuite",
     ctaText: "Ce calculateur utilise des moyennes régionales. Pour une estimation précise basée sur votre consommation réelle et la configuration spécifique de votre toiture:",
     ctaButton: "Analyser mon bâtiment gratuitement",
@@ -75,7 +75,7 @@ L'énergie solaire est également pratiquement à l'épreuve de l'inflation. Tan
   en: {
     title: "Commercial Solar ROI Calculator | kWh Québec",
     h1: "Solar Return on Investment Calculator",
-    subtitle: "Estimate the profitability of a solar installation for your commercial or industrial building in Québec. Instant results based on 2025 Hydro-Québec rates.",
+    subtitle: "Estimate the profitability of a solar installation for your commercial or industrial building in Québec. Free analysis based on 2026 Hydro-Québec rates.",
     ctaTitle: "Get a free personalized analysis",
     ctaText: "This calculator uses regional averages. For a precise estimate based on your actual consumption and specific roof configuration:",
     ctaButton: "Analyze my building for free",
@@ -167,22 +167,21 @@ export default function CalculateurROIPage() {
       })),
     };
 
-    const webAppSchema = {
+    const webPageSchema = {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
+      "@type": "WebPage",
       name: txt.title,
-      url: "https://app.kwh.quebec/ressources/calculateur-roi-solaire",
-      applicationCategory: "FinanceApplication",
-      operatingSystem: "Web",
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "CAD",
+      url: "https://www.kwh.quebec/ressources/calculateur-roi-solaire",
+      description: txt.subtitle,
+      isPartOf: {
+        "@type": "WebSite",
+        name: "kWh Québec",
+        url: "https://www.kwh.quebec",
       },
       provider: {
         "@type": "Organization",
         name: "kWh Québec",
-        url: "https://app.kwh.quebec",
+        url: "https://www.kwh.quebec",
       },
     };
 
@@ -205,7 +204,7 @@ export default function CalculateurROIPage() {
       webAppScript.setAttribute('type', 'application/ld+json');
       document.head.appendChild(webAppScript);
     }
-    webAppScript.textContent = JSON.stringify(webAppSchema);
+    webAppScript.textContent = JSON.stringify(webPageSchema);
 
     return () => {
       document.getElementById(faqScriptId)?.remove();

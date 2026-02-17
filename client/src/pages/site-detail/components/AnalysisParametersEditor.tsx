@@ -304,8 +304,8 @@ export function AnalysisParametersEditor({
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Info className="w-3 h-3" />
                 {language === "fr"
-                  ? "Modélisation avancée: ILR typique 1.1-1.5, dégradation 0.5%/an"
-                  : "Advanced modeling: Typical ILR 1.1-1.5, degradation 0.5%/yr"}
+                  ? "Modélisation avancée: ILR typique 1.1-1.5, dégradation 0.4%/an"
+                  : "Advanced modeling: Typical ILR 1.1-1.5, degradation 0.4%/yr"}
               </p>
 
               {/* Bifacial PV Section - Roof color-based recommendation */}

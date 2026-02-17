@@ -90,8 +90,8 @@ export default function RessourcesPage() {
         ? "Combien d'espace de toit faut-il pour un système solaire?"
         : "How much roof space is needed for a solar system?",
       answer: language === "fr"
-        ? "En règle générale, il faut environ 5-6 m² par kW installé pour des panneaux modernes (400-500W). Un système de 100 kW nécessiterait donc environ 500-600 m² de surface de toit utilisable. Notre analyse satellite évalue automatiquement la capacité de votre toiture en tenant compte des obstacles et de l'orientation."
-        : "As a general rule, about 5-6 m² per installed kW is needed for modern panels (400-500W). A 100 kW system would require approximately 500-600 m² of usable roof space. Our satellite analysis automatically evaluates your roof capacity accounting for obstacles and orientation."
+        ? "En règle générale, il faut environ 3,5 m² par kW installé pour des panneaux modernes de haute puissance (625W). Un système de 100 kW nécessiterait donc environ 350 m² de surface de toit utilisable. Notre analyse satellite évalue automatiquement la capacité de votre toiture en tenant compte des obstacles et de l'orientation."
+        : "As a general rule, about 3.5 m² per installed kW is needed for modern high-power panels (625W). A 100 kW system would require approximately 350 m² of usable roof space. Our satellite analysis automatically evaluates your roof capacity accounting for obstacles and orientation."
     },
     {
       category: "technical",
@@ -193,8 +193,8 @@ export default function RessourcesPage() {
         ? "Ai-je besoin d'une licence RBQ pour installer du solaire?"
         : "Do I need an RBQ license to install solar?",
       answer: language === "fr"
-        ? "L'installateur doit détenir une licence RBQ (Régie du bâtiment du Québec) avec les sous-catégories appropriées (électricité, installation d'équipements). kWh Québec travaille exclusivement avec des installateurs qualifiés et licenciés. Vous n'avez pas besoin de licence vous-même en tant que propriétaire."
-        : "The installer must hold an RBQ (Régie du bâtiment du Québec) license with appropriate sub-categories (electricity, equipment installation). kWh Québec works exclusively with qualified and licensed installers. You don't need a license yourself as the property owner."
+        ? "L'installateur doit détenir une licence RBQ (Régie du bâtiment du Québec) avec les sous-catégories appropriées (électricité, installation d'équipements). kWh Québec détient les licences nécessaires et réalise les installations avec son équipe qualifiée. Vous n'avez pas besoin de licence vous-même en tant que propriétaire."
+        : "The installer must hold an RBQ (Régie du bâtiment du Québec) license with appropriate sub-categories (electricity, equipment installation). kWh Québec holds the necessary licenses and performs installations with its own qualified team. You don't need a license yourself as the property owner."
     },
     {
       category: "process",

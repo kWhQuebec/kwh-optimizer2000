@@ -60,7 +60,7 @@ export function SEOHead({
     setMeta("og:description", description, true);
     setMeta("og:type", ogType, true);
     setMeta("og:image", ogImage, true);
-    setMeta("og:url", ogUrl || `https://kwh.quebec${location}`, true);
+    setMeta("og:url", ogUrl || `https://www.kwh.quebec${location}`, true);
     setMeta("og:site_name", "kWh Québec", true);
     setMeta("og:locale", locale === "fr" ? "fr_CA" : "en_CA", true);
 
@@ -107,13 +107,13 @@ export function SEOHead({
       };
 
       if (basePath === "" || basePath === "/") {
-        updateOrCreateLink("fr-CA", "https://kwh.quebec");
-        updateOrCreateLink("en-CA", "https://kwh.quebec/en");
-        updateOrCreateLink("x-default", "https://kwh.quebec");
+        updateOrCreateLink("fr-CA", "https://www.kwh.quebec");
+        updateOrCreateLink("en-CA", "https://www.kwh.quebec/en");
+        updateOrCreateLink("x-default", "https://www.kwh.quebec");
       } else {
-        updateOrCreateLink("fr-CA", `https://kwh.quebec${basePath}`);
-        updateOrCreateLink("en-CA", `https://kwh.quebec/en${basePath}`);
-        updateOrCreateLink("x-default", `https://kwh.quebec${basePath}`);
+        updateOrCreateLink("fr-CA", `https://www.kwh.quebec${basePath}`);
+        updateOrCreateLink("en-CA", `https://www.kwh.quebec/en${basePath}`);
+        updateOrCreateLink("x-default", `https://www.kwh.quebec${basePath}`);
       }
     }
 
@@ -147,8 +147,8 @@ export const organizationSchema: StructuredData = {
   "@type": "Organization",
   "name": "kWh Québec",
   "description": "Solutions solaires et stockage clé en main pour bâtiments commerciaux et industriels au Québec",
-  "url": "https://kwh.quebec",
-  "logo": "https://kwh.quebec/logo.png",
+  "url": "https://www.kwh.quebec",
+  "logo": "https://www.kwh.quebec/logo.png",
   "areaServed": {
     "@type": "AdministrativeArea",
     "name": "Québec, Canada"
@@ -165,8 +165,8 @@ export const getLocalBusinessSchema = (lang: "fr" | "en"): StructuredData => ({
   "description": lang === "fr"
     ? "Installation solaire commerciale et industrielle au Québec"
     : "Commercial and industrial solar installation in Quebec",
-  "@id": "https://kwh.quebec",
-  "url": "https://kwh.quebec",
+  "@id": "https://www.kwh.quebec",
+  "url": "https://www.kwh.quebec",
   "telephone": "+1-514-427-8871",
   "email": "info@kwh.quebec",
   "priceRange": "$$$",
