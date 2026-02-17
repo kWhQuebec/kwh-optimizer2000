@@ -46,7 +46,7 @@ export function DownloadReportButton({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `rapport-${siteName.replace(/\s+/g, '-')}.pdf`;
+      link.download = language === "fr" ? `rapport-${siteName.replace(/\s+/g, '-')}.pdf` : `report-${siteName.replace(/\s+/g, '-')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -80,7 +80,7 @@ export function DownloadReportButton({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `resume-executif-${siteName.replace(/\s+/g, '-')}.pdf`;
+      link.download = language === "fr" ? `resume-executif-${siteName.replace(/\s+/g, '-')}.pdf` : `executive-summary-${siteName.replace(/\s+/g, '-')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -114,7 +114,7 @@ export function DownloadReportButton({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `proposition-${siteName.replace(/\s+/g, '-')}.pptx`;
+      link.download = language === "fr" ? `proposition-${siteName.replace(/\s+/g, '-')}.pptx` : `proposal-${siteName.replace(/\s+/g, '-')}.pptx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
