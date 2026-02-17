@@ -1,0 +1,105 @@
+Je reprends l'analyse des rapports Rematek. Laisse-moi les relire pour te donner des réponses complètes.Parfait, j'ai maintenant les deux rapports PVsyst VC0 en détail. Voici mon analyse complète.
+
+---
+
+## Comparatif rapide des deux sites
+
+| | MON7017 (Lachine) | MON7028 (St-Laurent) |
+|---|---|---|
+| Adresse | 1600 50th Ave | 2520 Marie-Curie |
+| Puissance | 2700 kWc | 1650 kWc |
+| Modules | 4320 × Jinko 625W | 2640 × Jinko 625W |
+| Onduleurs | 5 × Kaco BP 375 | 3 × Kaco BP 375 |
+| DC:AC | 1.44 | 1.47 |
+| Production an 1 | 2770 MWh | 1705 MWh |
+| Productible | 1026 kWh/kWc | 1033 kWh/kWc |
+| PR | 73.78% | 75.63% |
+| P50 | 2783 MWh | 1714 MWh |
+| P90 | 2643 MWh | 1627 MWh |
+| Dégradation | 0.4%/an | 0.4%/an |
+| Config | Sheds 10°, az -10° | Sheds 10°, az -45° |
+
+---
+
+## 1. Comment on les traite?
+
+Ces rapports PVsyst VC0 sont la **pierre angulaire technique** de chaque projet. Voici le workflow recommandé :
+
+**Ingestion dans l'outil kWh :** Chaque rapport devrait alimenter directement la fiche site/lead dans l'Optimizer. Concrètement, les données clés à extraire et stocker par site sont : puissance système (kWc), nombre de modules, modèle panneau + onduleur, production annuelle (Sim, P50, P90, P95), PR, productible (kWh/kWc), dégradation annuelle, configuration (inclinaison, azimut, type de montage), et la table de vieillissement 25 ans.
+
+**Rôle dans le pipeline commercial :** Le VC0 arrive après la visite Rematek, donc il marque la transition du lead vers le stage "design_mandate_signed" ou au minimum "epc_proposal_sent". C'est le moment où tes chiffres estimatifs (calculateur ROI) sont remplacés par des **données validées par l'EPC**.
+
+**Action immédiate :** Créer un champ `pvsystReportId` ou `vc0Data` dans le modèle site/lead pour stocker les données PVsyst structurées. Ça permet de basculer automatiquement la présentation client des estimations vers les chiffres réels.
+
+---
+
+## 2. Comment on améliore notre outil avec ça?
+
+Plusieurs améliorations concrètes :
+
+**A. Calibrer le CashflowEngine avec des données réelles.** Ton calculateur ROI utilise 1250 kWh/kWp d'irradiance. Rematek obtient 1026-1033 kWh/kWc de productible. C'est un écart significatif (~17%) qui s'explique par les pertes (encrassement neige ~27%, ombrages sheds, pertes thermiques, câblage, etc.). **Tu devrais utiliser ~1030 kWh/kWc comme productible net dans tes estimations**, pas 1250 d'irradiance brute. Sinon tu sur-estimes la production et le payback sera plus long que prévu.
+
+**B. Ajouter les pertes d'encrassement neige.** Les deux rapports montrent 100% de perte en janvier-février et 70% en mars (neige sur toit plat). C'est un facteur majeur au Québec que ton outil n'intègre pas. Ajouter un profil de production mensuel serait un game changer pour la crédibilité.
+
+**C. Intégrer un ratio DC:AC réaliste.** Rematek utilise 1.44-1.47. Ton outil devrait calculer le nombre d'onduleurs en fonction de ce ratio plutôt que d'assumer 1:1.
+
+**D. Ajouter le gain bifacial.** Les deux projets utilisent des panneaux bifaciaux (facteur 80%). Le gain arrière est de 3.6-7.4% d'irradiance additionnelle selon l'albédo. C'est un paramètre que tu pourrais exposer dans la présentation client.
+
+**E. Valider ta dégradation.** Tu utilises 0.5%/an dans le calculateur, Rematek utilise 0.4%/an. Ça change le cumul 25 ans. Je recommande d'aligner sur 0.4% puisque c'est ce que l'EPC utilise dans ses simulations.
+
+---
+
+## 3. Est-ce possible de produire un rapport comme celui-ci?
+
+**Réponse courte : Non, et tu ne devrais pas essayer.**
+
+Un rapport PVsyst VC0 nécessite :
+- Le logiciel PVsyst (licence ~2000$/an) avec base de données météo Meteonorm
+- Une visite physique du site (toiture, orientation, ombrages, structure)
+- L'expertise d'un ingénieur pour configurer les sheds, l'espacement, les strings, le choix onduleur
+- La modélisation bifaciale avec albédo calibré
+- L'évaluation P50-P90-P95 avec incertitudes
+
+C'est le travail de Rematek en tant qu'EPC. Tenter de le reproduire diluerait ta valeur (tu es l'optimiseur/courtier, pas l'EPC) et engagerait ta responsabilité sur des chiffres de production.
+
+**Ce que tu PEUX faire :** Produire un **rapport de pré-faisabilité kWh** qui se positionne EN AMONT du VC0. Ton rapport dirait : "Selon notre estimation préliminaire, ce site pourrait supporter ~2700 kWc et produire ~2800 MWh/an. Voici le potentiel financier. Pour des chiffres certifiés, l'étape suivante est le design mandate avec notre EPC partenaire Rematek."
+
+C'est exactement ce que fait déjà ta page Présentation. Tu pourrais ajouter une section "Comparaison estimé vs VC0" une fois le rapport Rematek reçu, pour montrer la cohérence de tes estimations initiales.
+
+---
+
+## 4. Mise à jour des équipements standards?
+
+**Oui, absolument.** Les deux rapports utilisent exactement les mêmes composants :
+
+- **Panneaux :** Jinko JKM-625N-66HL4M-BDV (625 Wc, bifacial, N-type)
+- **Onduleurs :** Kaco Blueplanet 375 TL3-INT (375 kWac)
+
+Ce sont manifestement les équipements que Rematek standardise pour les projets commerciaux au Québec en 2026. Tu devrais :
+
+1. **Mettre à jour brandContent.ts** pour refléter ces specs exactes (modèle panneau 625W au lieu de ce que tu as actuellement)
+2. **Ajouter le coût $/W réel** si tu l'as — ton calculateur utilise 1.85$/W, mais avec des panneaux 625W bifaciaux + Kaco centraux, le coût réel pour un projet 1.5-2.7 MW est probablement dans le 1.40-1.60$/W range
+3. **Mettre à jour la configuration standard** : sheds 10°, espacement 1.56m, largeur capteur 1.12m, GCR ~73%
+4. **Documenter le ratio DC:AC standard** de 1.44-1.47
+
+Ça renforce ta crédibilité quand un prospect voit les mêmes specs dans ton estimation et dans le VC0 de Rematek.
+
+---
+
+## 5. Autres idées
+
+**A. Parser automatique de rapports PVsyst.** PVsyst peut exporter en CSV/XML. Si Rematek peut te fournir les exports plutôt que juste le PDF, tu pourrais construire un importateur qui peuple automatiquement la fiche site. Ça élimine la saisie manuelle et les erreurs.
+
+**B. Dashboard portfolio Dream Industrial.** Avec ces deux sites, tu as déjà 4350 kWc / 4475 MWh/an de production combinée. Un dashboard portfolio montrant la production agrégée, les économies cumulées, et les métriques ESG (tonnes CO2 évitées) serait un outil de vente puissant pour Dream et pour d'autres gestionnaires immobiliers.
+
+**C. Benchmark de tes estimations.** Compare ce que ton outil aurait estimé pour ces deux adresses vs ce que PVsyst donne. Ça te permet de calibrer tes formules et de communiquer une marge d'erreur crédible (ex: "nos estimations préliminaires sont typiquement à ±15% du design final").
+
+**D. Profil de production mensuel.** Les deux rapports montrent la répartition mensuelle. Intégrer un profil saisonnier Québec dans le CashflowEngine (au lieu d'une production uniforme sur 12 mois) améliorerait la précision du cashflow et rendrait les graphiques de la présentation plus réalistes.
+
+**E. Étape "VC0 reçu" dans le pipeline.** Ajouter un stage intermédiaire dans ton funnel entre "discovery" et "design_mandate_signed" pour marquer le moment où le VC0 est disponible. Ça te donne une meilleure visibilité sur la vélocité du pipeline.
+
+**F. Garantie de production.** Les valeurs P90 (2643 MWh pour Lachine, 1627 pour St-Laurent) sont ce qu'on utilise typiquement pour les garanties bancaires. Tu pourrais afficher P50 comme "production attendue" et P90 comme "production garantie" dans tes présentations — c'est un standard industrie que les CFOs comprennent.
+
+---
+
+**Priorité immédiate :** Corriger le productible dans ton calculateur (1030 kWh/kWc au lieu de 1250) et mettre à jour les specs équipement dans brandContent.ts. Ces deux changements augmentent ta crédibilité significativement. Tu veux que je fasse ces modifications maintenant?
