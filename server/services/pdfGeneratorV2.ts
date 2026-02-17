@@ -1613,7 +1613,7 @@ function buildNextStepsPage(
         <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
         <div class="info-box" style="font-size: 9pt;">
           <p><strong>${t("Combien &ccedil;a co&ucirc;te de signer la procuration?", "How much does signing the power of attorney cost?")}</strong><br>${t("Rien. L'&eacute;valuation d&eacute;taill&eacute;e est gratuite et sans engagement.", "Nothing. The detailed evaluation is free and without commitment.")}</p>
-          <p><strong>${t("Quand est-ce que je paie quelque chose?", "When do I pay anything?")}</strong><br>${t("Seulement apr&egrave;s la visite technique, quand vous approuvez la soumission forfaitaire.", "Only after the technical visit, when you approve the firm quote.")}</p>
+          <p><strong>${t("Quand est-ce que je paie quelque chose?", "When do I pay anything?")}</strong><br>${t("&Agrave; la signature du Mandat de conception pr&eacute;liminaire (2 500$ + taxes), qui inclut la visite technique sur site, la validation structurelle et la soumission forfaitaire d&eacute;finitive.", "At the signing of the Preliminary Design Mandate ($2,500 + taxes), which includes the on-site technical visit, structural validation, and the final firm quote.")}</p>
           <p style="margin: 0;"><strong>${t("La soumission peut-elle changer?", "Can the quote change?")}</strong><br>${t("La soumission forfaitaire est garantie 60 jours.", "The firm quote is guaranteed 60 days.")}</p>
         </div>
       </div>`
