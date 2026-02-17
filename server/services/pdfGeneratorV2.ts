@@ -282,12 +282,12 @@ p { margin-bottom: 3mm; color: var(--dark); }
 .cta-box { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border-radius: 4mm; padding: 8mm; text-align: center; margin: 8mm 0; }
 .cta-box h3 { color: white; font-size: 16pt; margin-bottom: 3mm; }
 .cta-box p { color: rgba(255,255,255,0.9); font-size: 11pt; }
-.funnel-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; margin: 6mm 0; }
-.funnel-step { text-align: center; padding: 4mm; border-radius: 3mm; }
-.funnel-step-number { width: 10mm; height: 10mm; background: var(--accent); color: var(--dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14pt; margin: 0 auto 3mm auto; }
-.funnel-step-title { font-size: 10pt; font-weight: 600; color: var(--primary); margin-bottom: 2mm; }
-.funnel-step-desc { font-size: 8pt; color: var(--gray); }
-.funnel-step-tag { display: inline-block; background: var(--accent); color: var(--dark); font-size: 7pt; font-weight: 600; padding: 1mm 3mm; border-radius: 2mm; margin-top: 2mm; }
+.funnel-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3mm; margin: 5mm 0; }
+.funnel-step { text-align: center; padding: 3mm 2mm; border-radius: 3mm; }
+.funnel-step-number { width: 8mm; height: 8mm; background: var(--accent); color: var(--dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11pt; margin: 0 auto 2mm auto; }
+.funnel-step-title { font-size: 8.5pt; font-weight: 600; color: var(--primary); margin-bottom: 1.5mm; }
+.funnel-step-desc { font-size: 7pt; color: var(--gray); }
+.funnel-step-tag { display: inline-block; background: var(--accent); color: var(--dark); font-size: 6.5pt; font-weight: 600; padding: 0.8mm 2mm; border-radius: 2mm; margin-top: 1.5mm; }
 .funnel-step-tag.paid { background: var(--light-gray); color: var(--gray); }
 .svg-chart { width: 100%; }
 body.synthetic .page:not(.cover-page)::after {
