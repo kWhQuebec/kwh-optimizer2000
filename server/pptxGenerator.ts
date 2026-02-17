@@ -1153,77 +1153,7 @@ export async function generatePresentationPPTX(
     fontSize: 9, color: COLORS.mediumGray, align: "center"
   });
 
-  // ================= SLIDE 11: THEY TRUST US =================
-  const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
-
-  // Titre - utilise brandContent
-  slideRef.addText(getTitle("trustUs", lang), {
-    x: 0.5, y: 0.9, w: 9, h: 0.5,
-    fontSize: 26, bold: true, color: COLORS.blue
-  });
-
-  // Ligne décorative
-  slideRef.addShape("rect", {
-    x: 0.5, y: 1.4, w: 2, h: 0.06, fill: { color: COLORS.gold }
-  });
-
-  // Stats de crédibilité - utilise brandContent
-  const credStats = getAllStats(lang);
-  if (credStats.length === 0) {
-    slideRef.addText(lang === "fr" ? "Statistiques non disponibles" : "Statistics not available", {
-      x: 1.2, y: 1.8, w: 7, h: 0.5,
-      fontSize: 14, color: COLORS.mediumGray, align: "center"
-    });
-  }
-  credStats.forEach((stat, i) => {
-    const xPos = 1.2 + i * 2.6;
-    slideRef.addText(stat.value, {
-      x: xPos, y: 1.8, w: 2.2, h: 0.7,
-      fontSize: 36, bold: true, color: COLORS.blue, align: "center"
-    });
-    slideRef.addText(stat.label, {
-      x: xPos, y: 2.5, w: 2.2, h: 0.4,
-      fontSize: 12, color: COLORS.mediumGray, align: "center"
-    });
-  });
-
-  // Témoignage - utilise brandContent (styled card)
-  const testimonialPptx = getFirstTestimonial(lang);
-  const quoteLines = Math.ceil(testimonialPptx.quote.length / 70);
-  const quoteH = Math.max(0.6, quoteLines * 0.3);
-
-  slideRef.addShape("roundRect", {
-    x: 1, y: 3.15, w: 8, h: quoteH + 0.55,
-    fill: { color: "F7F9FC" },
-    rectRadius: 0.1
-  });
-  slideRef.addShape("rect", {
-    x: 1, y: 3.2, w: 0.06, h: quoteH + 0.4,
-    fill: { color: COLORS.blue }
-  });
-
-  slideRef.addText(`« ${testimonialPptx.quote} »`, {
-    x: 1.2, y: 3.25, w: 7.6, h: quoteH,
-    fontSize: 16, italic: true, color: COLORS.darkGray, align: "center", valign: "middle"
-  });
-
-  slideRef.addText(`— ${testimonialPptx.author}`, {
-    x: 1.2, y: 3.25 + quoteH, w: 7.6, h: 0.35,
-    fontSize: 11, color: COLORS.mediumGray, align: "center"
-  });
-
-  // CTA Box
-  slideRef.addShape("rect", {
-    x: 2.5, y: 4.6, w: 5, h: 0.65,
-    fill: { color: COLORS.blue }
-  });
-
-  slideRef.addText(getContactString(), {
-    x: 2.5, y: 4.72, w: 5, h: 0.4,
-    fontSize: 14, bold: true, color: COLORS.gold, align: "center"
-  });
-
-  // ================= SLIDE 12: NEXT STEPS =================
+  // ================= SLIDE 11: NEXT STEPS =================
   const slide5 = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slide5.addText(t("PASSONS À L'ACTION", "LET'S TAKE ACTION"), {
@@ -1423,6 +1353,71 @@ export async function generatePresentationPPTX(
       rowH: 0.22
     });
   }
+
+  // ================= LAST SLIDE: THEY TRUST US =================
+  const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
+
+  slideRef.addText(getTitle("trustUs", lang), {
+    x: 0.5, y: 0.9, w: 9, h: 0.5,
+    fontSize: 26, bold: true, color: COLORS.blue
+  });
+
+  slideRef.addShape("rect", {
+    x: 0.5, y: 1.4, w: 2, h: 0.06, fill: { color: COLORS.gold }
+  });
+
+  const credStats = getAllStats(lang);
+  if (credStats.length === 0) {
+    slideRef.addText(lang === "fr" ? "Statistiques non disponibles" : "Statistics not available", {
+      x: 1.2, y: 1.8, w: 7, h: 0.5,
+      fontSize: 14, color: COLORS.mediumGray, align: "center"
+    });
+  }
+  credStats.forEach((stat, i) => {
+    const xPos = 1.2 + i * 2.6;
+    slideRef.addText(stat.value, {
+      x: xPos, y: 1.8, w: 2.2, h: 0.7,
+      fontSize: 36, bold: true, color: COLORS.blue, align: "center"
+    });
+    slideRef.addText(stat.label, {
+      x: xPos, y: 2.5, w: 2.2, h: 0.4,
+      fontSize: 12, color: COLORS.mediumGray, align: "center"
+    });
+  });
+
+  const testimonialPptx = getFirstTestimonial(lang);
+  const quoteLines = Math.ceil(testimonialPptx.quote.length / 70);
+  const quoteH = Math.max(0.6, quoteLines * 0.3);
+
+  slideRef.addShape("roundRect", {
+    x: 1, y: 3.15, w: 8, h: quoteH + 0.55,
+    fill: { color: "F7F9FC" },
+    rectRadius: 0.1
+  });
+  slideRef.addShape("rect", {
+    x: 1, y: 3.2, w: 0.06, h: quoteH + 0.4,
+    fill: { color: COLORS.blue }
+  });
+
+  slideRef.addText(`« ${testimonialPptx.quote} »`, {
+    x: 1.2, y: 3.25, w: 7.6, h: quoteH,
+    fontSize: 16, italic: true, color: COLORS.darkGray, align: "center", valign: "middle"
+  });
+
+  slideRef.addText(`— ${testimonialPptx.author}`, {
+    x: 1.2, y: 3.25 + quoteH, w: 7.6, h: 0.35,
+    fontSize: 11, color: COLORS.mediumGray, align: "center"
+  });
+
+  slideRef.addShape("rect", {
+    x: 2.5, y: 4.6, w: 5, h: 0.65,
+    fill: { color: COLORS.blue }
+  });
+
+  slideRef.addText(getContactString(), {
+    x: 2.5, y: 4.72, w: 5, h: 0.4,
+    fontSize: 14, bold: true, color: COLORS.gold, align: "center"
+  });
 
   const pptxData = await pptx.write({ outputType: "nodebuffer" });
   return pptxData as Buffer;

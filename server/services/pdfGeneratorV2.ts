@@ -355,15 +355,17 @@ function buildCoverPage(
         <p style="color: rgba(255,255,255,0.8); font-size: 12pt; margin-top: 4mm;">${locationText || "Qu&eacute;bec"}</p>
         ${sim.site.client?.name ? `<p style="color: rgba(255,255,255,0.7); font-size: 11pt; margin-top: 8mm;">${t("Pr&eacute;par&eacute; pour:", "Prepared for:")} <strong style="color: white;">${sim.site.client.name}</strong></p>` : ""}
       </div>
-      ${isSyntheticData ? `<div class="synthetic-banner" style="background: rgba(254,243,199,0.95); border-color: rgba(245,158,11,0.8);">
-        <strong>&#9888; ${t("Donn&eacute;es synth&eacute;tiques", "Synthetic data")}</strong> &mdash; ${t(
-          "Cette analyse est bas&eacute;e sur des donn&eacute;es g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min des 24 derniers mois et fournir une analyse r&eacute;aliste.",
-          "This analysis is based on data generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data for the past 24 months and provide a realistic analysis."
-        )}
-      </div>` : ""}
-      <div class="cover-footer">
-        <span>${t("Pr&eacute;par&eacute; le", "Prepared on")} ${date}</span>
-        <span>kwh.quebec</span>
+      <div>
+        <div class="cover-footer">
+          <span>${t("Pr&eacute;par&eacute; le", "Prepared on")} ${date}</span>
+          <span>kwh.quebec</span>
+        </div>
+        ${isSyntheticData ? `<div class="synthetic-banner" style="background: rgba(254,243,199,0.95); border-color: rgba(245,158,11,0.8); margin-top: 8mm;">
+          <strong>&#9888; ${t("Donn&eacute;es synth&eacute;tiques", "Synthetic data")}</strong> &mdash; ${t(
+            "Cette analyse est bas&eacute;e sur des donn&eacute;es g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min des 24 derniers mois et fournir une analyse r&eacute;aliste.",
+            "This analysis is based on data generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data for the past 24 months and provide a realistic analysis."
+          )}
+        </div>` : ""}
       </div>
     </div>
   </div>`;
