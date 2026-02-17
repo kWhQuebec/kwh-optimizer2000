@@ -114,7 +114,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground focus:border">
-        Skip to main content
+        Aller au contenu principal
       </a>
       <SidebarProvider style={style as React.CSSProperties}>
         <div className="flex h-screen w-full">

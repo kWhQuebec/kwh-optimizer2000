@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
@@ -260,6 +260,26 @@ function PresentationPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const touchStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = touchStartRef.current.x - e.changedTouches[0].clientX;
+    const dy = touchStartRef.current.y - e.changedTouches[0].clientY;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) >= minSwipeDistance) {
+      if (dx > 0) {
+        setCurrentSlide(prev => Math.min(prev + 1, SLIDES.length - 1));
+      } else {
+        setCurrentSlide(prev => Math.max(prev - 1, 0));
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -368,6 +388,7 @@ function PresentationPage() {
               onClick={toggleFullscreen}
               style={{ color: BRAND_COLORS.primaryBlue }}
               data-testid="button-fullscreen"
+              aria-label={isFullscreen ? (language === 'fr' ? 'Quitter le plein écran' : 'Exit fullscreen') : (language === 'fr' ? 'Plein écran' : 'Fullscreen')}
             >
               {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
             </Button>
@@ -375,7 +396,7 @@ function PresentationPage() {
         </div>
       </div>
 
-      <div className="pt-20 pb-24 min-h-screen">
+      <div className="pt-20 pb-24 min-h-screen" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} role="region" aria-live="polite" aria-label={language === 'fr' ? 'Contenu de la diapositive' : 'Slide content'}>
         {slideComponents[slideContent]}
       </div>
 
@@ -394,13 +415,14 @@ function PresentationPage() {
             className="disabled:opacity-30"
             style={{ color: BRAND_COLORS.primaryBlue }}
             data-testid="button-prev-slide"
+            aria-label={language === 'fr' ? 'Slide précédent' : 'Previous slide'}
           >
             <ArrowLeft className="h-5 w-5 mr-0 md:mr-2" />
             <span className="hidden md:inline">{language === 'fr' ? 'Précédent' : 'Previous'}</span>
           </Button>
 
           <div className="flex flex-col items-center gap-1 md:gap-2">
-            <div className="flex items-center gap-1 md:gap-1.5">
+            <div className="flex items-center gap-1 md:gap-1.5" role="tablist" aria-label={language === 'fr' ? 'Navigation des diapositives' : 'Slide navigation'}>
               {SLIDES.map((slide, index) => (
                 <button
                   key={slide}
@@ -413,6 +435,9 @@ function PresentationPage() {
                     transform: index === currentSlide ? 'scale(1.2)' : 'scale(1)'
                   }}
                   data-testid={`slide-indicator-${index}`}
+                  role="tab"
+                  aria-current={index === currentSlide ? "step" : undefined}
+                  aria-label={`${language === 'fr' ? 'Diapositive' : 'Slide'} ${index + 1}`}
                 />
               ))}
             </div>
@@ -428,6 +453,7 @@ function PresentationPage() {
             className="disabled:opacity-30"
             style={{ color: BRAND_COLORS.primaryBlue }}
             data-testid="button-next-slide"
+            aria-label={language === 'fr' ? 'Slide suivant' : 'Next slide'}
           >
             <span className="hidden md:inline">{language === 'fr' ? 'Suivant' : 'Next'}</span>
             <ArrowRight className="h-5 w-5 ml-0 md:ml-2" />

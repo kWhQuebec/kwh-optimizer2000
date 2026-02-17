@@ -532,7 +532,7 @@ export default function LandingPage() {
               />
             </Link>
             
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-6" aria-label={language === "fr" ? "Navigation principale" : "Main navigation"}>
               <Link href="/" className="text-sm font-medium text-foreground" data-testid="link-home">
                 {language === "fr" ? "Accueil" : "Home"}
               </Link>
@@ -688,7 +688,7 @@ export default function LandingPage() {
 
             {/* Main Flow Card */}
             <Card className="max-w-2xl mx-auto border-2 border-primary/20 shadow-xl">
-              <CardContent className="p-6 sm:p-8">
+              <CardContent className="p-6 sm:p-8" aria-live="polite">
                 <AnimatePresence mode="wait">
                   {/* Step 1: Upload */}
                   {flowStep === 'upload' && (
@@ -2175,7 +2175,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* ========== FOOTER ========== */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
+      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30" role="contentinfo">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
