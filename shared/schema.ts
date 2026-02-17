@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, real, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, real, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 
 // Re-export chat schema for AI integrations
 export * from "./models/chat";
@@ -122,7 +122,11 @@ export const leads = pgTable("leads", {
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("leads_email_idx").on(table.email),
+  index("leads_qualification_status_idx").on(table.qualificationStatus),
+  index("leads_created_at_idx").on(table.createdAt),
+]);
 
 export const clients = pgTable("clients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -283,7 +287,11 @@ export const sites = pgTable("sites", {
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("sites_client_id_idx").on(table.clientId),
+  index("sites_is_archived_idx").on(table.isArchived),
+  index("sites_created_at_idx").on(table.createdAt),
+]);
 
 export const meterFiles = pgTable("meter_files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
