@@ -111,6 +111,7 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildCoverPage(simulation, t, logoBase64, coverImageBase64, lang, isSyntheticData));
   nextPage();
+  pages.push(buildAboutPage(simulation, t, nextPage(), { scaleCleantechLogoBase64, hydroQuebecLogoBase64, dreamIndustrialLogoBase64, labspaceLogoBase64 }));
 
   pages.push(buildWhySolarNowPage(t, lang, nextPage()));
   pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData));
@@ -130,7 +131,6 @@ export async function generateProfessionalPDFv2(
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
   pages.push(buildAssumptionsPage(simulation, t, lang, isSyntheticData, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, isSyntheticData, nextPage()));
-  pages.push(buildAboutPage(simulation, t, nextPage(), { scaleCleantechLogoBase64, hydroQuebecLogoBase64, dreamIndustrialLogoBase64, labspaceLogoBase64 }));
 
   const watermarkLabel = t("\u00c9TUDE PR\u00c9LIMINAIRE", "PRELIMINARY STUDY");
   const bodyClass = isSyntheticData ? ' class="synthetic"' : '';
@@ -1618,21 +1618,11 @@ function buildNextStepsPage(
         </ul>
       </div>`;
 
-  const faqHtml = isSyntheticData
-    ? `<div class="section">
+  const faqHtml = `<div class="section">
         <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
         <div class="info-box" style="font-size: 9pt;">
-          <p><strong>${t("Combien &ccedil;a co&ucirc;te de signer la procuration?", "How much does signing the power of attorney cost?")}</strong><br>${t("Rien. L'&eacute;valuation d&eacute;taill&eacute;e est gratuite et sans engagement.", "Nothing. The detailed evaluation is free and without commitment.")}</p>
-          <p><strong>${t("Quand est-ce que je paie quelque chose?", "When do I pay anything?")}</strong><br>${t("&Agrave; la signature du Mandat de conception pr&eacute;liminaire (2 500$ + taxes), qui inclut la visite technique sur site, la validation structurelle et la soumission forfaitaire d&eacute;finitive.", "At the signing of the Preliminary Design Mandate ($2,500 + taxes), which includes the on-site technical visit, structural validation, and the final firm quote.")}</p>
-          <p style="margin: 0;"><strong>${t("La soumission peut-elle changer?", "Can the quote change?")}</strong><br>${t("La soumission forfaitaire est garantie 60 jours.", "The firm quote is guaranteed 60 days.")}</p>
-        </div>
-      </div>`
-    : `<div class="section">
-        <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
-        <div class="info-box" style="font-size: 9pt;">
-          <p><strong>${t("Que couvre le mandat de conception?", "What does the design mandate cover?")}</strong><br>${t("Visite de site compl&egrave;te, ing&eacute;nierie pr&eacute;liminaire, pr&eacute;paration du dossier d'interconnexion Hydro-Qu&eacute;bec, et soumission forfaitaire d&eacute;taill&eacute;e.", "Complete site visit, preliminary engineering, Hydro-Qu&eacute;bec interconnection file preparation, and detailed firm quote.")}</p>
-          <p><strong>${t("Combien &ccedil;a co&ucirc;te?", "How much does it cost?")}</strong><br>${t("Consultez le lien ci-dessous pour les d&eacute;tails et le paiement s&eacute;curis&eacute; en ligne.", "See the link below for details and secure online payment.")}</p>
-          <p style="margin: 0;"><strong>${t("La soumission peut-elle changer?", "Can the quote change?")}</strong><br>${t("La soumission forfaitaire est garantie 60 jours.", "The firm quote is guaranteed 60 days.")}</p>
+          <p><strong>${t("Combien co&ucirc;te l'analyse d&eacute;taill&eacute;e et la validation &eacute;conomique de mon projet?", "How much does the detailed analysis and economic validation of my project cost?")}</strong><br>${t("Rien. L'&eacute;valuation d&eacute;taill&eacute;e est gratuite et sans engagement.", "Nothing. The detailed evaluation is free and without commitment.")}</p>
+          <p style="margin: 0;"><strong>${t("Quand est-ce que je paie quelque chose?", "When do I pay anything?")}</strong><br>${t("&Agrave; la signature du Mandat de conception pr&eacute;liminaire (2 500$ + taxes), qui inclut la visite technique sur site, la confirmation du raccordement au r&eacute;seau, les plans pr&eacute;liminaires et une soumission forfaitaire pour l'ensemble du projet.", "At the signing of the Preliminary Design Mandate ($2,500 + taxes), which includes the on-site technical visit, grid connection confirmation, preliminary plans, and a firm quote for the entire project.")}</p>
         </div>
       </div>`;
 
