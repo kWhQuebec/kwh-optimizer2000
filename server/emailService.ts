@@ -159,10 +159,10 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
       netCost: 'Coût net',
       lcoeVsHQ: 'vs Hydro-Québec',
       years: 'ans',
-      ctaTitle: 'Prêt à passer à l\'étape suivante?',
-      ctaText: 'Obtenez une analyse détaillée gratuite avec des données de consommation réelles et un design personnalisé pour votre bâtiment.',
-      ctaButton: 'Demander une analyse détaillée',
-      disclaimer: 'Cette analyse est une estimation préliminaire basée sur des moyennes régionales. Une analyse détaillée avec vos données de consommation réelles fournira des projections plus précises. La "compensation" représente le bilan annuel via le programme de mesurage net d\'Hydro-Québec.',
+      ctaTitle: 'Vous n\'avez pas encore réservé votre appel?',
+      ctaText: 'Discutez gratuitement avec un spécialiste solaire pour valider ces chiffres avec vos données réelles et obtenir un design personnalisé.',
+      ctaButton: 'Réserver mon appel découverte →',
+      disclaimer: 'Cette analyse est une estimation préliminaire basée sur des moyennes régionales. Une validation avec vos données de consommation réelles fournira des projections plus précises. La "compensation" représente le bilan annuel via le programme de mesurage net d\'Hydro-Québec.',
       footer: 'kWh Québec - Solaire + Stockage',
       footerContact: '514.427.8871 | info@kwh.quebec',
       footerNote: 'Ce courriel a été envoyé automatiquement suite à votre demande d\'analyse rapide.',
@@ -187,10 +187,10 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
       netCost: 'Net cost',
       lcoeVsHQ: 'vs Hydro-Québec',
       years: 'years',
-      ctaTitle: 'Ready for the next step?',
-      ctaText: 'Get a free detailed analysis with your actual consumption data and a custom design for your building.',
-      ctaButton: 'Request Detailed Analysis',
-      disclaimer: 'This analysis is a preliminary estimate based on regional averages. A detailed analysis with your actual consumption data will provide more accurate projections. "Offset" represents the annual balance via Hydro-Québec\'s net metering program.',
+      ctaTitle: 'Haven\'t booked your call yet?',
+      ctaText: 'Speak with a solar specialist for free to validate these numbers with your actual data and get a custom design.',
+      ctaButton: 'Book my discovery call →',
+      disclaimer: 'This analysis is a preliminary estimate based on regional averages. A validation with your actual consumption data will provide more accurate projections. "Offset" represents the annual balance via Hydro-Québec\'s net metering program.',
       footer: 'kWh Québec - Solar + Storage',
       footerContact: '514.427.8871 | info@kwh.quebec',
       footerNote: 'This email was sent automatically following your quick analysis request.',
@@ -316,7 +316,7 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
     <div class="cta-section">
       <h3>${txt.ctaTitle}</h3>
       <p>${txt.ctaText}</p>
-      <a href="${baseUrl}/#detailed" class="cta-button">${txt.ctaButton}</a>
+      <a href="${process.env.CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}" class="cta-button">${txt.ctaButton}</a>
     </div>
     
     <div class="disclaimer">
