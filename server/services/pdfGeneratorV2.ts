@@ -1623,7 +1623,7 @@ function buildNextStepsPage(
       <h3>${t("Pr&ecirc;t &agrave; passer &agrave; l'action?", "Ready to take action?")}</h3>
       <p>${t("Contactez-nous pour d&eacute;marrer votre &eacute;valuation d&eacute;taill&eacute;e gratuite", "Contact us to start your free detailed evaluation")}</p>
       <p style="font-size: 14pt; margin-top: 5mm;">
-        <strong>evaluation@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>
+        <strong>info@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>
       </p>
       <p style="font-size: 10pt; margin-top: 3mm; opacity: 0.8;">kwh.quebec</p>
     </div>`
@@ -1631,7 +1631,7 @@ function buildNextStepsPage(
       <h3>${t("Signez votre mandat de conception en ligne", "Sign your design mandate online")}</h3>
       <p>${t("Un lien s&eacute;curis&eacute; vous sera envoy&eacute; par courriel pour signer et compl&eacute;ter le paiement en ligne.", "A secure link will be sent to you by email to sign and complete the payment online.")}</p>
       <p style="font-size: 14pt; margin-top: 5mm;">
-        <strong>evaluation@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>
+        <strong>info@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>
       </p>
       <p style="font-size: 10pt; margin-top: 3mm; opacity: 0.8;">kwh.quebec</p>
     </div>`;
