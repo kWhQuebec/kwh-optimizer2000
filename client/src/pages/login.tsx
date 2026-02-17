@@ -68,7 +68,7 @@ export default function LoginPage() {
             <a href="/">
               <img 
                 src={currentLogo} 
-                alt="kWh Québec" 
+                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
                 className="h-[3.75rem] w-auto"
                 data-testid="logo-login-header"
               />
@@ -88,7 +88,7 @@ export default function LoginPage() {
           <CardHeader className="text-center space-y-2">
             <img 
               src={currentLogo} 
-              alt="kWh Québec" 
+              alt={language === "fr" ? "Logo kWh Québec – Connexion" : "kWh Québec Logo – Login"} 
               className="h-[70px] w-auto mx-auto mb-2"
               data-testid="logo-login-card"
             />

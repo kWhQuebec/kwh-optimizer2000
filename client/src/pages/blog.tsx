@@ -129,7 +129,7 @@ export default function BlogPage() {
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <Link href="/">
-              <img src={currentLogo} alt="kWh Québec" className="h-[50px] cursor-pointer" data-testid="img-logo" />
+              <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-[50px] cursor-pointer" data-testid="img-logo" />
             </Link>
             <nav className="flex items-center gap-4">
               <Link href="/">

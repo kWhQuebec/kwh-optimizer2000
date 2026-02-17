@@ -367,7 +367,7 @@ function PresentationPage() {
           <div className="flex items-center gap-4">
             <img
               src={currentLogo}
-              alt="kWh Québec"
+              alt={language === "fr" ? "Logo kWh Québec – Présentation solaire" : "kWh Québec Logo – Solar Presentation"}
               className="h-14 w-auto"
               data-testid="logo-kwh-quebec"
             />
@@ -2086,7 +2086,7 @@ function CredibilitySlide({ language }: { language: string }) {
         >
           <img
             src={currentLogo}
-            alt="kWh Québec"
+            alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"}
             className="h-12 md:h-14 mx-auto mb-4"
           />
           <p className="text-base md:text-lg mb-4 font-semibold" style={{ color: BRAND_COLORS.primaryBlue }}>

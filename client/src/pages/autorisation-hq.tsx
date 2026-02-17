@@ -141,7 +141,7 @@ export default function AutorisationHQPage() {
             <Link href="/">
               <img 
                 src={currentLogo} 
-                alt="kWh Québec" 
+                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
                 className="h-10 sm:h-12 w-auto"
                 data-testid="logo-header"
               />
@@ -179,7 +179,7 @@ export default function AutorisationHQPage() {
           >
             <img 
               src={hqLogo} 
-              alt="Hydro-Québec" 
+              alt={language === "fr" ? "Logo Hydro-Québec – Autorisation d'accès aux données" : "Hydro-Québec Logo – Data Access Authorization"} 
               className="h-10 object-contain opacity-70"
               data-testid="img-hq-logo"
             />

@@ -354,7 +354,7 @@ export function AppSidebar() {
         <a href="/">
           <img 
             src={currentLogo} 
-            alt="kWh Québec" 
+            alt={language === "fr" ? "Logo kWh Québec – CRM solaire" : "kWh Québec Logo – Solar CRM"} 
             className="h-[3.75rem] w-auto"
             data-testid="logo-sidebar"
           />

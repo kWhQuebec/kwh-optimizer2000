@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
             <a href="/">
               <img 
                 src={currentLogo} 
-                alt="kWh Québec" 
+                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
                 className="h-[3.75rem] w-auto"
                 data-testid="logo-forgot-password-header"
               />
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
           <CardHeader className="text-center space-y-2">
             <img 
               src={currentLogo} 
-              alt="kWh Québec" 
+              alt={language === "fr" ? "Logo kWh Québec – Réinitialisation du mot de passe" : "kWh Québec Logo – Password Reset"} 
               className="h-[70px] w-auto mx-auto mb-2"
               data-testid="logo-forgot-password-card"
             />

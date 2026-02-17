@@ -99,7 +99,7 @@ export default function ChangePasswordPage() {
             <a href="/">
               <img 
                 src={currentLogo} 
-                alt="kWh Québec" 
+                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
                 className="h-[3.75rem] w-auto"
                 data-testid="logo-change-password-header"
               />

@@ -30,7 +30,7 @@ export function PublicHeader() {
           <Link href="/">
             <img 
               src={logo} 
-              alt="kWh Québec" 
+              alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
               className="h-[50px] sm:h-[3.75rem] w-auto"
               data-testid="logo-header"
             />

@@ -148,7 +148,7 @@ export default function PrivacyPage() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <Link href="/">
-            <img src={currentLogo} alt="kWh Québec" className="h-10 w-auto cursor-pointer" />
+            <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-10 w-auto cursor-pointer" />
           </Link>
           <div className="flex items-center gap-2">
             <LanguageToggle />

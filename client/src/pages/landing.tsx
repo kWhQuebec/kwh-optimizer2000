@@ -526,7 +526,7 @@ export default function LandingPage() {
             <Link href="/">
               <img 
                 src={currentLogo} 
-                alt="kWh Québec" 
+                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
                 className="h-[50px] sm:h-[3.75rem] w-auto"
                 data-testid="logo-header"
               />
@@ -633,7 +633,7 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-12" data-testid="hero-partner-logos">
               <img
                 src={dreamIndustrialLogo}
-                alt="Dream Industrial"
+                alt={language === "fr" ? "Logo Dream Industrial – Client kWh Québec" : "Dream Industrial Logo – kWh Québec Client"}
                 className="h-auto w-32 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 loading="lazy"
                 decoding="async"
@@ -641,7 +641,7 @@ export default function LandingPage() {
               />
               <img
                 src={labSpaceLogo}
-                alt="LabSpace"
+                alt={language === "fr" ? "Logo LabSpace – Client kWh Québec" : "LabSpace Logo – kWh Québec Client"}
                 className="h-auto w-36 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 loading="lazy"
                 decoding="async"
@@ -649,7 +649,7 @@ export default function LandingPage() {
               />
               <img
                 src={scaleCleantechLogo}
-                alt="Scale Cleantech"
+                alt={language === "fr" ? "Logo Scale Cleantech – Partenaire kWh Québec" : "Scale Cleantech Logo – kWh Québec Partner"}
                 className="h-auto w-36 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
                 loading="lazy"
                 decoding="async"
@@ -2195,7 +2195,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-4">
               <img
                 src={currentLogo}
-                alt="kWh Québec"
+                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"}
                 className="h-8 w-auto"
                 loading="lazy"
                 decoding="async"

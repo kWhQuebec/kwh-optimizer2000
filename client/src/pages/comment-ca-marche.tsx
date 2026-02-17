@@ -124,7 +124,7 @@ export default function CommentCaMarchePage() {
             <Link href="/">
               <img 
                 src={currentLogo} 
-                alt="kWh Québec" 
+                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
                 className="h-10 w-auto cursor-pointer"
                 data-testid="logo-header"
               />
@@ -311,7 +311,7 @@ export default function CommentCaMarchePage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <img src={currentLogo} alt="kWh Québec" className="h-10 w-auto" />
+              <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-10 w-auto" />
               <span className="text-sm text-muted-foreground">
                 © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
               </span>

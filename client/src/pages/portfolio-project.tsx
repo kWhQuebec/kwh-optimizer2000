@@ -237,14 +237,14 @@ export default function PortfolioProjectPage() {
           <div className="flex items-center gap-4 mb-6">
             <img 
               src={language === "fr" ? logoFr : logoEn} 
-              alt="kWh Québec" 
+              alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
               className="h-10 w-auto"
               data-testid="img-logo-kwh"
             />
             <div className="w-px h-8 bg-border" />
             <img 
               src={scaleCleantech} 
-              alt="Scale Cleantech" 
+              alt={language === "fr" ? "Logo Scale Cleantech – Partenaire kWh Québec" : "Scale Cleantech Logo – kWh Québec Partner"} 
               className="h-8 w-auto"
               data-testid="img-logo-scale"
             />

@@ -750,7 +750,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
             <Link href="/">
               <img 
                 src={currentLogo} 
-                alt="kWh Québec" 
+                alt={language === "fr" ? "Logo kWh Québec – Analyse solaire détaillée" : "kWh Québec Logo – Detailed Solar Analysis"} 
                 className="h-10 sm:h-12 w-auto"
                 data-testid="logo-header"
               />
