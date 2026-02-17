@@ -1531,7 +1531,7 @@ function buildNextStepsPage(
       <div class="funnel-step">
         <div class="funnel-step-number">1</div>
         <div class="funnel-step-title">${t("&Eacute;valuation d&eacute;taill&eacute;e", "Detailed Evaluation")}</div>
-        <p class="funnel-step-desc">${t("Procuration Hydro-Qu&eacute;bec + analyse compl&egrave;te avec donn&eacute;es r&eacute;elles. Pr&eacute;cision ~95%.", "Hydro-Qu&eacute;bec power of attorney + complete analysis with real data. ~95% accuracy.")}</p>
+        <p class="funnel-step-desc">${t("Procuration Hydro-Qu&eacute;bec (2 min) ou t&eacute;l&eacute;chargement CSV (~30 min) + analyse compl&egrave;te. Pr&eacute;cision ~95%.", "Hydro-Qu&eacute;bec authorization (2 min) or CSV download (~30 min) + complete analysis. ~95% accuracy.")}</p>
         <span class="funnel-step-tag">${t("GRATUIT", "FREE")}</span>
       </div>
       <div class="funnel-step">
@@ -1582,14 +1582,21 @@ function buildNextStepsPage(
 
   const immediateStepHtml = isSyntheticData
     ? `<div class="section">
-        <h3>${t("Prochaine &eacute;tape imm&eacute;diate", "Immediate next step")}</h3>
-        <p>${t("Pour passer de cette &eacute;tude pr&eacute;liminaire &agrave; une analyse d&eacute;taill&eacute;e avec vos donn&eacute;es r&eacute;elles :", "To move from this preliminary study to a detailed analysis with your real data:")}</p>
-        <ul class="bullet-list">
-          <li>${t("Signer la procuration Hydro-Qu&eacute;bec (&eacute;lectronique, 2 minutes)", "Sign the Hydro-Qu&eacute;bec power of attorney (electronic, 2 minutes)")}</li>
-          <li>${t("Nous acc&eacute;dons &agrave; votre historique de consommation complet", "We access your complete consumption history")}</li>
-          <li>${t("Simulation heure par heure personnalis&eacute;e", "Personalized hour-by-hour simulation")}</li>
-          <li>${t("R&eacute;sultat en 7 jours ouvrables", "Results within 7 business days")}</li>
-        </ul>
+        <h3>${t("Obtenez votre analyse d&eacute;taill&eacute;e", "Get your detailed analysis")}</h3>
+        <p style="margin-bottom: 3mm;">${t("Deux options pour nous transmettre vos donn&eacute;es de consommation r&eacute;elles :", "Two options to send us your real consumption data:")}</p>
+        <div style="display: flex; gap: 4mm; margin-bottom: 3mm;">
+          <div style="flex: 1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 2mm; padding: 3mm;">
+            <p style="font-size: 9pt; font-weight: 700; color: #16a34a; margin: 0 0 2mm 0;">${t("Option A &mdash; Procuration (2 min)", "Option A &mdash; Authorization (2 min)")}</p>
+            <p style="font-size: 8pt; margin: 0 0 2mm 0;">${t("Signez en ligne et nous nous occupons de tout.", "Sign online and we handle everything.")}</p>
+            <p style="font-size: 8pt; margin: 0;"><a href="https://kwh.quebec/analyse-detaillee" style="color: #003DA6; text-decoration: underline;">kwh.quebec/analyse-detaillee</a></p>
+          </div>
+          <div style="flex: 1; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 2mm; padding: 3mm;">
+            <p style="font-size: 9pt; font-weight: 700; color: #003DA6; margin: 0 0 2mm 0;">${t("Option B &mdash; T&eacute;l&eacute;chargement CSV (~30 min)", "Option B &mdash; CSV Download (~30 min)")}</p>
+            <p style="font-size: 8pt; margin: 0 0 2mm 0;">${t("T&eacute;l&eacute;chargez vos fichiers depuis l'Espace Client Hydro-Qu&eacute;bec.", "Download your files from Hydro-Qu&eacute;bec's Online Portal.")}</p>
+            <p style="font-size: 8pt; margin: 0;"><a href="https://kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" style="color: #003DA6; text-decoration: underline;">${t("Voir le guide &eacute;tape par &eacute;tape", "See the step-by-step guide")}</a></p>
+          </div>
+        </div>
+        <p style="font-size: 8pt; color: #6b7280; margin: 0;">${t("R&eacute;sultat en 7 jours ouvrables apr&egrave;s r&eacute;ception des donn&eacute;es. Gratuit et sans engagement.", "Results within 7 business days after data reception. Free and without commitment.")}</p>
       </div>`
     : `<div class="section">
         <h3>${t("Prochaine &eacute;tape imm&eacute;diate", "Immediate next step")}</h3>
@@ -1623,11 +1630,15 @@ function buildNextStepsPage(
   const ctaHtml = isSyntheticData
     ? `<div class="cta-box">
       <h3>${t("Pr&ecirc;t &agrave; passer &agrave; l'action?", "Ready to take action?")}</h3>
-      <p>${t("Contactez-nous pour d&eacute;marrer votre &eacute;valuation d&eacute;taill&eacute;e gratuite", "Contact us to start your free detailed evaluation")}</p>
-      <p style="font-size: 14pt; margin-top: 5mm;">
+      <p>${t("Signez la procuration ou t&eacute;l&eacute;chargez vos donn&eacute;es pour d&eacute;marrer votre analyse d&eacute;taill&eacute;e gratuite", "Sign the authorization or download your data to start your free detailed analysis")}</p>
+      <p style="font-size: 10pt; margin-top: 3mm;">
+        <a href="https://kwh.quebec/analyse-detaillee" style="color: white; text-decoration: underline;">${t("Signer la procuration", "Sign authorization")}</a>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <a href="https://kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" style="color: white; text-decoration: underline;">${t("Guide CSV", "CSV Guide")}</a>
+      </p>
+      <p style="font-size: 14pt; margin-top: 3mm;">
         <strong>info@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>
       </p>
-      <p style="font-size: 10pt; margin-top: 3mm; opacity: 0.8;">kwh.quebec</p>
     </div>`
     : `<div class="cta-box">
       <h3>${t("Signez votre mandat de conception en ligne", "Sign your design mandate online")}</h3>

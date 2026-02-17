@@ -1225,7 +1225,45 @@ export async function generatePresentationPPTX(
     });
   });
 
-  if (!isSyntheticData) {
+  if (isSyntheticData) {
+    slide5.addShape("roundRect", {
+      x: 0.3, y: 3.55, w: 4.6, h: 1.2,
+      fill: { color: "F0FDF4" },
+      line: { color: "BBF7D0", width: 1 },
+      rectRadius: 0.08
+    });
+    slide5.addText(t("Option A — Procuration (2 min)", "Option A — Authorization (2 min)"), {
+      x: 0.5, y: 3.6, w: 4.2, h: 0.3,
+      fontSize: 10, bold: true, color: COLORS.green
+    });
+    slide5.addText(t("Signez en ligne et nous nous occupons de tout.", "Sign online and we handle everything."), {
+      x: 0.5, y: 3.9, w: 4.2, h: 0.25,
+      fontSize: 8, color: COLORS.darkGray
+    });
+    slide5.addText([{ text: "kwh.quebec/analyse-detaillee", options: { hyperlink: { url: "https://kwh.quebec/analyse-detaillee" }, color: COLORS.blue, underline: true } }], {
+      x: 0.5, y: 4.15, w: 4.2, h: 0.25,
+      fontSize: 8
+    });
+
+    slide5.addShape("roundRect", {
+      x: 5.1, y: 3.55, w: 4.6, h: 1.2,
+      fill: { color: "EFF6FF" },
+      line: { color: "BFDBFE", width: 1 },
+      rectRadius: 0.08
+    });
+    slide5.addText(t("Option B — Téléchargement CSV (~30 min)", "Option B — CSV Download (~30 min)"), {
+      x: 5.3, y: 3.6, w: 4.2, h: 0.3,
+      fontSize: 10, bold: true, color: COLORS.blue
+    });
+    slide5.addText(t("Téléchargez vos fichiers depuis l'Espace Client Hydro-Québec.", "Download your files from Hydro-Québec's Online Portal."), {
+      x: 5.3, y: 3.9, w: 4.2, h: 0.25,
+      fontSize: 8, color: COLORS.darkGray
+    });
+    slide5.addText([{ text: t("Voir le guide étape par étape", "See the step-by-step guide"), options: { hyperlink: { url: "https://kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" }, color: COLORS.blue, underline: true } }], {
+      x: 5.3, y: 4.15, w: 4.2, h: 0.25,
+      fontSize: 8
+    });
+  } else {
     slide5.addShape("rect", {
       x: 0.3, y: 3.75, w: 9.4, h: 0.55, fill: { color: COLORS.gold }
     });
@@ -1246,18 +1284,18 @@ export async function generatePresentationPPTX(
   }
 
   slide5.addShape("rect", {
-    x: 0.5, y: 4.5, w: 9, h: 0.8, fill: { color: COLORS.blue }
+    x: 0.5, y: 4.85, w: 9, h: 0.55, fill: { color: COLORS.blue }
   });
   slide5.addText(
     isSyntheticData
-      ? t("Contactez-nous pour planifier votre évaluation détaillée", "Contact us to schedule your detailed evaluation")
+      ? t("Gratuit et sans engagement — Résultat en 7 jours ouvrables", "Free and without commitment — Results within 7 business days")
       : t("Signez votre mandat de conception en ligne", "Sign your design mandate online"), {
-    x: 0.5, y: 4.65, w: 9, h: 0.25,
-    fontSize: 14, bold: true, color: COLORS.white, align: "center"
+    x: 0.5, y: 4.88, w: 9, h: 0.25,
+    fontSize: 12, bold: true, color: COLORS.white, align: "center"
   });
   slide5.addText("info@kwh.quebec | 514.427.8871 | www.kwh.quebec", {
-    x: 0.5, y: 4.95, w: 9, h: 0.2,
-    fontSize: 11, color: COLORS.gold, align: "center"
+    x: 0.5, y: 5.13, w: 9, h: 0.2,
+    fontSize: 10, color: COLORS.gold, align: "center"
   });
 
   // ================= APPENDIX: ROOF CONFIGURATION =================

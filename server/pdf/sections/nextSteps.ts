@@ -5,13 +5,14 @@ import { getDesignFeeCovers, getClientProvides, getClientReceives, getContactStr
 
 export function renderNextSteps(ctx: PDFContext) {
   const { doc, t, margin, contentWidth } = ctx;
+  const isSyntheticData = typeof (ctx.simulation as any).isSynthetic === 'boolean'
+    ? (ctx.simulation as any).isSynthetic
+    : !(ctx.simulation.hourlyProfile && ctx.simulation.hourlyProfile.length > 0);
 
-  // Own page
   doc.addPage();
   drawPageHeader(ctx, t("PASSONS À L'ACTION", "LET'S TAKE ACTION"));
   doc.y = ctx.headerHeight + 25;
 
-  // Section title
   doc.fontSize(18).fillColor(COLORS.blue).font("Helvetica-Bold");
   doc.text(t("PASSONS À L'ACTION", "LET'S TAKE ACTION"), margin, doc.y);
   doc.font("Helvetica");
@@ -19,12 +20,10 @@ export function renderNextSteps(ctx: PDFContext) {
   doc.rect(margin, doc.y, 160, 3).fillColor(COLORS.gold).fill();
   doc.y += 20;
 
-  // 3 blocks side by side
   const nsColWidth = (contentWidth - 20) / 3;
   const nsY = doc.y;
   const nsBlockH = 200;
 
-  // Block A: Design fee covers
   drawRoundedRect(doc, margin, nsY, nsColWidth, nsBlockH, 6, COLORS.background);
   doc.roundedRect(margin, nsY, nsColWidth, nsBlockH, 6).strokeColor(COLORS.blue).lineWidth(1).stroke();
 
@@ -43,7 +42,6 @@ export function renderNextSteps(ctx: PDFContext) {
     nsItemY += 18;
   });
 
-  // Block B: Client provides
   const nsCol2X = margin + nsColWidth + 10;
   drawRoundedRect(doc, nsCol2X, nsY, nsColWidth, nsBlockH, 6, COLORS.background);
   doc.roundedRect(nsCol2X, nsY, nsColWidth, nsBlockH, 6).strokeColor(COLORS.gold).lineWidth(1).stroke();
@@ -63,7 +61,6 @@ export function renderNextSteps(ctx: PDFContext) {
     nsItemY += 18;
   });
 
-  // Block C: Client receives
   const nsCol3X = margin + 2 * (nsColWidth + 10);
   drawRoundedRect(doc, nsCol3X, nsY, nsColWidth, nsBlockH, 6, COLORS.background);
   doc.roundedRect(nsCol3X, nsY, nsColWidth, nsBlockH, 6).strokeColor(COLORS.green).lineWidth(1).stroke();
@@ -83,26 +80,57 @@ export function renderNextSteps(ctx: PDFContext) {
     nsItemY += 18;
   });
 
-  // CTA Contact Box below the 3 columns
-  const ctaY = nsY + nsBlockH + 25;
+  const ctaY = nsY + nsBlockH + 15;
 
-  // Urgency text before CTA
-  doc.fontSize(10).fillColor(COLORS.darkGray);
-  doc.text(t(
-    "Les incitatifs actuels sont les plus généreux de l'histoire du Québec. Chaque mois d'attente représente des économies perdues.",
-    "Current incentives are the most generous in Quebec's history. Every month of delay means lost savings."
-  ), margin, ctaY, { width: contentWidth, align: "center" });
+  if (isSyntheticData) {
+    const optColW = (contentWidth - 10) / 2;
 
-  doc.moveDown(1.2);
-  const ctaBoxY = doc.y;
-  drawRoundedRect(doc, margin, ctaBoxY, contentWidth, 55, 8, COLORS.blue);
+    drawRoundedRect(doc, margin, ctaY, optColW, 70, 6, "#F0FDF4");
+    doc.roundedRect(margin, ctaY, optColW, 70, 6).strokeColor("#BBF7D0").lineWidth(0.5).stroke();
+    doc.fontSize(9).fillColor(COLORS.green).font("Helvetica-Bold");
+    doc.text(t("Option A — Procuration (2 min)", "Option A — Authorization (2 min)"), margin + 8, ctaY + 8, { width: optColW - 16 });
+    doc.font("Helvetica").fontSize(8).fillColor(COLORS.darkGray);
+    doc.text(t("Signez en ligne et nous nous occupons de tout.", "Sign online and we handle everything."), margin + 8, ctaY + 22, { width: optColW - 16 });
+    doc.fillColor(COLORS.blue);
+    doc.text("kwh.quebec/analyse-detaillee", margin + 8, ctaY + 38, { width: optColW - 16, underline: true, link: "https://kwh.quebec/analyse-detaillee" });
 
-  doc.fontSize(14).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(t("Prêt à passer à l'action? Réservez votre mandat de conception.", "Ready to take action? Book your design mandate."), margin, ctaBoxY + 10, { width: contentWidth, align: "center" });
-  doc.font("Helvetica");
+    const opt2X = margin + optColW + 10;
+    drawRoundedRect(doc, opt2X, ctaY, optColW, 70, 6, "#EFF6FF");
+    doc.roundedRect(opt2X, ctaY, optColW, 70, 6).strokeColor("#BFDBFE").lineWidth(0.5).stroke();
+    doc.fontSize(9).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text(t("Option B — Téléchargement CSV (~30 min)", "Option B — CSV Download (~30 min)"), opt2X + 8, ctaY + 8, { width: optColW - 16 });
+    doc.font("Helvetica").fontSize(8).fillColor(COLORS.darkGray);
+    doc.text(t("Téléchargez vos fichiers depuis l'Espace Client Hydro-Québec.", "Download your files from Hydro-Québec's Online Portal."), opt2X + 8, ctaY + 22, { width: optColW - 16 });
+    doc.fillColor(COLORS.blue);
+    doc.text(t("Voir le guide étape par étape", "See the step-by-step guide"), opt2X + 8, ctaY + 38, { width: optColW - 16, underline: true, link: "https://kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" });
 
-  doc.fontSize(11).fillColor(COLORS.gold);
-  doc.text(getContactString(), margin, ctaBoxY + 32, { width: contentWidth, align: "center" });
+    doc.fontSize(8).fillColor(COLORS.mediumGray);
+    doc.text(t("Gratuit et sans engagement — Résultat en 7 jours ouvrables après réception des données.", "Free and without commitment — Results within 7 business days after data reception."), margin, ctaY + 78, { width: contentWidth, align: "center" });
+
+    const ctaBoxY = ctaY + 95;
+    drawRoundedRect(doc, margin, ctaBoxY, contentWidth, 45, 8, COLORS.blue);
+    doc.fontSize(12).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text(t("Prêt à passer à l'action?", "Ready to take action?"), margin, ctaBoxY + 8, { width: contentWidth, align: "center" });
+    doc.font("Helvetica").fontSize(11).fillColor(COLORS.gold);
+    doc.text(getContactString(), margin, ctaBoxY + 26, { width: contentWidth, align: "center" });
+  } else {
+    doc.fontSize(10).fillColor(COLORS.darkGray);
+    doc.text(t(
+      "Les incitatifs actuels sont les plus généreux de l'histoire du Québec. Chaque mois d'attente représente des économies perdues.",
+      "Current incentives are the most generous in Quebec's history. Every month of delay means lost savings."
+    ), margin, ctaY, { width: contentWidth, align: "center" });
+
+    doc.moveDown(1.2);
+    const ctaBoxY = doc.y;
+    drawRoundedRect(doc, margin, ctaBoxY, contentWidth, 55, 8, COLORS.blue);
+
+    doc.fontSize(14).fillColor(COLORS.white).font("Helvetica-Bold");
+    doc.text(t("Prêt à passer à l'action? Réservez votre mandat de conception.", "Ready to take action? Book your design mandate."), margin, ctaBoxY + 10, { width: contentWidth, align: "center" });
+    doc.font("Helvetica");
+
+    doc.fontSize(11).fillColor(COLORS.gold);
+    doc.text(getContactString(), margin, ctaBoxY + 32, { width: contentWidth, align: "center" });
+  }
 
   drawPageFooter(ctx, t("Document confidentiel | Généré par kWh Québec | Prochaines étapes", "Confidential document | Generated by kWh Québec | Next steps"));
 }
