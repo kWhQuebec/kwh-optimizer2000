@@ -631,22 +631,28 @@ export default function LandingPage() {
               {language === "fr" ? "Ils nous font confiance" : "They trust us"}
             </p>
             <div className="flex flex-wrap items-center gap-12" data-testid="hero-partner-logos">
-              <img 
-                src={dreamIndustrialLogo} 
-                alt="Dream Industrial" 
+              <img
+                src={dreamIndustrialLogo}
+                alt="Dream Industrial"
                 className="h-auto w-32 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                loading="lazy"
+                decoding="async"
                 data-testid="logo-dream-industrial"
               />
-              <img 
-                src={labSpaceLogo} 
-                alt="LabSpace" 
+              <img
+                src={labSpaceLogo}
+                alt="LabSpace"
                 className="h-auto w-36 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                loading="lazy"
+                decoding="async"
                 data-testid="logo-labspace"
               />
-              <img 
-                src={scaleCleantechLogo} 
-                alt="Scale Cleantech" 
+              <img
+                src={scaleCleantechLogo}
+                alt="Scale Cleantech"
                 className="h-auto w-36 opacity-80 hover:opacity-100 transition-opacity brightness-0 invert"
+                loading="lazy"
+                decoding="async"
                 data-testid="logo-scale-cleantech"
               />
             </div>
@@ -1899,6 +1905,8 @@ export default function LandingPage() {
                     src={installationPhoto}
                     alt={language === "fr" ? "Équipe kWh Québec sur un toit" : "kWh Québec team on a rooftop"}
                     className="w-full h-[300px] md:h-[350px] object-cover"
+                    loading="lazy"
+                    decoding="async"
                     data-testid="img-team-photo"
                   />
                 </div>
@@ -2171,10 +2179,12 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <img 
-                src={currentLogo} 
-                alt="kWh Québec" 
+              <img
+                src={currentLogo}
+                alt="kWh Québec"
                 className="h-8 w-auto"
+                loading="lazy"
+                decoding="async"
               />
               <span className="text-sm text-muted-foreground">
                 © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
@@ -2201,4 +2211,3 @@ export default function LandingPage() {
     </div>
   );
 }
-

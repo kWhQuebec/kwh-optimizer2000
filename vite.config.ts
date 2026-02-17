@@ -30,6 +30,24 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // Cache-busting asset names
+        assetFileNames: "assets/[name]-[hash][extname]",
+        chunkFileNames: "assets/[name]-[hash].js",
+        entryFileNames: "assets/[name]-[hash].js",
+        // Split large vendor chunks
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          charts: ["recharts"],
+          ui: ["lucide-react"],
+        },
+      },
+    },
+    // Target modern browsers for smaller output
+    target: "es2020",
+    // Enable CSS code splitting
+    cssCodeSplit: true,
   },
   server: {
     fs: {
