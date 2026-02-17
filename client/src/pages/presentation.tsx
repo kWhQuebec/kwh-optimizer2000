@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import {
@@ -119,7 +120,7 @@ const SLIDES = [
 ] as const;
 type SlideType = typeof SLIDES[number];
 
-export default function PresentationPage() {
+function PresentationPage() {
   const { id } = useParams<{ id: string }>();
   const { language } = useI18n();
   const [currentSlide, setCurrentSlide] = useState<number>(0);
@@ -2066,5 +2067,13 @@ function CredibilitySlide({ language }: { language: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PresentationPageWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <PresentationPage />
+    </ErrorBoundary>
   );
 }
