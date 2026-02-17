@@ -112,7 +112,6 @@ export async function generateProfessionalPDFv2(
   pages.push(buildCoverPage(simulation, t, logoBase64, coverImageBase64, lang, isSyntheticData));
   nextPage();
 
-  pages.push(buildAboutPage(simulation, t, nextPage(), { scaleCleantechLogoBase64, hydroQuebecLogoBase64, dreamIndustrialLogoBase64, labspaceLogoBase64 }));
   pages.push(buildWhySolarNowPage(t, lang, nextPage()));
   pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData));
   pages.push(buildResultsPage(simulation, t, totalProductionKWh, nextPage()));
@@ -128,10 +127,10 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildFinancialProjectionsPage(simulation, t, totalProductionKWh, nextPage()));
 
-
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
   pages.push(buildAssumptionsPage(simulation, t, lang, isSyntheticData, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, isSyntheticData, nextPage()));
+  pages.push(buildAboutPage(simulation, t, nextPage(), { scaleCleantechLogoBase64, hydroQuebecLogoBase64, dreamIndustrialLogoBase64, labspaceLogoBase64 }));
 
   const watermarkLabel = t("\u00c9TUDE PR\u00c9LIMINAIRE", "PRELIMINARY STUDY");
   const bodyClass = isSyntheticData ? ' class="synthetic"' : '';
