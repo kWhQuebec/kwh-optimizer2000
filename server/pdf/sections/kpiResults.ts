@@ -153,7 +153,18 @@ export function renderKPIResults(ctx: PDFContext) {
     doc.text(card4Subtitle, card4X + 10, cardY + 60, { width: cardWidth - 20, align: "center" });
   }
 
-  doc.y = cardY + cardHeight + 25;
+  doc.y = cardY + cardHeight + 15;
+
+  if (simulation.productionP50KWh && simulation.productionP90KWh) {
+    doc.fontSize(8).fillColor(COLORS.mediumGray);
+    doc.text(t(
+      `Productible P50: ${Math.round(simulation.productionP50KWh).toLocaleString()} kWh/kWp | P90: ${Math.round(simulation.productionP90KWh).toLocaleString()} kWh/kWp`,
+      `Production P50: ${Math.round(simulation.productionP50KWh).toLocaleString()} kWh/kWp | P90: ${Math.round(simulation.productionP90KWh).toLocaleString()} kWh/kWp`
+    ), margin, doc.y, { width: contentWidth, align: "center" });
+    doc.y += 12;
+  }
+
+  doc.y += 10;
 
   // Configuration + Finance 2-column summary
   doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");

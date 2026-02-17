@@ -823,6 +823,14 @@ function SnapshotSlide({ simulation, language }: { simulation: SimulationRun | n
             </div>
           ))}
         </div>
+
+        {simulation?.productionP50KWh && simulation?.productionP90KWh && (
+          <p className="text-center text-xs mt-4" style={{ color: '#9CA3AF' }}>
+            {language === 'fr'
+              ? `Productible P50: ${Math.round(simulation.productionP50KWh).toLocaleString()} kWh/kWp | P90: ${Math.round(simulation.productionP90KWh).toLocaleString()} kWh/kWp`
+              : `Production P50: ${Math.round(simulation.productionP50KWh).toLocaleString()} kWh/kWp | P90: ${Math.round(simulation.productionP90KWh).toLocaleString()} kWh/kWp`}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -991,7 +999,8 @@ function AssumptionsCollapsible({ simulation, language }: { simulation: Simulati
 
   const marketingAssumptions = [
     { label: language === 'fr' ? 'Escalade prix électricité' : 'Utility price escalation', value: '3.5%/yr' },
-    { label: language === 'fr' ? 'Dégradation panneaux' : 'Panel degradation', value: '0.5%/yr' },
+    { label: language === 'fr' ? 'Dégradation panneaux' : 'Panel degradation', value: '0.4%/yr' },
+    { label: language === 'fr' ? 'Ratio DC:AC' : 'DC:AC ratio', value: '1.40–1.47' },
     { label: language === 'fr' ? 'Durée de vie système' : 'System lifespan', value: '25 years' },
     { label: language === 'fr' ? 'Autoconsommation estimée' : 'Est. self-consumption', value: '~90%' },
     { label: language === 'fr' ? 'Taux d\'actualisation (WACC)' : 'Discount rate (WACC)', value: '7%' },

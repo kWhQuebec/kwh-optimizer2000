@@ -62,6 +62,7 @@ import { StructuralConstraintsEditor } from "./components/StructuralConstraintsE
 import { DownloadReportButton } from "./components/DownloadReportButton";
 import { ScenarioComparison } from "./components/ScenarioComparison";
 import { AnalysisResults } from "./components/AnalysisResults";
+import { BenchmarkTab } from "./components/BenchmarkTab";
 import type { SiteWithDetails, QuickPotentialResult, DeliverablePhase } from "./types";
 import { formatNumber, getTariffRates } from "./utils";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
@@ -1289,6 +1290,12 @@ export default function SiteDetailPage() {
                   showAlways: false,
                   status: hasDesignAgreement ? "complete" : hasAnalysis ? "available" : "pending"
                 },
+                {
+                  value: "benchmark",
+                  label: "Benchmark",
+                  showAlways: false,
+                  status: hasAnalysis ? "available" : "pending"
+                },
               ];
 
               const visibleTabs = tabs.filter(tab => tab.showAlways || isStaff);
@@ -1358,6 +1365,7 @@ export default function SiteDetailPage() {
           <TabsTrigger value="analysis">{t("analysis.title")}</TabsTrigger>
           {isStaff && <TabsTrigger value="site-visit">{language === "fr" ? "Visite technique" : "Technical Visit"}</TabsTrigger>}
           {isStaff && <TabsTrigger value="design-agreement">{language === "fr" ? "Mandat de conception préliminaire" : "Preliminary Design Mandate"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="benchmark">Benchmark</TabsTrigger>}
           {isStaff && <TabsTrigger value="activities">{t("activity.title")}</TabsTrigger>}
           <TabsTrigger value="compare">{language === "fr" ? "Comparer" : "Compare"}</TabsTrigger>
         </TabsList>
@@ -1694,6 +1702,12 @@ export default function SiteDetailPage() {
         {isStaff && (
           <TabsContent value="design-agreement" className="space-y-6">
             <DesignAgreementSection siteId={site.id} />
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="benchmark" className="space-y-6">
+            <BenchmarkTab siteId={site.id} simulationRuns={site.simulationRuns || []} />
           </TabsContent>
         )}
 

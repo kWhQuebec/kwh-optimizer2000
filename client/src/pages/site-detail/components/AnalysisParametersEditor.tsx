@@ -6,6 +6,7 @@ import {
   DollarSign,
   TrendingUp,
   Sun,
+  Snowflake,
   Info,
   Layers,
   Percent,
@@ -346,6 +347,36 @@ export function AnalysisParametersEditor({
                   </div>
                 );
               })()}
+
+              {/* Snow Loss Profile Section */}
+              <div className="pt-3 border-t border-dashed space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Snowflake className="w-4 h-4 text-primary" />
+                    {language === "fr" ? "Pertes de neige" : "Snow Losses"}
+                  </Label>
+                  <select
+                    value={merged.snowLossProfile || "none"}
+                    onChange={(e) => onChange({ ...value, snowLossProfile: e.target.value as 'none' | 'flat_roof' })}
+                    disabled={disabled}
+                    className="h-8 text-sm rounded-md border border-input bg-background px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
+                    data-testid="select-snow-loss-profile"
+                  >
+                    <option value="none">{language === "fr" ? "Aucun" : "None"}</option>
+                    <option value="flat_roof">
+                      {language === "fr"
+                        ? "Toit plat (jan-f\u00E9v 100%, mars 70%, d\u00E9c 50%)"
+                        : "Flat roof (Jan-Feb 100%, Mar 70%, Dec 50%)"}
+                    </option>
+                  </select>
+                </div>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  {language === "fr"
+                    ? "Appliquer un profil de pertes saisonni\u00E8res dues \u00E0 la neige. D\u00E9sactiv\u00E9 par d\u00E9faut (la plupart des syst\u00E8mes C&I \u00E9vacuent la neige efficacement)."
+                    : "Apply seasonal snow loss profile. Off by default (most C&I systems shed snow effectively)."}
+                </p>
+              </div>
             </div>
 
             {/* Financial Assumptions Section */}

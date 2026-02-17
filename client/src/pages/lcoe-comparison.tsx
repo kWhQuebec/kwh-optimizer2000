@@ -241,7 +241,7 @@ export default function LcoeComparisonPage() {
     warrantyYears: 20,
     inverterType: "string",
     panelBrandModel: "",
-    degradationRate: 0.5,
+    degradationRate: 0.4,
   });
 
   const [kwh, setKwh] = useState<KwhQuote>({
@@ -317,7 +317,7 @@ export default function LcoeComparisonPage() {
       warrantyYears: 20,
       inverterType: "string",
       panelBrandModel: "",
-      degradationRate: 0.5,
+      degradationRate: 0.4,
     });
     setKwh({
       systemSizeKw: 10,

@@ -202,8 +202,8 @@ export default function RessourcesPage() {
         ? "Quelle maintenance est requise pour un système solaire?"
         : "What maintenance is required for a solar system?",
       answer: language === "fr"
-        ? "Les systèmes solaires nécessitent très peu de maintenance. Inspection visuelle annuelle, nettoyage occasionnel si accumulation importante de débris, et vérification des connexions électriques tous les 2-3 ans. Les panneaux sont garantis 25 ans avec dégradation <0,5%/an. Le monitoring à distance permet de détecter rapidement tout problème."
-        : "Solar systems require very little maintenance. Annual visual inspection, occasional cleaning if significant debris accumulation, and electrical connection check every 2-3 years. Panels are warranted 25 years with degradation <0.5%/year. Remote monitoring allows quick detection of any issues."
+        ? "Les systèmes solaires nécessitent très peu de maintenance. Inspection visuelle annuelle, nettoyage occasionnel si accumulation importante de débris, et vérification des connexions électriques tous les 2-3 ans. Les panneaux sont garantis 25 ans avec dégradation <0,4%/an. Le monitoring à distance permet de détecter rapidement tout problème."
+        : "Solar systems require very little maintenance. Annual visual inspection, occasional cleaning if significant debris accumulation, and electrical connection check every 2-3 years. Panels are warranted 25 years with degradation <0.4%/year. Remote monitoring allows quick detection of any issues."
     },
     {
       category: "process",

@@ -150,7 +150,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
 
   // System lifetime for LCOE calculation
   const SYSTEM_LIFETIME_YEARS = 25;
-  const DEGRADATION_FACTOR = 0.94; // Average over 25 years with 0.5%/year degradation
+  const DEGRADATION_FACTOR = 0.94; // Average over 25 years with 0.4%/year degradation
 
   // Helper function to calculate scenario metrics
   const calculateScenario = (offsetPercent: number) => {

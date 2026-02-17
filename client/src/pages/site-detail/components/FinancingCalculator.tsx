@@ -48,7 +48,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const [ppaYear2Rate, setPpaYear2Rate] = useState(85); // Year 2+: 85% of HQ rate (15% savings - conservative)
   const [ppaBuyoutPct, setPpaBuyoutPct] = useState(10); // Buyout cost as % of original CAPEX at end of term
 
-  const degradationRate = 0.005; // 0.5% per year panel degradation
+  const degradationRate = 0.004; // 0.4% per year panel degradation
 
   const scenarioBreakdown = displayedScenario.scenarioBreakdown;
   const assumptions = simulation.assumptions as AnalysisAssumptions | null;
@@ -124,7 +124,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   // Use consistent 25-year horizon for all financing comparisons
   const analysisHorizon = 25;
 
-  // Total degraded savings over analysis horizon (accounts for 0.5%/yr panel degradation)
+  // Total degraded savings over analysis horizon (accounts for 0.4%/yr panel degradation)
   const totalDegradedSavings = Array.from({ length: analysisHorizon }, (_, i) =>
     annualSavings * Math.pow(1 - degradationRate, i)
   ).reduce((a, b) => a + b, 0);

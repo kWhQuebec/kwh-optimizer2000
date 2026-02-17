@@ -19,6 +19,7 @@ import * as constructionRepo from "./repositories/constructionRepo";
 import * as pipelineRepo from "./repositories/pipelineRepo";
 import * as supplierRepo from "./repositories/supplierRepo";
 import * as cacheRepo from "./repositories/cacheRepo";
+import * as benchmarkRepo from "./repositories/benchmarkRepo";
 
 export class DatabaseStorage implements IStorage {
   async initializeDefaultData(): Promise<void> {
@@ -343,6 +344,13 @@ export class DatabaseStorage implements IStorage {
   getPriceHistoryByItem = supplierRepo.getPriceHistoryByItem;
   createPriceHistory = supplierRepo.createPriceHistory;
   deletePriceHistory = supplierRepo.deletePriceHistory;
+
+  // Benchmarks
+  getBenchmarksBySite = benchmarkRepo.getBenchmarksBySite;
+  getBenchmark = benchmarkRepo.getBenchmark;
+  createBenchmark = benchmarkRepo.createBenchmark;
+  updateBenchmark = benchmarkRepo.updateBenchmark;
+  deleteBenchmark = benchmarkRepo.deleteBenchmark;
 
   // Google Solar Cache
   getGoogleSolarCacheByLocation = cacheRepo.getGoogleSolarCacheByLocation;

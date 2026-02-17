@@ -2264,7 +2264,7 @@ export interface AnalysisAssumptions {
   inverterLoadRatio: number;     // DC/AC ratio (ILR) - default 1.4, adjusted by racking config (1.2-1.6)
   temperatureCoefficient: number; // Power temp coefficient %/°C - default -0.004 (-0.4%/°C)
   wireLossPercent: number;       // DC wiring losses - default 0.02 (2%)
-  degradationRatePercent: number; // Annual module degradation - default 0.005 (0.5%/year)
+  degradationRatePercent: number; // Annual module degradation - default 0.004 (0.4%/year)
   
   // Financial
   inflationRate: number;     // % as decimal - default 0.035
@@ -2314,6 +2314,8 @@ export interface AnalysisAssumptions {
   // NOT client's energy tariff rate - HQ compensates at cost of supply after 24-month bank reset
   hqSurplusCompensationRate?: number;  // $/kWh - default 0.0460 (4.60¢/kWh)
 
+  snowLossProfile?: 'none' | 'flat_roof'; // Optional snow loss profile for flat roof/shed configs
+
   // EPC gross margin applied to catalog cost prices for sell pricing
   epcMargin?: number; // Gross margin (default 0.35 = 35%) — sellPrice = cost / (1 - margin)
 }
@@ -2333,7 +2335,7 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   inverterLoadRatio: 1.4, // DC/AC ratio - adjusted based on bifacial gain (1.2-1.6)
   temperatureCoefficient: -0.004, // -0.4%/°C typical for crystalline Si
   wireLossPercent: 0.0, // 0% for free analysis stage (re-enable for detailed design)
-  degradationRatePercent: 0.005, // 0.5% annual degradation
+  degradationRatePercent: 0.004, // 0.4% annual degradation
   
   // Updated Feb 2026 - realistic 25-year assumptions
   // Historic Quebec rates: 2.6-3.5% CAGR over 20 years
@@ -2368,6 +2370,8 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   // Source: HQ Grille tarifaire avril 2025 - Coût moyen d'approvisionnement
   // After 24-month bank reset, surplus kWh compensated at this rate (NOT client tariff)
   hqSurplusCompensationRate: 0.0460, // 4.60¢/kWh (HQ cost of supply April 2025)
+
+  snowLossProfile: 'none' as const,
 
   // EPC gross margin — sellPrice = cost / (1 - 0.35)
   epcMargin: 0.35, // 35% gross margin
@@ -2784,3 +2788,31 @@ export function getBifacialConfigFromRoofColor(roofColorType: RoofColorType | st
       };
   }
 }
+
+export const benchmarks = pgTable("benchmarks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id),
+  simulationRunId: varchar("simulation_run_id").references(() => simulationRuns.id),
+
+  toolName: text("tool_name").notNull(),
+  reportDate: timestamp("report_date"),
+  analyst: text("analyst"),
+  notes: text("notes"),
+
+  simAnnualProductionKWh: real("sim_annual_production_kwh"),
+  simYieldKWhPerKWp: real("sim_yield_kwh_per_kwp"),
+  simPerformanceRatio: real("sim_performance_ratio"),
+  simSpecificYieldP50: real("sim_specific_yield_p50"),
+  simSpecificYieldP90: real("sim_specific_yield_p90"),
+  simCapexTotal: real("sim_capex_total"),
+  simPvSizeKW: real("sim_pv_size_kw"),
+  simDcAcRatio: real("sim_dc_ac_ratio"),
+
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBenchmarkSchema = createInsertSchema(benchmarks).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertBenchmark = z.infer<typeof insertBenchmarkSchema>;
+export type Benchmark = typeof benchmarks.$inferSelect;

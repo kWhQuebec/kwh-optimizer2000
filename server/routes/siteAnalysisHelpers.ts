@@ -18,6 +18,21 @@ export { resolveYieldStrategyFromAnalysis as resolveYieldStrategy };
 export { getTieredSolarCostPerW };
 export type { YieldStrategy, SystemModelingParams };
 
+const SNOW_LOSS_FLAT_ROOF: number[] = [
+  1.00, // Jan - 100% loss
+  1.00, // Feb - 100% loss
+  0.70, // Mar - 70% loss
+  0.00, // Apr
+  0.00, // May
+  0.00, // Jun
+  0.00, // Jul
+  0.00, // Aug
+  0.00, // Sep
+  0.00, // Oct
+  0.00, // Nov
+  0.50, // Dec - 50% loss
+];
+
 export function getDefaultAnalysisAssumptions(): AnalysisAssumptions {
   return { ...defaultAnalysisAssumptions };
 }
@@ -541,7 +556,8 @@ function runHourlySimulation(
   threshold: number,
   solarYieldFactor: number = 1.0,
   systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0, skipTempCorrection: false },
-  yieldSource: 'google' | 'manual' | 'default' = 'default'
+  yieldSource: 'google' | 'manual' | 'default' = 'default',
+  snowLossProfile?: 'none' | 'flat_roof'
 ): {
   totalSelfConsumption: number;
   totalProductionKWh: number;
@@ -625,6 +641,10 @@ function runHourlySimulation(
     }
     
     dcProduction *= (1 - systemParams.wireLossPercent);
+    
+    if (snowLossProfile === 'flat_roof') {
+      dcProduction *= (1 - SNOW_LOSS_FLAT_ROOF[month - 1]);
+    }
     
     let acProduction = dcProduction;
     if (dcProduction > inverterACCapacityKW) {
@@ -934,7 +954,7 @@ function runScenarioWithSizing(
     skipTempCorrection,
   };
   
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource);
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource, h.snowLossProfile);
   
   const byHourAgg = new Map<number, { consumptionSum: number; productionSum: number; peakBeforeSum: number; peakAfterSum: number; count: number }>();
   for (const entry of simResult.hourlyProfile) {
@@ -1048,7 +1068,7 @@ function runScenarioWithSizing(
   const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
   
   const cashflowValues: number[] = [-equityInitial];
-  const degradationRate = h.degradationRatePercent || 0.005;
+  const degradationRate = h.degradationRatePercent || 0.004;
   const MAX_SCENARIO_YEARS = 30;
   
   for (let y = 1; y <= MAX_SCENARIO_YEARS; y++) {
@@ -1480,7 +1500,7 @@ export function runPotentialAnalysis(
     skipTempCorrection,
   };
   
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource);
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
   
   const selfConsumptionKWh = simResult.totalSelfConsumption;
   const totalProductionKWh = simResult.totalProductionKWh;
@@ -1559,7 +1579,7 @@ export function runPotentialAnalysis(
     cumulative: cumulative,
   });
   
-  const degradationRate = h.degradationRatePercent || 0.005;
+  const degradationRate = h.degradationRatePercent || 0.004;
   for (let y = 1; y <= MAX_ANALYSIS_YEARS; y++) {
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);

@@ -1414,7 +1414,7 @@ function buildAssumptionsPage(
   const assumptions = [
     t("Tarif Hydro-Qu&eacute;bec en vigueur (&eacute;nergie + puissance)", "Current Hydro-Qu&eacute;bec rate (energy + demand)"),
     t("Inflation &eacute;nerg&eacute;tique annuelle: 3,5%", "Annual energy inflation: 3.5%"),
-    t("D&eacute;gradation panneaux: 0,5%/an", "Panel degradation: 0.5%/yr"),
+    t("D&eacute;gradation panneaux: 0,4%/an", "Panel degradation: 0.4%/yr"),
     t("Dur&eacute;e de vie syst&egrave;me: 25 ans minimum", "System life: 25 years minimum"),
     t("Taux d'actualisation: 7%", "Discount rate: 7%"),
     t("Rendement solaire: ~1 035 kWh/kWc (base Qu&eacute;bec)", "Solar yield: ~1,035 kWh/kWp (Quebec baseline)"),

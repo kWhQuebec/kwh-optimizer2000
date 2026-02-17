@@ -42,6 +42,7 @@ import type {
   Partnership, InsertPartnership,
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
   RoofPolygon, InsertRoofPolygon,
+  Benchmark, InsertBenchmark,
   PricingComponent, InsertPricingComponent,
   Supplier, InsertSupplier,
   PriceHistory, InsertPriceHistory,
@@ -466,6 +467,13 @@ export interface IStorage {
   updateRoofPolygon(id: string, polygon: Partial<RoofPolygon>): Promise<RoofPolygon | undefined>;
   deleteRoofPolygon(id: string): Promise<boolean>;
   deleteRoofPolygonsBySite(siteId: string): Promise<number>;
+
+  // Benchmarks
+  getBenchmarksBySite(siteId: string): Promise<Benchmark[]>;
+  getBenchmark(id: string): Promise<Benchmark | undefined>;
+  createBenchmark(benchmark: InsertBenchmark): Promise<Benchmark>;
+  updateBenchmark(id: string, data: Partial<InsertBenchmark>): Promise<Benchmark | undefined>;
+  deleteBenchmark(id: string): Promise<boolean>;
 
   // Suppliers (Market Intelligence)
   getSuppliers(): Promise<Supplier[]>;
@@ -2513,6 +2521,13 @@ export class MemStorage implements IStorage {
   async updateRoofPolygon(id: string, polygon: Partial<RoofPolygon>): Promise<RoofPolygon | undefined> { return undefined; }
   async deleteRoofPolygon(id: string): Promise<boolean> { return false; }
   async deleteRoofPolygonsBySite(siteId: string): Promise<number> { return 0; }
+
+  // Benchmarks
+  async getBenchmarksBySite(siteId: string): Promise<Benchmark[]> { return []; }
+  async getBenchmark(id: string): Promise<Benchmark | undefined> { return undefined; }
+  async createBenchmark(benchmark: InsertBenchmark): Promise<Benchmark> { throw new Error("Not implemented"); }
+  async updateBenchmark(id: string, data: Partial<InsertBenchmark>): Promise<Benchmark | undefined> { return undefined; }
+  async deleteBenchmark(id: string): Promise<boolean> { return false; }
 }
 
 import { DatabaseStorage } from "./dbStorage";

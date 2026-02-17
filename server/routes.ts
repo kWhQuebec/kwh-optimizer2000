@@ -96,6 +96,7 @@ import kbRackingRouter from "./routes/kb-racking";
 import workQueueRouter from "./routes/work-queue";
 import rackingComparisonRouter from "./routes/racking-comparison";
 import qualificationRouter from "./routes/qualification";
+import benchmarkRouter from "./routes/benchmarks";
 
 const JWT_SECRET = process.env.SESSION_SECRET as string;
 if (!JWT_SECRET) {
@@ -360,6 +361,9 @@ Sitemap: https://kwh.quebec/sitemap.xml`
 
   // ==================== WORK QUEUE ROUTES ====================
   app.use(workQueueRouter);
+
+  // ==================== BENCHMARK ROUTES ====================
+  app.use(benchmarkRouter);
 
   // ==================== QUALIFICATION ROUTES ====================
   app.use(qualificationRouter);
@@ -795,7 +799,7 @@ function runPotentialAnalysis(
     skipTempCorrection,
   };
   
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource);
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
   
   // Extract metrics from simulation
   const selfConsumptionKWh = simResult.totalSelfConsumption;
@@ -895,10 +899,10 @@ function runPotentialAnalysis(
   });
   
   // Years 1-30 (extended from 25 to capture full panel lifetime value)
-  const degradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
+  const degradationRate = h.degradationRatePercent || 0.004; // Default 0.4%/year
   for (let y = 1; y <= MAX_ANALYSIS_YEARS; y++) {
     // Apply panel degradation (production decreases each year)
-    // Year 1 = 100%, Year 2 = 99.5%, Year 30 = ~86.1% for 0.5% degradation
+    // Year 1 = 100%, Year 2 = 99.6%, Year 30 = ~88.6% for 0.4% degradation
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     // Revenue = base savings * degradation * tariff inflation
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
@@ -1082,7 +1086,7 @@ function runPotentialAnalysis(
     const optDemandShavingSetpointKW = Math.round(peakKW * 0.90);
     
     // Run simulation with optimal sizing
-    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource);
+    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
     
     // Recalculate all financials with optimal sizing
     const optSelfConsumptionKWh = optSimResult.totalSelfConsumption;
@@ -1158,7 +1162,7 @@ function runPotentialAnalysis(
     });
     
     const optCashflowValues = [-optEquityInitial];
-    const optDegradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
+    const optDegradationRate = h.degradationRatePercent || 0.004; // Default 0.4%/year
     
     // Calculate surplus revenue for HQ Net Metering (Dec 2024 program)
     // Compensated at HQ cost of supply rate (NOT client tariff)
@@ -1336,7 +1340,7 @@ function runPotentialAnalysis(
       const finalBattPowerKW = regenOptimal.battPowerKW;
       
       // Run full simulation with the truly optimal sizing
-      const finalSimResult = runHourlySimulation(hourlyData, finalPvSizeKW, finalBattEnergyKWh, finalBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource);
+      const finalSimResult = runHourlySimulation(hourlyData, finalPvSizeKW, finalBattEnergyKWh, finalBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
       
       // Quick recalculate NPV for the truly optimal sizing
       const finalResult = runScenarioWithSizing(
@@ -1733,6 +1737,21 @@ interface SystemModelingParams {
   skipTempCorrection: boolean;    // Skip temp correction when using Google yield (already weather-adjusted)
 }
 
+const SNOW_LOSS_FLAT_ROOF: number[] = [
+  1.00, // Jan - 100% loss
+  1.00, // Feb - 100% loss
+  0.70, // Mar - 70% loss
+  0.00, // Apr
+  0.00, // May
+  0.00, // Jun
+  0.00, // Jul
+  0.00, // Aug
+  0.00, // Sep
+  0.00, // Oct
+  0.00, // Nov
+  0.50, // Dec - 50% loss
+];
+
 // Quebec typical monthly average temperatures (°C) for temperature correction
 const QUEBEC_MONTHLY_TEMPS = [
   -10, -8, -2, 6, 13, 18, 21, 20, 15, 8, 2, -6
@@ -1749,7 +1768,8 @@ function runHourlySimulation(
   threshold: number,
   solarYieldFactor: number = 1.0, // Multiplier to adjust production (1.0 = default 1150 kWh/kWp)
   systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0, skipTempCorrection: false },
-  yieldSource: 'google' | 'manual' | 'default' = 'default' // Direct yield source for bulletproof temp correction check
+  yieldSource: 'google' | 'manual' | 'default' = 'default', // Direct yield source for bulletproof temp correction check
+  snowLossProfile?: 'none' | 'flat_roof'
 ): {
   totalSelfConsumption: number;
   totalProductionKWh: number; // Total annual solar production
@@ -1839,6 +1859,10 @@ function runHourlySimulation(
     
     // Apply wire losses (reduce DC output before inverter)
     dcProduction *= (1 - systemParams.wireLossPercent);
+    
+    if (snowLossProfile === 'flat_roof') {
+      dcProduction *= (1 - SNOW_LOSS_FLAT_ROOF[month - 1]);
+    }
     
     // Apply ILR clipping: DC power is clipped to AC inverter capacity
     // This happens when DC production exceeds inverter's AC output rating
@@ -2173,7 +2197,7 @@ function runScenarioWithSizing(
     skipTempCorrection,
   };
   
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource);
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource, h.snowLossProfile);
   
   // Calculate savings
   const selfConsumptionKWh = simResult.totalSelfConsumption;
@@ -2266,7 +2290,7 @@ function runScenarioWithSizing(
   const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
   
   const cashflowValues: number[] = [-equityInitial];
-  const degradationRate = h.degradationRatePercent || 0.005; // Default 0.5%/year
+  const degradationRate = h.degradationRatePercent || 0.004; // Default 0.4%/year
   const MAX_SCENARIO_YEARS = 30; // Extended horizon for 30-year analysis
   
   for (let y = 1; y <= MAX_SCENARIO_YEARS; y++) {

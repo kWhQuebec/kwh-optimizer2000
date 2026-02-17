@@ -28,7 +28,7 @@ export interface AcquisitionResult {
   leasePaybackYear: number | null;
 }
 
-const DEGRADATION_RATE = 0.005;
+const DEGRADATION_RATE = 0.004;
 
 export function computeAcquisitionCashflows(inputs: AcquisitionInputs): AcquisitionResult {
   const {

@@ -81,6 +81,8 @@ export interface DocumentSimulationData {
     status?: string;
   }>;
   hiddenInsights?: HiddenInsights;
+  productionP50KWh?: number;
+  productionP90KWh?: number;
 }
 
 export interface HiddenInsights {

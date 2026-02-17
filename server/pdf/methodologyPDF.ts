@@ -152,7 +152,7 @@ export function generateMethodologyPDF(
 
   const assumptions = [
     [t("Rendement système solaire", "Solar system efficiency"), "85%"],
-    [t("Dégradation annuelle PV", "Annual PV degradation"), "0.5%/an"],
+    [t("Dégradation annuelle PV", "Annual PV degradation"), "0.4%/an"],
     [t("Efficacité batterie aller-retour", "Battery round-trip efficiency"), "90%"],
     [t("Profondeur de décharge", "Depth of discharge"), "90%"],
     [t("Taux d'actualisation (WACC)", "Discount rate (WACC)"), "8%"],
@@ -202,14 +202,14 @@ export function generateMethodologyPDF(
     ["Geff(h)", "Irradiation effective à l'heure h (W/m²)"],
     ["Gstc", "Irradiation aux conditions standard (1000 W/m²)"],
     ["ηsys", "Rendement système global (85%)"],
-    ["δ", "Taux de dégradation annuel (0.5%)"],
+    ["δ", "Taux de dégradation annuel (0.4%)"],
   ] : [
     ["P(h)", "Production at hour h (kWh)"],
     ["Pnom", "System nominal power (kWp)"],
     ["Geff(h)", "Effective irradiation at hour h (W/m²)"],
     ["Gstc", "Standard test conditions irradiation (1000 W/m²)"],
     ["ηsys", "Overall system efficiency (85%)"],
-    ["δ", "Annual degradation rate (0.5%)"],
+    ["δ", "Annual degradation rate (0.4%)"],
   ];
 
   variables.forEach(([symbol, desc]) => {

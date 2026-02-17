@@ -62,7 +62,18 @@ export function renderProjectSnapshot(ctx: PDFContext) {
     doc.font("Helvetica");
   });
 
-  doc.y += 2 * (snapRowHeight + 10) + 15;
+  doc.y += 2 * (snapRowHeight + 10) + 5;
+
+  if (simulation.productionP50KWh && simulation.productionP90KWh) {
+    doc.fontSize(8).fillColor(COLORS.mediumGray);
+    doc.text(t(
+      `Productible P50: ${Math.round(simulation.productionP50KWh).toLocaleString()} kWh/kWp | P90: ${Math.round(simulation.productionP90KWh).toLocaleString()} kWh/kWp`,
+      `Production P50: ${Math.round(simulation.productionP50KWh).toLocaleString()} kWh/kWp | P90: ${Math.round(simulation.productionP90KWh).toLocaleString()} kWh/kWp`
+    ), margin, doc.y, { width: contentWidth });
+    doc.y += 12;
+  }
+
+  doc.y += 10;
 
   // Bottom row: 4 compact metrics (LCOE, CO2, Year-1 production, Solar self-sufficiency)
   const lcoe = simulation.lcoe || 0;

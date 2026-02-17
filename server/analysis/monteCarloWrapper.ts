@@ -178,7 +178,7 @@ export function createSimplifiedScenarioRunner(
     cashflows.push({ year: 0, netCashflow: effectiveYear0 });
     cashflowValues.push(effectiveYear0);
     
-    const degradationRate = h.degradationRatePercent || 0.005;
+    const degradationRate = h.degradationRatePercent || 0.004;
     const escalationRate = h.inflationRate || 0.035;
     const omEscalation = h.omEscalation || 0.025;
     

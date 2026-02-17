@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 const DEFAULTS = {
   hqTariffRate: 0.0779, // $/kWh Hydro-Québec tarif M (2025)
   hqInflation: 0.035,   // 3.5%/year
-  panelDegradation: 0.005, // 0.5%/year
+  panelDegradation: 0.004, // 0.4%/year
   omRate: 0.01,         // 1% of CAPEX/year
   costPerWatt: 1.85,    // $/W installed (commercial, QC average)
   solarIrradiance: 1250, // kWh/kWp/year (Montréal average)
@@ -227,7 +227,7 @@ Modern solar panels are engineered to withstand Québec's extreme climate condit
     section2Title: "How is solar ROI calculated?",
     section2Content: `Solar system return on investment is calculated by comparing the net installation cost to cumulative savings over the system's lifetime (25+ years). Our calculator uses the standard financial methodology of the solar industry, recognized by financial institutions and external auditors.
 
-Key factors include: annual solar production (approximately 1,250 kWh/kWp in Montréal), panel degradation rate (0.5%/year for modern TOPCon panels), electricity rate inflation (historically 3.5%/year in Québec), and operations & maintenance costs (approximately 1% of CAPEX per year).
+Key factors include: annual solar production (approximately 1,250 kWh/kWp in Montréal), panel degradation rate (0.4%/year for modern N-type TOPCon panels), electricity rate inflation (historically 3.5%/year in Québec), and operations & maintenance costs (approximately 1% of CAPEX per year).
 
 Simple payback typically ranges from 4 to 7 years for commercial projects in Québec, after which the energy produced is essentially free for the remaining 18-21 years of the warranty. This means a company installing a system in 2026 would recover it financially before 2033 and benefit from free or nearly free energy through 2051.
 
@@ -245,7 +245,7 @@ In total, these incentives can reduce the net cost by 50 to 60%, bringing simple
     section4Title: "Commercial solar vs other investments",
     section4Content: `Compared to other business investments, solar offers an exceptionally favorable risk/return profile. The annualized return of 15-25% far exceeds GICs (4-5%), corporate bonds (5-7%) and rivals the best real estate investments.
 
-Risk is minimal because solar production is predictable: solar irradiation data is reliable over 25+ years based on meteorological satellites, Hydro-Québec constitutionally guarantees grid access and buyback via net metering, and modern panels are warranted 25-30 years with maximum degradation of 0.5% per year.
+Risk is minimal because solar production is predictable: solar irradiation data is reliable over 25+ years based on meteorological satellites, Hydro-Québec constitutionally guarantees grid access and buyback via net metering, and modern panels are warranted 25-30 years with maximum degradation of 0.4% per year.
 
 Additionally, solar investment immediately increases building resale value (valued by capitalizing energy savings), improves the company's ESG rating (increasingly relevant for contracts with major organizations), and protects against future electricity rate increases. Organizations like Microsoft, Google, and Amazon prioritize ESG criteria in their supplier selection process.
 
@@ -258,7 +258,7 @@ Solar energy is also inflation-proof. While energy costs increase with inflation
       },
       {
         q: "How long do solar panels last?",
-        a: "Modern solar panels (TOPCon N-type like Jinko Solar or Canadian Solar) are warranted 25-30 years with maximum degradation of 0.4-0.5% per year. After 25 years, they still produce about 87% of initial capacity. Many panels installed in the 1980s operate efficiently today. Inverters, the electrical components, typically last 10-15 years and are economically replaceable. The overall system can operate 40-50 years with minor component replacements."
+        a: "Modern solar panels (TOPCon N-type like Jinko Solar or Canadian Solar) are warranted 25-30 years with maximum degradation of 0.4% per year. After 25 years, they still produce about 87% of initial capacity. Many panels installed in the 1980s operate efficiently today. Inverters, the electrical components, typically last 10-15 years and are economically replaceable. The overall system can operate 40-50 years with minor component replacements."
       },
       {
         q: "What is Hydro-Québec net metering?",

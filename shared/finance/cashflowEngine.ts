@@ -325,7 +325,7 @@ export const DEFAULT_CASHFLOW_INPUTS: Partial<CashflowInputs> = {
   itcRate: 0.30,
   kwhInflation: 0.035,
   trcInflation: 0.03,
-  degradation: 0.005,
+  degradation: 0.004,
   omRate: 0.01,
   omEscalation: 0.025,
   ccaRate: 0.50,
