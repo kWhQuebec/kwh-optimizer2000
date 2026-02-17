@@ -146,13 +146,6 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
     }
   }
 
-  const doc = new PDFDocument({ size: "LETTER", margin: 40 });
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="resume-executif-${docData.simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
-
-  doc.pipe(res);
-
   const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
   const simulationWithRoof = {
     ...optimizedSimulation,
@@ -160,10 +153,12 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
     isSynthetic: docData.isSynthetic,
   };
 
-  const { generateExecutiveSummaryPDF } = await import("../pdf");
-  generateExecutiveSummaryPDF(doc, simulationWithRoof, lang);
+  const { generateExecutiveSummaryV2 } = await import("../services/executiveSummaryV2");
+  const pdfBuffer = await generateExecutiveSummaryV2(simulationWithRoof, lang);
 
-  doc.end();
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="resume-executif-${docData.simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
+  res.send(pdfBuffer);
 }));
 
 router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {

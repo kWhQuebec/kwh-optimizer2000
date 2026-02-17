@@ -113,9 +113,9 @@ const SLIDES = [
   'surplusCredits',
   'assumptions',
   'equipment',
-  'credibility',
   'nextSteps',
   'timeline',
+  'credibility',
 ] as const;
 type SlideType = typeof SLIDES[number];
 
