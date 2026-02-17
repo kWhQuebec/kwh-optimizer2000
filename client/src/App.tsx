@@ -208,6 +208,8 @@ function AppRoutes() {
       {/* Redirect old pages to landing page */}
       <Route path="/services">{() => <Redirect to="/" />}</Route>
       <Route path="/comment-ca-marche">{() => <Redirect to="/" />}</Route>
+      <Route path="/apropos">{() => <Redirect to="/" />}</Route>
+      <Route path="/contact">{() => <Redirect to="/#analyse" />}</Route>
       <Route path="/ressources" component={RessourcesPage} />
       <Route path="/ressources/calculateur-roi-solaire" component={CalculateurROIPage} />
       <Route path="/blog" component={BlogPage} />

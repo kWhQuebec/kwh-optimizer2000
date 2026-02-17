@@ -212,92 +212,76 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== SEO: 301 redirects for old site URLs ====================
+  const oldRedirects: Record<string, string> = {
+    "/apropos": "/",
+    "/contact": "/#analyse",
+    "/services": "/",
+    "/comment-ca-marche": "/",
+  };
+  for (const [oldPath, newPath] of Object.entries(oldRedirects)) {
+    app.get(oldPath, (_req, res) => res.redirect(301, newPath));
+  }
+
   // ==================== SEO: robots.txt & sitemap ====================
-  app.get("/robots.txt", (req, res) => {
+  app.get("/robots.txt", (_req, res) => {
     res.type("text/plain").send(
 `User-agent: *
 Allow: /
-Disallow: /api/
-Disallow: /admin/
-Disallow: /dashboard/
-Disallow: /pipeline/
-Disallow: /clients/
-Disallow: /sites/
 
-Sitemap: https://kwh.quebec/sitemap.xml`
+Sitemap: https://www.kwh.quebec/sitemap.xml`
     );
   });
 
-  app.get("/sitemap.xml", async (req, res) => {
-    const baseUrl = "https://kwh.quebec";
+  app.get("/sitemap.xml", async (_req, res) => {
+    const baseUrl = "https://www.kwh.quebec";
     const now = new Date().toISOString().split("T")[0];
+
+    const staticPages = [
+      { path: "/", priority: "1.0", changefreq: "weekly" },
+      { path: "/ressources", priority: "0.8", changefreq: "weekly" },
+      { path: "/ressources/calculateur-roi-solaire", priority: "0.8", changefreq: "monthly" },
+      { path: "/blog", priority: "0.7", changefreq: "daily" },
+      { path: "/analyse-detaillee", priority: "0.7", changefreq: "monthly" },
+      { path: "/autorisation-hq", priority: "0.5", changefreq: "monthly" },
+      { path: "/portfolio", priority: "0.6", changefreq: "monthly" },
+      { path: "/privacy", priority: "0.3", changefreq: "yearly" },
+      { path: "/conditions", priority: "0.3", changefreq: "yearly" },
+    ];
+
+    const hreflangBlock = (url: string) => `
+      <xhtml:link rel="alternate" hreflang="fr-CA" href="${url}" />
+      <xhtml:link rel="alternate" hreflang="en-CA" href="${url}" />`;
+
+    const staticEntries = staticPages.map(p => `
+    <url>
+      <loc>${baseUrl}${p.path}</loc>
+      <lastmod>${now}</lastmod>
+      <changefreq>${p.changefreq}</changefreq>
+      <priority>${p.priority}</priority>${hreflangBlock(`${baseUrl}${p.path}`)}
+    </url>`).join("");
 
     let blogEntries = "";
     try {
-      const { storage } = await import("./storage");
       const articles = await storage.getBlogArticles("published");
-      blogEntries = articles.map(a => `
+      blogEntries = articles.map(a => {
+        const url = `${baseUrl}/blog/${a.slug}`;
+        return `
     <url>
-      <loc>${baseUrl}/blog/${a.slug}</loc>
+      <loc>${url}</loc>
       <lastmod>${new Date(String(a.updatedAt || a.createdAt || new Date())).toISOString().split("T")[0]}</lastmod>
       <changefreq>monthly</changefreq>
-      <priority>0.6</priority>
-    </url>`).join("");
+      <priority>0.6</priority>${hreflangBlock(url)}
+    </url>`;
+      }).join("");
     } catch (e) {
       // Blog articles optional
     }
 
     res.type("application/xml").send(
 `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>${baseUrl}/</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/analyse-detaillee</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/services</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/ressources</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/portfolio</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/conditions</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/confidentialite</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/blog</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>${blogEntries}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">${staticEntries}${blogEntries}
 </urlset>`
     );
   });

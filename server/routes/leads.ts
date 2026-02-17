@@ -576,7 +576,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
     // Send notification to Account Manager about new lead (only if email was provided - real lead)
     if (email && typeof email === "string" && email.includes("@")) {
       sendNewLeadNotification(
-        'malabarre@kwh.quebec',
+        'info@kwh.quebec',
         {
           companyName,
           contactName,
@@ -1031,7 +1031,7 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
     log.info(`Procuration PDF saved: ${pdfPath}`);
 
     // Send only to Account Manager
-    const staffRecipient = 'malabarre@kwh.quebec';
+    const staffRecipient = 'info@kwh.quebec';
     const pdfAttachment = {
       filename: `procuration_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
       content: pdfBuffer.toString('base64'),

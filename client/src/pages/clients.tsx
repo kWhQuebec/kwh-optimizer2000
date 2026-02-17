@@ -605,7 +605,7 @@ function ClientForm({
       province: client?.province || "QC",
       postalCode: client?.postalCode || "",
       notes: client?.notes || "",
-      accountManagerEmail: client?.accountManagerEmail || "malabarre@kwh.quebec",
+      accountManagerEmail: client?.accountManagerEmail || "info@kwh.quebec",
     },
   });
 
@@ -675,7 +675,7 @@ function ClientForm({
             <FormItem>
               <FormLabel>{language === "fr" ? "Responsable du compte" : "Account Manager"}</FormLabel>
               <FormControl>
-                <Input type="email" {...field} placeholder="malabarre@kwh.quebec" data-testid="input-client-account-manager" />
+                <Input type="email" {...field} placeholder="info@kwh.quebec" data-testid="input-client-account-manager" />
               </FormControl>
               <FormMessage />
             </FormItem>
