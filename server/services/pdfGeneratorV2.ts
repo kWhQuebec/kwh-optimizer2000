@@ -359,7 +359,7 @@ function buildCoverPage(
           <span>${t("Pr&eacute;par&eacute; le", "Prepared on")} ${date}</span>
           <span>kwh.quebec</span>
         </div>
-        ${isSyntheticData ? `<div class="synthetic-banner" style="background: rgba(254,243,199,0.95); border-color: rgba(245,158,11,0.8); margin-top: 8mm;">
+        ${isSyntheticData ? `<div class="synthetic-banner" style="background: rgba(254,243,199,0.95); border-color: rgba(245,158,11,0.8); margin-top: 48mm;">
           <strong>&#9888; ${t("Donn&eacute;es synth&eacute;tiques", "Synthetic data")}</strong> &mdash; ${t(
             "Cette analyse est bas&eacute;e sur des donn&eacute;es g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min des 24 derniers mois et fournir une analyse r&eacute;aliste.",
             "This analysis is based on data generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data for the past 24 months and provide a realistic analysis."
