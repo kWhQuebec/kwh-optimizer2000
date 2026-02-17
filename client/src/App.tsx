@@ -29,6 +29,7 @@ import DashboardPage from "@/pages/dashboard";
 import ClientsPage from "@/pages/clients";
 import SitesPage from "@/pages/sites";
 import RessourcesPage from "@/pages/ressources";
+import CalculateurROIPage from "@/pages/calculateur-roi";
 import BlogPage from "@/pages/blog";
 import BlogArticlePage from "@/pages/blog-article";
 import PortfolioPage from "@/pages/portfolio";
@@ -208,6 +209,7 @@ function AppRoutes() {
       <Route path="/services">{() => <Redirect to="/" />}</Route>
       <Route path="/comment-ca-marche">{() => <Redirect to="/" />}</Route>
       <Route path="/ressources" component={RessourcesPage} />
+      <Route path="/ressources/calculateur-roi-solaire" component={CalculateurROIPage} />
       <Route path="/blog" component={BlogPage} />
       <Route path="/blog/:slug" component={BlogArticlePage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
