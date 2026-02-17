@@ -175,7 +175,7 @@ router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, asyncHa
 
   const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
   const simWithSyntheticFlag = { ...optimizedSimulation, isSynthetic: docData.isSynthetic };
-  const { generatePresentationPPTX } = await import("../pptxGenerator");
+  const { generatePresentationPPTX } = await import("../pptxGeneratorV2");
   const pptxOptions = {
     catalogEquipment: (optimizedSimulation as any).catalogEquipment,
     constructionTimeline: (optimizedSimulation as any).constructionTimeline,
