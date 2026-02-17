@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead, seoContent, getHowToSchema } from "@/components/seo-head";
-import { TIMELINE_GRADIENT } from "@shared/colors";
+import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
@@ -269,6 +269,19 @@ export default function CommentCaMarchePage() {
                 </Card>
               </motion.div>
             ))}
+          </div>
+          {/* Total duration bracket */}
+          <div className="mt-10 max-w-2xl mx-auto" data-testid="timeline-total-bracket">
+            <div className="flex items-start">
+              <div className="w-[2px] h-3" style={{ backgroundColor: BRAND.primaryBlue }} />
+              <div className="flex-1 h-[2px]" style={{ backgroundColor: BRAND.primaryBlue }} />
+              <div className="w-[2px] h-3" style={{ backgroundColor: BRAND.primaryBlue }} />
+            </div>
+            <p className="text-center text-sm font-semibold mt-2" style={{ color: BRAND.accentGold }}>
+              {language === "fr"
+                ? "Délai total approximatif : 4 à 8 mois"
+                : "Approximate total timeline: 4 to 8 months"}
+            </p>
           </div>
         </div>
       </section>

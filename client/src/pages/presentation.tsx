@@ -1780,6 +1780,32 @@ function TimelineSlide({ language }: { language: string }) {
           })}
         </div>
 
+        {/* Total duration bracket */}
+        <div className="hidden md:block max-w-6xl w-full mt-6 px-6" data-testid="timeline-total-bracket">
+          <div className="relative mx-auto" style={{ maxWidth: `${timeline.length * 172}px` }}>
+            {/* Bracket shape: left tick + horizontal line + right tick */}
+            <div className="flex items-start">
+              <div className="w-[2px] h-3" style={{ backgroundColor: BRAND_COLORS.primaryBlue }} />
+              <div className="flex-1 h-[2px] mt-0" style={{ backgroundColor: BRAND_COLORS.primaryBlue }} />
+              <div className="w-[2px] h-3" style={{ backgroundColor: BRAND_COLORS.primaryBlue }} />
+            </div>
+            {/* Total label */}
+            <p className="text-center text-sm font-semibold mt-2" style={{ color: BRAND_COLORS.accentGold }}>
+              {language === 'fr'
+                ? 'Délai total approximatif : 4 à 8 mois'
+                : 'Approximate total timeline: 4 to 8 months'}
+            </p>
+          </div>
+        </div>
+        {/* Mobile total duration */}
+        <div className="md:hidden text-center mt-4" data-testid="timeline-total-mobile">
+          <p className="text-sm font-semibold" style={{ color: BRAND_COLORS.accentGold }}>
+            {language === 'fr'
+              ? 'Délai total approximatif : 4 à 8 mois'
+              : 'Approximate total timeline: 4 to 8 months'}
+          </p>
+        </div>
+
         <p className="text-center text-sm mt-10" style={{ color: '#9CA3AF' }}>
           {language === 'fr'
             ? 'Délais sujets à approbation Hydro-Québec et conditions météorologiques'

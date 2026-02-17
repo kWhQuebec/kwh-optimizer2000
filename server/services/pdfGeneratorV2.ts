@@ -1509,6 +1509,16 @@ function buildTimelinePage(
         ${item.desc ? `<p class="timeline-desc">${item.desc}</p>` : ""}
       </div>`).join("")}
     </div>
+    <div style="margin-top: 6mm; text-align: center;">
+      <div style="display: flex; align-items: flex-start; max-width: 80%; margin: 0 auto;">
+        <div style="width: 2px; height: 8px; background: var(--primary);"></div>
+        <div style="flex: 1; height: 2px; background: var(--primary);"></div>
+        <div style="width: 2px; height: 8px; background: var(--primary);"></div>
+      </div>
+      <p style="font-size: 10pt; font-weight: 600; color: var(--accent); margin-top: 3mm;">
+        ${t("D&eacute;lai total approximatif : 4 &agrave; 8 mois", "Approximate total timeline: 4 to 8 months")}
+      </p>
+    </div>
     <div class="info-box" style="margin-top: 10mm;">
       <p><strong>Note:</strong> ${t(
         "Cet &eacute;ch&eacute;ancier est indicatif pour un projet de cette envergure. Les d&eacute;lais r&eacute;els peuvent varier selon la complexit&eacute; du projet, la disponibilit&eacute; des &eacute;quipements et les d&eacute;lais municipaux.",
