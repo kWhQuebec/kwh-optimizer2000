@@ -93,8 +93,8 @@ export async function generateExecutiveSummaryV2(
   const syntheticBanner = isSyntheticData
     ? `<div class="synthetic-banner">
         <strong>&#9888; ${t("Donn&eacute;es synth&eacute;tiques", "Synthetic data")}</strong> &mdash; ${t(
-          "Analyse bas&eacute;e sur des donn&eacute;es g&eacute;n&eacute;r&eacute;es. Procuration requise pour une analyse r&eacute;aliste.",
-          "Analysis based on generated data. Power of attorney required for a realistic analysis."
+          "Analyse bas&eacute;e sur des donn&eacute;es synth&eacute;tiques (type et taille du b&acirc;timent). Procuration ou CSV requis pour une analyse r&eacute;aliste.",
+          "Analysis based on synthetic data (building type and size). Power of attorney or CSV download required for a realistic analysis."
         )}
       </div>`
     : "";

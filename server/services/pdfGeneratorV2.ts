@@ -361,8 +361,8 @@ function buildCoverPage(
         </div>
         ${isSyntheticData ? `<div class="synthetic-banner" style="background: rgba(254,243,199,0.95); border-color: rgba(245,158,11,0.8); margin-top: 48mm;">
           <strong>&#9888; ${t("Donn&eacute;es synth&eacute;tiques", "Synthetic data")}</strong> &mdash; ${t(
-            "Cette analyse est bas&eacute;e sur des donn&eacute;es g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min des 24 derniers mois et fournir une analyse r&eacute;aliste.",
-            "This analysis is based on data generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data for the past 24 months and provide a realistic analysis."
+            "Cette analyse est bas&eacute;e sur des donn&eacute;es synth&eacute;tiques g&eacute;n&eacute;r&eacute;es &agrave; partir du type et de la taille du b&acirc;timent s&eacute;lectionn&eacute;s. Une procuration ou un t&eacute;l&eacute;chargement CSV est requis pour obtenir vos donn&eacute;es de consommation r&eacute;elles et fournir une analyse r&eacute;aliste.",
+            "This analysis is based on synthetic data generated from the selected building type and size. A power of attorney or CSV download is required to obtain your actual consumption data and provide a realistic analysis."
           )}
         </div>` : ""}
       </div>
@@ -902,8 +902,8 @@ function buildEnergyProfilePage(
         ${isSyntheticData ? `
         <h3 style="font-size: 11pt; color: #b45309; margin-bottom: 3mm;">${t("&Eacute;tude pr&eacute;liminaire", "Preliminary Study")}</h3>
         <p style="font-size: 9pt;">${t(
-          "Cette analyse est bas&eacute;e sur des <strong>donn&eacute;es synth&eacute;tiques</strong> g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min et fournir une analyse d&eacute;finitive.",
-          "This analysis is based on <strong>synthetic data</strong> generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data and provide a definitive analysis."
+          "Cette analyse est bas&eacute;e sur des <strong>donn&eacute;es synth&eacute;tiques</strong> g&eacute;n&eacute;r&eacute;es &agrave; partir du type et de la taille du b&acirc;timent s&eacute;lectionn&eacute;s. Une procuration ou un t&eacute;l&eacute;chargement CSV est requis pour obtenir vos donn&eacute;es de consommation r&eacute;elles et fournir une analyse d&eacute;finitive.",
+          "This analysis is based on <strong>synthetic data</strong> generated from the selected building type and size. A power of attorney or CSV download is required to obtain your actual consumption data and provide a definitive analysis."
         )}</p>
         ` : `
         <h3 style="font-size: 11pt; color: var(--primary); margin-bottom: 3mm;">${t("Analyse bas&eacute;e sur donn&eacute;es r&eacute;elles", "Analysis Based on Real Data")}</h3>
@@ -1455,8 +1455,8 @@ function buildAssumptionsPage(
       <div class="info-box">
         <p><strong>${t("Ensoleillement:", "Irradiance:")}</strong> Google Solar API (${t("donn&eacute;es satellite haute r&eacute;solution", "high-resolution satellite data")})</p>
         <p><strong>${t("Consommation:", "Consumption:")}</strong> ${isSyntheticData
-          ? t("&#9888; Donn&eacute;es synth&eacute;tiques g&eacute;n&eacute;r&eacute;es &agrave; partir de votre facture Hydro-Qu&eacute;bec. Une procuration est requise pour obtenir vos donn&eacute;es de consommation 15 min des 24 derniers mois et fournir une analyse r&eacute;aliste.",
-               "&#9888; Synthetic data generated from your Hydro-Qu&eacute;bec bill. A power of attorney is required to obtain your 15-min consumption data for the past 24 months and provide a realistic analysis.")
+          ? t("&#9888; Donn&eacute;es synth&eacute;tiques g&eacute;n&eacute;r&eacute;es &agrave; partir du type et de la taille du b&acirc;timent s&eacute;lectionn&eacute;s. Une procuration ou un t&eacute;l&eacute;chargement CSV est requis pour obtenir vos donn&eacute;es de consommation r&eacute;elles.",
+               "&#9888; Synthetic data generated from the selected building type and size. A power of attorney or CSV download is required to obtain your actual consumption data.")
           : t("Donn&eacute;es Hydro-Qu&eacute;bec r&eacute;elles (via procuration)", "Real Hydro-Qu&eacute;bec data (via power of attorney)")}</p>
         <p><strong>${t("Tarifs &eacute;lectriques:", "Electricity rates:")}</strong> Hydro-Qu&eacute;bec ${t("tarifs en vigueur 2026", "rates in effect 2026")}</p>
         <p><strong>${t("ITC f&eacute;d&eacute;ral:", "Federal ITC:")}</strong> ${t("Loi C-69 - Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement pour technologies propres", "Bill C-69 - Clean technology investment tax credit")}</p>
