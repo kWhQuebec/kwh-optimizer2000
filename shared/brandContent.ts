@@ -73,7 +73,8 @@ export const BRAND_CONTENT = {
   assumptions: {
     utilityEscalation: { value: "3.5%/an", labelFr: "Escalade prix électricité", labelEn: "Utility price escalation" },
     pvDegradation: { value: "0.4%/an", labelFr: "Dégradation panneaux", labelEn: "Panel degradation" },
-    dcAcRatio: { value: "1.40–1.47", labelFr: "Ratio DC:AC (ILR)", labelEn: "DC:AC ratio (ILR)" },
+    dcAcRatio: { value: "1.45", labelFr: "Ratio DC:AC (ILR)", labelEn: "DC:AC ratio (ILR)" },
+    systemLosses: { value: "~5.4%", labelFr: "Pertes système nettes (PVSyst)", labelEn: "Net system losses (PVSyst)" },
     systemLife: { value: "25 ans", labelFr: "Durée de vie système", labelEn: "System lifespan" },
     program: { value: "Autoproduction", labelFr: "Programme Hydro-Québec", labelEn: "Hydro-Québec Program" },
     selfConsumption: { value: "~90%", labelFr: "Autoconsommation estimée", labelEn: "Est. self-consumption" },

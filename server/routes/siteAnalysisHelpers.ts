@@ -555,7 +555,7 @@ function runHourlySimulation(
   battPowerKW: number,
   threshold: number,
   solarYieldFactor: number = 1.0,
-  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0, skipTempCorrection: false },
+  systemParams: SystemModelingParams = { inverterLoadRatio: 1.45, temperatureCoefficient: -0.004, wireLossPercent: 0.03, skipTempCorrection: false, lidLossPercent: 0.01, mismatchLossPercent: 0.02, mismatchStringsLossPercent: 0.0015, moduleQualityGainPercent: 0.0075 },
   yieldSource: 'google' | 'manual' | 'default' = 'default',
   snowLossProfile?: 'none' | 'flat_roof'
 ): {
@@ -641,6 +641,10 @@ function runHourlySimulation(
     }
     
     dcProduction *= (1 - systemParams.wireLossPercent);
+    dcProduction *= (1 - systemParams.lidLossPercent);
+    dcProduction *= (1 - systemParams.mismatchLossPercent);
+    dcProduction *= (1 - systemParams.mismatchStringsLossPercent);
+    dcProduction *= (1 + systemParams.moduleQualityGainPercent);
     
     if (snowLossProfile === 'flat_roof') {
       dcProduction *= (1 - SNOW_LOSS_FLAT_ROOF[month - 1]);
@@ -948,10 +952,14 @@ function runScenarioWithSizing(
     : (h.yieldSource === 'google' || h.yieldSource === 'manual');
   const scenarioYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
   const systemParams: SystemModelingParams = {
-    inverterLoadRatio: h.inverterLoadRatio || 1.2,
+    inverterLoadRatio: h.inverterLoadRatio || 1.45,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
-    wireLossPercent: h.wireLossPercent ?? 0.0,
+    wireLossPercent: h.wireLossPercent ?? 0.03,
     skipTempCorrection,
+    lidLossPercent: h.lidLossPercent ?? 0.01,
+    mismatchLossPercent: h.mismatchLossPercent ?? 0.02,
+    mismatchStringsLossPercent: h.mismatchStringsLossPercent ?? 0.0015,
+    moduleQualityGainPercent: h.moduleQualityGainPercent ?? 0.0075,
   };
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource, h.snowLossProfile);
@@ -1494,10 +1502,14 @@ export function runPotentialAnalysis(
   
   const currentYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
   const systemParams: SystemModelingParams = {
-    inverterLoadRatio: h.inverterLoadRatio || 1.2,
+    inverterLoadRatio: h.inverterLoadRatio || 1.45,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
-    wireLossPercent: h.wireLossPercent ?? 0.0,
+    wireLossPercent: h.wireLossPercent ?? 0.03,
     skipTempCorrection,
+    lidLossPercent: h.lidLossPercent ?? 0.01,
+    mismatchLossPercent: h.mismatchLossPercent ?? 0.02,
+    mismatchStringsLossPercent: h.mismatchStringsLossPercent ?? 0.0015,
+    moduleQualityGainPercent: h.moduleQualityGainPercent ?? 0.0075,
   };
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);

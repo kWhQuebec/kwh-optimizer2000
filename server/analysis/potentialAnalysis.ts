@@ -94,6 +94,10 @@ export interface SystemModelingParams {
   temperatureCoefficient: number;
   wireLossPercent: number;
   skipTempCorrection: boolean;
+  lidLossPercent: number;
+  mismatchLossPercent: number;
+  mismatchStringsLossPercent: number;
+  moduleQualityGainPercent: number;
 }
 
 export interface SimulationResult {
@@ -451,10 +455,14 @@ export function buildSystemParams(
   yieldStrategy: YieldStrategy
 ): SystemModelingParams {
   return {
-    inverterLoadRatio: assumptions.inverterLoadRatio || 1.2,
+    inverterLoadRatio: assumptions.inverterLoadRatio || 1.45,
     temperatureCoefficient: assumptions.temperatureCoefficient || -0.004,
-    wireLossPercent: assumptions.wireLossPercent ?? 0.0,
+    wireLossPercent: assumptions.wireLossPercent ?? 0.03,
     skipTempCorrection: yieldStrategy.skipTempCorrection,
+    lidLossPercent: assumptions.lidLossPercent ?? 0.01,
+    mismatchLossPercent: assumptions.mismatchLossPercent ?? 0.02,
+    mismatchStringsLossPercent: assumptions.mismatchStringsLossPercent ?? 0.0015,
+    moduleQualityGainPercent: assumptions.moduleQualityGainPercent ?? 0.0075,
   };
 }
 

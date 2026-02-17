@@ -777,10 +777,14 @@ function runPotentialAnalysis(
   const currentYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
   log.info(`yieldSource='${currentYieldSource}', skipTempCorrection=${skipTempCorrection}, effectiveYield=${effectiveYield.toFixed(1)}`);
   const systemParams: SystemModelingParams = {
-    inverterLoadRatio: h.inverterLoadRatio || 1.2,
+    inverterLoadRatio: h.inverterLoadRatio || 1.45,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
-    wireLossPercent: h.wireLossPercent ?? 0.0, // 0% for free analysis (Jan 2026)
+    wireLossPercent: h.wireLossPercent ?? 0.03,
     skipTempCorrection,
+    lidLossPercent: h.lidLossPercent ?? 0.01,
+    mismatchLossPercent: h.mismatchLossPercent ?? 0.02,
+    mismatchStringsLossPercent: h.mismatchStringsLossPercent ?? 0.0015,
+    moduleQualityGainPercent: h.moduleQualityGainPercent ?? 0.0075,
   };
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
@@ -1713,12 +1717,16 @@ function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null
   return { hourlyData, interpolatedMonths };
 }
 
-// Helioscope-inspired system modeling parameters
+// PVSyst-calibrated system modeling parameters (Source: Rematek PVSyst Feb 2026)
 interface SystemModelingParams {
-  inverterLoadRatio: number;      // DC/AC ratio (ILR) - default 1.2
-  temperatureCoefficient: number; // Power temp coefficient %/°C - default -0.004
-  wireLossPercent: number;        // DC wiring losses - default 0% for free analysis
-  skipTempCorrection: boolean;    // Skip temp correction when using Google yield (already weather-adjusted)
+  inverterLoadRatio: number;            // DC/AC ratio (ILR) - default 1.45 (PVSyst range 1.44-1.47)
+  temperatureCoefficient: number;       // Power temp coefficient %/°C - default -0.004
+  wireLossPercent: number;              // DC wiring losses - default 3% (PVSyst validated)
+  skipTempCorrection: boolean;          // Skip temp correction when using Google yield (already weather-adjusted)
+  lidLossPercent: number;               // Light Induced Degradation - default 1% (PVSyst validated)
+  mismatchLossPercent: number;          // Module mismatch at MPP - default 2% (PVSyst validated)
+  mismatchStringsLossPercent: number;   // String mismatch - default 0.15% (PVSyst validated)
+  moduleQualityGainPercent: number;     // Module quality gain (negative loss) - default 0.75% (PVSyst validated)
 }
 
 const SNOW_LOSS_FLAT_ROOF: number[] = [
@@ -1751,7 +1759,7 @@ function runHourlySimulation(
   battPowerKW: number,
   threshold: number,
   solarYieldFactor: number = 1.0, // Multiplier to adjust production (1.0 = default 1150 kWh/kWp)
-  systemParams: SystemModelingParams = { inverterLoadRatio: 1.2, temperatureCoefficient: -0.004, wireLossPercent: 0.0, skipTempCorrection: false },
+  systemParams: SystemModelingParams = { inverterLoadRatio: 1.45, temperatureCoefficient: -0.004, wireLossPercent: 0.03, skipTempCorrection: false, lidLossPercent: 0.01, mismatchLossPercent: 0.02, mismatchStringsLossPercent: 0.0015, moduleQualityGainPercent: 0.0075 },
   yieldSource: 'google' | 'manual' | 'default' = 'default', // Direct yield source for bulletproof temp correction check
   snowLossProfile?: 'none' | 'flat_roof'
 ): {
@@ -1841,8 +1849,12 @@ function runHourlySimulation(
       dcProduction *= tempCorrectionFactor;
     }
     
-    // Apply wire losses (reduce DC output before inverter)
+    // Apply PVSyst-validated system losses (Source: Rematek Feb 2026)
     dcProduction *= (1 - systemParams.wireLossPercent);
+    dcProduction *= (1 - systemParams.lidLossPercent);
+    dcProduction *= (1 - systemParams.mismatchLossPercent);
+    dcProduction *= (1 - systemParams.mismatchStringsLossPercent);
+    dcProduction *= (1 + systemParams.moduleQualityGainPercent);
     
     if (snowLossProfile === 'flat_roof') {
       dcProduction *= (1 - SNOW_LOSS_FLAT_ROOF[month - 1]);
@@ -2175,10 +2187,14 @@ function runScenarioWithSizing(
   // Get yieldSource for bulletproof temperature correction check
   const scenarioYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
   const systemParams: SystemModelingParams = {
-    inverterLoadRatio: h.inverterLoadRatio || 1.2,
+    inverterLoadRatio: h.inverterLoadRatio || 1.45,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
-    wireLossPercent: h.wireLossPercent ?? 0.0, // 0% for free analysis (Jan 2026)
+    wireLossPercent: h.wireLossPercent ?? 0.03,
     skipTempCorrection,
+    lidLossPercent: h.lidLossPercent ?? 0.01,
+    mismatchLossPercent: h.mismatchLossPercent ?? 0.02,
+    mismatchStringsLossPercent: h.mismatchStringsLossPercent ?? 0.0015,
+    moduleQualityGainPercent: h.moduleQualityGainPercent ?? 0.0075,
   };
   
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource, h.snowLossProfile);

@@ -2296,9 +2296,15 @@ export interface AnalysisAssumptions {
   
   // Bifacial PV parameters (for white membrane roofs)
   bifacialEnabled?: boolean;      // Whether to use bifacial panels
-  bifacialityFactor?: number;     // Rear-side efficiency ratio (0.7-0.9) - default 0.85
-  roofAlbedo?: number;            // Ground/roof reflectivity (0-1) - default 0.7 for white membrane
+  bifacialityFactor?: number;     // Rear-side efficiency ratio (0.7-0.9) - default 0.80 (PVSyst Rematek)
+  roofAlbedo?: number;            // Ground/roof reflectivity (0-1) - default 0.60 (PVSyst Rematek conservative)
   bifacialCostPremium?: number;   // Additional cost per W for bifacial - default 0.10 (10 cents)
+
+  // PVSyst-validated system losses (Source: Rematek PVSyst reports Feb 2026)
+  lidLossPercent?: number;              // Light Induced Degradation - default 0.01 (1%)
+  mismatchLossPercent?: number;         // Module mismatch at MPP - default 0.02 (2%)
+  mismatchStringsLossPercent?: number;  // String mismatch - default 0.0015 (0.15%)
+  moduleQualityGainPercent?: number;    // Module quality gain (negative loss) - default 0.0075 (0.75%)
   
   // Manual yield override flag
   useManualYield?: boolean;       // If true, use solarYieldKWhPerKWp instead of Google data
@@ -2331,11 +2337,11 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   // Racking system configuration (new - Jan 2026)
   rackingSystemType: 'kb_10_low' as RackingSystemType, // Default to KB Racking 10° low profile
   
-  // Helioscope-inspired system modeling defaults
-  inverterLoadRatio: 1.4, // DC/AC ratio - adjusted based on bifacial gain (1.2-1.6)
+  // PVSyst-calibrated system modeling defaults (Source: Rematek PVSyst reports Feb 2026)
+  inverterLoadRatio: 1.45, // DC/AC ratio — PVSyst range 1.44-1.47 (Jinko 625W / Kaco BP375)
   temperatureCoefficient: -0.004, // -0.4%/°C typical for crystalline Si
-  wireLossPercent: 0.0, // 0% for free analysis stage (re-enable for detailed design)
-  degradationRatePercent: 0.004, // 0.4% annual degradation
+  wireLossPercent: 0.03, // 3% DC wiring losses (PVSyst validated)
+  degradationRatePercent: 0.004, // 0.4% annual degradation (PVSyst validated)
   
   // Updated Feb 2026 - realistic 25-year assumptions
   // Historic Quebec rates: 2.6-3.5% CAGR over 20 years
@@ -2355,11 +2361,17 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   batteryPriceDeclineRate: 0.05, // 5% annual price decline
   analysisYears: 25, // 25-year analysis
   
-  // Bifacial PV defaults (optional - only used when bifacialEnabled is true)
+  // Bifacial PV defaults (PVSyst-calibrated — Source: Rematek Feb 2026)
   bifacialEnabled: false,
-  bifacialityFactor: 0.85, // 85% rear-side efficiency
-  roofAlbedo: 0.70, // White membrane ~70% reflectivity
+  bifacialityFactor: 0.80, // 80% rear-side efficiency (PVSyst: Jinko 625W bifacial)
+  roofAlbedo: 0.60, // 60% conservative average (PVSyst range: 0.42-0.60)
   bifacialCostPremium: 0.10, // $0.10/W additional cost
+
+  // PVSyst-validated system losses (Source: Rematek PVSyst reports Feb 2026)
+  lidLossPercent: 0.01, // 1% LID (Light Induced Degradation)
+  mismatchLossPercent: 0.02, // 2% module mismatch at MPP
+  mismatchStringsLossPercent: 0.0015, // 0.15% string mismatch
+  moduleQualityGainPercent: 0.0075, // 0.75% module quality gain (negative loss)
   
   // Yield source tracking - controls temperature correction logic
   // 'google' = skip temp correction (already weather-adjusted)

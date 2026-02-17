@@ -141,9 +141,13 @@ describe("buildSystemParams", () => {
   it("uses default values when assumptions are empty", () => {
     const yieldStrategy = resolveYieldStrategy({});
     const params = buildSystemParams({}, yieldStrategy);
-    expect(params.inverterLoadRatio).toBe(1.2);
+    expect(params.inverterLoadRatio).toBe(1.45);
     expect(params.temperatureCoefficient).toBe(-0.004);
-    expect(params.wireLossPercent).toBe(0);
+    expect(params.wireLossPercent).toBe(0.03);
+    expect(params.lidLossPercent).toBe(0.01);
+    expect(params.mismatchLossPercent).toBe(0.02);
+    expect(params.mismatchStringsLossPercent).toBe(0.0015);
+    expect(params.moduleQualityGainPercent).toBe(0.0075);
   });
 
   it("respects custom assumptions", () => {
