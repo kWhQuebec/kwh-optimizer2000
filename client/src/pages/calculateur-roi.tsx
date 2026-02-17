@@ -151,6 +151,30 @@ export default function CalculateurROIPage() {
       document.head.appendChild(metaDesc);
     }
     metaDesc.setAttribute('content', txt.subtitle);
+
+    const canonicalUrl = "https://www.kwh.quebec/ressources/calculateur-roi-solaire";
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = canonicalUrl;
+
+    const setMeta = (property: string, content: string) => {
+      let el = document.querySelector(`meta[property="${property}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('property', property);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+    setMeta('og:url', canonicalUrl);
+    setMeta('og:title', txt.title);
+    setMeta('og:description', txt.subtitle);
+    setMeta('og:type', 'website');
+    setMeta('og:site_name', 'kWh Québec');
   }, [txt.title, txt.subtitle]);
 
   useEffect(() => {
