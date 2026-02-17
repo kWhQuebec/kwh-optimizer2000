@@ -1535,58 +1535,59 @@ function buildNextStepsPage(
   isSyntheticData: boolean,
   pageNum: number
 ): string {
-  const funnelStepsHtml = isSyntheticData
-    ? `<div class="funnel-steps">
-      <div class="funnel-step">
-        <div class="funnel-step-number">1</div>
-        <div class="funnel-step-title">${t("&Eacute;valuation d&eacute;taill&eacute;e", "Detailed Evaluation")}</div>
-        <p class="funnel-step-desc">${t("Procuration Hydro-Qu&eacute;bec (2 min) ou t&eacute;l&eacute;chargement CSV (~30 min) + analyse compl&egrave;te. Pr&eacute;cision ~95%.", "Hydro-Qu&eacute;bec authorization (2 min) or CSV download (~30 min) + complete analysis. ~95% accuracy.")}</p>
-        <span class="funnel-step-tag">${t("GRATUIT", "FREE")}</span>
+  const lang = t("fr", "en") === "fr" ? "fr" as const : "en" as const;
+  const timeline = getTimeline(lang);
+
+  const phaseTag = (phase: string, index: number): string => {
+    if (phase === "discovery") return `<span class="funnel-step-tag">${t("GRATUIT", "FREE")}</span>`;
+    if (phase === "design") return `<span class="funnel-step-tag paid">2 500$ + tx</span>`;
+    return `<span class="funnel-step-tag paid">${timeline[index]?.duration || ""}</span>`;
+  };
+
+  const currentStepIndex = isSyntheticData ? 1 : 2;
+
+  const funnelStepsHtml = `<div class="funnel-steps">
+      ${timeline.map((tl, i) => {
+        const isCompleted = i < currentStepIndex;
+        const isCurrent = i === currentStepIndex;
+        const stepStyle = isCompleted
+          ? ' style="background: rgba(22,163,74,0.06); border: 2px solid rgba(22,163,74,0.2); border-radius: 3mm;"'
+          : isCurrent
+            ? ' style="border: 2px solid var(--accent); border-radius: 3mm;"'
+            : '';
+        const numberStyle = isCompleted
+          ? ' style="background: #16A34A; color: white;"'
+          : '';
+        const titleStyle = isCompleted
+          ? ' style="color: #16A34A;"'
+          : '';
+        const numberContent = isCompleted ? '&#10003;' : `${i + 1}`;
+        const tagHtml = isCompleted
+          ? `<span class="funnel-step-tag" style="background: #16A34A; color: white;">${t("COMPL&Eacute;T&Eacute;", "COMPLETED")}</span>`
+          : isCurrent
+            ? `<span class="funnel-step-tag">${t("PROCHAINE &Eacute;TAPE", "NEXT STEP")}</span>`
+            : phaseTag(tl.phase, i);
+        const bulletHtml = tl.bullets && tl.bullets.length > 0
+          ? `<p class="funnel-step-desc">${tl.bullets[0]}</p>`
+          : `<p class="funnel-step-desc">${tl.duration}</p>`;
+        return `
+      <div class="funnel-step"${stepStyle}>
+        <div class="funnel-step-number"${numberStyle}>${numberContent}</div>
+        <div class="funnel-step-title"${titleStyle}>${tl.step}</div>
+        ${bulletHtml}
+        ${tagHtml}
+      </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top: 4mm; text-align: center;">
+      <div style="display: flex; align-items: flex-end; max-width: 90%; margin: 0 auto;">
+        <div style="width: 2px; height: 6px; background: var(--primary);"></div>
+        <div style="flex: 1; height: 2px; background: var(--primary);"></div>
+        <div style="width: 2px; height: 6px; background: var(--primary);"></div>
       </div>
-      <div class="funnel-step">
-        <div class="funnel-step-number">2</div>
-        <div class="funnel-step-title">${t("Visite & design", "Visit & Design")}</div>
-        <p class="funnel-step-desc">${t("Inspection sur site, conception finale, soumission forfaitaire garantie 60 jours.", "On-site inspection, final design, firm quote guaranteed 60 days.")}</p>
-        <span class="funnel-step-tag paid">${t("SOUMISSION FORFAITAIRE", "FIRM QUOTE")}</span>
-      </div>
-      <div class="funnel-step">
-        <div class="funnel-step-number">3</div>
-        <div class="funnel-step-title">${t("Ing&eacute;nierie & construction", "Engineering & Construction")}</div>
-        <p class="funnel-step-desc">${t("Plans PE, permis, installation cl&eacute; en main. On s'occupe de tout.", "PE drawings, permits, turnkey installation. We handle everything.")}</p>
-        <span class="funnel-step-tag paid">8-12 ${t("SEMAINES", "WEEKS")}</span>
-      </div>
-      <div class="funnel-step">
-        <div class="funnel-step-number">4</div>
-        <div class="funnel-step-title">${t("Monitoring & O&M", "Monitoring & O&M")}</div>
-        <p class="funnel-step-desc">${t("Suivi en temps r&eacute;el, maintenance pr&eacute;ventive, performance garantie.", "Real-time monitoring, preventive maintenance, guaranteed performance.")}</p>
-        <span class="funnel-step-tag paid">${t("CONTINU", "ONGOING")}</span>
-      </div>
-    </div>`
-    : `<div class="funnel-steps">
-      <div class="funnel-step" style="background: rgba(22,163,74,0.06); border: 2px solid rgba(22,163,74,0.2); border-radius: 3mm;">
-        <div class="funnel-step-number" style="background: #16A34A; color: white;">&#10003;</div>
-        <div class="funnel-step-title" style="color: #16A34A;">${t("Analyse compl&eacute;t&eacute;e", "Analysis Completed")}</div>
-        <p class="funnel-step-desc">${t("Donn&eacute;es r&eacute;elles analys&eacute;es. R&eacute;sultats d&eacute;taill&eacute;s pr&ecirc;ts.", "Real data analyzed. Detailed results ready.")}</p>
-        <span class="funnel-step-tag" style="background: #16A34A; color: white;">${t("COMPL&Eacute;T&Eacute;", "COMPLETED")}</span>
-      </div>
-      <div class="funnel-step" style="border: 2px solid var(--accent); border-radius: 3mm;">
-        <div class="funnel-step-number">2</div>
-        <div class="funnel-step-title">${t("Mandat de conception préliminaire", "Preliminary Design Mandate")}</div>
-        <p class="funnel-step-desc">${t("Visite technique, ing&eacute;nierie pr&eacute;liminaire, soumission forfaitaire garantie 60 jours.", "Technical visit, preliminary engineering, firm quote guaranteed 60 days.")}</p>
-        <span class="funnel-step-tag">${t("PROCHAINE &Eacute;TAPE", "NEXT STEP")}</span>
-      </div>
-      <div class="funnel-step">
-        <div class="funnel-step-number">3</div>
-        <div class="funnel-step-title">${t("Ing&eacute;nierie & construction", "Engineering & Construction")}</div>
-        <p class="funnel-step-desc">${t("Plans PE, permis, installation cl&eacute; en main. On s'occupe de tout.", "PE drawings, permits, turnkey installation. We handle everything.")}</p>
-        <span class="funnel-step-tag paid">8-12 ${t("SEMAINES", "WEEKS")}</span>
-      </div>
-      <div class="funnel-step">
-        <div class="funnel-step-number">4</div>
-        <div class="funnel-step-title">${t("Monitoring & O&M", "Monitoring & O&M")}</div>
-        <p class="funnel-step-desc">${t("Suivi en temps r&eacute;el, maintenance pr&eacute;ventive, performance garantie.", "Real-time monitoring, preventive maintenance, guaranteed performance.")}</p>
-        <span class="funnel-step-tag paid">${t("CONTINU", "ONGOING")}</span>
-      </div>
+      <p style="font-size: 9pt; font-weight: 600; color: var(--accent); margin-top: 2mm;">
+        ${t("D&eacute;lai total approximatif : 4 &agrave; 8 mois", "Approximate total timeline: 4 to 8 months")}
+      </p>
     </div>`;
 
   const immediateStepHtml = isSyntheticData

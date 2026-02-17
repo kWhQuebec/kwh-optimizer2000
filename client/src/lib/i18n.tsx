@@ -259,7 +259,7 @@ const translations: Translations = {
   "site.granularity": { fr: "Granularité", en: "Granularity" },
   "site.period": { fr: "Période", en: "Period" },
   "site.runAnalysis": { fr: "Lancer l'analyse de potentiel", en: "Run potential analysis" },
-  "site.downloadReport": { fr: "Télécharger le rapport PDF", en: "Download PDF report" },
+  "site.downloadReport": { fr: "Télécharger livrables", en: "Download Deliverables" },
 
   // Analysis Results — new sections
   "analysis.assumptions": { fr: "Hypothèses et exclusions", en: "Assumptions & Exclusions" },

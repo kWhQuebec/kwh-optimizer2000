@@ -63,7 +63,7 @@ import { DownloadReportButton } from "./components/DownloadReportButton";
 import { ScenarioComparison } from "./components/ScenarioComparison";
 import { AnalysisResults } from "./components/AnalysisResults";
 import { BenchmarkTab } from "./components/BenchmarkTab";
-import type { SiteWithDetails, QuickPotentialResult, DeliverablePhase } from "./types";
+import type { SiteWithDetails, QuickPotentialResult } from "./types";
 import { formatNumber, getTariffRates } from "./utils";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
 
@@ -84,7 +84,6 @@ export default function SiteDetailPage() {
   const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency'>('npv');
   const [isTransitioningSimulation, setIsTransitioningSimulation] = useState(false);
 
-  const [deliverablePhase, setDeliverablePhase] = useState<DeliverablePhase>('idle');
 
   const [quickPotential, setQuickPotential] = useState<QuickPotentialResult | null>(null);
 
@@ -341,70 +340,6 @@ export default function SiteDetailPage() {
     }
   };
 
-  const handleDownloadDeliverables = async (simId: string) => {
-    if (!site) return;
-
-    setDeliverablePhase('pdf');
-    const token = localStorage.getItem("token");
-
-    try {
-      await captureAndSaveVisualization();
-      const pdfResponse = await fetch(`/api/simulation-runs/${simId}/report-pdf?lang=${language}&opt=${optimizationTarget}`, {
-        credentials: "include",
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-
-      if (pdfResponse.ok) {
-        const pdfBlob = await pdfResponse.blob();
-        const pdfUrl = window.URL.createObjectURL(pdfBlob);
-        const pdfLink = document.createElement("a");
-        pdfLink.href = pdfUrl;
-        pdfLink.download = `rapport-${site?.name?.replace(/\s+/g, '-') || 'site'}.pdf`;
-        document.body.appendChild(pdfLink);
-        pdfLink.click();
-        document.body.removeChild(pdfLink);
-        window.URL.revokeObjectURL(pdfUrl);
-      } else {
-        console.warn("PDF generation failed:", pdfResponse.status);
-      }
-
-      setDeliverablePhase('pptx');
-      const pptxResponse = await fetch(`/api/simulation-runs/${simId}/presentation-pptx?lang=${language}&opt=${optimizationTarget}`, {
-        credentials: "include",
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-
-      if (pptxResponse.ok) {
-        const pptxBlob = await pptxResponse.blob();
-        const pptxUrl = window.URL.createObjectURL(pptxBlob);
-        const pptxLink = document.createElement("a");
-        pptxLink.href = pptxUrl;
-        pptxLink.download = `proposition-${site?.name?.replace(/\s+/g, '-') || 'site'}.pptx`;
-        document.body.appendChild(pptxLink);
-        pptxLink.click();
-        document.body.removeChild(pptxLink);
-        window.URL.revokeObjectURL(pptxUrl);
-      } else {
-        console.warn("PPTX generation failed:", pptxResponse.status);
-      }
-
-      setDeliverablePhase('complete');
-      toast({
-        title: language === "fr" ? "Livrables générés" : "Deliverables generated",
-        description: language === "fr" ? "PDF et PowerPoint téléchargés" : "PDF and PowerPoint downloaded"
-      });
-
-      setTimeout(() => setDeliverablePhase('idle'), 2000);
-
-    } catch (error) {
-      setDeliverablePhase('error');
-      toast({
-        title: language === "fr" ? "Erreur de génération" : "Generation error",
-        variant: "destructive"
-      });
-      setTimeout(() => setDeliverablePhase('idle'), 3000);
-    }
-  };
 
   // Bifacial response mutation
   const bifacialResponseMutation = useMutation({
@@ -680,7 +615,7 @@ export default function SiteDetailPage() {
               )}
               <Button
                 onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated || deliverablePhase !== 'idle'}
+                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
                 className="gap-2"
                 data-testid="button-run-analysis-header"
               >
@@ -691,37 +626,6 @@ export default function SiteDetailPage() {
                 )}
                 {language === "fr" ? "Lancer analyse" : "Run Analysis"}
               </Button>
-              {latestSimulation && (
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownloadDeliverables(latestSimulation.id)}
-                  disabled={runAnalysisMutation.isPending || deliverablePhase !== 'idle'}
-                  className="gap-2"
-                  data-testid="button-download-deliverables"
-                >
-                  {deliverablePhase === 'pdf' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      PDF...
-                    </>
-                  ) : deliverablePhase === 'pptx' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      PPTX...
-                    </>
-                  ) : deliverablePhase === 'complete' ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      {language === "fr" ? "Terminé" : "Done"}
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4" />
-                      {language === "fr" ? "Télécharger livrables" : "Download Deliverables"}
-                    </>
-                  )}
-                </Button>
-              )}
             </>
           )}
           {/* Presentation Mode Button */}
