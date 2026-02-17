@@ -1783,10 +1783,10 @@ function TimelineSlide({ language }: { language: string }) {
         {/* Total duration bracket */}
         <div className="hidden md:block max-w-6xl w-full mt-6 px-6" data-testid="timeline-total-bracket">
           <div className="relative mx-auto" style={{ maxWidth: `${timeline.length * 172}px` }}>
-            {/* Bracket shape: left tick + horizontal line + right tick */}
-            <div className="flex items-start">
+            {/* Bracket shape: left tick + horizontal line + right tick (ticks point up toward timeline) */}
+            <div className="flex items-end">
               <div className="w-[2px] h-3" style={{ backgroundColor: BRAND_COLORS.primaryBlue }} />
-              <div className="flex-1 h-[2px] mt-0" style={{ backgroundColor: BRAND_COLORS.primaryBlue }} />
+              <div className="flex-1 h-[2px] mb-0" style={{ backgroundColor: BRAND_COLORS.primaryBlue }} />
               <div className="w-[2px] h-3" style={{ backgroundColor: BRAND_COLORS.primaryBlue }} />
             </div>
             {/* Total label */}

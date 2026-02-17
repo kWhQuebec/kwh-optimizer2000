@@ -53,9 +53,14 @@ const equipment = sim.catalogEquipment?.length > 0
   : getEquipment(lang); // fallback to brandContent
 ```
 
+## Cross-Tool Consistency Rule
+
+**When modifying any visual element, content, or layout in one presentation tool, ALWAYS check if the same element exists in the other tools and apply the fix everywhere.** The tools share many common sections (timeline, equipment, KPIs, next steps, FAQ, etc.) — a fix in one must be propagated to all.
+
 ## Checklist When Updating Any Spec
 
 1. Update `shared/brandContent.ts` (single source of truth)
 2. Verify all 7 presentation tools reflect the change automatically
 3. If a tool has hardcoded fallbacks, replace them with brandContent calls
-4. Run a test PDF/PPTX generation to verify output
+4. When fixing a visual/layout bug, search for the same pattern in ALL presentation tools
+5. Run a test PDF/PPTX generation to verify output

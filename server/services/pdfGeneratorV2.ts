@@ -1510,7 +1510,7 @@ function buildTimelinePage(
       </div>`).join("")}
     </div>
     <div style="margin-top: 6mm; text-align: center;">
-      <div style="display: flex; align-items: flex-start; max-width: 80%; margin: 0 auto;">
+      <div style="display: flex; align-items: flex-end; max-width: 80%; margin: 0 auto;">
         <div style="width: 2px; height: 8px; background: var(--primary);"></div>
         <div style="flex: 1; height: 2px; background: var(--primary);"></div>
         <div style="width: 2px; height: 8px; background: var(--primary);"></div>
