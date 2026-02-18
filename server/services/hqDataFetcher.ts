@@ -462,18 +462,25 @@ export class HQDataFetcher {
     }
 
     const data = await response.json();
+    log.info(`Relations response keys: ${JSON.stringify(Object.keys(data ?? {}))}`);
+    log.info(`Relations response sample: ${JSON.stringify(data).substring(0, 500)}`);
+
     const accounts: Array<{ applicantId: string; customerId: string }> = [];
 
-    if (data?.relations && Array.isArray(data.relations)) {
-      for (const relation of data.relations) {
+    const relationsArray = data?.relations ?? data?.listeRelations ?? (Array.isArray(data) ? data : null);
+
+    if (relationsArray && Array.isArray(relationsArray)) {
+      for (const relation of relationsArray) {
         const applicantId =
           relation.noPartenaireDemandeur ??
           relation.applicantId ??
-          relation.noDemandeur;
+          relation.noDemandeur ??
+          relation.noPartenaireExpediteur;
         const customerId =
           relation.noPartenaireTitulaire ??
           relation.customerId ??
-          relation.noTitulaire;
+          relation.noTitulaire ??
+          relation.noPartenaireDestinataire;
 
         if (applicantId && customerId) {
           accounts.push({
@@ -484,11 +491,11 @@ export class HQDataFetcher {
       }
     }
 
-    if (accounts.length === 0 && data) {
+    if (accounts.length === 0 && data && !Array.isArray(data)) {
       const applicantId =
-        data.noPartenaireDemandeur ?? data.applicantId ?? data.noDemandeur;
+        data.noPartenaireDemandeur ?? data.applicantId ?? data.noDemandeur ?? data.noPartenaireExpediteur;
       const customerId =
-        data.noPartenaireTitulaire ?? data.customerId ?? data.noTitulaire;
+        data.noPartenaireTitulaire ?? data.customerId ?? data.noTitulaire ?? data.noPartenaireDestinataire;
 
       if (applicantId && customerId) {
         accounts.push({
@@ -496,6 +503,10 @@ export class HQDataFetcher {
           customerId: String(customerId),
         });
       }
+    }
+
+    if (accounts.length === 0) {
+      log.warn(`Could not extract accounts from response. Full response: ${JSON.stringify(data).substring(0, 1000)}`);
     }
 
     log.info(`Found ${accounts.length} account(s)`);
