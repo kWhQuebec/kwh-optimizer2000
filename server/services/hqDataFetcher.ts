@@ -260,19 +260,36 @@ export class HQDataFetcher {
       }
       const authPageHtml = await authPageResp.text();
 
+      log.info(`Auth page response length: ${authPageHtml.length} chars, status: ${authPageResp.status}`);
+
       const csrfMatch = authPageHtml.match(
         /name="csrf_token"[^>]*value="([^"]+)"/,
-      ) ?? authPageHtml.match(/"csrf_token"\s*:\s*"([^"]+)"/);
+      ) ?? authPageHtml.match(/"csrf_token"\s*:\s*"([^"]+)"/)
+        ?? authPageHtml.match(/"csrf"\s*:\s*"([^"]+)"/)
+        ?? authPageHtml.match(/csrf_token['"]\s*[:,]\s*['"]([^'"]+)['"]/i);
 
       const transIdMatch = authPageHtml.match(
         /name="transId"[^>]*value="([^"]+)"/,
-      ) ?? authPageHtml.match(/"transId"\s*:\s*"([^"]+)"/) ??
-        authPageHtml.match(/transId=([^&"]+)/);
+      ) ?? authPageHtml.match(/"transId"\s*:\s*"([^"]+)"/)
+        ?? authPageHtml.match(/transId=([^&"'\s]+)/)
+        ?? authPageHtml.match(/StateProperties=([^&"'\s]+)/);
 
       if (!csrfMatch || !transIdMatch) {
+        const htmlSnippet = authPageHtml.substring(0, 2000);
         log.error(
-          "Could not extract CSRF/transId from authorization page",
+          `Could not extract CSRF/transId from authorization page. CSRF found: ${!!csrfMatch}, transId found: ${!!transIdMatch}. Page snippet: ${htmlSnippet}`,
         );
+
+        const settingsMatch = authPageHtml.match(/var\s+SETTINGS\s*=\s*(\{[\s\S]*?\});/);
+        if (settingsMatch) {
+          log.error(`SETTINGS object found: ${settingsMatch[1].substring(0, 500)}`);
+        }
+
+        const jsonMatch = authPageHtml.match(/"csrf[^"]*"\s*:\s*"[^"]+"/g);
+        const transJsonMatch = authPageHtml.match(/"trans[^"]*"\s*:\s*"[^"]+"/g);
+        if (jsonMatch) log.error(`Found csrf-like JSON fields: ${JSON.stringify(jsonMatch)}`);
+        if (transJsonMatch) log.error(`Found trans-like JSON fields: ${JSON.stringify(transJsonMatch)}`);
+
         throw new Error(
           "Failed to extract authentication tokens from HQ login page",
         );
