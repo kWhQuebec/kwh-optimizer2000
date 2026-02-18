@@ -709,8 +709,8 @@ export default function LandingPage() {
                         </h2>
                         <p className="text-sm text-muted-foreground">
                           {language === "fr" 
-                            ? "Notre outil va automatiquement remplir le formulaire avec vos données" 
-                            : "Our tool will automatically fill the form with your info"}
+                            ? "Si vous avez plusieurs compteurs, ajoutez une facture par compte et notre outil d'analyse fera le tri pour vous." 
+                            : "If you have multiple meters, add one bill per account and our analysis tool will sort them for you."}
                         </p>
                       </div>
                       
