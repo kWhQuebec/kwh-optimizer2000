@@ -318,7 +318,7 @@ export function generatePortalInvitationEmail(params: {
     </div>
     <div class="footer">
       <p>kWh Québec - Solaire + Stockage</p>
-      <p>Ce courriel a été envoyé automatiquement. Veuillez ne pas y répondre directement.</p>
+      <p>Ce courriel a été envoyé automatiquement.</p>
     </div>
   </div>
 </body>
@@ -396,7 +396,7 @@ L'équipe kWh Québec`
     </div>
     <div class="footer">
       <p>kWh Québec - Solar + Storage</p>
-      <p>This email was sent automatically. Please do not reply directly.</p>
+      <p>This email was sent automatically.</p>
     </div>
   </div>
 </body>

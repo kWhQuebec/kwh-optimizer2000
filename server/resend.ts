@@ -92,6 +92,7 @@ export async function sendEmailViaResend(options: {
   subject: string;
   htmlBody: string;
   textBody?: string;
+  replyTo?: string;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   log.info(`Attempting to send email to: ${options.to}`);
   log.info(`Subject: ${options.subject}`);
@@ -108,6 +109,7 @@ export async function sendEmailViaResend(options: {
       subject: options.subject,
       html: options.htmlBody,
       text: options.textBody,
+      replyTo: options.replyTo,
     });
 
     if (response.error) {

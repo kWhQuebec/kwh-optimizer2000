@@ -8,7 +8,7 @@ const log = createLogger("EmailService");
 
 // Primary: Resend (more reliable for transactional emails)
 // Fallback chain: Resend -> Gmail -> Outlook
-async function sendEmail(options: { to: string; subject: string; htmlBody: string; textBody?: string; attachments?: Array<{ filename: string; content: string; type: string }> }): Promise<{ success: boolean; messageId?: string; error?: string }> {
+export async function sendEmail(options: { to: string; subject: string; htmlBody: string; textBody?: string; replyTo?: string; attachments?: Array<{ filename: string; content: string; type: string }> }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   log.info('Attempting to send via Resend (primary)...');
   
   // Primary: Resend

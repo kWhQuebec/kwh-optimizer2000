@@ -7,8 +7,8 @@ import { authMiddleware, requireStaff } from "../middleware/auth";
 import { asyncHandler, NotFoundError, BadRequestError, ConflictError, ValidationError } from "../middleware/errorHandler";
 import { storage } from "../storage";
 import { insertClientSchema } from "@shared/schema";
-import { sendEmail, generatePortalInvitationEmail } from "../gmail";
-import { sendHqProcurationEmail, sendProcurationNotificationToAccountManager } from "../emailService";
+import { generatePortalInvitationEmail } from "../gmail";
+import { sendEmail, sendHqProcurationEmail, sendProcurationNotificationToAccountManager } from "../emailService";
 import { generateSecurePassword } from "../lib/secureRandom";
 import { createLogger } from "../lib/logger";
 
@@ -82,6 +82,7 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
     subject: emailContent.subject,
     htmlBody: finalHtmlBody,
     textBody: finalTextBody,
+    replyTo: client.accountManagerEmail || undefined,
   });
   
   if (!emailResult.success) {
