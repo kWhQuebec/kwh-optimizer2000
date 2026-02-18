@@ -1,0 +1,41 @@
+AUDIT PRÉ-LANCEMENT — SYNTHÈSE
+Score global par catégorie
+DomaineScoreVerdictSEO18/24 (75%)✅ Lancement OK avec 2 quick fixesSécurité⚠️Contexte Replit — voir notes ci-basMarketing/Conversion85%✅ Bon, manque éléments légauxPerformance/UX80%✅ Lancement OK
+
+🔴 BLOQUANTS — À faire AVANT le lancement
+#ItemEffortQui1robots.txt — fichier manquant. Bloquer /app/, /api/, /admin/15 minClaude ou Replit2sitemap.xml — pas de sitemap. Google ne découvrira pas tes pages30 minClaude ou Replit3Cookie consent banner — obligatoire Loi 25 Québec (PIPEDA)1-2hReplit4Politique de confidentialité — page /privacy existe-t-elle avec du contenu?2hClaude5Conditions d'utilisation — page /conditions existe-t-elle?2hClaude
+
+🟡 IMPORTANT — À faire dans la première semaine
+#ItemEffortNotes6Alt text images — 18 images importées dans landing.tsx sans alt text30 minSEO + accessibilité7og:image URL absolue — actuellement relative, ne fonctionnera pas sur social15 min8BreadcrumbList schema — manquant pour /blog/:slug et /portfolio/:id30 min9HTML escaping dans emails — les données utilisateur sont injectées sans échappement dans les templates HTML2-3hSécurité10Rate limiting — vérifier que c'est actif sur /api/parse-hq-bill et /api/quick-estimate1hLe roadmap dit que c'est fait (item 1), à vérifier
+
+🟢 CE QUI EST SOLIDE
+SEO : Canonical URLs, hreflang fr-CA/en-CA/x-default, 6 schemas JSON-LD (LocalBusiness, FAQPage, Service, Organization, HowTo), meta descriptions, Open Graph, Twitter Cards, GA4 + funnel events.
+Conversion : Flow upload facture → parsing IA → quick estimate → qualification Green/Yellow/Red → Calendly. 7 emails nurture (Day 0-1-3-7-14-21-30). Page mandat à 2500$ avec inclusions/exclusions. Trust badges.
+Performance : Code splitting Vite (vendor/charts/ui), lazy loading images, cache busting, ErrorBoundary sur Présentation, swipe mobile.
+Contenu : ~2200 mots bilingues sur le calculateur ROI, 20 FAQ items, glossaire 12 termes, checklist éligibilité.
+
+Note sur l'audit sécurité
+L'audit sécurité a identifié des items (auth middleware, RBAC, rate limiting, security headers) qui étaient dans le Sprint 0 du roadmap et marqués comme faits. L'auditeur n'a pas pu vérifier les fichiers serveur complets (certains étaient corrompus au téléchargement). Avant de lancer, vérifie dans Replit que :
+
+express-rate-limit est bien actif (item 1 du roadmap)
+helmet.js est bien configuré (item 2 du roadmap)
+Les routes /app/* sont derrière authentification
+Le password reset utilise des tokens (pas des mots de passe temporaires)
+
+
+Plan 48h
+Aujourd'hui (T-48h) :
+
+Toi sur Replit : cookie consent banner + vérifier sécurité Sprint 0
+Moi : robots.txt + sitemap.xml + politique confidentialité + conditions d'utilisation
+
+Demain (T-24h) :
+
+Alt text images + og:image absolu + BreadcrumbList
+Test mobile complet (landing + présentation)
+Lighthouse audit
+Soumettre à Google Search Console
+
+Jour J :
+
+Deploy final + monitoring

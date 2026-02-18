@@ -59,7 +59,8 @@ export function SEOHead({
     setMeta("og:title", title, true);
     setMeta("og:description", description, true);
     setMeta("og:type", ogType, true);
-    setMeta("og:image", ogImage, true);
+    const absoluteOgImage = ogImage.startsWith("http") ? ogImage : `https://www.kwh.quebec${ogImage}`;
+    setMeta("og:image", absoluteOgImage, true);
     setMeta("og:url", ogUrl || `https://www.kwh.quebec${location}`, true);
     setMeta("og:site_name", "kWh Québec", true);
     setMeta("og:locale", locale === "fr" ? "fr_CA" : "en_CA", true);
@@ -68,7 +69,7 @@ export function SEOHead({
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
-    setMeta("twitter:image", ogImage);
+    setMeta("twitter:image", absoluteOgImage);
 
     // Additional SEO tags
     if (noIndex) {
