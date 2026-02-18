@@ -37,21 +37,48 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
     throw new NotFoundError("Client");
   }
   
+  let user;
+  let isResend = false;
   const existingUser = await storage.getUserByEmail(email);
+  
   if (existingUser) {
-    throw new BadRequestError("A user with this email already exists");
+    if (existingUser.role !== 'client') {
+      throw new BadRequestError(
+        language === 'fr' 
+          ? "Ce courriel est utilise par un compte analyste ou administrateur."
+          : "This email is used by an analyst or admin account."
+      );
+    }
+    if (existingUser.clientId && existingUser.clientId !== clientId) {
+      throw new BadRequestError(
+        language === 'fr'
+          ? "Ce courriel est deja associe a un autre client."
+          : "This email is already associated with another client."
+      );
+    }
+    isResend = true;
+    user = existingUser;
   }
   
   const tempPassword = generateSecurePassword();
   const hashedPassword = await bcrypt.hash(tempPassword, 10);
   
-  const user = await storage.createUser({
-    email,
-    passwordHash: hashedPassword,
-    name: contactName || null,
-    role: 'client',
-    clientId: clientId,
-  });
+  if (isResend && user) {
+    await storage.updateUser(user.id, {
+      passwordHash: hashedPassword,
+      name: contactName || user.name,
+      clientId: clientId,
+      mustChangePassword: true,
+    });
+  } else {
+    user = await storage.createUser({
+      email,
+      passwordHash: hashedPassword,
+      name: contactName || null,
+      role: 'client',
+      clientId: clientId,
+    });
+  }
   
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
   const host = req.get('host') || 'localhost:5000';
@@ -101,13 +128,14 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
     });
   }
   
-  log.info(`Successfully created account and sent invitation to ${user.email} for client ${client.name}`);
+  log.info(`Successfully ${isResend ? 'resent invitation' : 'created account and sent invitation'} to ${user!.email} for client ${client.name}`);
   
-  res.status(201).json({
+  res.status(isResend ? 200 : 201).json({
     success: true,
-    user: { id: user.id, email: user.email, name: user.name },
+    user: { id: user!.id, email: user!.email, name: user!.name },
     emailSent: true,
     messageId: emailResult.messageId,
+    isResend,
   });
 }));
 
@@ -440,6 +468,21 @@ router.patch("/api/clients/:id", authMiddleware, requireStaff, asyncHandler(asyn
     throw new NotFoundError("Client");
   }
   res.json(client);
+}));
+
+router.get("/api/clients/:id/cascade-counts", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const client = await storage.getClient(req.params.id);
+  if (!client) throw new NotFoundError("Client");
+  const counts = await storage.getClientCascadeCounts(req.params.id);
+  res.json({ clientName: client.name, ...counts });
+}));
+
+router.delete("/api/clients/:id/cascade", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
+  const client = await storage.getClient(req.params.id);
+  if (!client) throw new NotFoundError("Client");
+  const deleted = await storage.cascadeDeleteClient(req.params.id);
+  if (!deleted) throw new BadRequestError("Failed to delete client");
+  res.status(204).send();
 }));
 
 router.delete("/api/clients/:id", authMiddleware, requireStaff, asyncHandler(async (req, res) => {

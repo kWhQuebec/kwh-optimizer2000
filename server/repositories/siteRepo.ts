@@ -1,4 +1,4 @@
-import { eq, desc, and, inArray, sql } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 import { db } from "../db";
 import {
   sites, clients, meterFiles, meterReadings, simulationRuns, designs, bomItems,
@@ -397,4 +397,21 @@ export async function deleteRoofPolygon(id: string): Promise<boolean> {
 export async function deleteRoofPolygonsBySite(siteId: string): Promise<number> {
   const result = await db.delete(roofPolygons).where(eq(roofPolygons.siteId, siteId)).returning();
   return result.length;
+}
+
+export async function getSiteCascadeCounts(siteId: string): Promise<{ simulations: number; meterFiles: number; designAgreements: number; siteVisits: number }> {
+  const [simCount] = await db.select({ count: count() }).from(simulationRuns).where(eq(simulationRuns.siteId, siteId));
+  const [mfCount] = await db.select({ count: count() }).from(meterFiles).where(eq(meterFiles.siteId, siteId));
+  const [daCount] = await db.select({ count: count() }).from(designAgreements).where(eq(designAgreements.siteId, siteId));
+  const [svCount] = await db.select({ count: count() }).from(siteVisits).where(eq(siteVisits.siteId, siteId));
+  return {
+    simulations: Number(simCount.count),
+    meterFiles: Number(mfCount.count),
+    designAgreements: Number(daCount.count),
+    siteVisits: Number(svCount.count),
+  };
+}
+
+export async function cascadeDeleteSite(siteId: string): Promise<boolean> {
+  return deleteSite(siteId);
 }

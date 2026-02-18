@@ -78,6 +78,8 @@ export interface IStorage {
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: string, client: Partial<Client>): Promise<Client | undefined>;
   deleteClient(id: string): Promise<boolean>;
+  getClientCascadeCounts(clientId: string): Promise<{ sites: number; simulations: number; portalUsers: number; portfolios: number; opportunities: number; designAgreements: number; siteVisits: number }>;
+  cascadeDeleteClient(clientId: string): Promise<boolean>;
 
   // Sites
   getSites(): Promise<(Site & { client: Client })[]>;
@@ -107,6 +109,8 @@ export interface IStorage {
   createSite(site: InsertSite): Promise<Site>;
   updateSite(id: string, site: Partial<Site>): Promise<Site | undefined>;
   deleteSite(id: string): Promise<boolean>;
+  getSiteCascadeCounts(siteId: string): Promise<{ simulations: number; meterFiles: number; designAgreements: number; siteVisits: number }>;
+  cascadeDeleteSite(siteId: string): Promise<boolean>;
 
   // Meter Files
   getMeterFiles(siteId: string): Promise<MeterFile[]>;
@@ -769,6 +773,83 @@ export class MemStorage implements IStorage {
 
   async deleteClient(id: string): Promise<boolean> {
     return this.clients.delete(id);
+  }
+
+  async getClientCascadeCounts(clientId: string): Promise<{ sites: number; simulations: number; portalUsers: number; portfolios: number; opportunities: number; designAgreements: number; siteVisits: number }> {
+    const clientSites = Array.from(this.sites.values()).filter(s => s.clientId === clientId);
+    const siteIds = clientSites.map(s => s.id);
+    const simulations = Array.from(this.simulationRuns.values()).filter(r => siteIds.includes(r.siteId));
+    const portalUsers = Array.from(this.users.values()).filter(u => u.clientId === clientId && u.role === 'client');
+    const clientPortfolios = Array.from(this.portfolios.values()).filter(p => p.clientId === clientId);
+    const clientOpportunities = Array.from(this.opportunitiesMap.values()).filter(o => o.clientId === clientId);
+    const clientDesignAgreements = Array.from(this.designAgreements.values()).filter(d => siteIds.includes(d.siteId));
+    const clientSiteVisits = Array.from(this.siteVisits.values()).filter(v => siteIds.includes(v.siteId));
+    return {
+      sites: clientSites.length,
+      simulations: simulations.length,
+      portalUsers: portalUsers.length,
+      portfolios: clientPortfolios.length,
+      opportunities: clientOpportunities.length,
+      designAgreements: clientDesignAgreements.length,
+      siteVisits: clientSiteVisits.length,
+    };
+  }
+
+  async cascadeDeleteClient(clientId: string): Promise<boolean> {
+    const clientSites = Array.from(this.sites.values()).filter(s => s.clientId === clientId);
+    for (const site of clientSites) {
+      await this.cascadeDeleteSite(site.id);
+    }
+    for (const [id, user] of this.users) {
+      if (user.clientId === clientId && user.role === 'client') this.users.delete(id);
+    }
+    for (const [id, ps] of this.portfolioSites) {
+      const portfolio = this.portfolios.get(ps.portfolioId);
+      if (portfolio && portfolio.clientId === clientId) this.portfolioSites.delete(id);
+    }
+    for (const [id, p] of this.portfolios) {
+      if (p.clientId === clientId) this.portfolios.delete(id);
+    }
+    for (const [id, o] of this.opportunitiesMap) {
+      if (o.clientId === clientId) this.opportunitiesMap.delete(id);
+    }
+    return this.clients.delete(clientId);
+  }
+
+  async getSiteCascadeCounts(siteId: string): Promise<{ simulations: number; meterFiles: number; designAgreements: number; siteVisits: number }> {
+    const simulations = Array.from(this.simulationRuns.values()).filter(r => r.siteId === siteId);
+    const siteMeterFiles = Array.from(this.meterFiles.values()).filter(f => f.siteId === siteId);
+    const siteDesignAgreements = Array.from(this.designAgreements.values()).filter(d => d.siteId === siteId);
+    const visits = Array.from(this.siteVisits.values()).filter(v => v.siteId === siteId);
+    return {
+      simulations: simulations.length,
+      meterFiles: siteMeterFiles.length,
+      designAgreements: siteDesignAgreements.length,
+      siteVisits: visits.length,
+    };
+  }
+
+  async cascadeDeleteSite(siteId: string): Promise<boolean> {
+    for (const [id, r] of this.simulationRuns) {
+      if (r.siteId === siteId) this.simulationRuns.delete(id);
+    }
+    for (const [id, f] of this.meterFiles) {
+      if (f.siteId === siteId) this.meterFiles.delete(id);
+    }
+    for (const [id, d] of this.designAgreements) {
+      if (d.siteId === siteId) this.designAgreements.delete(id);
+    }
+    const visits = Array.from(this.siteVisits.values()).filter(v => v.siteId === siteId);
+    for (const visit of visits) {
+      for (const [id, photo] of this.siteVisitPhotos) {
+        if (photo.visitId === visit.id) this.siteVisitPhotos.delete(id);
+      }
+      this.siteVisits.delete(visit.id);
+    }
+    for (const [id, log] of this.emailLogs) {
+      if (log.siteId === siteId) this.emailLogs.delete(id);
+    }
+    return this.sites.delete(siteId);
   }
 
   // Sites

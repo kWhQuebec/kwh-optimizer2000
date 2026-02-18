@@ -75,20 +75,26 @@ export function GrantPortalAccessDialog({
     },
   });
   
-  type GrantAccessResult = { success: boolean; emailSent: boolean; tempPassword?: string; error?: string; warning?: string };
+  type GrantAccessResult = { success: boolean; emailSent: boolean; tempPassword?: string; error?: string; warning?: string; isResend?: boolean };
   
   const grantAccessMutation = useMutation({
     mutationFn: async (data: PortalAccessFormValues): Promise<GrantAccessResult> => {
       return await apiRequest("POST", `/api/clients/${client.id}/grant-portal-access`, data) as GrantAccessResult;
     },
-    onSuccess: (data: { success: boolean; emailSent: boolean; tempPassword?: string; error?: string; warning?: string }) => {
+    onSuccess: (data: GrantAccessResult) => {
       setResult(data);
       if (data.emailSent) {
         toast({ 
-          title: language === "fr" ? "Accès au portail accordé" : "Portal access granted",
-          description: language === "fr" 
-            ? "Le courriel d'invitation a été envoyé avec succès." 
-            : "The invitation email has been sent successfully."
+          title: data.isResend 
+            ? (language === "fr" ? "Invitation renvoyée" : "Invitation resent")
+            : (language === "fr" ? "Accès au portail accordé" : "Portal access granted"),
+          description: data.isResend
+            ? (language === "fr" 
+              ? "Un nouveau mot de passe temporaire a été envoyé." 
+              : "A new temporary password has been sent.")
+            : (language === "fr" 
+              ? "Le courriel d'invitation a été envoyé avec succès." 
+              : "The invitation email has been sent successfully.")
         });
       } else {
         toast({ 

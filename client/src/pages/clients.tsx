@@ -491,6 +491,7 @@ export default function ClientsPage() {
   const [page, setPage] = useState(0);
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [cascadeDeleteClient, setCascadeDeleteClient] = useState<ClientWithSites | null>(null);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -541,17 +542,17 @@ export default function ClientsPage() {
     },
   });
 
-  const deleteMutation = useMutation({
+  const cascadeDeleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/clients/${id}`);
+      return apiRequest("DELETE", `/api/clients/${id}/cascade`);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/clients/list"], refetchType: 'all' });
-      toast({ title: t("clients.clientDeleted") });
+      toast({ title: language === "fr" ? "Client supprime avec succes" : "Client deleted successfully" });
+      setCascadeDeleteClient(null);
     },
     onError: (error: Error) => {
-      // Parse error message from apiRequest format: "status: {json}"
-      let errorMessage = t("clients.deleteError");
+      let errorMessage = language === "fr" ? "Erreur lors de la suppression" : "Error deleting client";
       try {
         const match = error.message?.match(/^\d+:\s*(.+)$/);
         if (match) {
@@ -559,17 +560,18 @@ export default function ClientsPage() {
           errorMessage = parsed.error || errorMessage;
         }
       } catch {
-        // If parsing fails, use the raw message or fallback
-        if (error.message) {
-          errorMessage = error.message.replace(/^\d+:\s*/, '');
-        }
+        if (error.message) errorMessage = error.message.replace(/^\d+:\s*/, '');
       }
-      toast({ 
-        title: language === "fr" ? "Impossible de supprimer" : "Cannot delete",
-        description: errorMessage,
-        variant: "destructive" 
-      });
+      toast({ title: errorMessage, variant: "destructive" });
     },
+  });
+
+  const { data: cascadeCounts } = useQuery<{ clientName: string; sites: number; simulations: number; portalUsers: number; portfolios: number; opportunities: number; designAgreements: number; siteVisits: number }>({
+    queryKey: ['/api/clients', cascadeDeleteClient?.id, 'cascade-counts'],
+    queryFn: async () => {
+      return await apiRequest("GET", `/api/clients/${cascadeDeleteClient!.id}/cascade-counts`);
+    },
+    enabled: !!cascadeDeleteClient,
   });
 
   const toggleClientSelection = (id: string) => {
@@ -596,15 +598,15 @@ export default function ClientsPage() {
     try {
       await Promise.all(
         Array.from(selectedClients).map(id =>
-          apiRequest("DELETE", `/api/clients/${id}`)
+          apiRequest("DELETE", `/api/clients/${id}/cascade`)
         )
       );
-      await queryClient.invalidateQueries({ queryKey: ["/api/clients/list"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients/list"] });
       toast({
-        title: language === "fr" ? "Clients supprimés" : "Clients deleted",
+        title: language === "fr" ? "Clients supprimes" : "Clients deleted",
         description: language === "fr"
-          ? `${selectedClients.size} client(s) supprimé(s) avec succès.`
-          : `${selectedClients.size} client(s) deleted successfully.`,
+          ? `${selectedClients.size} client(s) et toutes les donnees associees ont ete supprimes.`
+          : `${selectedClients.size} client(s) and all associated data deleted successfully.`,
       });
       setSelectedClients(new Set());
       setIsBulkDeleteDialogOpen(false);
@@ -612,7 +614,7 @@ export default function ClientsPage() {
       toast({
         title: language === "fr" ? "Erreur" : "Error",
         description: language === "fr"
-          ? "Certains clients n'ont pas pu être supprimés."
+          ? "Certains clients n'ont pas pu etre supprimes."
           : "Some clients could not be deleted.",
         variant: "destructive",
       });
@@ -709,7 +711,7 @@ export default function ClientsPage() {
               key={client.id}
               client={client}
               onEdit={() => setEditingClient(client)}
-              onDelete={() => deleteMutation.mutate(client.id)}
+              onDelete={() => setCascadeDeleteClient(client)}
               onGrantAccess={() => setPortalAccessClient(client)}
               onSendHqProcuration={() => setHqProcurationClient(client)}
               isSelected={selectedClients.has(client.id)}
@@ -846,6 +848,70 @@ export default function ClientsPage() {
               data-testid="button-confirm-bulk-delete-clients"
             >
               {language === "fr" ? "Confirmer la suppression" : "Confirm Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!cascadeDeleteClient} onOpenChange={(open) => { if (!open) setCascadeDeleteClient(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "fr" ? "Supprimer le client" : "Delete Client"}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  {language === "fr"
+                    ? `Etes-vous sur de vouloir supprimer "${cascadeDeleteClient?.name}" et toutes les donnees associees ?`
+                    : `Are you sure you want to delete "${cascadeDeleteClient?.name}" and all associated data?`}
+                </p>
+                {cascadeCounts && (
+                  <div className="rounded-lg border p-3 space-y-1 text-sm" data-testid="cascade-delete-counts">
+                    {cascadeCounts.sites > 0 && (
+                      <p>Sites: <strong>{cascadeCounts.sites}</strong></p>
+                    )}
+                    {cascadeCounts.simulations > 0 && (
+                      <p>{language === "fr" ? "Analyses" : "Analyses"}: <strong>{cascadeCounts.simulations}</strong></p>
+                    )}
+                    {cascadeCounts.portalUsers > 0 && (
+                      <p>{language === "fr" ? "Utilisateurs portail" : "Portal users"}: <strong>{cascadeCounts.portalUsers}</strong></p>
+                    )}
+                    {cascadeCounts.portfolios > 0 && (
+                      <p>Portfolios: <strong>{cascadeCounts.portfolios}</strong></p>
+                    )}
+                    {cascadeCounts.opportunities > 0 && (
+                      <p>{language === "fr" ? "Opportunites" : "Opportunities"}: <strong>{cascadeCounts.opportunities}</strong></p>
+                    )}
+                    {cascadeCounts.designAgreements > 0 && (
+                      <p>{language === "fr" ? "Mandats de conception" : "Design agreements"}: <strong>{cascadeCounts.designAgreements}</strong></p>
+                    )}
+                    {cascadeCounts.siteVisits > 0 && (
+                      <p>{language === "fr" ? "Visites de site" : "Site visits"}: <strong>{cascadeCounts.siteVisits}</strong></p>
+                    )}
+                  </div>
+                )}
+                <p className="font-medium text-destructive">
+                  {language === "fr"
+                    ? "Cette action est irreversible."
+                    : "This action cannot be undone."}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-cascade-delete">
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => cascadeDeleteClient && cascadeDeleteMutation.mutate(cascadeDeleteClient.id)}
+              disabled={cascadeDeleteMutation.isPending}
+              data-testid="button-confirm-cascade-delete"
+            >
+              {cascadeDeleteMutation.isPending
+                ? (language === "fr" ? "Suppression..." : "Deleting...")
+                : (language === "fr" ? "Supprimer definitivement" : "Delete permanently")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

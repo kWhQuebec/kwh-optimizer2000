@@ -1,7 +1,8 @@
 import { eq, desc, and, inArray, isNotNull, count, sql } from "drizzle-orm";
 import { db } from "../db";
-import { clients, sites, leads, opportunities } from "@shared/schema";
+import { clients, sites, leads, opportunities, simulationRuns, designAgreements, siteVisits, users, portfolios, portfolioSites } from "@shared/schema";
 import type { Client, InsertClient, Site } from "@shared/schema";
+import { deleteSite as cascadeDeleteSiteRepo } from "./siteRepo";
 
 export async function getClients(): Promise<(Client & { sites: Site[] })[]> {
   const allClients = await db.select().from(clients).orderBy(desc(clients.createdAt));
@@ -92,6 +93,50 @@ export async function updateClient(id: string, client: Partial<Client>): Promise
 
 export async function deleteClient(id: string): Promise<boolean> {
   const result = await db.delete(clients).where(eq(clients.id, id)).returning();
+  return result.length > 0;
+}
+
+export async function getClientCascadeCounts(clientId: string): Promise<{ sites: number; simulations: number; portalUsers: number; portfolios: number; opportunities: number; designAgreements: number; siteVisits: number }> {
+  const clientSites = await db.select({ id: sites.id }).from(sites).where(eq(sites.clientId, clientId));
+  const siteIds = clientSites.map(s => s.id);
+  const [siteCount] = await db.select({ count: count() }).from(sites).where(eq(sites.clientId, clientId));
+  const [simCount] = siteIds.length > 0
+    ? await db.select({ count: count() }).from(simulationRuns).where(inArray(simulationRuns.siteId, siteIds))
+    : [{ count: 0 }];
+  const [portalCount] = await db.select({ count: count() }).from(users).where(and(eq(users.clientId, clientId), eq(users.role, 'client')));
+  const [portfolioCount] = await db.select({ count: count() }).from(portfolios).where(eq(portfolios.clientId, clientId));
+  const [oppCount] = await db.select({ count: count() }).from(opportunities).where(eq(opportunities.clientId, clientId));
+  const [daCount] = siteIds.length > 0
+    ? await db.select({ count: count() }).from(designAgreements).where(inArray(designAgreements.siteId, siteIds))
+    : [{ count: 0 }];
+  const [svCount] = siteIds.length > 0
+    ? await db.select({ count: count() }).from(siteVisits).where(inArray(siteVisits.siteId, siteIds))
+    : [{ count: 0 }];
+  return {
+    sites: Number(siteCount.count),
+    simulations: Number(simCount.count),
+    portalUsers: Number(portalCount.count),
+    portfolios: Number(portfolioCount.count),
+    opportunities: Number(oppCount.count),
+    designAgreements: Number(daCount.count),
+    siteVisits: Number(svCount.count),
+  };
+}
+
+export async function cascadeDeleteClient(clientId: string): Promise<boolean> {
+  const clientSites = await db.select({ id: sites.id }).from(sites).where(eq(sites.clientId, clientId));
+  for (const site of clientSites) {
+    await cascadeDeleteSiteRepo(site.id);
+  }
+  await db.delete(users).where(and(eq(users.clientId, clientId), eq(users.role, 'client')));
+  const clientPortfolios = await db.select({ id: portfolios.id }).from(portfolios).where(eq(portfolios.clientId, clientId));
+  const portfolioIds = clientPortfolios.map(p => p.id);
+  if (portfolioIds.length > 0) {
+    await db.delete(portfolioSites).where(inArray(portfolioSites.portfolioId, portfolioIds));
+  }
+  await db.delete(portfolios).where(eq(portfolios.clientId, clientId));
+  await db.delete(opportunities).where(eq(opportunities.clientId, clientId));
+  const result = await db.delete(clients).where(eq(clients.id, clientId)).returning();
   return result.length > 0;
 }
 

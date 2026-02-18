@@ -95,6 +95,8 @@ export class DatabaseStorage implements IStorage {
   createClient = clientRepo.createClient;
   updateClient = clientRepo.updateClient;
   deleteClient = clientRepo.deleteClient;
+  getClientCascadeCounts = clientRepo.getClientCascadeCounts;
+  cascadeDeleteClient = clientRepo.cascadeDeleteClient;
   getHQBillsByClient = clientRepo.getHQBillsByClient;
 
   // Sites, Meter Files, Meter Readings, Roof Polygons
@@ -109,6 +111,8 @@ export class DatabaseStorage implements IStorage {
   createSite = siteRepo.createSite;
   updateSite = siteRepo.updateSite;
   deleteSite = siteRepo.deleteSite;
+  getSiteCascadeCounts = siteRepo.getSiteCascadeCounts;
+  cascadeDeleteSite = siteRepo.cascadeDeleteSite;
   getMeterFiles = siteRepo.getMeterFiles;
   getMeterFile = siteRepo.getMeterFile;
   createMeterFile = siteRepo.createMeterFile;

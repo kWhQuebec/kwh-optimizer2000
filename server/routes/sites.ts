@@ -311,6 +311,21 @@ router.patch("/:id", authMiddleware, requireStaff, asyncHandler(async (req: Auth
   res.json(site);
 }));
 
+router.get("/:id/cascade-counts", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.id);
+  if (!site) throw new NotFoundError("Site");
+  const counts = await storage.getSiteCascadeCounts(req.params.id);
+  res.json({ siteName: site.name, ...counts });
+}));
+
+router.delete("/:id/cascade", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.id);
+  if (!site) throw new NotFoundError("Site");
+  const deleted = await storage.cascadeDeleteSite(req.params.id);
+  if (!deleted) throw new BadRequestError("Failed to delete site");
+  res.status(204).send();
+}));
+
 router.delete("/:id", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   const siteId = req.params.id;
 

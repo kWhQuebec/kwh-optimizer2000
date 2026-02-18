@@ -441,7 +441,7 @@ export default function SiteDetailPage() {
 
   const deleteSiteMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("DELETE", `/api/sites/${id}`);
+      return apiRequest("DELETE", `/api/sites/${id}/cascade`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
