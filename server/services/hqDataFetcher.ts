@@ -86,6 +86,7 @@ export class HQDataFetcher {
   private refreshToken: string = "";
   private cookies: Map<string, string> = new Map();
   private guid: string = crypto.randomUUID();
+  private _webSessionCreated: boolean = false;
 
   constructor(private onProgress?: ProgressCallback) {}
 
@@ -186,6 +187,10 @@ export class HQDataFetcher {
     applicantId: string,
     customerId: string,
   ): Promise<void> {
+    if (this._webSessionCreated) {
+      log.info("Web session already created, skipping");
+      return;
+    }
     log.info("Creating web session for HQ portal");
     const url = `${SESSION_URL}?mode=web`;
     const response = await this._makeRequest(url, "GET", {
@@ -198,6 +203,7 @@ export class HQDataFetcher {
         `Failed to create web session: ${response.status} — ${text.substring(0, 200)}`,
       );
     }
+    this._webSessionCreated = true;
     log.info("Web session created successfully");
   }
 
@@ -207,6 +213,7 @@ export class HQDataFetcher {
     contractId: string,
   ): Promise<void> {
     log.info(`Selecting contract ${contractId}`);
+    await this._createWebSession(applicantId, customerId);
     const url = `${PORTRAIT_URL}?noContrat=${contractId}`;
     const response = await this._makeRequest(url, "GET", {
       headers: this._getCustomerHeaders(applicantId, customerId),
@@ -597,7 +604,7 @@ export class HQDataFetcher {
             });
           }
         } else {
-          for (const contract of contractNumbers) {
+          for (const contract of contractNumbers as any[]) {
             const contractId = String(
               contract.noContrat ?? contract.contractId ?? "",
             );
@@ -750,13 +757,16 @@ export class HQDataFetcher {
     const periods: HQPeriod[] = [];
 
     const periodList =
+      data?.results ??
       data?.periodesConsommation ??
       data?.periodes ??
-      data?.periods ??
-      data ??
       [];
 
     for (const period of Array.isArray(periodList) ? periodList : []) {
+      if (period.numeroContrat && String(period.numeroContrat) !== contractId) {
+        continue;
+      }
+
       const startDate =
         period.dateDebutPeriode ??
         period.startDate ??
@@ -792,16 +802,12 @@ export class HQDataFetcher {
 
     await this._selectContract(applicantId, customerId, contractId);
 
-    const body = JSON.stringify({
-      startDate,
-      endDate,
-      option,
-    });
+    const body = new URLSearchParams({ startDate, endDate, option });
 
     const response = await this._makeRequest(CONSO_CSV_URL, "POST", {
       headers: this._getCustomerHeaders(applicantId, customerId),
       body,
-      contentType: "application/json",
+      contentType: "application/x-www-form-urlencoded",
     });
 
     if (!response.ok) {
@@ -936,10 +942,27 @@ export class HQDataFetcher {
         };
 
         try {
+          this._reportProgress(
+            "periods",
+            `Fetching billing periods for contract ${contract.contractId}`,
+            processedContracts,
+            totalContracts,
+            contract.address || contract.contractId,
+          );
+
           const periods = await this.getPeriods(
             applicantId,
             customerId,
             contract.contractId,
+          );
+
+          log.info(`Found ${periods.length} period(s) for contract ${contract.contractId}`);
+          this._reportProgress(
+            "periods",
+            `Found ${periods.length} billing period(s) for contract ${contract.contractId}`,
+            processedContracts,
+            totalContracts,
+            `${periods.length} periods to download`,
           );
 
           let periodIdx = 0;
@@ -968,6 +991,10 @@ export class HQDataFetcher {
                   .split("\n")
                   .filter((line) => line.trim().length > 0).length;
 
+                log.info(
+                  `CSV download success: ${contract.contractId} ${option} ${period.startDate}–${period.endDate} (${rowCount} rows)`,
+                );
+
                 result.csvFiles.push({
                   option,
                   periodStart: period.startDate,
@@ -981,7 +1008,14 @@ export class HQDataFetcher {
                     ? csvError.message
                     : String(csvError);
                 log.warn(
-                  `Failed to download CSV for ${contract.contractId} (${option}, ${period.startDate}–${period.endDate}): ${msg}`,
+                  `CSV download failed: ${contract.contractId} (${option}, ${period.startDate}–${period.endDate}): ${msg}`,
+                );
+                this._reportProgress(
+                  "download",
+                  `CSV download failed for ${option} — period ${periodIdx}/${periods.length}`,
+                  processedContracts,
+                  totalContracts,
+                  `${contract.contractId}: ${msg}`,
                 );
               }
 
@@ -995,6 +1029,13 @@ export class HQDataFetcher {
               : String(periodError);
           log.warn(
             `Failed to fetch periods for contract ${contract.contractId}: ${msg}`,
+          );
+          this._reportProgress(
+            "periods",
+            `Failed to fetch periods for contract ${contract.contractId}`,
+            processedContracts,
+            totalContracts,
+            msg,
           );
         }
 
