@@ -516,8 +516,16 @@ export class HQDataFetcher {
   async getContracts(
     applicantId: string,
     customerId: string,
+    filterAccountNumbers?: string[],
+    filterContractNumbers?: string[],
   ): Promise<HQContract[]> {
     log.info(`Fetching contracts for customer ${customerId}`);
+    if (filterAccountNumbers?.length) {
+      log.info(`Filtering by account numbers: ${filterAccountNumbers.join(", ")}`);
+    }
+    if (filterContractNumbers?.length) {
+      log.info(`Filtering by contract numbers: ${filterContractNumbers.join(", ")}`);
+    }
 
     await this._createWebSession(applicantId, customerId);
 
@@ -534,58 +542,123 @@ export class HQDataFetcher {
 
     const summaryData = await summaryResp.json();
     log.info(`Contract summary response keys: ${JSON.stringify(Object.keys(summaryData ?? {}))}`);
-    log.info(`Contract summary sample: ${JSON.stringify(summaryData).substring(0, 800)}`);
+    log.info(`Contract summary raw: ${JSON.stringify(summaryData).substring(0, 1200)}`);
     const contracts: HQContract[] = [];
 
-    const contractList =
+    const accountList =
       summaryData?.comptesContrats ??
       summaryData?.contrats ??
       summaryData?.contracts ??
       [];
 
-    for (const account of Array.isArray(contractList) ? contractList : []) {
-      const accountId =
-        account.noCompteContrat ?? account.accountId ?? "";
-      const innerContracts =
+    for (const account of Array.isArray(accountList) ? accountList : []) {
+      const accountId = String(
+        account.noCompteContrat ?? account.accountId ?? "",
+      );
+
+      if (filterAccountNumbers?.length) {
+        const normalizedAccount = accountId.replace(/\s/g, "");
+        const match = filterAccountNumbers.some(
+          (f) => f.replace(/\s/g, "") === normalizedAccount,
+        );
+        if (!match) {
+          log.info(`Skipping account ${accountId} — not in filter list`);
+          continue;
+        }
+      }
+
+      const contractNumbers: string[] =
+        account.listeNoContrat ??
         account.listeContrats ??
-        account.contrats ??
-        account.contracts ??
         [];
 
-      for (const contract of Array.isArray(innerContracts)
-        ? innerContracts
-        : []) {
-        contracts.push({
-          contractId: String(
-            contract.noContrat ?? contract.contractId ?? "",
-          ),
-          accountId: String(accountId),
-          address: String(
-            contract.adresse ??
-              contract.address ??
-              contract.adresseComplete ??
-              "",
-          ),
-          meterId: String(
-            contract.noCompteur ?? contract.meterId ?? "",
-          ),
-          rateCode: String(
-            contract.codeTarif ?? contract.rateCode ?? "",
-          ),
-        });
+      if (Array.isArray(contractNumbers) && contractNumbers.length > 0) {
+        if (typeof contractNumbers[0] === "string") {
+          for (const contractNum of contractNumbers) {
+            const contractId = String(contractNum);
+
+            if (filterContractNumbers?.length) {
+              const normalizedContract = contractId.replace(/\s/g, "");
+              const match = filterContractNumbers.some(
+                (f) => f.replace(/\s/g, "") === normalizedContract,
+              );
+              if (!match) {
+                log.info(`Skipping contract ${contractId} — not in filter list`);
+                continue;
+              }
+            }
+
+            contracts.push({
+              contractId,
+              accountId,
+              address: "",
+              meterId: "",
+              rateCode: "",
+            });
+          }
+        } else {
+          for (const contract of contractNumbers) {
+            const contractId = String(
+              contract.noContrat ?? contract.contractId ?? "",
+            );
+
+            if (filterContractNumbers?.length) {
+              const normalizedContract = contractId.replace(/\s/g, "");
+              const match = filterContractNumbers.some(
+                (f) => f.replace(/\s/g, "") === normalizedContract,
+              );
+              if (!match) {
+                log.info(`Skipping contract ${contractId} — not in filter list`);
+                continue;
+              }
+            }
+
+            contracts.push({
+              contractId,
+              accountId,
+              address: String(
+                contract.adresse ?? contract.address ?? contract.adresseComplete ?? "",
+              ),
+              meterId: String(
+                contract.noCompteur ?? contract.meterId ?? "",
+              ),
+              rateCode: String(
+                contract.codeTarif ?? contract.rateCode ?? "",
+              ),
+            });
+          }
+        }
       }
     }
 
-    if (contracts.length === 0 && summaryData) {
+    const needsEnrichment = contracts.some((c) => !c.address && !c.meterId);
+
+    if (needsEnrichment || (contracts.length === 0 && summaryData)) {
+      log.info(needsEnrichment
+        ? `Enriching ${contracts.length} contract(s) via contract list endpoint...`
+        : "No contracts from summary, trying contract list endpoint...");
+
+      const summaryAccounts = Array.isArray(accountList) ? accountList : [];
+      const enrichContractNums = contracts.map((c) => c.contractId);
       const body = {
         listeServices: ["PC"],
-        comptesContrats: [
-          {
-            listeNoContrat: [] as string[],
-            noCompteContrat: "",
-            titulaire: customerId,
-          },
-        ],
+        comptesContrats: summaryAccounts.length > 0
+          ? summaryAccounts
+              .filter((a: any) => {
+                if (!filterAccountNumbers?.length) return true;
+                const norm = String(a.noCompteContrat ?? "").replace(/\s/g, "");
+                return filterAccountNumbers.some((f) => f.replace(/\s/g, "") === norm);
+              })
+              .map((a: any) => ({
+                listeNoContrat: a.listeNoContrat ?? [],
+                noCompteContrat: String(a.noCompteContrat ?? ""),
+                titulaire: customerId,
+              }))
+          : [{
+              listeNoContrat: enrichContractNums,
+              noCompteContrat: "",
+              titulaire: customerId,
+            }],
       };
 
       const listResp = await this._makeRequest(CONTRACT_LIST_URL, "POST", {
@@ -601,32 +674,55 @@ export class HQDataFetcher {
         const listData = await listResp.json();
         log.info(`Contract list response keys: ${JSON.stringify(Object.keys(listData ?? {}))}`);
         log.info(`Contract list sample: ${JSON.stringify(listData).substring(0, 800)}`);
-        const items =
-          listData?.contrats ?? listData?.contracts ?? listData ?? [];
 
-        for (const item of Array.isArray(items) ? items : []) {
-          contracts.push({
-            contractId: String(
-              item.noContrat ?? item.contractId ?? "",
-            ),
-            accountId: String(
-              item.noCompteContrat ?? item.accountId ?? "",
-            ),
-            address: String(
-              item.adresse ?? item.address ?? "",
-            ),
-            meterId: String(
-              item.noCompteur ?? item.meterId ?? "",
-            ),
-            rateCode: String(
-              item.codeTarif ?? item.rateCode ?? "",
-            ),
-          });
+        const rawItems =
+          listData?.listeContrats ??
+          listData?.contrats ??
+          listData?.contracts ??
+          listData ??
+          [];
+        const items = Array.isArray(rawItems) ? rawItems : [];
+
+        const detailMap = new Map<string, { address: string; meterId: string; rateCode: string }>();
+        for (const item of items) {
+          const cId = String(item.noContrat ?? item.contractId ?? "");
+          if (cId) {
+            detailMap.set(cId, {
+              address: String(item.adresse ?? item.adresseComplete ?? item.address ?? ""),
+              meterId: String(item.noCompteur ?? item.meterId ?? ""),
+              rateCode: String(item.codeTarif ?? item.rateCode ?? ""),
+            });
+          }
+        }
+
+        if (detailMap.size > 0) {
+          log.info(`Enriching contracts with ${detailMap.size} detail record(s)`);
+          for (const contract of contracts) {
+            const detail = detailMap.get(contract.contractId);
+            if (detail) {
+              if (!contract.address) contract.address = detail.address;
+              if (!contract.meterId) contract.meterId = detail.meterId;
+              if (!contract.rateCode) contract.rateCode = detail.rateCode;
+            }
+          }
+        }
+
+        if (contracts.length === 0) {
+          for (const item of items) {
+            const cId = String(item.noContrat ?? item.contractId ?? "");
+            contracts.push({
+              contractId: cId,
+              accountId: String(item.noCompteContrat ?? item.accountId ?? ""),
+              address: String(item.adresse ?? item.address ?? ""),
+              meterId: String(item.noCompteur ?? item.meterId ?? ""),
+              rateCode: String(item.codeTarif ?? item.rateCode ?? ""),
+            });
+          }
         }
       }
     }
 
-    log.info(`Found ${contracts.length} contract(s)`);
+    log.info(`Found ${contracts.length} contract(s) after filtering`);
     return contracts;
   }
 
@@ -745,6 +841,8 @@ export class HQDataFetcher {
   async downloadAllData(
     username: string,
     password: string,
+    filterAccountNumbers?: string[],
+    filterContractNumbers?: string[],
   ): Promise<HQDownloadResult[]> {
     const results: HQDownloadResult[] = [];
     const csvOptions: Array<"energie-heure" | "puissance-min"> = [
@@ -763,7 +861,9 @@ export class HQDataFetcher {
     this._reportProgress("accounts", "Fetching account information", 0, 1);
     const accounts = await this.getAccounts();
     if (accounts.length === 0) {
-      throw new Error("No accounts found for this user");
+      throw new Error(
+        "Aucun compte lié trouvé. Vérifiez que votre compte Espace clients Hydro-Québec possède des procurations actives pour accéder aux données du client."
+      );
     }
 
     let totalContracts = 0;
@@ -786,12 +886,28 @@ export class HQDataFetcher {
       const contracts = await this.getContracts(
         account.applicantId,
         account.customerId,
+        filterAccountNumbers,
+        filterContractNumbers,
       );
       totalContracts += contracts.length;
       accountContracts.push({
         ...account,
         contracts,
       });
+    }
+
+    if (totalContracts === 0 && (filterAccountNumbers?.length || filterContractNumbers?.length)) {
+      const filterInfo = [
+        filterAccountNumbers?.length ? `compte(s): ${filterAccountNumbers.join(", ")}` : "",
+        filterContractNumbers?.length ? `contrat(s): ${filterContractNumbers.join(", ")}` : "",
+      ].filter(Boolean).join(", ");
+      log.warn(`No contracts matched the filter (${filterInfo}). Available accounts in the HQ portal may not include this client's account.`);
+      this._reportProgress(
+        "warning",
+        `Aucun contrat correspondant trouvé pour ${filterInfo}. Vérifiez que la procuration couvre bien ce numéro de compte.`,
+        0,
+        0,
+      );
     }
 
     this._reportProgress(
@@ -902,7 +1018,9 @@ export async function fetchHQData(
   username: string,
   password: string,
   onProgress?: ProgressCallback,
+  filterAccountNumbers?: string[],
+  filterContractNumbers?: string[],
 ): Promise<HQDownloadResult[]> {
   const fetcher = new HQDataFetcher(onProgress);
-  return fetcher.downloadAllData(username, password);
+  return fetcher.downloadAllData(username, password, filterAccountNumbers, filterContractNumbers);
 }

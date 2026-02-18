@@ -1941,7 +1941,12 @@ export default function SiteDetailPage() {
               <CardHeader>
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <CardTitle className="text-lg">{t("site.uploadFiles")}</CardTitle>
-                  <HQDataFetchInline siteId={site.id} onImportComplete={() => refetch()} />
+                  <HQDataFetchInline
+                    siteId={site.id}
+                    onImportComplete={() => refetch()}
+                    hqAccountNumber={site.hqAccountNumber}
+                    hqContractNumber={site.hqContractNumber}
+                  />
                 </div>
               </CardHeader>
               <CardContent>

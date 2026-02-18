@@ -37,9 +37,11 @@ interface HQContractResult {
 interface HQDataFetchInlineProps {
   siteId: string;
   onImportComplete: () => void;
+  hqAccountNumber?: string | null;
+  hqContractNumber?: string | null;
 }
 
-export function HQDataFetchInline({ siteId, onImportComplete }: HQDataFetchInlineProps) {
+export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, hqContractNumber }: HQDataFetchInlineProps) {
   const { language } = useI18n();
   const { toast } = useToast();
 
@@ -67,7 +69,12 @@ export function HQDataFetchInline({ siteId, onImportComplete }: HQDataFetchInlin
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username,
+          password,
+          filterAccountNumbers: hqAccountNumber ? [hqAccountNumber.replace(/\s/g, "")] : undefined,
+          filterContractNumbers: hqContractNumber ? [hqContractNumber.replace(/\s/g, "")] : undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -280,6 +287,17 @@ export function HQDataFetchInline({ siteId, onImportComplete }: HQDataFetchInlin
                     : "Your credentials are not stored and are only used for the current session."}
                 </span>
               </div>
+
+              {(hqAccountNumber || hqContractNumber) && (
+                <div className="flex items-start gap-2 text-xs p-2 rounded-md bg-primary/5 border border-primary/10">
+                  <FileSpreadsheet className="w-3 h-3 mt-0.5 shrink-0 text-primary" />
+                  <span>
+                    {language === "fr"
+                      ? `Récupération ciblée — seules les données liées à ce site seront téléchargées${hqAccountNumber ? ` (compte ${hqAccountNumber})` : ""}${hqContractNumber ? ` (contrat ${hqContractNumber})` : ""}.`
+                      : `Targeted fetch — only data related to this site will be downloaded${hqAccountNumber ? ` (account ${hqAccountNumber})` : ""}${hqContractNumber ? ` (contract ${hqContractNumber})` : ""}.`}
+                  </span>
+                </div>
+              )}
 
               <Button
                 onClick={startFetch}
