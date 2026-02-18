@@ -4,7 +4,9 @@ import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertPortfolioSchema, insertPortfolioSiteSchema } from "@shared/schema";
 import { createLogger } from "../lib/logger";
-import { asyncHandler, BadRequestError, NotFoundError, ForbiddenError } from "../middleware/errorHandler";
+import { asyncHandler, BadRequestError, NotFoundError, ForbiddenError, ValidationError } from "../middleware/errorHandler";
+import { sendHqProcurationEmail } from "../emailService";
+import { z } from "zod";
 
 const log = createLogger("Portfolios");
 
@@ -506,6 +508,68 @@ router.get("/api/portfolios/:id/community-flyer/:sessionIndex", authMiddleware, 
     "Content-Length": pdfBuffer.length.toString(),
   });
   res.send(pdfBuffer);
+}));
+
+const batchSendHqProcurationSchema = z.object({
+  language: z.enum(["fr", "en"]).default("fr"),
+});
+
+router.post("/api/portfolios/:id/batch-send-hq-procuration", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const parseResult = batchSendHqProcurationSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    throw new ValidationError("Validation error", parseResult.error.errors);
+  }
+  const { language } = parseResult.data;
+
+  const portfolio = await storage.getPortfolio(id);
+  if (!portfolio) throw new NotFoundError("Portfolio");
+
+  const portfolioSites = await storage.getPortfolioSites(id);
+
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const host = req.get('host') || 'localhost:5000';
+  const baseUrl = `${protocol}://${host}`;
+
+  const clientMap = new Map<string, { email: string; name: string; id: string }>();
+  for (const ps of portfolioSites) {
+    if (ps.site?.clientId) {
+      const client = await storage.getClient(ps.site.clientId);
+      if (client && client.email && !clientMap.has(client.id)) {
+        clientMap.set(client.id, { email: client.email, name: client.name, id: client.id });
+      }
+    }
+  }
+
+  let sent = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  if (clientMap.size === 0) {
+    skipped = portfolioSites.length;
+  } else {
+    for (const [, clientInfo] of clientMap) {
+      try {
+        const result = await sendHqProcurationEmail(
+          clientInfo.email,
+          clientInfo.name,
+          language,
+          baseUrl,
+          clientInfo.id
+        );
+        if (result.success) {
+          sent++;
+        } else {
+          errors.push(`${clientInfo.name}: ${result.error || 'Unknown error'}`);
+        }
+      } catch (err: any) {
+        errors.push(`${clientInfo.name}: ${err.message || 'Unknown error'}`);
+      }
+    }
+    skipped = portfolioSites.length - clientMap.size;
+  }
+
+  res.json({ sent, skipped, errors });
 }));
 
 export default router;

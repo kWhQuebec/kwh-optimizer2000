@@ -38,7 +38,10 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
-  Share2
+  Share2,
+  FileSignature,
+  Send,
+  Mail
 } from "lucide-react";
 import type { AnalysisAssumptions, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
@@ -54,6 +57,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,6 +104,8 @@ export default function SiteDetailPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPortalAccessDialogOpen, setIsPortalAccessDialogOpen] = useState(false);
+  const [isHqProcurationDialogOpen, setIsHqProcurationDialogOpen] = useState(false);
+  const [procurationLanguage, setProcurationLanguage] = useState<"fr" | "en">(language as "fr" | "en");
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
@@ -419,6 +425,39 @@ export default function SiteDetailPage() {
     },
     onError: () => {
       toast({ title: language === "fr" ? "Erreur" : "Error", variant: "destructive" });
+    },
+  });
+
+  const sendSiteProcurationMutation = useMutation({
+    mutationFn: async (lang: "fr" | "en") => {
+      return apiRequest("POST", `/api/sites/${id}/send-hq-procuration`, { language: lang });
+    },
+    onSuccess: () => {
+      toast({
+        title: language === "fr" ? "Procuration envoyée" : "Procuration sent",
+        description: language === "fr"
+          ? `Courriel envoyé à ${site?.client?.email}`
+          : `Email sent to ${site?.client?.email}`
+      });
+      setIsHqProcurationDialogOpen(false);
+    },
+    onError: (error: any) => {
+      let message = error?.message || (language === "fr" ? "Erreur d'envoi" : "Send error");
+      try {
+        const colonIndex = message.indexOf(': ');
+        if (colonIndex > 0) {
+          const bodyPart = message.substring(colonIndex + 2);
+          const parsed = JSON.parse(bodyPart);
+          if (parsed.error) {
+            message = parsed.error;
+          }
+        }
+      } catch {}
+      toast({
+        title: language === "fr" ? "Erreur d'envoi" : "Send error",
+        description: message,
+        variant: "destructive"
+      });
     },
   });
 
@@ -884,6 +923,13 @@ export default function SiteDetailPage() {
                     {language === "fr" ? "Partager au client" : "Share with client"}
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem
+                  data-testid="menu-item-send-hq-procuration"
+                  onClick={() => setIsHqProcurationDialogOpen(true)}
+                >
+                  <FileSignature className="w-4 h-4 mr-2" />
+                  {language === "fr" ? "Envoyer procuration HQ" : "Send HQ Procuration"}
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   data-testid="menu-item-archive-site"
                   onClick={() => archiveSiteMutation.mutate()}
@@ -2000,6 +2046,84 @@ export default function SiteDetailPage() {
           onOpenChange={setIsPortalAccessDialogOpen}
         />
       )}
+
+      <Dialog open={isHqProcurationDialogOpen} onOpenChange={setIsHqProcurationDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSignature className="w-5 h-5 text-primary" />
+              {language === "fr" ? "Envoyer procuration HQ" : "Send HQ Procuration"}
+            </DialogTitle>
+            <DialogDescription>
+              {language === "fr"
+                ? `Envoyer un courriel au client de ce site avec un lien vers le formulaire de procuration Hydro-Québec.`
+                : `Send an email to this site's client with a link to the Hydro-Québec authorization form.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {language === "fr" ? "Site" : "Site"}
+              </label>
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                <Building2 className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm" data-testid="text-procuration-site-name">{site?.name}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {language === "fr" ? "Adresse courriel du client" : "Client email address"}
+              </label>
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm" data-testid="text-procuration-client-email">{site?.client?.email || (language === "fr" ? "Aucun courriel" : "No email")}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {language === "fr" ? "Langue du courriel" : "Email language"}
+              </label>
+              <RadioGroup
+                value={procurationLanguage}
+                onValueChange={(val) => setProcurationLanguage(val as "fr" | "en")}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="fr" id="site-lang-fr" data-testid="radio-site-procuration-language-fr" />
+                  <label htmlFor="site-lang-fr" className="text-sm cursor-pointer">Français</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="en" id="site-lang-en" data-testid="radio-site-procuration-language-en" />
+                  <label htmlFor="site-lang-en" className="text-sm cursor-pointer">English</label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setIsHqProcurationDialogOpen(false)} data-testid="button-cancel-site-procuration">
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => sendSiteProcurationMutation.mutate(procurationLanguage)}
+              disabled={sendSiteProcurationMutation.isPending || !site?.client?.email}
+              className="gap-2"
+              data-testid="button-send-site-procuration"
+            >
+              {sendSiteProcurationMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {language === "fr" ? "Envoi en cours..." : "Sending..."}
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  {language === "fr" ? "Envoyer" : "Send"}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Roof Drawing Modal */}
       {site && site.latitude && site.longitude && (

@@ -112,6 +112,7 @@ interface EmailAttachment {
   filename: string;
   content: string; // Base64 encoded content
   type: string; // MIME type
+  cid?: string; // Content-ID for inline images
 }
 
 interface EmailOptions {
@@ -147,13 +148,13 @@ export async function sendEmailViaOutlook(options: EmailOptions): Promise<{ succ
       ]
     };
     
-    // Add attachments if present
     if (options.attachments && options.attachments.length > 0) {
       message.attachments = options.attachments.map(att => ({
         '@odata.type': '#microsoft.graph.fileAttachment',
         name: att.filename,
         contentType: att.type,
-        contentBytes: att.content
+        contentBytes: att.content,
+        ...(att.cid ? { contentId: att.cid, isInline: true } : {}),
       }));
     }
     

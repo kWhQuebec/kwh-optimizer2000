@@ -93,6 +93,7 @@ export async function sendEmailViaResend(options: {
   htmlBody: string;
   textBody?: string;
   replyTo?: string;
+  attachments?: Array<{ filename: string; content: string; type: string; cid?: string }>;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   log.info(`Attempting to send email to: ${options.to}`);
   log.info(`Subject: ${options.subject}`);
@@ -110,6 +111,11 @@ export async function sendEmailViaResend(options: {
       html: options.htmlBody,
       text: options.textBody,
       replyTo: options.replyTo,
+      attachments: options.attachments?.map(a => ({
+        filename: a.filename,
+        content: Buffer.from(a.content, 'base64'),
+        headers: a.cid ? { 'Content-ID': `<${a.cid}>` } : undefined,
+      })),
     });
 
     if (response.error) {

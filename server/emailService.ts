@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { sendEmail as sendEmailViaGmail } from "./gmail";
 import { sendEmailViaOutlook } from "./outlook";
 import { sendEmailViaResend } from "./resend";
@@ -6,9 +8,31 @@ import { createLogger } from "./lib/logger";
 
 const log = createLogger("EmailService");
 
+export function getLogoAttachment(lang: 'fr' | 'en'): { filename: string; content: string; type: string; cid: string } {
+  const logoPath = path.resolve(process.cwd(), `client/public/assets/logo-${lang}.png`);
+  try {
+    const logoBuffer = fs.readFileSync(logoPath);
+    const base64Content = logoBuffer.toString('base64');
+    return {
+      filename: 'logo.png',
+      content: base64Content,
+      type: 'image/png',
+      cid: 'logo-kwh',
+    };
+  } catch (err: any) {
+    log.error(`Failed to read logo file at ${logoPath}: ${err.message}`);
+    return {
+      filename: 'logo.png',
+      content: '',
+      type: 'image/png',
+      cid: 'logo-kwh',
+    };
+  }
+}
+
 // Primary: Resend (more reliable for transactional emails)
 // Fallback chain: Resend -> Gmail -> Outlook
-export async function sendEmail(options: { to: string; subject: string; htmlBody: string; textBody?: string; replyTo?: string; attachments?: Array<{ filename: string; content: string; type: string }> }): Promise<{ success: boolean; messageId?: string; error?: string }> {
+export async function sendEmail(options: { to: string; subject: string; htmlBody: string; textBody?: string; replyTo?: string; attachments?: Array<{ filename: string; content: string; type: string; cid?: string }> }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   log.info('Attempting to send via Resend (primary)...');
   
   // Primary: Resend
@@ -133,10 +157,7 @@ function getScenarioLabel(key: string, offsetPercent: number, lang: 'fr' | 'en')
   }
 }
 
-function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'en', baseUrl: string): string {
-  const logoUrl = lang === 'fr' 
-    ? `${baseUrl}/assets/logo-fr.png`
-    : `${baseUrl}/assets/logo-en.png`;
+function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'en', _baseUrl: string): string {
   
   const t = {
     fr: {
@@ -274,7 +295,7 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
 <body>
   <div class="container">
     <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" />
+      <img src="cid:logo-kwh" alt="kWh Québec" />
       <h1>${txt.analysisTitle}</h1>
     </div>
     
@@ -516,6 +537,7 @@ export async function sendQuickAnalysisEmail(
     : '[kWh Québec] Your Quick Solar Analysis';
   
   const htmlBody = generateQuickAnalysisEmailHtml(data, lang, baseUrl);
+  const logoAttachment = getLogoAttachment(lang);
   
   log.info(`Sending quick analysis email to ${email} (lang: ${lang})`);
   
@@ -523,6 +545,7 @@ export async function sendQuickAnalysisEmail(
     to: email,
     subject,
     htmlBody,
+    attachments: logoAttachment.content ? [logoAttachment] : undefined,
   });
   
   if (result.success) {
@@ -550,12 +573,12 @@ export async function sendPasswordResetEmail(
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
   const loginUrl = `${baseUrl}/login`;
-  const logoUrl = `${baseUrl}/assets/${language === 'fr' ? 'logo-fr.png' : 'logo-en.png'}`;
+  const logoAttachment = getLogoAttachment(language);
   
   const rendered = renderEmailTemplate('passwordReset', language, {
     tempPassword,
     loginUrl,
-    logoUrl,
+    logoUrl: 'cid:logo-kwh',
   });
   
   log.info(`Sending password reset email to ${email} (lang: ${language})`);
@@ -564,6 +587,7 @@ export async function sendPasswordResetEmail(
     to: email,
     subject: rendered.subject,
     htmlBody: rendered.html,
+    attachments: logoAttachment.content ? [logoAttachment] : undefined,
   });
   
   if (result.success) {
@@ -590,7 +614,7 @@ export async function sendWelcomeEmail(
   language: 'fr' | 'en' = 'fr'
 ): Promise<{ success: boolean; error?: string }> {
   const loginUrl = `${baseUrl}/login`;
-  const logoUrl = `${baseUrl}/assets/${language === 'fr' ? 'logo-fr.png' : 'logo-en.png'}`;
+  const logoAttachment = getLogoAttachment(language);
   
   const rendered = renderEmailTemplate('userWelcome', language, {
     userName: data.userName || data.userEmail.split('@')[0],
@@ -598,7 +622,7 @@ export async function sendWelcomeEmail(
     userRole: getRoleLabel(data.userRole, language),
     tempPassword: data.tempPassword || '',
     loginUrl,
-    logoUrl,
+    logoUrl: 'cid:logo-kwh',
   });
   
   log.info(`Sending welcome email to ${data.userEmail} (lang: ${language})`);
@@ -607,6 +631,7 @@ export async function sendWelcomeEmail(
     to: data.userEmail,
     subject: rendered.subject,
     htmlBody: rendered.html,
+    attachments: logoAttachment.content ? [logoAttachment] : undefined,
   });
   
   if (result.success) {
@@ -689,7 +714,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
 <body>
   <div class="container">
     <div class="header">
-      <img src="${baseUrl}/assets/${lang === 'fr' ? 'logo-fr.png' : 'logo-en.png'}" alt="kWh Québec" />
+      <img src="cid:logo-kwh" alt="kWh Québec" />
       <h1>${lang === 'fr' ? 'Autorisation d\'accès aux données Hydro-Québec' : 'Hydro-Québec Data Access Authorization'}</h1>
     </div>
     
@@ -799,8 +824,8 @@ export async function sendHqProcurationEmail(
     : `${clientName}, your solar project with kWh Québec`;
   
   const htmlBody = generateHqProcurationEmailHtml(clientName, language, baseUrl, clientId);
-  // Plain text version - multipart emails are less likely to be flagged as spam
   const textBody = generateHqProcurationTextEmail(clientName, language, baseUrl, clientId);
+  const logoAttachment = getLogoAttachment(language);
   
   log.info(`Sending HQ procuration email to ${email} for ${clientName} (lang: ${language})`);
   
@@ -809,6 +834,7 @@ export async function sendHqProcurationEmail(
     subject,
     htmlBody,
     textBody,
+    attachments: logoAttachment.content ? [logoAttachment] : undefined,
   });
   
   if (result.success) {

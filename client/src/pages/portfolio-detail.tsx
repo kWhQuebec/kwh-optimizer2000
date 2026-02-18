@@ -4,15 +4,17 @@ import { useParams, Link } from "wouter";
 import { 
   ArrowLeft, Building2, Plus, Trash2, Calculator, FileText, 
   Zap, Battery, DollarSign, TrendingUp, Leaf, Download, Loader2,
-  ChevronDown, ChevronUp, Pencil, Check, X, MapPin, Calendar, Users
+  ChevronDown, ChevronUp, Pencil, Check, X, MapPin, Calendar, Users,
+  FileSignature, Send, Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter
 } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
@@ -567,6 +569,35 @@ export default function PortfolioDetailPage() {
     await updateOverrideMutation.mutateAsync({ portfolioSiteId, field, value });
   };
 
+  const [isBatchProcurationDialogOpen, setIsBatchProcurationDialogOpen] = useState(false);
+  const [batchProcurationLanguage, setBatchProcurationLanguage] = useState<"fr" | "en">(language as "fr" | "en");
+  const [batchResult, setBatchResult] = useState<{ sent: number; skipped: number; errors: string[] } | null>(null);
+
+  const batchProcurationMutation = useMutation({
+    mutationFn: async (lang: "fr" | "en") => {
+      const res = await apiRequest("POST", `/api/portfolios/${id}/batch-send-hq-procuration`, { language: lang });
+      return res as unknown as { sent: number; skipped: number; errors: string[] };
+    },
+    onSuccess: (data) => {
+      setBatchResult(data);
+      if (data.sent > 0) {
+        toast({
+          title: language === "fr" ? "Procurations envoyées" : "Procurations sent",
+          description: language === "fr"
+            ? `${data.sent} courriel(s) envoyé(s), ${data.skipped} ignoré(s)`
+            : `${data.sent} email(s) sent, ${data.skipped} skipped`
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: language === "fr" ? "Erreur d'envoi" : "Send error",
+        description: error?.message || (language === "fr" ? "Erreur inconnue" : "Unknown error"),
+        variant: "destructive"
+      });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -646,6 +677,18 @@ export default function PortfolioDetailPage() {
             {recalculateMutation.isPending 
               ? (language === "fr" ? "Synchronisation..." : "Syncing...")
               : (language === "fr" ? "Synchroniser" : "Sync Latest")}
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              setBatchResult(null);
+              setIsBatchProcurationDialogOpen(true);
+            }}
+            data-testid="button-batch-send-procurations"
+          >
+            <FileSignature className="w-4 h-4" />
+            {language === "fr" ? "Envoyer les procurations" : "Send procurations"}
           </Button>
           {portfolio.clientId && (
             <AddSiteDialog 
@@ -1055,6 +1098,123 @@ export default function PortfolioDetailPage() {
           <CommunityFlyerSection portfolioId={id!} language={language} />
         </CardContent>
       </Card>
+
+      <Dialog open={isBatchProcurationDialogOpen} onOpenChange={(open) => {
+        setIsBatchProcurationDialogOpen(open);
+        if (!open) setBatchResult(null);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSignature className="w-5 h-5 text-primary" />
+              {language === "fr" ? "Envoyer les procurations HQ" : "Send HQ Procurations"}
+            </DialogTitle>
+            <DialogDescription>
+              {language === "fr"
+                ? `Envoyer un courriel de procuration Hydro-Québec à tous les clients de ce portfolio.`
+                : `Send an Hydro-Québec authorization email to all clients in this portfolio.`}
+            </DialogDescription>
+          </DialogHeader>
+          {!batchResult ? (
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {language === "fr" ? "Portfolio" : "Portfolio"}
+                  </label>
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                    <Building2 className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm" data-testid="text-batch-portfolio-name">{portfolio.name}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {language === "fr" ? "Sites dans le portfolio" : "Sites in portfolio"}
+                  </label>
+                  <div className="p-3 bg-muted rounded-md text-sm" data-testid="text-batch-site-count">
+                    {portfolioSites.length} {language === "fr" ? "site(s)" : "site(s)"}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {language === "fr" ? "Langue du courriel" : "Email language"}
+                  </label>
+                  <RadioGroup
+                    value={batchProcurationLanguage}
+                    onValueChange={(val) => setBatchProcurationLanguage(val as "fr" | "en")}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="fr" id="batch-lang-fr" data-testid="radio-batch-procuration-language-fr" />
+                      <label htmlFor="batch-lang-fr" className="text-sm cursor-pointer">Français</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="en" id="batch-lang-en" data-testid="radio-batch-procuration-language-en" />
+                      <label htmlFor="batch-lang-en" className="text-sm cursor-pointer">English</label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" onClick={() => setIsBatchProcurationDialogOpen(false)} data-testid="button-cancel-batch-procuration">
+                  {language === "fr" ? "Annuler" : "Cancel"}
+                </Button>
+                <Button
+                  onClick={() => batchProcurationMutation.mutate(batchProcurationLanguage)}
+                  disabled={batchProcurationMutation.isPending || portfolioSites.length === 0}
+                  className="gap-2"
+                  data-testid="button-send-batch-procuration"
+                >
+                  {batchProcurationMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {language === "fr" ? "Envoi en cours..." : "Sending..."}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      {language === "fr" ? "Envoyer" : "Send"}
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="w-4 h-4 text-green-600" />
+                  <span data-testid="text-batch-sent-count">
+                    {language === "fr" ? `${batchResult.sent} courriel(s) envoyé(s)` : `${batchResult.sent} email(s) sent`}
+                  </span>
+                </div>
+                {batchResult.skipped > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span data-testid="text-batch-skipped-count">
+                      {language === "fr" ? `${batchResult.skipped} ignoré(s) (pas de courriel ou doublon)` : `${batchResult.skipped} skipped (no email or duplicate)`}
+                    </span>
+                  </div>
+                )}
+                {batchResult.errors.length > 0 && (
+                  <div className="space-y-1" data-testid="text-batch-errors">
+                    <span className="text-sm font-medium text-destructive">
+                      {language === "fr" ? "Erreurs:" : "Errors:"}
+                    </span>
+                    {batchResult.errors.map((err, i) => (
+                      <p key={i} className="text-sm text-destructive">{err}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button onClick={() => setIsBatchProcurationDialogOpen(false)} data-testid="button-close-batch-result">
+                  {language === "fr" ? "Fermer" : "Close"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

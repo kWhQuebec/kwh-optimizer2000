@@ -8,7 +8,7 @@ import { asyncHandler, NotFoundError, BadRequestError, ConflictError, Validation
 import { storage } from "../storage";
 import { insertClientSchema } from "@shared/schema";
 import { generatePortalInvitationEmail } from "../gmail";
-import { sendEmail, sendHqProcurationEmail, sendProcurationNotificationToAccountManager } from "../emailService";
+import { sendEmail, sendHqProcurationEmail, sendProcurationNotificationToAccountManager, getLogoAttachment } from "../emailService";
 import { generateSecurePassword } from "../lib/secureRandom";
 import { createLogger } from "../lib/logger";
 
@@ -104,12 +104,14 @@ router.post("/api/clients/:clientId/grant-portal-access", authMiddleware, requir
     finalTextBody = finalTextBody + `\n\n${language === 'fr' ? 'Message personnel' : 'Personal message'}:\n${customMessage}`;
   }
   
+  const logoAttachment = getLogoAttachment(language as 'fr' | 'en');
   const emailResult = await sendEmail({
     to: email,
     subject: emailContent.subject,
     htmlBody: finalHtmlBody,
     textBody: finalTextBody,
     replyTo: client.accountManagerEmail || undefined,
+    attachments: logoAttachment.content ? [logoAttachment] : undefined,
   });
   
   if (!emailResult.success) {

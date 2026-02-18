@@ -113,6 +113,7 @@ interface EmailAttachment {
   filename: string;
   content: string; // Base64 encoded content
   type: string; // MIME type
+  cid?: string; // Content-ID for inline images
 }
 
 interface EmailOptions {
@@ -167,17 +168,29 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
         `--${altBoundary}--`,
       ];
       
-      // Add attachments
       for (const attachment of options.attachments!) {
-        emailLines.push(
-          '',
-          `--${mixedBoundary}`,
-          `Content-Type: ${attachment.type}; name="${attachment.filename}"`,
-          'Content-Transfer-Encoding: base64',
-          `Content-Disposition: attachment; filename="${attachment.filename}"`,
-          '',
-          attachment.content
-        );
+        if (attachment.cid) {
+          emailLines.push(
+            '',
+            `--${mixedBoundary}`,
+            `Content-Type: ${attachment.type}; name="${attachment.filename}"`,
+            'Content-Transfer-Encoding: base64',
+            `Content-ID: <${attachment.cid}>`,
+            `Content-Disposition: inline; filename="${attachment.filename}"`,
+            '',
+            attachment.content
+          );
+        } else {
+          emailLines.push(
+            '',
+            `--${mixedBoundary}`,
+            `Content-Type: ${attachment.type}; name="${attachment.filename}"`,
+            'Content-Transfer-Encoding: base64',
+            `Content-Disposition: attachment; filename="${attachment.filename}"`,
+            '',
+            attachment.content
+          );
+        }
       }
       
       emailLines.push('', `--${mixedBoundary}--`);
@@ -258,12 +271,6 @@ export function generatePortalInvitationEmail(params: {
 }): { subject: string; htmlBody: string; textBody: string } {
   const { clientName, contactName, email, tempPassword, portalUrl, language } = params;
   
-  const urlObj = new URL(portalUrl);
-  const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-  const logoUrl = language === 'fr' 
-    ? `${baseUrl}/assets/logo-fr.png`
-    : `${baseUrl}/assets/logo-en.png`;
-  
   if (language === 'fr') {
     return {
       subject: `Accès au portail client kWh Québec - ${clientName}`,
@@ -289,7 +296,7 @@ export function generatePortalInvitationEmail(params: {
 <body>
   <div class="container">
     <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" />
+      <img src="cid:logo-kwh" alt="kWh Québec" />
       <h1>Bienvenue sur le portail client</h1>
     </div>
     <div class="content">
@@ -367,7 +374,7 @@ L'équipe kWh Québec`
 <body>
   <div class="container">
     <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" />
+      <img src="cid:logo-kwh" alt="kWh Québec" />
       <h1>Welcome to the Client Portal</h1>
     </div>
     <div class="content">

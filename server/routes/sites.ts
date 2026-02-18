@@ -30,7 +30,8 @@ import {
   type OperatingSchedule,
 } from "../analysis";
 import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-engine";
-import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError, ConflictError } from "../middleware/errorHandler";
+import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError, ConflictError, ValidationError } from "../middleware/errorHandler";
+import { sendHqProcurationEmail } from "../emailService";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("Sites");
@@ -1703,6 +1704,51 @@ router.post("/:siteId/analyze-company-website", authMiddleware, requireStaff, as
 router.get("/:siteId/opportunities", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const opportunities = await storage.getOpportunitiesBySiteId(req.params.siteId);
   res.json(opportunities);
+}));
+
+const sendHqProcurationSchema = z.object({
+  language: z.enum(["fr", "en"]).default("fr"),
+});
+
+router.post("/:siteId/send-hq-procuration", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId } = req.params;
+  const parseResult = sendHqProcurationSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    throw new ValidationError("Validation error", parseResult.error.errors);
+  }
+  const { language } = parseResult.data;
+
+  const site = await storage.getSite(siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  const client = await storage.getClient(site.clientId);
+  if (!client) throw new NotFoundError("Client");
+
+  if (!client.email) {
+    throw new BadRequestError(
+      language === 'fr' ? "Le client de ce site n'a pas d'adresse courriel" : "This site's client has no email address"
+    );
+  }
+
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const host = req.get('host') || 'localhost:5000';
+  const baseUrl = `${protocol}://${host}`;
+
+  const emailResult = await sendHqProcurationEmail(
+    client.email,
+    client.name,
+    language,
+    baseUrl,
+    client.id
+  );
+
+  if (!emailResult.success) {
+    throw new BadRequestError(
+      language === 'fr' ? "L'envoi du courriel a échoué." : "Email delivery failed."
+    );
+  }
+
+  res.json({ success: true });
 }));
 
 export default router;
