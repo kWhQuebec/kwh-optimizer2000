@@ -70,7 +70,7 @@ export interface IStorage {
   // Clients
   getClients(): Promise<(Client & { sites: Site[] })[]>;
   getClientsByIds(ids: string[]): Promise<Client[]>;
-  getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean }): Promise<{
+  getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean; sortBy?: string }): Promise<{
     clients: (Client & { sites: Site[] })[];
     total: number;
   }>;
@@ -704,19 +704,17 @@ export class MemStorage implements IStorage {
     return Array.from(this.clients.values()).filter(c => ids.includes(c.id));
   }
 
-  async getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean } = {}): Promise<{
+  async getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean; sortBy?: string } = {}): Promise<{
     clients: (Client & { sites: Site[] })[];
     total: number;
   }> {
-    const { limit = 50, offset = 0, search, includeArchived = false } = options;
+    const { limit = 50, offset = 0, search, includeArchived = false, sortBy } = options;
     let clients = Array.from(this.clients.values());
     
-    // Filter out archived clients unless requested
     if (!includeArchived) {
       clients = clients.filter(c => !c.isArchived);
     }
     
-    // Apply search filter
     if (search) {
       const searchLower = search.toLowerCase();
       clients = clients.filter(c => 
@@ -727,8 +725,19 @@ export class MemStorage implements IStorage {
       );
     }
     
-    // Sort by createdAt descending
-    clients.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    clients.sort((a, b) => {
+      switch (sortBy) {
+        case "modified":
+          return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
+        case "name_asc":
+          return (a.name || "").localeCompare(b.name || "", "fr");
+        case "name_desc":
+          return (b.name || "").localeCompare(a.name || "", "fr");
+        case "newest":
+        default:
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+    });
     
     const total = clients.length;
     const paginated = clients.slice(offset, offset + limit);

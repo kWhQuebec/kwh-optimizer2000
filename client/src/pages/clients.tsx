@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, ChevronDown, ChevronLeft, ChevronRight, FileSignature, X } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, ChevronDown, ChevronLeft, ChevronRight, FileSignature, X, ArrowUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -492,13 +492,15 @@ export default function ClientsPage() {
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [cascadeDeleteClient, setCascadeDeleteClient] = useState<ClientWithSites | null>(null);
+  const [sortBy, setSortBy] = useState("newest");
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
     params.set("limit", String(ITEMS_PER_PAGE));
     params.set("offset", String(page * ITEMS_PER_PAGE));
+    if (sortBy !== "newest") params.set("sortBy", sortBy);
     return params.toString();
-  }, [page]);
+  }, [page, sortBy]);
 
   const { data: clientsData, isLoading } = useQuery<ClientsListResponse>({
     queryKey: ["/api/clients/list", queryParams],
@@ -663,6 +665,26 @@ export default function ClientsPage() {
               </span>
             </div>
           )}
+          <Select value={sortBy} onValueChange={(val) => { setSortBy(val); setPage(0); }}>
+            <SelectTrigger className="w-[180px]" data-testid="select-sort-clients">
+              <ArrowUpDown className="w-4 h-4 mr-2 shrink-0" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest" data-testid="sort-option-newest">
+                {language === "fr" ? "Plus récents" : "Newest"}
+              </SelectItem>
+              <SelectItem value="modified" data-testid="sort-option-modified">
+                {language === "fr" ? "Derniers modifiés" : "Last modified"}
+              </SelectItem>
+              <SelectItem value="name_asc" data-testid="sort-option-name-asc">
+                {language === "fr" ? "Nom (A-Z)" : "Name (A-Z)"}
+              </SelectItem>
+              <SelectItem value="name_desc" data-testid="sort-option-name-desc">
+                {language === "fr" ? "Nom (Z-A)" : "Name (Z-A)"}
+              </SelectItem>
+            </SelectContent>
+          </Select>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2" data-testid="button-add-client">

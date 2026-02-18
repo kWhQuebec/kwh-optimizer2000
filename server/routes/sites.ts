@@ -153,7 +153,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
 }
 
 router.get("/list", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
-  const { limit, offset, search, clientId, includeArchived } = req.query;
+  const { limit, offset, search, clientId, includeArchived, sortBy } = req.query;
   const showArchived = includeArchived === "true";
 
   let sites = await storage.getSites();
@@ -182,6 +182,21 @@ router.get("/list", authMiddleware, asyncHandler(async (req: AuthRequest, res) =
       s.city?.toLowerCase().includes(searchLower)
     );
   }
+
+  const sortField = typeof sortBy === "string" ? sortBy : "newest";
+  result.sort((a, b) => {
+    switch (sortField) {
+      case "modified":
+        return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
+      case "name_asc":
+        return (a.name || "").localeCompare(b.name || "", "fr");
+      case "name_desc":
+        return (b.name || "").localeCompare(a.name || "", "fr");
+      case "newest":
+      default:
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    }
+  });
 
   const total = result.length;
 

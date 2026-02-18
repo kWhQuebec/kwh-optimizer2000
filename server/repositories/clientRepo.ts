@@ -1,4 +1,4 @@
-import { eq, desc, and, inArray, isNotNull, count, sql } from "drizzle-orm";
+import { eq, desc, asc, and, inArray, isNotNull, count, sql } from "drizzle-orm";
 import { db } from "../db";
 import { clients, sites, leads, opportunities, simulationRuns, designAgreements, siteVisits, users, portfolios, portfolioSites } from "@shared/schema";
 import type { Client, InsertClient, Site } from "@shared/schema";
@@ -19,11 +19,11 @@ export async function getClientsByIds(ids: string[]): Promise<Client[]> {
   return db.select().from(clients).where(inArray(clients.id, ids));
 }
 
-export async function getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean } = {}): Promise<{
+export async function getClientsPaginated(options: { limit?: number; offset?: number; search?: string; includeArchived?: boolean; sortBy?: string } = {}): Promise<{
   clients: (Client & { sites: Site[] })[];
   total: number;
 }> {
-  const { limit = 50, offset = 0, search, includeArchived = false } = options;
+  const { limit = 50, offset = 0, search, includeArchived = false, sortBy } = options;
 
   let whereConditions: any[] = [];
 
@@ -48,9 +48,26 @@ export async function getClientsPaginated(options: { limit?: number; offset?: nu
     : db.select({ count: count() }).from(clients);
   const [{ count: totalCount }] = await countQuery;
 
+  let orderClause;
+  switch (sortBy) {
+    case "modified":
+      orderClause = desc(clients.updatedAt);
+      break;
+    case "name_asc":
+      orderClause = asc(clients.name);
+      break;
+    case "name_desc":
+      orderClause = desc(clients.name);
+      break;
+    case "newest":
+    default:
+      orderClause = desc(clients.createdAt);
+      break;
+  }
+
   const clientsQuery = whereConditions.length > 0
-    ? db.select().from(clients).where(and(...whereConditions)).orderBy(desc(clients.createdAt)).limit(limit).offset(offset)
-    : db.select().from(clients).orderBy(desc(clients.createdAt)).limit(limit).offset(offset);
+    ? db.select().from(clients).where(and(...whereConditions)).orderBy(orderClause).limit(limit).offset(offset)
+    : db.select().from(clients).orderBy(orderClause).limit(limit).offset(offset);
   const paginatedClients = await clientsQuery;
 
   const clientIds = paginatedClients.map(c => c.id);

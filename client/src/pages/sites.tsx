@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen, X } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen, X, ArrowUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -557,6 +557,7 @@ export default function SitesPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("newest");
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -564,8 +565,9 @@ export default function SitesPage() {
     params.set("offset", String(page * ITEMS_PER_PAGE));
     if (clientId) params.set("clientId", clientId);
     if (showArchived) params.set("includeArchived", "true");
+    if (sortBy !== "newest") params.set("sortBy", sortBy);
     return params.toString();
-  }, [page, clientId, showArchived]);
+  }, [page, clientId, showArchived, sortBy]);
 
   // Fetch sites with optimized endpoint using apiRequest (handles auth properly)
   const { data: sitesData, isLoading, error, isError } = useQuery<SitesListResponse>({
@@ -894,12 +896,32 @@ export default function SitesPage() {
               </span>
             </div>
           )}
+          <Select value={sortBy} onValueChange={(val) => { setSortBy(val); setPage(0); }}>
+            <SelectTrigger className="w-[180px]" data-testid="select-sort-sites">
+              <ArrowUpDown className="w-4 h-4 mr-2 shrink-0" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest" data-testid="sort-option-newest">
+                {language === "fr" ? "Plus récents" : "Newest"}
+              </SelectItem>
+              <SelectItem value="modified" data-testid="sort-option-modified">
+                {language === "fr" ? "Derniers modifiés" : "Last modified"}
+              </SelectItem>
+              <SelectItem value="name_asc" data-testid="sort-option-name-asc">
+                {language === "fr" ? "Nom (A-Z)" : "Name (A-Z)"}
+              </SelectItem>
+              <SelectItem value="name_desc" data-testid="sort-option-name-desc">
+                {language === "fr" ? "Nom (Z-A)" : "Name (Z-A)"}
+              </SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant={showArchived ? "default" : "outline"}
             size="sm"
             onClick={() => {
               setShowArchived(!showArchived);
-              setPage(0); // Reset to first page on filter change
+              setPage(0);
             }}
             className="gap-2"
             data-testid="button-toggle-archived-sites"

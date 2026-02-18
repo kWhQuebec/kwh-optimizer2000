@@ -195,7 +195,7 @@ router.post("/api/clients/:clientId/send-hq-procuration", authMiddleware, requir
 }));
 
 router.get("/api/clients/list", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
-  const { limit, offset, search, includeArchived } = req.query;
+  const { limit, offset, search, includeArchived, sortBy } = req.query;
   
   const limitNum = limit ? parseInt(limit as string, 10) : 50;
   const offsetNum = offset ? parseInt(offset as string, 10) : 0;
@@ -207,6 +207,7 @@ router.get("/api/clients/list", authMiddleware, requireStaff, asyncHandler(async
     offset: offsetNum,
     search: searchStr,
     includeArchived: showArchived,
+    sortBy: typeof sortBy === "string" ? sortBy : undefined,
   });
   
   res.json(result);
