@@ -5,7 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { I18nProvider } from "@/lib/i18n";
+import { I18nProvider, useI18n } from "@/lib/i18n";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { initGA4, captureUTMParams } from "@/lib/analytics";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -16,7 +16,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { AIChatWidget } from "@/components/ai-chat-widget";
-import { CookieConsent } from "@/components/cookie-consent";
+import { CookieConsent, getCookieConsent } from "@/components/cookie-consent";
 
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
@@ -107,6 +107,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppLayout({ children }: { children: React.ReactNode }) {
+  const { language } = useI18n();
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3.5rem",
@@ -115,7 +116,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground focus:border">
-        Aller au contenu principal
+        {language === "fr" ? "Aller au contenu principal" : "Skip to main content"}
       </a>
       <SidebarProvider style={style as React.CSSProperties}>
         <div className="flex h-screen w-full">
@@ -602,8 +603,14 @@ function AppRoutes() {
 }
 
 function App() {
+  const initAnalytics = () => {
+    if (getCookieConsent() === "accepted") {
+      initGA4();
+    }
+  };
+
   useEffect(() => {
-    initGA4();
+    initAnalytics();
     captureUTMParams();
   }, []);
 
@@ -613,7 +620,7 @@ function App() {
         <AuthProvider>
           <TooltipProvider>
             <ScrollToTop />
-            <CookieConsent />
+            <CookieConsent onAccept={initAnalytics} />
             <Toaster />
             <AppRoutes />
           </TooltipProvider>

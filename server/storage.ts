@@ -537,7 +537,7 @@ export class MemStorage implements IStorage {
     const adminUser: User = {
       id: randomUUID(),
       email: "info@kwh.quebec",
-      passwordHash: "$2b$10$s9n26vylL.JbqEVDwx9EXerv4ElQq0GO9EpyW7KiWl/EDTSO8ZL5K", // KiloWattHeureQc1$
+      passwordHash: "$2b$10$placeholder.hash.for.dev.only.not.used.in.production",
       role: "admin",
       createdAt: new Date(),
       updatedAt: new Date(),

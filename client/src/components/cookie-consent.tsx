@@ -4,9 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 
-const COOKIE_CONSENT_KEY = "kwh-cookie-consent";
+export const COOKIE_CONSENT_KEY = "kwh-cookie-consent";
 
-export function CookieConsent() {
+export function getCookieConsent(): "accepted" | "refused" | null {
+  return localStorage.getItem(COOKIE_CONSENT_KEY) as "accepted" | "refused" | null;
+}
+
+export function CookieConsent({ onAccept }: { onAccept?: () => void }) {
   const { language } = useI18n();
   const [isVisible, setIsVisible] = useState(false);
 
@@ -20,6 +24,7 @@ export function CookieConsent() {
   const handleAccept = () => {
     localStorage.setItem(COOKIE_CONSENT_KEY, "accepted");
     setIsVisible(false);
+    onAccept?.();
   };
 
   const handleRefuse = () => {
