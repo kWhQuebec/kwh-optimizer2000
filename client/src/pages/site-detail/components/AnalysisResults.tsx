@@ -66,6 +66,7 @@ export function AnalysisResults({
   const [showExtendedLifeAnalysis, setShowExtendedLifeAnalysis] = useState(false);
 
   const visualizationCaptureRef = useRef<(() => Promise<string | null>) | null>(null);
+  const [roofGeometryCapacityKW, setRoofGeometryCapacityKW] = useState<number | null>(null);
 
   const handleChartPointClick = (data: any, _index: number, event?: React.MouseEvent) => {
     if (!isStaff) return;
@@ -123,7 +124,8 @@ export function AnalysisResults({
 
   const usableRoofSqM = (assumptions.roofAreaSqFt / 10.764) * assumptions.roofUtilizationRatio;
   const maxPVFromRoof = (usableRoofSqM / 3.71) * 0.660;
-  const isRoofLimited = (simulation.pvSizeKW || 0) >= maxPVFromRoof * 0.95;
+  const effectiveMaxPV = roofGeometryCapacityKW !== null ? roofGeometryCapacityKW : maxPVFromRoof;
+  const isRoofLimited = (simulation.pvSizeKW || 0) >= effectiveMaxPV * 0.95;
 
   const SectionDivider = ({ title, icon: Icon }: { title: string; icon?: any }) => (
     <div className="flex items-center gap-3 py-2">
@@ -318,6 +320,10 @@ export function AnalysisResults({
   };
 
   const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
+  const uncappedPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
+  const cappedPvSizeKW = roofGeometryCapacityKW != null && roofGeometryCapacityKW > 0
+    ? Math.min(uncappedPvSizeKW, roofGeometryCapacityKW)
+    : uncappedPvSizeKW;
   const dashboardBattEnergyKWh = displayedScenario.battEnergyKWh ?? 0;
   const dashboardProductionMWh = displayedScenario.totalProductionKWh != null
     ? displayedScenario.totalProductionKWh / 1000
@@ -427,8 +433,8 @@ export function AnalysisResults({
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
                 {language === "fr"
-                  ? `${formatSmartPower(displayedScenario.pvSizeKW || 0, language)} solaire${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${formatSmartEnergy(displayedScenario.battEnergyKWh || 0, language)} stockage` : ''}`
-                  : `${formatSmartPower(displayedScenario.pvSizeKW || 0, language, 'kW')} solar${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${formatSmartEnergy(displayedScenario.battEnergyKWh || 0, language)} storage` : ''}`}
+                  ? `${formatSmartPower(cappedPvSizeKW, language)} solaire${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${formatSmartEnergy(displayedScenario.battEnergyKWh || 0, language)} stockage` : ''}`
+                  : `${formatSmartPower(cappedPvSizeKW, language, 'kW')} solar${(displayedScenario.battEnergyKWh || 0) > 0 ? ` + ${formatSmartEnergy(displayedScenario.battEnergyKWh || 0, language)} storage` : ''}`}
               </p>
               {site?.meterFiles?.some((f: any) => f.isSynthetic) && (
                 <Badge variant="outline" className="mt-2 border-amber-400 text-amber-700 bg-amber-50 gap-1">
@@ -602,8 +608,8 @@ export function AnalysisResults({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Panneaux solaires" : "Solar Panels"}</p>
-                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-pv-size">{formatSmartPower(displayedScenario.pvSizeKW || 0, language)}</p>
-                {displayedScenario.pvSizeKW > 1000 && (
+                <p className="text-2xl font-bold font-mono text-primary" data-testid="text-pv-size">{formatSmartPower(cappedPvSizeKW, language)}</p>
+                {cappedPvSizeKW > 1000 && (
                   <Badge variant="destructive" className="mt-1 text-xs flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
                     {language === "fr" ? "Dépasse 1 MW (limite Hydro-Québec)" : "Exceeds 1 MW (Hydro-Québec limit)"}
@@ -635,7 +641,7 @@ export function AnalysisResults({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Capacité toit estimée" : "Est. Roof Capacity"}</p>
-                <p className="text-lg font-bold font-mono">{formatSmartPower(Math.round(maxPVFromRoof * 0.9), language)}</p>
+                <p className="text-lg font-bold font-mono">{formatSmartPower(Math.round(effectiveMaxPV * 0.9), language)}</p>
                 {isRoofLimited && (
                   <Badge variant="secondary" className="mt-1 text-xs">
                     {language === "fr" ? "Limité par le toit" : "Roof limited"}
@@ -663,6 +669,12 @@ export function AnalysisResults({
             roofAreaSqFt={assumptions.roofAreaSqFt}
             maxPVCapacityKW={maxPVFromRoof}
             currentPVSizeKW={dashboardPvSizeKW || undefined}
+            onGeometryCalculated={(data) => {
+              if (data.maxCapacityKW != null && data.maxCapacityKW > 0 && !isNaN(data.maxCapacityKW)) {
+                setRoofGeometryCapacityKW(data.maxCapacityKW);
+              }
+              visualizationCaptureRef.current = null;
+            }}
             onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
           />
         </>

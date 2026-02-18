@@ -49,6 +49,7 @@ import {
   Lead,
 } from "@shared/schema";
 import { z } from "zod";
+import { env } from "./config";
 import * as googleSolar from "./googleSolarService";
 import { sendEmail, generatePortalInvitationEmail } from "./gmail";
 import { sendQuickAnalysisEmail, sendWelcomeEmail, sendPasswordResetEmail } from "./emailService";
@@ -98,10 +99,7 @@ import rackingComparisonRouter from "./routes/racking-comparison";
 import qualificationRouter from "./routes/qualification";
 import benchmarkRouter from "./routes/benchmarks";
 
-const JWT_SECRET = process.env.SESSION_SECRET as string;
-if (!JWT_SECRET) {
-  throw new Error("SESSION_SECRET environment variable is required");
-}
+const JWT_SECRET = env.SESSION_SECRET;
 const upload = multer({ 
   dest: "uploads/",
   limits: {
