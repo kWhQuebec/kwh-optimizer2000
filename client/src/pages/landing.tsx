@@ -704,8 +704,8 @@ export default function LandingPage() {
                       <div className="space-y-2 text-center">
                         <h2 className="text-xl sm:text-2xl font-semibold">
                           {language === "fr" 
-                            ? "Téléversez votre facture Hydro-Québec" 
-                            : "Upload your Hydro-Québec bill"}
+                            ? "Téléversez une facture récente (moins de 3 mois)" 
+                            : "Upload a recent bill (less than 3 months old)"}
                         </h2>
                         <p className="text-sm text-muted-foreground">
                           {language === "fr" 
@@ -733,7 +733,7 @@ export default function LandingPage() {
                             <p className="font-medium">
                               {isDragActive 
                                 ? (language === "fr" ? "Déposez ici..." : "Drop here...")
-                                : (language === "fr" ? "Glissez votre facture ici" : "Drag your bill here")}
+                                : (language === "fr" ? "Glissez votre (vos) facture(s) ici ou prenez une photo" : "Drag your bill(s) here or take a photo")}
                             </p>
                             <p className="text-sm text-muted-foreground mt-1">
                               {language === "fr" ? "ou cliquez pour sélectionner" : "or click to select"}

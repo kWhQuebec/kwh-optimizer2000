@@ -1204,9 +1204,14 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               </div>
                               <h3 className="text-xl font-bold mb-2">
                                 {language === "fr" 
-                                  ? "Téléversez votre facture Hydro-Québec" 
-                                  : "Upload your Hydro-Québec bill"}
+                                  ? "Téléversez une facture récente (moins de 3 mois)" 
+                                  : "Upload a recent bill (less than 3 months old)"}
                               </h3>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {language === "fr"
+                                  ? "Si vous avez plusieurs compteurs, ajoutez une facture par compte et notre outil d'analyse fera le tri pour vous."
+                                  : "If you have multiple meters, add one bill per account and our analysis tool will sort them for you."}
+                              </p>
                               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                                 <Sparkles className="w-4 h-4 text-primary" />
                                 <span>
@@ -1233,7 +1238,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               <p className="text-base font-semibold mb-2">
                                 {isDragActive 
                                   ? (language === "fr" ? "Déposez le fichier ici..." : "Drop the file here...")
-                                  : (language === "fr" ? "Glissez votre facture ici" : "Drag your bill here")
+                                  : (language === "fr" ? "Glissez votre (vos) facture(s) ici ou prenez une photo" : "Drag your bill(s) here or take a photo")
                                 }
                               </p>
                               <p className="text-sm text-muted-foreground mb-3">
