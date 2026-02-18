@@ -41,9 +41,11 @@ import {
   Share2,
   FileSignature,
   Send,
-  Mail
+  Mail,
+  Plus,
+  Gauge
 } from "lucide-react";
-import type { AnalysisAssumptions, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
+import type { AnalysisAssumptions, SimulationRun, RoofPolygon, InsertRoofPolygon, SiteMeter } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -106,6 +108,13 @@ export default function SiteDetailPage() {
   const [isPortalAccessDialogOpen, setIsPortalAccessDialogOpen] = useState(false);
   const [isHqProcurationDialogOpen, setIsHqProcurationDialogOpen] = useState(false);
   const [procurationLanguage, setProcurationLanguage] = useState<"fr" | "en">(language as "fr" | "en");
+  const [isMeterDialogOpen, setIsMeterDialogOpen] = useState(false);
+  const [editingMeter, setEditingMeter] = useState<SiteMeter | null>(null);
+  const [meterAccountNumber, setMeterAccountNumber] = useState("");
+  const [meterLabel, setMeterLabel] = useState("");
+  const [meterIsPrimary, setMeterIsPrimary] = useState(false);
+  const [deletingMeterId, setDeletingMeterId] = useState<string | null>(null);
+  const [procurationMeterId, setProcurationMeterId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
@@ -142,6 +151,11 @@ export default function SiteDetailPage() {
   const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
     queryKey: ['/api/sites', id, 'roof-polygons'],
     enabled: !!id
+  });
+
+  const { data: meters = [], isLoading: metersLoading } = useQuery<SiteMeter[]>({
+    queryKey: ['/api/sites', id, 'meters'],
+    enabled: !!id && !!site,
   });
 
   // Fetch design agreement status for the site
@@ -429,8 +443,8 @@ export default function SiteDetailPage() {
   });
 
   const sendSiteProcurationMutation = useMutation({
-    mutationFn: async (lang: "fr" | "en") => {
-      return apiRequest("POST", `/api/sites/${id}/send-hq-procuration`, { language: lang });
+    mutationFn: async ({ lang, meterId: mId }: { lang: "fr" | "en"; meterId?: string }) => {
+      return apiRequest("POST", `/api/sites/${id}/send-hq-procuration`, { language: lang, meterId: mId });
     },
     onSuccess: () => {
       toast({
@@ -440,6 +454,8 @@ export default function SiteDetailPage() {
           : `Email sent to ${site?.client?.email}`
       });
       setIsHqProcurationDialogOpen(false);
+      setProcurationMeterId(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'meters'] });
     },
     onError: (error: any) => {
       let message = error?.message || (language === "fr" ? "Erreur d'envoi" : "Send error");
@@ -458,6 +474,55 @@ export default function SiteDetailPage() {
         description: message,
         variant: "destructive"
       });
+    },
+  });
+
+  const createMeterMutation = useMutation({
+    mutationFn: async (data: { accountNumber: string; label?: string; isPrimary?: boolean }) => {
+      return apiRequest("POST", `/api/sites/${id}/meters`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'meters'] });
+      setIsMeterDialogOpen(false);
+      setMeterAccountNumber("");
+      setMeterLabel("");
+      setMeterIsPrimary(false);
+      toast({ title: language === "fr" ? "Compteur ajouté" : "Meter added" });
+    },
+    onError: () => {
+      toast({ title: language === "fr" ? "Erreur" : "Error", variant: "destructive" });
+    },
+  });
+
+  const updateMeterMutation = useMutation({
+    mutationFn: async ({ meterId: mId, data }: { meterId: string; data: { accountNumber?: string; label?: string; isPrimary?: boolean } }) => {
+      return apiRequest("PATCH", `/api/sites/${id}/meters/${mId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'meters'] });
+      setIsMeterDialogOpen(false);
+      setEditingMeter(null);
+      setMeterAccountNumber("");
+      setMeterLabel("");
+      setMeterIsPrimary(false);
+      toast({ title: language === "fr" ? "Compteur mis à jour" : "Meter updated" });
+    },
+    onError: () => {
+      toast({ title: language === "fr" ? "Erreur" : "Error", variant: "destructive" });
+    },
+  });
+
+  const deleteMeterMutation = useMutation({
+    mutationFn: async (meterId: string) => {
+      return apiRequest("DELETE", `/api/sites/${id}/meters/${meterId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'meters'] });
+      setDeletingMeterId(null);
+      toast({ title: language === "fr" ? "Compteur supprimé" : "Meter deleted" });
+    },
+    onError: () => {
+      toast({ title: language === "fr" ? "Erreur" : "Error", variant: "destructive" });
     },
   });
 
@@ -1297,6 +1362,222 @@ export default function SiteDetailPage() {
         </Collapsible>
       )}
 
+      {/* HQ Meters Section */}
+      {isStaff && (
+        <Card data-testid="section-hq-meters">
+          <CardHeader className="py-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Gauge className="w-5 h-5 text-primary" />
+                <CardTitle className="text-lg">
+                  {language === "fr" ? "Compteurs HQ" : "HQ Meters"}
+                </CardTitle>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingMeter(null);
+                  setMeterAccountNumber("");
+                  setMeterLabel("");
+                  setMeterIsPrimary(false);
+                  setIsMeterDialogOpen(true);
+                }}
+                data-testid="button-add-meter"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                {language === "fr" ? "Ajouter" : "Add"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {metersLoading ? (
+              <Skeleton className="h-16 w-full" />
+            ) : meters.length === 0 ? (
+              <p className="text-sm text-muted-foreground" data-testid="text-no-meters">
+                {language === "fr" ? "Aucun compteur enregistré." : "No meters registered."}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{language === "fr" ? "Numéro de compte" : "Account Number"}</TableHead>
+                      <TableHead>{language === "fr" ? "Étiquette" : "Label"}</TableHead>
+                      <TableHead>{language === "fr" ? "Procuration" : "Procuration"}</TableHead>
+                      <TableHead className="text-right">{language === "fr" ? "Actions" : "Actions"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {meters.map((meter) => (
+                      <TableRow key={meter.id} data-testid={`row-meter-${meter.id}`}>
+                        <TableCell data-testid={`text-meter-account-${meter.id}`}>
+                          <span className="font-mono">{meter.accountNumber}</span>
+                          {meter.isPrimary && (
+                            <Badge variant="secondary" className="ml-2" data-testid={`badge-primary-${meter.id}`}>
+                              {language === "fr" ? "Principal" : "Primary"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell data-testid={`text-meter-label-${meter.id}`}>
+                          {meter.label || "—"}
+                        </TableCell>
+                        <TableCell data-testid={`text-meter-status-${meter.id}`}>
+                          {(() => {
+                            const status = meter.procurationStatus || "none";
+                            switch (status) {
+                              case "signed": return <Badge variant="default" className="bg-green-600">{language === "fr" ? "Signée" : "Signed"}</Badge>;
+                              case "sent": return <Badge variant="default">{language === "fr" ? "Envoyée" : "Sent"}</Badge>;
+                              default: return <Badge variant="outline">{language === "fr" ? "Non envoyée" : "Not sent"}</Badge>;
+                            }
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setProcurationMeterId(meter.id);
+                                setIsHqProcurationDialogOpen(true);
+                              }}
+                              data-testid={`button-send-procuration-${meter.id}`}
+                              title={language === "fr" ? "Envoyer procuration" : "Send procuration"}
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingMeter(meter);
+                                setMeterAccountNumber(meter.accountNumber);
+                                setMeterLabel(meter.label || "");
+                                setMeterIsPrimary(meter.isPrimary || false);
+                                setIsMeterDialogOpen(true);
+                              }}
+                              data-testid={`button-edit-meter-${meter.id}`}
+                              title={language === "fr" ? "Modifier" : "Edit"}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setDeletingMeterId(meter.id)}
+                              data-testid={`button-delete-meter-${meter.id}`}
+                              title={language === "fr" ? "Supprimer" : "Delete"}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Meter Add/Edit Dialog */}
+      <Dialog open={isMeterDialogOpen} onOpenChange={(open) => { if (!open) { setIsMeterDialogOpen(false); setEditingMeter(null); } }}>
+        <DialogContent data-testid="dialog-meter-form">
+          <DialogHeader>
+            <DialogTitle>
+              {editingMeter
+                ? (language === "fr" ? "Modifier le compteur" : "Edit Meter")
+                : (language === "fr" ? "Ajouter un compteur" : "Add Meter")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>{language === "fr" ? "Numéro de compte HQ" : "HQ Account Number"}</Label>
+              <Input
+                value={meterAccountNumber}
+                onChange={(e) => setMeterAccountNumber(e.target.value)}
+                placeholder="ex: 12345678"
+                data-testid="input-meter-account"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === "fr" ? "Étiquette (optionnel)" : "Label (optional)"}</Label>
+              <Input
+                value={meterLabel}
+                onChange={(e) => setMeterLabel(e.target.value)}
+                placeholder={language === "fr" ? "ex: Bâtiment A" : "e.g. Building A"}
+                data-testid="input-meter-label"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={meterIsPrimary}
+                onChange={(e) => setMeterIsPrimary(e.target.checked)}
+                id="meter-primary"
+                data-testid="checkbox-meter-primary"
+              />
+              <Label htmlFor="meter-primary">{language === "fr" ? "Compteur principal" : "Primary meter"}</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsMeterDialogOpen(false); setEditingMeter(null); }} data-testid="button-cancel-meter">
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => {
+                if (!meterAccountNumber.trim()) return;
+                if (editingMeter) {
+                  updateMeterMutation.mutate({
+                    meterId: editingMeter.id,
+                    data: { accountNumber: meterAccountNumber, label: meterLabel || undefined, isPrimary: meterIsPrimary }
+                  });
+                } else {
+                  createMeterMutation.mutate({
+                    accountNumber: meterAccountNumber,
+                    label: meterLabel || undefined,
+                    isPrimary: meterIsPrimary
+                  });
+                }
+              }}
+              disabled={!meterAccountNumber.trim() || createMeterMutation.isPending || updateMeterMutation.isPending}
+              data-testid="button-save-meter"
+            >
+              {(createMeterMutation.isPending || updateMeterMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+              {editingMeter
+                ? (language === "fr" ? "Enregistrer" : "Save")
+                : (language === "fr" ? "Ajouter" : "Add")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Meter Delete Confirmation */}
+      <AlertDialog open={!!deletingMeterId} onOpenChange={(open) => { if (!open) setDeletingMeterId(null); }}>
+        <AlertDialogContent data-testid="dialog-delete-meter">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "fr" ? "Supprimer ce compteur ?" : "Delete this meter?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === "fr" ? "Cette action est irréversible." : "This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-meter">
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deletingMeterId) deleteMeterMutation.mutate(deletingMeterId); }}
+              data-testid="button-confirm-delete-meter"
+            >
+              {language === "fr" ? "Supprimer" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Quick Potential Results Card */}
       {quickPotential && (
         <Card className="border-primary/30 bg-primary/5" data-testid="card-quick-potential">
@@ -2104,7 +2385,7 @@ export default function SiteDetailPage() {
               {language === "fr" ? "Annuler" : "Cancel"}
             </Button>
             <Button
-              onClick={() => sendSiteProcurationMutation.mutate(procurationLanguage)}
+              onClick={() => sendSiteProcurationMutation.mutate({ lang: procurationLanguage, meterId: procurationMeterId ?? undefined })}
               disabled={sendSiteProcurationMutation.isPending || !site?.client?.email}
               className="gap-2"
               data-testid="button-send-site-procuration"

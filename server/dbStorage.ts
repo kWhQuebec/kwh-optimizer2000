@@ -20,6 +20,7 @@ import * as pipelineRepo from "./repositories/pipelineRepo";
 import * as supplierRepo from "./repositories/supplierRepo";
 import * as cacheRepo from "./repositories/cacheRepo";
 import * as benchmarkRepo from "./repositories/benchmarkRepo";
+import * as siteMeterRepo from "./repositories/siteMeterRepo";
 
 export class DatabaseStorage implements IStorage {
   async initializeDefaultData(): Promise<void> {
@@ -126,6 +127,13 @@ export class DatabaseStorage implements IStorage {
   updateRoofPolygon = siteRepo.updateRoofPolygon;
   deleteRoofPolygon = siteRepo.deleteRoofPolygon;
   deleteRoofPolygonsBySite = siteRepo.deleteRoofPolygonsBySite;
+
+  // Site Meters (HQ accounts)
+  getSiteMeters = siteMeterRepo.getSiteMeters;
+  getSiteMeter = siteMeterRepo.getSiteMeter;
+  createSiteMeter = siteMeterRepo.createSiteMeter;
+  updateSiteMeter = siteMeterRepo.updateSiteMeter;
+  deleteSiteMeter = siteMeterRepo.deleteSiteMeter;
 
   // Simulation Runs
   getSimulationRuns = simulationRepo.getSimulationRuns;

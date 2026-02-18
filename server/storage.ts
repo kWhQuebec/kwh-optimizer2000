@@ -41,6 +41,7 @@ import type {
   Partnership, InsertPartnership,
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
   RoofPolygon, InsertRoofPolygon,
+  SiteMeter, InsertSiteMeter,
   Benchmark, InsertBenchmark,
   PricingComponent, InsertPricingComponent,
   Supplier, InsertSupplier,
@@ -110,6 +111,13 @@ export interface IStorage {
   deleteSite(id: string): Promise<boolean>;
   getSiteCascadeCounts(siteId: string): Promise<{ simulations: number; meterFiles: number; designAgreements: number; siteVisits: number }>;
   cascadeDeleteSite(siteId: string): Promise<boolean>;
+
+  // Site Meters (HQ accounts)
+  getSiteMeters(siteId: string): Promise<SiteMeter[]>;
+  getSiteMeter(id: string): Promise<SiteMeter | undefined>;
+  createSiteMeter(data: InsertSiteMeter): Promise<SiteMeter>;
+  updateSiteMeter(id: string, data: Partial<SiteMeter>): Promise<SiteMeter | undefined>;
+  deleteSiteMeter(id: string): Promise<void>;
 
   // Meter Files
   getMeterFiles(siteId: string): Promise<MeterFile[]>;

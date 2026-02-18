@@ -13,6 +13,7 @@ import {
   insertMeterReadingSchema,
   insertSimulationRunSchema,
   insertRoofPolygonSchema,
+  insertSiteMeterSchema,
   defaultAnalysisAssumptions,
   type AnalysisAssumptions,
 } from "@shared/schema";
@@ -1706,8 +1707,94 @@ router.get("/:siteId/opportunities", authMiddleware, asyncHandler(async (req: Au
   res.json(opportunities);
 }));
 
+// ==================== SITE METERS (HQ accounts) ====================
+
+router.get("/:siteId/meters", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId } = req.params;
+  const site = await storage.getSite(siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  let meters = await storage.getSiteMeters(siteId);
+
+  if (meters.length === 0 && site.hqAccountNumber) {
+    const created = await storage.createSiteMeter({
+      siteId,
+      accountNumber: site.hqAccountNumber,
+      label: null,
+      isPrimary: true,
+      procurationStatus: "none",
+      procurationSentAt: null,
+      procurationSignedAt: null,
+    });
+    meters = [created];
+  }
+
+  res.json(meters);
+}));
+
+const createMeterSchema = z.object({
+  accountNumber: z.string().min(1),
+  label: z.string().optional().nullable(),
+  isPrimary: z.boolean().optional(),
+});
+
+router.post("/:siteId/meters", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId } = req.params;
+  const site = await storage.getSite(siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  const parseResult = createMeterSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    throw new ValidationError("Validation error", parseResult.error.errors);
+  }
+
+  const meter = await storage.createSiteMeter({
+    siteId,
+    accountNumber: parseResult.data.accountNumber,
+    label: parseResult.data.label ?? null,
+    isPrimary: parseResult.data.isPrimary ?? false,
+    procurationStatus: "none",
+    procurationSentAt: null,
+    procurationSignedAt: null,
+  });
+
+  res.status(201).json(meter);
+}));
+
+const updateMeterSchema = z.object({
+  accountNumber: z.string().min(1).optional(),
+  label: z.string().optional().nullable(),
+  isPrimary: z.boolean().optional(),
+});
+
+router.patch("/:siteId/meters/:meterId", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId, meterId } = req.params;
+  const meter = await storage.getSiteMeter(meterId);
+  if (!meter || meter.siteId !== siteId) throw new NotFoundError("Meter");
+
+  const parseResult = updateMeterSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    throw new ValidationError("Validation error", parseResult.error.errors);
+  }
+
+  const updated = await storage.updateSiteMeter(meterId, parseResult.data);
+  res.json(updated);
+}));
+
+router.delete("/:siteId/meters/:meterId", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId, meterId } = req.params;
+  const meter = await storage.getSiteMeter(meterId);
+  if (!meter || meter.siteId !== siteId) throw new NotFoundError("Meter");
+
+  await storage.deleteSiteMeter(meterId);
+  res.json({ success: true });
+}));
+
+// ==================== HQ PROCURATION ====================
+
 const sendHqProcurationSchema = z.object({
   language: z.enum(["fr", "en"]).default("fr"),
+  meterId: z.string().optional(),
 });
 
 router.post("/:siteId/send-hq-procuration", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
@@ -1716,7 +1803,7 @@ router.post("/:siteId/send-hq-procuration", authMiddleware, requireStaff, asyncH
   if (!parseResult.success) {
     throw new ValidationError("Validation error", parseResult.error.errors);
   }
-  const { language } = parseResult.data;
+  const { language, meterId } = parseResult.data;
 
   const site = await storage.getSite(siteId);
   if (!site) throw new NotFoundError("Site");
@@ -1746,6 +1833,13 @@ router.post("/:siteId/send-hq-procuration", authMiddleware, requireStaff, asyncH
     throw new BadRequestError(
       language === 'fr' ? "L'envoi du courriel a échoué." : "Email delivery failed."
     );
+  }
+
+  if (meterId) {
+    await storage.updateSiteMeter(meterId, {
+      procurationStatus: "sent",
+      procurationSentAt: new Date(),
+    });
   }
 
   res.json({ success: true });

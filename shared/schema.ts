@@ -293,6 +293,23 @@ export const sites = pgTable("sites", {
   index("sites_created_at_idx").on(table.createdAt),
 ]);
 
+export const siteMeters = pgTable("site_meters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  accountNumber: text("account_number").notNull(),
+  label: text("label"),
+  isPrimary: boolean("is_primary").default(false),
+  procurationStatus: text("procuration_status").default("none"),
+  procurationSentAt: timestamp("procuration_sent_at"),
+  procurationSignedAt: timestamp("procuration_signed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSiteMeterSchema = createInsertSchema(siteMeters).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertSiteMeter = z.infer<typeof insertSiteMeterSchema>;
+export type SiteMeter = typeof siteMeters.$inferSelect;
+
 export const meterFiles = pgTable("meter_files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   siteId: varchar("site_id").notNull().references(() => sites.id),
@@ -752,8 +769,10 @@ export const blogArticles = pgTable("blog_articles", {
 // Procuration Signatures - HQ Authorization
 export const procurationSignatures = pgTable("procuration_signatures", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  leadId: varchar("lead_id").references(() => leads.id), // Link to lead if from detailed analysis form
-  clientId: varchar("client_id").references(() => clients.id), // Link to client if from CRM email
+  leadId: varchar("lead_id").references(() => leads.id),
+  clientId: varchar("client_id").references(() => clients.id),
+  siteId: varchar("site_id").references(() => sites.id),
+  meterId: varchar("meter_id").references(() => siteMeters.id),
   
   // Signer info
   signerName: text("signer_name").notNull(),
