@@ -86,8 +86,6 @@ export class HQDataFetcher {
   private refreshToken: string = "";
   private cookies: Map<string, string> = new Map();
   private guid: string = crypto.randomUUID();
-  private _webSessionCreated: boolean = false;
-
   constructor(private onProgress?: ProgressCallback) {}
 
   private _reportProgress(
@@ -187,11 +185,8 @@ export class HQDataFetcher {
     applicantId: string,
     customerId: string,
   ): Promise<void> {
-    if (this._webSessionCreated) {
-      log.info("Web session already created, skipping");
-      return;
-    }
-    log.info("Creating web session for HQ portal");
+    log.info("Creating web session for HQ portal (clearing cookies first)");
+    this.cookies.clear();
     const url = `${SESSION_URL}?mode=web`;
     const response = await this._makeRequest(url, "GET", {
       headers: this._getCustomerHeaders(applicantId, customerId),
@@ -203,7 +198,6 @@ export class HQDataFetcher {
         `Failed to create web session: ${response.status} — ${text.substring(0, 200)}`,
       );
     }
-    this._webSessionCreated = true;
     log.info("Web session created successfully");
   }
 
@@ -753,14 +747,33 @@ export class HQDataFetcher {
       );
     }
 
-    const data = await response.json();
+    const rawText = await response.text();
+    log.info(`Period response for ${contractId} (${rawText.length} chars): ${rawText.substring(0, 1000)}`);
+
+    let data: any;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      log.error(`Period response is not valid JSON for contract ${contractId}`);
+      return [];
+    }
+
+    log.info(`Period response keys: ${JSON.stringify(Object.keys(data ?? {}))}`);
+
     const periods: HQPeriod[] = [];
 
     const periodList =
       data?.results ??
       data?.periodesConsommation ??
       data?.periodes ??
+      data?.data?.results ??
       [];
+
+    log.info(`Period list is array: ${Array.isArray(periodList)}, length: ${Array.isArray(periodList) ? periodList.length : 'N/A'}`);
+
+    if (Array.isArray(periodList) && periodList.length > 0) {
+      log.info(`First period sample: ${JSON.stringify(periodList[0]).substring(0, 500)}`);
+    }
 
     for (const period of Array.isArray(periodList) ? periodList : []) {
       if (period.numeroContrat && String(period.numeroContrat) !== contractId) {
