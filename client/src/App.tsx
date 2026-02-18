@@ -71,7 +71,7 @@ const ContentManager = lazy(() => import("@/pages/content-manager"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin-settings"));
 const HQDataFetchPage = lazy(() => import("@/pages/hq-data-fetch"));
 const CallScriptPage = lazy(() => import("@/pages/call-script"));
-const ConversionDashboardPage = lazy(() => import("@/pages/conversion-dashboard"));
+const ConversionDashboardPage = lazy(() => import("@/pages/conversion-dashboard").then(m => ({ default: m.ConversionDashboard })));
 const LcoeComparisonPage = lazy(() => import("@/pages/lcoe-comparison"));
 
 function PageLoader() {
@@ -102,6 +102,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (user?.forcePasswordChange) {
     return <Redirect to="/change-password" />;
+  }
+
+  return <>{children}</>;
+}
+
+function StaffRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) return null;
+  
+  if (user?.role === "client") {
+    return <Redirect to="/app/portal" />;
   }
 
   return <>{children}</>;
@@ -234,39 +246,48 @@ function AppRoutes() {
         </Suspense>
       </Route>
 
-      {/* Protected routes */}
+      {/* Protected routes - Staff only */}
       <Route path="/app">
         <ProtectedRoute>
-          <AppLayout>
-            <DashboardPage />
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <DashboardPage />
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/clients">
         <ProtectedRoute>
-          <AppLayout>
-            <ClientsPage />
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <ClientsPage />
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/clients/:clientId/sites">
         <ProtectedRoute>
-          <AppLayout>
-            <SitesPage />
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <SitesPage />
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/sites">
         <ProtectedRoute>
-          <AppLayout>
-            <SitesPage />
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <SitesPage />
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
+      {/* Site detail - accessible by both staff and clients (API filters by ownership) */}
       <Route path="/app/sites/:id">
         <ProtectedRoute>
           <AppLayout>
@@ -277,145 +298,173 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      {/* Mobile-friendly site visit form - no sidebar for field use */}
+      {/* Mobile-friendly site visit form - staff only */}
       <Route path="/app/site-visit/:siteId">
         <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <SiteVisitFormPage />
-          </Suspense>
+          <StaffRoute>
+            <Suspense fallback={<PageLoader />}>
+              <SiteVisitFormPage />
+            </Suspense>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
-      {/* Presentation mode - full screen, no sidebar for projection */}
+      {/* Presentation mode - staff only */}
       <Route path="/app/presentation/:id">
         <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <PresentationPage />
-          </Suspense>
+          <StaffRoute>
+            <Suspense fallback={<PageLoader />}>
+              <PresentationPage />
+            </Suspense>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/analyses">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <AnalysesPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <AnalysesPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/analyses/:simulationId/design">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <DesignPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <DesignPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/designs">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <DesignsPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <DesignsPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/construction-agreements">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <ConstructionAgreementsPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <ConstructionAgreementsPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/construction-projects">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <ConstructionProjectsPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <ConstructionProjectsPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/construction-gantt">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <ConstructionGanttPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <ConstructionGanttPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/construction-tasks">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <ConstructionTasksPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <ConstructionTasksPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/om-contracts">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <OmContractsPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <OmContractsPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/om-visits">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <OmVisitsPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <OmVisitsPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/om-performance/:siteId">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <OmPerformancePage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <OmPerformancePage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/catalog">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <CatalogPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <CatalogPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/methodology">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <MethodologyPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <MethodologyPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
-      {/* Client Portal */}
+      {/* Client Portal - accessible by all authenticated users */}
       <Route path="/app/portal">
         <ProtectedRoute>
           <AppLayout>
@@ -429,182 +478,216 @@ function AppRoutes() {
       {/* Admin User Management */}
       <Route path="/app/users">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <UsersPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <UsersPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Work Queue */}
       <Route path="/app/work-queue">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <WorkQueuePage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <WorkQueuePage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Admin Procurations */}
       <Route path="/app/procurations">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <ProcurationsPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <ProcurationsPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Admin Market Intelligence */}
       <Route path="/app/market-intelligence">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <MarketIntelligencePage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <MarketIntelligencePage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
-      {/* Market Intelligence - Pricing (Suppliers & Price History) */}
+      {/* Market Intelligence - Pricing */}
       <Route path="/app/market-intelligence/pricing">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <MarketIntelligencePricingPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <MarketIntelligencePricingPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Admin Pricing Components */}
       <Route path="/app/admin/pricing">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <AdminPricingPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <AdminPricingPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Admin Settings */}
       <Route path="/app/admin/settings">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <AdminSettingsPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <AdminSettingsPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* HQ Data Retrieval */}
       <Route path="/app/admin/hq-data">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <HQDataFetchPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <HQDataFetchPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Admin Content Manager */}
       <Route path="/app/content-manager">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <ContentManager />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <ContentManager />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Portfolios */}
       <Route path="/app/portfolios">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <PortfoliosPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <PortfoliosPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       <Route path="/app/portfolios/:id">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <PortfolioDetailPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <PortfolioDetailPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Sales Pipeline */}
       <Route path="/app/pipeline">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <PipelinePage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <PipelinePage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* LCOE Comparison Tool */}
       <Route path="/app/tools/lcoe-comparison">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <LcoeComparisonPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <LcoeComparisonPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Partnerships */}
       <Route path="/app/partnerships">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <PartnershipsPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <PartnershipsPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
       {/* Batch Import */}
       <Route path="/app/import">
         <ProtectedRoute>
-          <AppLayout>
-            <Suspense fallback={<PageLoader />}>
-              <BatchImportPage />
-            </Suspense>
-          </AppLayout>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <BatchImportPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
-      {/* Call Script Wizard - Standalone view for agents */}
+      {/* Call Script Wizard - Staff only */}
       <Route path="/app/leads/:id/call-script">
         <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <CallScriptPage />
-          </Suspense>
+          <StaffRoute>
+            <Suspense fallback={<PageLoader />}>
+              <CallScriptPage />
+            </Suspense>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
-      {/* Conversion Dashboard - Analytics */}
+      {/* Conversion Dashboard - Staff only */}
       <Route path="/app/analytics/conversion">
         <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <ConversionDashboardPage />
-          </Suspense>
+          <StaffRoute>
+            <Suspense fallback={<PageLoader />}>
+              <ConversionDashboardPage />
+            </Suspense>
+          </StaffRoute>
         </ProtectedRoute>
       </Route>
 
