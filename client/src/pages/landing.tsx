@@ -709,8 +709,8 @@ export default function LandingPage() {
                         </h2>
                         <p className="text-sm text-muted-foreground">
                           {language === "fr" 
-                            ? "Si vous avez plusieurs compteurs, ajoutez une facture par compte et notre outil d'analyse fera le tri pour vous." 
-                            : "If you have multiple meters, add one bill per account and our analysis tool will sort them for you."}
+                            ? <><span className="underline">Si vous avez plusieurs compteurs</span>, ajoutez une facture par compte et notre outil d'analyse fera le tri pour vous.</> 
+                            : <><span className="underline">If you have multiple meters</span>, add one bill per account and our analysis tool will sort them for you.</>}
                         </p>
                       </div>
                       
