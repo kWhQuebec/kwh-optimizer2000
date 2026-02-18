@@ -533,6 +533,8 @@ export class HQDataFetcher {
     }
 
     const summaryData = await summaryResp.json();
+    log.info(`Contract summary response keys: ${JSON.stringify(Object.keys(summaryData ?? {}))}`);
+    log.info(`Contract summary sample: ${JSON.stringify(summaryData).substring(0, 800)}`);
     const contracts: HQContract[] = [];
 
     const contractList =
@@ -594,8 +596,11 @@ export class HQDataFetcher {
         contentType: "application/json",
       });
 
+      log.info(`Contract list response status: ${listResp.status}`);
       if (listResp.ok) {
         const listData = await listResp.json();
+        log.info(`Contract list response keys: ${JSON.stringify(Object.keys(listData ?? {}))}`);
+        log.info(`Contract list sample: ${JSON.stringify(listData).substring(0, 800)}`);
         const items =
           listData?.contrats ?? listData?.contracts ?? listData ?? [];
 
