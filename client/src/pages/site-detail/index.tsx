@@ -1362,7 +1362,7 @@ export default function SiteDetailPage() {
         </Collapsible>
       )}
 
-      {/* HQ Meters Section */}
+      {/* Hydro-Québec Meters Section */}
       {isStaff && (
         <Card data-testid="section-hq-meters">
           <CardHeader className="py-3">
@@ -1370,7 +1370,7 @@ export default function SiteDetailPage() {
               <div className="flex items-center gap-2">
                 <Gauge className="w-5 h-5 text-primary" />
                 <CardTitle className="text-lg">
-                  {language === "fr" ? "Compteurs HQ" : "HQ Meters"}
+                  {language === "fr" ? "Compteurs Hydro-Québec" : "Hydro-Québec Meters"}
                 </CardTitle>
               </div>
               <Button
@@ -1493,7 +1493,7 @@ export default function SiteDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>{language === "fr" ? "Numéro de compte HQ" : "HQ Account Number"}</Label>
+              <Label>{language === "fr" ? "Numéro de compte Hydro-Québec" : "Hydro-Québec Account Number"}</Label>
               <Input
                 value={meterAccountNumber}
                 onChange={(e) => setMeterAccountNumber(e.target.value)}
