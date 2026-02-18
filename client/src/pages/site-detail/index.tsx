@@ -37,7 +37,8 @@ import {
   ArchiveRestore,
   Trash2,
   ChevronLeft,
-  ChevronRight as ChevronRightIcon
+  ChevronRight as ChevronRightIcon,
+  Share2
 } from "lucide-react";
 import type { AnalysisAssumptions, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
@@ -66,6 +67,7 @@ import { DesignAgreementSection } from "@/components/design-agreement-section";
 import { ActivityFeed } from "@/components/activity-feed";
 import { RoofDrawingModal } from "@/components/RoofDrawingModal";
 import { RoofVisualization } from "@/components/RoofVisualization";
+import { GrantPortalAccessDialog } from "@/components/grant-portal-access-dialog";
 
 import { FileUploadZone } from "./components/FileUploadZone";
 import { FileStatusBadge } from "./components/FileStatusBadge";
@@ -97,6 +99,7 @@ export default function SiteDetailPage() {
   const [isTransitioningSimulation, setIsTransitioningSimulation] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPortalAccessDialogOpen, setIsPortalAccessDialogOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
@@ -872,6 +875,15 @@ export default function SiteDetailPage() {
                   <Pencil className="w-4 h-4 mr-2" />
                   {language === "fr" ? "Modifier" : "Edit"}
                 </DropdownMenuItem>
+                {site.analysisAvailable && (
+                  <DropdownMenuItem
+                    data-testid="menu-item-share-portal"
+                    onClick={() => setIsPortalAccessDialogOpen(true)}
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    {language === "fr" ? "Partager au client" : "Share with client"}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   data-testid="menu-item-archive-site"
                   onClick={() => archiveSiteMutation.mutate()}
@@ -1980,6 +1992,14 @@ export default function SiteDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {isPortalAccessDialogOpen && site?.client && (
+        <GrantPortalAccessDialog
+          client={{ ...site.client, sites: [], siteCount: 0 } as any}
+          open={isPortalAccessDialogOpen}
+          onOpenChange={setIsPortalAccessDialogOpen}
+        />
+      )}
 
       {/* Roof Drawing Modal */}
       {site && site.latitude && site.longitude && (

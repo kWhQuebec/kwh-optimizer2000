@@ -323,24 +323,33 @@ export default function ClientPortalPage() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {pendingActions.map(site => (
-                <li key={site.id} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <PenLine className="w-4 h-4 text-amber-600" />
-                    <span>
-                      {language === "fr"
-                        ? `Signer le mandat de conception pour ${site.name}`
-                        : `Sign design mandate for ${site.name}`
-                      }
-                    </span>
-                  </div>
-                  <Button asChild size="sm" variant="outline" data-testid={`button-action-${site.id}`}>
-                    <Link href={`/app/sites/${site.id}`}>
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                </li>
-              ))}
+              {pendingActions.map(site => {
+                const hasMandateToSign = site.designAgreement && site.designAgreement.status === "sent" && site.designAgreement.publicToken;
+                const actionLabel = hasMandateToSign
+                  ? (language === "fr" ? `Signer le mandat de conception pour ${site.name}` : `Sign design mandate for ${site.name}`)
+                  : (language === "fr" ? `Consulter l'analyse pour ${site.name}` : `Review analysis for ${site.name}`);
+                const actionHref = hasMandateToSign
+                  ? `/sign/${site.designAgreement!.publicToken}`
+                  : `/app/sites/${site.id}`;
+                const ActionIcon = hasMandateToSign ? PenLine : BarChart3;
+                
+                return (
+                  <li key={site.id} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <ActionIcon className="w-4 h-4 text-amber-600" />
+                      <span>{actionLabel}</span>
+                    </div>
+                    <Button asChild size="sm" variant={hasMandateToSign ? "default" : "outline"} data-testid={`button-action-${site.id}`}>
+                      <Link href={actionHref}>
+                        {hasMandateToSign 
+                          ? (language === "fr" ? "Signer" : "Sign")
+                          : <ChevronRight className="w-4 h-4" />
+                        }
+                      </Link>
+                    </Button>
+                  </li>
+                );
+              })}
             </ul>
           </CardContent>
         </Card>
@@ -427,24 +436,136 @@ export default function ClientPortalPage() {
                         )}
                       </div>
                     )}
+
+                    {site.analysisAvailable && site.simulationRuns && site.simulationRuns.length > 0 && (() => {
+                      const latestRun = site.simulationRuns[site.simulationRuns.length - 1];
+                      return (
+                        <div className="space-y-3 pt-2">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Zap className="w-3 h-3" />
+                            {language === "fr" ? "Résultats financiers" : "Financial Results"}
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            {latestRun.pvSizeKW && (
+                              <div>
+                                <div className="text-muted-foreground text-xs">
+                                  {language === "fr" ? "Taille du système" : "System Size"}
+                                </div>
+                                <div className="font-medium" data-testid={`kpi-system-size-${site.id}`}>
+                                  {latestRun.pvSizeKW.toLocaleString()} kW
+                                </div>
+                              </div>
+                            )}
+                            {latestRun.savingsYear1 != null && (
+                              <div>
+                                <div className="text-muted-foreground text-xs">
+                                  {language === "fr" ? "Économies an 1" : "Year 1 Savings"}
+                                </div>
+                                <div className="font-medium text-green-600" data-testid={`kpi-savings-${site.id}`}>
+                                  {formatCurrency(latestRun.savingsYear1)}
+                                </div>
+                              </div>
+                            )}
+                            {latestRun.simplePaybackYears != null && (
+                              <div>
+                                <div className="text-muted-foreground text-xs">
+                                  {language === "fr" ? "Retour sur investissement" : "Simple Payback"}
+                                </div>
+                                <div className="font-medium" data-testid={`kpi-payback-${site.id}`}>
+                                  {latestRun.simplePaybackYears.toFixed(1)} {language === "fr" ? "ans" : "years"}
+                                </div>
+                              </div>
+                            )}
+                            {latestRun.npv25 != null && (
+                              <div>
+                                <div className="text-muted-foreground text-xs">
+                                  VAN 25 ans
+                                </div>
+                                <div className="font-medium text-green-600" data-testid={`kpi-npv-${site.id}`}>
+                                  {formatCurrency(latestRun.npv25)}
+                                </div>
+                              </div>
+                            )}
+                            {latestRun.co2AvoidedTonnesPerYear != null && latestRun.co2AvoidedTonnesPerYear > 0 && (
+                              <div>
+                                <div className="text-muted-foreground text-xs">
+                                  {language === "fr" ? "Réduction GES" : "GHG Reduction"}
+                                </div>
+                                <div className="font-medium flex items-center gap-1" data-testid={`kpi-ghg-${site.id}`}>
+                                  <Leaf className="w-3 h-3 text-green-600" />
+                                  {latestRun.co2AvoidedTonnesPerYear.toFixed(0)} t CO₂/an
+                                </div>
+                              </div>
+                            )}
+                            {latestRun.irr25 != null && (
+                              <div>
+                                <div className="text-muted-foreground text-xs">TRI</div>
+                                <div className="font-medium" data-testid={`kpi-irr-${site.id}`}>
+                                  {(latestRun.irr25 * 100).toFixed(1)}%
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     
+                    {/* Sign Mandate CTA */}
+                    {site.designAgreement && site.designAgreement.status === "sent" && site.designAgreement.publicToken && (
+                      <Button asChild className="w-full gap-2" data-testid={`button-sign-mandate-${site.id}`}>
+                        <Link href={`/sign/${site.designAgreement.publicToken}`}>
+                          <PenLine className="w-4 h-4" />
+                          {language === "fr" ? "Signer le mandat de conception" : "Sign Design Mandate"}
+                        </Link>
+                      </Button>
+                    )}
+
                     {/* Actions */}
                     <div className="flex gap-2">
-                      <Button asChild className="flex-1" data-testid={`button-view-site-${site.id}`}>
+                      <Button asChild variant="outline" className="flex-1" data-testid={`button-view-site-${site.id}`}>
                         <Link href={`/app/sites/${site.id}`}>
                           {site.analysisAvailable ? (
                             <>
                               <BarChart3 className="w-4 h-4 mr-2" />
-                              {t("portal.viewAnalysis") || "View Analysis"}
+                              {language === "fr" ? "Voir l'analyse" : "View Analysis"}
                             </>
                           ) : (
                             <>
                               <FileText className="w-4 h-4 mr-2" />
-                              {t("portal.viewDetails") || "View Details"}
+                              {language === "fr" ? "Voir détails" : "View Details"}
                             </>
                           )}
                         </Link>
                       </Button>
+                      {site.analysisAvailable && (
+                        <Button
+                          variant="default"
+                          className="flex-1"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/sites/${site.id}/report/pdf`, {
+                                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+                              });
+                              if (!response.ok) throw new Error("Download failed");
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `${site.name || "report"}-analysis.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                            } catch (err) {
+                              console.error("Download error:", err);
+                            }
+                          }}
+                          data-testid={`button-download-pdf-${site.id}`}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          PDF
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -489,15 +610,31 @@ export default function ClientPortalPage() {
                     </div>
                   </div>
                   <Button 
-                    asChild 
                     variant="outline" 
                     size="sm"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/sites/${site.id}/report/pdf`, {
+                          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+                        });
+                        if (!response.ok) throw new Error("Download failed");
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${site.name || "report"}-analysis.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      } catch (err) {
+                        console.error("Download error:", err);
+                      }
+                    }}
                     data-testid={`button-download-report-${site.id}`}
                   >
-                    <Link href={`/app/sites/${site.id}`}>
-                      <Download className="w-4 h-4 mr-2" />
-                      {language === "fr" ? "Voir" : "View"}
-                    </Link>
+                    <Download className="w-4 h-4 mr-2" />
+                    {language === "fr" ? "Télécharger" : "Download"}
                   </Button>
                 </div>
               ))}
