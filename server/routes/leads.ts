@@ -859,6 +859,81 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
         });
       }
 
+      let allParsedBills: any[] = [];
+      try {
+        const rawAllParsedBills = req.body.allParsedBills;
+        if (rawAllParsedBills) {
+          allParsedBills = typeof rawAllParsedBills === 'string'
+            ? JSON.parse(rawAllParsedBills)
+            : rawAllParsedBills;
+        }
+      } catch (parseErr) {
+        log.error('Failed to parse allParsedBills:', parseErr);
+      }
+
+      if (Array.isArray(allParsedBills) && allParsedBills.length > 1) {
+        const primaryAccountKey = hqAccountNumber12 || hqClientNumber || '';
+        const seenAccounts = new Set<string>();
+        if (primaryAccountKey) seenAccounts.add(primaryAccountKey);
+
+        for (const bill of allParsedBills) {
+          const billAccountKey = bill.hqAccountNumber || bill.accountNumber || '';
+          if (!billAccountKey || seenAccounts.has(billAccountKey)) continue;
+          seenAccounts.add(billAccountKey);
+
+          let billConsumptionHistory = null;
+          if (bill.consumptionHistory) {
+            try {
+              billConsumptionHistory = typeof bill.consumptionHistory === 'string'
+                ? JSON.parse(bill.consumptionHistory)
+                : bill.consumptionHistory;
+            } catch {}
+          }
+
+          let billAddress = bill.serviceAddress || null;
+          let billCity: string | null = null;
+          let billPostalCode: string | null = null;
+          if (billAddress) {
+            const parts = billAddress.split(',').map((p: string) => p.trim());
+            if (parts.length >= 2) {
+              billAddress = parts[0];
+              const cityPostal = parts[parts.length - 1];
+              const postalMatch = cityPostal.match(/([A-Z]\d[A-Z]\s?\d[A-Z]\d)/i);
+              if (postalMatch) {
+                billPostalCode = postalMatch[1];
+                billCity = cityPostal.replace(postalMatch[0], '').trim().replace(/,\s*$/, '') || parts.length >= 3 ? parts[1] : null;
+              } else {
+                billCity = parts[1] || null;
+              }
+            }
+          }
+
+          try {
+            const additionalSite = await storage.createSite({
+              clientId: client.id,
+              name: bill.serviceAddress || `Site - ${billAccountKey}`,
+              address: billAddress,
+              city: billCity,
+              province: 'Québec',
+              postalCode: billPostalCode,
+              buildingType: buildingType || 'commercial',
+              roofAgeYears: null,
+              ownershipType: null,
+              hqLegalClientName: bill.clientName || null,
+              hqClientNumber: bill.accountNumber || null,
+              hqBillNumber: bill.billNumber || null,
+              hqAccountNumber: bill.hqAccountNumber || null,
+              hqContractNumber: bill.contractNumber || null,
+              hqTariffDetail: bill.tariffDetail || bill.tariffCode || null,
+              hqConsumptionHistory: billConsumptionHistory,
+            });
+            log.info(`Created additional site ${additionalSite.id} for account ${billAccountKey}`);
+          } catch (siteError) {
+            log.error(`Failed to create additional site for account ${billAccountKey}:`, siteError);
+          }
+        }
+      }
+
       log.info(`Created client ${client.id} and site ${site.id} for detailed analysis lead`);
     } catch (clientSiteError) {
       log.error('Failed to create client/site for detailed analysis:', clientSiteError);

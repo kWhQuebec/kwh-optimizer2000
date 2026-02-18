@@ -224,8 +224,10 @@ export default function AnalyseDetailleePage() {
   const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const [parsedBillData, setParsedBillData] = useState<HQBillData | null>(null);
+  const [parsedBillsData, setParsedBillsData] = useState<HQBillData[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [parseProgress, setParseProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
   
   // Use ref to store savedBillPath - survives HMR and component remounts
   const savedBillPathRef = useRef<string | null>(
@@ -338,10 +340,105 @@ export default function AnalyseDetailleePage() {
     }
   }, [form]);
 
+  const parseAllFiles = useCallback(async (filesToParse: File[]) => {
+    setIsParsing(true);
+    setParseError(null);
+    setParsedBillData(null);
+    setParsedBillsData([]);
+    setParseProgress({ current: 0, total: filesToParse.length });
+
+    const allResults: HQBillData[] = [];
+
+    for (let i = 0; i < filesToParse.length; i++) {
+      setParseProgress({ current: i + 1, total: filesToParse.length });
+
+      try {
+        const fd = new FormData();
+        fd.append('file', filesToParse[i]);
+
+        const response = await fetch('/api/parse-hq-bill', {
+          method: 'POST',
+          body: fd,
+        });
+
+        if (!response.ok) throw new Error('Failed to parse bill');
+        const result = await response.json();
+        if (!result.success || !result.data) throw new Error('Failed to parse bill data');
+        allResults.push(result.data as HQBillData);
+      } catch {
+        allResults.push({
+          accountNumber: null,
+          clientName: null,
+          serviceAddress: null,
+          annualConsumptionKwh: null,
+          peakDemandKw: null,
+          tariffCode: null,
+          billingPeriod: null,
+          estimatedMonthlyBill: null,
+          confidence: 0,
+          billNumber: null,
+          hqAccountNumber: null,
+          contractNumber: null,
+          tariffDetail: null,
+          consumptionHistory: null,
+        });
+      }
+    }
+
+    const successfulResults = allResults.filter(r => r.confidence > 0);
+
+    if (successfulResults.length === 0) {
+      setIsParsing(false);
+      setParseError(language === "fr"
+        ? "Impossible d'analyser les factures. Veuillez réessayer ou saisir les informations manuellement."
+        : "Unable to analyze the bills. Please try again or enter information manually.");
+      return;
+    }
+
+    setParsedBillsData(successfulResults);
+
+    const firstResult = successfulResults[0];
+    setParsedBillData(firstResult);
+    setIsParsing(false);
+
+    if (firstResult.savedBillPath) {
+      savedBillPathRef.current = firstResult.savedBillPath;
+      sessionStorage.setItem('kwhquebec_savedBillPath', firstResult.savedBillPath);
+      form.setValue('savedBillPath', firstResult.savedBillPath);
+    }
+
+    setTimeout(() => {
+      setCurrentStep(2);
+
+      setTimeout(() => {
+        if (firstResult.accountNumber) {
+          form.setValue('hqClientNumber', firstResult.accountNumber);
+        }
+        if (firstResult.clientName) {
+          form.setValue('companyName', firstResult.clientName);
+        }
+        if (firstResult.serviceAddress) {
+          const { street, city, postalCode } = parseAddressParts(firstResult.serviceAddress);
+          if (street) form.setValue('streetAddress', street);
+          if (city) form.setValue('city', city);
+          if (city) form.setValue('signatureCity', city);
+          if (postalCode) form.setValue('postalCode', postalCode);
+        }
+        if (firstResult.estimatedMonthlyBill) {
+          form.setValue('estimatedMonthlyBill', firstResult.estimatedMonthlyBill);
+        }
+        if (firstResult.tariffCode) {
+          form.setValue('tariffCode', firstResult.tariffCode);
+        }
+      }, 100);
+    }, 500);
+  }, [language, form]);
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setUploadError(null);
     setParseError(null);
     setParsedBillData(null);
+    setParsedBillsData([]);
     
     const validFiles = acceptedFiles.filter(file => {
       const isValidType = file.type === 'application/pdf' || 
@@ -370,83 +467,10 @@ export default function AnalyseDetailleePage() {
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
     
-    // Auto-trigger bill parsing after upload (like landing page)
     if (validFiles.length > 0) {
-      setIsParsing(true);
-      setParseError(null);
-      
-      // Parse the first valid file immediately
-      const fileToparse = validFiles[0];
-      const formData = new FormData();
-      formData.append('file', fileToparse);
-      
-      fetch('/api/parse-hq-bill', {
-        method: 'POST',
-        body: formData,
-      })
-        .then(response => {
-          if (!response.ok) throw new Error('Failed to parse bill');
-          return response.json();
-        })
-        .then(result => {
-          console.log('[Bill Parse] Result received:', result);
-          // API returns { success: true, data: {...} } - unwrap it
-          if (!result.success || !result.data) {
-            throw new Error('Failed to parse bill data');
-          }
-          const data = result.data as HQBillData;
-          console.log('[Bill Parse] Parsed data:', data);
-          console.log('[Bill Parse] savedBillPath from server:', data.savedBillPath);
-          setParsedBillData(data);
-          setIsParsing(false);
-          
-          // Store savedBillPath in ref AND sessionStorage (survives HMR reloads)
-          if (data.savedBillPath) {
-            console.log('[Bill Parse] Storing savedBillPath:', data.savedBillPath);
-            savedBillPathRef.current = data.savedBillPath;
-            sessionStorage.setItem('kwhquebec_savedBillPath', data.savedBillPath);
-            form.setValue('savedBillPath', data.savedBillPath);
-            console.log('[Bill Parse] SessionStorage after set:', sessionStorage.getItem('kwhquebec_savedBillPath'));
-          } else {
-            console.log('[Bill Parse] WARNING: No savedBillPath in response!');
-          }
-          
-          // Auto-transition to step 2 first, then fill form after fields mount
-          setTimeout(() => {
-            setCurrentStep(2);
-            
-            // Wait for step 2 fields to mount before setting values
-            setTimeout(() => {
-              if (data.accountNumber) {
-                form.setValue('hqClientNumber', data.accountNumber);
-              }
-              if (data.clientName) {
-                form.setValue('companyName', data.clientName);
-              }
-              if (data.serviceAddress) {
-                const { street, city, postalCode } = parseAddressParts(data.serviceAddress);
-                if (street) form.setValue('streetAddress', street);
-                if (city) form.setValue('city', city);
-                if (city) form.setValue('signatureCity', city);
-                if (postalCode) form.setValue('postalCode', postalCode);
-              }
-              if (data.estimatedMonthlyBill) {
-                form.setValue('estimatedMonthlyBill', data.estimatedMonthlyBill);
-              }
-              if (data.tariffCode) {
-                form.setValue('tariffCode', data.tariffCode);
-              }
-            }, 100);
-          }, 500);
-        })
-        .catch(() => {
-          setIsParsing(false);
-          setParseError(language === "fr" 
-            ? "Impossible d'analyser la facture. Veuillez réessayer ou saisir les informations manuellement."
-            : "Unable to analyze the bill. Please try again or enter information manually.");
-        });
+      parseAllFiles(validFiles);
     }
-  }, [language, form]);
+  }, [language, parseAllFiles]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -467,6 +491,7 @@ export default function AnalyseDetailleePage() {
       return newFiles;
     });
     setParsedBillData(null);
+    setParsedBillsData([]);
     setParseError(null);
   };
 
@@ -539,10 +564,7 @@ export default function AnalyseDetailleePage() {
 
   const handleParseBill = () => {
     if (uploadedFiles.length === 0) return;
-    
-    setIsParsing(true);
-    setParseError(null);
-    parseBillMutation.mutate(uploadedFiles[0].file);
+    parseAllFiles(uploadedFiles.map(f => f.file));
   };
 
   const mutation = useMutation({
@@ -586,6 +608,26 @@ export default function AnalyseDetailleePage() {
         if (parsedBillData.tariffDetail) formData.append('hqTariffDetail', parsedBillData.tariffDetail);
         if (parsedBillData.clientName) formData.append('hqLegalClientName', parsedBillData.clientName);
         if (parsedBillData.consumptionHistory) formData.append('hqConsumptionHistory', JSON.stringify(parsedBillData.consumptionHistory));
+      }
+
+      if (parsedBillsData.length > 0) {
+        formData.append('allParsedBills', JSON.stringify(parsedBillsData.map(bill => ({
+          accountNumber: bill.accountNumber,
+          clientName: bill.clientName,
+          serviceAddress: bill.serviceAddress,
+          annualConsumptionKwh: bill.annualConsumptionKwh,
+          peakDemandKw: bill.peakDemandKw,
+          tariffCode: bill.tariffCode,
+          billingPeriod: bill.billingPeriod,
+          estimatedMonthlyBill: bill.estimatedMonthlyBill,
+          confidence: bill.confidence,
+          savedBillPath: bill.savedBillPath,
+          billNumber: bill.billNumber,
+          hqAccountNumber: bill.hqAccountNumber,
+          contractNumber: bill.contractNumber,
+          tariffDetail: bill.tariffDetail,
+          consumptionHistory: bill.consumptionHistory,
+        }))));
       }
 
       const response = await fetch('/api/detailed-analysis-request', {
@@ -1212,7 +1254,9 @@ The data obtained will be used exclusively for solar potential analysis and phot
                               {uploadedFiles.length > 0 && (
                                 <div className="mt-4 space-y-2">
                                   <p className="text-sm font-medium">
-                                    {language === "fr" ? "Fichier sélectionné:" : "Selected file:"}
+                                    {uploadedFiles.length === 1
+                                      ? (language === "fr" ? "Fichier sélectionné:" : "Selected file:")
+                                      : (language === "fr" ? "Fichiers sélectionnés:" : "Selected files:")}
                                   </p>
                                   {uploadedFiles.map((uploadedFile, index) => (
                                     <div 
@@ -1243,7 +1287,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                     </div>
                                   ))}
 
-                                  {!parsedBillData && !isParsing && (
+                                  {!parsedBillData && !isParsing && parsedBillsData.length === 0 && (
                                     <Button
                                       type="button"
                                       onClick={handleParseBill}
@@ -1251,19 +1295,25 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                       data-testid="button-analyze-bill"
                                     >
                                       <ScanLine className="w-4 h-4" />
-                                      {language === "fr" ? "Analyser la facture" : "Analyze Bill"}
+                                      {uploadedFiles.length > 1
+                                        ? (language === "fr" ? "Analyser les factures" : "Analyze Bills")
+                                        : (language === "fr" ? "Analyser la facture" : "Analyze Bill")}
                                     </Button>
                                   )}
                                 </div>
                               )}
 
                               {isParsing && (
-                                <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                                <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20" data-testid="parsing-progress">
                                   <div className="flex items-center gap-3">
                                     <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                                    <div>
+                                    <div className="flex-1">
                                       <p className="font-medium text-sm">
-                                        {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                                        {parseProgress.total > 1
+                                          ? (language === "fr"
+                                            ? `Analyse de la facture ${parseProgress.current}/${parseProgress.total}...`
+                                            : `Analyzing bill ${parseProgress.current}/${parseProgress.total}...`)
+                                          : (language === "fr" ? "Analyse en cours..." : "Analyzing...")}
                                       </p>
                                       <p className="text-xs text-muted-foreground">
                                         {language === "fr" 
@@ -1271,6 +1321,9 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                           : "Our AI is extracting information from your Hydro-Québec bill"
                                         }
                                       </p>
+                                      {parseProgress.total > 1 && (
+                                        <Progress value={(parseProgress.current / parseProgress.total) * 100} className="mt-2 h-1.5" />
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1350,6 +1403,67 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   </p>
                                 </motion.div>
                               )}
+
+                              {(() => {
+                                const distinctAccounts = parsedBillsData.reduce((acc, bill) => {
+                                  const key = bill.hqAccountNumber || bill.accountNumber || '';
+                                  if (key && !acc.find(a => a.key === key)) {
+                                    acc.push({ key, bill });
+                                  }
+                                  return acc;
+                                }, [] as { key: string; bill: HQBillData }[]);
+                                if (distinctAccounts.length > 1) {
+                                  return (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      className="mt-4 p-4 bg-blue-500/5 rounded-lg border border-blue-500/20"
+                                      data-testid="multi-account-summary"
+                                    >
+                                      <div className="flex items-center gap-2 mb-3">
+                                        <Building2 className="w-5 h-5 text-blue-500" />
+                                        <span className="font-semibold text-sm">
+                                          {language === "fr"
+                                            ? `${distinctAccounts.length} comptes Hydro-Québec détectés`
+                                            : `${distinctAccounts.length} Hydro-Québec accounts detected`}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground mb-3">
+                                        {language === "fr"
+                                          ? "Un site sera créé pour chaque compte distinct"
+                                          : "A site will be created for each distinct account"}
+                                      </p>
+                                      <div className="space-y-2">
+                                        {distinctAccounts.map((item, idx) => (
+                                          <div
+                                            key={item.key}
+                                            className="flex flex-col gap-1 p-3 bg-background/50 rounded-md text-sm"
+                                            data-testid={`account-summary-${idx}`}
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-muted-foreground">{language === "fr" ? "Compte:" : "Account:"}</span>
+                                              <span className="font-medium">{item.key}</span>
+                                            </div>
+                                            {item.bill.serviceAddress && (
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-muted-foreground">{language === "fr" ? "Adresse de service:" : "Service address:"}</span>
+                                                <span className="font-medium">{item.bill.serviceAddress}</span>
+                                              </div>
+                                            )}
+                                            {item.bill.tariffCode && (
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-muted-foreground">{language === "fr" ? "Tarif:" : "Tariff:"}</span>
+                                                <span className="font-medium">{item.bill.tariffCode}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </motion.div>
+                                  );
+                                }
+                                return null;
+                              })()}
 
                             <div className="flex flex-col gap-3 pt-4">
                               <Button 
