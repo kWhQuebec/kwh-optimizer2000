@@ -1572,7 +1572,7 @@ export default function LandingPage() {
 
           {/* Total duration bracket */}
           <div className="mt-8 max-w-2xl mx-auto" data-testid="timeline-total-bracket">
-            <div className="flex items-start">
+            <div className="flex items-end">
               <div className="w-[2px] h-3" style={{ backgroundColor: BRAND.primaryBlue }} />
               <div className="flex-1 h-[2px]" style={{ backgroundColor: BRAND.primaryBlue }} />
               <div className="w-[2px] h-3" style={{ backgroundColor: BRAND.primaryBlue }} />

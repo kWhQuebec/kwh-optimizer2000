@@ -272,7 +272,7 @@ export default function CommentCaMarchePage() {
           </div>
           {/* Total duration bracket */}
           <div className="mt-10 max-w-2xl mx-auto" data-testid="timeline-total-bracket">
-            <div className="flex items-start">
+            <div className="flex items-end">
               <div className="w-[2px] h-3" style={{ backgroundColor: BRAND.primaryBlue }} />
               <div className="flex-1 h-[2px]" style={{ backgroundColor: BRAND.primaryBlue }} />
               <div className="w-[2px] h-3" style={{ backgroundColor: BRAND.primaryBlue }} />
