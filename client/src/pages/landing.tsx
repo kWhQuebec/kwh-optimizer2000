@@ -758,8 +758,8 @@ export default function LandingPage() {
                           data-testid="link-manual-entry"
                         >
                           {language === "fr" 
-                            ? "Pas de facture? Entrez votre consommation" 
-                            : "No bill? Enter your consumption"}
+                            ? "Pas de facture? Cliquez ici." 
+                            : "No bill? Click here."}
                         </button>
                       </div>
                     </motion.div>
