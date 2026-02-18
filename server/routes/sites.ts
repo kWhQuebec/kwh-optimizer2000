@@ -163,7 +163,7 @@ router.get("/list", authMiddleware, asyncHandler(async (req: AuthRequest, res) =
   // Filter by role
   const filtered = req.userRole === "admin" || req.userRole === "analyst"
     ? sites
-    : sites.filter(s => s.clientId && s.clientId === req.userId);
+    : sites.filter(s => s.clientId && s.clientId === req.userClientId);
 
   // Filter by client if specified
   let result = clientId && typeof clientId === "string"
@@ -237,7 +237,7 @@ router.get("/", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
     sites = await storage.getSites();
   }
   if (req.userRole !== "admin" && req.userRole !== "analyst") {
-    sites = sites.filter(s => s.clientId && s.clientId === req.userId);
+    sites = sites.filter(s => s.clientId && s.clientId === req.userClientId);
   }
   res.json(sites);
 }));
@@ -245,7 +245,7 @@ router.get("/", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
 router.get("/minimal", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const sites = await storage.getSitesMinimal();
   if (req.userRole !== "admin" && req.userRole !== "analyst") {
-    const filtered = sites.filter(s => s.clientId === req.userId);
+    const filtered = sites.filter(s => s.clientId === req.userClientId);
     res.json(filtered);
   } else {
     res.json(sites);
@@ -257,7 +257,7 @@ router.get("/:id", authMiddleware, asyncHandler(async (req: AuthRequest, res) =>
   if (!site) {
     throw new NotFoundError("Site");
   }
-  if (req.userRole !== "admin" && req.userRole !== "analyst" && site.clientId !== req.userId) {
+  if (req.userRole !== "admin" && req.userRole !== "analyst" && site.clientId !== req.userClientId) {
     throw new ForbiddenError("Access denied");
   }
   res.json(site);

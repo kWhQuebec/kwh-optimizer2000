@@ -479,7 +479,7 @@ const translations: Translations = {
   "analyses.years": { fr: "ans", en: "yrs" },
 
   // Client Portal
-  "portal.welcome": { fr: "Bienvenue sur votre portail", en: "Welcome to your portal" },
+  "portal.welcome": { fr: "Bienvenue sur votre portail client", en: "Welcome to your client portal" },
   "portal.subtitle": { fr: "Consultez vos analyses solaires et rapports", en: "View your solar analyses and reports" },
   "portal.noSites": { fr: "Aucun site disponible", en: "No sites available" },
   "portal.noSitesDescription": { fr: "Vos sites avec analyses apparaîtront ici.", en: "Your sites with analyses will appear here." },

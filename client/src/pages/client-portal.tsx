@@ -227,7 +227,7 @@ export default function ClientPortalPage() {
       {/* Welcome Header */}
       <div className="space-y-2">
         <h1 className="text-2xl font-bold" data-testid="text-portal-title">
-          {t("portal.welcome") || "Welcome"}, {user?.name || user?.email}
+          {t("portal.welcome") || "Welcome"}, {user?.name ? user.name.split(" ")[0] : user?.email} !
         </h1>
         <p className="text-muted-foreground">
           {user?.clientName && (
