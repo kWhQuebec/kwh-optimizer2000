@@ -520,6 +520,16 @@ export default function ClientPortalPage() {
                       </Button>
                     )}
 
+                    {/* Signed Mandate Indicator */}
+                    {site.designAgreement && site.designAgreement.status === "accepted" && (
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-green-50/50 dark:bg-green-950/20 border border-green-200 dark:border-green-800" data-testid={`document-agreement-${site.id}`}>
+                        <FileCheck className="w-4 h-4 text-green-600 shrink-0" />
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                          {language === "fr" ? "Mandat de conception signé" : "Design mandate signed"}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Actions */}
                     <div className="flex gap-2">
                       <Button asChild variant="outline" className="flex-1" data-testid={`button-view-site-${site.id}`}>
@@ -573,98 +583,6 @@ export default function ClientPortalPage() {
             })}
           </div>
         </div>
-      )}
-
-      {/* Documents Section */}
-      {normalizedSites.some(s => s.analysisAvailable) && (
-        <Card data-testid="documents-section">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              {language === "fr" ? "Vos documents" : "Your Documents"}
-            </CardTitle>
-            <CardDescription>
-              {language === "fr" 
-                ? "Téléchargez vos rapports d'analyse et ententes signées"
-                : "Download your analysis reports and signed agreements"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {normalizedSites.filter(s => s.analysisAvailable).map(site => (
-                <div 
-                  key={site.id} 
-                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                  data-testid={`document-row-${site.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded bg-primary/10">
-                      <FileText className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{site.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Rapport d'analyse solaire" : "Solar Analysis Report"}
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(`/api/sites/${site.id}/report/pdf`, {
-                          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-                        });
-                        if (!response.ok) throw new Error("Download failed");
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `${site.name || "report"}-analysis.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                      } catch (err) {
-                        console.error("Download error:", err);
-                      }
-                    }}
-                    data-testid={`button-download-report-${site.id}`}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    {language === "fr" ? "Télécharger" : "Download"}
-                  </Button>
-                </div>
-              ))}
-              
-              {normalizedSites.filter(s => s.designAgreement?.status === "accepted").map(site => (
-                <div 
-                  key={`agreement-${site.id}`} 
-                  className="flex items-center justify-between p-3 rounded-lg border bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
-                  data-testid={`document-agreement-${site.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded bg-green-100 dark:bg-green-900/50">
-                      <FileCheck className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{site.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "fr" ? "Mandat de conception préliminaire signé" : "Signed Preliminary Design Mandate"}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-green-600 border-green-300">
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    {language === "fr" ? "Signé" : "Signed"}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* Help Section */}
