@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import { sendEmail as sendEmailViaGmail } from "./gmail";
 import { sendEmailViaOutlook } from "./outlook";
 import { sendEmailViaResend } from "./resend";
@@ -8,32 +6,7 @@ import { createLogger } from "./lib/logger";
 
 const log = createLogger("EmailService");
 
-export function getLogoUrl(lang: 'fr' | 'en', baseUrl: string): string {
-  return `${baseUrl}/assets/logo-${lang}.png`;
-}
-
-/** @deprecated Use getLogoUrl() with hosted URLs instead of CID attachments */
-export function getLogoAttachment(lang: 'fr' | 'en'): { filename: string; content: string; type: string; cid: string } {
-  const logoPath = path.resolve(process.cwd(), `client/public/assets/logo-${lang}.png`);
-  try {
-    const logoBuffer = fs.readFileSync(logoPath);
-    const base64Content = logoBuffer.toString('base64');
-    return {
-      filename: 'logo.png',
-      content: base64Content,
-      type: 'image/png',
-      cid: 'logo-kwh',
-    };
-  } catch (err: any) {
-    log.error(`Failed to read logo file at ${logoPath}: ${err.message}`);
-    return {
-      filename: 'logo.png',
-      content: '',
-      type: 'image/png',
-      cid: 'logo-kwh',
-    };
-  }
-}
+export { getLogoDataUri } from "./emailLogo";
 
 // Primary: Resend (more reliable for transactional emails)
 // Fallback chain: Resend -> Gmail -> Outlook
@@ -163,7 +136,7 @@ function getScenarioLabel(key: string, offsetPercent: number, lang: 'fr' | 'en')
 }
 
 function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'en', baseUrl: string): string {
-  const logoUrl = getLogoUrl(lang, baseUrl);
+  const logoUrl = getLogoDataUri(lang);
   
   const t = {
     fr: {
@@ -577,7 +550,7 @@ export async function sendPasswordResetEmail(
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
   const loginUrl = `${baseUrl}/login`;
-  const logoUrl = getLogoUrl(language, baseUrl);
+  const logoUrl = getLogoDataUri(language);
   
   const rendered = renderEmailTemplate('passwordReset', language, {
     tempPassword,
@@ -617,7 +590,7 @@ export async function sendWelcomeEmail(
   language: 'fr' | 'en' = 'fr'
 ): Promise<{ success: boolean; error?: string }> {
   const loginUrl = `${baseUrl}/login`;
-  const logoUrl = getLogoUrl(language, baseUrl);
+  const logoUrl = getLogoDataUri(language);
   
   const rendered = renderEmailTemplate('userWelcome', language, {
     userName: data.userName || data.userEmail.split('@')[0],
@@ -649,7 +622,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   const procurationUrl = clientId 
     ? `${baseUrl}/autorisation-hq?clientId=${clientId}&lang=${lang}`
     : `${baseUrl}/autorisation-hq?lang=${lang}`;
-  const logoUrl = getLogoUrl(lang, baseUrl);
+  const logoUrl = getLogoDataUri(lang);
   
   const t = {
     fr: {

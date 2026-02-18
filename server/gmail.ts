@@ -1,6 +1,7 @@
 // Gmail integration for sending emails via Replit connector
 import { google } from 'googleapis';
 import { createLogger } from "./lib/logger";
+import { getLogoDataUri } from "./emailLogo";
 
 const log = createLogger("Gmail");
 
@@ -270,9 +271,8 @@ export function generatePortalInvitationEmail(params: {
   language: 'fr' | 'en';
   baseUrl?: string;
 }): { subject: string; htmlBody: string; textBody: string } {
-  const { clientName, contactName, email, tempPassword, portalUrl, language, baseUrl } = params;
-  const resolvedBaseUrl = baseUrl || `https://${process.env.REPLIT_DEV_DOMAIN || 'kwh.quebec'}`;
-  const logoUrl = `${resolvedBaseUrl}/assets/logo-${language}.png`;
+  const { clientName, contactName, email, tempPassword, portalUrl, language } = params;
+  const logoUrl = getLogoDataUri(language);
   
   if (language === 'fr') {
     return {
