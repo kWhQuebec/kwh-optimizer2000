@@ -1954,7 +1954,7 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                 </div>
                               </div>
 
-                              <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 mt-3">
+                              <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 mt-3 mb-5">
                                 <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                                 <p className="text-xs text-blue-700 dark:text-blue-300">
                                   {language === "fr"
