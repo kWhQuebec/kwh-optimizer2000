@@ -610,6 +610,7 @@ export default function AnalyseDetailleePage() {
       sessionStorage.removeItem('kwhquebec_savedBillPath');
       savedBillPathRef.current = null;
       setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
   });
 
