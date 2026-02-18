@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -74,6 +74,18 @@ export function GrantPortalAccessDialog({
       customMessage: "",
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        email: client.email || "",
+        contactName: client.mainContactName || "",
+        language: language as "fr" | "en",
+        customMessage: "",
+      });
+      setResult(null);
+    }
+  }, [open, client.id]);
   
   type GrantAccessResult = { success: boolean; emailSent: boolean; tempPassword?: string; error?: string; warning?: string; isResend?: boolean };
   
