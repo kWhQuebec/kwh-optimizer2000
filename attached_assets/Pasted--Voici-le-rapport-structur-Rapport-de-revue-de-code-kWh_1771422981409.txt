@@ -1,0 +1,217 @@
+
+Voici le rapport structuré :
+
+---
+
+# Rapport de revue de code — kWh Optimizer 2000
+
+## 1. Architecture
+
+### Points positifs
+- Monorepo clair : `client/`, `server/`, `shared/`
+- Abstraction `IStorage` avec implémentation `DatabaseStorage` (Drizzle)
+- Routes modulaires dans `server/routes/`
+- Lazy loading des pages protégées (46 pages)
+- Code splitting Vite (`manualChunks` pour vendor, charts, ui)
+
+### Points à améliorer
+
+**[IMPORTANT]** Dette technique — `server/storage.ts` (~2500 lignes)  
+- Contient une classe `MemoryStorage` avec `seedDefaultData()` qui n’est plus utilisée (production utilise `DatabaseStorage`).  
+- Recommandation : supprimer ou extraire `MemoryStorage` dans un fichier dédié pour tests.
+
+**[SUGGESTION]** Absence de `.env.example`  
+- `CLAUDE.md` indique qu’aucun `.env.example` n’existe.  
+- Recommandation : créer `.env.example` listant toutes les variables (ex. `DATABASE_URL`, `SESSION_SECRET`, `GOOGLE_SOLAR_API_KEY`, etc.).
+
+**[SUGGESTION]** Dépendances Replit  
+- `@replit/vite-plugin-cartographer`, `@replit/vite-plugin-dev-banner` — dépendances spécifiques à Replit.  
+- Recommandation : documenter si ces plugins sont nécessaires pour d’autres environnements.
+
+---
+
+## 2. Sécurité
+
+### [CRITIQUE] Mot de passe hashé en dur
+
+**Fichier :** `server/storage.ts` (ligne 536)
+
+```536:536:server/storage.ts
+      passwordHash: "$2b$10$s9n26vylL.JbqEVDwx9EXerv4ElQq0GO9EpyW7KiWl/EDTSO8ZL5K", // KiloWattHeureQc1$
+```
+
+- Hash bcrypt pour le mot de passe `KiloWattHeureQc1$` dans l’ancienne implémentation `MemoryStorage`.
+- Même si `DatabaseStorage` est utilisé en production, le hash et le mot de passe en clair sont exposés dans le code.
+- Action : supprimer ou remplacer ce hash par un mot de passe généré à partir de variables d’environnement.
+
+### [IMPORTANT] Variables d’environnement non validées
+
+- `process.env` est utilisé de façon dispersée sans validation centralisée.
+- Si `SESSION_SECRET` est absent, `routes.ts` throw au démarrage.
+- Recommandation : centraliser la validation dans un `config.ts` (ex. avec Zod) et faire échouer le démarrage si des variables critiques manquent.
+
+### [IMPORTANT] CSP trop permissive
+
+**Fichier :** `server/index.ts`
+
+```22:36:server/index.ts
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", ...],
+```
+
+- `'unsafe-inline'` et `'unsafe-eval'` réduisent la protection contre les attaques XSS.
+- Recommandation : restreindre progressivement (nonces, hashes) pour supprimer ces directives.
+
+### [SUGGESTION] Clés API côté client
+
+- `VITE_GOOGLE_MAPS_API_KEY` est exposée côté client (Vite).  
+- Pour Google Maps, c’est attendu pour les restrictions côté client.  
+- Recommandation : vérifier que les restrictions par domaine (HTTP referrer) sont configurées dans Google Cloud.
+
+### [SUGGESTION] `.env` absent du `.gitignore`
+
+- `.gitignore` ne contient pas `.env`.  
+- Recommandation : ajouter `.env` et `.env.local` pour éviter tout commit accidentel.
+
+### Points positifs
+- Helmet pour les headers de sécurité
+- CORS configuré
+- Rate limiting
+- JWT avec expiration (7 jours)
+- Bcrypt pour les mots de passe
+- Drizzle pour les requêtes (paramétrées)
+- `sanitizeFilename` et `validatePathWithinBase` pour limiter les path traversals
+
+---
+
+## 3. UX / UI
+
+### Points positifs
+- shadcn/ui + Tailwind
+- i18n FR/EN
+- Thème clair/sombre
+- Lazy loading des pages protégées
+- Composant `CookieConsent` présent
+
+### [IMPORTANT] Lien d’évitement non traduit
+
+**Fichier :** `client/src/App.tsx` (ligne 117)
+
+```117:117:client/src/App.tsx
+        Aller au contenu principal
+```
+
+- Texte en français uniquement pour l’accessibilité.
+- Recommandation : utiliser l’i18n pour "Aller au contenu principal" / "Skip to main content".
+
+### [SUGGESTION] Tables sans virtualisation
+
+- Tables volumineuses (`clients.tsx`, `portfolio-detail.tsx`, `pipeline.tsx`, `om-visits.tsx`, etc.) sans virtualisation.
+- Recommandation : pour des listes > 100 lignes, envisager `@tanstack/react-virtual` ou pagination côté serveur.
+
+### [SUGGESTION] États de chargement
+
+- Certaines pages utilisent des skeletons.  
+- Recommandation : généraliser l’usage de skeletons pour les requêtes lentes.
+
+---
+
+## 4. Légal / RGPD
+
+### [CRITIQUE] GA4 chargé avant consentement
+
+**Fichier :** `client/src/App.tsx` (lignes 606–607)
+
+```606:608:client/src/App.tsx
+        initGA4();
+    captureUTMParams();
+  }, []);
+```
+
+- `initGA4()` est appelé dès le chargement, sans attendre le consentement.
+- Non conforme à la Loi 25 (Québec) et au RGPD.
+- Recommandation :  
+  - charger GA4 uniquement après acceptation des cookies ;  
+  - ne pas charger GA4 si l’utilisateur refuse.
+
+### [IMPORTANT] Cookie consent non lié à GA4
+
+**Fichier :** `client/src/components/cookie-consent.tsx`
+
+- Le consentement est stocké dans `localStorage` mais n’est pas utilisé pour conditionner `initGA4()`.
+- Recommandation :  
+  - lire `kwh-cookie-consent` avant d’appeler `initGA4()` ;  
+  - charger GA4 uniquement si `accepted`.
+
+### Points positifs
+- Page `/privacy` avec Loi 25
+- Page `/conditions`
+- Politique de confidentialité FR/EN
+- Liens vers privacy/terms sur landing, formulaire, etc.
+- Mentions légales et droits (accès, rectification, effacement, portabilité, retrait)
+
+---
+
+## 5. Performance
+
+### [IMPORTANT] Limite JSON 15 MB
+
+**Fichier :** `server/index.ts`
+
+```127:128:server/index.ts
+  express.json({
+    limit: '15mb',  // Increased for base64 image uploads (visualization captures)
+```
+
+- Risque de charge mémoire et de DoS en cas d’upload massif.
+- Recommandation :  
+  - limiter la taille des uploads par endpoint ;  
+  - envisager des uploads multipart ou streaming pour les gros fichiers.
+
+### [IMPORTANT] Rate limit en dev
+
+**Fichier :** `server/middleware/rateLimiter.ts`
+
+```5:5:server/middleware/rateLimiter.ts
+  max: process.env.NODE_ENV === "development" ? 1000 : 200,
+```
+
+- 1000 requêtes/min en dev.  
+- Recommandation : garder une limite raisonnable même en dev.
+
+### [SUGGESTION] Puppeteer / PDF
+
+- Utilisation de Puppeteer pour les PDF (génération lourde).
+- Recommandation :  
+  - jobs asynchrones pour les gros PDF ;  
+  - mise en cache si possible.
+
+### [SUGGESTION] Requêtes N+1
+
+- Dans `pipelineRepo.ts`, `getPipelineStats()` fait plusieurs requêtes en boucle.
+- Recommandation : regrouper les requêtes ou utiliser des jointures.
+
+### Points positifs
+- Code splitting Vite
+- Lazy loading des pages
+- `manualChunks` pour vendor, charts, ui
+- target `es2020`
+
+---
+
+## Synthèse des priorités
+
+| Priorité   | Action |
+|-----------|--------|
+| **[CRITIQUE]** | 1. Supprimer le hash de mot de passe en dur dans `storage.ts` |
+| **[CRITIQUE]** | 2. Ne charger GA4 qu’après consentement cookies |
+| **[IMPORTANT]** | 3. Lier le consentement cookies à l’initialisation de GA4 |
+| **[IMPORTANT]** | 4. Centraliser et valider les variables d’environnement |
+| **[IMPORTANT]** | 5. Renforcer la CSP (réduire `unsafe-inline` / `unsafe-eval`) |
+| **[IMPORTANT]** | 6. Traduire le lien d’évitement |
+| **[SUGGESTION]** | 7. Créer `.env.example` et ajouter `.env` au `.gitignore` |
+| **[SUGGESTION]** | 8. Virtualiser ou paginer les grandes tables |
+| **[SUGGESTION]** | 9. Supprimer ou isoler le code mort de `MemoryStorage` |
