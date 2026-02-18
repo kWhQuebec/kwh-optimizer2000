@@ -704,8 +704,8 @@ export default function LandingPage() {
                       <div className="space-y-2 text-center">
                         <h2 className="text-xl sm:text-2xl font-semibold">
                           {language === "fr" 
-                            ? "Téléversez une facture récente (moins de 3 mois)" 
-                            : "Upload a recent bill (less than 3 months old)"}
+                            ? <>Téléversez une facture récente <span style={{ fontSize: '18px' }}>(moins de 3 mois)</span></> 
+                            : <>Upload a recent bill <span style={{ fontSize: '18px' }}>(less than 3 months old)</span></>}
                         </h2>
                         <p className="text-sm text-muted-foreground">
                           {language === "fr" 
