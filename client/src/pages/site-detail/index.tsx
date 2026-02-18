@@ -76,6 +76,7 @@ import { RoofVisualization } from "@/components/RoofVisualization";
 import { GrantPortalAccessDialog } from "@/components/grant-portal-access-dialog";
 
 import { FileUploadZone } from "./components/FileUploadZone";
+import { HQDataFetchInline } from "./components/HQDataFetchInline";
 import { FileStatusBadge } from "./components/FileStatusBadge";
 import { AnalysisParametersEditor } from "./components/AnalysisParametersEditor";
 import { StructuralConstraintsEditor } from "./components/StructuralConstraintsEditor";
@@ -1938,7 +1939,10 @@ export default function SiteDetailPage() {
           {isStaff && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{t("site.uploadFiles")}</CardTitle>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <CardTitle className="text-lg">{t("site.uploadFiles")}</CardTitle>
+                  <HQDataFetchInline siteId={site.id} onImportComplete={() => refetch()} />
+                </div>
               </CardHeader>
               <CardContent>
                 <FileUploadZone siteId={site.id} onUploadComplete={() => refetch()} />
