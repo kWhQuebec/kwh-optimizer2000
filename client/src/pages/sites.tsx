@@ -4,7 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -85,15 +87,24 @@ const siteFormSchema = z.object({
 
 type SiteFormValues = z.infer<typeof siteFormSchema>;
 
-function SiteCard({ site, onEdit, onDelete, onArchive }: { site: SiteListItem; onEdit: () => void; onDelete: () => void; onArchive: () => void }) {
+function SiteCard({ site, onEdit, onDelete, onArchive, isSelected, onToggleSelect }: { site: SiteListItem; onEdit: () => void; onDelete: () => void; onArchive: () => void; isSelected?: boolean; onToggleSelect?: (id: string) => void }) {
   const { t, language } = useI18n();
 
   return (
-    <Card className={`hover-elevate ${site.isArchived ? 'opacity-60' : ''}`}>
+    <Card className={`hover-elevate ${site.isArchived ? 'opacity-60' : ''} ${isSelected ? 'ring-2 ring-primary' : ''}`}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
             <div className="flex items-start gap-3">
+              {onToggleSelect && (
+                <div className="pt-2.5 shrink-0">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onToggleSelect(site.id)}
+                    data-testid={`checkbox-site-${site.id}`}
+                  />
+                </div>
+              )}
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Building2 className="w-5 h-5 text-primary" />
               </div>
@@ -544,6 +555,8 @@ export default function SitesPage() {
   const [editingSite, setEditingSite] = useState<SiteListItem | null>(null);
   const [page, setPage] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
+  const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -686,6 +699,58 @@ export default function SitesPage() {
     createMutation.mutate(clientId ? { ...data, clientId } : data);
   };
 
+  const toggleSiteSelection = (id: string) => {
+    setSelectedSites(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedSites.size === sites.length) {
+      setSelectedSites(new Set());
+    } else {
+      setSelectedSites(new Set(sites.map(s => s.id)));
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    const promises = Array.from(selectedSites).map(siteId => {
+      const site = sites.find(s => s.id === siteId);
+      const endpoint = site?.isArchived ? `/api/sites/${siteId}/unarchive` : `/api/sites/${siteId}/archive`;
+      return apiRequest("POST", endpoint);
+    });
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
+      toast({ title: language === "fr" ? `${selectedSites.size} site(s) archive(s)` : `${selectedSites.size} site(s) archived` });
+      setSelectedSites(new Set());
+    } catch {
+      toast({ title: language === "fr" ? "Erreur" : "Error", variant: "destructive" });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const promises = Array.from(selectedSites).map(siteId => 
+      apiRequest("DELETE", `/api/sites/${siteId}`)
+    );
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
+      toast({ title: language === "fr" ? `${selectedSites.size} site(s) supprime(s)` : `${selectedSites.size} site(s) deleted` });
+      setSelectedSites(new Set());
+      setIsBulkDeleteDialogOpen(false);
+    } catch {
+      toast({ title: language === "fr" ? "Erreur lors de la suppression" : "Error during deletion", variant: "destructive" });
+      setIsBulkDeleteDialogOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Back button and breadcrumb when viewing a specific client's sites */}
@@ -817,6 +882,18 @@ export default function SitesPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          {sites.length > 0 && (
+            <div className="flex items-center gap-2 mr-2">
+              <Checkbox
+                checked={selectedSites.size > 0 && selectedSites.size === sites.length}
+                onCheckedChange={toggleSelectAll}
+                data-testid="checkbox-select-all-sites"
+              />
+              <span className="text-sm text-muted-foreground">
+                {language === "fr" ? "Tout" : "All"}
+              </span>
+            </div>
+          )}
           <Button
             variant={showArchived ? "default" : "outline"}
             size="sm"
@@ -902,6 +979,8 @@ export default function SitesPage() {
               onEdit={() => setEditingSite(site)}
               onDelete={() => deleteMutation.mutate(site.id)}
               onArchive={() => archiveMutation.mutate({ id: site.id, isArchived: !!site.isArchived })}
+              isSelected={selectedSites.has(site.id)}
+              onToggleSelect={toggleSiteSelection}
             />
           ))}
         </div>
@@ -977,6 +1056,71 @@ export default function SitesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedSites.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border shadow-lg rounded-lg px-4 py-3 flex items-center gap-3" data-testid="bulk-action-bar">
+          <span className="text-sm font-medium" data-testid="text-selected-count">
+            {selectedSites.size} {language === "fr" ? "selectionne(s)" : "selected"}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={handleBulkArchive}
+            data-testid="button-bulk-archive"
+          >
+            <Archive className="w-3.5 h-3.5" />
+            {language === "fr" ? "Archiver" : "Archive"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-destructive"
+            onClick={() => setIsBulkDeleteDialogOpen(true)}
+            data-testid="button-bulk-delete"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {language === "fr" ? "Supprimer" : "Delete"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedSites(new Set())}
+            data-testid="button-clear-selection"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "fr" ? "Supprimer les sites selectionnes" : "Delete Selected Sites"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === "fr"
+                ? `Etes-vous sur de vouloir supprimer ${selectedSites.size} site(s) ? Cette action est irreversible.`
+                : `Are you sure you want to delete ${selectedSites.size} site(s)? This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-bulk-delete">
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleBulkDelete}
+              data-testid="button-confirm-bulk-delete"
+            >
+              {language === "fr" ? "Confirmer la suppression" : "Confirm Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

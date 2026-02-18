@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, Fragment, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import {
   ArrowLeft,
   Building2,
@@ -31,7 +31,13 @@ import {
   Scale,
   Grid3X3,
   Pencil,
-  Gift
+  Gift,
+  MoreHorizontal,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  ChevronLeft,
+  ChevronRight as ChevronRightIcon
 } from "lucide-react";
 import type { AnalysisAssumptions, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
@@ -44,6 +50,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
@@ -83,6 +95,13 @@ export default function SiteDetailPage() {
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
   const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency'>('npv');
   const [isTransitioningSimulation, setIsTransitioningSimulation] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [, setLocation] = useLocation();
 
 
   const [quickPotential, setQuickPotential] = useState<QuickPotentialResult | null>(null);
@@ -386,6 +405,81 @@ export default function SiteDetailPage() {
     saveRoofPolygonsMutation.mutate(polygons);
   };
 
+  const editSiteMutation = useMutation({
+    mutationFn: async (data: { name: string; address: string; city: string; notes: string }) => {
+      return apiRequest("PATCH", `/api/sites/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
+      setIsEditDialogOpen(false);
+      toast({ title: language === "fr" ? "Site mis a jour" : "Site updated" });
+    },
+    onError: () => {
+      toast({ title: language === "fr" ? "Erreur" : "Error", variant: "destructive" });
+    },
+  });
+
+  const archiveSiteMutation = useMutation({
+    mutationFn: async () => {
+      const endpoint = (site as any)?.isArchived ? `/api/sites/${id}/unarchive` : `/api/sites/${id}/archive`;
+      return apiRequest("POST", endpoint);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
+      const msg = (site as any)?.isArchived
+        ? (language === "fr" ? "Site desarchive" : "Site unarchived")
+        : (language === "fr" ? "Site archive" : "Site archived");
+      toast({ title: msg });
+    },
+    onError: () => {
+      toast({ title: language === "fr" ? "Erreur" : "Error", variant: "destructive" });
+    },
+  });
+
+  const deleteSiteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/sites/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites/list"] });
+      toast({ title: language === "fr" ? "Site supprime" : "Site deleted" });
+      setLocation("/app/sites");
+    },
+    onError: (error: Error) => {
+      let errorMessage = language === "fr" ? "Impossible de supprimer" : "Cannot delete";
+      try {
+        const match = error.message?.match(/^\d+:\s*(.+)$/);
+        if (match) {
+          const parsed = JSON.parse(match[1]);
+          errorMessage = parsed.error || errorMessage;
+        }
+      } catch {
+        if (error.message) errorMessage = error.message.replace(/^\d+:\s*/, '');
+      }
+      toast({ title: errorMessage, variant: "destructive" });
+    },
+  });
+
+  const { data: siblingSites = [] } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ['/api/clients', site?.clientId, 'sites'],
+    queryFn: async () => {
+      return await apiRequest<Array<{ id: string; name: string }>>("GET", `/api/clients/${site?.clientId}/sites`);
+    },
+    enabled: !!site?.clientId && isStaff,
+  });
+
+  const currentIndex = siblingSites.findIndex(s => s.id === id);
+  const prevSite = currentIndex > 0 ? siblingSites[currentIndex - 1] : null;
+  const nextSite = currentIndex < siblingSites.length - 1 ? siblingSites[currentIndex + 1] : null;
+
+  const handleBack = () => {
+    if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
+      window.history.back();
+    } else {
+      setLocation(isClient ? "/app/portal" : "/app/sites");
+    }
+  };
+
   // Show bifacial dialog when white membrane detected and not yet prompted
   useEffect(() => {
     if (site &&
@@ -533,14 +627,74 @@ export default function SiteDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-4">
-          <Link href={isClient ? "/app/portal" : "/app/sites"}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={handleBack} data-testid="button-back">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
           <div>
+            {isStaff && (
+              <Breadcrumb className="mb-2">
+                <BreadcrumbList>
+                  {site.client ? (
+                    <>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                          <Link href="/app/clients" data-testid="breadcrumb-clients">
+                            {language === "fr" ? "Clients" : "Clients"}
+                          </Link>
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                          <Link href={`/app/clients/${site.client.id}/sites`} data-testid="breadcrumb-client-name">
+                            {site.client.name}
+                          </Link>
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                          <Link href="/app/sites" data-testid="breadcrumb-sites">
+                            Sites
+                          </Link>
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                    </>
+                  ) : (
+                    <>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                          <Link href="/app/sites" data-testid="breadcrumb-sites">
+                            Sites
+                          </Link>
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                    </>
+                  )}
+                  <BreadcrumbItem>
+                    <BreadcrumbPage data-testid="breadcrumb-current">{site.name}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            )}
             <div className="flex items-center gap-3">
+              {prevSite && (
+                <Link href={`/app/sites/${prevSite.id}`}>
+                  <Button variant="ghost" size="icon" data-testid="button-prev-site" title={prevSite.name}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                </Link>
+              )}
               <h1 className="text-3xl font-bold tracking-tight">{site.name}</h1>
+              {nextSite && (
+                <Link href={`/app/sites/${nextSite.id}`}>
+                  <Button variant="ghost" size="icon" data-testid="button-next-site" title={nextSite.name}>
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </Button>
+                </Link>
+              )}
               {site.analysisAvailable ? (
                 <Badge variant="default" className="gap-1">
                   <CheckCircle2 className="w-3 h-3" />
@@ -697,8 +851,175 @@ export default function SiteDetailPage() {
               )}
             </>
           )}
+          {isStaff && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" data-testid="button-site-actions-menu">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  data-testid="menu-item-edit-site"
+                  onClick={() => {
+                    setEditName(site.name || "");
+                    setEditAddress(site.address || "");
+                    setEditCity(site.city || "");
+                    setEditNotes(site.notes || "");
+                    setIsEditDialogOpen(true);
+                  }}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  {language === "fr" ? "Modifier" : "Edit"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-testid="menu-item-archive-site"
+                  onClick={() => archiveSiteMutation.mutate()}
+                >
+                  {(site as any)?.isArchived ? (
+                    <>
+                      <ArchiveRestore className="w-4 h-4 mr-2" />
+                      {language === "fr" ? "Desarchiver" : "Unarchive"}
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="w-4 h-4 mr-2" />
+                      {language === "fr" ? "Archiver" : "Archive"}
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  data-testid="menu-item-delete-site"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {language === "fr" ? "Supprimer" : "Delete"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
+
+      {/* Edit Site Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{language === "fr" ? "Modifier le site" : "Edit Site"}</DialogTitle>
+            <DialogDescription>
+              {language === "fr" ? "Modifier les informations de base du site." : "Edit basic site information."}
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              editSiteMutation.mutate({ name: editName, address: editAddress, city: editCity, notes: editNotes });
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">{language === "fr" ? "Nom" : "Name"}</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                data-testid="input-edit-site-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">{language === "fr" ? "Adresse" : "Address"}</Label>
+              <Input
+                id="edit-address"
+                value={editAddress}
+                onChange={(e) => setEditAddress(e.target.value)}
+                data-testid="input-edit-site-address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-city">{language === "fr" ? "Ville" : "City"}</Label>
+              <Input
+                id="edit-city"
+                value={editCity}
+                onChange={(e) => setEditCity(e.target.value)}
+                data-testid="input-edit-site-city"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">{language === "fr" ? "Notes" : "Notes"}</Label>
+              <Textarea
+                id="edit-notes"
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                rows={3}
+                className="resize-none"
+                data-testid="textarea-edit-site-notes"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} data-testid="button-cancel-edit-site">
+                {language === "fr" ? "Annuler" : "Cancel"}
+              </Button>
+              <Button type="submit" disabled={editSiteMutation.isPending} data-testid="button-save-edit-site">
+                {editSiteMutation.isPending
+                  ? (language === "fr" ? "Enregistrement..." : "Saving...")
+                  : (language === "fr" ? "Enregistrer" : "Save")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Site Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "fr" ? "Supprimer le site" : "Delete Site"}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  {language === "fr"
+                    ? `Etes-vous sur de vouloir supprimer le site "${site.name}" ? Cette action est irreversible.`
+                    : `Are you sure you want to delete the site "${site.name}"? This action cannot be undone.`}
+                </p>
+                <div className="rounded-lg border p-3 space-y-1 text-sm">
+                  <p data-testid="text-delete-simulation-count">
+                    {language === "fr" ? "Simulations" : "Simulation runs"}: <strong>{site.simulationRuns?.length || 0}</strong>
+                  </p>
+                  <p data-testid="text-delete-meter-count">
+                    {language === "fr" ? "Fichiers de compteur" : "Meter files"}: <strong>{site.meterFiles?.length || 0}</strong>
+                  </p>
+                  <p data-testid="text-delete-polygon-count">
+                    {language === "fr" ? "Zones de toit" : "Roof polygons"}: <strong>{roofPolygons.length}</strong>
+                  </p>
+                </div>
+                <p className="font-medium text-destructive">
+                  {language === "fr"
+                    ? "Toutes les donnees associees seront definitivement supprimees."
+                    : "All associated data will be permanently deleted."}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-site">
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteSiteMutation.mutate()}
+              disabled={deleteSiteMutation.isPending}
+              data-testid="button-confirm-delete-site"
+            >
+              {deleteSiteMutation.isPending
+                ? (language === "fr" ? "Suppression..." : "Deleting...")
+                : (language === "fr" ? "Confirmer la suppression" : "Confirm Delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Roof Validation Required Alert Banner */}
       {site.roofAreaValidated !== true && (
