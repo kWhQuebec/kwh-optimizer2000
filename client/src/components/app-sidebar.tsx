@@ -30,7 +30,8 @@ import {
   Settings,
   Settings2,
   BookOpen,
-  FileEdit
+  FileEdit,
+  Download
 } from "lucide-react";
 import {
   Sidebar,
@@ -188,6 +189,12 @@ export function AppSidebar() {
       url: "/app/procurations",
       icon: FileSignature,
       tooltip: language === "fr" ? "Autorisations d'accès aux données Hydro-Québec" : "Hydro-Québec data access authorizations",
+    },
+    {
+      title: language === "fr" ? "Récupération Hydro-Québec" : "Hydro-Québec Data Retrieval",
+      url: "/app/admin/hq-data",
+      icon: Download,
+      tooltip: language === "fr" ? "Télécharger les données de consommation depuis le portail Hydro-Québec" : "Download consumption data from the Hydro-Québec portal",
     },
     {
       title: language === "fr" ? "Contenu" : "Content",

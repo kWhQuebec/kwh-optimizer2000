@@ -98,6 +98,7 @@ import workQueueRouter from "./routes/work-queue";
 import rackingComparisonRouter from "./routes/racking-comparison";
 import qualificationRouter from "./routes/qualification";
 import benchmarkRouter from "./routes/benchmarks";
+import hqDataRouter from "./routes/hq-data";
 
 const JWT_SECRET = env.SESSION_SECRET;
 const upload = multer({ 
@@ -349,6 +350,9 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
 
   // ==================== QUALIFICATION ROUTES ====================
   app.use(qualificationRouter);
+
+  // ==================== HQ DATA ROUTES ====================
+  app.use(hqDataRouter);
 
   // ==================== ROOF POLYGON STANDALONE ROUTES ====================
   // PUT /api/roof-polygons/:id and DELETE /api/roof-polygons/:id are handled via sitesRouter

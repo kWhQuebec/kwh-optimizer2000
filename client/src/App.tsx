@@ -69,6 +69,7 @@ const MarketIntelligencePricingPage = lazy(() => import("@/pages/market-intellig
 const WorkQueuePage = lazy(() => import("@/pages/work-queue"));
 const ContentManager = lazy(() => import("@/pages/content-manager"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin-settings"));
+const HQDataFetchPage = lazy(() => import("@/pages/hq-data-fetch"));
 const CallScriptPage = lazy(() => import("@/pages/call-script"));
 const ConversionDashboardPage = lazy(() => import("@/pages/conversion-dashboard"));
 const LcoeComparisonPage = lazy(() => import("@/pages/lcoe-comparison"));
@@ -497,6 +498,17 @@ function AppRoutes() {
           <AppLayout>
             <Suspense fallback={<PageLoader />}>
               <AdminSettingsPage />
+            </Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* HQ Data Retrieval */}
+      <Route path="/app/admin/hq-data">
+        <ProtectedRoute>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <HQDataFetchPage />
             </Suspense>
           </AppLayout>
         </ProtectedRoute>
