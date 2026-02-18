@@ -64,6 +64,37 @@ export default function BlogArticlePage() {
   const content = language === "fr" ? article.contentFr : article.contentEn;
   const metaDescription = language === "fr" ? article.metaDescriptionFr : article.metaDescriptionEn;
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": language === "fr" ? "Accueil" : "Home", "item": "https://www.kwh.quebec/" },
+      { "@type": "ListItem", "position": 2, "name": language === "fr" ? "Ressources" : "Resources", "item": "https://www.kwh.quebec/blog" },
+      { "@type": "ListItem", "position": 3, "name": title, "item": `https://www.kwh.quebec/blog/${slug}` }
+    ]
+  };
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    description: metaDescription || title,
+    author: {
+      "@type": "Organization",
+      name: article.authorName || "kWh Québec"
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "kWh Québec"
+    },
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt || article.publishedAt,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${window.location.origin}/blog/${slug}`
+    }
+  };
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -84,26 +115,7 @@ export default function BlogArticlePage() {
         locale={language}
         keywords={article.keywords?.join(", ")}
         canonical={`${window.location.origin}/blog/${slug}`}
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "Article",
-          headline: title,
-          description: metaDescription || title,
-          author: {
-            "@type": "Organization",
-            name: article.authorName || "kWh Québec"
-          },
-          publisher: {
-            "@type": "Organization",
-            name: "kWh Québec"
-          },
-          datePublished: article.publishedAt,
-          dateModified: article.updatedAt || article.publishedAt,
-          mainEntityOfPage: {
-            "@type": "WebPage",
-            "@id": `${window.location.origin}/blog/${slug}`
-          }
-        }}
+        structuredData={[articleSchema, breadcrumbSchema]}
       />
       
       <div className="min-h-screen bg-background">

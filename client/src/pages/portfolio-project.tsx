@@ -214,6 +214,16 @@ export default function PortfolioProjectPage() {
     ? `${project.roofAreaSqM.toLocaleString()} ${t.sqm}` 
     : null;
   
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": language === "fr" ? "Accueil" : "Home", "item": "https://www.kwh.quebec/" },
+      { "@type": "ListItem", "position": 2, "name": "Portfolio", "item": "https://www.kwh.quebec/portfolio" },
+      { "@type": "ListItem", "position": 3, "name": project.city || (language === "fr" ? "Projet solaire" : "Solar project"), "item": `https://www.kwh.quebec/portfolio/${project.id}` }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
@@ -222,6 +232,7 @@ export default function PortfolioProjectPage() {
           ? `Projet solaire à ${project.city || "Québec"} - ${systemSizeDisplay || "Installation solaire commerciale"}`
           : `Solar project in ${project.city || "Quebec"} - ${systemSizeDisplay || "Commercial solar installation"}`
         }
+        structuredData={[breadcrumbSchema]}
       />
       <PublicHeader />
       

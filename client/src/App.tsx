@@ -16,6 +16,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { AIChatWidget } from "@/components/ai-chat-widget";
+import { CookieConsent } from "@/components/cookie-consent";
 
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
@@ -612,6 +613,7 @@ function App() {
         <AuthProvider>
           <TooltipProvider>
             <ScrollToTop />
+            <CookieConsent />
             <Toaster />
             <AppRoutes />
           </TooltipProvider>

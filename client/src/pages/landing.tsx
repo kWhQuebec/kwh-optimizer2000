@@ -561,6 +561,8 @@ export default function LandingPage() {
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${installationPhoto})` }}
+          role="img"
+          aria-label={language === "fr" ? "Installation de panneaux solaires sur un toit commercial au Quebec" : "Solar panel installation on a commercial rooftop in Quebec"}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
         

@@ -6,4 +6,4 @@ Disallow: /admin/
 Disallow: /login
 Disallow: /register
 
-Sitemap: https://kwhquebec.ca/sitemap.xml
+Sitemap: https://www.kwh.quebec/sitemap.xml
