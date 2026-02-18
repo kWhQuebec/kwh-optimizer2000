@@ -4,7 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown, ChevronLeft, ChevronRight, FileSignature } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, Copy, Check, ChevronDown, ChevronLeft, ChevronRight, FileSignature, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -491,15 +493,24 @@ function SendHqProcurationDialog({
   );
 }
 
-function ClientCard({ client, onEdit, onDelete, onGrantAccess, onSendHqProcuration }: { client: ClientWithSites; onEdit: () => void; onDelete: () => void; onGrantAccess: () => void; onSendHqProcuration: () => void }) {
+function ClientCard({ client, onEdit, onDelete, onGrantAccess, onSendHqProcuration, isSelected, onToggleSelect }: { client: ClientWithSites; onEdit: () => void; onDelete: () => void; onGrantAccess: () => void; onSendHqProcuration: () => void; isSelected?: boolean; onToggleSelect?: (id: string) => void }) {
   const { t } = useI18n();
 
   return (
-    <Card className="hover-elevate">
+    <Card className={`hover-elevate ${isSelected ? 'ring-2 ring-primary' : ''}`}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-3">
+              {onToggleSelect && (
+                <div className="pt-2.5 shrink-0">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onToggleSelect(client.id)}
+                    data-testid={`checkbox-client-${client.id}`}
+                  />
+                </div>
+              )}
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Users className="w-5 h-5 text-primary" />
               </div>
@@ -799,6 +810,8 @@ export default function ClientsPage() {
   const [portalAccessClient, setPortalAccessClient] = useState<ClientWithSites | null>(null);
   const [hqProcurationClient, setHqProcurationClient] = useState<ClientWithSites | null>(null);
   const [page, setPage] = useState(0);
+  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -880,6 +893,54 @@ export default function ClientsPage() {
     },
   });
 
+  const toggleClientSelection = (id: string) => {
+    setSelectedClients(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedClients.size === clients.length) {
+      setSelectedClients(new Set());
+    } else {
+      setSelectedClients(new Set(clients.map(c => c.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await Promise.all(
+        Array.from(selectedClients).map(id =>
+          apiRequest("DELETE", `/api/clients/${id}`)
+        )
+      );
+      await queryClient.invalidateQueries({ queryKey: ["/api/clients/list"] });
+      toast({
+        title: language === "fr" ? "Clients supprimés" : "Clients deleted",
+        description: language === "fr"
+          ? `${selectedClients.size} client(s) supprimé(s) avec succès.`
+          : `${selectedClients.size} client(s) deleted successfully.`,
+      });
+      setSelectedClients(new Set());
+      setIsBulkDeleteDialogOpen(false);
+    } catch {
+      toast({
+        title: language === "fr" ? "Erreur" : "Error",
+        description: language === "fr"
+          ? "Certains clients n'ont pas pu être supprimés."
+          : "Some clients could not be deleted.",
+        variant: "destructive",
+      });
+      setIsBulkDeleteDialogOpen(false);
+    }
+  };
+
   const handleCreate = (data: ClientFormValues) => {
     createMutation.mutate(data);
   };
@@ -909,6 +970,18 @@ export default function ClientsPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          {clients.length > 0 && (
+            <div className="flex items-center gap-2 mr-2">
+              <Checkbox
+                checked={selectedClients.size > 0 && selectedClients.size === clients.length}
+                onCheckedChange={toggleSelectAll}
+                data-testid="checkbox-select-all-clients"
+              />
+              <span className="text-sm text-muted-foreground">
+                {language === "fr" ? "Tout" : "All"}
+              </span>
+            </div>
+          )}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2" data-testid="button-add-client">
@@ -960,6 +1033,8 @@ export default function ClientsPage() {
               onDelete={() => deleteMutation.mutate(client.id)}
               onGrantAccess={() => setPortalAccessClient(client)}
               onSendHqProcuration={() => setHqProcurationClient(client)}
+              isSelected={selectedClients.has(client.id)}
+              onToggleSelect={toggleClientSelection}
             />
           ))}
         </div>
@@ -1043,6 +1118,59 @@ export default function ClientsPage() {
           onOpenChange={(open) => !open && setHqProcurationClient(null)}
         />
       )}
+
+      {selectedClients.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border shadow-lg rounded-lg px-4 py-3 flex items-center gap-3" data-testid="bulk-action-bar-clients">
+          <span className="text-sm font-medium" data-testid="text-selected-clients-count">
+            {selectedClients.size} {language === "fr" ? "sélectionné(s)" : "selected"}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-destructive"
+            onClick={() => setIsBulkDeleteDialogOpen(true)}
+            data-testid="button-bulk-delete-clients"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {language === "fr" ? "Supprimer" : "Delete"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedClients(new Set())}
+            data-testid="button-clear-client-selection"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "fr" ? "Supprimer les clients sélectionnés" : "Delete Selected Clients"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === "fr"
+                ? `Êtes-vous sûr de vouloir supprimer ${selectedClients.size} client(s) ? Cette action est irréversible.`
+                : `Are you sure you want to delete ${selectedClients.size} client(s)? This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-bulk-delete-clients">
+              {language === "fr" ? "Annuler" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleBulkDelete}
+              data-testid="button-confirm-bulk-delete-clients"
+            >
+              {language === "fr" ? "Confirmer la suppression" : "Confirm Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
