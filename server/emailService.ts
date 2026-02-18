@@ -546,8 +546,8 @@ export async function sendPasswordResetEmail(
   tempPassword: string,
   language: 'fr' | 'en' = 'fr'
 ): Promise<{ success: boolean; error?: string }> {
-  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-  const host = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000';
+  const host = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
   const loginUrl = `${baseUrl}/login`;
   const logoUrl = `${baseUrl}/assets/${language === 'fr' ? 'logo-fr.png' : 'logo-en.png'}`;

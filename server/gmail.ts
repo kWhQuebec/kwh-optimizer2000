@@ -258,8 +258,8 @@ export function generatePortalInvitationEmail(params: {
 }): { subject: string; htmlBody: string; textBody: string } {
   const { clientName, contactName, email, tempPassword, portalUrl, language } = params;
   
-  // Extract base URL for logo
-  const baseUrl = portalUrl.replace(/\/app\/.*$/, '').replace(/\/$/, '');
+  const urlObj = new URL(portalUrl);
+  const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
   const logoUrl = language === 'fr' 
     ? `${baseUrl}/assets/logo-fr.png`
     : `${baseUrl}/assets/logo-en.png`;
