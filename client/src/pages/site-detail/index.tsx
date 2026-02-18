@@ -93,7 +93,7 @@ export default function SiteDetailPage() {
   const { t, language } = useI18n();
   const { toast } = useToast();
   const { isStaff, isClient, token } = useAuth();
-  const [activeTab, setActiveTab] = useState("consumption");
+  const [activeTab, setActiveTab] = useState("quick-analysis");
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
   const assumptionsInitializedRef = useRef(false);
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
@@ -698,6 +698,39 @@ export default function SiteDetailPage() {
   const isFullDataLoaded = useCallback((simId: string): boolean => {
     return fullSimulationRuns.has(simId);
   }, [fullSimulationRuns]);
+
+  const getStepStatus = useCallback((stepValue: string): "complete" | "available" | "pending" => {
+    const hasConsumptionData = (site?.meterFiles?.length ?? 0) > 0;
+    const hasAnalysis = !!latestSimulation;
+    const hasDesignAgreement = !!designAgreement;
+
+    switch (stepValue) {
+      case "quick-analysis":
+        return (quickPotential || site?.roofAreaValidated) ? "complete" : "pending";
+      case "consumption":
+        return hasConsumptionData ? "complete" : "pending";
+      case "analysis":
+        return hasAnalysis ? "complete" : hasConsumptionData ? "available" : "pending";
+      case "design-agreement":
+        return hasDesignAgreement ? "complete" : hasAnalysis ? "available" : "pending";
+      case "site-visit":
+        return hasAnalysis ? "available" : "pending";
+      default:
+        return "pending";
+    }
+  }, [site, latestSimulation, designAgreement, quickPotential]);
+
+  const workflowSteps = [
+    { value: "quick-analysis", label: language === "fr" ? "Analyse rapide" : "Quick Analysis", stepNum: 1 },
+    { value: "consumption", label: language === "fr" ? "Données de consommation" : "Consumption Data", stepNum: 2 },
+    { value: "analysis", label: language === "fr" ? "Validation économique" : "Economic Validation", stepNum: 3 },
+    { value: "design-agreement", label: language === "fr" ? "Mandat" : "Mandate", stepNum: 4 },
+    { value: "site-visit", label: language === "fr" ? "Validation technique" : "Technical Validation", stepNum: 5 },
+    { value: "epc-proposal", label: language === "fr" ? "Proposition EPC" : "EPC Proposal", stepNum: 6 },
+    { value: "plans-specs", label: language === "fr" ? "Plans & devis" : "Plans & Specs", stepNum: 7 },
+    { value: "permits", label: language === "fr" ? "Permis" : "Permits", stepNum: 8 },
+    { value: "operations", label: language === "fr" ? "O&M" : "O&M", stepNum: 9 },
+  ];
 
   if (isLoading) {
     return (
@@ -1363,125 +1396,6 @@ export default function SiteDetailPage() {
         </Collapsible>
       )}
 
-      {/* Hydro-Québec Meters Section */}
-      {isStaff && (
-        <Card data-testid="section-hq-meters">
-          <CardHeader className="py-3">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Gauge className="w-5 h-5 text-primary" />
-                <CardTitle className="text-lg">
-                  {language === "fr" ? "Compteurs Hydro-Québec" : "Hydro-Québec Meters"}
-                </CardTitle>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setEditingMeter(null);
-                  setMeterAccountNumber("");
-                  setMeterLabel("");
-                  setMeterIsPrimary(false);
-                  setIsMeterDialogOpen(true);
-                }}
-                data-testid="button-add-meter"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                {language === "fr" ? "Ajouter" : "Add"}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {metersLoading ? (
-              <Skeleton className="h-16 w-full" />
-            ) : meters.length === 0 ? (
-              <p className="text-sm text-muted-foreground" data-testid="text-no-meters">
-                {language === "fr" ? "Aucun compteur enregistré." : "No meters registered."}
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{language === "fr" ? "Numéro de compte" : "Account Number"}</TableHead>
-                      <TableHead>{language === "fr" ? "Étiquette" : "Label"}</TableHead>
-                      <TableHead>{language === "fr" ? "Procuration" : "Procuration"}</TableHead>
-                      <TableHead className="text-right">{language === "fr" ? "Actions" : "Actions"}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {meters.map((meter) => (
-                      <TableRow key={meter.id} data-testid={`row-meter-${meter.id}`}>
-                        <TableCell data-testid={`text-meter-account-${meter.id}`}>
-                          <span className="font-mono">{meter.accountNumber}</span>
-                          {meter.isPrimary && (
-                            <Badge variant="secondary" className="ml-2" data-testid={`badge-primary-${meter.id}`}>
-                              {language === "fr" ? "Principal" : "Primary"}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell data-testid={`text-meter-label-${meter.id}`}>
-                          {meter.label || "—"}
-                        </TableCell>
-                        <TableCell data-testid={`text-meter-status-${meter.id}`}>
-                          {(() => {
-                            const status = meter.procurationStatus || "none";
-                            switch (status) {
-                              case "signed": return <Badge variant="default" className="bg-green-600">{language === "fr" ? "Signée" : "Signed"}</Badge>;
-                              case "sent": return <Badge variant="default">{language === "fr" ? "Envoyée" : "Sent"}</Badge>;
-                              default: return <Badge variant="outline">{language === "fr" ? "Non envoyée" : "Not sent"}</Badge>;
-                            }
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => {
-                                setProcurationMeterId(meter.id);
-                                setIsHqProcurationDialogOpen(true);
-                              }}
-                              data-testid={`button-send-procuration-${meter.id}`}
-                              title={language === "fr" ? "Envoyer procuration" : "Send procuration"}
-                            >
-                              <Send className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingMeter(meter);
-                                setMeterAccountNumber(meter.accountNumber);
-                                setMeterLabel(meter.label || "");
-                                setMeterIsPrimary(meter.isPrimary || false);
-                                setIsMeterDialogOpen(true);
-                              }}
-                              data-testid={`button-edit-meter-${meter.id}`}
-                              title={language === "fr" ? "Modifier" : "Edit"}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setDeletingMeterId(meter.id)}
-                              data-testid={`button-delete-meter-${meter.id}`}
-                              title={language === "fr" ? "Supprimer" : "Delete"}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Meter Add/Edit Dialog */}
       <Dialog open={isMeterDialogOpen} onOpenChange={(open) => { if (!open) { setIsMeterDialogOpen(false); setEditingMeter(null); } }}>
         <DialogContent data-testid="dialog-meter-form">
@@ -1579,333 +1493,55 @@ export default function SiteDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Quick Potential Results Card */}
-      {quickPotential && (
-        <Card className="border-primary/30 bg-primary/5" data-testid="card-quick-potential">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Zap className="w-5 h-5 text-primary" />
-                {language === "fr" ? "Potentiel solaire estimé" : "Estimated Solar Potential"}
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setQuickPotential(null); setGeometryCapacity(null); }}
-                data-testid="button-close-quick-potential"
-              >
-                <XCircle className="w-4 h-4" />
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {language === "fr"
-                ? "Analyse basée uniquement sur la surface de toit dessinée. L'analyse complète nécessite les données de consommation."
-                : "Analysis based only on drawn roof area. Full analysis requires consumption data."}
-            </p>
-
-            {/* Structural Warning Banner */}
-            {(site.structuralPassStatus === "no" || site.structuralPassStatus === "partial" || site.structuralBallastRemoval === "yes" || site.structuralNotes) && (
-              <div className="flex items-start gap-2 mt-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800" data-testid="alert-structural-warning">
-                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium text-amber-800 dark:text-amber-300">
-                    {language === "fr" ? "Avertissement structurel" : "Structural Warning"}
-                  </p>
-                  <p className="text-amber-700 dark:text-amber-400/80 mt-0.5">
-                    {site.structuralPassStatus === "no"
-                      ? (language === "fr"
-                          ? "La structure existante ne supporte pas le poids ballast requis. Une analyse par ingénieur recommandée."
-                          : "Existing structure cannot support required ballast weight. Engineer analysis recommended.")
-                      : site.structuralPassStatus === "partial"
-                      ? (language === "fr"
-                          ? "Capacité structurelle partielle. Certaines zones du toit peuvent nécessiter un renforcement."
-                          : "Partial structural capacity. Some roof areas may require reinforcement.")
-                      : site.structuralBallastRemoval === "yes"
-                      ? (language === "fr"
-                          ? "Retrait de ballast existant requis avant installation."
-                          : "Existing ballast removal required before installation.")
-                      : (language === "fr"
-                          ? "Contraintes structurelles notées. Consultez les détails ci-dessous."
-                          : "Structural constraints noted. See details below.")}
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const displayedCapacityKW = geometryCapacity?.realisticCapacityKW ?? Math.round(quickPotential.systemSizing.maxCapacityKW * 0.9);
-              const displayedPanelCount = geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels;
-
-              const costPerW = quickPotential.financial.costPerW || 2.00;
-              const displayedCapex = Math.round(displayedCapacityKW * 1000 * costPerW);
-              const yieldKWhPerKWp = quickPotential.production.yieldKWhPerKWp || 1039;
-              const displayedProductionKWh = Math.round(displayedCapacityKW * yieldKWhPerKWp);
-
-              const displayedHqIncentive = Math.min(displayedCapacityKW * 1000, displayedCapex * 0.40);
-              const displayedFederalItc = Math.round((displayedCapex - displayedHqIncentive) * 0.30);
-              const displayedNetCapex = displayedCapex - displayedHqIncentive - displayedFederalItc;
-
-              const energyRate = 0.06;
-              const displayedAnnualSavings = Math.round(displayedProductionKWh * energyRate);
-              const displayedPaybackYears = displayedAnnualSavings > 0 ? displayedNetCapex / displayedAnnualSavings : 0;
-
-              return (
-            <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Sun className="w-4 h-4" />
-                  {language === "fr" ? "Capacité estimée" : "Estimated Capacity"}
-                </div>
-                <div className="text-2xl font-bold text-foreground">
-                  {formatSmartPower(displayedCapacityKW, language, 'kWc')}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formatNumber(displayedPanelCount, language)} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Zap className="w-4 h-4" />
-                  {language === "fr" ? "Production annuelle" : "Annual Production"}
-                </div>
-                <div className="text-2xl font-bold text-foreground">
-                  {formatSmartEnergy(displayedProductionKWh, language)}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formatNumber(yieldKWhPerKWp, language)} kWh/kWc
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <DollarSign className="w-4 h-4" />
-                  {language === "fr" ? "Investissement estimé" : "Estimated Investment"}
-                </div>
-                <div className="text-2xl font-bold text-foreground">
-                  {formatSmartCurrency(displayedCapex, language)}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  ${costPerW.toFixed(2)}/W
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <TrendingUp className="w-4 h-4" />
-                  {language === "fr" ? "Retour simple" : "Simple Payback"}
-                </div>
-                <div className="text-2xl font-bold text-foreground">
-                  {displayedPaybackYears.toFixed(1)} {language === "fr" ? "ans" : "years"}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  ~{formatSmartCurrency(displayedAnnualSavings, language)}/{language === "fr" ? "an" : "year"}
-                </div>
-              </div>
-            </div>
-
-            {/* VAN and TRI 25 years */}
-            {displayedNetCapex > 0 && displayedAnnualSavings > 0 && (() => {
-              const discountRate = 0.06;
-              const years = 25;
-              let npv = -displayedNetCapex;
-              for (let y = 1; y <= years; y++) {
-                npv += displayedAnnualSavings / Math.pow(1 + discountRate, y);
-              }
-              let irr = 0.10;
-              for (let iter = 0; iter < 50; iter++) {
-                let npvCalc = -displayedNetCapex;
-                let npvDerivative = 0;
-                for (let y = 1; y <= years; y++) {
-                  npvCalc += displayedAnnualSavings / Math.pow(1 + irr, y);
-                  npvDerivative -= y * displayedAnnualSavings / Math.pow(1 + irr, y + 1);
-                }
-                if (Math.abs(npvCalc) < 1) break;
-                irr = irr - npvCalc / npvDerivative;
-                if (irr < 0) irr = 0.001;
-                if (irr > 1) irr = 0.999;
-              }
-              return (
-                <div className="flex gap-6 mt-3 pt-3 border-t border-border/50">
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-muted-foreground">
-                      {language === "fr" ? "VAN 25 ans (6%)" : "NPV 25 yrs (6%)"}
-                    </div>
-                    <div className={`text-lg font-bold ${npv >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatSmartCurrency(npv, language)}
-                    </div>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-muted-foreground">
-                      {language === "fr" ? "TRI 25 ans" : "IRR 25 yrs"}
-                    </div>
-                    <div className="text-lg font-bold text-primary">
-                      {(irr * 100).toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Incentives breakdown */}
-            {displayedHqIncentive > 0 && (
-              <div className="mt-4 pt-4 border-t border-border/50" data-testid="quick-analysis-incentives">
-                <div className="text-sm font-medium mb-2 flex items-center gap-1.5">
-                  <Gift className="w-4 h-4 text-green-600" />
-                  {language === "fr" ? "Incitatifs estimés" : "Estimated Incentives"}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-hq">
-                    <div className="text-xs text-muted-foreground">Hydro-Québec</div>
-                    <div className="font-semibold text-green-700 dark:text-green-400">
-                      {formatSmartCurrency(displayedHqIncentive, language)}
-                    </div>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-federal">
-                    <div className="text-xs text-muted-foreground">{language === "fr" ? "Crédit fédéral (30%)" : "Federal ITC (30%)"}</div>
-                    <div className="font-semibold text-green-700 dark:text-green-400">
-                      {formatSmartCurrency(displayedFederalItc, language)}
-                    </div>
-                  </div>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3" data-testid="incentive-net">
-                    <div className="text-xs text-muted-foreground">{language === "fr" ? "Investissement net" : "Net Investment"}</div>
-                    <div className="font-semibold text-blue-700 dark:text-blue-400">
-                      {formatSmartCurrency(displayedNetCapex, language)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            </>
-              );
-            })()}
-
-            {/* Roof info */}
-            <div className="mt-4 pt-4 border-t border-border/50">
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Grid3X3 className="w-4 h-4" />
-                  {language === "fr" ? "Surface totale:" : "Total area:"} {formatNumber(quickPotential.roofAnalysis.totalRoofAreaSqM, language)} m²
-                </span>
-                <span>
-                  {language === "fr" ? "Surface utilisable:" : "Usable area:"} {formatNumber(quickPotential.roofAnalysis.usableRoofAreaSqM, language)} m² ({Math.round(quickPotential.roofAnalysis.utilizationRatio * 100)}%)
-                </span>
-                <span>
-                  {quickPotential.roofAnalysis.polygonCount} {language === "fr" ? "zone(s) de toit" : "roof zone(s)"}
-                </span>
-                {quickPotential.roofAnalysis.constraintFactor !== undefined && (
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                    {language === "fr" ? "Contraintes:" : "Constraints:"} {Math.round(quickPotential.roofAnalysis.constraintFactor * 100)}%
-                  </span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Roof Visualization with Panels - Quick Potential mode */}
-      {quickPotential && !latestSimulation && site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-        <RoofVisualization
-          siteId={id!}
-          siteName={site.name}
-          address={site.address || ""}
-          latitude={site.latitude}
-          longitude={site.longitude}
-          roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764}
-          maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
-          onGeometryCalculated={setGeometryCapacity}
-          onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
-        />
-      )}
-
-      {/* Process Tabs with progression indicators */}
+      {/* Process Tabs with workflow stepper */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="flex flex-wrap items-center gap-2" role="presentation">
-          <div className="flex flex-wrap items-center bg-muted/50 rounded-lg p-1 gap-1 flex-1">
+          <div className="flex items-center gap-1 flex-1 overflow-x-auto py-1">
             {(() => {
-              const hasConsumptionData = (site.meterFiles?.length ?? 0) > 0;
-              const hasAnalysis = !!latestSimulation;
-              const hasDesignAgreement = !!designAgreement;
+              const staffOnlyValues = ["site-visit", "design-agreement", "epc-proposal", "plans-specs", "permits", "operations"];
+              const visibleSteps = workflowSteps.filter(s => isStaff || !staffOnlyValues.includes(s.value));
 
-              const tabs = [
-                {
-                  value: "consumption",
-                  label: t("site.consumption"),
-                  showAlways: true,
-                  status: hasConsumptionData ? "complete" : "pending"
-                },
-                {
-                  value: "analysis",
-                  label: t("analysis.title"),
-                  showAlways: true,
-                  status: hasAnalysis ? "complete" : hasConsumptionData ? "available" : "pending"
-                },
-                {
-                  value: "site-visit",
-                  label: language === "fr" ? "Visite technique" : "Technical Visit",
-                  showAlways: false,
-                  status: hasAnalysis ? "available" : "pending"
-                },
-                {
-                  value: "design-agreement",
-                  label: language === "fr" ? "Mandat de conception préliminaire" : "Preliminary Design Mandate",
-                  showAlways: false,
-                  status: hasDesignAgreement ? "complete" : hasAnalysis ? "available" : "pending"
-                },
-                {
-                  value: "benchmark",
-                  label: "Benchmark",
-                  showAlways: false,
-                  status: hasAnalysis ? "available" : "pending"
-                },
-              ];
+              return visibleSteps.map((step, visibleIndex) => {
+                const status = getStepStatus(step.value);
+                const isActive = activeTab === step.value;
 
-              const visibleTabs = tabs.filter(tab => tab.showAlways || isStaff);
-
-              const getStatusIcon = (status: string) => {
-                switch (status) {
-                  case "complete":
-                    return <CircleCheck className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />;
-                  case "available":
-                    return <CircleDot className="w-3.5 h-3.5 text-blue-500" />;
-                  default:
-                    return <Circle className="w-3.5 h-3.5 text-muted-foreground/50" />;
-                }
-              };
-
-              return visibleTabs.map((tab, index) => (
-                <Fragment key={tab.value}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={`
-                      inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium
-                      ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-                      ${activeTab === tab.value
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
-                      }
-                    `}
-                    data-testid={`tab-${tab.value}`}
-                    title={
-                      tab.status === "complete"
-                        ? (language === "fr" ? "Complété" : "Completed")
-                        : tab.status === "available"
-                        ? (language === "fr" ? "Disponible" : "Available")
-                        : (language === "fr" ? "En attente" : "Pending")
-                    }
-                  >
-                    {getStatusIcon(tab.status)}
-                    {tab.label}
-                  </button>
-                  {index < visibleTabs.length - 1 && (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
-                  )}
-                </Fragment>
-              ));
+                return (
+                  <Fragment key={step.value}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(step.value)}
+                      className={`
+                        inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium
+                        ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+                        ${isActive
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                        }
+                      `}
+                      data-testid={`tab-${step.value}`}
+                      title={step.label}
+                    >
+                      <span className={`
+                        inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0
+                        ${status === "complete"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400"
+                          : status === "available"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
+                          : isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                        }
+                      `}>
+                        {status === "complete" ? <CircleCheck className="w-3.5 h-3.5" /> : step.stepNum}
+                      </span>
+                      {isActive && <span>{step.label}</span>}
+                    </button>
+                    {visibleIndex < visibleSteps.length - 1 && (
+                      <div className={`w-4 h-px shrink-0 ${status === "complete" ? "bg-green-400" : "bg-border"}`} aria-hidden="true" />
+                    )}
+                  </Fragment>
+                );
+              });
             })()}
           </div>
 
@@ -1914,7 +1550,7 @@ export default function SiteDetailPage() {
               variant={activeTab === "activities" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setActiveTab("activities")}
-              className="gap-1.5"
+              className="gap-1.5 shrink-0"
               data-testid="tab-activities"
               title={language === "fr" ? "Historique des activités" : "Activity History"}
             >
@@ -1924,16 +1560,380 @@ export default function SiteDetailPage() {
           )}
         </div>
 
-        {/* Hidden TabsList for Radix state management */}
         <TabsList className="sr-only">
+          <TabsTrigger value="quick-analysis">{language === "fr" ? "Analyse rapide" : "Quick Analysis"}</TabsTrigger>
           <TabsTrigger value="consumption">{t("site.consumption")}</TabsTrigger>
           <TabsTrigger value="analysis">{t("analysis.title")}</TabsTrigger>
-          {isStaff && <TabsTrigger value="site-visit">{language === "fr" ? "Visite technique" : "Technical Visit"}</TabsTrigger>}
-          {isStaff && <TabsTrigger value="design-agreement">{language === "fr" ? "Mandat de conception préliminaire" : "Preliminary Design Mandate"}</TabsTrigger>}
-          {isStaff && <TabsTrigger value="benchmark">Benchmark</TabsTrigger>}
+          {isStaff && <TabsTrigger value="design-agreement">{language === "fr" ? "Mandat" : "Mandate"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="site-visit">{language === "fr" ? "Validation technique" : "Technical Validation"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="epc-proposal">{language === "fr" ? "Proposition EPC" : "EPC Proposal"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="plans-specs">{language === "fr" ? "Plans & devis" : "Plans & Specs"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="permits">{language === "fr" ? "Permis" : "Permits"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="operations">{language === "fr" ? "O&M" : "O&M"}</TabsTrigger>}
           {isStaff && <TabsTrigger value="activities">{t("activity.title")}</TabsTrigger>}
           <TabsTrigger value="compare">{language === "fr" ? "Comparer" : "Compare"}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="quick-analysis" className="space-y-6">
+          {isStaff && !site.roofAreaValidated && (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Grid3X3 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Dessiner les zones de toiture" : "Draw Roof Areas"}
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  {language === "fr"
+                    ? "Délimitez manuellement les zones de toit exploitables pour calculer le potentiel solaire."
+                    : "Manually outline usable roof areas to calculate solar potential."}
+                </p>
+                <Button
+                  disabled={isGeocodingAddress}
+                  onClick={async () => {
+                    const hasCoordinates = site.latitude && site.longitude;
+                    if (!hasCoordinates) {
+                      if (!site.address) {
+                        toast({
+                          variant: "destructive",
+                          title: language === "fr" ? "Adresse manquante" : "Missing address",
+                          description: language === "fr"
+                            ? "Veuillez d'abord ajouter une adresse dans les paramètres du site."
+                            : "Please add an address in site settings first."
+                        });
+                        return;
+                      }
+                      setIsGeocodingAddress(true);
+                      try {
+                        const token = localStorage.getItem("token");
+                        const response = await fetch(`/api/sites/${site.id}/geocode`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                          credentials: "include"
+                        });
+                        if (!response.ok) {
+                          const data = await response.json();
+                          toast({ variant: "destructive", title: language === "fr" ? "Erreur de géocodage" : "Geocoding error", description: data.error || "" });
+                          setIsGeocodingAddress(false);
+                          return;
+                        }
+                        await refetch();
+                        setIsGeocodingAddress(false);
+                        setPendingModalOpen(true);
+                      } catch (error) {
+                        toast({ variant: "destructive", title: language === "fr" ? "Erreur" : "Error" });
+                        setIsGeocodingAddress(false);
+                      }
+                    } else {
+                      setIsRoofDrawingModalOpen(true);
+                    }
+                  }}
+                  className="gap-2"
+                  data-testid="button-draw-roof-step1"
+                >
+                  {isGeocodingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+                  {isGeocodingAddress
+                    ? (language === "fr" ? "Localisation..." : "Locating...")
+                    : (language === "fr" ? "Dessiner les zones" : "Draw areas")}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {isStaff && site.roofAreaValidated && !quickPotential && !(site.meterFiles && site.meterFiles.length > 0) && (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Zap className="w-12 h-12 text-primary/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Lancer l'analyse rapide" : "Run Quick Analysis"}
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  {language === "fr"
+                    ? "Estimez le potentiel solaire basé sur la surface de toit dessinée."
+                    : "Estimate solar potential based on the drawn roof area."}
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <Select value={constraintFactor.toString()} onValueChange={(v) => setConstraintFactor(parseInt(v))}>
+                    <SelectTrigger className="w-[90px]" data-testid="select-constraint-factor-step1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5%</SelectItem>
+                      <SelectItem value="10">10%</SelectItem>
+                      <SelectItem value="15">15%</SelectItem>
+                      <SelectItem value="20">20%</SelectItem>
+                      <SelectItem value="25">25%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={() => quickPotentialMutation.mutate()}
+                    disabled={quickPotentialMutation.isPending}
+                    className="gap-2"
+                    data-testid="button-quick-potential-step1"
+                  >
+                    {quickPotentialMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                    {language === "fr" ? "Analyse rapide" : "Quick Analysis"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {quickPotential && (
+            <Card className="border-primary/30 bg-primary/5" data-testid="card-quick-potential">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Zap className="w-5 h-5 text-primary" />
+                    {language === "fr" ? "Potentiel solaire estimé" : "Estimated Solar Potential"}
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setQuickPotential(null); setGeometryCapacity(null); }}
+                    data-testid="button-close-quick-potential"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr"
+                    ? "Analyse basée uniquement sur la surface de toit dessinée. L'analyse complète nécessite les données de consommation."
+                    : "Analysis based only on drawn roof area. Full analysis requires consumption data."}
+                </p>
+
+                {(site.structuralPassStatus === "no" || site.structuralPassStatus === "partial" || site.structuralBallastRemoval === "yes" || site.structuralNotes) && (
+                  <div className="flex items-start gap-2 mt-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800" data-testid="alert-structural-warning">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-800 dark:text-amber-300">
+                        {language === "fr" ? "Avertissement structurel" : "Structural Warning"}
+                      </p>
+                      <p className="text-amber-700 dark:text-amber-400/80 mt-0.5">
+                        {site.structuralPassStatus === "no"
+                          ? (language === "fr"
+                              ? "La structure existante ne supporte pas le poids ballast requis. Une analyse par ingénieur recommandée."
+                              : "Existing structure cannot support required ballast weight. Engineer analysis recommended.")
+                          : site.structuralPassStatus === "partial"
+                          ? (language === "fr"
+                              ? "Capacité structurelle partielle. Certaines zones du toit peuvent nécessiter un renforcement."
+                              : "Partial structural capacity. Some roof areas may require reinforcement.")
+                          : site.structuralBallastRemoval === "yes"
+                          ? (language === "fr"
+                              ? "Retrait de ballast existant requis avant installation."
+                              : "Existing ballast removal required before installation.")
+                          : (language === "fr"
+                              ? "Contraintes structurelles notées. Consultez les détails ci-dessous."
+                              : "Structural constraints noted. See details below.")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const displayedCapacityKW = geometryCapacity?.realisticCapacityKW ?? Math.round(quickPotential.systemSizing.maxCapacityKW * 0.9);
+                  const displayedPanelCount = geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels;
+
+                  const costPerW = quickPotential.financial.costPerW || 2.00;
+                  const displayedCapex = Math.round(displayedCapacityKW * 1000 * costPerW);
+                  const yieldKWhPerKWp = quickPotential.production.yieldKWhPerKWp || 1039;
+                  const displayedProductionKWh = Math.round(displayedCapacityKW * yieldKWhPerKWp);
+
+                  const displayedHqIncentive = Math.min(displayedCapacityKW * 1000, displayedCapex * 0.40);
+                  const displayedFederalItc = Math.round((displayedCapex - displayedHqIncentive) * 0.30);
+                  const displayedNetCapex = displayedCapex - displayedHqIncentive - displayedFederalItc;
+
+                  const energyRate = 0.06;
+                  const displayedAnnualSavings = Math.round(displayedProductionKWh * energyRate);
+                  const displayedPaybackYears = displayedAnnualSavings > 0 ? displayedNetCapex / displayedAnnualSavings : 0;
+
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Sun className="w-4 h-4" />
+                            {language === "fr" ? "Capacité estimée" : "Estimated Capacity"}
+                          </div>
+                          <div className="text-2xl font-bold text-foreground">
+                            {formatSmartPower(displayedCapacityKW, language, 'kWc')}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatNumber(displayedPanelCount, language)} {language === "fr" ? "panneaux" : "panels"} • -10% {language === "fr" ? "marge obstacles" : "obstacle margin"}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Zap className="w-4 h-4" />
+                            {language === "fr" ? "Production annuelle" : "Annual Production"}
+                          </div>
+                          <div className="text-2xl font-bold text-foreground">
+                            {formatSmartEnergy(displayedProductionKWh, language)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatNumber(yieldKWhPerKWp, language)} kWh/kWc
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <DollarSign className="w-4 h-4" />
+                            {language === "fr" ? "Investissement estimé" : "Estimated Investment"}
+                          </div>
+                          <div className="text-2xl font-bold text-foreground">
+                            {formatSmartCurrency(displayedCapex, language)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            ${costPerW.toFixed(2)}/W
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <TrendingUp className="w-4 h-4" />
+                            {language === "fr" ? "Retour simple" : "Simple Payback"}
+                          </div>
+                          <div className="text-2xl font-bold text-foreground">
+                            {displayedPaybackYears.toFixed(1)} {language === "fr" ? "ans" : "years"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            ~{formatSmartCurrency(displayedAnnualSavings, language)}/{language === "fr" ? "an" : "year"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {displayedNetCapex > 0 && displayedAnnualSavings > 0 && (() => {
+                        const discountRate = 0.06;
+                        const years = 25;
+                        let npv = -displayedNetCapex;
+                        for (let y = 1; y <= years; y++) {
+                          npv += displayedAnnualSavings / Math.pow(1 + discountRate, y);
+                        }
+                        let irr = 0.10;
+                        for (let iter = 0; iter < 50; iter++) {
+                          let npvCalc = -displayedNetCapex;
+                          let npvDerivative = 0;
+                          for (let y = 1; y <= years; y++) {
+                            npvCalc += displayedAnnualSavings / Math.pow(1 + irr, y);
+                            npvDerivative -= y * displayedAnnualSavings / Math.pow(1 + irr, y + 1);
+                          }
+                          if (Math.abs(npvCalc) < 1) break;
+                          irr = irr - npvCalc / npvDerivative;
+                          if (irr < 0) irr = 0.001;
+                          if (irr > 1) irr = 0.999;
+                        }
+                        return (
+                          <div className="flex gap-6 mt-3 pt-3 border-t border-border/50">
+                            <div className="space-y-0.5">
+                              <div className="text-xs text-muted-foreground">
+                                {language === "fr" ? "VAN 25 ans (6%)" : "NPV 25 yrs (6%)"}
+                              </div>
+                              <div className={`text-lg font-bold ${npv >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                {formatSmartCurrency(npv, language)}
+                              </div>
+                            </div>
+                            <div className="space-y-0.5">
+                              <div className="text-xs text-muted-foreground">
+                                {language === "fr" ? "TRI 25 ans" : "IRR 25 yrs"}
+                              </div>
+                              <div className="text-lg font-bold text-primary">
+                                {(irr * 100).toFixed(1)}%
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {displayedHqIncentive > 0 && (
+                        <div className="mt-4 pt-4 border-t border-border/50" data-testid="quick-analysis-incentives">
+                          <div className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                            <Gift className="w-4 h-4 text-green-600" />
+                            {language === "fr" ? "Incitatifs estimés" : "Estimated Incentives"}
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-hq">
+                              <div className="text-xs text-muted-foreground">Hydro-Québec</div>
+                              <div className="font-semibold text-green-700 dark:text-green-400">
+                                {formatSmartCurrency(displayedHqIncentive, language)}
+                              </div>
+                            </div>
+                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3" data-testid="incentive-federal">
+                              <div className="text-xs text-muted-foreground">{language === "fr" ? "Crédit fédéral (30%)" : "Federal ITC (30%)"}</div>
+                              <div className="font-semibold text-green-700 dark:text-green-400">
+                                {formatSmartCurrency(displayedFederalItc, language)}
+                              </div>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3" data-testid="incentive-net">
+                              <div className="text-xs text-muted-foreground">{language === "fr" ? "Investissement net" : "Net Investment"}</div>
+                              <div className="font-semibold text-blue-700 dark:text-blue-400">
+                                {formatSmartCurrency(displayedNetCapex, language)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Grid3X3 className="w-4 h-4" />
+                      {language === "fr" ? "Surface totale:" : "Total area:"} {formatNumber(quickPotential.roofAnalysis.totalRoofAreaSqM, language)} m²
+                    </span>
+                    <span>
+                      {language === "fr" ? "Surface utilisable:" : "Usable area:"} {formatNumber(quickPotential.roofAnalysis.usableRoofAreaSqM, language)} m² ({Math.round(quickPotential.roofAnalysis.utilizationRatio * 100)}%)
+                    </span>
+                    <span>
+                      {quickPotential.roofAnalysis.polygonCount} {language === "fr" ? "zone(s) de toit" : "roof zone(s)"}
+                    </span>
+                    {quickPotential.roofAnalysis.constraintFactor !== undefined && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                        {language === "fr" ? "Contraintes:" : "Constraints:"} {Math.round(quickPotential.roofAnalysis.constraintFactor * 100)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {quickPotential && !latestSimulation && site && site.latitude && site.longitude && import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+            <RoofVisualization
+              siteId={id!}
+              siteName={site.name}
+              address={site.address || ""}
+              latitude={site.latitude}
+              longitude={site.longitude}
+              roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764}
+              maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
+              onGeometryCalculated={setGeometryCapacity}
+              onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
+            />
+          )}
+
+          {(site.meterFiles && site.meterFiles.length > 0) && !quickPotential && (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <CheckCircle2 className="w-12 h-12 text-green-500/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Données de consommation disponibles" : "Consumption Data Available"}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {language === "fr"
+                    ? "L'analyse rapide est optionnelle lorsque des données de consommation sont importées. Passez directement à la validation économique."
+                    : "Quick analysis is optional when consumption data is imported. Go directly to economic validation."}
+                </p>
+                <Button variant="outline" onClick={() => setActiveTab("analysis")} className="gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  {language === "fr" ? "Voir l'analyse" : "View Analysis"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         <TabsContent value="consumption" className="space-y-6">
           {isStaff && (
@@ -2159,6 +2159,124 @@ export default function SiteDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {isStaff && (
+            <Card data-testid="section-hq-meters">
+              <CardHeader className="py-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Gauge className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-lg">
+                      {language === "fr" ? "Compteurs Hydro-Québec" : "Hydro-Québec Meters"}
+                    </CardTitle>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setEditingMeter(null);
+                      setMeterAccountNumber("");
+                      setMeterLabel("");
+                      setMeterIsPrimary(false);
+                      setIsMeterDialogOpen(true);
+                    }}
+                    data-testid="button-add-meter"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    {language === "fr" ? "Ajouter" : "Add"}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {metersLoading ? (
+                  <Skeleton className="h-16 w-full" />
+                ) : meters.length === 0 ? (
+                  <p className="text-sm text-muted-foreground" data-testid="text-no-meters">
+                    {language === "fr" ? "Aucun compteur enregistré." : "No meters registered."}
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{language === "fr" ? "Numéro de compte" : "Account Number"}</TableHead>
+                          <TableHead>{language === "fr" ? "Étiquette" : "Label"}</TableHead>
+                          <TableHead>{language === "fr" ? "Procuration" : "Procuration"}</TableHead>
+                          <TableHead className="text-right">{language === "fr" ? "Actions" : "Actions"}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {meters.map((meter) => (
+                          <TableRow key={meter.id} data-testid={`row-meter-${meter.id}`}>
+                            <TableCell data-testid={`text-meter-account-${meter.id}`}>
+                              <span className="font-mono">{meter.accountNumber}</span>
+                              {meter.isPrimary && (
+                                <Badge variant="secondary" className="ml-2" data-testid={`badge-primary-${meter.id}`}>
+                                  {language === "fr" ? "Principal" : "Primary"}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell data-testid={`text-meter-label-${meter.id}`}>
+                              {meter.label || "—"}
+                            </TableCell>
+                            <TableCell data-testid={`text-meter-status-${meter.id}`}>
+                              {(() => {
+                                const status = meter.procurationStatus || "none";
+                                switch (status) {
+                                  case "signed": return <Badge variant="default" className="bg-green-600">{language === "fr" ? "Signée" : "Signed"}</Badge>;
+                                  case "sent": return <Badge variant="default">{language === "fr" ? "Envoyée" : "Sent"}</Badge>;
+                                  default: return <Badge variant="outline">{language === "fr" ? "Non envoyée" : "Not sent"}</Badge>;
+                                }
+                              })()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setProcurationMeterId(meter.id);
+                                    setIsHqProcurationDialogOpen(true);
+                                  }}
+                                  data-testid={`button-send-procuration-${meter.id}`}
+                                  title={language === "fr" ? "Envoyer procuration" : "Send procuration"}
+                                >
+                                  <Send className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingMeter(meter);
+                                    setMeterAccountNumber(meter.accountNumber);
+                                    setMeterLabel(meter.label || "");
+                                    setMeterIsPrimary(meter.isPrimary || false);
+                                    setIsMeterDialogOpen(true);
+                                  }}
+                                  data-testid={`button-edit-meter-${meter.id}`}
+                                  title={language === "fr" ? "Modifier" : "Edit"}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => setDeletingMeterId(meter.id)}
+                                  data-testid={`button-delete-meter-${meter.id}`}
+                                  title={language === "fr" ? "Supprimer" : "Delete"}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-6">
@@ -2206,6 +2324,22 @@ export default function SiteDetailPage() {
                 optimizationTarget={optimizationTarget}
                 onOptimizationTargetChange={setOptimizationTarget}
               />
+              {isStaff && latestSimulation && (
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="gap-2 w-full justify-between" data-testid="button-toggle-benchmark">
+                      <div className="flex items-center gap-2">
+                        <Scale className="w-4 h-4" />
+                        {language === "fr" ? "Benchmark / Calibration" : "Benchmark / Calibration"}
+                      </div>
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <BenchmarkTab siteId={site.id} simulationRuns={site.simulationRuns || []} />
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </>
           ) : (
             <Card>
@@ -2274,17 +2408,83 @@ export default function SiteDetailPage() {
         )}
 
         {isStaff && (
-          <TabsContent value="benchmark" className="space-y-6">
-            <BenchmarkTab siteId={site.id} simulationRuns={site.simulationRuns || []} />
-          </TabsContent>
-        )}
-
-        {isStaff && (
           <TabsContent value="activities" className="space-y-6">
             <ActivityFeed
               siteId={site.id}
               clientId={site.clientId}
             />
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="epc-proposal" className="space-y-6">
+            <Card>
+              <CardContent className="py-16 text-center">
+                <FileText className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Proposition EPC" : "EPC Proposal"}
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  {language === "fr"
+                    ? "La gestion des propositions EPC sera disponible prochainement."
+                    : "EPC proposal management will be available soon."}
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="plans-specs" className="space-y-6">
+            <Card>
+              <CardContent className="py-16 text-center">
+                <PenTool className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Plans & devis" : "Plans & Specs"}
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  {language === "fr"
+                    ? "La gestion des plans et devis sera disponible prochainement."
+                    : "Plans and specifications management will be available soon."}
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="permits" className="space-y-6">
+            <Card>
+              <CardContent className="py-16 text-center">
+                <FileSignature className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Permis" : "Permits"}
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  {language === "fr"
+                    ? "La gestion des permis sera disponible prochainement."
+                    : "Permit management will be available soon."}
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="operations" className="space-y-6">
+            <Card>
+              <CardContent className="py-16 text-center">
+                <Sun className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Opérations & Maintenance" : "Operations & Maintenance"}
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  {language === "fr"
+                    ? "Le suivi des opérations et de la maintenance sera disponible prochainement."
+                    : "Operations and maintenance tracking will be available soon."}
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
       </Tabs>

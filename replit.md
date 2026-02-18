@@ -25,6 +25,20 @@ The analysis engine is PVSyst-calibrated (Feb 2026, Rematek reports) with a ~5.4
 
 The platform ensures Law 25 Privacy Compliance for Quebec. CRM workflow automation integrates website leads into a sales pipeline, supported by inline entity creation and email lead nurturing sequences. Advanced analysis tools include Monte Carlo simulations and a 15-Minute Peak Shaving Calculator. Market Intelligence Pricing offers dynamic, component-based pricing with an admin UI for management, tracking supplier prices, and promoting items to a catalog. A mandatory Manual Roof Drawing Tool, coupled with AI-powered constraint suggestion, provides accurate usable roof area calculations, with KB Racking integration for BOM generation. A Benchmark Calibration Tool allows analysts to compare internal estimates against professional simulation tools. Optional snow loss profiles are configurable.
 
+### 9-Step Project Workflow (Site Detail Page)
+The site detail page uses a compact numbered stepper (1-9) to mirror the solar project lifecycle:
+1. **Analyse rapide** - Quick potential estimate from roof area (staff-only controls)
+2. **Données de consommation** - CSV upload, HQ data fetch, meter management, load profiles
+3. **Validation économique** - Full analysis results, scenario comparison, benchmark calibration (sub-tool)
+4. **Mandat** - Preliminary design mandate with e-signature
+5. **Validation technique** - Technical site visit documentation
+6. **Proposition EPC** - EPC proposal management (placeholder)
+7. **Plans & devis** - Plans and specifications (placeholder)
+8. **Permis** - Permit management (placeholder)
+9. **O&M** - Operations & maintenance tracking (placeholder)
+
+Steps 1-3 are visible to all roles; steps 4-9 are staff-only. The "Compare" sub-view and "Activities" history are accessible from within the workflow but are not numbered steps. The stepper shows status indicators: green (complete), blue (available), gray (pending).
+
 ### Error Handling
 The backend uses a centralized error handling system with custom `AppError` classes (e.g., `NotFoundError`, `ValidationError`) and an `asyncHandler` wrapper for route handlers, providing consistent `{error: string, details?: array}` responses.
 
