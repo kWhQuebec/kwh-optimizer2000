@@ -268,8 +268,11 @@ export function generatePortalInvitationEmail(params: {
   tempPassword: string;
   portalUrl: string;
   language: 'fr' | 'en';
+  baseUrl?: string;
 }): { subject: string; htmlBody: string; textBody: string } {
-  const { clientName, contactName, email, tempPassword, portalUrl, language } = params;
+  const { clientName, contactName, email, tempPassword, portalUrl, language, baseUrl } = params;
+  const resolvedBaseUrl = baseUrl || `https://${process.env.REPLIT_DEV_DOMAIN || 'kwh.quebec'}`;
+  const logoUrl = `${resolvedBaseUrl}/assets/logo-${language}.png`;
   
   if (language === 'fr') {
     return {
@@ -296,7 +299,7 @@ export function generatePortalInvitationEmail(params: {
 <body>
   <div class="container">
     <div class="header">
-      <img src="cid:logo-kwh" alt="kWh Québec" />
+      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 180px; height: auto;" />
       <h1>Bienvenue sur le portail client</h1>
     </div>
     <div class="content">
@@ -374,7 +377,7 @@ L'équipe kWh Québec`
 <body>
   <div class="container">
     <div class="header">
-      <img src="cid:logo-kwh" alt="kWh Québec" />
+      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 180px; height: auto;" />
       <h1>Welcome to the Client Portal</h1>
     </div>
     <div class="content">
