@@ -150,8 +150,10 @@ function StepDetail({
   const objective = fr ? step.objectiveFr : step.objectiveEn;
   const role = viewMode === "client" ? "client" : "account_manager";
   const otherRole = viewMode === "client" ? "account_manager" : "client";
-  const myTaskDefs = WORKFLOW_TASKS.filter(t => t.stepNum === step.stepNum && t.assignedTo === role);
-  const otherTaskDefs = WORKFLOW_TASKS.filter(t => t.stepNum === step.stepNum && t.assignedTo === otherRole);
+  // Use taskStatuses from auto-detection (not static defs)
+  const taskStatuses = stepProgress.taskStatuses ?? [];
+  const myTaskStatuses = taskStatuses.filter(ts => ts.task.assignedTo === role);
+  const otherTaskStatuses = taskStatuses.filter(ts => ts.task.assignedTo === otherRole);
 
   // Gate badge
   const gateBadge = (() => {
@@ -237,15 +239,25 @@ function StepDetail({
           <span className="font-normal">{myTasks.completed}/{myTasks.total}</span>
         </h4>
         <div className="space-y-0.5">
-          {myTaskDefs.map((task, i) => (
-            <div key={i} className="flex items-center gap-2 py-1 px-2 rounded text-xs hover:bg-muted/30">
-              <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="flex-1">
-                {fr ? task.titleFr : task.titleEn}
-                {task.optional && <span className="text-muted-foreground ml-1 text-[10px]">({fr ? "opt." : "opt."})</span>}
+          {myTaskStatuses.map((ts, i) => (
+            <div key={i} className={`flex items-center gap-2 py-1 px-2 rounded text-xs ${
+              ts.completed
+                ? "bg-green-50 dark:bg-green-950/20"
+                : "hover:bg-muted/30"
+            }`}>
+              {ts.completed ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+              ) : (
+                <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              )}
+              <span className={`flex-1 ${ts.completed ? "text-green-700 dark:text-green-400 line-through" : ""}`}>
+                {fr ? ts.task.titleFr : ts.task.titleEn}
+                {ts.task.optional && <span className="text-muted-foreground ml-1 text-[10px]">({fr ? "opt." : "opt."})</span>}
               </span>
-              <span className="flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground">
-                <Zap className="w-2.5 h-2.5 text-yellow-500" />{task.points}
+              <span className={`flex items-center gap-0.5 text-[10px] font-medium ${
+                ts.completed ? "text-green-600" : "text-muted-foreground"
+              }`}>
+                <Zap className="w-2.5 h-2.5 text-yellow-500" />{ts.task.points}
               </span>
             </div>
           ))}
@@ -253,7 +265,7 @@ function StepDetail({
       </div>
 
       {/* Other side */}
-      {otherTaskDefs.length > 0 && (
+      {otherTaskStatuses.length > 0 && (
         <div>
           <h4 className="text-[11px] font-semibold mb-1 flex items-center gap-1.5 uppercase tracking-wider text-muted-foreground/60">
             <Eye className="w-3 h-3" />
@@ -261,10 +273,16 @@ function StepDetail({
             <span className="font-normal">{otherTasks.completed}/{otherTasks.total}</span>
           </h4>
           <div className="space-y-0.5">
-            {otherTaskDefs.map((task, i) => (
-              <div key={i} className="flex items-center gap-1.5 py-0.5 px-2 text-[11px] text-muted-foreground/60">
-                <Circle className="w-2.5 h-2.5 shrink-0 opacity-40" />
-                <span>{fr ? task.titleFr : task.titleEn}</span>
+            {otherTaskStatuses.map((ts, i) => (
+              <div key={i} className={`flex items-center gap-1.5 py-0.5 px-2 text-[11px] ${
+                ts.completed ? "text-green-600/60" : "text-muted-foreground/60"
+              }`}>
+                {ts.completed ? (
+                  <CheckCircle2 className="w-2.5 h-2.5 shrink-0 text-green-500/50" />
+                ) : (
+                  <Circle className="w-2.5 h-2.5 shrink-0 opacity-40" />
+                )}
+                <span className={ts.completed ? "line-through" : ""}>{fr ? ts.task.titleFr : ts.task.titleEn}</span>
               </div>
             ))}
           </div>

@@ -36,6 +36,8 @@ export interface WorkflowStepDef {
 }
 
 export interface WorkflowTaskDef {
+  /** Unique key for auto-detection mapping */
+  key: string;
   stepNum: number;
   assignedTo: "client" | "account_manager";
   titleFr: string;
@@ -192,67 +194,67 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
 // ─── TASK DEFINITIONS (per step, per role) ───────────────────
 export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   // ── Step 1: Analyse rapide ──
-  { stepNum: 1, assignedTo: "client", titleFr: "Sélectionner le type de bâtiment", titleEn: "Select building type", points: 25, optional: true },
-  { stepNum: 1, assignedTo: "client", titleFr: "Estimer la superficie de toiture", titleEn: "Estimate roof area", points: 25, optional: true },
-  { stepNum: 1, assignedTo: "client", titleFr: "Uploader sa facture Hydro-Québec", titleEn: "Upload Hydro-Québec bill", points: 50, optional: false },
-  { stepNum: 1, assignedTo: "client", titleFr: "Fournir consommation annuelle estimée", titleEn: "Provide estimated annual consumption", points: 25, optional: true },
-  { stepNum: 1, assignedTo: "client", titleFr: "Booker un appel découverte", titleEn: "Book a discovery call", points: 50, optional: true },
-  { stepNum: 1, assignedTo: "account_manager", titleFr: "Valider le parsing AI de la facture", titleEn: "Validate AI bill parsing", points: 25, optional: false },
-  { stepNum: 1, assignedTo: "account_manager", titleFr: "Qualifier le lead (4 portes)", titleEn: "Qualify lead (4 gates)", points: 50, optional: false },
-  { stepNum: 1, assignedTo: "account_manager", titleFr: "Préparer l'analyse préliminaire", titleEn: "Prepare preliminary analysis", points: 25, optional: false },
-  { stepNum: 1, assignedTo: "account_manager", titleFr: "Compléter l'appel dans les 48h", titleEn: "Complete call within 48h", points: 50, optional: false },
+  { key: "s1_building_type", stepNum: 1, assignedTo: "client", titleFr: "Sélectionner le type de bâtiment", titleEn: "Select building type", points: 25, optional: true },
+  { key: "s1_roof_area", stepNum: 1, assignedTo: "client", titleFr: "Estimer la superficie de toiture", titleEn: "Estimate roof area", points: 25, optional: true },
+  { key: "s1_upload_bill", stepNum: 1, assignedTo: "client", titleFr: "Uploader sa facture Hydro-Québec", titleEn: "Upload Hydro-Québec bill", points: 50, optional: false },
+  { key: "s1_annual_consumption", stepNum: 1, assignedTo: "client", titleFr: "Fournir consommation annuelle estimée", titleEn: "Provide estimated annual consumption", points: 25, optional: true },
+  { key: "s1_discovery_call", stepNum: 1, assignedTo: "client", titleFr: "Booker un appel découverte", titleEn: "Book a discovery call", points: 50, optional: true },
+  { key: "s1_validate_parsing", stepNum: 1, assignedTo: "account_manager", titleFr: "Valider le parsing AI de la facture", titleEn: "Validate AI bill parsing", points: 25, optional: false },
+  { key: "s1_qualify_lead", stepNum: 1, assignedTo: "account_manager", titleFr: "Qualifier le lead (4 portes)", titleEn: "Qualify lead (4 gates)", points: 50, optional: false },
+  { key: "s1_prepare_analysis", stepNum: 1, assignedTo: "account_manager", titleFr: "Préparer l'analyse préliminaire", titleEn: "Prepare preliminary analysis", points: 25, optional: false },
+  { key: "s1_complete_call", stepNum: 1, assignedTo: "account_manager", titleFr: "Compléter l'appel dans les 48h", titleEn: "Complete call within 48h", points: 50, optional: false },
 
   // ── Step 2: Validation économique ──
-  { stepNum: 2, assignedTo: "client", titleFr: "Lire la proposition préliminaire", titleEn: "Read preliminary proposal", points: 50, optional: true },
-  { stepNum: 2, assignedTo: "client", titleFr: "Poser au moins 1 question", titleEn: "Ask at least 1 question", points: 50, optional: true },
-  { stepNum: 2, assignedTo: "client", titleFr: "Signer la procuration Hydro-Québec", titleEn: "Sign Hydro-Québec proxy", points: 100, optional: false },
-  { stepNum: 2, assignedTo: "client", titleFr: "Signer le mandat + verser le dépôt", titleEn: "Sign mandate + pay deposit", points: 200, optional: false },
-  { stepNum: 2, assignedTo: "account_manager", titleFr: "Envoyer la proposition < 3 jours", titleEn: "Send proposal within 3 days", points: 100, optional: false },
-  { stepNum: 2, assignedTo: "account_manager", titleFr: "Répondre aux questions < 24h", titleEn: "Answer questions within 24h", points: 50, optional: false },
-  { stepNum: 2, assignedTo: "account_manager", titleFr: "Soumettre procuration à HQ", titleEn: "Submit proxy to HQ", points: 50, optional: false },
-  { stepNum: 2, assignedTo: "account_manager", titleFr: "Confirmer réception + créer fiche CRM", titleEn: "Confirm receipt + create CRM record", points: 50, optional: false },
+  { key: "s2_read_proposal", stepNum: 2, assignedTo: "client", titleFr: "Lire la proposition préliminaire", titleEn: "Read preliminary proposal", points: 50, optional: true },
+  { key: "s2_ask_question", stepNum: 2, assignedTo: "client", titleFr: "Poser au moins 1 question", titleEn: "Ask at least 1 question", points: 50, optional: true },
+  { key: "s2_sign_procuration", stepNum: 2, assignedTo: "client", titleFr: "Signer la procuration Hydro-Québec", titleEn: "Sign Hydro-Québec proxy", points: 100, optional: false },
+  { key: "s2_sign_mandate", stepNum: 2, assignedTo: "client", titleFr: "Signer le mandat + verser le dépôt", titleEn: "Sign mandate + pay deposit", points: 200, optional: false },
+  { key: "s2_send_proposal", stepNum: 2, assignedTo: "account_manager", titleFr: "Envoyer la proposition < 3 jours", titleEn: "Send proposal within 3 days", points: 100, optional: false },
+  { key: "s2_answer_questions", stepNum: 2, assignedTo: "account_manager", titleFr: "Répondre aux questions < 24h", titleEn: "Answer questions within 24h", points: 50, optional: false },
+  { key: "s2_submit_procuration", stepNum: 2, assignedTo: "account_manager", titleFr: "Soumettre procuration à HQ", titleEn: "Submit proxy to HQ", points: 50, optional: false },
+  { key: "s2_confirm_crm", stepNum: 2, assignedTo: "account_manager", titleFr: "Confirmer réception + créer fiche CRM", titleEn: "Confirm receipt + create CRM record", points: 50, optional: false },
 
   // ── Step 3: Validation technique ──
-  { stepNum: 3, assignedTo: "client", titleFr: "Donner accès au site", titleEn: "Provide site access", points: 50, optional: false },
-  { stepNum: 3, assignedTo: "client", titleFr: "Fournir plans de toiture existants", titleEn: "Provide existing roof plans", points: 50, optional: true },
-  { stepNum: 3, assignedTo: "client", titleFr: "Consulter le rapport VC0", titleEn: "Review VC0 report", points: 50, optional: true },
-  { stepNum: 3, assignedTo: "client", titleFr: "Valider les hypothèses de production", titleEn: "Validate production assumptions", points: 50, optional: true },
-  { stepNum: 3, assignedTo: "account_manager", titleFr: "Coordonner visite avec Rematek", titleEn: "Coordinate visit with Rematek", points: 50, optional: false },
-  { stepNum: 3, assignedTo: "account_manager", titleFr: "Suivre la progression du VC0", titleEn: "Track VC0 progress", points: 50, optional: false },
-  { stepNum: 3, assignedTo: "account_manager", titleFr: "Importer VC0 dans la plateforme", titleEn: "Import VC0 into platform", points: 50, optional: false },
-  { stepNum: 3, assignedTo: "account_manager", titleFr: "Calibrer CashflowEngine avec VC0", titleEn: "Calibrate CashflowEngine with VC0", points: 50, optional: false },
+  { key: "s3_site_access", stepNum: 3, assignedTo: "client", titleFr: "Donner accès au site", titleEn: "Provide site access", points: 50, optional: false },
+  { key: "s3_roof_plans", stepNum: 3, assignedTo: "client", titleFr: "Fournir plans de toiture existants", titleEn: "Provide existing roof plans", points: 50, optional: true },
+  { key: "s3_review_vc0", stepNum: 3, assignedTo: "client", titleFr: "Consulter le rapport VC0", titleEn: "Review VC0 report", points: 50, optional: true },
+  { key: "s3_validate_production", stepNum: 3, assignedTo: "client", titleFr: "Valider les hypothèses de production", titleEn: "Validate production assumptions", points: 50, optional: true },
+  { key: "s3_coordinate_visit", stepNum: 3, assignedTo: "account_manager", titleFr: "Coordonner visite avec Rematek", titleEn: "Coordinate visit with Rematek", points: 50, optional: false },
+  { key: "s3_track_vc0", stepNum: 3, assignedTo: "account_manager", titleFr: "Suivre la progression du VC0", titleEn: "Track VC0 progress", points: 50, optional: false },
+  { key: "s3_import_vc0", stepNum: 3, assignedTo: "account_manager", titleFr: "Importer VC0 dans la plateforme", titleEn: "Import VC0 into platform", points: 50, optional: false },
+  { key: "s3_calibrate_cashflow", stepNum: 3, assignedTo: "account_manager", titleFr: "Calibrer CashflowEngine avec VC0", titleEn: "Calibrate CashflowEngine with VC0", points: 50, optional: false },
 
   // ── Step 4: Ingénierie & design final ──
-  { stepNum: 4, assignedTo: "client", titleFr: "Recevoir la proposition EPC complète", titleEn: "Receive complete EPC proposal", points: 50, optional: false },
-  { stepNum: 4, assignedTo: "client", titleFr: "Comparer les scénarios financiers", titleEn: "Compare financial scenarios", points: 100, optional: true },
-  { stepNum: 4, assignedTo: "client", titleFr: "Reviewer le rapport d'ingénierie", titleEn: "Review engineering report", points: 100, optional: false },
-  { stepNum: 4, assignedTo: "client", titleFr: "Approuver le design final ou avenant", titleEn: "Approve final design or amendment", points: 250, optional: false },
-  { stepNum: 4, assignedTo: "account_manager", titleFr: "Générer proposition 3 scénarios", titleEn: "Generate 3-scenario proposal", points: 100, optional: false },
-  { stepNum: 4, assignedTo: "account_manager", titleFr: "Coordonner rapport d'ingénieur", titleEn: "Coordinate engineering report", points: 100, optional: false },
-  { stepNum: 4, assignedTo: "account_manager", titleFr: "Préparer avenant si requis", titleEn: "Prepare amendment if required", points: 100, optional: true },
-  { stepNum: 4, assignedTo: "account_manager", titleFr: "Obtenir GO final + permis confirmés", titleEn: "Obtain final GO + permits confirmed", points: 250, optional: false },
+  { key: "s4_receive_epc", stepNum: 4, assignedTo: "client", titleFr: "Recevoir la proposition EPC complète", titleEn: "Receive complete EPC proposal", points: 50, optional: false },
+  { key: "s4_compare_scenarios", stepNum: 4, assignedTo: "client", titleFr: "Comparer les scénarios financiers", titleEn: "Compare financial scenarios", points: 100, optional: true },
+  { key: "s4_review_engineering", stepNum: 4, assignedTo: "client", titleFr: "Reviewer le rapport d'ingénierie", titleEn: "Review engineering report", points: 100, optional: false },
+  { key: "s4_approve_design", stepNum: 4, assignedTo: "client", titleFr: "Approuver le design final ou avenant", titleEn: "Approve final design or amendment", points: 250, optional: false },
+  { key: "s4_generate_scenarios", stepNum: 4, assignedTo: "account_manager", titleFr: "Générer proposition 3 scénarios", titleEn: "Generate 3-scenario proposal", points: 100, optional: false },
+  { key: "s4_coordinate_engineering", stepNum: 4, assignedTo: "account_manager", titleFr: "Coordonner rapport d'ingénieur", titleEn: "Coordinate engineering report", points: 100, optional: false },
+  { key: "s4_prepare_amendment", stepNum: 4, assignedTo: "account_manager", titleFr: "Préparer avenant si requis", titleEn: "Prepare amendment if required", points: 100, optional: true },
+  { key: "s4_final_go", stepNum: 4, assignedTo: "account_manager", titleFr: "Obtenir GO final + permis confirmés", titleEn: "Obtain final GO + permits confirmed", points: 250, optional: false },
 
   // ── Step 5: Construction ──
-  { stepNum: 5, assignedTo: "client", titleFr: "Confirmer dates d'accès au site", titleEn: "Confirm site access dates", points: 100, optional: false },
-  { stepNum: 5, assignedTo: "client", titleFr: "Valider checklist pré-installation", titleEn: "Validate pre-installation checklist", points: 100, optional: false },
-  { stepNum: 5, assignedTo: "client", titleFr: "Consulter photos quotidiennes", titleEn: "Review daily photos", points: 100, optional: true },
-  { stepNum: 5, assignedTo: "client", titleFr: "Être présent à l'inspection finale", titleEn: "Attend final inspection", points: 100, optional: false },
-  { stepNum: 5, assignedTo: "client", titleFr: "Activer son compte monitoring", titleEn: "Activate monitoring account", points: 100, optional: false },
-  { stepNum: 5, assignedTo: "account_manager", titleFr: "Commander matériel (Jinko + Kaco)", titleEn: "Order materials (Jinko + Kaco)", points: 100, optional: false },
-  { stepNum: 5, assignedTo: "account_manager", titleFr: "Valider réception matériel", titleEn: "Validate material receipt", points: 100, optional: false },
-  { stepNum: 5, assignedTo: "account_manager", titleFr: "Upload photos + daily log", titleEn: "Upload photos + daily log", points: 100, optional: false },
-  { stepNum: 5, assignedTo: "account_manager", titleFr: "Compléter inspection", titleEn: "Complete inspection", points: 100, optional: false },
-  { stepNum: 5, assignedTo: "account_manager", titleFr: "Configurer monitoring API", titleEn: "Configure monitoring API", points: 100, optional: false },
+  { key: "s5_confirm_dates", stepNum: 5, assignedTo: "client", titleFr: "Confirmer dates d'accès au site", titleEn: "Confirm site access dates", points: 100, optional: false },
+  { key: "s5_preinstall_checklist", stepNum: 5, assignedTo: "client", titleFr: "Valider checklist pré-installation", titleEn: "Validate pre-installation checklist", points: 100, optional: false },
+  { key: "s5_review_photos", stepNum: 5, assignedTo: "client", titleFr: "Consulter photos quotidiennes", titleEn: "Review daily photos", points: 100, optional: true },
+  { key: "s5_attend_inspection", stepNum: 5, assignedTo: "client", titleFr: "Être présent à l'inspection finale", titleEn: "Attend final inspection", points: 100, optional: false },
+  { key: "s5_activate_monitoring", stepNum: 5, assignedTo: "client", titleFr: "Activer son compte monitoring", titleEn: "Activate monitoring account", points: 100, optional: false },
+  { key: "s5_order_materials", stepNum: 5, assignedTo: "account_manager", titleFr: "Commander matériel (Jinko + Kaco)", titleEn: "Order materials (Jinko + Kaco)", points: 100, optional: false },
+  { key: "s5_validate_materials", stepNum: 5, assignedTo: "account_manager", titleFr: "Valider réception matériel", titleEn: "Validate material receipt", points: 100, optional: false },
+  { key: "s5_upload_photos", stepNum: 5, assignedTo: "account_manager", titleFr: "Upload photos + daily log", titleEn: "Upload photos + daily log", points: 100, optional: false },
+  { key: "s5_complete_inspection", stepNum: 5, assignedTo: "account_manager", titleFr: "Compléter inspection", titleEn: "Complete inspection", points: 100, optional: false },
+  { key: "s5_configure_monitoring", stepNum: 5, assignedTo: "account_manager", titleFr: "Configurer monitoring API", titleEn: "Configure monitoring API", points: 100, optional: false },
 
   // ── Step 6: Opération ──
-  { stepNum: 6, assignedTo: "client", titleFr: "Consulter dashboard production (hebdo)", titleEn: "Check production dashboard (weekly)", points: 100, optional: true },
-  { stepNum: 6, assignedTo: "client", titleFr: "Partager résultats sur LinkedIn", titleEn: "Share results on LinkedIn", points: 200, optional: true },
-  { stepNum: 6, assignedTo: "client", titleFr: "Référer 1 contact intéressé", titleEn: "Refer 1 interested contact", points: 500, optional: true },
-  { stepNum: 6, assignedTo: "client", titleFr: "Évaluer l'expérience kWh (NPS)", titleEn: "Rate kWh experience (NPS)", points: 100, optional: true },
-  { stepNum: 6, assignedTo: "account_manager", titleFr: "Envoyer rapport 90 jours", titleEn: "Send 90-day report", points: 200, optional: false },
-  { stepNum: 6, assignedTo: "account_manager", titleFr: "Demander le témoignage", titleEn: "Request testimonial", points: 100, optional: true },
-  { stepNum: 6, assignedTo: "account_manager", titleFr: "Qualifier la référence < 48h", titleEn: "Qualify referral within 48h", points: 200, optional: false },
-  { stepNum: 6, assignedTo: "account_manager", titleFr: "Documenter le cas portfolio", titleEn: "Document portfolio case", points: 200, optional: false },
+  { key: "s6_check_dashboard", stepNum: 6, assignedTo: "client", titleFr: "Consulter dashboard production (hebdo)", titleEn: "Check production dashboard (weekly)", points: 100, optional: true },
+  { key: "s6_share_linkedin", stepNum: 6, assignedTo: "client", titleFr: "Partager résultats sur LinkedIn", titleEn: "Share results on LinkedIn", points: 200, optional: true },
+  { key: "s6_refer_contact", stepNum: 6, assignedTo: "client", titleFr: "Référer 1 contact intéressé", titleEn: "Refer 1 interested contact", points: 500, optional: true },
+  { key: "s6_nps_survey", stepNum: 6, assignedTo: "client", titleFr: "Évaluer l'expérience kWh (NPS)", titleEn: "Rate kWh experience (NPS)", points: 100, optional: true },
+  { key: "s6_90day_report", stepNum: 6, assignedTo: "account_manager", titleFr: "Envoyer rapport 90 jours", titleEn: "Send 90-day report", points: 200, optional: false },
+  { key: "s6_request_testimonial", stepNum: 6, assignedTo: "account_manager", titleFr: "Demander le témoignage", titleEn: "Request testimonial", points: 100, optional: true },
+  { key: "s6_qualify_referral", stepNum: 6, assignedTo: "account_manager", titleFr: "Qualifier la référence < 48h", titleEn: "Qualify referral within 48h", points: 200, optional: false },
+  { key: "s6_document_portfolio", stepNum: 6, assignedTo: "account_manager", titleFr: "Documenter le cas portfolio", titleEn: "Document portfolio case", points: 200, optional: false },
 ];
 
 // ─── HELPERS ──────────────────────────────────────────────────

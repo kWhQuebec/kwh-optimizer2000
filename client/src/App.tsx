@@ -147,7 +147,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                 <ThemeToggle />
               </div>
             </header>
-            <main id="main-content" className="flex-1 overflow-auto p-6">
+            <main id="main-content" className="flex-1 overflow-auto p-6 pb-24">
               {children}
             </main>
         </div>

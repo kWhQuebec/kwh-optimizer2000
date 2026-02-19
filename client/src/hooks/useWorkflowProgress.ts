@@ -1,6 +1,9 @@
 /**
  * useWorkflowProgress — Computes gate status, task progress, and step state
  * for the unified 6-step workflow stepper.
+ *
+ * Tasks are auto-detected from real site data — no manual checkboxes.
+ * Each task has a `key` mapped to a boolean condition derived from DB fields.
  */
 import { useMemo } from "react";
 import {
@@ -15,39 +18,22 @@ import {
 } from "@shared/workflowSteps";
 
 // ─── TYPES ────────────────────────────────────────────────────
+export interface TaskStatus {
+  task: WorkflowTaskDef;
+  completed: boolean;
+}
+
 export interface StepProgress {
   step: WorkflowStepDef;
-  /** locked | active | completed — derived from opportunity stage */
   status: "locked" | "active" | "completed";
-  /** Gate condition evaluation */
   gateStatus: GateStatus;
-  /** Gate human-readable description */
   gateLabel: string;
-  /** Task progress for the current viewMode */
-  myTasks: {
-    completed: number;
-    total: number;
-    points: number;
-    maxPoints: number;
-  };
-  /** Task progress for the other side */
-  otherTasks: {
-    completed: number;
-    total: number;
-    points: number;
-    maxPoints: number;
-  };
-  /** Overall task progress (both sides) */
-  allTasks: {
-    completed: number;
-    total: number;
-    points: number;
-    maxPoints: number;
-    percentage: number;
-  };
-  /** Special outcome for step 4 (engineering) */
+  myTasks: { completed: number; total: number; points: number; maxPoints: number };
+  otherTasks: { completed: number; total: number; points: number; maxPoints: number };
+  allTasks: { completed: number; total: number; points: number; maxPoints: number; percentage: number };
+  /** Individual task statuses for rendering checkmarks */
+  taskStatuses: TaskStatus[];
   engineeringOutcome?: EngineeringOutcome;
-  /** Is this the current active step? */
   isCurrent: boolean;
 }
 
@@ -60,36 +46,166 @@ export interface WorkflowProgress {
   currentPhase: WorkflowPhase;
 }
 
-// ─── SITE DATA INTERFACE (minimal, to avoid importing full schema) ─────
+// ─── SITE DATA INTERFACE ─────────────────────────────────────
+// Expanded to include all fields needed for auto-detection
 interface SiteData {
+  // Step 1 fields
   meterFiles?: Array<unknown> | null;
-  quickInfoCompletedAt?: string | null;
   buildingType?: string | null;
   roofAreaSqM?: number | null;
+  roofAreaAutoSqM?: number | null;
+  estimatedAnnualConsumptionKwh?: number | null;
   estimatedMonthlyBill?: number | null;
+  hqBillPath?: string | null;
+  hqLegalClientName?: string | null;
+  hqClientNumber?: string | null;
+  quickInfoCompletedAt?: string | null;
   roofAreaValidated?: boolean | null;
+  readyForAnalysis?: boolean | null;
   analysisAvailable?: boolean | null;
   quickAnalysisCompletedAt?: string | null;
+  // Step 2+ fields
+  procurationStatus?: string | null;
+  procurationSentAt?: string | null;
+  procurationSignedAt?: string | null;
+  // Step 4
   engineeringOutcome?: string | null;
+  // Nested data
+  simulationRuns?: Array<{ id?: string; type?: string; pvSizeKW?: number; assumptions?: unknown }> | null;
+  siteVisits?: Array<{ status?: string; visitDate?: string; notes?: string }> | null;
 }
 
 interface DesignAgreementData {
   status?: string | null;
   depositPaidAt?: string | null;
+  acceptedAt?: string | null;
 }
 
-interface MissionTaskData {
-  id?: number;
-  missionNumber?: number;
-  assignedTo: "client" | "account_manager";
-  completed: boolean;
-  points?: number;
+// ─── AUTO-DETECTION ENGINE ───────────────────────────────────
+// Each task key maps to a function that returns true if the task is completed.
+// This is the ONLY place where task completion logic lives.
+type TaskDetector = (ctx: DetectionContext) => boolean;
+
+interface DetectionContext {
+  site: SiteData | null;
+  designAgreement: DesignAgreementData | null;
+  opportunityStage: string;
 }
 
-interface MissionData {
-  missionNumber: number;
-  status: "locked" | "active" | "completed";
-  tasks: MissionTaskData[];
+const TASK_DETECTORS: Record<string, TaskDetector> = {
+  // ── Step 1: Analyse rapide ──
+  s1_building_type: ({ site }) =>
+    !!(site?.buildingType),
+  s1_roof_area: ({ site }) =>
+    !!(site?.roofAreaSqM || site?.roofAreaAutoSqM),
+  s1_upload_bill: ({ site }) =>
+    (site?.meterFiles?.length ?? 0) > 0 || !!site?.hqBillPath,
+  s1_annual_consumption: ({ site }) =>
+    !!(site?.estimatedAnnualConsumptionKwh || site?.estimatedMonthlyBill),
+  s1_discovery_call: () => false, // Needs activity log — future
+  s1_validate_parsing: ({ site }) =>
+    !!(site?.hqLegalClientName && site?.hqClientNumber),
+  s1_qualify_lead: ({ opportunityStage }) => {
+    const qualifiedStages = ["qualified", "analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
+    return qualifiedStages.includes(opportunityStage);
+  },
+  s1_prepare_analysis: ({ site }) =>
+    !!(site?.readyForAnalysis || site?.analysisAvailable || site?.quickAnalysisCompletedAt),
+  s1_complete_call: () => false, // Needs activity log — future
+
+  // ── Step 2: Validation économique ──
+  s2_read_proposal: ({ site }) =>
+    !!(site?.analysisAvailable), // Implicit: if analysis is available, proposal was readable
+  s2_ask_question: () => false, // Needs activity log — future
+  s2_sign_procuration: ({ site }) =>
+    site?.procurationStatus === "signed" || !!site?.procurationSignedAt,
+  s2_sign_mandate: ({ designAgreement }) =>
+    designAgreement?.status === "accepted" && !!designAgreement?.depositPaidAt,
+  s2_send_proposal: ({ site }) =>
+    !!(site?.analysisAvailable), // Proposal sent = analysis available to client
+  s2_answer_questions: () => false, // Needs activity log — future
+  s2_submit_procuration: ({ site }) =>
+    !!site?.procurationSentAt || site?.procurationStatus === "sent" || site?.procurationStatus === "signed",
+  s2_confirm_crm: ({ opportunityStage }) => {
+    const crmStages = ["design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
+    return crmStages.includes(opportunityStage);
+  },
+
+  // ── Step 3: Validation technique ──
+  s3_site_access: () => false, // Needs activity log — future
+  s3_roof_plans: () => false, // Needs document upload tracking — future
+  s3_review_vc0: () => false, // Needs activity log — future
+  s3_validate_production: ({ site }) =>
+    (site?.simulationRuns?.length ?? 0) > 0,
+  s3_coordinate_visit: ({ site }) => {
+    const visits = site?.siteVisits ?? [];
+    return visits.some(v => v.status === "completed" || v.status === "scheduled");
+  },
+  s3_track_vc0: ({ site }) => {
+    const visits = site?.siteVisits ?? [];
+    return visits.some(v => v.status === "completed");
+  },
+  s3_import_vc0: ({ site }) => {
+    const visits = site?.siteVisits ?? [];
+    return visits.some(v => v.status === "completed" && v.notes);
+  },
+  s3_calibrate_cashflow: ({ site }) =>
+    (site?.simulationRuns?.length ?? 0) > 0 && !!(site?.simulationRuns?.[0]?.assumptions),
+
+  // ── Step 4: Ingénierie & design final ──
+  s4_receive_epc: ({ opportunityStage }) => {
+    const epcStages = ["epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
+    return epcStages.includes(opportunityStage);
+  },
+  s4_compare_scenarios: ({ site }) =>
+    (site?.simulationRuns?.length ?? 0) >= 3,
+  s4_review_engineering: () => false, // Needs activity log — future
+  s4_approve_design: ({ opportunityStage }) => {
+    const approvedStages = ["won_to_be_delivered", "won_in_construction", "won_delivered"];
+    return approvedStages.includes(opportunityStage);
+  },
+  s4_generate_scenarios: ({ site }) =>
+    (site?.simulationRuns?.length ?? 0) >= 3,
+  s4_coordinate_engineering: () => false, // Needs engineering report tracking — future
+  s4_prepare_amendment: ({ site }) =>
+    site?.engineeringOutcome === "amendment",
+  s4_final_go: ({ opportunityStage }) => {
+    const goStages = ["won_to_be_delivered", "won_in_construction", "won_delivered"];
+    return goStages.includes(opportunityStage);
+  },
+
+  // ── Step 5: Construction ── (mostly future — needs construction tracking)
+  s5_confirm_dates: () => false,
+  s5_preinstall_checklist: () => false,
+  s5_review_photos: () => false,
+  s5_attend_inspection: () => false,
+  s5_activate_monitoring: () => false,
+  s5_order_materials: () => false,
+  s5_validate_materials: () => false,
+  s5_upload_photos: () => false,
+  s5_complete_inspection: ({ opportunityStage }) =>
+    opportunityStage === "won_delivered",
+  s5_configure_monitoring: () => false,
+
+  // ── Step 6: Opération ── (mostly future — needs O&M tracking)
+  s6_check_dashboard: () => false,
+  s6_share_linkedin: () => false,
+  s6_refer_contact: () => false,
+  s6_nps_survey: () => false,
+  s6_90day_report: () => false,
+  s6_request_testimonial: () => false,
+  s6_qualify_referral: () => false,
+  s6_document_portfolio: () => false,
+};
+
+function isTaskCompleted(taskKey: string, ctx: DetectionContext): boolean {
+  const detector = TASK_DETECTORS[taskKey];
+  if (!detector) return false;
+  try {
+    return detector(ctx);
+  } catch {
+    return false;
+  }
 }
 
 // ─── GATE EVALUATION ──────────────────────────────────────────
@@ -103,32 +219,26 @@ function evaluateGate(
 
   switch (step.stepNum) {
     case 1: {
-      // Gate: CSV de consommation disponible
-      const hasMeterFiles = (site.meterFiles?.length ?? 0) > 0;
+      const hasMeterFiles = (site.meterFiles?.length ?? 0) > 0 || !!site.hqBillPath;
       return hasMeterFiles ? "passed" : "blocked";
     }
     case 2: {
-      // Gate: Mandat signé + dépôt reçu
       const mandatSigned = designAgreement?.status === "accepted";
       const depositPaid = !!designAgreement?.depositPaidAt;
       return (mandatSigned && depositPaid) ? "passed" : "blocked";
     }
     case 3: {
-      // Gate: Entente EPC signée — derived from stage
       const epcStages = ["epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
       return epcStages.includes(opportunityStage) ? "passed" : "blocked";
     }
     case 4: {
-      // Gate: Permis obtenus, plans approuvés, budget confirmé
       const goStages = ["won_to_be_delivered", "won_in_construction", "won_delivered"];
       return goStages.includes(opportunityStage) ? "passed" : "blocked";
     }
     case 5: {
-      // Gate: Installation complétée + inspection réussie
       return opportunityStage === "won_delivered" ? "passed" : "blocked";
     }
     case 6: {
-      // No gate — permanent state
       return opportunityStage === "won_delivered" ? "passed" : "locked";
     }
     default:
@@ -136,63 +246,46 @@ function evaluateGate(
   }
 }
 
-// ─── TASK PROGRESS CALCULATION ────────────────────────────────
+// ─── TASK PROGRESS WITH AUTO-DETECTION ───────────────────────
 function computeTaskProgress(
   stepNum: number,
   viewMode: "client" | "am",
-  missions: MissionData[] | null,
+  ctx: DetectionContext,
 ) {
   const role = viewMode === "client" ? "client" : "account_manager";
   const otherRole = viewMode === "client" ? "account_manager" : "client";
 
-  // Try to use real mission data from API
-  const mission = missions?.find(m => m.missionNumber === stepNum);
-
-  if (mission && mission.tasks.length > 0) {
-    const myTasks = mission.tasks.filter(t => t.assignedTo === role);
-    const otherTasks = mission.tasks.filter(t => t.assignedTo === otherRole);
-    const allTasks = mission.tasks;
-
-    const myCompleted = myTasks.filter(t => t.completed).length;
-    const otherCompleted = otherTasks.filter(t => t.completed).length;
-    const allCompleted = allTasks.filter(t => t.completed).length;
-
-    const myPoints = myTasks.filter(t => t.completed).reduce((s, t) => s + (t.points ?? 0), 0);
-    const myMaxPoints = myTasks.reduce((s, t) => s + (t.points ?? 0), 0);
-    const otherPoints = otherTasks.filter(t => t.completed).reduce((s, t) => s + (t.points ?? 0), 0);
-    const otherMaxPoints = otherTasks.reduce((s, t) => s + (t.points ?? 0), 0);
-    const allPoints = myPoints + otherPoints;
-    const allMaxPoints = myMaxPoints + otherMaxPoints;
-
-    return {
-      myTasks: { completed: myCompleted, total: myTasks.length, points: myPoints, maxPoints: myMaxPoints },
-      otherTasks: { completed: otherCompleted, total: otherTasks.length, points: otherPoints, maxPoints: otherMaxPoints },
-      allTasks: {
-        completed: allCompleted,
-        total: allTasks.length,
-        points: allPoints,
-        maxPoints: allMaxPoints,
-        percentage: allTasks.length > 0 ? Math.round((allCompleted / allTasks.length) * 100) : 0,
-      },
-    };
-  }
-
-  // Fallback: use static task definitions
   const stepTasks = WORKFLOW_TASKS.filter(t => t.stepNum === stepNum);
-  const myTaskDefs = stepTasks.filter(t => t.assignedTo === role);
-  const otherTaskDefs = stepTasks.filter(t => t.assignedTo === otherRole);
-  const myMaxPoints = myTaskDefs.reduce((s, t) => s + t.points, 0);
-  const otherMaxPoints = otherTaskDefs.reduce((s, t) => s + t.points, 0);
+  const taskStatuses: TaskStatus[] = stepTasks.map(task => ({
+    task,
+    completed: isTaskCompleted(task.key, ctx),
+  }));
+
+  const myStatuses = taskStatuses.filter(ts => ts.task.assignedTo === role);
+  const otherStatuses = taskStatuses.filter(ts => ts.task.assignedTo === otherRole);
+
+  const myCompleted = myStatuses.filter(ts => ts.completed).length;
+  const myPoints = myStatuses.filter(ts => ts.completed).reduce((s, ts) => s + ts.task.points, 0);
+  const myMaxPoints = myStatuses.reduce((s, ts) => s + ts.task.points, 0);
+
+  const otherCompleted = otherStatuses.filter(ts => ts.completed).length;
+  const otherPoints = otherStatuses.filter(ts => ts.completed).reduce((s, ts) => s + ts.task.points, 0);
+  const otherMaxPoints = otherStatuses.reduce((s, ts) => s + ts.task.points, 0);
+
+  const allCompleted = myCompleted + otherCompleted;
+  const allPoints = myPoints + otherPoints;
+  const allMaxPoints = myMaxPoints + otherMaxPoints;
 
   return {
-    myTasks: { completed: 0, total: myTaskDefs.length, points: 0, maxPoints: myMaxPoints },
-    otherTasks: { completed: 0, total: otherTaskDefs.length, points: 0, maxPoints: otherMaxPoints },
+    taskStatuses,
+    myTasks: { completed: myCompleted, total: myStatuses.length, points: myPoints, maxPoints: myMaxPoints },
+    otherTasks: { completed: otherCompleted, total: otherStatuses.length, points: otherPoints, maxPoints: otherMaxPoints },
     allTasks: {
-      completed: 0,
+      completed: allCompleted,
       total: stepTasks.length,
-      points: 0,
-      maxPoints: myMaxPoints + otherMaxPoints,
-      percentage: 0,
+      points: allPoints,
+      maxPoints: allMaxPoints,
+      percentage: stepTasks.length > 0 ? Math.round((allCompleted / stepTasks.length) * 100) : 0,
     },
   };
 }
@@ -203,28 +296,30 @@ export function useWorkflowProgress({
   designAgreement,
   opportunityStage = "prospect",
   viewMode = "am",
-  missions = null,
 }: {
   site: SiteData | null;
   designAgreement?: DesignAgreementData | null;
   opportunityStage?: string;
   viewMode?: "client" | "am";
-  missions?: MissionData[] | null;
 }): WorkflowProgress {
   return useMemo(() => {
+    const ctx: DetectionContext = {
+      site,
+      designAgreement: designAgreement ?? null,
+      opportunityStage,
+    };
+
     const steps: StepProgress[] = WORKFLOW_STEPS.map((step) => {
       const status = getStepStatusFromStage(step, opportunityStage);
       const gateStatus = status === "completed"
         ? "passed" as GateStatus
         : evaluateGate(step, site, designAgreement ?? null, opportunityStage);
 
-      const taskProgress = computeTaskProgress(step.missionNum, viewMode, missions);
+      const taskProgress = computeTaskProgress(step.missionNum, viewMode, ctx);
 
       const isCurrent = status === "active";
-      const language = "fr"; // TODO: pass from context if needed
-      const gateLabel = language === "fr" ? step.gateFr : step.gateEn;
+      const gateLabel = step.gateFr; // Always French for now
 
-      // Engineering outcome for step 4
       let engineeringOutcome: EngineeringOutcome | undefined;
       if (step.stepNum === 4 && site?.engineeringOutcome) {
         engineeringOutcome = site.engineeringOutcome as EngineeringOutcome;
@@ -256,5 +351,5 @@ export function useWorkflowProgress({
       maxTotalPoints,
       currentPhase,
     };
-  }, [site, designAgreement, opportunityStage, viewMode, missions]);
+  }, [site, designAgreement, opportunityStage, viewMode]);
 }

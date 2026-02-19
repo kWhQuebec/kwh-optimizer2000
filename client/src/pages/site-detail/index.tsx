@@ -720,7 +720,6 @@ export default function SiteDetailPage() {
     designAgreement,
     opportunityStage,
     viewMode: isClient ? "client" : "am",
-    missions: null, // TODO: fetch from gamification API
   });
 
   // Map from unified step click to the appropriate tab
