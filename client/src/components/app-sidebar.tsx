@@ -8,34 +8,26 @@ import {
   BarChart3,
   PenTool,
   Package,
-  FileText,
   LogOut,
   FolderOpen,
   UserCog,
-  FolderKanban,
   FileSignature,
   Target,
   FileCheck,
   HardHat,
   Wrench,
-  Handshake,
   Upload,
   GanttChart,
   ListTodo,
   Gauge,
   ClipboardList,
   ChevronDown,
-  Cog,
-  Hammer,
   Settings,
   Settings2,
   BookOpen,
   FileEdit,
   Download,
-  Rocket,
-  Eye,
-  AlertTriangle,
-  CalendarCheck
+  Rocket
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,13 +55,23 @@ export function AppSidebar() {
   const isMobile = useIsMobile();
   const currentLogo = language === "fr" ? sidebarLogoFr : sidebarLogoEn;
 
-  // SECTION 1: Développement Commercial
-  const businessDevItems = [
+  // Dashboard - always visible (not in a collapsible section)
+  const dashboardItems = [
     {
       title: t("nav.dashboard"),
       url: "/app",
       icon: LayoutDashboard,
       tooltip: language === "fr" ? "Vue d'ensemble du pipeline et des opportunités" : "Pipeline and opportunities overview",
+    },
+  ];
+
+  // SECTION 1: Exploration (workflow phase 1)
+  const explorationItems = [
+    {
+      title: language === "fr" ? "Pipeline ventes" : "Sales Pipeline",
+      url: "/app/pipeline",
+      icon: Target,
+      tooltip: language === "fr" ? "Commencez ici pour un nouveau lead – suivi des opportunités" : "Start here for new leads – opportunity tracking",
     },
     {
       title: language === "fr" ? "Tâches à faire" : "To-Do List",
@@ -89,28 +91,10 @@ export function AppSidebar() {
       icon: Building2,
       tooltip: language === "fr" ? "Bâtiments à analyser pour projets solaires" : "Buildings to analyze for solar projects",
     },
-    {
-      title: language === "fr" ? "Portfolios" : "Portfolios",
-      url: "/app/portfolios",
-      icon: FolderKanban,
-      tooltip: language === "fr" ? "Regroupements multi-sites" : "Multi-site project groups",
-    },
-    {
-      title: language === "fr" ? "Pipeline ventes" : "Sales Pipeline",
-      url: "/app/pipeline",
-      icon: Target,
-      tooltip: language === "fr" ? "Commencez ici pour un nouveau lead – suivi des opportunités" : "Start here for new leads – opportunity tracking",
-    },
-    {
-      title: language === "fr" ? "Partenariats" : "Partnerships",
-      url: "/app/partnerships",
-      icon: Handshake,
-      tooltip: language === "fr" ? "Partenaires stratégiques et développement d'affaires" : "Strategic partners and business development",
-    },
   ];
 
-  // SECTION 2: Ingénierie (pré-construction)
-  const engineeringItems = [
+  // SECTION 2: Conception (workflow phase 2)
+  const designItems = [
     {
       title: t("nav.analyses"),
       url: "/app/analyses",
@@ -129,15 +113,9 @@ export function AppSidebar() {
       icon: Package,
       tooltip: language === "fr" ? "Composants solaires et prix" : "Solar components and pricing",
     },
-    {
-      title: language === "fr" ? "Entente construction + O&M" : "Construction + O&M Agreement",
-      url: "/app/construction-agreements",
-      icon: ClipboardList,
-      tooltip: language === "fr" ? "Contrats construction avec annexe O&M intégrée" : "Construction contracts with integrated O&M annex",
-    },
   ];
 
-  // SECTION 3: Construction (exécution)
+  // SECTION 3: Réalisation (workflow phase 3)
   const constructionItems = [
     {
       title: language === "fr" ? "Projets" : "Projects",
@@ -157,9 +135,15 @@ export function AppSidebar() {
       icon: ListTodo,
       tooltip: language === "fr" ? "Suivi des tâches et assignations" : "Task tracking and assignments",
     },
+    {
+      title: language === "fr" ? "Entente construction + O&M" : "Construction + O&M Agreement",
+      url: "/app/construction-agreements",
+      icon: ClipboardList,
+      tooltip: language === "fr" ? "Contrats construction avec annexe O&M intégrée" : "Construction contracts with integrated O&M annex",
+    },
   ];
 
-  // SECTION 4: Exploitation (O&M post-construction)
+  // SECTION 4: Opération (workflow phase 4)
   const operationsItems = [
     {
       title: language === "fr" ? "Contrats O&M" : "O&M Contracts",
@@ -181,7 +165,14 @@ export function AppSidebar() {
     },
   ];
 
+  // SECTION 5: Admin
   const adminItems = [
+    {
+      title: "EOS",
+      url: "/app/eos",
+      icon: Rocket,
+      tooltip: language === "fr" ? "Entrepreneurial Operating System" : "Entrepreneurial Operating System",
+    },
     {
       title: t("nav.userManagement") || "User Management",
       url: "/app/users",
@@ -232,47 +223,6 @@ export function AppSidebar() {
     },
   ];
 
-
-  // SECTION 6: EOS (Entrepreneurial Operating System)
-  const eosItems = [
-    {
-      title: language === "fr" ? "Scorecard" : "Scorecard",
-      url: "/app/eos",
-      icon: BarChart3,
-      tooltip: language === "fr" ? "Métriques hebdomadaires clés" : "Key weekly metrics",
-    },
-    {
-      title: "Rocks",
-      url: "/app/eos",
-      icon: Target,
-      tooltip: language === "fr" ? "Priorités trimestrielles" : "Quarterly priorities",
-    },
-    {
-      title: "V/TO",
-      url: "/app/eos",
-      icon: Eye,
-      tooltip: language === "fr" ? "Vision / Traction Organizer" : "Vision / Traction Organizer",
-    },
-    {
-      title: "Issues",
-      url: "/app/eos",
-      icon: AlertTriangle,
-      tooltip: language === "fr" ? "Identifier, Discuter, Solutionner" : "Identify, Discuss, Solve",
-    },
-    {
-      title: "L10",
-      url: "/app/eos",
-      icon: CalendarCheck,
-      tooltip: language === "fr" ? "Réunion Level 10 hebdomadaire" : "Weekly Level 10 Meeting",
-    },
-    {
-      title: language === "fr" ? "Gamification" : "Gamification",
-      url: "/app/eos",
-      icon: Rocket,
-      tooltip: language === "fr" ? "Missions, badges et centrale virtuelle" : "Missions, badges and virtual power plant",
-    },
-  ];
-
   const clientItems = [
     {
       title: t("nav.mySites") || "My Sites",
@@ -299,12 +249,11 @@ export function AppSidebar() {
 
   // Collapsible state for each section - collapse more on mobile
   const getDefaultSections = (mobile: boolean) => ({
-    development: true,
-    engineering: !mobile, // Collapse on mobile
+    exploration: true,
+    design: !mobile, // Collapse on mobile
     construction: false,
     operations: false,
     admin: false,
-    eos: false,
   });
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(getDefaultSections(false));
@@ -319,21 +268,23 @@ export function AppSidebar() {
   };
 
   // Check if any item in a section is active
-  const hasSectionActiveItem = (items: typeof businessDevItems) => {
+  const hasSectionActiveItem = (items: typeof explorationItems) => {
     return items.some(item => isActive(item.url));
   };
 
   // Collapsible Section Component
-  const CollapsibleSection = ({ 
-    id, 
-    label, 
-    icon: Icon, 
-    items 
-  }: { 
-    id: string; 
-    label: string; 
-    icon: typeof Cog; 
-    items: typeof businessDevItems;
+  const CollapsibleSection = ({
+    id,
+    label,
+    icon: Icon,
+    items,
+    labelColor = "text-sidebar-foreground"
+  }: {
+    id: string;
+    label: string;
+    icon: typeof Settings;
+    items: typeof explorationItems;
+    labelColor?: string;
   }) => {
     const isOpen = openSections[id] || hasSectionActiveItem(items);
     const sectionRef = useRef<HTMLDivElement>(null);
@@ -363,12 +314,12 @@ export function AppSidebar() {
         <SidebarGroup>
           <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
           <CollapsibleTrigger asChild>
-            <button 
+            <button
               className="flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
               data-testid={`sidebar-section-${id}`}
             >
               <div className="flex items-center gap-2">
-                <Icon className="w-4 h-4" />
+                <Icon className={`w-4 h-4 ${labelColor}`} />
                 <span>{label}</span>
               </div>
               <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
@@ -441,15 +392,14 @@ export function AppSidebar() {
 
         {isStaff && (
           <>
-            {/* Section 1: Développement Commercial - Always visible, not collapsible */}
+            {/* Dashboard - Always visible at top, not collapsible */}
             <SidebarGroup>
-              <SidebarGroupLabel>{language === "fr" ? "Développement" : "Business Dev"}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {businessDevItems.map((item) => (
+                  {dashboardItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton 
-                        asChild 
+                      <SidebarMenuButton
+                        asChild
                         isActive={isActive(item.url)}
                         data-testid={`sidebar-link-${item.url.split("/").pop()}`}
                         title={item.tooltip}
@@ -465,42 +415,45 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Section 2: Ingénierie - Collapsible */}
-            <CollapsibleSection 
-              id="engineering"
-              label={language === "fr" ? "Ingénierie" : "Engineering"}
-              icon={Cog}
-              items={engineeringItems}
+            {/* Section 1: Exploration - Collapsible */}
+            <CollapsibleSection
+              id="exploration"
+              label={language === "fr" ? "Exploration" : "Exploration"}
+              icon={Target}
+              items={explorationItems}
+              labelColor="text-gray-500"
             />
 
-            {/* Section 3: Construction - Collapsible */}
-            <CollapsibleSection 
+            {/* Section 2: Conception - Collapsible */}
+            <CollapsibleSection
+              id="design"
+              label={language === "fr" ? "Conception" : "Design"}
+              icon={PenTool}
+              items={designItems}
+              labelColor="text-blue-500"
+            />
+
+            {/* Section 3: Réalisation - Collapsible */}
+            <CollapsibleSection
               id="construction"
-              label={language === "fr" ? "Construction" : "Construction"}
-              icon={Hammer}
+              label={language === "fr" ? "Réalisation" : "Construction"}
+              icon={HardHat}
               items={constructionItems}
+              labelColor="text-amber-500"
             />
 
-            {/* Section 4: O&M - Collapsible */}
-            <CollapsibleSection 
+            {/* Section 4: Opération - Collapsible */}
+            <CollapsibleSection
               id="operations"
-              label="O&M"
+              label={language === "fr" ? "Opération" : "Operations"}
               icon={Wrench}
               items={operationsItems}
+              labelColor="text-green-500"
             />
 
-
-            {/* Section 6: EOS - Collapsible */}
-            <CollapsibleSection 
-              id="eos"
-              label="EOS"
-              icon={Rocket}
-              items={eosItems}
-            />
-
-            {/* Section 5: Administration - Collapsible */}
+            {/* Section 5: Administration - Collapsible (admin only) */}
             {isAdmin && (
-              <CollapsibleSection 
+              <CollapsibleSection
                 id="admin"
                 label={t("sidebar.admin") || "Administration"}
                 icon={Settings}

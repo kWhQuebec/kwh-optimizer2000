@@ -72,13 +72,13 @@ const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
   prospect: { fr: "Prospect (5%)", en: "Prospect (5%)" },
   contacted: { fr: "Contacté (10%)", en: "Contacted (10%)" },
   qualified: { fr: "Qualifié (20%)", en: "Qualified (20%)" },
-  analysis_done: { fr: "Analyse détaillée réalisée (25%)", en: "Detailed Analysis Done (25%)" },
-  design_mandate_signed: { fr: "Mandat de conception signé (50%)", en: "Design Mandate Signed (50%)" },
-  epc_proposal_sent: { fr: "Proposition EPC envoyée (75%)", en: "EPC Proposal Sent (75%)" },
-  negotiation: { fr: "Négociation (90%)", en: "Negotiation (90%)" },
-  won_to_be_delivered: { fr: "Gagné - À livrer (100%)", en: "Won - To be Delivered (100%)" },
-  won_in_construction: { fr: "Gagné - En construction (100%)", en: "Won - In Construction (100%)" },
-  won_delivered: { fr: "Gagné - Livré (100%)", en: "Won - Delivered (100%)" },
+  analysis_done: { fr: "Validation économique (25%)", en: "Economic Validation (25%)" },
+  design_mandate_signed: { fr: "Validation technique (50%)", en: "Technical Validation (50%)" },
+  epc_proposal_sent: { fr: "Ingénierie, plans & devis (75%)", en: "Engineering, Plans & Quotes (75%)" },
+  negotiation: { fr: "Négociation EPC (90%)", en: "EPC Negotiation (90%)" },
+  won_to_be_delivered: { fr: "Contrat signé (100%)", en: "Contract Signed (100%)" },
+  won_in_construction: { fr: "Permis & installation (100%)", en: "Permits & Installation (100%)" },
+  won_delivered: { fr: "En opération (100%)", en: "In Operation (100%)" },
   lost: { fr: "Perdu (0%)", en: "Lost (0%)" },
   disqualified: { fr: "Non qualifié (0%)", en: "Disqualified (0%)" },
 };
@@ -87,65 +87,65 @@ const STAGE_SHORT_LABELS: Record<string, { fr: string; en: string }> = {
   prospect: { fr: "Prospect", en: "Prospect" },
   contacted: { fr: "Contacté", en: "Contacted" },
   qualified: { fr: "Qualifié", en: "Qualified" },
-  analysis_done: { fr: "Analyse", en: "Analysis" },
-  design_mandate_signed: { fr: "Mandat signé", en: "Mandate Signed" },
-  epc_proposal_sent: { fr: "Prop. EPC", en: "EPC Prop." },
+  analysis_done: { fr: "Valid. économique", en: "Econ. Validation" },
+  design_mandate_signed: { fr: "Valid. technique", en: "Tech. Validation" },
+  epc_proposal_sent: { fr: "Plans & devis", en: "Plans & Quotes" },
   negotiation: { fr: "Négociation", en: "Negotiation" },
-  won_to_be_delivered: { fr: "Gagné - À livrer", en: "Won - To Deliver" },
-  won_in_construction: { fr: "En construction", en: "In Construction" },
-  won_delivered: { fr: "Livré", en: "Delivered" },
+  won_to_be_delivered: { fr: "Contrat signé", en: "Contract Signed" },
+  won_in_construction: { fr: "Installation", en: "Installation" },
+  won_delivered: { fr: "En opération", en: "In Operation" },
   lost: { fr: "Perdu", en: "Lost" },
   disqualified: { fr: "Non qualifié", en: "Disqualified" },
 };
 
 const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
-  prospect: { 
-    fr: "Nouveau lead entrant ou identifié, pas encore contacté", 
-    en: "New incoming or identified lead, not yet contacted" 
+  prospect: {
+    fr: "Nouveau lead entrant ou identifié, pas encore contacté",
+    en: "New incoming or identified lead, not yet contacted"
   },
-  contacted: { 
-    fr: "Premier contact réalisé, en cours d'évaluation et collecte d'informations", 
-    en: "First contact made, evaluating and gathering information" 
+  contacted: {
+    fr: "Premier contact réalisé, en cours de qualification",
+    en: "First contact made, qualification in progress"
   },
-  qualified: { 
-    fr: "Lead vert — projet solaire viable confirmé, toutes les infos de qualification obtenues", 
-    en: "Green lead — viable solar project confirmed, all qualification info obtained" 
+  qualified: {
+    fr: "Lead qualifié — projet solaire viable, analyse rapide du potentiel complétée",
+    en: "Qualified lead — viable solar project, quick potential analysis completed"
   },
-  analysis_done: { 
-    fr: "Analyse détaillée de consommation et simulation solaire complétée", 
-    en: "Detailed consumption analysis and solar simulation completed" 
+  analysis_done: {
+    fr: "Validation économique complétée — rapport détaillé des impacts financiers et environnementaux",
+    en: "Economic validation completed — detailed financial and environmental impact report"
   },
   design_mandate_signed: {
-    fr: "Client a signé le mandat de conception préliminaire",
-    en: "Client signed the preliminary design mandate"
+    fr: "Validation technique en cours — visite de site, inspection du toit et conception détaillée",
+    en: "Technical validation in progress — site visit, roof inspection and detailed design"
   },
   epc_proposal_sent: {
-    fr: "Proposition EPC complète soumise au client",
-    en: "Complete EPC proposal submitted to client"
+    fr: "Ingénierie détaillée, plans et devis de construction préparés",
+    en: "Detailed engineering, construction plans and specs prepared"
   },
-  negotiation: { 
-    fr: "Négociation finale du contrat de construction", 
-    en: "Final construction contract negotiation" 
+  negotiation: {
+    fr: "Négociation finale du contrat EPC de construction",
+    en: "Final EPC construction contract negotiation"
   },
-  won_to_be_delivered: { 
-    fr: "Contrat signé – en attente de démarrage de la construction", 
-    en: "Contract signed – awaiting construction start" 
+  won_to_be_delivered: {
+    fr: "Contrat signé — en attente de démarrage",
+    en: "Contract signed — awaiting start"
   },
-  won_in_construction: { 
-    fr: "Construction en cours sur le site", 
-    en: "Construction in progress on site" 
+  won_in_construction: {
+    fr: "Permis obtenus, installation clé en main en cours",
+    en: "Permits obtained, turnkey installation in progress"
   },
-  won_delivered: { 
-    fr: "Projet complété et livré au client", 
-    en: "Project completed and delivered to client" 
+  won_delivered: {
+    fr: "Système en opération — monitoring et performance",
+    en: "System in operation — monitoring and performance"
   },
-  lost: { 
-    fr: "Opportunité fermée sans succès", 
-    en: "Opportunity closed without success" 
+  lost: {
+    fr: "Opportunité fermée sans succès",
+    en: "Opportunity closed without success"
   },
-  disqualified: { 
-    fr: "Lead non qualifié – ne correspond pas aux critères (test, doublon, hors cible)", 
-    en: "Disqualified lead – does not meet criteria (test, duplicate, out of scope)" 
+  disqualified: {
+    fr: "Lead non qualifié — ne correspond pas aux critères",
+    en: "Disqualified lead — does not meet criteria"
   },
 };
 

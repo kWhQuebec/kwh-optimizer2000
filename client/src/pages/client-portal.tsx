@@ -38,48 +38,52 @@ type SiteWithClient = Site & {
   designAgreement?: DesignAgreement | null;
 };
 
-type ProjectPhase = "analysis" | "design" | "installation" | "complete";
+type ProjectPhase = "exploration" | "conception" | "realisation" | "operation";
 
 function getProjectPhase(site: SiteWithClient): { phase: ProjectPhase; progress: number; label: string; labelEn: string } {
   if (!site.analysisAvailable) {
-    return { phase: "analysis", progress: 25, label: "Analyse en cours", labelEn: "Analysis in Progress" };
+    return { phase: "exploration", progress: 25, label: "Exploration en cours", labelEn: "Exploration in Progress" };
   }
   if (!site.designAgreement || site.designAgreement.status === "draft") {
-    return { phase: "design", progress: 50, label: "En attente de design", labelEn: "Awaiting Design" };
+    return { phase: "conception", progress: 50, label: "Conception en attente", labelEn: "Awaiting Design" };
   }
   if (site.designAgreement.status === "accepted") {
-    return { phase: "installation", progress: 75, label: "Design approuvé", labelEn: "Design Approved" };
+    return { phase: "realisation", progress: 75, label: "Réalisation en cours", labelEn: "Construction in Progress" };
   }
-  return { phase: "complete", progress: 100, label: "Projet complété", labelEn: "Project Complete" };
+  return { phase: "operation", progress: 100, label: "En opération", labelEn: "In Operation" };
 }
 
 function ProjectTimeline({ site, language }: { site: SiteWithClient; language: string }) {
   const phaseInfo = getProjectPhase(site);
   
   const steps = [
-    { 
-      id: "analysis", 
-      label: language === "fr" ? "Analyse" : "Analysis",
+    {
+      id: "exploration",
+      label: language === "fr" ? "Exploration" : "Exploration",
       icon: BarChart3,
-      complete: site.analysisAvailable
+      complete: site.analysisAvailable,
+      color: "gray"
     },
-    { 
-      id: "design", 
-      label: language === "fr" ? "Design" : "Design",
+    {
+      id: "conception",
+      label: language === "fr" ? "Conception" : "Design",
       icon: PenLine,
-      complete: site.designAgreement?.status === "accepted"
+      complete: site.designAgreement?.status === "accepted",
+      color: "blue"
     },
-    { 
-      id: "installation", 
-      label: language === "fr" ? "Installation" : "Installation",
+    {
+      id: "realisation",
+      label: language === "fr" ? "Réalisation" : "Construction",
       icon: Wrench,
-      complete: phaseInfo.phase === "complete"
+      complete: phaseInfo.phase === "operation",
+      color: "amber"
     },
-    { 
-      id: "complete", 
-      label: language === "fr" ? "Terminé" : "Complete",
+    {
+      id: "operation",
+      label: language === "fr" ? "Opération" : "Operations",
       icon: CheckCircle2,
-      complete: phaseInfo.phase === "complete"
+      complete: phaseInfo.phase === "operation",
+      color: "green"
     },
   ];
 
@@ -106,9 +110,17 @@ function ProjectTimeline({ site, language }: { site: SiteWithClient; language: s
             >
               <div className={`
                 w-6 h-6 rounded-full flex items-center justify-center text-xs
-                ${isComplete ? "bg-primary text-primary-foreground" : 
-                  isActive ? "bg-primary/20 text-primary ring-2 ring-primary/50" : 
-                  "bg-muted text-muted-foreground"}
+                ${isComplete
+                  ? step.color === "gray" ? "bg-gray-500 text-white"
+                    : step.color === "blue" ? "bg-blue-500 text-white"
+                    : step.color === "amber" ? "bg-amber-500 text-white"
+                    : "bg-green-500 text-white"
+                  : isActive
+                    ? step.color === "gray" ? "bg-gray-200 text-gray-700 ring-2 ring-gray-400"
+                      : step.color === "blue" ? "bg-blue-100 text-blue-700 ring-2 ring-blue-400"
+                      : step.color === "amber" ? "bg-amber-100 text-amber-700 ring-2 ring-amber-400"
+                      : "bg-green-100 text-green-700 ring-2 ring-green-400"
+                  : "bg-muted text-muted-foreground"}
               `}>
                 {isComplete ? (
                   <CheckCircle2 className="w-3.5 h-3.5" />
