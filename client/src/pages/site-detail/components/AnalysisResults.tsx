@@ -41,6 +41,34 @@ function formatDollarSigned(value: number, lang: string = 'fr'): string {
   return `${sign}${formatSmartCurrency(value, lang)}`;
 }
 
+type HqHistoryEntry = { period?: string; kWh?: number; kW?: number; amount?: number; days?: number };
+
+function computeAnnualBillFromHQ(
+  hqHistory: HqHistoryEntry[] | null | undefined,
+  _meterFiles: Array<{ isSynthetic?: boolean | null }> | null | undefined,
+  simulationEstimate: number,
+): { amount: number; isReal: boolean } {
+  if (hqHistory && Array.isArray(hqHistory) && hqHistory.length > 0) {
+    const entriesWithAmount = hqHistory.filter(e => typeof e.amount === 'number' && e.amount > 0);
+    if (entriesWithAmount.length >= 3) {
+      const allHaveDays = entriesWithAmount.every(e => typeof e.days === 'number' && e.days > 0);
+      const totalAmount = entriesWithAmount.reduce((sum, e) => sum + (e.amount || 0), 0);
+      if (allHaveDays) {
+        const totalDays = entriesWithAmount.reduce((sum, e) => sum + (e.days!), 0);
+        const annualized = (totalAmount / totalDays) * 365;
+        const hasSufficientCoverage = totalDays >= 300;
+        return { amount: annualized, isReal: hasSufficientCoverage };
+      }
+      if (entriesWithAmount.length >= 10) {
+        return { amount: totalAmount, isReal: true };
+      }
+      return { amount: totalAmount, isReal: false };
+    }
+  }
+
+  return { amount: simulationEstimate, isReal: false };
+}
+
 export function AnalysisResults({
   simulation,
   site,
@@ -256,6 +284,16 @@ export function AnalysisResults({
     }
     return { ...fallbackScenario, ...selected };
   }, [optimizationScenarios, optimizationTarget, simulation, breakdown, assumptions]);
+
+  const annualBillInfo = useMemo(() => {
+    const simulationEstimate = displayedScenario.scenarioBreakdown?.estimatedAnnualBillBefore
+      || ((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06));
+    return computeAnnualBillFromHQ(
+      site?.hqConsumptionHistory as HqHistoryEntry[] | null,
+      site?.meterFiles,
+      simulationEstimate,
+    );
+  }, [site?.hqConsumptionHistory, site?.meterFiles, displayedScenario, simulation, assumptions]);
 
   const hourlyProfileData = useMemo(() => {
     const scenarioProfile = displayedScenario?.scenarioBreakdown?.hourlyProfileSummary;
@@ -536,9 +574,13 @@ export function AnalysisResults({
                 <DollarSign className="w-5 h-5 text-red-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{language === "fr" ? "Facture annuelle est." : "Est. Annual Bill"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {annualBillInfo.isReal
+                    ? (language === "fr" ? "Facture annuelle" : "Annual Bill")
+                    : (language === "fr" ? "Facture annuelle est." : "Est. Annual Bill")}
+                </p>
                 <p className="text-lg font-bold font-mono text-red-600" data-testid="text-est-bill">
-                  {formatSmartCurrency((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06), language)}
+                  {formatSmartCurrency(annualBillInfo.amount, language)}
                 </p>
               </div>
             </div>
@@ -1011,10 +1053,10 @@ export function AnalysisResults({
 
       {/* 5a: Bill Comparison */}
       {(() => {
-        const estimatedAnnualBill = displayedScenario.scenarioBreakdown?.estimatedAnnualBillBefore || ((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06));
+        const annualBill = annualBillInfo.amount;
         const annualSavings = (displayedScenario.annualSavings ?? simulation.annualSavings) || 0;
-        const estimatedBillAfter = displayedScenario.scenarioBreakdown?.estimatedAnnualBillAfter ?? Math.max(0, estimatedAnnualBill - annualSavings);
-        const savingsPercent = estimatedAnnualBill > 0 ? Math.round((annualSavings / estimatedAnnualBill) * 100) : 0;
+        const estimatedBillAfter = displayedScenario.scenarioBreakdown?.estimatedAnnualBillAfter ?? Math.max(0, annualBill - annualSavings);
+        const savingsPercent = annualBill > 0 ? Math.round((annualSavings / annualBill) * 100) : 0;
 
         return (
           <Card id="pdf-section-billing">
@@ -1027,8 +1069,8 @@ export function AnalysisResults({
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {language === "fr"
-                      ? `Ne rien faire vous coûtera $${Math.round(estimatedAnnualBill * 25).toLocaleString()} sur 25 ans`
-                      : `Doing nothing will cost you $${Math.round(estimatedAnnualBill * 25).toLocaleString()} over 25 years`}
+                      ? `Ne rien faire vous coûtera $${Math.round(annualBill * 25).toLocaleString()} sur 25 ans`
+                      : `Doing nothing will cost you $${Math.round(annualBill * 25).toLocaleString()} over 25 years`}
                   </p>
                 </div>
               </div>
@@ -1038,9 +1080,13 @@ export function AnalysisResults({
                     {language === "fr" ? "Facture actuelle" : "Current bill"}
                   </p>
                   <p className="text-3xl font-bold font-mono text-red-600 dark:text-red-400" data-testid="text-annual-bill-before">
-                    {formatSmartCurrency(estimatedAnnualBill || 0, language)}
+                    {formatSmartCurrency(annualBill || 0, language)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{language === "fr" ? "/année (énergie)" : "/year (energy)"}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {annualBillInfo.isReal
+                      ? (language === "fr" ? "/année (réel)" : "/year (actual)")
+                      : (language === "fr" ? "/année (estimé)" : "/year (estimated)")}
+                  </p>
                 </div>
 
                 <div className="flex flex-col items-center justify-center">
