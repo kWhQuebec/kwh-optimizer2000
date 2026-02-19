@@ -22,7 +22,6 @@ import {
   ChevronRight,
   Circle,
   CircleCheck,
-  CircleDot,
   AlertTriangle,
   Sun,
   Layers,
@@ -759,6 +758,10 @@ export default function SiteDetailPage() {
     );
   }
 
+  const analysisSteps = ["quick-analysis", "consumption", "analysis"];
+  const postAnalysisSteps = ["analysis", "design-agreement", "site-visit", "epc-proposal", "plans-specs", "permits", "operations", "compare", "activities"];
+  const designSteps = ["analysis", "design-agreement"];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -871,7 +874,7 @@ export default function SiteDetailPage() {
         <div className="flex items-center gap-2">
           {isStaff && (
             <>
-              {!(site.meterFiles && site.meterFiles.length > 0) && (
+              {activeTab === "quick-analysis" && !(site.meterFiles && site.meterFiles.length > 0) && (
                 <div className="flex items-center gap-1">
                   <Select
                     value={constraintFactor.toString()}
@@ -904,30 +907,34 @@ export default function SiteDetailPage() {
                   </Button>
                 </div>
               )}
-              <Button
-                onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
-                className="gap-2"
-                data-testid="button-run-analysis-header"
-              >
-                {runAnalysisMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-                {language === "fr" ? "Validation économique" : "Economic Validation"}
-              </Button>
+              {analysisSteps.includes(activeTab) && (
+                <Button
+                  onClick={() => runAnalysisMutation.mutate(customAssumptions)}
+                  disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
+                  className="gap-2"
+                  data-testid="button-run-analysis-header"
+                >
+                  {runAnalysisMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                  {language === "fr" ? "Validation économique" : "Economic Validation"}
+                </Button>
+              )}
             </>
           )}
           {/* Presentation Mode Button */}
-          <Link href={`/app/presentation/${site.id}${latestSimulation ? `?sim=${latestSimulation.id}&opt=${optimizationTarget}` : ''}`}>
-            <Button variant="outline" className="gap-2" data-testid="button-presentation-mode">
-              <Layers className="w-4 h-4" />
-              {language === "fr" ? "Présentation" : "Presentation"}
-            </Button>
-          </Link>
+          {latestSimulation && postAnalysisSteps.includes(activeTab) && (
+            <Link href={`/app/presentation/${site.id}${latestSimulation ? `?sim=${latestSimulation.id}&opt=${optimizationTarget}` : ''}`}>
+              <Button variant="outline" className="gap-2" data-testid="button-presentation-mode">
+                <Layers className="w-4 h-4" />
+                {language === "fr" ? "Présentation" : "Presentation"}
+              </Button>
+            </Link>
+          )}
           {/* Project Info Sheet PDF Button - Staff only */}
-          {isStaff && (
+          {isStaff && latestSimulation && postAnalysisSteps.includes(activeTab) && (
             <Button
               variant="outline"
               className="gap-2"
@@ -962,10 +969,9 @@ export default function SiteDetailPage() {
               {language === "fr" ? "Fiche Projet" : "Project Sheet"}
             </Button>
           )}
-          {latestSimulation && (
+          {latestSimulation && postAnalysisSteps.includes(activeTab) && (
             <>
               {(() => {
-                // Determine if site is qualified for PDF downloads
                 const qualifiedStages = ["qualified", "analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won"];
                 const isQualified = !!designAgreement || opportunities.some(opp => qualifiedStages.includes(opp.stage));
                 return (
@@ -978,7 +984,7 @@ export default function SiteDetailPage() {
                   />
                 );
               })()}
-              {isStaff && (
+              {isStaff && designSteps.includes(activeTab) && (
                 <Link href={`/app/analyses/${latestSimulation.id}/design`}>
                   <Button className="gap-2" data-testid="button-create-design">
                     <PenTool className="w-4 h-4" />
