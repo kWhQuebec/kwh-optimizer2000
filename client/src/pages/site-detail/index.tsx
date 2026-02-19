@@ -1962,7 +1962,7 @@ export default function SiteDetailPage() {
 
         <TabsContent value="consumption" className="space-y-6">
           {site.meterFiles?.some((f: any) => f.isSynthetic) && (
-            <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4">
+            <div data-testid="banner-synthetic-consumption" className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4">
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-amber-800 dark:text-amber-300">
