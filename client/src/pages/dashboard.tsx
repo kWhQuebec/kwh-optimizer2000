@@ -1,12 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import {
-  Building2,
   BarChart3,
   DollarSign,
   TrendingUp,
-  Clock,
   ChevronRight,
   Trophy,
   AlertTriangle,
@@ -23,7 +21,6 @@ import {
   Sun,
   Leaf,
   Home,
-  Car,
   Hammer,
   Activity,
   FileSignature,
@@ -31,7 +28,6 @@ import {
   Search,
   Send,
   Handshake,
-  ChevronDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,12 +38,34 @@ import {
   STAGE_LABELS,
   STAGE_SHORT_LABELS,
   STAGE_CHART_COLORS,
-  STAGE_TAILWIND,
   STAGE_PROBABILITIES,
   ACTIVE_STAGES,
   getPhaseColor,
   getPhaseForStage,
 } from "@shared/stageLabels";
+
+// ============================================
+// BRAND CONSTANTS — kWh Québec
+// Bleu #003DA6 | Or #FFB005 | Gris #AAAAAA
+// ============================================
+const BRAND = {
+  blue: "#003DA6",
+  darkBlue: "#002B75",
+  gold: "#FFB005",
+  gray: "#AAAAAA",
+  green: "#16A34A",
+} as const;
+
+// Funnel gradient: blue → gold → green (brand progression)
+const FUNNEL_COLORS: Record<string, string> = {
+  prospect:               "#4A7DC8", // lighter blue
+  contacted:              "#2D66BB", // medium blue
+  qualified:              "#003DA6", // brand blue
+  analysis_done:          "#3B7AD4", // blue-teal transition
+  design_mandate_signed:  "#D4940A", // dark gold
+  epc_proposal_sent:      "#FFB005", // brand gold
+  negotiation:            "#E6A005", // deep gold
+};
 
 interface PipelineStats {
   totalPipelineValue: number;
@@ -118,7 +136,6 @@ interface VirtualPowerPlant {
 }
 
 const WON_STAGES = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
-const isWonStage = (stage: string) => WON_STAGES.includes(stage);
 
 function formatCompactCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined || value === 0) return "$0";
@@ -142,7 +159,7 @@ function formatCapacity(mw: number): string {
 
 // ============================================
 // INPUT KPIs — "Remplir l'entonnoir"
-// Derived from stageBreakdown counts
+// Brand blue accent on left border
 // ============================================
 
 function InputKPIs({ stats, language, isLoading }: { stats?: PipelineStats; language: 'fr' | 'en'; isLoading: boolean }) {
@@ -154,58 +171,53 @@ function InputKPIs({ stats, language, isLoading }: { stats?: PipelineStats; lang
       label: language === 'fr' ? 'Nouveaux prospects' : 'New Prospects',
       value: getStageCount('prospect'),
       icon: UserPlus,
-      color: 'text-gray-600 dark:text-gray-400',
-      bgColor: 'bg-gray-100 dark:bg-gray-800',
+      color: BRAND.blue,
     },
     {
       label: language === 'fr' ? 'En contact' : 'Contacted',
       value: getStageCount('contacted'),
       icon: Phone,
-      color: 'text-gray-700 dark:text-gray-300',
-      bgColor: 'bg-gray-100 dark:bg-gray-800',
+      color: BRAND.blue,
     },
     {
       label: language === 'fr' ? 'Analyses à faire' : 'Analyses Pending',
       value: (stats?.pendingTasksCount?.runAnalysis || 0) + getStageCount('qualified'),
       icon: Search,
-      color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-50 dark:bg-blue-950',
+      color: BRAND.blue,
     },
     {
       label: language === 'fr' ? 'Propositions envoyées' : 'Proposals Sent',
       value: getStageCount('epc_proposal_sent') + getStageCount('negotiation'),
       icon: Send,
-      color: 'text-amber-600 dark:text-amber-400',
-      bgColor: 'bg-amber-50 dark:bg-amber-950',
+      color: BRAND.gold,
     },
   ];
 
   return (
-    <div className="relative">
-      {/* Section title */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-          <ArrowDown className="w-3.5 h-3.5 text-gray-500" />
+    <div>
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${BRAND.blue}15` }}>
+          <ArrowDown className="w-4 h-4" style={{ color: BRAND.blue }} />
         </div>
-        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+        <h2 className="text-base font-extrabold uppercase tracking-wide" style={{ color: BRAND.blue }}>
           {language === 'fr' ? 'Remplir l\'entonnoir' : 'Fill the Funnel'}
-        </span>
+        </h2>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {inputs.map((inp, i) => (
-          <Card key={i} className="border-dashed">
-            <CardContent className="p-3">
+          <Card key={i} className="border-l-[3px] overflow-hidden" style={{ borderLeftColor: inp.color }}>
+            <CardContent className="p-3.5">
               {isLoading ? (
                 <Skeleton className="h-14 w-full" />
               ) : (
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${inp.bgColor}`}>
-                    <inp.icon className={`w-5 h-5 ${inp.color}`} />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${inp.color}12` }}>
+                    <inp.icon className="w-5 h-5" style={{ color: inp.color }} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] text-muted-foreground truncate">{inp.label}</p>
-                    <p className="text-2xl font-bold font-mono">{inp.value}</p>
+                    <p className="text-[11px] text-muted-foreground truncate font-medium">{inp.label}</p>
+                    <p className="text-2xl font-extrabold font-mono" style={{ color: BRAND.darkBlue }}>{inp.value}</p>
                   </div>
                 </div>
               )}
@@ -218,7 +230,8 @@ function InputKPIs({ stats, language, isLoading }: { stats?: PipelineStats; lang
 }
 
 // ============================================
-// VISUAL FUNNEL — True funnel shape with SVG
+// VISUAL FUNNEL — SVG with brand gradients,
+// rounded look, hover tooltips, stagger anim
 // ============================================
 
 function VisualFunnel({ data, stats, language, isLoading }: {
@@ -227,7 +240,16 @@ function VisualFunnel({ data, stats, language, isLoading }: {
   language: 'fr' | 'en';
   isLoading: boolean;
 }) {
-  // Only active pipeline stages (not won/lost/disqualified)
+  const [hoveredStage, setHoveredStage] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Stagger animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const activeStages = ACTIVE_STAGES.map(stageKey => {
     const found = data.find(s => s.stage === stageKey);
     return {
@@ -242,135 +264,261 @@ function VisualFunnel({ data, stats, language, isLoading }: {
   const totalActiveValue = activeStages.reduce((sum, s) => sum + s.totalValue, 0);
 
   // Funnel dimensions
-  const funnelWidth = 600;
-  const funnelHeight = 400;
-  const topWidth = funnelWidth * 0.95;  // Wide at top
-  const bottomWidth = funnelWidth * 0.18; // Narrow at bottom
+  const W = 640;
+  const H = 420;
+  const topW = W * 0.92;
+  const bottomW = W * 0.16;
   const stageCount = activeStages.length;
-  const stageHeight = funnelHeight / stageCount;
-  const padding = 0;
+  const stageH = H / stageCount;
+  const gap = 3;
+  const cornerR = 4;
 
-  // Calculate trapezoid widths for each stage level
   const getWidthAtLevel = (level: number) => {
     const t = level / stageCount;
-    return topWidth - (topWidth - bottomWidth) * t;
+    return topW - (topW - bottomW) * t;
+  };
+
+  // Build rounded trapezoid path
+  const trapezoidPath = (topX: number, topW: number, botX: number, botW: number, y: number, h: number) => {
+    const r = cornerR;
+    const t = y + gap / 2;
+    const b = y + h - gap / 2;
+    return `
+      M ${topX + r} ${t}
+      L ${topX + topW - r} ${t}
+      Q ${topX + topW} ${t} ${topX + topW - r * 0.3} ${t + r}
+      L ${botX + botW - r * 0.3} ${b - r}
+      Q ${botX + botW} ${b} ${botX + botW - r} ${b}
+      L ${botX + r} ${b}
+      Q ${botX} ${b} ${botX + r * 0.3} ${b - r}
+      L ${topX + r * 0.3} ${t + r}
+      Q ${topX} ${t} ${topX + r} ${t}
+      Z
+    `;
   };
 
   if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <Skeleton className="h-[420px] w-full" />
+          <Skeleton className="h-[440px] w-full rounded-xl" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border-t-[3px]" style={{ borderTopColor: BRAND.blue }}>
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
         <div>
-          <CardTitle className="text-lg">
+          <CardTitle className="text-lg font-extrabold" style={{ color: BRAND.darkBlue }}>
             {language === 'fr' ? 'Entonnoir de ventes' : 'Sales Funnel'}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {totalActiveCount} {language === 'fr' ? 'opportunités actives' : 'active opportunities'} — {formatCompactCurrency(totalActiveValue)}
+            {totalActiveCount} {language === 'fr' ? 'opportunités' : 'opportunities'} — {formatCompactCurrency(totalActiveValue)}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="inline-block w-2 h-2 rounded-full bg-gray-400" /> {language === 'fr' ? 'Exploration' : 'Exploration'}
-          <span className="inline-block w-2 h-2 rounded-full bg-blue-500 ml-2" /> {language === 'fr' ? 'Conception' : 'Design'}
-          <span className="inline-block w-2 h-2 rounded-full bg-amber-500 ml-2" /> {language === 'fr' ? 'Réalisation' : 'Delivery'}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: BRAND.blue }} />
+          <span>Exploration</span>
+          <span className="inline-block w-2.5 h-2.5 rounded-sm ml-1.5" style={{ backgroundColor: BRAND.blue, opacity: 0.6 }} />
+          <span>Conception</span>
+          <span className="inline-block w-2.5 h-2.5 rounded-sm ml-1.5" style={{ backgroundColor: BRAND.gold }} />
+          <span>{language === 'fr' ? 'Réalisation' : 'Delivery'}</span>
         </div>
       </CardHeader>
-      <CardContent className="px-2 pb-4 pt-0">
-        <div className="w-full overflow-hidden" style={{ maxWidth: '100%' }}>
-          <svg
-            viewBox={`0 0 ${funnelWidth} ${funnelHeight}`}
-            className="w-full h-auto"
-            preserveAspectRatio="xMidYMid meet"
-            style={{ maxHeight: '420px' }}
-          >
+      <CardContent className="px-3 pb-5 pt-1" ref={ref}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full h-auto"
+          preserveAspectRatio="xMidYMid meet"
+          style={{ maxHeight: '440px' }}
+        >
+          {/* SVG defs for gradients and filters */}
+          <defs>
+            <filter id="funnelShadow" x="-5%" y="-5%" width="110%" height="115%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.08" />
+            </filter>
             {activeStages.map((stage, i) => {
-              const y = i * stageHeight + padding;
-              const topW = getWidthAtLevel(i);
-              const botW = getWidthAtLevel(i + 1);
-              const topX = (funnelWidth - topW) / 2;
-              const botX = (funnelWidth - botW) / 2;
-              const chartColor = STAGE_CHART_COLORS[stage.stage] || '#9CA3AF';
-              const phase = getPhaseForStage(stage.stage);
-              const phaseColor = getPhaseColor(stage.stage);
-              const gap = 2; // Gap between stages
-
-              // Trapezoid points
-              const points = [
-                `${topX},${y + gap / 2}`,
-                `${topX + topW},${y + gap / 2}`,
-                `${botX + botW},${y + stageHeight - gap / 2}`,
-                `${botX},${y + stageHeight - gap / 2}`,
-              ].join(' ');
-
-              // Fill proportion based on count (visual weight)
-              const fillOpacity = stage.count > 0 ? 0.85 : 0.25;
-              const label = STAGE_SHORT_LABELS[stage.stage]?.[language] || stage.stage;
-              const midY = y + stageHeight / 2;
-              const prob = STAGE_PROBABILITIES[stage.stage] || 0;
-
+              const color = FUNNEL_COLORS[stage.stage] || '#9CA3AF';
               return (
-                <g key={stage.stage}>
-                  {/* Trapezoid background */}
-                  <polygon
-                    points={points}
-                    fill={chartColor}
-                    opacity={fillOpacity}
-                    stroke="white"
-                    strokeWidth="1"
-                    className="transition-all duration-300"
-                  />
-                  {/* Stage label (left) */}
-                  <text
-                    x={funnelWidth / 2}
-                    y={midY - 6}
-                    textAnchor="middle"
-                    className="fill-current"
-                    style={{
-                      fontSize: stageHeight > 50 ? '13px' : '11px',
-                      fontWeight: 600,
-                      fill: fillOpacity > 0.5 ? '#FFFFFF' : '#6B7280',
-                    }}
-                  >
-                    {label}
-                  </text>
-                  {/* Count + Value (center) */}
-                  <text
-                    x={funnelWidth / 2}
-                    y={midY + 12}
-                    textAnchor="middle"
-                    style={{
-                      fontSize: stageHeight > 50 ? '12px' : '10px',
-                      fontWeight: 500,
-                      fill: fillOpacity > 0.5 ? 'rgba(255,255,255,0.85)' : '#9CA3AF',
-                    }}
-                  >
-                    {stage.count > 0
-                      ? `${stage.count} opp. — ${formatCompactCurrency(stage.totalValue)} (${prob}%)`
-                      : `— (${prob}%)`
-                    }
-                  </text>
-                </g>
+                <linearGradient key={`grad-${stage.stage}`} id={`grad-${stage.stage}`} x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor={color} stopOpacity="0.75" />
+                  <stop offset="50%" stopColor={color} stopOpacity="0.92" />
+                  <stop offset="100%" stopColor={color} stopOpacity="0.75" />
+                </linearGradient>
               );
             })}
+          </defs>
 
-            {/* Arrow pointing down at bottom */}
-            <polygon
-              points={`${funnelWidth / 2 - 12},${funnelHeight - 2} ${funnelWidth / 2 + 12},${funnelHeight - 2} ${funnelWidth / 2},${funnelHeight + 10}`}
-              fill="#10B981"
-              opacity="0.6"
-            />
-          </svg>
-        </div>
+          {activeStages.map((stage, i) => {
+            const y = i * stageH;
+            const topWidth = getWidthAtLevel(i);
+            const botWidth = getWidthAtLevel(i + 1);
+            const topX = (W - topWidth) / 2;
+            const botX = (W - botWidth) / 2;
+            const isHovered = hoveredStage === stage.stage;
+            const label = STAGE_SHORT_LABELS[stage.stage]?.[language] || stage.stage;
+            const midY = y + stageH / 2;
+            const prob = STAGE_PROBABILITIES[stage.stage] || 0;
+            const hasData = stage.count > 0;
+            const fillOpacity = hasData ? 1 : 0.35;
+
+            // Stagger animation delay
+            const animDelay = `${i * 80}ms`;
+            const animStyle = {
+              opacity: visible ? fillOpacity : 0,
+              transform: visible ? 'translateY(0)' : 'translateY(12px)',
+              transition: `opacity 0.4s ease ${animDelay}, transform 0.4s ease ${animDelay}`,
+            };
+
+            const path = trapezoidPath(topX, topWidth, botX, botWidth, y, stageH);
+
+            return (
+              <g
+                key={stage.stage}
+                style={animStyle}
+                onMouseEnter={() => setHoveredStage(stage.stage)}
+                onMouseLeave={() => setHoveredStage(null)}
+                className="cursor-pointer"
+              >
+                {/* Shadow on hover */}
+                <path
+                  d={path}
+                  fill={`url(#grad-${stage.stage})`}
+                  filter={isHovered ? "url(#funnelShadow)" : undefined}
+                  stroke={isHovered ? "#FFFFFF" : "rgba(255,255,255,0.4)"}
+                  strokeWidth={isHovered ? "2" : "1"}
+                  style={{
+                    transform: isHovered ? 'scale(1.015)' : 'scale(1)',
+                    transformOrigin: `${W / 2}px ${midY}px`,
+                    transition: 'transform 0.2s ease, stroke-width 0.2s ease',
+                  }}
+                />
+
+                {/* Stage label */}
+                <text
+                  x={W / 2}
+                  y={midY - (stageH > 55 ? 7 : 5)}
+                  textAnchor="middle"
+                  style={{
+                    fontSize: stageH > 55 ? '14px' : '12px',
+                    fontWeight: 800,
+                    fontFamily: "'Montserrat', sans-serif",
+                    fill: hasData ? '#FFFFFF' : '#9CA3AF',
+                    textShadow: hasData ? '0 1px 2px rgba(0,0,0,0.2)' : 'none',
+                  }}
+                >
+                  {label}
+                </text>
+
+                {/* Count + Value */}
+                <text
+                  x={W / 2}
+                  y={midY + (stageH > 55 ? 13 : 10)}
+                  textAnchor="middle"
+                  style={{
+                    fontSize: stageH > 55 ? '12px' : '10px',
+                    fontWeight: 600,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fill: hasData ? 'rgba(255,255,255,0.9)' : '#BFBFBF',
+                  }}
+                >
+                  {hasData
+                    ? `${stage.count} opp. — ${formatCompactCurrency(stage.totalValue)}`
+                    : `— (${prob}%)`
+                  }
+                </text>
+
+                {/* Probability badge on right */}
+                {hasData && (
+                  <text
+                    x={W / 2 + (topWidth + botWidth) / 4 + 20}
+                    y={midY + 4}
+                    textAnchor="start"
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fill: 'rgba(255,255,255,0.6)',
+                    }}
+                  >
+                    {prob}%
+                  </text>
+                )}
+
+                {/* Hover tooltip */}
+                {isHovered && hasData && (
+                  <g>
+                    <rect
+                      x={W / 2 - 110}
+                      y={y - 36}
+                      width="220"
+                      height="30"
+                      rx="6"
+                      fill={BRAND.darkBlue}
+                      opacity="0.95"
+                    />
+                    <text
+                      x={W / 2}
+                      y={y - 17}
+                      textAnchor="middle"
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        fontFamily: "'Montserrat', sans-serif",
+                        fill: '#FFFFFF',
+                      }}
+                    >
+                      {stage.count} opp. · {formatCompactCurrency(stage.totalValue)} · Pondéré: {formatCompactCurrency(stage.weightedValue)}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Bottom arrow → results */}
+          <polygon
+            points={`${W / 2 - 14},${H - 3} ${W / 2 + 14},${H - 3} ${W / 2},${H + 10}`}
+            fill={BRAND.green}
+            opacity={visible ? 0.7 : 0}
+            style={{ transition: `opacity 0.5s ease ${activeStages.length * 80 + 200}ms` }}
+          />
+        </svg>
       </CardContent>
     </Card>
+  );
+}
+
+// ============================================
+// CONVERSION RATE — Between funnel and results
+// ============================================
+
+function ConversionIndicator({ stats, language }: { stats?: PipelineStats; language: 'fr' | 'en' }) {
+  if (!stats?.stageBreakdown) return null;
+
+  const prospectCount = stats.stageBreakdown.find(s => s.stage === 'prospect')?.count || 0;
+  const wonCount = stats.stageBreakdown
+    .filter(s => WON_STAGES.includes(s.stage))
+    .reduce((sum, s) => sum + s.count, 0);
+  const totalEntered = prospectCount + (stats.stageBreakdown.find(s => s.stage === 'contacted')?.count || 0) + wonCount;
+  const conversionRate = totalEntered > 0 ? Math.round((wonCount / totalEntered) * 100) : 0;
+
+  return (
+    <div className="flex items-center justify-center gap-4 py-1">
+      <div className="h-px flex-1 max-w-24" style={{ background: `linear-gradient(to right, transparent, ${BRAND.gold})` }} />
+      <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border" style={{ borderColor: `${BRAND.gold}40`, backgroundColor: `${BRAND.gold}08` }}>
+        <TrendingUp className="w-3.5 h-3.5" style={{ color: BRAND.gold }} />
+        <span className="text-xs font-bold font-mono" style={{ color: BRAND.darkBlue }}>
+          {language === 'fr' ? 'Taux de conversion' : 'Conversion Rate'}: {conversionRate}%
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          ({wonCount}/{totalEntered})
+        </span>
+      </div>
+      <div className="h-px flex-1 max-w-24" style={{ background: `linear-gradient(to left, transparent, ${BRAND.gold})` }} />
+    </div>
   );
 }
 
@@ -451,14 +599,14 @@ function CommandCenter({ stats, language, isLoading }: { stats?: PipelineStats; 
   const totalActions = actions.length;
 
   return (
-    <Card className="border-primary/30 shadow-md">
+    <Card className="shadow-sm border-l-[3px]" style={{ borderLeftColor: BRAND.gold }}>
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#FFB005]/15 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-[#FFB005]" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${BRAND.gold}15` }}>
+            <Zap className="w-5 h-5" style={{ color: BRAND.gold }} />
           </div>
           <div>
-            <CardTitle className="text-lg">
+            <CardTitle className="text-lg font-extrabold" style={{ color: BRAND.darkBlue }}>
               {language === 'fr' ? 'Vos prochaines actions' : 'Your Next Actions'}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -506,7 +654,7 @@ function CommandCenter({ stats, language, isLoading }: { stats?: PipelineStats; 
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">{action.title}</p>
+                        <p className="text-sm font-semibold truncate">{action.title}</p>
                         {action.priority === 'urgent' && (
                           <Badge variant="destructive" className="text-[10px] px-1.5 py-0">URGENT</Badge>
                         )}
@@ -534,7 +682,7 @@ function CommandCenter({ stats, language, isLoading }: { stats?: PipelineStats; 
         ) : (
           <div className="text-center py-6 text-muted-foreground">
             <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-500" />
-            <p className="font-medium">{language === 'fr' ? 'Aucune action en attente' : 'No pending actions'}</p>
+            <p className="font-semibold">{language === 'fr' ? 'Aucune action en attente' : 'No pending actions'}</p>
             <p className="text-xs mt-1">{language === 'fr' ? 'Tout est à jour!' : 'Everything is up to date!'}</p>
           </div>
         )}
@@ -545,6 +693,7 @@ function CommandCenter({ stats, language, isLoading }: { stats?: PipelineStats; 
 
 // ============================================
 // OUTPUT KPIs — "Les résultats"
+// Brand gold accent on left border
 // ============================================
 
 function OutputKPIs({ stats, vpp, language, isLoading, vppLoading }: {
@@ -577,61 +726,56 @@ function OutputKPIs({ stats, vpp, language, isLoading, vppLoading }: {
       value: formatCompactCurrency(totalWonValue),
       sub: `${totalWonCount} ${language === 'fr' ? 'projets' : 'projects'}`,
       icon: Handshake,
-      color: 'text-green-600 dark:text-green-400',
-      bgColor: 'bg-green-100 dark:bg-green-950',
+      accentColor: BRAND.green,
     },
     {
       label: language === 'fr' ? 'Capacité installée' : 'Installed Capacity',
       value: formatCapacity(totalMW),
       sub: `${vpp?.totalPanelCount?.toLocaleString() || 0} ${language === 'fr' ? 'panneaux' : 'panels'}`,
       icon: Sun,
-      color: 'text-[#FFB005]',
-      bgColor: 'bg-amber-100 dark:bg-amber-950',
+      accentColor: BRAND.gold,
     },
     {
       label: language === 'fr' ? 'Production annuelle' : 'Annual Production',
       value: formatEnergy(totalKWh),
-      sub: `${(vpp?.totalProjectsCompleted || 0)} ${language === 'fr' ? 'systèmes actifs' : 'active systems'}`,
+      sub: `${(vpp?.totalProjectsCompleted || 0)} ${language === 'fr' ? 'systèmes' : 'systems'}`,
       icon: Zap,
-      color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-100 dark:bg-blue-950',
+      accentColor: BRAND.blue,
     },
     {
       label: language === 'fr' ? 'CO₂ évité' : 'CO₂ Avoided',
       value: co2Tonnes >= 1000 ? `${(co2Tonnes / 1000).toFixed(1)}k t` : `${Math.round(co2Tonnes)} t`,
       sub: `≈ ${(vpp?.equivalentHomesP || Math.round(totalKWh / 20000)).toLocaleString()} ${language === 'fr' ? 'maisons' : 'homes'}`,
       icon: Leaf,
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-100 dark:bg-emerald-950',
+      accentColor: BRAND.green,
     },
   ];
 
   return (
-    <div className="relative">
-      {/* Section title */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-6 h-6 rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center">
-          <Trophy className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+    <div>
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${BRAND.green}15` }}>
+          <Trophy className="w-4 h-4" style={{ color: BRAND.green }} />
         </div>
-        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+        <h2 className="text-base font-extrabold uppercase tracking-wide" style={{ color: BRAND.darkBlue }}>
           {language === 'fr' ? 'Les résultats' : 'Results'}
-        </span>
+        </h2>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {outputs.map((out, i) => (
-          <Card key={i} className="bg-gradient-to-br from-green-50/30 to-transparent dark:from-green-950/10">
-            <CardContent className="p-3">
+          <Card key={i} className="border-l-[3px] overflow-hidden" style={{ borderLeftColor: out.accentColor }}>
+            <CardContent className="p-3.5">
               {loading ? (
                 <Skeleton className="h-14 w-full" />
               ) : (
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${out.bgColor}`}>
-                    <out.icon className={`w-5 h-5 ${out.color}`} />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${out.accentColor}12` }}>
+                    <out.icon className="w-5 h-5" style={{ color: out.accentColor }} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] text-muted-foreground truncate">{out.label}</p>
-                    <p className="text-xl font-bold font-mono truncate">{out.value}</p>
+                    <p className="text-[11px] text-muted-foreground truncate font-medium">{out.label}</p>
+                    <p className="text-xl font-extrabold font-mono" style={{ color: BRAND.darkBlue }}>{out.value}</p>
                     {out.sub && <p className="text-[10px] text-muted-foreground truncate">{out.sub}</p>}
                   </div>
                 </div>
@@ -654,25 +798,19 @@ function SignedProjectsBreakdown({ stats, language, isLoading }: { stats?: Pipel
       stage: 'won_to_be_delivered',
       label: language === 'fr' ? 'Contrat signé — à livrer' : 'Contract Signed — To Deliver',
       icon: FileSignature,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-100 dark:bg-amber-950',
-      borderColor: 'border-l-amber-500',
+      color: BRAND.gold,
     },
     {
       stage: 'won_in_construction',
       label: language === 'fr' ? 'Permis & installation' : 'Permits & Installation',
       icon: Hammer,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-950',
-      borderColor: 'border-l-green-500',
+      color: BRAND.green,
     },
     {
       stage: 'won_delivered',
       label: language === 'fr' ? 'En opération' : 'In Operation',
       icon: Activity,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100 dark:bg-emerald-950',
-      borderColor: 'border-l-emerald-600',
+      color: '#059669',
     },
   ];
 
@@ -684,10 +822,10 @@ function SignedProjectsBreakdown({ stats, language, isLoading }: { stats?: Pipel
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
-        <CardTitle className="text-base">
+        <CardTitle className="text-base font-extrabold" style={{ color: BRAND.darkBlue }}>
           {language === 'fr' ? 'Projets signés — détails' : 'Signed Projects — Details'}
         </CardTitle>
-        <Trophy className="w-4 h-4 text-[#FFB005]" />
+        <Trophy className="w-4 h-4" style={{ color: BRAND.gold }} />
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -699,17 +837,17 @@ function SignedProjectsBreakdown({ stats, language, isLoading }: { stats?: Pipel
             {wonStagesData.map((ws) => {
               const data = getStageData(ws.stage);
               return (
-                <div key={ws.stage} className={`flex items-center gap-3 p-3 rounded-lg border-l-4 ${ws.borderColor} bg-muted/30`}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${ws.bgColor}`}>
-                    <ws.icon className={`w-4 h-4 ${ws.color}`} />
+                <div key={ws.stage} className="flex items-center gap-3 p-3 rounded-lg border-l-[3px] bg-muted/30" style={{ borderLeftColor: ws.color }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${ws.color}15` }}>
+                    <ws.icon className="w-4 h-4" style={{ color: ws.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{ws.label}</p>
+                    <p className="text-sm font-semibold">{ws.label}</p>
                     <p className="text-xs text-muted-foreground">
                       {data.count} {language === 'fr' ? 'projet' : 'project'}{data.count !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  <p className="text-sm font-bold font-mono shrink-0">{formatCompactCurrency(data.totalValue)}</p>
+                  <p className="text-sm font-extrabold font-mono shrink-0" style={{ color: BRAND.darkBlue }}>{formatCompactCurrency(data.totalValue)}</p>
                 </div>
               );
             })}
@@ -739,14 +877,14 @@ function OpportunityRow({
           <Target className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate text-sm" data-testid={`text-opportunity-name-${id}`}>{name}</p>
+          <p className="font-semibold truncate text-sm" data-testid={`text-opportunity-name-${id}`}>{name}</p>
           <p className="text-xs text-muted-foreground truncate">
             {clientName || (language === 'fr' ? 'Client non assigné' : 'Unassigned client')}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {value && (
-            <span className="font-mono text-sm font-medium" data-testid={`text-opportunity-value-${id}`}>
+            <span className="font-mono text-sm font-bold" style={{ color: BRAND.darkBlue }} data-testid={`text-opportunity-value-${id}`}>
               {formatCompactCurrency(value)}
             </span>
           )}
@@ -761,7 +899,7 @@ function OpportunityRow({
 
 // ============================================
 // MAIN DASHBOARD PAGE
-// Flow: Inputs → Funnel → Outputs
+// Flow: Command Center → Inputs → Funnel → Conversion → Outputs
 // ============================================
 
 export default function DashboardPage() {
@@ -778,10 +916,10 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      {/* Header */}
+      {/* Header — Brand blue title */}
       <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-dashboard-title">
+          <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: BRAND.darkBlue }} data-testid="text-dashboard-title">
             {language === 'fr' ? 'Tableau de bord' : 'Dashboard'}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -789,29 +927,29 @@ export default function DashboardPage() {
           </p>
         </div>
         <Link href="/app/pipeline">
-          <Button data-testid="button-view-pipeline">
+          <Button data-testid="button-view-pipeline" style={{ backgroundColor: BRAND.blue }}>
             <BarChart3 className="w-4 h-4 mr-2" />
             {language === 'fr' ? 'Voir le pipeline' : 'View Pipeline'}
           </Button>
         </Link>
       </div>
 
-      {/* Section 1: Command Center — priorités */}
+      {/* Section 1: Command Center */}
       <CommandCenter stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
 
       {/* ========================================= */}
       {/* FLOW: INPUTS → FUNNEL → OUTPUTS          */}
       {/* ========================================= */}
 
-      {/* Section 2: Input KPIs — "Remplir l'entonnoir" */}
+      {/* Section 2: Input KPIs */}
       <InputKPIs stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
 
-      {/* Visual connector */}
-      <div className="flex justify-center -my-3">
-        <div className="w-px h-6 bg-gradient-to-b from-gray-300 to-amber-400 dark:from-gray-600 dark:to-amber-500" />
+      {/* Connector: blue → gold gradient line */}
+      <div className="flex justify-center -my-2">
+        <div className="w-0.5 h-8 rounded-full" style={{ background: `linear-gradient(to bottom, ${BRAND.blue}, ${BRAND.gold})` }} />
       </div>
 
-      {/* Section 3: FUNNEL + Top Opportunités */}
+      {/* Section 3: FUNNEL + Top Opportunities */}
       <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2">
           {stats?.stageBreakdown ? (
@@ -820,7 +958,7 @@ export default function DashboardPage() {
             <Card>
               <CardContent className="p-6">
                 {isLoading ? (
-                  <Skeleton className="h-[420px] w-full" />
+                  <Skeleton className="h-[440px] w-full rounded-xl" />
                 ) : (
                   <div className="text-center py-16 text-muted-foreground">
                     <BarChart3 className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -834,10 +972,10 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-base">
+            <CardTitle className="text-base font-extrabold" style={{ color: BRAND.darkBlue }}>
               {language === 'fr' ? 'Top opportunités' : 'Top Opportunities'}
             </CardTitle>
-            <DollarSign className="w-4 h-4 text-muted-foreground" />
+            <DollarSign className="w-4 h-4" style={{ color: BRAND.gold }} />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -877,41 +1015,46 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Visual connector */}
-      <div className="flex justify-center -my-3">
-        <div className="w-px h-6 bg-gradient-to-b from-amber-400 to-green-500 dark:from-amber-500 dark:to-green-400" />
+      {/* Connector: gold → green with conversion rate */}
+      <div className="-my-2">
+        <div className="flex justify-center mb-1">
+          <div className="w-0.5 h-4 rounded-full" style={{ background: `linear-gradient(to bottom, ${BRAND.gold}, ${BRAND.green})` }} />
+        </div>
+        <ConversionIndicator stats={stats} language={language as 'fr' | 'en'} />
+        <div className="flex justify-center mt-1">
+          <div className="w-0.5 h-4 rounded-full" style={{ background: `linear-gradient(to bottom, ${BRAND.gold}, ${BRAND.green})` }} />
+        </div>
       </div>
 
-      {/* Section 4: Output KPIs — "Les résultats" */}
+      {/* Section 4: Output KPIs */}
       <OutputKPIs stats={stats} vpp={vpp} language={language as 'fr' | 'en'} isLoading={isLoading} vppLoading={vppLoading} />
 
-      {/* Section 5: Détails projets signés + Gains récents (2 colonnes) */}
+      {/* Section 5: Signed projects + Recent wins */}
       <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
         <SignedProjectsBreakdown stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
 
-        {/* Gains récents */}
         {stats?.recentWins && stats.recentWins.length > 0 ? (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
-              <CardTitle className="text-base">
+              <CardTitle className="text-base font-extrabold" style={{ color: BRAND.darkBlue }}>
                 {language === 'fr' ? 'Gains récents' : 'Recent Wins'}
               </CardTitle>
-              <Trophy className="w-4 h-4 text-[#FFB005]" />
+              <Trophy className="w-4 h-4" style={{ color: BRAND.gold }} />
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {stats.recentWins.map((win) => (
                   <Link key={win.id} href="/app/pipeline">
                     <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border">
-                      <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-950 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${BRAND.green}15` }}>
+                        <CheckCircle2 className="w-4 h-4" style={{ color: BRAND.green }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate text-sm">{win.name}</p>
+                        <p className="font-semibold truncate text-sm">{win.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{win.clientName || '—'}</p>
                       </div>
                       {win.estimatedValue && (
-                        <span className="font-mono text-sm font-bold text-green-600 dark:text-green-400 shrink-0">
+                        <span className="font-mono text-sm font-bold shrink-0" style={{ color: BRAND.green }}>
                           {formatCompactCurrency(win.estimatedValue)}
                         </span>
                       )}
@@ -922,7 +1065,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <div /> /* Empty space when no recent wins */
+          <div />
         )}
       </div>
     </div>
