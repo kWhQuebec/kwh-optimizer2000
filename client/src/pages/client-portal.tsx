@@ -552,7 +552,7 @@ export default function ClientPortalPage() {
                       <div className="flex items-center gap-2 p-2 rounded-md bg-green-50/50 dark:bg-green-950/20 border border-green-200 dark:border-green-800" data-testid={`document-agreement-${site.id}`}>
                         <FileCheck className="w-4 h-4 text-green-600 shrink-0" />
                         <span className="text-xs font-medium text-green-700 dark:text-green-400">
-                          {language === "fr" ? "Mandat de conception signé" : "Design mandate signed"}
+                          {language === "fr" ? "Validation technique confirmée" : "Technical validation confirmed"}
                         </span>
                       </div>
                     )}
