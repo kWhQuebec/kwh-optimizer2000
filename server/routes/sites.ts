@@ -15,6 +15,7 @@ import {
   insertRoofPolygonSchema,
   defaultAnalysisAssumptions,
   type AnalysisAssumptions,
+  type Site,
 } from "@shared/schema";
 import {
   runMonteCarloAnalysis,
@@ -219,7 +220,7 @@ router.get("/list", authMiddleware, asyncHandler(async (req: AuthRequest, res) =
       createdAt: s.createdAt,
       clientId: s.clientId,
       clientName: s.client?.name || "",
-      hasSimulation: (s.simulationRuns?.length || 0) > 0,
+      hasSimulation: ((s as any).simulationRuns?.length || 0) > 0,
       hasDesignAgreement: false,
       isArchived: s.isArchived
     })),
@@ -502,12 +503,9 @@ router.get("/:id/roof-imagery", authMiddleware, asyncHandler(async (req: AuthReq
   const width = parseInt(req.query.width as string) || 600;
   const height = parseInt(req.query.height as string) || 400;
 
-  const result = await googleSolar.getRoofImagery({
+  const result = await googleSolar.getDataLayers({
     latitude: site.latitude,
     longitude: site.longitude,
-    zoom,
-    width,
-    height
   });
 
   if (!result.success) {
@@ -515,8 +513,8 @@ router.get("/:id/roof-imagery", authMiddleware, asyncHandler(async (req: AuthReq
   }
 
   res.json({
-    imageUrl: result.imageUrl,
-    satelliteUrl: result.satelliteUrl,
+    imageUrl: result.rgbUrl,
+    satelliteUrl: result.rgbUrl,
     latitude: site.latitude,
     longitude: site.longitude
   });
@@ -563,10 +561,8 @@ router.post("/:id/bifacial-response", authMiddleware, requireStaff, asyncHandler
 
   const bifacialEnabled = response === "yes";
   await storage.updateSite(site.id, {
-    bifacialEnabled,
-    bifacialConfirmedAt: new Date(),
-    bifacialConfirmedBy: req.userId
-  });
+    bifacialAnalysisAccepted: bifacialEnabled,
+  } as Partial<Site>);
 
   const updatedSite = await storage.getSite(site.id);
   res.json(updatedSite);
@@ -652,11 +648,9 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
 
     const meterFile = await storage.createMeterFile({
       siteId,
-      filename: sanitizedFilename,
-      mimeType: file.mimetype,
-      filePath: file.path,
-      uploadedBy: req.userId!,
-      status: "processing"
+      fileName: sanitizedFilename,
+      granularity: sanitizedFilename.toLowerCase().includes("15min") ? "15MIN" : "HOUR",
+      originalStoragePath: file.path,
     });
 
     const granularity = sanitizedFilename.toLowerCase().includes("15min") ? "15MIN" : "HOUR";
@@ -667,14 +661,13 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
     if (readings.length > 0) {
       await storage.createMeterReadings(readings);
       await storage.updateMeterFile(meterFile.id, {
-        status: "processed",
-        recordCount: readings.length,
-        dateRangeStart: readings[0].timestamp,
-        dateRangeEnd: readings[readings.length - 1].timestamp
+        status: "PARSED",
+        periodStart: readings[0].timestamp,
+        periodEnd: readings[readings.length - 1].timestamp
       });
     } else {
       await storage.updateMeterFile(meterFile.id, {
-        status: "failed",
+        status: "FAILED",
         errorMessage: "No valid readings found in file"
       });
     }
@@ -905,7 +898,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     granularity: r.granularity || undefined
   })));
 
-  const roofDetailsScenario = site.roofAreaAutoDetails as RoofAreaAutoDetails | null;
+  const roofDetailsScenario = site.roofAreaAutoDetails as { yearlyEnergyDcKwh?: number } | null;
 
   // Build googleData object for resolveYieldStrategy
   const googleData = roofDetailsScenario?.yearlyEnergyDcKwh && site.kbKwDc
@@ -921,7 +914,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   const baseAssumptions = {
     ...getDefaultAnalysisAssumptions(),
     ...assumptions,
-    bifacialEnabled: assumptions?.bifacialEnabled ?? site.bifacialEnabled ?? false
+    bifacialEnabled: assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? false
   };
 
   const yieldStrategy = resolveYieldStrategy(
@@ -967,7 +960,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
   const kbMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
-  analysisAssumptions.maxPVFromRoofKw = kbMaxPvKw; // Keep as float for precision
+  (analysisAssumptions as any).maxPVFromRoofKw = kbMaxPvKw; // Keep as float for precision
 
   log.info(`Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
     `tracedArea=${tracedSolarAreaSqM.toFixed(0)}m², effectiveArea=${effectiveRoofAreaSqM.toFixed(0)}m², ` +
@@ -986,7 +979,6 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     siteId,
     meterId: null,
     type: "SCENARIO",
-    status: "completed",
     pvSizeKW: result.pvSizeKW,
     battEnergyKWh: result.battEnergyKWh,
     battPowerKW: result.battPowerKW,
@@ -1028,8 +1020,6 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     peakWeekData: result.peakWeekData,
     sensitivity: result.sensitivity,
     interpolatedMonths: result.interpolatedMonths,
-    result: result,
-    createdBy: req.userId || null
   });
 
   res.json({
@@ -1064,7 +1054,7 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
   const { hourlyData } = buildHourlyData(dedupResult.readings);
 
   // Get site's analysis assumptions or use defaults
-  const baseAssumptions: AnalysisAssumptions = site.analysisAssumptions || defaultAnalysisAssumptions();
+  const baseAssumptions: AnalysisAssumptions = (site.analysisAssumptions as AnalysisAssumptions) || { ...defaultAnalysisAssumptions };
 
   // Get sizing from latest analysis
   const analyses = await storage.getSimulationRunsBySite(siteId);
@@ -1127,7 +1117,7 @@ router.post("/:siteId/peak-shaving-analysis", authMiddleware, requireStaff, asyn
   }
 
   const result = analyzePeakShaving(
-    readings.map(r => ({ kW: r.kW || 0, timestamp: new Date(r.timestamp) })),
+    readings.map(r => ({ kW: r.kW || 0, kWh: r.kWh || 0, timestamp: new Date(r.timestamp) })) as any,
     {
       peakDemandKW,
       batteryPowerKW,

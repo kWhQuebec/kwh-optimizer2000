@@ -410,7 +410,7 @@ interface AnalysisOptions {
   preCalculatedDataSpanDays?: number;
 }
 
-function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>): {
+export function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>): {
   hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>;
   interpolatedMonths: number[];
 } {
