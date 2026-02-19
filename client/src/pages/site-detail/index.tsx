@@ -2155,19 +2155,6 @@ export default function SiteDetailPage() {
             </Card>
           ) : latestSimulation ? (
             <>
-              {(site.simulationRuns?.length ?? 0) > 1 && (
-                <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => setActiveTab("compare")}
-                    className="gap-2"
-                    data-testid="button-compare-scenarios"
-                  >
-                    <Scale className="w-4 h-4" />
-                    {language === "fr" ? "Comparer les scénarios" : "Compare scenarios"}
-                  </Button>
-                </div>
-              )}
               <AnalysisResults
                 simulation={getFullSimulation(latestSimulation.id) || latestSimulation}
                 site={site}
@@ -2177,6 +2164,7 @@ export default function SiteDetailPage() {
                 optimizationTarget={optimizationTarget}
                 onOptimizationTargetChange={setOptimizationTarget}
                 onOpenRoofDrawing={() => setIsRoofDrawingModalOpen(true)}
+                onCompareScenarios={(site.simulationRuns?.length ?? 0) > 1 ? () => setActiveTab("compare") : undefined}
               />
               {isStaff && latestSimulation && (
                 <Collapsible>

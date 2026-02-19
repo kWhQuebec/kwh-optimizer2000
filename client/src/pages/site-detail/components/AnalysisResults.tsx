@@ -4,7 +4,7 @@ import {
   Sun, Shield, Car, Award, Sparkles, MousePointerClick, Plus, FileSignature,
   TreePine, Phone, ArrowRight, Star, AlertTriangle, CheckCircle2, CreditCard,
   Home, Calculator, Info, Settings, Loader2, Clock, Quote, Wrench, ListChecks, Users,
-  Building2, CheckCircle, ChevronRight
+  Building2, CheckCircle, ChevronRight, Scale
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -77,7 +77,8 @@ export function AnalysisResults({
   isLoadingFullData = false,
   optimizationTarget = 'npv',
   onOptimizationTargetChange,
-  onOpenRoofDrawing
+  onOpenRoofDrawing,
+  onCompareScenarios
 }: {
   simulation: SimulationRun;
   site: SiteWithDetails;
@@ -87,6 +88,7 @@ export function AnalysisResults({
   optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency';
   onOptimizationTargetChange?: (target: 'npv' | 'irr' | 'selfSufficiency') => void;
   onOpenRoofDrawing?: () => void;
+  onCompareScenarios?: () => void;
 }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
@@ -1968,9 +1970,23 @@ export function AnalysisResults({
                 <CardContent className="space-y-8">
                   {/* Efficiency Frontier Chart */}
                   <div>
-                    <h4 className="text-sm font-semibold mb-4">
-                      {language === "fr" ? "Frontière d'efficacité (tous scénarios)" : "Efficiency Frontier (all scenarios)"}
-                    </h4>
+                    <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                      <h4 className="text-sm font-semibold">
+                        {language === "fr" ? "Frontière d'efficacité (tous scénarios)" : "Efficiency Frontier (all scenarios)"}
+                      </h4>
+                      {onCompareScenarios && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={onCompareScenarios}
+                          className="gap-1.5"
+                          data-testid="button-compare-scenarios"
+                        >
+                          <Scale className="w-3.5 h-3.5" />
+                          {language === "fr" ? "Comparer les scénarios" : "Compare scenarios"}
+                        </Button>
+                      )}
+                    </div>
                     <div
                       className="h-72"
                       onClick={(e) => {
