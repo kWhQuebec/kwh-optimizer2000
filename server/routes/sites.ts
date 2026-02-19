@@ -885,14 +885,25 @@ router.post("/:siteId/save-visualization", authMiddleware, requireStaff, asyncHa
 
 router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   const { siteId } = req.params;
-  const { assumptions, forcedSizing } = req.body;
+  const { assumptions, forcedSizing, meterId } = req.body;
 
   const site = await storage.getSite(siteId);
   if (!site) {
     throw new NotFoundError("Site");
   }
 
-  const readings = await storage.getMeterReadingsBySite(siteId);
+  let readings;
+  let activeMeter = null;
+  if (meterId) {
+    const meters = await storage.getSiteMeters(siteId);
+    activeMeter = meters.find(m => m.id === meterId);
+    if (!activeMeter) {
+      throw new BadRequestError("Meter not found for this site");
+    }
+    readings = await storage.getMeterReadingsByMeter(meterId);
+  } else {
+    readings = await storage.getMeterReadingsBySite(siteId);
+  }
   if (readings.length === 0) {
     throw new BadRequestError("No meter data available for analysis");
   }
@@ -985,6 +996,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
 
   const simulation = await storage.createSimulationRun({
     siteId,
+    meterId: meterId || null,
     type: "SCENARIO",
     status: "completed",
     pvSizeKW: result.pvSizeKW,
@@ -1041,15 +1053,24 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
 
 router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   const { siteId } = req.params;
-  const { config } = req.body as { config?: MonteCarloConfig };
+  const { config, meterId } = req.body as { config?: MonteCarloConfig; meterId?: string };
 
   const site = await storage.getSite(siteId);
   if (!site) {
     throw new NotFoundError("Site");
   }
 
-  // Load hourly meter data — required for the real engine
-  const readings = await storage.getMeterReadingsBySite(siteId);
+  let readings;
+  if (meterId) {
+    const meters = await storage.getSiteMeters(siteId);
+    const activeMeter = meters.find(m => m.id === meterId);
+    if (!activeMeter) {
+      throw new BadRequestError("Meter not found for this site");
+    }
+    readings = await storage.getMeterReadingsByMeter(meterId);
+  } else {
+    readings = await storage.getMeterReadingsBySite(siteId);
+  }
   if (readings.length === 0) {
     throw new BadRequestError("No meter data available for Monte Carlo analysis. Run a detailed analysis first.");
   }
@@ -1115,14 +1136,24 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
 
 router.post("/:siteId/peak-shaving-analysis", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   const { siteId } = req.params;
-  const { peakDemandKW, batteryPowerKW, batteryEnergyKWh, tariffPower } = req.body;
+  const { peakDemandKW, batteryPowerKW, batteryEnergyKWh, tariffPower, meterId } = req.body;
 
   const site = await storage.getSite(siteId);
   if (!site) {
     throw new NotFoundError("Site");
   }
 
-  const readings = await storage.getMeterReadingsBySite(siteId);
+  let readings;
+  if (meterId) {
+    const meters = await storage.getSiteMeters(siteId);
+    const activeMeter = meters.find(m => m.id === meterId);
+    if (!activeMeter) {
+      throw new BadRequestError("Meter not found for this site");
+    }
+    readings = await storage.getMeterReadingsByMeter(meterId);
+  } else {
+    readings = await storage.getMeterReadingsBySite(siteId);
+  }
   if (readings.length === 0) {
     throw new BadRequestError("No meter data available for analysis");
   }

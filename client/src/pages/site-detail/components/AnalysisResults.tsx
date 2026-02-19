@@ -2482,6 +2482,7 @@ export function AnalysisResults({
             <MonteCarloAnalysis
               siteId={site.id}
               hasMeterData={(site?.meterFiles?.length || 0) > 0}
+              meterId={(simulation as any)?.meterId || null}
             />
           )}
 

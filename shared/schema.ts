@@ -319,6 +319,7 @@ export type SiteMeter = typeof siteMeters.$inferSelect;
 export const meterFiles = pgTable("meter_files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   siteId: varchar("site_id").notNull().references(() => sites.id),
+  meterId: varchar("meter_id").references(() => siteMeters.id),
   fileName: text("file_name").notNull(),
   periodStart: timestamp("period_start"),
   periodEnd: timestamp("period_end"),
@@ -372,6 +373,7 @@ export type HqFetchJob = typeof hqFetchJobs.$inferSelect;
 export const simulationRuns = pgTable("simulation_runs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   siteId: varchar("site_id").notNull().references(() => sites.id),
+  meterId: varchar("meter_id").references(() => siteMeters.id),
   label: text("label"),
   type: text("type").notNull(), // "BASELINE" or "SCENARIO"
   

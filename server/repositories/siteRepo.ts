@@ -9,6 +9,7 @@ import {
 import type {
   Site, InsertSite, Client, MeterFile, InsertMeterFile,
   MeterReading, InsertMeterReading, SimulationRunSummary,
+  SimulationRun,
   RoofPolygon, InsertRoofPolygon,
 } from "@shared/schema";
 
@@ -353,6 +354,25 @@ export async function getMeterReadingsBySite(siteId: string): Promise<MeterReadi
     results.push(...readings);
   }
   return results;
+}
+
+export async function getMeterReadingsByMeter(meterId: string): Promise<MeterReading[]> {
+  const files = await db.select().from(meterFiles).where(eq(meterFiles.meterId, meterId));
+  const fileIds = files.map(f => f.id);
+  if (fileIds.length === 0) return [];
+
+  const results: MeterReading[] = [];
+  for (const fileId of fileIds) {
+    const readings = await db.select().from(meterReadings).where(eq(meterReadings.meterFileId, fileId));
+    results.push(...readings);
+  }
+  return results;
+}
+
+export async function getSimulationRunsByMeter(meterId: string): Promise<SimulationRun[]> {
+  return db.select().from(simulationRuns)
+    .where(eq(simulationRuns.meterId, meterId))
+    .orderBy(desc(simulationRuns.createdAt));
 }
 
 export async function createMeterReadings(readings: InsertMeterReading[]): Promise<MeterReading[]> {

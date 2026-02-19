@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, Fragment, useRef } from "react";
+import React, { useState, useCallback, useEffect, Fragment, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import {
@@ -118,6 +118,7 @@ export default function SiteDetailPage() {
   const [meterIsPrimary, setMeterIsPrimary] = useState(false);
   const [deletingMeterId, setDeletingMeterId] = useState<string | null>(null);
   const [procurationMeterId, setProcurationMeterId] = useState<string | null>(null);
+  const [analysisMeterId, setAnalysisMeterId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
@@ -311,7 +312,10 @@ export default function SiteDetailPage() {
       };
       delete (mergedAssumptions as any).yieldSource;
 
-      const result = await apiRequest<{ id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { assumptions: mergedAssumptions });
+      const result = await apiRequest<{ id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { 
+        assumptions: mergedAssumptions,
+        ...(analysisMeterId ? { meterId: analysisMeterId } : {})
+      });
       return result;
     },
     onSuccess: (data) => {
@@ -670,10 +674,22 @@ export default function SiteDetailPage() {
     }
   }, [site, mostRecentSimulationFromAll, selectedSimulationId]);
 
+  // Filter simulations by selected meter
+  const filteredSimulations = useMemo(() => {
+    if (!site?.simulationRuns) return [];
+    if (!analysisMeterId) return site.simulationRuns;
+    return site.simulationRuns.filter(s => (s as any).meterId === analysisMeterId);
+  }, [site?.simulationRuns, analysisMeterId]);
+
+  // Reset selected simulation when meter filter changes
+  useEffect(() => {
+    setSelectedSimulationId(null);
+  }, [analysisMeterId]);
+
   // The simulation to display
   const latestSimulation = selectedSimulationId && selectedSimulationId !== "__latest__"
-    ? site?.simulationRuns?.find(s => s.id === selectedSimulationId)
-    : (mostRecentSimulationFromAll || bestScenarioByNPV || site?.simulationRuns?.find(s => s.type === "SCENARIO") || site?.simulationRuns?.[0]);
+    ? filteredSimulations.find(s => s.id === selectedSimulationId) || site?.simulationRuns?.find(s => s.id === selectedSimulationId)
+    : (filteredSimulations.find(s => s.type === "SCENARIO") || filteredSimulations[0] || null);
 
   // Auto-fetch full simulation data when viewing analysis tab
   useEffect(() => {
@@ -2122,26 +2138,43 @@ export default function SiteDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle className="text-lg">{t("site.files")}</CardTitle>
-              {isStaff && (
-                <Button
-                  onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                  disabled={!site.meterFiles?.length || runAnalysisMutation.isPending || !site.roofAreaValidated}
-                  className="gap-2"
-                  data-testid="button-run-analysis"
-                >
-                  {runAnalysisMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4" />
-                      {t("site.runAnalysis")}
-                    </>
-                  )}
-                </Button>
-              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {meters.length > 1 && (
+                  <Select value={analysisMeterId || "all"} onValueChange={(val) => setAnalysisMeterId(val === "all" ? null : val)}>
+                    <SelectTrigger className="w-[200px]" data-testid="select-analysis-meter">
+                      <SelectValue placeholder={language === "fr" ? "Tous les compteurs" : "All meters"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{language === "fr" ? "Tous les compteurs" : "All meters"}</SelectItem>
+                      {meters.map(m => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.label || m.accountNumber}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {isStaff && (
+                  <Button
+                    onClick={() => runAnalysisMutation.mutate(customAssumptions)}
+                    disabled={!site.meterFiles?.length || runAnalysisMutation.isPending || !site.roofAreaValidated}
+                    className="gap-2"
+                    data-testid="button-run-analysis"
+                  >
+                    {runAnalysisMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4" />
+                        {t("site.runAnalysis")}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {site.meterFiles && site.meterFiles.length > 0 ? (
@@ -2149,6 +2182,9 @@ export default function SiteDetailPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t("site.fileName")}</TableHead>
+                      {meters.length > 0 && (
+                        <TableHead>{language === "fr" ? "Compteur" : "Meter"}</TableHead>
+                      )}
                       <TableHead>{t("site.granularity")}</TableHead>
                       <TableHead>{t("site.period")}</TableHead>
                       <TableHead>{t("sites.status")}</TableHead>
@@ -2166,6 +2202,13 @@ export default function SiteDetailPage() {
                             )}
                           </div>
                         </TableCell>
+                        {meters.length > 0 && (
+                          <TableCell className="text-muted-foreground">
+                            {(file as any).meterId
+                              ? (meters.find(m => m.id === (file as any).meterId)?.label || meters.find(m => m.id === (file as any).meterId)?.accountNumber || "—")
+                              : "—"}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <Badge variant="outline">
                             {file.granularity === "HOUR" ? t("status.hour") : t("status.fifteenMin")}
@@ -2350,6 +2393,39 @@ export default function SiteDetailPage() {
             </Card>
           ) : latestSimulation ? (
             <>
+              {meters.length > 1 && (
+                <Card>
+                  <CardContent className="py-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Gauge className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground mr-2">
+                        {language === "fr" ? "Compteur :" : "Meter:"}
+                      </span>
+                      <div className="flex gap-1 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant={!analysisMeterId ? "default" : "outline"}
+                          onClick={() => setAnalysisMeterId(null)}
+                          data-testid="button-meter-filter-all"
+                        >
+                          {language === "fr" ? "Tous" : "All"}
+                        </Button>
+                        {meters.map(m => (
+                          <Button
+                            key={m.id}
+                            size="sm"
+                            variant={analysisMeterId === m.id ? "default" : "outline"}
+                            onClick={() => setAnalysisMeterId(m.id)}
+                            data-testid={`button-meter-filter-${m.id}`}
+                          >
+                            {m.label || m.accountNumber}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               {(site.simulationRuns?.length ?? 0) > 1 && (
                 <div className="flex justify-end">
                   <Button

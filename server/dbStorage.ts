@@ -121,6 +121,7 @@ export class DatabaseStorage implements IStorage {
   updateMeterFile = siteRepo.updateMeterFile;
   getMeterReadings = siteRepo.getMeterReadings;
   getMeterReadingsBySite = siteRepo.getMeterReadingsBySite;
+  getMeterReadingsByMeter = siteRepo.getMeterReadingsByMeter;
   createMeterReadings = siteRepo.createMeterReadings;
   getRoofPolygons = siteRepo.getRoofPolygons;
   getRoofPolygon = siteRepo.getRoofPolygon;
@@ -147,6 +148,7 @@ export class DatabaseStorage implements IStorage {
   getSimulationRuns = simulationRepo.getSimulationRuns;
   getSimulationRun = simulationRepo.getSimulationRun;
   getSimulationRunsBySite = simulationRepo.getSimulationRunsBySite;
+  getSimulationRunsByMeter = siteRepo.getSimulationRunsByMeter;
   getSimulationRunsByClientId = simulationRepo.getSimulationRunsByClientId;
   getSimulationRunFull = simulationRepo.getSimulationRunFull;
   createSimulationRun = simulationRepo.createSimulationRun;

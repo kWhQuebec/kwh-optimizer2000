@@ -88,6 +88,7 @@ interface MonteCarloResponse {
 interface MonteCarloAnalysisProps {
   siteId: string;
   hasMeterData: boolean;
+  meterId?: string | null;
 }
 
 const formatCurrency = (value: number): string => {
@@ -101,7 +102,7 @@ const formatPercent = (value: number): string => {
   return `${(value * 100).toFixed(1)}%`;
 };
 
-export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisProps) {
+export function MonteCarloAnalysis({ siteId, hasMeterData, meterId }: MonteCarloAnalysisProps) {
   const { t, language } = useI18n();
   const { toast } = useToast();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -145,6 +146,7 @@ export function MonteCarloAnalysis({ siteId, hasMeterData }: MonteCarloAnalysisP
       
       const response = await apiRequest<MonteCarloResponse>("POST", `/api/sites/${siteId}/monte-carlo-analysis`, {
         config,
+        ...(meterId ? { meterId } : {}),
       });
       return response;
     },

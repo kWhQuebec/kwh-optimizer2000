@@ -129,6 +129,7 @@ export interface IStorage {
   // Meter Readings
   getMeterReadings(meterFileId: string): Promise<MeterReading[]>;
   getMeterReadingsBySite(siteId: string): Promise<MeterReading[]>;
+  getMeterReadingsByMeter(meterId: string): Promise<MeterReading[]>;
   createMeterReadings(readings: InsertMeterReading[]): Promise<MeterReading[]>;
 
   // HQ Fetch Jobs
@@ -142,6 +143,7 @@ export interface IStorage {
   getSimulationRuns(): Promise<(SimulationRun & { site: Site & { client: Client } })[]>;
   getSimulationRun(id: string): Promise<(SimulationRun & { site: Site & { client: Client } }) | undefined>;
   getSimulationRunsBySite(siteId: string): Promise<SimulationRun[]>;
+  getSimulationRunsByMeter(meterId: string): Promise<SimulationRun[]>;
   getSimulationRunsByClientId(clientId: string): Promise<(SimulationRun & { site: Site & { client: Client } })[]>;
   createSimulationRun(run: InsertSimulationRun): Promise<SimulationRun>;
 
