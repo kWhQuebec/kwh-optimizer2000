@@ -31,7 +31,11 @@ import {
   Settings2,
   BookOpen,
   FileEdit,
-  Download
+  Download,
+  Rocket,
+  Eye,
+  AlertTriangle,
+  CalendarCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -228,6 +232,47 @@ export function AppSidebar() {
     },
   ];
 
+
+  // SECTION 6: EOS (Entrepreneurial Operating System)
+  const eosItems = [
+    {
+      title: language === "fr" ? "Scorecard" : "Scorecard",
+      url: "/app/eos",
+      icon: BarChart3,
+      tooltip: language === "fr" ? "Métriques hebdomadaires clés" : "Key weekly metrics",
+    },
+    {
+      title: "Rocks",
+      url: "/app/eos",
+      icon: Target,
+      tooltip: language === "fr" ? "Priorités trimestrielles" : "Quarterly priorities",
+    },
+    {
+      title: "V/TO",
+      url: "/app/eos",
+      icon: Eye,
+      tooltip: language === "fr" ? "Vision / Traction Organizer" : "Vision / Traction Organizer",
+    },
+    {
+      title: "Issues",
+      url: "/app/eos",
+      icon: AlertTriangle,
+      tooltip: language === "fr" ? "Identifier, Discuter, Solutionner" : "Identify, Discuss, Solve",
+    },
+    {
+      title: "L10",
+      url: "/app/eos",
+      icon: CalendarCheck,
+      tooltip: language === "fr" ? "Réunion Level 10 hebdomadaire" : "Weekly Level 10 Meeting",
+    },
+    {
+      title: language === "fr" ? "Gamification" : "Gamification",
+      url: "/app/eos",
+      icon: Rocket,
+      tooltip: language === "fr" ? "Missions, badges et centrale virtuelle" : "Missions, badges and virtual power plant",
+    },
+  ];
+
   const clientItems = [
     {
       title: t("nav.mySites") || "My Sites",
@@ -259,6 +304,7 @@ export function AppSidebar() {
     construction: false,
     operations: false,
     admin: false,
+    eos: false,
   });
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(getDefaultSections(false));
@@ -441,6 +487,15 @@ export function AppSidebar() {
               label="O&M"
               icon={Wrench}
               items={operationsItems}
+            />
+
+
+            {/* Section 6: EOS - Collapsible */}
+            <CollapsibleSection 
+              id="eos"
+              label="EOS"
+              icon={Rocket}
+              items={eosItems}
             />
 
             {/* Section 5: Administration - Collapsible */}

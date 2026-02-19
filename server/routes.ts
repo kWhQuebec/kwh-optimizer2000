@@ -100,6 +100,7 @@ import qualificationRouter from "./routes/qualification";
 import benchmarkRouter from "./routes/benchmarks";
 import hqDataRouter from "./routes/hq-data";
 import gamificationRouter from "./routes/gamification";
+import eosRouter from "./routes/eos";
 
 const JWT_SECRET = env.SESSION_SECRET;
 const upload = multer({ 
@@ -356,6 +357,7 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
   app.use(hqDataRouter);
   // Gamification API
   app.use(gamificationRouter);
+  app.use(eosRouter);
 
   // ==================== ROOF POLYGON STANDALONE ROUTES ====================
   // PUT /api/roof-polygons/:id and DELETE /api/roof-polygons/:id are handled via sitesRouter

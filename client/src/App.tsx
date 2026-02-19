@@ -74,6 +74,7 @@ const HQDataFetchPage = lazy(() => import("@/pages/hq-data-fetch"));
 const CallScriptPage = lazy(() => import("@/pages/call-script"));
 const ConversionDashboardPage = lazy(() => import("@/pages/conversion-dashboard").then(m => ({ default: m.ConversionDashboard })));
 const LcoeComparisonPage = lazy(() => import("@/pages/lcoe-comparison"));
+const EOSPage = lazy(() => import("@/pages/eos"));
 
 function PageLoader() {
   return (
@@ -688,6 +689,20 @@ function AppRoutes() {
             <Suspense fallback={<PageLoader />}>
               <ConversionDashboardPage />
             </Suspense>
+          </StaffRoute>
+        </ProtectedRoute>
+      </Route>
+
+
+      {/* EOS - Entrepreneurial Operating System */}
+      <Route path="/app/eos">
+        <ProtectedRoute>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <EOSPage />
+              </Suspense>
+            </AppLayout>
           </StaffRoute>
         </ProtectedRoute>
       </Route>
