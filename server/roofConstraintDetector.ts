@@ -990,7 +990,7 @@ function deduplicateConstraints(
 export async function detectRoofConstraints(
   input: DetectorInput
 ): Promise<DetectorResult> {
-  const apiKey = process.env.GOOGLE_SOLAR_API_KEY;
+  const apiKey = process.env.GOOGLE_SOLAR_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_SOLAR_API_KEY not configured");
   }
