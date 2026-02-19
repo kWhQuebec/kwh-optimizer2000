@@ -510,6 +510,17 @@ export function RoofDrawingModal({
     }
   }, [latitude, longitude, existingPolygons, language]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && customDrawingVerticesRef.current.length >= 3) {
+        e.preventDefault();
+        completeCustomPolygonDrawingRef.current();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handlePolygonComplete = (polygon: google.maps.Polygon) => {
     const path = polygon.getPath();
     const coordinates: [number, number][] = [];
