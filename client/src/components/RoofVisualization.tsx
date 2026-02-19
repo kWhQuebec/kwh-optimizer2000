@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, Camera, RefreshCw } from "lucide-react";
+import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
@@ -59,6 +59,7 @@ interface RoofVisualizationProps {
     arrays?: ArrayInfo[];  // Panel arrays (sections separated by fire corridors)
   }) => void;
   onVisualizationReady?: (captureFunction: () => Promise<string | null>) => void;
+  onOpenRoofDrawing?: () => void;
 }
 
 interface PanelPosition {
@@ -642,6 +643,7 @@ export function RoofVisualization({
   currentPVSizeKW,
   onGeometryCalculated,
   onVisualizationReady,
+  onOpenRoofDrawing,
 }: RoofVisualizationProps) {
   const { language } = useI18n();
   const { toast } = useToast();
@@ -1063,7 +1065,7 @@ export function RoofVisualization({
           }
 
           const polygonBonus = polygonScoreMap[id] || 50;
-          const intraPriority = (edgeScore * 0.6 + southBiasNorm * 0.15 + 0.25) * (1 - shadowPenalty);
+          const intraPriority = (edgeScore * 0.3 + southBiasNorm * 0.5 + 0.2) * (1 - shadowPenalty);
           const priority = polygonBonus * 1000 + Math.round(intraPriority * 999);
           
           // Calculate array ID based on fire corridor positions
@@ -1251,16 +1253,14 @@ export function RoofVisualization({
           continue;
         }
         
-        // Priority: center rows first (for slider behavior)
-        const centerRowIdx = (yPositions.length - 1) / 2;
         const centerColIdx = (xPositions.length - 1) / 2;
-        const maxRowDist = Math.max(centerRowIdx, yPositions.length - 1 - centerRowIdx) || 1;
         const maxColDist = Math.max(centerColIdx, xPositions.length - 1 - centerColIdx) || 1;
-        
-        const rowDistNorm = Math.abs(rowIdx - centerRowIdx) / maxRowDist;
         const colDistNorm = Math.abs(colIdx - centerColIdx) / maxColDist;
         
-        const priority = Math.round((1 - rowDistNorm) * 1000000 + (1 - colDistNorm) * 1000);
+        const southScore = (centroid.lat - panelCenterLat) / ((maxYRot - minYRot) / metersPerDegreeLat || 1);
+        const southScoreNorm = Math.max(0, Math.min(1, 0.5 + southScore * 0.5));
+        
+        const priority = Math.round(southScoreNorm * 1000000 + (1 - colDistNorm) * 1000);
         
         panels.push({
           lat: panelCornersGeo[0].lat,
@@ -1283,11 +1283,11 @@ export function RoofVisualization({
     return panels;
   }, []);
 
-  // Sort panels by priority (center rows first, then center columns)
-  // This creates straight parallel rows instead of circular quadrant-based layout
+  // Sort panels by priority (south-first, then center columns)
+  // When reducing panel count, panels on the south side of the roof are kept first
   const sortPanelsByRowPriority = useCallback((panels: PanelPosition[]): PanelPosition[] => {
-    // Global sort by priority - highest first (center rows/columns)
-    // This ensures all polygons fill uniformly based on their panel positions
+    // Global sort by priority - highest first (south rows, center columns)
+    // This ensures southern panels are prioritized for better solar yield
     const sorted = [...panels].sort((a, b) => (b.priority || 0) - (a.priority || 0));
     
     // Count polygons for logging
@@ -1916,21 +1916,18 @@ export function RoofVisualization({
               />
             </svg>
           </div>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="bg-white/20 text-white border-white/30 backdrop-blur-sm hover:bg-white/30"
-            onClick={handleExportImage}
-            disabled={isExporting || !hasPolygons}
-            data-testid="button-export-image"
-            title={language === "fr" ? "Exporter l'image" : "Export image"}
-          >
-            {isExporting ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Camera className="w-4 h-4" />
-            )}
-          </Button>
+          {onOpenRoofDrawing && (
+            <Button
+              size="icon"
+              variant="secondary"
+              className="bg-white/20 text-white border-white/30 backdrop-blur-sm hover:bg-white/30"
+              onClick={onOpenRoofDrawing}
+              data-testid="button-open-roof-drawing"
+              title={language === "fr" ? "Dessiner le toit" : "Draw Roof"}
+            >
+              <PencilRuler className="w-4 h-4" />
+            </Button>
+          )}
           <Button
             size="icon"
             variant="secondary"

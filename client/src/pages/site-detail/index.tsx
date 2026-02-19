@@ -2184,6 +2184,7 @@ export default function SiteDetailPage() {
                 isLoadingFullData={loadingFullSimulation === latestSimulation.id || !isFullDataLoaded(latestSimulation.id)}
                 optimizationTarget={optimizationTarget}
                 onOptimizationTargetChange={setOptimizationTarget}
+                onOpenRoofDrawing={() => setIsRoofDrawingModalOpen(true)}
               />
               {isStaff && latestSimulation && (
                 <Collapsible>

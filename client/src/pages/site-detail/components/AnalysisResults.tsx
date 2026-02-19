@@ -76,7 +76,8 @@ export function AnalysisResults({
   onNavigateToDesignAgreement,
   isLoadingFullData = false,
   optimizationTarget = 'npv',
-  onOptimizationTargetChange
+  onOptimizationTargetChange,
+  onOpenRoofDrawing
 }: {
   simulation: SimulationRun;
   site: SiteWithDetails;
@@ -85,6 +86,7 @@ export function AnalysisResults({
   isLoadingFullData?: boolean;
   optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency';
   onOptimizationTargetChange?: (target: 'npv' | 'irr' | 'selfSufficiency') => void;
+  onOpenRoofDrawing?: () => void;
 }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
@@ -734,6 +736,7 @@ export function AnalysisResults({
               visualizationCaptureRef.current = null;
             }}
             onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
+            onOpenRoofDrawing={onOpenRoofDrawing}
           />
         </>
       )}
