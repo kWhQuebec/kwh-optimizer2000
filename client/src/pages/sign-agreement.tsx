@@ -183,7 +183,7 @@ function ConfettiAnimation() {
           className="confetti"
           style={{
             left: `${Math.random() * 100}%`,
-            backgroundColor: ["#003DA6", "#FFB005", "#22c55e", "#3b82f6", "#f97316"][Math.floor(Math.random() * 5)],
+            backgroundColor: ["#003DA6", "#FFB005", "#16A34A", "#002B75", "#FFB005"][Math.floor(Math.random() * 5)],
             animationDelay: `${Math.random() * 0.5}s`,
             borderRadius: Math.random() > 0.5 ? "50%" : "0",
           }}

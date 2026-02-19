@@ -223,7 +223,7 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
           </div>
           <div style="display: table-row;">
             <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.annualSavings}</div>
-            <div style="display: table-cell; padding: 6px 0; font-weight: 700; color: #2e7d32; text-align: right;">${formatCurrency(scenario.annualSavings)}</div>
+            <div style="display: table-cell; padding: 6px 0; font-weight: 700; color: #16A34A; text-align: right;">${formatCurrency(scenario.annualSavings)}</div>
           </div>
           <div style="display: table-row;">
             <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.netCost}</div>
@@ -235,7 +235,7 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
           </div>
           <div style="display: table-row;">
             <div style="display: table-cell; padding: 6px 0; color: #666; font-size: 13px;">${txt.lcoeVsHQ}</div>
-            <div style="display: table-cell; padding: 6px 0; font-weight: 600; color: #2e7d32; text-align: right;">-${scenario.lcoeSavingsPercent}%</div>
+            <div style="display: table-cell; padding: 6px 0; font-weight: 600; color: #16A34A; text-align: right;">-${scenario.lcoeSavingsPercent}%</div>
           </div>
         </div>
       </div>
@@ -249,9 +249,9 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #1e5a9f 100%); color: white; padding: 30px; text-align: center; }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center; }
     .header img { max-width: 180px; height: auto; }
     .header h1 { margin: 15px 0 0; font-size: 22px; font-weight: 600; }
     .content { padding: 30px; }
@@ -379,9 +379,9 @@ export async function sendNewLeadNotification(
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
+    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #0052CC 100%); color: white; padding: 20px 25px; }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 20px 25px; }
     .header h1 { margin: 0; font-size: 20px; font-weight: 600; }
     .header .badge { display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; margin-top: 8px; }
     .content { padding: 25px; }
@@ -391,7 +391,7 @@ export async function sendNewLeadNotification(
     .info-item.full-width { grid-column: span 2; }
     .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
     .value { font-size: 14px; color: #1a1a1a; font-weight: 500; }
-    .highlight { border-left-color: #22c55e; background: #f0fdf4; }
+    .highlight { border-left-color: #16A34A; background: #f0fdf4; }
     .warning { border-left-color: #f59e0b; background: #fffbeb; }
     .footer { background: #f8f9fa; padding: 12px 25px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #e5e7eb; }
     .logo { font-weight: 700; color: #003DA6; }
@@ -668,7 +668,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; }
     .header { background: white; padding: 15px 20px 5px; text-align: center; }
     .header img { max-width: 180px; height: auto; }
@@ -854,11 +854,11 @@ export async function sendProcurationCompletedNotification(
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
+    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #0052CC 100%); color: white; padding: 25px; text-align: center; }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 25px; text-align: center; }
     .header h1 { margin: 0; font-size: 22px; font-weight: 600; }
-    .header .badge { display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 10px; text-transform: uppercase; }
+    .header .badge { display: inline-block; background: #16A34A; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 10px; text-transform: uppercase; }
     .content { padding: 25px; }
     .section { margin-bottom: 20px; }
     .section-title { font-size: 14px; font-weight: 600; color: #003DA6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
@@ -1021,7 +1021,7 @@ export async function sendProcurationNotificationToAccountManager(
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
+    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
     .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; }
     .header { color: #003DA6; font-size: 18px; font-weight: 600; margin-bottom: 15px; }
     .info { margin: 10px 0; padding: 12px; background: #f8f9fa; border-radius: 4px; }

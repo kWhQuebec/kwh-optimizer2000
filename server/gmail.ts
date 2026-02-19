@@ -283,16 +283,16 @@ export function generatePortalInvitationEmail(params: {
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8f 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
     .header h1 { margin: 0; font-size: 24px; margin-top: 15px; }
     .header img { max-width: 200px; height: auto; }
     .content { background: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-    .credentials { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f5a623; }
+    .credentials { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FFB005; }
     .credentials p { margin: 8px 0; }
-    .credentials strong { color: #1e3a5f; }
-    .button { display: inline-block; background: #f5a623; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .credentials strong { color: #003DA6; }
+    .button { display: inline-block; background: #FFB005; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
   </style>
 </head>
@@ -361,16 +361,16 @@ L'équipe kWh Québec`
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8f 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
     .header h1 { margin: 0; font-size: 24px; margin-top: 15px; }
     .header img { max-width: 200px; height: auto; }
     .content { background: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-    .credentials { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f5a623; }
+    .credentials { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FFB005; }
     .credentials p { margin: 8px 0; }
-    .credentials strong { color: #1e3a5f; }
-    .button { display: inline-block; background: #f5a623; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .credentials strong { color: #003DA6; }
+    .button { display: inline-block; background: #FFB005; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
   </style>
 </head>

@@ -97,9 +97,9 @@ router.post("/api/work-queue/delegate", authMiddleware, requireStaff, asyncHandl
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+<body style="font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
 <div style="max-width: 600px; margin: 0 auto; background: white;">
-  <div style="background: linear-gradient(135deg, #003DA6 0%, #1e5a9f 100%); color: white; padding: 30px; text-align: center;">
+  <div style="background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center;">
     <h1 style="margin: 0; font-size: 22px; font-weight: 600;">${lang === "fr" ? "Tâches Assignées" : "Assigned Tasks"}</h1>
   </div>
   <div style="padding: 30px;">

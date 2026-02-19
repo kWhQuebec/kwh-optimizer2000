@@ -1133,19 +1133,19 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
       htmlBody: `
         <div style="font-family: Arial, sans-serif; max-width: 600px;">
           ${isNewLead ? `
-            <div style="background: linear-gradient(135deg, #003366 0%, #0066cc 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <div style="background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
               <h2 style="margin: 0; font-size: 24px;">🎯 Nouveau Lead</h2>
-              <span style="display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">Analyse Détaillée</span>
+              <span style="display: inline-block; background: #16A34A; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">Analyse Détaillée</span>
             </div>
           ` : `
-            <div style="background: #003366; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <div style="background: #003DA6; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
               <h2 style="margin: 0; font-size: 24px;">📋 Procuration Signée</h2>
               <span style="display: inline-block; background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;">Client Existant</span>
             </div>
           `}
 
           <div style="border: 1px solid #e5e7eb; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
-            <div style="border-left: 4px solid #003366; padding-left: 16px; margin-bottom: 20px;">
+            <div style="border-left: 4px solid #003DA6; padding-left: 16px; margin-bottom: 20px;">
               <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Entreprise / Contact</p>
               <p style="margin: 0; font-size: 18px; font-weight: bold;">${companyName}</p>
               <p style="margin: 4px 0 0 0; color: #374151;">${contactName}${req.body.signerTitle ? ` (${req.body.signerTitle})` : ''}</p>
@@ -1153,13 +1153,13 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
 
             <div style="border-left: 4px solid #e5e7eb; padding-left: 16px; margin-bottom: 16px;">
               <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Courriel</p>
-              <p style="margin: 0;"><a href="mailto:${email}" style="color: #0066cc;">${email}</a></p>
+              <p style="margin: 0;"><a href="mailto:${email}" style="color: #002B75;">${email}</a></p>
             </div>
 
             ${phone ? `
               <div style="border-left: 4px solid #e5e7eb; padding-left: 16px; margin-bottom: 16px;">
                 <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Téléphone</p>
-                <p style="margin: 0;"><a href="tel:${phone}" style="color: #0066cc;">${phone}</a></p>
+                <p style="margin: 0;"><a href="tel:${phone}" style="color: #002B75;">${phone}</a></p>
               </div>
             ` : ''}
 
@@ -1192,19 +1192,19 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
               </div>
             </div>
 
-            <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <div style="background: #f0fdf4; border: 1px solid #16A34A; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
               <p style="margin: 0; color: #166534;"><strong>✓ Procuration signée</strong> - PDF en pièce jointe</p>
             </div>
 
             <div style="text-align: center; margin-top: 24px;">
-              <a href="${crmLink}" style="display: inline-block; background: #003366; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              <a href="${crmLink}" style="display: inline-block; background: #003DA6; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
                 Voir le dossier →
               </a>
             </div>
           </div>
 
           <p style="text-align: center; margin-top: 20px; font-size: 14px; color: #6b7280;">
-            <a href="https://kwh.quebec" style="color: #003366; font-weight: 600;">kWh Québec</a> | 514.427.8871 | info@kwh.quebec
+            <a href="https://kwh.quebec" style="color: #003DA6; font-weight: 600;">kWh Québec</a> | 514.427.8871 | info@kwh.quebec
           </p>
         </div>
       `,
@@ -1437,7 +1437,7 @@ async function sendRoofEstimateEmail(
               <div style="font-size: 14px; color: #9a3412;">m² de toiture</div>
             </div>
             <div style="flex: 1; text-align: center; padding: 16px; background: #ecfdf5; border-radius: 8px;">
-              <div style="font-size: 32px; font-weight: bold; color: #059669;">${estimate.roofPotentialKw}</div>
+              <div style="font-size: 32px; font-weight: bold; color: #16A34A;">${estimate.roofPotentialKw}</div>
               <div style="font-size: 14px; color: #047857;">kW potentiel</div>
             </div>
           </div>
@@ -1469,7 +1469,7 @@ async function sendRoofEstimateEmail(
               <div style="font-size: 14px; color: #9a3412;">m² roof area</div>
             </div>
             <div style="flex: 1; text-align: center; padding: 16px; background: #ecfdf5; border-radius: 8px;">
-              <div style="font-size: 32px; font-weight: bold; color: #059669;">${estimate.roofPotentialKw}</div>
+              <div style="font-size: 32px; font-weight: bold; color: #16A34A;">${estimate.roofPotentialKw}</div>
               <div style="font-size: 14px; color: #047857;">kW potential</div>
             </div>
           </div>

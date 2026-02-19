@@ -647,10 +647,10 @@ export default function CallScriptWizard({
                   {form.watch("leadColor") && (
                     <div className="flex items-center gap-3 p-4 rounded-lg border-2" style={{
                       backgroundColor: form.watch("leadColor") === "green" ? "#DCFCE7" : form.watch("leadColor") === "yellow" ? "#FEF9C3" : "#FEE2E2",
-                      borderColor: form.watch("leadColor") === "green" ? "#16A34A" : form.watch("leadColor") === "yellow" ? "#EAB308" : "#DC2626",
+                      borderColor: form.watch("leadColor") === "green" ? "#16A34A" : form.watch("leadColor") === "yellow" ? "#FFB005" : "#DC2626",
                     }}>
                       <div className="w-5 h-5 rounded-full" style={{
-                        backgroundColor: form.watch("leadColor") === "green" ? "#16A34A" : form.watch("leadColor") === "yellow" ? "#EAB308" : "#DC2626",
+                        backgroundColor: form.watch("leadColor") === "green" ? "#16A34A" : form.watch("leadColor") === "yellow" ? "#FFB005" : "#DC2626",
                       }} />
                       <span className="font-bold text-sm" style={{
                         color: form.watch("leadColor") === "green" ? "#16A34A" : form.watch("leadColor") === "yellow" ? "#92400E" : "#991B1B",

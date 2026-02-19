@@ -30,8 +30,8 @@ interface DrawnPolygon {
   googlePolygon: google.maps.Polygon | null;
 }
 
-const SOLAR_COLOR = '#3b82f6';      // Blue for solar areas
-const CONSTRAINT_COLOR = '#f97316'; // Orange for constraint areas
+const SOLAR_COLOR = '#003DA6';      // Blue for solar areas
+const CONSTRAINT_COLOR = '#FFB005'; // Orange for constraint areas
 const GOOGLE_MAPS_SCRIPT_ID = 'google-maps-script';
 
 type PolygonType = 'solar' | 'constraint';

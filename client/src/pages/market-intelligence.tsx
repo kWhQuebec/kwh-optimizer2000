@@ -1831,17 +1831,17 @@ export default function MarketIntelligencePage() {
                                     strokeWidth={2}
                                     dot={false}
                                   />
-                                  <Line 
-                                    type="monotone" 
-                                    dataKey="lease" 
-                                    stroke="#22c55e" 
+                                  <Line
+                                    type="monotone"
+                                    dataKey="lease"
+                                    stroke="#16A34A"
                                     strokeWidth={2}
                                     dot={false}
                                   />
-                                  <Line 
-                                    type="monotone" 
-                                    dataKey="cash" 
-                                    stroke="#3b82f6" 
+                                  <Line
+                                    type="monotone"
+                                    dataKey="cash"
+                                    stroke="#003DA6"
                                     strokeWidth={2}
                                     dot={false}
                                   />

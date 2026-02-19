@@ -295,7 +295,7 @@ function OpportunityCard({
                     height: "10px",
                     backgroundColor:
                       (opportunity.lead as any)?.leadColor === "green" ? "#16A34A" :
-                      (opportunity.lead as any)?.leadColor === "yellow" ? "#EAB308" :
+                      (opportunity.lead as any)?.leadColor === "yellow" ? "#FFB005" :
                       (opportunity.lead as any)?.leadColor === "red" ? "#DC2626" :
                       "#D1D5DB",
                   }}
@@ -578,7 +578,7 @@ function OpportunityListView({
                               height: "8px",
                               backgroundColor:
                                 (opp.lead as any).leadColor === "green" ? "#16A34A" :
-                                (opp.lead as any).leadColor === "yellow" ? "#EAB308" :
+                                (opp.lead as any).leadColor === "yellow" ? "#FFB005" :
                                 (opp.lead as any).leadColor === "red" ? "#DC2626" :
                                 "#9CA3AF",
                             }}
@@ -686,7 +686,7 @@ function OpportunityListView({
                                 height: "8px",
                                 backgroundColor:
                                   (opp.lead as any).leadColor === "green" ? "#16A34A" :
-                                  (opp.lead as any).leadColor === "yellow" ? "#EAB308" :
+                                  (opp.lead as any).leadColor === "yellow" ? "#FFB005" :
                                   (opp.lead as any).leadColor === "red" ? "#DC2626" :
                                   "#9CA3AF",
                               }}
@@ -1888,7 +1888,7 @@ export default function PipelinePage() {
                   const lc = (selectedOpportunity.lead as any).leadColor;
                   const reason = (selectedOpportunity.lead as any).leadColorReason;
                   const bgColor = lc === "green" ? "#DCFCE7" : lc === "yellow" ? "#FEF9C3" : "#FEE2E2";
-                  const borderColor = lc === "green" ? "#16A34A" : lc === "yellow" ? "#EAB308" : "#DC2626";
+                  const borderColor = lc === "green" ? "#16A34A" : lc === "yellow" ? "#FFB005" : "#DC2626";
                   const textColor = lc === "green" ? "#16A34A" : lc === "yellow" ? "#92400E" : "#991B1B";
                   const label = lc === "green" ? (language === "fr" ? "VERT — Viable" : "GREEN — Viable") :
                                 lc === "yellow" ? (language === "fr" ? "JAUNE — À explorer" : "YELLOW — To explore") :

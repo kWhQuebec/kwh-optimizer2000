@@ -299,7 +299,7 @@ export default function LcoeComparisonPage() {
     {
       name: competitor.competitorName || "Competitor",
       lcoe: parseFloat(adjustedCompetitorLcoe.toFixed(4)),
-      fill: advantagePerKwh > 0 ? "#ef4444" : "#22c55e",
+      fill: advantagePerKwh > 0 ? "#DC2626" : "#16A34A",
     },
     {
       name: "kWh Québec",
@@ -830,7 +830,7 @@ export default function LcoeComparisonPage() {
                   <Line
                     type="monotone"
                     dataKey="competitorProduction"
-                    stroke="#ef4444"
+                    stroke="#DC2626"
                     name={competitor.competitorName || "Competitor"}
                     dot={false}
                   />
@@ -868,7 +868,7 @@ export default function LcoeComparisonPage() {
                   <Line
                     type="monotone"
                     dataKey="competitorCost"
-                    stroke="#ef4444"
+                    stroke="#DC2626"
                     name={competitor.competitorName || "Competitor"}
                     dot={false}
                   />

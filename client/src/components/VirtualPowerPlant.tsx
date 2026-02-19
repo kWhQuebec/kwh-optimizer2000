@@ -59,12 +59,12 @@ function SolarPanel({ isLit, isAnimating }: SolarPanelProps) {
         width="60"
         height="60"
         rx="4"
-        fill={isLit ? "#1e40af" : "#9ca3af"}
+        fill={isLit ? "#003DA6" : "#9ca3af"}
         opacity={isLit ? 0.9 : 0.5}
       />
 
       {/* Panel grid pattern */}
-      <g stroke={isLit ? "#0ea5e9" : "#d1d5db"} strokeWidth="1" opacity="0.5">
+      <g stroke={isLit ? "#003DA6" : "#d1d5db"} strokeWidth="1" opacity="0.5">
         <line x1="10" y1="27" x2="70" y2="27" />
         <line x1="10" y1="44" x2="70" y2="44" />
         <line x1="10" y1="61" x2="70" y2="61" />
@@ -80,7 +80,7 @@ function SolarPanel({ isLit, isAnimating }: SolarPanelProps) {
           cy="40"
           r="32"
           fill="none"
-          stroke="#fbbf24"
+          stroke="#FFB005"
           strokeWidth="2"
           opacity={isAnimating ? 0.8 : 0.3}
           className={clsx(isAnimating && "animate-pulse")}
@@ -95,7 +95,7 @@ function SolarPanel({ isLit, isAnimating }: SolarPanelProps) {
         height="60"
         rx="4"
         fill="none"
-        stroke={isLit ? "#0ea5e9" : "#9ca3af"}
+        stroke={isLit ? "#003DA6" : "#9ca3af"}
         strokeWidth="2"
       />
     </svg>

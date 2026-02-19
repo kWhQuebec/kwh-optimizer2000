@@ -134,8 +134,8 @@ export function renderKPIResults(ctx: PDFContext) {
   const card4Value = formatPercent(simulation.irr25);
   const card4Subtitle = t("25 ans", "25 years");
   
-  doc.roundedRect(card4X, cardY, cardWidth, cardHeight, 8).fillColor("#059669").fill();
-  doc.roundedRect(card4X, cardY, cardWidth, cardHeight, 8).strokeColor("#059669").lineWidth(1).stroke();
+  doc.roundedRect(card4X, cardY, cardWidth, cardHeight, 8).fillColor("#16A34A").fill();
+  doc.roundedRect(card4X, cardY, cardWidth, cardHeight, 8).strokeColor("#16A34A").lineWidth(1).stroke();
   
   // White accent bar at top
   doc.rect(card4X, cardY, cardWidth, 3).fillColor(COLORS.white).fill();

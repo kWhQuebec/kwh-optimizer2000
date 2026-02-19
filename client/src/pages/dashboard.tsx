@@ -810,7 +810,7 @@ function SignedProjectsBreakdown({ stats, language, isLoading }: { stats?: Pipel
       stage: 'won_delivered',
       label: language === 'fr' ? 'En opération' : 'In Operation',
       icon: Activity,
-      color: '#059669',
+      color: '#16A34A',
     },
   ];
 

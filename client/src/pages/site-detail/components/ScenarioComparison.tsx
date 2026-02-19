@@ -130,7 +130,7 @@ export function ScenarioComparison({
   };
 
   const getScenarioColor = (index: number) => {
-    const colors = ["#f5a623", "#3b82f6", "#22c55e", "#a855f7", "#ec4899"];
+    const colors = ["#FFB005", "#003DA6", "#16A34A", "#002B75", "#D4940A"];
     return colors[index % colors.length];
   };
 

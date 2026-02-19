@@ -1408,10 +1408,10 @@ export function RoofVisualization({
           
           const googlePolygon = new google.maps.Polygon({
             paths: path,
-            strokeColor: "#f97316",
+            strokeColor: "#FFB005",
             strokeOpacity: 0.9,
             strokeWeight: 2,
-            fillColor: "#f97316",
+            fillColor: "#FFB005",
             fillOpacity: 0.4,
             map,
           });
@@ -1429,10 +1429,10 @@ export function RoofVisualization({
           
           const solarGooglePolygon = new google.maps.Polygon({
             paths: path,
-            strokeColor: "#14b8a6",
+            strokeColor: "#16A34A",
             strokeOpacity: 0.9,
             strokeWeight: 2,
-            fillColor: "#14b8a6",
+            fillColor: "#16A34A",
             fillOpacity: 0.15,
             map,
           });

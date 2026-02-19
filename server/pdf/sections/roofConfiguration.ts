@@ -68,12 +68,12 @@ export function renderRoofConfiguration(ctx: PDFContext) {
 
   // Legend
   const solarPolygons = simulation.roofPolygons.filter(p =>
-    p.color !== "#f97316" &&
+    p.color !== "#FFB005" &&
     !p.label?.toLowerCase().includes("constraint") &&
     !p.label?.toLowerCase().includes("contrainte")
   );
   const constraintPolygons = simulation.roofPolygons.filter(p =>
-    p.color === "#f97316" ||
+    p.color === "#FFB005" ||
     p.label?.toLowerCase().includes("constraint") ||
     p.label?.toLowerCase().includes("contrainte")
   );
@@ -87,8 +87,8 @@ export function renderRoofConfiguration(ctx: PDFContext) {
   doc.font("Helvetica");
   doc.moveDown(0.5);
 
-  doc.rect(margin, doc.y, 20, 12).fillColor("#3b82f6").fillOpacity(0.6).fill();
-  doc.rect(margin, doc.y, 20, 12).strokeColor("#1e40af").lineWidth(1).stroke();
+  doc.rect(margin, doc.y, 20, 12).fillColor("#003DA6").fillOpacity(0.6).fill();
+  doc.rect(margin, doc.y, 20, 12).strokeColor("#002B75").lineWidth(1).stroke();
   doc.fillOpacity(1);
   doc.fontSize(10).fillColor(COLORS.darkGray);
   doc.text(t(`Zones solaires utilisables: ${Math.round(totalSolarArea).toLocaleString()} m²`,
@@ -96,8 +96,8 @@ export function renderRoofConfiguration(ctx: PDFContext) {
   doc.y += 18;
 
   if (constraintPolygons.length > 0) {
-    doc.rect(margin, doc.y, 20, 12).fillColor("#f97316").fillOpacity(0.6).fill();
-    doc.rect(margin, doc.y, 20, 12).strokeColor("#f97316").lineWidth(1).stroke();
+    doc.rect(margin, doc.y, 20, 12).fillColor("#FFB005").fillOpacity(0.6).fill();
+    doc.rect(margin, doc.y, 20, 12).strokeColor("#FFB005").lineWidth(1).stroke();
     doc.fillOpacity(1);
     doc.fontSize(10).fillColor(COLORS.darkGray);
     doc.text(t(`Zones de contraintes (CVC, obstacles): ${Math.round(totalConstraintArea).toLocaleString()} m²`,
