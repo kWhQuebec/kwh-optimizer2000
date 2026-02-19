@@ -322,6 +322,8 @@ export const meterFiles = pgTable("meter_files", {
   errorMessage: text("error_message"),
   isSynthetic: boolean("is_synthetic").default(false),
   syntheticParams: jsonb("synthetic_params"), // Stores generation params for reproducibility
+  hqContractNumber: text("hq_contract_number"),
+  hqMeterNumber: text("hq_meter_number"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

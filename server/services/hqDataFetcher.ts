@@ -748,17 +748,14 @@ export class HQDataFetcher {
     }
 
     const rawText = await response.text();
-    log.info(`Period response for ${contractId} (${rawText.length} chars): ${rawText.substring(0, 1000)}`);
 
     let data: any;
     try {
       data = JSON.parse(rawText);
     } catch {
-      log.error(`Period response is not valid JSON for contract ${contractId}`);
+      log.error(`Period response is not valid JSON for contract ${contractId} (${rawText.length} chars)`);
       return [];
     }
-
-    log.info(`Period response keys: ${JSON.stringify(Object.keys(data ?? {}))}`);
 
     const periods: HQPeriod[] = [];
 
@@ -768,12 +765,6 @@ export class HQDataFetcher {
       data?.periodes ??
       data?.data?.results ??
       [];
-
-    log.info(`Period list is array: ${Array.isArray(periodList)}, length: ${Array.isArray(periodList) ? periodList.length : 'N/A'}`);
-
-    if (Array.isArray(periodList) && periodList.length > 0) {
-      log.info(`First period sample: ${JSON.stringify(periodList[0]).substring(0, 500)}`);
-    }
 
     for (const period of Array.isArray(periodList) ? periodList : []) {
       if (period.numeroContrat && String(period.numeroContrat) !== contractId) {

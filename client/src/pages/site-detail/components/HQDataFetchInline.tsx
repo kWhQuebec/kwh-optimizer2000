@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Zap, Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet, Lock, Eye, EyeOff, Upload } from "lucide-react";
+import { Zap, Download, Loader2, CheckCircle2, AlertCircle, FileSpreadsheet, Lock, Eye, EyeOff, Upload, PackageCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 
@@ -53,14 +53,65 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
   const [currentProgress, setCurrentProgress] = useState<HQProgressData | null>(null);
   const [results, setResults] = useState<HQContractResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [importingCsvs, setImportingCsvs] = useState<Set<string>>(new Set());
-  const [importedCsvs, setImportedCsvs] = useState<Set<string>>(new Set());
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkImportDone, setBulkImportDone] = useState(false);
+  const [bulkImportResult, setBulkImportResult] = useState<{ imported: number; errors: string[] } | null>(null);
+
+  const bulkImportAll = useCallback(async (contractResults: HQContractResult[]) => {
+    setBulkImporting(true);
+    setBulkImportDone(false);
+    setBulkImportResult(null);
+
+    try {
+      const response = await fetch(`/api/sites/${siteId}/import-hq-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ results: contractResults }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Import failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setBulkImportResult(data);
+      setBulkImportDone(true);
+
+      toast({
+        title: language === "fr"
+          ? `${data.imported} fichier(s) importé(s) avec succès`
+          : `${data.imported} file(s) imported successfully`,
+        description: data.errors.length > 0
+          ? (language === "fr" ? `${data.errors.length} erreur(s)` : `${data.errors.length} error(s)`)
+          : undefined,
+      });
+
+      onImportComplete();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({
+        title: language === "fr" ? "Erreur d'importation" : "Import error",
+        description: message,
+        variant: "destructive",
+      });
+      setBulkImportResult({ imported: 0, errors: [message] });
+      setBulkImportDone(true);
+    } finally {
+      setBulkImporting(false);
+    }
+  }, [siteId, language, toast, onImportComplete]);
 
   const startFetch = async () => {
     setIsRunning(true);
     setCurrentProgress(null);
     setResults(null);
     setError(null);
+    setBulkImportDone(false);
+    setBulkImportResult(null);
 
     try {
       const response = await fetch("/api/admin/hq-data/fetch", {
@@ -88,6 +139,7 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
       const decoder = new TextDecoder();
       let buffer = "";
       let receivedComplete = false;
+      let fetchedResults: HQContractResult[] | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -104,6 +156,7 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
               if (data.type === "progress") {
                 setCurrentProgress(data);
               } else if (data.type === "complete") {
+                fetchedResults = data.results;
                 setResults(data.results);
                 receivedComplete = true;
               } else if (data.type === "error") {
@@ -120,56 +173,19 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
           ? "La connexion a été interrompue avant la fin du transfert"
           : "Connection was interrupted before transfer completed");
       }
+
+      setIsRunning(false);
+
+      if (fetchedResults && fetchedResults.length > 0 && !bulkImportDone && !bulkImporting) {
+        const totalCsvCount = fetchedResults.reduce((sum, r) => sum + r.csvFiles.length, 0);
+        if (totalCsvCount > 0) {
+          bulkImportAll(fetchedResults);
+        }
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
-    }
-
-    setIsRunning(false);
-  };
-
-  const importCsvToSite = async (csv: HQCsvFile, contractId: string, csvIndex: number) => {
-    const csvKey = `${contractId}-${csvIndex}`;
-    setImportingCsvs(prev => new Set(prev).add(csvKey));
-
-    try {
-      const blob = new Blob([csv.csvContent], { type: "text/csv;charset=utf-8;" });
-      const fileName = `${contractId}_${csv.option}_${csv.periodStart}_${csv.periodEnd}.csv`;
-      const file = new File([blob], fileName, { type: "text/csv" });
-
-      const formData = new FormData();
-      formData.append("files", file);
-
-      const response = await fetch(`/api/sites/${siteId}/upload-meters`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
-      }
-
-      setImportedCsvs(prev => new Set(prev).add(csvKey));
-      toast({
-        title: language === "fr" ? "Fichier importé avec succès" : "File imported successfully",
-      });
-      onImportComplete();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast({
-        title: language === "fr" ? "Erreur d'importation" : "Import error",
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
-      setImportingCsvs(prev => {
-        const next = new Set(prev);
-        next.delete(csvKey);
-        return next;
-      });
+      setIsRunning(false);
     }
   };
 
@@ -185,6 +201,15 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
     URL.revokeObjectURL(url);
   };
 
+  const downloadAllCsvs = () => {
+    if (!results) return;
+    for (const contract of results) {
+      for (const csv of contract.csvFiles) {
+        downloadCsv(csv, contract.contractId);
+      }
+    }
+  };
+
   const progressPercent = currentProgress && currentProgress.total > 0
     ? Math.round((currentProgress.current / currentProgress.total) * 100)
     : 0;
@@ -197,8 +222,8 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
     setResults(null);
     setError(null);
     setCurrentProgress(null);
-    setImportedCsvs(new Set());
-    setImportingCsvs(new Set());
+    setBulkImportDone(false);
+    setBulkImportResult(null);
   };
 
   return (
@@ -220,8 +245,8 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
             </DialogTitle>
             <DialogDescription>
               {language === "fr"
-                ? "Connectez-vous au portail Hydro-Québec pour récupérer les données de consommation."
-                : "Connect to the Hydro-Québec portal to retrieve consumption data."}
+                ? "Connectez-vous au portail Hydro-Québec pour récupérer et importer automatiquement les données de consommation."
+                : "Connect to the Hydro-Québec portal to automatically retrieve and import consumption data."}
             </DialogDescription>
           </DialogHeader>
 
@@ -248,7 +273,7 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
-                  disabled={isRunning}
+                  disabled={isRunning || bulkImporting}
                   data-testid="input-hq-inline-username"
                 />
               </div>
@@ -263,7 +288,7 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={isRunning}
+                    disabled={isRunning || bulkImporting}
                     data-testid="input-hq-inline-password"
                   />
                   <Button
@@ -299,9 +324,18 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
                 </div>
               )}
 
+              <div className="flex items-start gap-2 text-xs p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
+                <PackageCheck className="w-3 h-3 mt-0.5 shrink-0 text-green-600" />
+                <span className="text-green-800 dark:text-green-300">
+                  {language === "fr"
+                    ? "Import automatique — les fichiers CSV seront récupérés et importés automatiquement dans le site. Aucune action manuelle requise."
+                    : "Auto-import — CSV files will be fetched and automatically imported into the site. No manual action needed."}
+                </span>
+              </div>
+
               <Button
                 onClick={startFetch}
-                disabled={isRunning || !username || !password}
+                disabled={isRunning || bulkImporting || !username || !password}
                 data-testid="button-hq-start-fetch"
               >
                 {isRunning ? (
@@ -309,25 +343,32 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {language === "fr" ? "Récupération en cours..." : "Fetching data..."}
                   </>
+                ) : bulkImporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {language === "fr" ? "Importation en cours..." : "Importing..."}
+                  </>
                 ) : (
                   <>
                     <Zap className="w-4 h-4 mr-2" />
-                    {language === "fr" ? "Récupérer les données" : "Fetch Data"}
+                    {language === "fr" ? "Récupérer et importer" : "Fetch & Import"}
                   </>
                 )}
               </Button>
             </div>
 
-            {isRunning && currentProgress && (
+            {(isRunning || bulkImporting) && currentProgress && (
               <Card>
                 <CardContent className="pt-6 space-y-3">
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
                     <span className="text-sm font-medium">
-                      {language === "fr" ? "Progression" : "Progress"}
+                      {bulkImporting
+                        ? (language === "fr" ? "Importation automatique..." : "Auto-importing...")
+                        : (language === "fr" ? "Progression" : "Progress")}
                     </span>
                   </div>
-                  <Progress value={progressPercent} className="h-2" />
+                  {!bulkImporting && <Progress value={progressPercent} className="h-2" />}
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-sm font-medium" data-testid="text-hq-progress-stage">
@@ -350,6 +391,26 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
               </Card>
             )}
 
+            {bulkImporting && !currentProgress && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {language === "fr" ? "Importation automatique en cours..." : "Auto-importing data..."}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "fr"
+                          ? "Les fichiers CSV sont en cours de traitement et d'importation dans le site."
+                          : "CSV files are being processed and imported into the site."}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {error && (
               <div className="flex items-start gap-3 p-3 rounded-md border border-destructive bg-destructive/5">
                 <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
@@ -358,6 +419,26 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
                     {language === "fr" ? "Erreur" : "Error"}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1" data-testid="text-hq-error">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {bulkImportDone && bulkImportResult && (
+              <div className={`flex items-start gap-3 p-3 rounded-md border ${bulkImportResult.errors.length > 0 ? "border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800" : "border-green-300 bg-green-50 dark:bg-green-950/30 dark:border-green-800"}`}>
+                <CheckCircle2 className={`w-5 h-5 shrink-0 mt-0.5 ${bulkImportResult.errors.length > 0 ? "text-amber-600" : "text-green-600"}`} />
+                <div>
+                  <p className="font-medium text-sm" data-testid="text-hq-import-result">
+                    {language === "fr"
+                      ? `${bulkImportResult.imported} fichier(s) importé(s) avec succès`
+                      : `${bulkImportResult.imported} file(s) imported successfully`}
+                  </p>
+                  {bulkImportResult.errors.length > 0 && (
+                    <div className="mt-1 space-y-1">
+                      {bulkImportResult.errors.map((err, i) => (
+                        <p key={i} className="text-xs text-muted-foreground">{err}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -374,6 +455,27 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
                     <span>CSV: <strong>{totalCsvs}</strong></span>
                     <span>{language === "fr" ? "Lignes" : "Rows"}: <strong>{totalRows.toLocaleString()}</strong></span>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!bulkImportDone && !bulkImporting && (
+                    <Button
+                      onClick={() => bulkImportAll(results)}
+                      disabled={bulkImporting}
+                      data-testid="button-hq-import-all"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {language === "fr" ? `Importer tout (${totalCsvs} fichiers)` : `Import all (${totalCsvs} files)`}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={downloadAllCsvs}
+                    data-testid="button-hq-download-all"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    {language === "fr" ? "Télécharger tout" : "Download all"}
+                  </Button>
                 </div>
 
                 {results.map((contract) => (
@@ -400,56 +502,35 @@ export function HQDataFetchInline({ siteId, onImportComplete, hqAccountNumber, h
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {contract.csvFiles.map((csv, idx) => {
-                          const csvKey = `${contract.contractId}-${idx}`;
-                          const isImporting = importingCsvs.has(csvKey);
-                          const isImported = importedCsvs.has(csvKey);
-
-                          return (
-                            <div key={idx} className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/50">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <FileSpreadsheet className="w-4 h-4 text-green-600 shrink-0" />
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium truncate">{csv.option}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {csv.periodStart} → {csv.periodEnd} · {csv.rowCount.toLocaleString()} {language === "fr" ? "lignes" : "rows"}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => downloadCsv(csv, contract.contractId)}
-                                  data-testid={`button-hq-download-csv-${contract.contractId}-${idx}`}
-                                >
-                                  <Download className="w-4 h-4" />
-                                </Button>
-                                {isImported ? (
-                                  <Badge variant="secondary" data-testid={`badge-hq-imported-${contract.contractId}-${idx}`}>
-                                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                                    {language === "fr" ? "Importé" : "Imported"}
-                                  </Badge>
-                                ) : (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => importCsvToSite(csv, contract.contractId, idx)}
-                                    disabled={isImporting}
-                                    data-testid={`button-hq-import-csv-${contract.contractId}-${idx}`}
-                                  >
-                                    {isImporting ? (
-                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                    ) : (
-                                      <Upload className="w-3 h-3 mr-1" />
-                                    )}
-                                    {language === "fr" ? "Importer" : "Import"}
-                                  </Button>
-                                )}
+                        {contract.csvFiles.map((csv, idx) => (
+                          <div key={idx} className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/50">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileSpreadsheet className="w-4 h-4 text-green-600 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{csv.option}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {csv.periodStart} → {csv.periodEnd} · {csv.rowCount.toLocaleString()} {language === "fr" ? "lignes" : "rows"}
+                                </p>
                               </div>
                             </div>
-                          );
-                        })}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => downloadCsv(csv, contract.contractId)}
+                                data-testid={`button-hq-download-csv-${contract.contractId}-${idx}`}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                              {bulkImportDone && (
+                                <Badge variant="secondary" data-testid={`badge-hq-imported-${contract.contractId}-${idx}`}>
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                  {language === "fr" ? "Importé" : "Imported"}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </CardContent>
                   </Card>
