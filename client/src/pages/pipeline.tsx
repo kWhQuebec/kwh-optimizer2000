@@ -2259,7 +2259,7 @@ export default function PipelinePage() {
                       type="button" 
                       variant="outline" 
                       className="text-destructive border-destructive/30"
-                      onClick={() => setIsDeleteConfirmOpen(true)}
+                      onClick={() => selectedOpportunity && setDeleteConfirmId(selectedOpportunity.id)}
                       data-testid="button-delete-opportunity"
                     >
                       <Trash2 className="w-4 h-4 mr-1" />
