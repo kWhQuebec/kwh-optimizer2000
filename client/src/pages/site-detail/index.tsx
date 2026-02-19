@@ -890,8 +890,8 @@ export default function SiteDetailPage() {
               </Button>
             </Link>
           )}
-          {/* Project Info Sheet PDF Button - Staff only */}
-          {isStaff && latestSimulation && postAnalysisSteps.includes(activeTab) && (
+          {/* Project Info Sheet PDF Button - Staff only, only for RFP portfolio sites */}
+          {isStaff && latestSimulation && postAnalysisSteps.includes(activeTab) && (site as any).procurementProcess === "rfp_required" && (
             <Button
               variant="outline"
               className="gap-2"
@@ -941,14 +941,6 @@ export default function SiteDetailPage() {
                   />
                 );
               })()}
-              {isStaff && designSteps.includes(activeTab) && (
-                <Link href={`/app/analyses/${latestSimulation.id}/design`}>
-                  <Button className="gap-2" data-testid="button-create-design">
-                    <PenTool className="w-4 h-4" />
-                    {t("analysis.createDesign")}
-                  </Button>
-                </Link>
-              )}
             </>
           )}
           {isStaff && (
@@ -2233,9 +2225,9 @@ export default function SiteDetailPage() {
                         </span>
                         {!site.roofAreaValidated && (
                           <Button
-                            variant="link"
+                            variant="ghost"
                             size="sm"
-                            className="h-auto p-0"
+                            className="h-auto p-0 text-primary underline"
                             onClick={() => setActiveTab("quick-analysis")}
                             data-testid="link-draw-roof-from-step3"
                           >
@@ -2254,9 +2246,9 @@ export default function SiteDetailPage() {
                         </span>
                         {!(site.meterFiles?.length ?? 0) && (
                           <Button
-                            variant="link"
+                            variant="ghost"
                             size="sm"
-                            className="h-auto p-0"
+                            className="h-auto p-0 text-primary underline"
                             onClick={() => setActiveTab("consumption")}
                             data-testid="link-import-data-from-step3"
                           >
