@@ -134,6 +134,8 @@ export function RoofDrawingModal({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSuggestingConstraints, setIsSuggestingConstraints] = useState(false);
   const [suggestedPolygonIds, setSuggestedPolygonIds] = useState<Set<string>>(new Set());
+  const [selectedPolygonId, setSelectedPolygonId] = useState<string | null>(null);
+  const selectedPolygonIdRef = useRef<string | null>(null);
   const polygonTypeRef = useRef<PolygonType>('solar');
   const customDrawingVerticesRef = useRef<google.maps.LatLng[]>([]);
   const customDrawingPolylineRef = useRef<google.maps.Polyline | null>(null);
@@ -563,8 +565,26 @@ export function RoofDrawingModal({
     setPolygons((prev) => [...prev, newPolygon]);
   };
 
+  const selectPolygon = useCallback((id: string | null) => {
+    setSelectedPolygonId(id);
+    selectedPolygonIdRef.current = id;
+    polygonsRef.current.forEach((p) => {
+      if (p.googlePolygon) {
+        const isSelected = p.id === id;
+        p.googlePolygon.setOptions({
+          strokeWeight: isSelected ? 4 : 2,
+          strokeOpacity: isSelected ? 1 : 0.8,
+        });
+      }
+    });
+  }, []);
+
   const setupPolygonListeners = (polygon: google.maps.Polygon, polygonId: string) => {
     const path = polygon.getPath();
+
+    google.maps.event.addListener(polygon, 'click', () => {
+      selectPolygon(polygonId);
+    });
 
     const updatePolygon = () => {
       const newCoords: [number, number][] = [];
@@ -589,7 +609,6 @@ export function RoofDrawingModal({
   const handleDeletePolygon = (polygonId: string) => {
     const polygon = polygons.find((p) => p.id === polygonId);
     if (polygon?.googlePolygon) {
-      // Clean up dashed polyline if present
       const polyline = (polygon.googlePolygon as any).__dashedPolyline as google.maps.Polyline | undefined;
       if (polyline) polyline.setMap(null);
       polygon.googlePolygon.setMap(null);
@@ -600,6 +619,9 @@ export function RoofDrawingModal({
       next.delete(polygonId);
       return next;
     });
+    if (selectedPolygonIdRef.current === polygonId) {
+      selectPolygon(null);
+    }
   };
 
   const handleClearSuggestedConstraints = () => {
@@ -859,8 +881,9 @@ export function RoofDrawingModal({
     if (!isOpen) {
       cleanupMap();
       setPolygons([]);
+      selectPolygon(null);
     }
-  }, [isOpen, cleanupMap]);
+  }, [isOpen, cleanupMap, selectPolygon]);
 
   // ESC key handler to cancel current drawing
   useEffect(() => {
@@ -891,11 +914,19 @@ export function RoofDrawingModal({
         startCustomPolygonDrawingRef.current();
         setAllPolygonsInteractive(false);
       }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedPolygonIdRef.current && !activeDrawingMode) {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        handleDeletePolygon(selectedPolygonIdRef.current);
+        selectPolygon(null);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, activeDrawingMode, language, toast]);
+  }, [isOpen, activeDrawingMode, language, toast, selectPolygon]);
 
   // Keep mounted but hidden to avoid DOM cleanup issues with Google Maps
   return (
@@ -1146,8 +1177,9 @@ export function RoofDrawingModal({
                   return (
                   <div
                     key={polygon.id}
-                    className={`p-3 rounded-lg border bg-card hover-elevate flex gap-2 ${isSuggested ? 'border-dashed border-orange-400' : ''}`}
+                    className={`p-3 rounded-lg border bg-card hover-elevate flex gap-2 cursor-pointer ${isSuggested ? 'border-dashed border-orange-400' : ''} ${selectedPolygonId === polygon.id ? 'ring-2 ring-primary' : ''}`}
                     data-testid={`polygon-item-${index}`}
+                    onClick={() => selectPolygon(polygon.id)}
                   >
                     <div
                       className={`w-1 rounded-full shrink-0 ${isConstraintPolygon ? 'bg-orange-500' : 'bg-blue-500'}`}
