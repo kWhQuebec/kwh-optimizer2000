@@ -34,7 +34,7 @@ The site detail page uses a compact numbered stepper (1-9) to mirror the solar p
 5. **Validation technique** - Technical site visit documentation
 6. **Proposition EPC** - EPC proposal management (placeholder)
 7. **Plans & devis** - Plans and specifications (placeholder)
-8. **Permis** - Permit management (placeholder)
+8. **Permis et installation** - Permit and installation management (placeholder)
 9. **O&M** - Operations & maintenance tracking (placeholder)
 
 Steps 1-3 are visible to all roles; steps 4-9 are staff-only. The "Compare" sub-view and "Activities" history are accessible from within the workflow but are not numbered steps. The stepper shows status indicators: green (complete), blue (available), gray (pending).

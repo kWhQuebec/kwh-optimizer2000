@@ -728,7 +728,7 @@ export default function SiteDetailPage() {
     { value: "site-visit", label: language === "fr" ? "Validation technique" : "Technical Validation", stepNum: 5 },
     { value: "epc-proposal", label: language === "fr" ? "Proposition EPC" : "EPC Proposal", stepNum: 6 },
     { value: "plans-specs", label: language === "fr" ? "Plans & devis" : "Plans & Specs", stepNum: 7 },
-    { value: "permits", label: language === "fr" ? "Permis" : "Permits", stepNum: 8 },
+    { value: "permits", label: language === "fr" ? "Permis et installation" : "Permits & Installation", stepNum: 8 },
     { value: "operations", label: language === "fr" ? "O&M" : "O&M", stepNum: 9 },
   ];
 
@@ -1568,7 +1568,7 @@ export default function SiteDetailPage() {
           {isStaff && <TabsTrigger value="site-visit">{language === "fr" ? "Validation technique" : "Technical Validation"}</TabsTrigger>}
           {isStaff && <TabsTrigger value="epc-proposal">{language === "fr" ? "Proposition EPC" : "EPC Proposal"}</TabsTrigger>}
           {isStaff && <TabsTrigger value="plans-specs">{language === "fr" ? "Plans & devis" : "Plans & Specs"}</TabsTrigger>}
-          {isStaff && <TabsTrigger value="permits">{language === "fr" ? "Permis" : "Permits"}</TabsTrigger>}
+          {isStaff && <TabsTrigger value="permits">{language === "fr" ? "Permis et installation" : "Permits & Installation"}</TabsTrigger>}
           {isStaff && <TabsTrigger value="operations">{language === "fr" ? "O&M" : "O&M"}</TabsTrigger>}
           {isStaff && <TabsTrigger value="activities">{t("activity.title")}</TabsTrigger>}
           <TabsTrigger value="compare">{language === "fr" ? "Comparer" : "Compare"}</TabsTrigger>
@@ -2463,12 +2463,12 @@ export default function SiteDetailPage() {
               <CardContent className="py-16 text-center">
                 <FileSignature className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-1">
-                  {language === "fr" ? "Permis" : "Permits"}
+                  {language === "fr" ? "Permis et installation" : "Permits & Installation"}
                 </h3>
                 <p className="text-muted-foreground max-w-md mx-auto">
                   {language === "fr"
-                    ? "La gestion des permis sera disponible prochainement."
-                    : "Permit management will be available soon."}
+                    ? "La gestion des permis et de l'installation sera disponible prochainement."
+                    : "Permit and installation management will be available soon."}
                 </p>
               </CardContent>
             </Card>
