@@ -41,7 +41,8 @@ import {
   FileSignature,
   Send,
   Mail,
-  Gauge
+  Gauge,
+  FileSpreadsheet
 } from "lucide-react";
 import type { AnalysisAssumptions, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
@@ -82,6 +83,7 @@ import { DownloadReportButton } from "./components/DownloadReportButton";
 import { ScenarioComparison } from "./components/ScenarioComparison";
 import { AnalysisResults } from "./components/AnalysisResults";
 import { BenchmarkTab } from "./components/BenchmarkTab";
+import { QuickInfoForm } from "./components/QuickInfoForm";
 import type { SiteWithDetails, QuickPotentialResult } from "./types";
 import { formatNumber, getTariffRates } from "./utils";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
@@ -681,11 +683,12 @@ export default function SiteDetailPage() {
 
     switch (stepValue) {
       case "quick-analysis":
-        return (quickPotential || site?.roofAreaValidated) ? "complete" : "pending";
+        const hasQuickInfo = !!(site?.quickInfoCompletedAt || site?.buildingType || site?.roofAreaSqM || site?.estimatedMonthlyBill);
+        return (hasQuickInfo || quickPotential || site?.roofAreaValidated) ? "complete" : "pending";
       case "consumption":
         return hasConsumptionData ? "complete" : "pending";
       case "analysis":
-        return hasAnalysis ? "complete" : hasConsumptionData ? "available" : "pending";
+        return hasAnalysis ? "complete" : (hasConsumptionData && site?.roofAreaValidated) ? "available" : "pending";
       case "design-agreement":
         return hasDesignAgreement ? "complete" : hasAnalysis ? "available" : "pending";
       case "site-visit":
@@ -1428,66 +1431,79 @@ export default function SiteDetailPage() {
         </TabsList>
 
         <TabsContent value="quick-analysis" className="space-y-6">
+          <QuickInfoForm
+            site={site}
+            language={language}
+            onSaved={() => refetch()}
+          />
+
           {isStaff && !site.roofAreaValidated && (
             <Card>
-              <CardContent className="py-8 text-center">
-                <Grid3X3 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-1">
-                  {language === "fr" ? "Dessiner les zones de toiture" : "Draw Roof Areas"}
-                </h3>
-                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                  {language === "fr"
-                    ? "Délimitez manuellement les zones de toit exploitables pour calculer le potentiel solaire."
-                    : "Manually outline usable roof areas to calculate solar potential."}
-                </p>
-                <Button
-                  disabled={isGeocodingAddress}
-                  onClick={async () => {
-                    const hasCoordinates = site.latitude && site.longitude;
-                    if (!hasCoordinates) {
-                      if (!site.address) {
-                        toast({
-                          variant: "destructive",
-                          title: language === "fr" ? "Adresse manquante" : "Missing address",
-                          description: language === "fr"
-                            ? "Veuillez d'abord ajouter une adresse dans les paramètres du site."
-                            : "Please add an address in site settings first."
-                        });
-                        return;
-                      }
-                      setIsGeocodingAddress(true);
-                      try {
-                        const token = localStorage.getItem("token");
-                        const response = await fetch(`/api/sites/${site.id}/geocode`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                          credentials: "include"
-                        });
-                        if (!response.ok) {
-                          const data = await response.json();
-                          toast({ variant: "destructive", title: language === "fr" ? "Erreur de géocodage" : "Geocoding error", description: data.error || "" });
-                          setIsGeocodingAddress(false);
-                          return;
+              <CardContent className="py-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-lg bg-primary/10">
+                    <Grid3X3 className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-medium mb-1">
+                      {language === "fr" ? "Dessiner les zones de toiture" : "Draw Roof Areas"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {language === "fr"
+                        ? "Requis pour la validation économique (étape 3). Délimitez les zones exploitables sur la vue satellite."
+                        : "Required for economic validation (step 3). Outline usable areas on the satellite view."}
+                    </p>
+                    <Button
+                      variant="outline"
+                      disabled={isGeocodingAddress}
+                      onClick={async () => {
+                        const hasCoordinates = site.latitude && site.longitude;
+                        if (!hasCoordinates) {
+                          if (!site.address) {
+                            toast({
+                              variant: "destructive",
+                              title: language === "fr" ? "Adresse manquante" : "Missing address",
+                              description: language === "fr"
+                                ? "Veuillez d'abord ajouter une adresse dans les paramètres du site."
+                                : "Please add an address in site settings first."
+                            });
+                            return;
+                          }
+                          setIsGeocodingAddress(true);
+                          try {
+                            const token = localStorage.getItem("token");
+                            const response = await fetch(`/api/sites/${site.id}/geocode`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                              credentials: "include"
+                            });
+                            if (!response.ok) {
+                              const data = await response.json();
+                              toast({ variant: "destructive", title: language === "fr" ? "Erreur de géocodage" : "Geocoding error", description: data.error || "" });
+                              setIsGeocodingAddress(false);
+                              return;
+                            }
+                            await refetch();
+                            setIsGeocodingAddress(false);
+                            setPendingModalOpen(true);
+                          } catch (error) {
+                            toast({ variant: "destructive", title: language === "fr" ? "Erreur" : "Error" });
+                            setIsGeocodingAddress(false);
+                          }
+                        } else {
+                          setIsRoofDrawingModalOpen(true);
                         }
-                        await refetch();
-                        setIsGeocodingAddress(false);
-                        setPendingModalOpen(true);
-                      } catch (error) {
-                        toast({ variant: "destructive", title: language === "fr" ? "Erreur" : "Error" });
-                        setIsGeocodingAddress(false);
-                      }
-                    } else {
-                      setIsRoofDrawingModalOpen(true);
-                    }
-                  }}
-                  className="gap-2"
-                  data-testid="button-draw-roof-step1"
-                >
-                  {isGeocodingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
-                  {isGeocodingAddress
-                    ? (language === "fr" ? "Localisation..." : "Locating...")
-                    : (language === "fr" ? "Dessiner les zones" : "Draw areas")}
-                </Button>
+                      }}
+                      className="gap-2"
+                      data-testid="button-draw-roof-step1"
+                    >
+                      {isGeocodingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+                      {isGeocodingAddress
+                        ? (language === "fr" ? "Localisation..." : "Locating...")
+                        : (language === "fr" ? "Dessiner les zones" : "Draw areas")}
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1802,6 +1818,31 @@ export default function SiteDetailPage() {
                     : "This site uses a synthetic consumption profile for demonstration purposes. Analysis results are indicative and do not reflect actual building consumption."}
                 </p>
               </div>
+            </div>
+          )}
+          {(site.meterFiles?.length ?? 0) > 0 && !site.roofAreaValidated && isStaff && (
+            <div data-testid="banner-draw-roof-step2" className="flex items-start gap-3 rounded-md border border-blue-300 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-700 p-4">
+              <Grid3X3 className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-blue-800 dark:text-blue-300">
+                  {language === "fr" ? "Prochaine action : dessiner les zones de toiture" : "Next action: draw roof areas"}
+                </p>
+                <p className="text-sm text-blue-700 dark:text-blue-400">
+                  {language === "fr"
+                    ? "Les données de consommation sont importées. Dessinez les zones de toit pour pouvoir lancer la validation économique (étape 3)."
+                    : "Consumption data is imported. Draw the roof areas to enable economic validation (step 3)."}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveTab("quick-analysis")}
+                className="shrink-0 gap-1"
+                data-testid="button-go-draw-roof-step2"
+              >
+                <Pencil className="w-3 h-3" />
+                {language === "fr" ? "Dessiner" : "Draw"}
+              </Button>
             </div>
           )}
           {isStaff && (
@@ -2174,18 +2215,65 @@ export default function SiteDetailPage() {
                         ? "L'analyse pour ce site est en cours de préparation par notre équipe."
                         : "The analysis for this site is being prepared by our team.")
                     : (language === "fr"
-                        ? "Importez des fichiers CSV pour lancer la validation économique."
-                        : "Import CSV files to run the economic validation.")}
+                        ? "Deux prérequis sont nécessaires pour lancer l'analyse :"
+                        : "Two prerequisites are needed to run the analysis:")}
                 </p>
                 {isStaff && (
-                  <Button
-                    onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                    disabled={!site.meterFiles?.length || runAnalysisMutation.isPending || !site.roofAreaValidated}
-                    className="gap-2"
-                  >
-                    <Play className="w-4 h-4" />
-                    {t("site.runAnalysis")}
-                  </Button>
+                  <div className="space-y-4">
+                    <div className="flex flex-col items-center gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        {site.roofAreaValidated ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Grid3X3 className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <span className={site.roofAreaValidated ? "text-green-600" : "text-muted-foreground"}>
+                          {language === "fr" ? "Zones de toiture dessinées" : "Roof areas drawn"}
+                        </span>
+                        {!site.roofAreaValidated && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0"
+                            onClick={() => setActiveTab("quick-analysis")}
+                            data-testid="link-draw-roof-from-step3"
+                          >
+                            {language === "fr" ? "(dessiner)" : "(draw)"}
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {(site.meterFiles?.length ?? 0) > 0 ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <FileSpreadsheet className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <span className={(site.meterFiles?.length ?? 0) > 0 ? "text-green-600" : "text-muted-foreground"}>
+                          {language === "fr" ? "Données de consommation importées" : "Consumption data imported"}
+                        </span>
+                        {!(site.meterFiles?.length ?? 0) && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0"
+                            onClick={() => setActiveTab("consumption")}
+                            data-testid="link-import-data-from-step3"
+                          >
+                            {language === "fr" ? "(importer)" : "(import)"}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => runAnalysisMutation.mutate(customAssumptions)}
+                      disabled={!site.meterFiles?.length || runAnalysisMutation.isPending || !site.roofAreaValidated}
+                      className="gap-2"
+                      data-testid="button-run-analysis-step3"
+                    >
+                      <Play className="w-4 h-4" />
+                      {t("site.runAnalysis")}
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -290,6 +290,12 @@ export const sites = pgTable("sites", {
   roofAgeYears: integer("roof_age_years"), // Approximate roof age in years
   ownershipType: text("ownership_type"), // "owner" | "tenant"
   
+  // Quick Info Collection (Step 1 form data)
+  numFloors: integer("num_floors"),
+  estimatedMonthlyBill: real("estimated_monthly_bill"), // Client-reported monthly HQ bill ($)
+  estimatedAnnualConsumptionKwh: real("estimated_annual_consumption_kwh"), // Client-reported annual consumption
+  quickInfoCompletedAt: timestamp("quick_info_completed_at"), // When Step 1 form was completed
+  
   // Archive status
   isArchived: boolean("is_archived").notNull().default(false),
   archivedAt: timestamp("archived_at"),
