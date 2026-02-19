@@ -36,6 +36,12 @@ const GOOGLE_MAPS_SCRIPT_ID = 'google-maps-script';
 
 type PolygonType = 'solar' | 'constraint';
 
+function isSolarPolygon(p: { color?: string; label?: string }): boolean {
+  if (p.color === CONSTRAINT_COLOR || p.color === '#f97316') return false;
+  if (p.label?.toLowerCase().includes('constraint') || p.label?.toLowerCase().includes('contrainte')) return false;
+  return true;
+}
+
 declare global {
   interface Window {
     initGoogleMaps?: () => void;
@@ -616,7 +622,7 @@ export function RoofDrawingModal({
   };
 
   const handleSuggestConstraints = async () => {
-    const solarPolygons = polygons.filter((p) => p.color !== CONSTRAINT_COLOR);
+    const solarPolygons = polygons.filter(isSolarPolygon);
     if (solarPolygons.length === 0 || !mapRef.current) {
       if (solarPolygons.length === 0) {
         toast({
@@ -873,6 +879,10 @@ export function RoofDrawingModal({
             ? 'Le tracé en cours a été annulé. Recommencez à dessiner.' 
             : 'Current drawing was cancelled. Start drawing again.',
         });
+      } else if ((e.key === 'Escape' || e.key === 'Enter') && !activeDrawingMode && customDrawingVerticesRef.current.length === 0) {
+        e.preventDefault();
+        startCustomPolygonDrawingRef.current();
+        setAllPolygonsInteractive(false);
       }
     };
 
@@ -1003,7 +1013,7 @@ export function RoofDrawingModal({
                   size="sm"
                   variant="outline"
                   onClick={handleSuggestConstraints}
-                  disabled={isSuggestingConstraints || polygons.filter(p => p.color === SOLAR_COLOR).length === 0}
+                  disabled={isSuggestingConstraints || polygons.filter(isSolarPolygon).length === 0}
                   data-testid="button-suggest-constraints"
                   title={language === 'fr' ? 'Détecter automatiquement les obstacles du toit' : 'Auto-detect roof obstacles'}
                 >
