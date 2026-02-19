@@ -361,8 +361,9 @@ export function AnalysisResults({
 
   const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
   const uncappedPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
-  const cappedPvSizeKW = roofGeometryCapacityKW != null && roofGeometryCapacityKW > 0
-    ? Math.min(uncappedPvSizeKW, roofGeometryCapacityKW)
+  const displayedRoofCapacityKW = Math.round(effectiveMaxPV * 0.9);
+  const cappedPvSizeKW = displayedRoofCapacityKW > 0
+    ? Math.min(uncappedPvSizeKW, displayedRoofCapacityKW)
     : uncappedPvSizeKW;
   const dashboardBattEnergyKWh = displayedScenario.battEnergyKWh ?? 0;
   const dashboardProductionMWh = displayedScenario.totalProductionKWh != null
@@ -701,7 +702,7 @@ export function AnalysisResults({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Capacité toit estimée" : "Est. Roof Capacity"}</p>
-                <p className="text-lg font-bold font-mono">{formatSmartPower(Math.round(effectiveMaxPV * 0.9), language)}</p>
+                <p className="text-lg font-bold font-mono">{formatSmartPower(displayedRoofCapacityKW, language)}</p>
                 {isRoofLimited && (
                   <Badge variant="secondary" className="mt-1 text-xs">
                     {language === "fr" ? "Limité par le toit" : "Roof limited"}

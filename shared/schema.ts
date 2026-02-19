@@ -2427,7 +2427,7 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   analysisYears: 25, // 25-year analysis
   
   // Bifacial PV defaults (PVSyst-calibrated — Source: Rematek Feb 2026)
-  bifacialEnabled: false,
+  bifacialEnabled: true,
   bifacialityFactor: 0.80, // 80% rear-side efficiency (PVSyst: Jinko 625W bifacial)
   roofAlbedo: 0.60, // 60% conservative average (PVSyst range: 0.42-0.60)
   bifacialCostPremium: 0.10, // $0.10/W additional cost
