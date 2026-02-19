@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, ChevronDown, ChevronLeft, ChevronRight, FileSignature, X, ArrowUpDown } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, ChevronDown, ChevronLeft, ChevronRight, FileSignature, X, ArrowUpDown, LayoutGrid, List } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -493,6 +493,9 @@ export default function ClientsPage() {
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [cascadeDeleteClient, setCascadeDeleteClient] = useState<ClientWithSites | null>(null);
   const [sortBy, setSortBy] = useState("newest");
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    return (localStorage.getItem("clients-view-mode") as "grid" | "list") || "grid";
+  });
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -685,6 +688,26 @@ export default function ClientsPage() {
               </SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex border rounded-md">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`rounded-r-none ${viewMode === "grid" ? "bg-muted" : ""}`}
+              onClick={() => { setViewMode("grid"); localStorage.setItem("clients-view-mode", "grid"); }}
+              data-testid="button-view-grid-clients"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`rounded-l-none ${viewMode === "list" ? "bg-muted" : ""}`}
+              onClick={() => { setViewMode("list"); localStorage.setItem("clients-view-mode", "list"); }}
+              data-testid="button-view-list-clients"
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2" data-testid="button-add-client">
@@ -727,20 +750,92 @@ export default function ClientsPage() {
           ))}
         </div>
       ) : clients && clients.length > 0 ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {clients.map((client) => (
-            <ClientCard
-              key={client.id}
-              client={client}
-              onEdit={() => setEditingClient(client)}
-              onDelete={() => setCascadeDeleteClient(client)}
-              onGrantAccess={() => setPortalAccessClient(client)}
-              onSendHqProcuration={() => setHqProcurationClient(client)}
-              isSelected={selectedClients.has(client.id)}
-              onToggleSelect={toggleClientSelection}
-            />
-          ))}
-        </div>
+        viewMode === "grid" ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clients.map((client) => (
+              <ClientCard
+                key={client.id}
+                client={client}
+                onEdit={() => setEditingClient(client)}
+                onDelete={() => setCascadeDeleteClient(client)}
+                onGrantAccess={() => setPortalAccessClient(client)}
+                onSendHqProcuration={() => setHqProcurationClient(client)}
+                isSelected={selectedClients.has(client.id)}
+                onToggleSelect={toggleClientSelection}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <div className="divide-y">
+              {clients.map((client) => (
+                <div key={client.id} className={`flex items-center gap-3 px-4 py-3 hover-elevate ${selectedClients.has(client.id) ? 'bg-primary/5' : ''}`} data-testid={`row-client-${client.id}`}>
+                  {toggleClientSelection && (
+                    <Checkbox
+                      checked={selectedClients.has(client.id)}
+                      onCheckedChange={() => toggleClientSelection(client.id)}
+                      data-testid={`checkbox-client-list-${client.id}`}
+                    />
+                  )}
+                  <Users className="w-4 h-4 text-primary shrink-0" />
+                  <Link href={`/app/clients/${client.id}/sites`} className="font-medium hover:text-primary hover:underline min-w-0 shrink-0 max-w-[280px] truncate" data-testid={`link-client-list-${client.id}`}>
+                    {client.name}
+                  </Link>
+                  {client.mainContactName && (
+                    <span className="text-sm text-muted-foreground truncate min-w-0 hidden sm:inline">
+                      {client.mainContactName}
+                    </span>
+                  )}
+                  {client.email && (
+                    <span className="text-sm text-muted-foreground truncate min-w-0 hidden md:inline">
+                      <Mail className="w-3 h-3 inline mr-1" />{client.email}
+                    </span>
+                  )}
+                  {client.phone && (
+                    <span className="text-sm text-muted-foreground truncate min-w-0 hidden lg:inline">
+                      <Phone className="w-3 h-3 inline mr-1" />{client.phone}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                    <Link href={`/app/clients/${client.id}/sites`}>
+                      <Button variant="outline" size="sm" className="gap-1 text-xs" data-testid={`button-sites-list-${client.id}`}>
+                        <Building2 className="w-3 h-3" />
+                        {client.siteCount ?? client.sites?.length ?? 0}
+                      </Button>
+                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" data-testid={`button-client-menu-list-${client.id}`}>
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setPortalAccessClient(client)}>
+                          <KeyRound className="w-4 h-4 mr-2" />
+                          {t("clients.grantPortalAccess")}
+                        </DropdownMenuItem>
+                        {client.email && (
+                          <DropdownMenuItem onClick={() => setHqProcurationClient(client)}>
+                            <FileSignature className="w-4 h-4 mr-2" />
+                            {t("clients.sendHqProcuration")}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => setEditingClient(client)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          {t("common.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setCascadeDeleteClient(client)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          {t("common.delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )
       ) : (
         <Card>
           <CardContent className="py-16 text-center">
