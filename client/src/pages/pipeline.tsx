@@ -48,6 +48,7 @@ import { z } from "zod";
 import type { Opportunity, User as UserType, Client, Site, Lead } from "@shared/schema";
 import { QualificationForm } from "@/components/qualification";
 import { NurtureStatusPanel } from "@/components/nurture-status-panel";
+import { MissionMap } from "@/components/MissionMap";
 
 const CallScriptWizard = lazy(() => import("@/components/qualification/call-script-wizard"));
 
@@ -1920,6 +1921,9 @@ export default function PipelinePage() {
                     <TabsTrigger value="nurturing" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-nurturing">
                       Nurturing
                     </TabsTrigger>
+                    <TabsTrigger value="progression" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-progression">
+                      {language === "fr" ? "🗺️ Aventure" : "🗺️ Adventure"}
+                    </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="opportunity" className="space-y-4 mt-4" data-testid="tabcontent-edit-opportunity">
@@ -2237,6 +2241,15 @@ export default function PipelinePage() {
                           : "This opportunity is not linked to a lead."}
                       </p>
                     )}
+                  </TabsContent>
+
+                  <TabsContent value="progression" className="mt-4" data-testid="tabcontent-edit-progression">
+                    <MissionMap
+                      opportunityId={selectedOpportunity.id}
+                      currentStage={selectedOpportunity.stage}
+                      viewMode="am"
+                      compact={true}
+                    />
                   </TabsContent>
                 </Tabs>
 

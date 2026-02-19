@@ -30,6 +30,7 @@ import { Progress } from "@/components/ui/progress";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import type { Site, SimulationRun, DesignAgreement } from "@shared/schema";
+import { MissionMap } from "@/components/MissionMap";
 
 type SiteWithClient = Site & { 
   client: { name: string } | null;
@@ -408,6 +409,20 @@ export default function ClientPortalPage() {
                   <CardContent className="space-y-4">
                     {/* Project Timeline */}
                     <ProjectTimeline site={site} language={language} />
+
+                    {/* Adventure Map - shared progression view */}
+                    <div className="mt-4 pt-4 border-t">
+                      <MissionMap
+                        currentStage={
+                          !site.analysisAvailable ? "prospect" :
+                          !site.designAgreement ? "analysis_done" :
+                          site.designAgreement.status === "accepted" ? "design_mandate_signed" :
+                          "qualified"
+                        }
+                        viewMode="client"
+                        compact={true}
+                      />
+                    </div>
                     
                     <Separator />
                     
