@@ -485,6 +485,19 @@ export function RoofDrawingModal({
         });
 
         setPolygons(loadedPolygons);
+
+        const bounds = new google.maps.LatLngBounds();
+        let hasPoints = false;
+        for (const ep of existingPolygons) {
+          const coords = ep.coordinates as [number, number][];
+          for (const [lng, lat] of coords) {
+            bounds.extend({ lat, lng });
+            hasPoints = true;
+          }
+        }
+        if (hasPoints) {
+          map.fitBounds(bounds, 60);
+        }
       }
 
       startCustomPolygonDrawingRef.current();

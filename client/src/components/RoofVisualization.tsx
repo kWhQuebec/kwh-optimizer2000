@@ -1420,6 +1420,19 @@ export function RoofVisualization({
           });
         }
 
+        const polyBounds = new google.maps.LatLngBounds();
+        let hasPolyPoints = false;
+        for (const polygon of roofPolygons) {
+          const coords = polygon.coordinates as [number, number][];
+          for (const [lng, lat] of coords) {
+            polyBounds.extend({ lat, lng });
+            hasPolyPoints = true;
+          }
+        }
+        if (hasPolyPoints) {
+          map.fitBounds(polyBounds, 40);
+        }
+
         // Generate panels using UNIFIED approach - DUAL ORIENTATION (building + true south)
         // 1. Building-aligned orientation - use RAW building edge angle (no 45° fallback)
         const buildingResult = generateUnifiedPanelPositions(
