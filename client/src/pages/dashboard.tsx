@@ -327,7 +327,7 @@ function QuickStartCard({ language, onDismiss }: { language: 'fr' | 'en'; onDism
     },
     {
       icon: Play,
-      title: language === 'fr' ? '3. Lancer l\'analyse' : '3. Run Analysis',
+      title: language === 'fr' ? '3. Validation économique' : '3. Economic Validation',
       description: language === 'fr' 
         ? 'Calculez le potentiel solaire et les économies' 
         : 'Calculate solar potential and savings',
@@ -740,7 +740,7 @@ export default function DashboardPage() {
                         <p className="text-xs text-muted-foreground truncate">
                           {task.taskType === 'roof_drawing' 
                             ? (language === 'fr' ? 'Toit à dessiner' : 'Roof Drawing')
-                            : (language === 'fr' ? 'Analyse à lancer' : 'Run Analysis')
+                            : (language === 'fr' ? 'Validation économique' : 'Economic Validation')
                           }
                         </p>
                       </div>

@@ -39,7 +39,7 @@ interface SiteWithClient extends Site {
 
 const TASK_LABELS: Record<TaskType, { fr: string; en: string }> = {
   roof_pending: { fr: "Dessin du toit", en: "Roof Drawing" },
-  analysis_pending: { fr: "Lancer l'analyse", en: "Run Analysis" },
+  analysis_pending: { fr: "Validation économique", en: "Economic Validation" },
   report_pending: { fr: "Générer le rapport", en: "Generate Report" },
 };
 
@@ -49,8 +49,8 @@ const TASK_DESCRIPTIONS: Record<TaskType, { fr: string; en: string }> = {
     en: "Sites needing validated roof drawing" 
   },
   analysis_pending: { 
-    fr: "Sites prêts pour l'analyse solaire", 
-    en: "Sites ready for solar analysis" 
+    fr: "Sites prêts pour la validation économique", 
+    en: "Sites ready for economic validation" 
   },
   report_pending: { 
     fr: "Sites prêts pour la génération de rapport", 

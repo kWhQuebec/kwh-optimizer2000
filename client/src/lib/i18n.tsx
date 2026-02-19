@@ -258,7 +258,7 @@ const translations: Translations = {
   "site.fileName": { fr: "Nom du fichier", en: "File Name" },
   "site.granularity": { fr: "Granularité", en: "Granularity" },
   "site.period": { fr: "Période", en: "Period" },
-  "site.runAnalysis": { fr: "Lancer l'analyse de potentiel", en: "Run potential analysis" },
+  "site.runAnalysis": { fr: "Lancer la validation économique", en: "Run Economic Validation" },
   "site.downloadReport": { fr: "Télécharger livrables", en: "Download Deliverables" },
 
   // Analysis Results — new sections

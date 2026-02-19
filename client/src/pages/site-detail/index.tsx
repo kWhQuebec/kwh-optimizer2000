@@ -100,6 +100,7 @@ export default function SiteDetailPage() {
   const assumptionsInitializedRef = useRef(false);
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
   const pendingNewSimulationIdRef = useRef<string | null>(null);
+  const autoAnalysisTriggeredRef = useRef(false);
   const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
   const [isRoofDrawingModalOpen, setIsRoofDrawingModalOpen] = useState(false);
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
@@ -330,6 +331,7 @@ export default function SiteDetailPage() {
       setActiveTab("analysis");
     },
     onError: (error: Error) => {
+      autoAnalysisTriggeredRef.current = false;
       const errorMessage = error.message || (language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis");
       toast({
         title: language === "fr" ? "Erreur lors de l'analyse" : "Error during analysis",
@@ -338,6 +340,27 @@ export default function SiteDetailPage() {
       });
     },
   });
+
+  // Reset auto-trigger ref when navigating to a different site
+  useEffect(() => {
+    autoAnalysisTriggeredRef.current = false;
+  }, [id]);
+
+  // Auto-trigger analysis when consumption data is available and no analysis exists yet
+  useEffect(() => {
+    if (
+      site &&
+      isStaff &&
+      !autoAnalysisTriggeredRef.current &&
+      !runAnalysisMutation.isPending &&
+      site.roofAreaValidated &&
+      site.meterFiles && site.meterFiles.length > 0 &&
+      (!site.simulationRuns || site.simulationRuns.length === 0)
+    ) {
+      autoAnalysisTriggeredRef.current = true;
+      runAnalysisMutation.mutate(customAssumptions);
+    }
+  }, [site, isStaff, customAssumptions, id]);
 
   // Quick potential analysis mutation (roof-only, no consumption data needed)
   const quickPotentialMutation = useMutation({
@@ -960,7 +983,7 @@ export default function SiteDetailPage() {
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
-                {language === "fr" ? "Lancer analyse" : "Run Analysis"}
+                {language === "fr" ? "Validation économique" : "Economic Validation"}
               </Button>
             </>
           )}
@@ -1238,8 +1261,8 @@ export default function SiteDetailPage() {
                 </h4>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
                   {language === "fr"
-                    ? "Avant de lancer l'analyse, vous devez délimiter manuellement les zones de toit exploitables."
-                    : "Before running the analysis, you must manually outline the usable roof areas."}
+                    ? "Avant de lancer la validation économique, vous devez délimiter manuellement les zones de toit exploitables."
+                    : "Before running the economic validation, you must manually outline the usable roof areas."}
                 </p>
               </div>
               <Button
@@ -2125,8 +2148,8 @@ export default function SiteDetailPage() {
                   toast({
                     title: language === "fr" ? "Profil modifié" : "Profile modified",
                     description: language === "fr"
-                      ? `Nouvelle consommation: ${(totalKWh / 1000).toFixed(0)} MWh/an. Relancer l'analyse pour appliquer.`
-                      : `New consumption: ${(totalKWh / 1000).toFixed(0)} MWh/year. Re-run analysis to apply.`,
+                      ? `Nouvelle consommation: ${(totalKWh / 1000).toFixed(0)} MWh/an. Relancer la validation pour appliquer.`
+                      : `New consumption: ${(totalKWh / 1000).toFixed(0)} MWh/year. Re-run validation to apply.`,
                   });
                 }}
                 disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
@@ -2164,7 +2187,7 @@ export default function SiteDetailPage() {
                     {runAnalysisMutation.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
+                        {language === "fr" ? "Validation en cours..." : "Validating..."}
                       </>
                     ) : (
                       <>
@@ -2478,8 +2501,8 @@ export default function SiteDetailPage() {
                         ? "L'analyse pour ce site est en cours de préparation par notre équipe."
                         : "The analysis for this site is being prepared by our team.")
                     : (language === "fr"
-                        ? "Importez des fichiers CSV et lancez une analyse pour voir les résultats."
-                        : "Import CSV files and run an analysis to see results.")}
+                        ? "Importez des fichiers CSV pour lancer la validation économique."
+                        : "Import CSV files to run the economic validation.")}
                 </p>
                 {isStaff && (
                   <Button

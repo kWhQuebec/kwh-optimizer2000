@@ -42,7 +42,7 @@ router.post("/api/work-queue/delegate", authMiddleware, requireStaff, asyncHandl
 
   const getTaskType = (site: typeof validSites[0]) => {
     if (!site.roofAreaValidated) return lang === "fr" ? "Dessin du toit" : "Roof Drawing";
-    if (!site.quickAnalysisCompletedAt) return lang === "fr" ? "Lancer l'analyse" : "Run Analysis";
+    if (!site.quickAnalysisCompletedAt) return lang === "fr" ? "Validation économique" : "Economic Validation";
     return lang === "fr" ? "Générer le rapport" : "Generate Report";
   };
 
