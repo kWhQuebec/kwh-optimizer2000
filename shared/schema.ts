@@ -3056,3 +3056,89 @@ export const insertPaymentMilestoneSchema = createInsertSchema(
 export type PaymentMilestone = typeof paymentMilestones.$inferSelect;
 
 export type VirtualPowerPlant = typeof virtualPowerPlant.$inferSelect;
+
+
+// ═══════════════════════════════════════════════════════════
+// EOS (ENTREPRENEURIAL OPERATING SYSTEM) TABLES
+// ═══════════════════════════════════════════════════════════
+
+export const scorecardMetrics = pgTable("scorecard_metrics", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  target: real("target").notNull(),
+  actual: real("actual").default(0),
+  unit: varchar("unit", { length: 50 }).default(""),
+  owner: varchar("owner", { length: 255 }).default(""),
+  trend: varchar("trend", { length: 20 }).default("flat"),
+  weekNumber: integer("week_number"),
+  year: integer("year"),
+  category: varchar("category", { length: 100 }).default("general"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertScorecardMetricSchema = createInsertSchema(scorecardMetrics);
+export type ScorecardMetric = typeof scorecardMetrics.$inferSelect;
+
+export const rocks = pgTable("rocks", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 500 }).notNull(),
+  owner: varchar("owner", { length: 255 }).notNull(),
+  status: varchar("status", { length: 50 }).default("on-track"),
+  progress: integer("progress").default(0),
+  quarter: varchar("quarter", { length: 20 }).notNull(),
+  year: integer("year").notNull(),
+  priority: varchar("priority", { length: 50 }).default("department"),
+  description: text("description"),
+  milestones: jsonb("milestones").default([]),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertRockSchema = createInsertSchema(rocks);
+export type Rock = typeof rocks.$inferSelect;
+
+export const eosIssues = pgTable("eos_issues", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description"),
+  priority: varchar("priority", { length: 20 }).default("medium"),
+  status: varchar("status", { length: 20 }).default("open"),
+  votes: integer("votes").default(0),
+  owner: varchar("owner", { length: 255 }),
+  resolvedAt: timestamp("resolved_at"),
+  resolution: text("resolution"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEosIssueSchema = createInsertSchema(eosIssues);
+export type EosIssue = typeof eosIssues.$inferSelect;
+
+export const eosTodos = pgTable("eos_todos", {
+  id: serial("id").primaryKey(),
+  text: varchar("text", { length: 500 }).notNull(),
+  owner: varchar("owner", { length: 255 }).notNull(),
+  done: boolean("done").default(false),
+  dueDate: varchar("due_date", { length: 20 }),
+  meetingDate: varchar("meeting_date", { length: 20 }),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEosTodoSchema = createInsertSchema(eosTodos);
+export type EosTodo = typeof eosTodos.$inferSelect;
+
+export const eosVto = pgTable("eos_vto", {
+  id: serial("id").primaryKey(),
+  section: varchar("section", { length: 100 }).notNull(),
+  content: jsonb("content").notNull(),
+  updatedBy: varchar("updated_by", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEosVtoSchema = createInsertSchema(eosVto);
+export type EosVto = typeof eosVto.$inferSelect;
