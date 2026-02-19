@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { 
-  Building2, 
-  MapPin, 
-  BarChart3, 
+import {
+  Building2,
+  MapPin,
+  BarChart3,
   FileText,
   CheckCircle2,
   Clock,
@@ -13,7 +13,6 @@ import {
   Sun,
   FileCheck,
   PenLine,
-  Wrench,
   ChevronRight,
   Mail,
   Phone,
@@ -26,11 +25,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import type { Site, SimulationRun, DesignAgreement } from "@shared/schema";
-import { MissionMap } from "@/components/MissionMap";
+import { WorkflowStepper } from "@/components/WorkflowStepper";
+import { useWorkflowProgress } from "@/hooks/useWorkflowProgress";
 
 type SiteWithClient = Site & { 
   client: { name: string } | null;
@@ -38,106 +37,7 @@ type SiteWithClient = Site & {
   designAgreement?: DesignAgreement | null;
 };
 
-type ProjectPhase = "exploration" | "conception" | "realisation" | "operation";
 
-function getProjectPhase(site: SiteWithClient): { phase: ProjectPhase; progress: number; label: string; labelEn: string } {
-  if (!site.analysisAvailable) {
-    return { phase: "exploration", progress: 25, label: "Exploration en cours", labelEn: "Exploration in Progress" };
-  }
-  if (!site.designAgreement || site.designAgreement.status === "draft") {
-    return { phase: "conception", progress: 50, label: "Conception en attente", labelEn: "Awaiting Design" };
-  }
-  if (site.designAgreement.status === "accepted") {
-    return { phase: "realisation", progress: 75, label: "Réalisation en cours", labelEn: "Construction in Progress" };
-  }
-  return { phase: "operation", progress: 100, label: "En opération", labelEn: "In Operation" };
-}
-
-function ProjectTimeline({ site, language }: { site: SiteWithClient; language: string }) {
-  const phaseInfo = getProjectPhase(site);
-  
-  const steps = [
-    {
-      id: "exploration",
-      label: language === "fr" ? "Exploration" : "Exploration",
-      icon: BarChart3,
-      complete: site.analysisAvailable,
-      color: "gray"
-    },
-    {
-      id: "conception",
-      label: language === "fr" ? "Conception" : "Design",
-      icon: PenLine,
-      complete: site.designAgreement?.status === "accepted",
-      color: "blue"
-    },
-    {
-      id: "realisation",
-      label: language === "fr" ? "Réalisation" : "Construction",
-      icon: Wrench,
-      complete: phaseInfo.phase === "operation",
-      color: "amber"
-    },
-    {
-      id: "operation",
-      label: language === "fr" ? "Opération" : "Operations",
-      icon: CheckCircle2,
-      complete: phaseInfo.phase === "operation",
-      color: "green"
-    },
-  ];
-
-  return (
-    <div className="space-y-3" data-testid={`timeline-site-${site.id}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
-          {language === "fr" ? phaseInfo.label : phaseInfo.labelEn}
-        </span>
-        <span className="text-xs font-medium">{phaseInfo.progress}%</span>
-      </div>
-      <Progress value={phaseInfo.progress} className="h-2" />
-      <div className="flex justify-between">
-        {steps.map((step, idx) => {
-          const StepIcon = step.icon;
-          const isActive = steps.findIndex(s => !s.complete) === idx;
-          const isComplete = step.complete;
-          
-          return (
-            <div 
-              key={step.id} 
-              className="flex flex-col items-center gap-1"
-              data-testid={`timeline-step-${step.id}-${site.id}`}
-            >
-              <div className={`
-                w-6 h-6 rounded-full flex items-center justify-center text-xs
-                ${isComplete
-                  ? step.color === "gray" ? "bg-gray-500 text-white"
-                    : step.color === "blue" ? "bg-blue-500 text-white"
-                    : step.color === "amber" ? "bg-amber-500 text-white"
-                    : "bg-green-500 text-white"
-                  : isActive
-                    ? step.color === "gray" ? "bg-gray-200 text-gray-700 ring-2 ring-gray-400"
-                      : step.color === "blue" ? "bg-blue-100 text-blue-700 ring-2 ring-blue-400"
-                      : step.color === "amber" ? "bg-amber-100 text-amber-700 ring-2 ring-amber-400"
-                      : "bg-green-100 text-green-700 ring-2 ring-green-400"
-                  : "bg-muted text-muted-foreground"}
-              `}>
-                {isComplete ? (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                ) : (
-                  <StepIcon className="w-3 h-3" />
-                )}
-              </div>
-              <span className={`text-[10px] ${isComplete || isActive ? "font-medium" : "text-muted-foreground"}`}>
-                {step.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("fr-CA", {
@@ -145,6 +45,38 @@ function formatCurrency(amount: number): string {
     currency: "CAD",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function SiteWorkflowProgress({ site, language }: { site: SiteWithClient; language: string }) {
+  const opportunityStage = !site.analysisAvailable ? "prospect" :
+    !site.designAgreement ? "analysis_done" :
+    site.designAgreement.status === "accepted" ? "design_mandate_signed" :
+    "qualified";
+
+  const progress = useWorkflowProgress({
+    site: {
+      meterFiles: [],  // Not available in list view
+      analysisAvailable: site.analysisAvailable,
+      engineeringOutcome: null,
+    },
+    designAgreement: site.designAgreement ? {
+      status: site.designAgreement.status,
+      depositPaidAt: (site.designAgreement as any).depositPaidAt ?? null,
+    } : null,
+    opportunityStage,
+    viewMode: "client",
+  });
+
+  return (
+    <WorkflowStepper
+      steps={progress.steps}
+      overallProgress={progress.overallProgress}
+      totalPoints={progress.totalPoints}
+      maxTotalPoints={progress.maxTotalPoints}
+      viewMode="client"
+      compact={true}
+    />
+  );
 }
 
 export default function ClientPortalPage() {
@@ -419,23 +351,8 @@ export default function ClientPortalPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Project Timeline */}
-                    <ProjectTimeline site={site} language={language} />
+                    <SiteWorkflowProgress site={site} language={language} />
 
-                    {/* Adventure Map - shared progression view */}
-                    <div className="mt-4 pt-4 border-t">
-                      <MissionMap
-                        currentStage={
-                          !site.analysisAvailable ? "prospect" :
-                          !site.designAgreement ? "analysis_done" :
-                          site.designAgreement.status === "accepted" ? "design_mandate_signed" :
-                          "qualified"
-                        }
-                        viewMode="client"
-                        compact={true}
-                      />
-                    </div>
-                    
                     <Separator />
                     
                     {/* Quick Stats */}

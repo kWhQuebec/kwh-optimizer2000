@@ -1597,7 +1597,14 @@ export const opportunities = pgTable("opportunities", {
   // Next action
   nextActionDate: timestamp("next_action_date"),
   nextActionDescription: text("next_action_description"),
-  
+
+  // Engineering validation outcome (step 4)
+  // "pending" = awaiting engineer report
+  // "proceed" = all clear, proceed to construction
+  // "amendment" = modifications required to EPC agreement
+  // "cancellation" = project cancelled, credit remaining work
+  engineeringOutcome: text("engineering_outcome"), // "pending" | "proceed" | "amendment" | "cancellation"
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

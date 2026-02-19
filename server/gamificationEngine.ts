@@ -88,13 +88,14 @@ export const BADGE_DEFINITIONS = {
 export const MISSION_TEMPLATES = [
   {
     missionNumber: 1,
-    title: "Analyse rapide du potentiel",
+    title: "Analyse rapide",
     stage: "qualified",
-    pointsReward: 250,
+    pointsReward: 325,
     clientTasks: [
+      { title: "Sélectionner le type de bâtiment", points: 25 },
+      { title: "Estimer la superficie de toiture", points: 25 },
       { title: "Uploader sa facture Hydro-Québec", points: 50 },
-      { title: "Confirmer son type de propriété", points: 25 },
-      { title: "Consulter sa simulation de production", points: 25 },
+      { title: "Fournir consommation annuelle estimée", points: 25 },
       { title: "Booker un appel découverte", points: 50 },
     ],
     amTasks: [
@@ -106,14 +107,14 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 2,
-    title: "Validation technique",
+    title: "Validation économique",
     stage: "design_mandate_signed",
     pointsReward: 750,
     clientTasks: [
       { title: "Lire la proposition préliminaire", points: 50 },
       { title: "Poser au moins 1 question", points: 50 },
-      { title: "Signer la procuration HQ", points: 100 },
-      { title: "Payer le mandat (Stripe)", points: 200 },
+      { title: "Signer la procuration Hydro-Québec", points: 100 },
+      { title: "Signer le mandat + verser le dépôt", points: 200 },
     ],
     amTasks: [
       { title: "Envoyer la proposition < 3 jours", points: 100 },
@@ -124,7 +125,7 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 3,
-    title: "Ingénierie, plans & devis",
+    title: "Validation technique",
     stage: "epc_proposal_sent",
     pointsReward: 500,
     clientTasks: [
@@ -142,25 +143,25 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 4,
-    title: "Contrat signé",
+    title: "Ingénierie & design final",
     stage: "won_to_be_delivered",
     pointsReward: 1000,
     clientTasks: [
       { title: "Recevoir la proposition EPC complète", points: 50 },
       { title: "Comparer les scénarios financiers", points: 100 },
-      { title: "Finaliser la négociation", points: 100 },
-      { title: "Signer le contrat EPC", points: 250 },
+      { title: "Reviewer le rapport d'ingénierie", points: 100 },
+      { title: "Approuver le design final ou avenant", points: 250 },
     ],
     amTasks: [
       { title: "Générer proposition 3 scénarios", points: 100 },
-      { title: "Présenter en meeting", points: 50 },
-      { title: "Adresser objections < 24h", points: 100 },
-      { title: "Obtenir signature + premier paiement", points: 250 },
+      { title: "Coordonner rapport d'ingénieur", points: 100 },
+      { title: "Préparer avenant si requis", points: 100 },
+      { title: "Obtenir GO final + permis confirmés", points: 250 },
     ],
   },
   {
     missionNumber: 5,
-    title: "Permis & installation",
+    title: "Construction",
     stage: "won_in_construction",
     pointsReward: 2000,
     clientTasks: [
@@ -180,7 +181,7 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 6,
-    title: "Monitoring & performance",
+    title: "Opération",
     stage: "won_delivered",
     pointsReward: 2000,
     clientTasks: [

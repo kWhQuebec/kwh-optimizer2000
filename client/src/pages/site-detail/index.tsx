@@ -87,6 +87,9 @@ import { QuickInfoForm } from "./components/QuickInfoForm";
 import type { SiteWithDetails, QuickPotentialResult } from "./types";
 import { formatNumber, getTariffRates } from "./utils";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
+import { WorkflowStepper } from "@/components/WorkflowStepper";
+import { useWorkflowProgress } from "@/hooks/useWorkflowProgress";
+import { WORKFLOW_STEPS, getStepForTab } from "@shared/workflowSteps";
 
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -709,6 +712,21 @@ export default function SiteDetailPage() {
     { value: "permits", label: language === "fr" ? "Permis et installation" : "Permits & Installation", stepNum: 8 },
     { value: "operations", label: language === "fr" ? "O&M" : "O&M", stepNum: 9 },
   ];
+
+  // Unified workflow progress (new 6-step model)
+  const opportunityStage = opportunities.length > 0 ? opportunities[0].stage : "prospect";
+  const workflowProgress = useWorkflowProgress({
+    site,
+    designAgreement,
+    opportunityStage,
+    viewMode: isClient ? "client" : "am",
+    missions: null, // TODO: fetch from gamification API
+  });
+
+  // Map from unified step click to the appropriate tab
+  const handleStepClick = (stepId: string, firstTab: string) => {
+    setActiveTab(firstTab);
+  };
 
   useEffect(() => {
     if (prevSiteIdRef.current !== id) {
@@ -1356,56 +1374,17 @@ export default function SiteDetailPage() {
 
       {/* Process Tabs with workflow stepper */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="flex flex-wrap items-center gap-2" role="presentation">
-          <div className="flex items-center gap-1 flex-1 overflow-x-auto py-1">
-            {(() => {
-              const staffOnlyValues = ["site-visit", "design-agreement", "epc-proposal", "plans-specs", "permits", "operations"];
-              const visibleSteps = workflowSteps.filter(s => isStaff || !staffOnlyValues.includes(s.value));
-
-              return visibleSteps.map((step, visibleIndex) => {
-                const status = getStepStatus(step.value);
-                const isActive = activeTab === step.value;
-
-                return (
-                  <Fragment key={step.value}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab(step.value)}
-                      className={`
-                        inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium
-                        ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-                        ${isActive
-                          ? "bg-background text-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
-                        }
-                      `}
-                      data-testid={`tab-${step.value}`}
-                      title={step.label}
-                    >
-                      <span className={`
-                        inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0
-                        ${status === "complete"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400"
-                          : status === "available"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
-                          : isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                        }
-                      `}>
-                        {status === "complete" ? <CircleCheck className="w-3.5 h-3.5" /> : step.stepNum}
-                      </span>
-                      {isActive && <span>{step.label}</span>}
-                    </button>
-                    {visibleIndex < visibleSteps.length - 1 && (
-                      <div className={`w-4 h-px shrink-0 ${status === "complete" ? "bg-green-400" : "bg-border"}`} aria-hidden="true" />
-                    )}
-                  </Fragment>
-                );
-              });
-            })()}
-          </div>
-
+        <div role="presentation">
+          <WorkflowStepper
+            steps={workflowProgress.steps}
+            overallProgress={workflowProgress.overallProgress}
+            totalPoints={workflowProgress.totalPoints}
+            maxTotalPoints={workflowProgress.maxTotalPoints}
+            viewMode={isClient ? "client" : "am"}
+            activeStepId={getStepForTab(activeTab)?.id}
+            onStepClick={handleStepClick}
+            compact={false}
+          />
         </div>
 
         <TabsList className="sr-only">
