@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen, X, ArrowUpDown } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen, X, ArrowUpDown, LayoutGrid, List } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -558,6 +558,9 @@ export default function SitesPage() {
   const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    return (localStorage.getItem("sites-view-mode") as "grid" | "list") || "grid";
+  });
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -916,6 +919,26 @@ export default function SitesPage() {
               </SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex border rounded-md">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`rounded-r-none ${viewMode === "grid" ? "bg-muted" : ""}`}
+              onClick={() => { setViewMode("grid"); localStorage.setItem("sites-view-mode", "grid"); }}
+              data-testid="button-view-grid"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`rounded-l-none ${viewMode === "list" ? "bg-muted" : ""}`}
+              onClick={() => { setViewMode("list"); localStorage.setItem("sites-view-mode", "list"); }}
+              data-testid="button-view-list"
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
           <Button
             variant={showArchived ? "default" : "outline"}
             size="sm"
@@ -993,19 +1016,109 @@ export default function SitesPage() {
           ))}
         </div>
       ) : sites && sites.length > 0 ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sites.map((site) => (
-            <SiteCard
-              key={site.id}
-              site={site}
-              onEdit={() => setEditingSite(site)}
-              onDelete={() => deleteMutation.mutate(site.id)}
-              onArchive={() => archiveMutation.mutate({ id: site.id, isArchived: !!site.isArchived })}
-              isSelected={selectedSites.has(site.id)}
-              onToggleSelect={toggleSiteSelection}
-            />
-          ))}
-        </div>
+        viewMode === "grid" ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sites.map((site) => (
+              <SiteCard
+                key={site.id}
+                site={site}
+                onEdit={() => setEditingSite(site)}
+                onDelete={() => deleteMutation.mutate(site.id)}
+                onArchive={() => archiveMutation.mutate({ id: site.id, isArchived: !!site.isArchived })}
+                isSelected={selectedSites.has(site.id)}
+                onToggleSelect={toggleSiteSelection}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <div className="divide-y">
+              {sites.map((site) => (
+                <div key={site.id} className={`flex items-center gap-3 px-4 py-3 hover-elevate ${site.isArchived ? 'opacity-60' : ''} ${selectedSites.has(site.id) ? 'bg-primary/5' : ''}`} data-testid={`row-site-${site.id}`}>
+                  {toggleSiteSelection && (
+                    <Checkbox
+                      checked={selectedSites.has(site.id)}
+                      onCheckedChange={() => toggleSiteSelection(site.id)}
+                      data-testid={`checkbox-site-list-${site.id}`}
+                    />
+                  )}
+                  <Building2 className="w-4 h-4 text-primary shrink-0" />
+                  <Link href={`/app/sites/${site.id}`} className="font-medium hover:text-primary hover:underline min-w-0 shrink-0 max-w-[280px] truncate" data-testid={`link-site-list-${site.id}`}>
+                    {site.name}
+                  </Link>
+                  <span className="text-sm text-muted-foreground truncate min-w-0 hidden sm:inline">
+                    {site.clientName}
+                  </span>
+                  <span className="text-sm text-muted-foreground truncate min-w-0 hidden md:inline">
+                    {[site.address, site.city].filter(Boolean).join(", ") || "—"}
+                  </span>
+                  <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                    {site.roofAreaValidated ? (
+                      <Badge variant="default" className="gap-1 text-xs">
+                        <Grid3X3 className="w-3 h-3" />
+                        {t("sites.roofValidated")}
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="gap-1 text-xs">
+                        <AlertTriangle className="w-3 h-3" />
+                        {t("sites.roofPending")}
+                      </Badge>
+                    )}
+                    {site.analysisAvailable ? (
+                      <Badge variant="default" className="gap-1 text-xs">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {t("sites.analysisReady")}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="gap-1 text-xs">
+                        <Clock className="w-3 h-3" />
+                        {t("sites.pending")}
+                      </Badge>
+                    )}
+                    {site.isArchived && (
+                      <Badge variant="secondary" className="gap-1 text-xs">
+                        <Archive className="w-3 h-3" />
+                      </Badge>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" data-testid={`button-site-menu-list-${site.id}`}>
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditingSite(site)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          {t("common.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => archiveMutation.mutate({ id: site.id, isArchived: !!site.isArchived })}>
+                          {site.isArchived ? (
+                            <>
+                              <ArchiveRestore className="w-4 h-4 mr-2" />
+                              {language === "fr" ? "Désarchiver" : "Unarchive"}
+                            </>
+                          ) : (
+                            <>
+                              <Archive className="w-4 h-4 mr-2" />
+                              {language === "fr" ? "Archiver" : "Archive"}
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => deleteMutation.mutate(site.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          {t("common.delete")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )
       ) : (
         <Card>
           <CardContent className="py-16 text-center">
