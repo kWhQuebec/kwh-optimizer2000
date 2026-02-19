@@ -758,7 +758,6 @@ export default function SiteDetailPage() {
     );
   }
 
-  const analysisSteps = ["quick-analysis", "consumption", "analysis"];
   const postAnalysisSteps = ["analysis", "design-agreement", "site-visit", "epc-proposal", "plans-specs", "permits", "operations", "compare", "activities"];
   const designSteps = ["analysis", "design-agreement"];
 
@@ -872,58 +871,6 @@ export default function SiteDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {isStaff && (
-            <>
-              {activeTab === "quick-analysis" && !(site.meterFiles && site.meterFiles.length > 0) && (
-                <div className="flex items-center gap-1">
-                  <Select
-                    value={constraintFactor.toString()}
-                    onValueChange={(v) => setConstraintFactor(parseInt(v))}
-                  >
-                    <SelectTrigger className="w-[90px] h-9" data-testid="select-constraint-factor">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5%</SelectItem>
-                      <SelectItem value="10">10%</SelectItem>
-                      <SelectItem value="15">15%</SelectItem>
-                      <SelectItem value="20">20%</SelectItem>
-                      <SelectItem value="25">25%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="secondary"
-                    onClick={() => quickPotentialMutation.mutate()}
-                    disabled={quickPotentialMutation.isPending || !site.roofAreaValidated}
-                    className="gap-2"
-                    data-testid="button-quick-potential"
-                  >
-                    {quickPotentialMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Zap className="w-4 h-4" />
-                    )}
-                    {language === "fr" ? "Analyse rapide" : "Quick Analysis"}
-                  </Button>
-                </div>
-              )}
-              {analysisSteps.includes(activeTab) && (
-                <Button
-                  onClick={() => runAnalysisMutation.mutate(customAssumptions)}
-                  disabled={runAnalysisMutation.isPending || !site.roofAreaValidated}
-                  className="gap-2"
-                  data-testid="button-run-analysis-header"
-                >
-                  {runAnalysisMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Play className="w-4 h-4" />
-                  )}
-                  {language === "fr" ? "Validation économique" : "Economic Validation"}
-                </Button>
-              )}
-            </>
-          )}
           {/* Presentation Mode Button */}
           {latestSimulation && postAnalysisSteps.includes(activeTab) && (
             <Link href={`/app/presentation/${site.id}${latestSimulation ? `?sim=${latestSimulation.id}&opt=${optimizationTarget}` : ''}`}>
@@ -1024,6 +971,13 @@ export default function SiteDetailPage() {
                     {language === "fr" ? "Partager au client" : "Share with client"}
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem
+                  data-testid="menu-item-activities"
+                  onClick={() => setActiveTab("activities")}
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  {t("activity.title")}
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   data-testid="menu-item-send-hq-procuration"
                   onClick={() => setIsHqProcurationDialogOpen(true)}
@@ -1450,19 +1404,6 @@ export default function SiteDetailPage() {
             })()}
           </div>
 
-          {isStaff && (
-            <Button
-              variant={activeTab === "activities" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("activities")}
-              className="gap-1.5 shrink-0"
-              data-testid="tab-activities"
-              title={language === "fr" ? "Historique des activités" : "Activity History"}
-            >
-              <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("activity.title")}</span>
-            </Button>
-          )}
         </div>
 
         <TabsList className="sr-only">
