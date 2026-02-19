@@ -418,6 +418,22 @@ export function AnalysisResults({
   return (
     <div className="space-y-6">
 
+      {site?.meterFiles?.some((f: any) => f.isSynthetic) && (
+        <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-amber-800 dark:text-amber-300">
+              {language === "fr" ? "Résultats basés sur un profil synthétique" : "Results based on synthetic profile"}
+            </p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              {language === "fr"
+                ? "Cette analyse utilise des données de consommation synthétiques. Les résultats financiers et techniques sont indicatifs et seront recalculés avec les données réelles du client."
+                : "This analysis uses synthetic consumption data. Financial and technical results are indicative and will be recalculated with actual client data."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* EXECUTIVE SUMMARY                                              */}
       {/* ═══════════════════════════════════════════════════════════════ */}

@@ -1961,6 +1961,21 @@ export default function SiteDetailPage() {
         </TabsContent>
 
         <TabsContent value="consumption" className="space-y-6">
+          {site.meterFiles?.some((f: any) => f.isSynthetic) && (
+            <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-300">
+                  {language === "fr" ? "Données synthétiques" : "Synthetic data"}
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  {language === "fr"
+                    ? "Ce site utilise un profil de consommation synthétique à des fins de démonstration. Les résultats d'analyse sont indicatifs et ne reflètent pas la consommation réelle du bâtiment."
+                    : "This site uses a synthetic consumption profile for demonstration purposes. Analysis results are indicative and do not reflect actual building consumption."}
+                </p>
+              </div>
+            </div>
+          )}
           {isStaff && (
             <Card>
               <CardHeader>
@@ -2146,6 +2161,9 @@ export default function SiteDetailPage() {
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-muted-foreground" />
                             {file.fileName}
+                            {(file as any).isSynthetic && (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>

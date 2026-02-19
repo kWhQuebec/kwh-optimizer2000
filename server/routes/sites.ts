@@ -693,6 +693,22 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
   res.json({ files: results });
 }));
 
+router.patch("/:siteId/meter-files/:fileId/synthetic", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { fileId } = req.params;
+  const { isSynthetic } = req.body;
+
+  if (typeof isSynthetic !== "boolean") {
+    throw new BadRequestError("isSynthetic must be a boolean");
+  }
+
+  const updatedFile = await storage.updateMeterFile(fileId, { isSynthetic });
+  if (!updatedFile) {
+    throw new NotFoundError("Meter file");
+  }
+
+  res.json(updatedFile);
+}));
+
 router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   const { siteId } = req.params;
   const { constraintFactor = 0.10, assumptions } = req.body;
