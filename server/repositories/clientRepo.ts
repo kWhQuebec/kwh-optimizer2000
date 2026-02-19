@@ -51,7 +51,7 @@ export async function getClientsPaginated(options: { limit?: number; offset?: nu
   let orderClause;
   switch (sortBy) {
     case "modified":
-      orderClause = desc(clients.updatedAt);
+      orderClause = desc(clients.createdAt);
       break;
     case "name_asc":
       orderClause = asc(clients.name);
@@ -61,7 +61,7 @@ export async function getClientsPaginated(options: { limit?: number; offset?: nu
       break;
     case "newest":
     default:
-      orderClause = desc(clients.createdAt);
+      orderClause = desc(clients.updatedAt);
       break;
   }
 

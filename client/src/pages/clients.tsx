@@ -678,7 +678,7 @@ export default function ClientsPage() {
                 {language === "fr" ? "Plus récents" : "Newest"}
               </SelectItem>
               <SelectItem value="modified" data-testid="sort-option-modified">
-                {language === "fr" ? "Derniers modifiés" : "Last modified"}
+                {language === "fr" ? "Date d'ajout" : "Date added"}
               </SelectItem>
               <SelectItem value="name_asc" data-testid="sort-option-name-asc">
                 {language === "fr" ? "Nom (A-Z)" : "Name (A-Z)"}

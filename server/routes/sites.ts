@@ -189,14 +189,14 @@ router.get("/list", authMiddleware, asyncHandler(async (req: AuthRequest, res) =
   result.sort((a, b) => {
     switch (sortField) {
       case "modified":
-        return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
       case "name_asc":
         return (a.name || "").localeCompare(b.name || "", "fr");
       case "name_desc":
         return (b.name || "").localeCompare(a.name || "", "fr");
       case "newest":
       default:
-        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
     }
   });
 
