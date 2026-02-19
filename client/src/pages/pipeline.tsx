@@ -14,7 +14,6 @@ import {
   X,
   TrendingUp,
   Trophy,
-  XCircle,
   HelpCircle,
   LayoutGrid,
   List,
@@ -22,7 +21,6 @@ import {
   Snowflake,
   Clock as ClockIcon,
   Loader2,
-  Ban,
   Trash2,
   Phone,
   TrendingDown
@@ -32,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -245,10 +244,12 @@ const CREATE_NEW_SITE_VALUE = "__create_new_site__";
 function OpportunityCard({ 
   opportunity, 
   onStageChange, 
+  onDelete,
   onClick 
 }: { 
   opportunity: DisplayOpportunity; 
   onStageChange: (id: string, stage: Stage) => void;
+  onDelete: (id: string) => void;
   onClick: () => void;
 }) {
   const { language } = useI18n();
@@ -283,41 +284,32 @@ function OpportunityCard({
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-1">
               <h4 className="font-medium text-sm leading-tight line-clamp-2">{displayName}</h4>
-              {/* Lead Color Indicator */}
-              {opportunity.lead && (opportunity.lead as any).leadColor && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div
-                      className="shrink-0 rounded-full"
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        backgroundColor:
-                          (opportunity.lead as any).leadColor === "green" ? "#16A34A" :
-                          (opportunity.lead as any).leadColor === "yellow" ? "#EAB308" :
-                          (opportunity.lead as any).leadColor === "red" ? "#DC2626" :
-                          "#9CA3AF",
-                      }}
-                      data-testid={`indicator-lead-color-${opportunity.id}`}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {(opportunity.lead as any).leadColorReason || (
-                      (opportunity.lead as any).leadColor === "green" ? "Qualified - good to go" :
-                      (opportunity.lead as any).leadColor === "yellow" ? "Missing info - needs nurture" :
-                      (opportunity.lead as any).leadColor === "red" ? "Not qualified" :
-                      "Not yet classified"
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              )}
             </div>
-            <Badge
-              className={`shrink-0 text-xs ${PRIORITY_COLORS[opportunity.priority || "medium"]}`}
-              data-testid={`badge-priority-${opportunity.id}`}
-            >
-              {opportunity.priority || "medium"}
-            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className="shrink-0 rounded-full mt-1"
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    backgroundColor:
+                      (opportunity.lead as any)?.leadColor === "green" ? "#16A34A" :
+                      (opportunity.lead as any)?.leadColor === "yellow" ? "#EAB308" :
+                      (opportunity.lead as any)?.leadColor === "red" ? "#DC2626" :
+                      "#D1D5DB",
+                  }}
+                  data-testid={`indicator-lead-color-${opportunity.id}`}
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                {(opportunity.lead as any)?.leadColorReason || (
+                  (opportunity.lead as any)?.leadColor === "green" ? (language === "fr" ? "Qualifié — viable" : "Qualified - good to go") :
+                  (opportunity.lead as any)?.leadColor === "yellow" ? (language === "fr" ? "Info manquante — à explorer" : "Missing info - needs nurture") :
+                  (opportunity.lead as any)?.leadColor === "red" ? (language === "fr" ? "Non qualifié" : "Not qualified") :
+                  (language === "fr" ? "Non classifié" : "Not yet classified")
+                )}
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* RFP Split Type Badge */}
@@ -388,33 +380,48 @@ function OpportunityCard({
             )}
             {!isWonStage(opportunity.stage) && !isTerminalStage(opportunity.stage) && (
               <>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs text-green-600"
-                  onClick={() => onStageChange(realOpportunityId, "won_to_be_delivered")}
-                  data-testid={`button-mark-won-${opportunity.id}`}
-                >
-                  <Trophy className="w-3 h-3" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs text-red-600"
-                  onClick={() => onStageChange(realOpportunityId, "lost")}
-                  data-testid={`button-mark-lost-${opportunity.id}`}
-                >
-                  <XCircle className="w-3 h-3" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs text-muted-foreground"
-                  onClick={() => onStageChange(realOpportunityId, "disqualified")}
-                  data-testid={`button-mark-disqualified-${opportunity.id}`}
-                >
-                  <Ban className="w-3 h-3" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 px-2 text-xs text-green-600"
+                      onClick={() => onStageChange(realOpportunityId, "won_to_be_delivered")}
+                      data-testid={`button-mark-won-${opportunity.id}`}
+                    >
+                      <Trophy className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{language === "fr" ? "Gagné" : "Won"}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 px-2 text-xs text-red-600"
+                      onClick={() => onDelete(realOpportunityId)}
+                      data-testid={`button-delete-${opportunity.id}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{language === "fr" ? "Supprimer" : "Delete"}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 px-2 text-xs text-muted-foreground"
+                      onClick={() => onStageChange(realOpportunityId, "lost")}
+                      data-testid={`button-mark-lost-${opportunity.id}`}
+                    >
+                      <TrendingDown className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{language === "fr" ? "Perdu" : "Lost"}</TooltipContent>
+                </Tooltip>
               </>
             )}
           </div>
@@ -428,11 +435,13 @@ function StageColumn({
   stage, 
   opportunities, 
   onStageChange,
+  onDelete,
   onCardClick
 }: { 
   stage: Stage; 
   opportunities: DisplayOpportunity[];  // Already filtered by stage!
   onStageChange: (id: string, stage: Stage) => void;
+  onDelete: (id: string) => void;
   onCardClick: (opp: DisplayOpportunity) => void;
 }) {
   const { language } = useI18n();
@@ -491,6 +500,7 @@ function StageColumn({
               key={opp.id} 
               opportunity={opp} 
               onStageChange={onStageChange}
+              onDelete={onDelete}
               onClick={() => onCardClick(opp)}
             />
           ))}
@@ -945,7 +955,8 @@ export default function PipelinePage() {
     },
   });
 
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -955,7 +966,7 @@ export default function PipelinePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/opportunities"] });
       setIsDetailOpen(false);
       setSelectedOpportunity(null);
-      setIsDeleteConfirmOpen(false);
+      setDeleteConfirmId(null);
       toast({
         title: language === "fr" ? "Opportunité supprimée" : "Opportunity deleted",
       });
@@ -1398,6 +1409,7 @@ export default function PipelinePage() {
                 stage={stage}
                 opportunities={opportunitiesByStage.get(stage) || []}
                 onStageChange={handleStageChange}
+                onDelete={(id) => setDeleteConfirmId(id)}
                 onCardClick={handleCardClick}
               />
             ))}
@@ -2302,40 +2314,33 @@ export default function PipelinePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              {language === "fr" ? "Confirmer la suppression" : "Confirm Deletion"}
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
-            {language === "fr" 
-              ? "Êtes-vous sûr de vouloir supprimer cette opportunité? Cette action est irréversible." 
-              : "Are you sure you want to delete this opportunity? This action cannot be undone."}
-          </p>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
-              {language === "fr" ? "Annuler" : "Cancel"}
-            </Button>
-            <Button 
-              variant="destructive"
-              disabled={deleteMutation.isPending}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "fr" ? "Supprimer cette opportunité?" : "Delete this opportunity?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === "fr" 
+                ? "Cette action est irréversible. L'opportunité sera définitivement supprimée du pipeline."
+                : "This action cannot be undone. The opportunity will be permanently removed from the pipeline."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{language === "fr" ? "Annuler" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction
               onClick={() => {
-                if (selectedOpportunity) {
-                  deleteMutation.mutate(selectedOpportunity.id);
-                }
+                if (deleteConfirmId) deleteMutation.mutate(deleteConfirmId);
+                setDeleteConfirmId(null);
               }}
-              data-testid="button-confirm-delete"
+              className="bg-red-600 text-white"
+              data-testid="button-confirm-delete-card"
             >
-              {deleteMutation.isPending 
-                ? (language === "fr" ? "Suppression..." : "Deleting...") 
-                : (language === "fr" ? "Supprimer" : "Delete")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {language === "fr" ? "Supprimer" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Qualification Dialog */}
       {selectedLeadForQualification && (
