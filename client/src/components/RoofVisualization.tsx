@@ -1055,16 +1055,15 @@ export function RoofVisualization({
             }
           }
           
-          // Priority: industry-standard center-out placement with shadow avoidance
+          // Priority: SOUTH-FIRST placement — solar best practice
+          // Panels further south on the roof get highest priority (best irradiance)
+          // Absolute latitude is the dominant factor, not polygon-relative position
           const globalRowIdx = Math.round(gridY / panelPitchY);
           const globalColIdx = Math.round(gridX / panelPitchX);
           
           const distToEdge = pointToPolygonDistance(panelCenterLat, panelCenterLng, coords, localCentroid.lat);
           const approxMaxEdgeDist = Math.min(rawWidth, rawHeight) / 2;
           const edgeScore = approxMaxEdgeDist > 0 ? Math.min(1, distToEdge / approxMaxEdgeDist) : 0.5;
-
-          const southBias = (localCentroid.lat - panelCenterLat) / (rawHeight / metersPerDegreeLat || 1);
-          const southBiasNorm = Math.max(0, Math.min(1, 0.5 + southBias * 0.5));
 
           let shadowPenalty = 0;
           for (const shadowPoly of shadowZones) {
@@ -1074,11 +1073,20 @@ export function RoofVisualization({
             }
           }
 
-          const polygonBonus = polygonScoreMap[id] || 50;
           const WIND_SETBACK_M = 2.5;
           const windSetbackPenalty = distToEdge < WIND_SETBACK_M ? 0.4 * (1 - distToEdge / WIND_SETBACK_M) : 0;
-          const intraPriority = (edgeScore * 0.3 + southBiasNorm * 0.5 + 0.2) * (1 - shadowPenalty) * (1 - windSetbackPenalty);
-          const priority = polygonBonus * 1000 + Math.round(intraPriority * 999);
+
+          // South priority uses ABSOLUTE latitude across all polygons (not polygon-relative)
+          // Lower latitude = further south = higher priority
+          // Scale: 1 degree lat ≈ 111km, roof spans maybe 200m max → ~0.0018 degrees
+          // Multiply by 1e7 to get meaningful integer separation between rows
+          const absoluteSouthScore = Math.round((globalCentroid.lat - panelCenterLat) * 1e7);
+          
+          // Secondary score: edge distance + shadow avoidance (0-999 range)
+          const secondaryScore = Math.round((edgeScore * 0.6 + 0.4) * (1 - shadowPenalty) * (1 - windSetbackPenalty) * 999);
+          
+          // South score dominates (millions range), secondary breaks ties within same row
+          const priority = absoluteSouthScore + secondaryScore;
           
           // Calculate array ID based on fire corridor positions
           // Arrays are numbered 1, 2, 3... like KB Racking
