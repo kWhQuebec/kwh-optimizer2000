@@ -2018,7 +2018,7 @@ export function RoofVisualization({
                   {formatNumber(Math.round(maxCapacity), language)} kWc {language === "fr" ? "potentiel max" : "max potential"}
                 </Badge>
               )}
-              {currentPVSizeKW && (
+              {currentPVSizeKW && Math.round(currentPVSizeKW) !== Math.round(maxCapacity) && (
                 <Badge variant="secondary" className="bg-primary/80 text-white border-primary backdrop-blur-sm">
                   <Zap className="w-3 h-3 mr-1" />
                   {formatNumber(Math.round(currentPVSizeKW), language)} kWc

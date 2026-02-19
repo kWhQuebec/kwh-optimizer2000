@@ -1571,7 +1571,7 @@ export default function SiteDetailPage() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const displayedCapacityKW = geometryCapacity?.realisticCapacityKW ?? Math.round(quickPotential.systemSizing.maxCapacityKW * 0.9);
+                  const displayedCapacityKW = geometryCapacity?.realisticCapacityKW ?? Math.round(quickPotential.systemSizing.maxCapacityKW);
                   const displayedPanelCount = geometryCapacity?.panelCount ?? quickPotential.systemSizing.numPanels;
 
                   const costPerW = quickPotential.financial.costPerW || 2.00;

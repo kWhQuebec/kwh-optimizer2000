@@ -363,7 +363,7 @@ export function AnalysisResults({
 
   const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
   const uncappedPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
-  const displayedRoofCapacityKW = Math.round(effectiveMaxPV * 0.9);
+  const displayedRoofCapacityKW = Math.round(effectiveMaxPV);
   const cappedPvSizeKW = displayedRoofCapacityKW > 0
     ? Math.min(uncappedPvSizeKW, displayedRoofCapacityKW)
     : uncappedPvSizeKW;
@@ -731,7 +731,7 @@ export function AnalysisResults({
             longitude={site.longitude}
             roofAreaSqFt={assumptions.roofAreaSqFt}
             maxPVCapacityKW={maxPVFromRoof}
-            currentPVSizeKW={dashboardPvSizeKW || undefined}
+            currentPVSizeKW={cappedPvSizeKW || undefined}
             onGeometryCalculated={(data) => {
               if (data.maxCapacityKW != null && data.maxCapacityKW > 0 && !isNaN(data.maxCapacityKW)) {
                 setRoofGeometryCapacityKW(data.maxCapacityKW);
