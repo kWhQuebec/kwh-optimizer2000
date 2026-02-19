@@ -1,4 +1,5 @@
 import { eq, desc, and, inArray, count, sum, sql } from "drizzle-orm";
+import { syncOpportunityChanges } from "../workflowSync";
 import { db } from "../db";
 import {
   opportunities, activities, partnerships, clients, sites,
@@ -201,10 +202,25 @@ export async function updateOpportunityStage(id: string, stage: string, probabil
   const wonStages = ['won_to_be_delivered', 'won_in_construction', 'won_delivered'];
   if (wonStages.includes(stage) || stage === "lost") updateData.actualCloseDate = new Date();
 
+  // Get old stage before update for sync
+  const [oldOpp] = await db.select().from(opportunities).where(eq(opportunities.id, id));
+  const oldStage = oldOpp?.stage;
+
   const [result] = await db.update(opportunities)
     .set(updateData)
     .where(eq(opportunities.id, id))
     .returning();
+
+  // Trigger workflow sync (gamification, lead sync, auto-create construction)
+  if (result && oldStage && oldStage !== stage) {
+    try {
+      await syncOpportunityChanges(id, oldStage, stage);
+    } catch (err) {
+      console.error("[WorkflowSync] Error:", err);
+      // Don't fail the stage update if sync fails
+    }
+  }
+
   return result;
 }
 
