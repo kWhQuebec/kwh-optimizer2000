@@ -806,6 +806,24 @@ export default function PipelinePage() {
     queryKey: ["/api/opportunities"],
   });
 
+  // Handle ?opp= URL parameter to select and open a specific opportunity
+  useEffect(() => {
+    if (isLoading || opportunities.length === 0) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const oppParam = params.get("opp");
+    
+    if (oppParam) {
+      const matchingOpp = opportunities.find(o => o.id === oppParam);
+      if (matchingOpp) {
+        setSelectedOpportunity(matchingOpp);
+        setIsDetailOpen(true);
+        // Clear the URL param
+        setLocation("/app/pipeline", { replace: true });
+      }
+    }
+  }, [opportunities, isLoading, setLocation]);
+
   const { data: users = [] } = useQuery<UserType[]>({
     queryKey: ["/api/users"],
   });

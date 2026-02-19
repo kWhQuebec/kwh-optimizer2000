@@ -567,7 +567,7 @@ function buildPrioritizedActions(stats: PipelineStats, language: 'fr' | 'en'): A
         ? `${opp.daysSinceUpdate} jours sans mise à jour`
         : `${opp.daysSinceUpdate} days without update`,
       stage: opp.stage,
-      href: `/app/pipeline`,
+      href: `/app/pipeline?opp=${opp.id}`,
       icon: AlertTriangle,
       iconBg: 'bg-red-100 dark:bg-red-950',
     });
@@ -583,7 +583,7 @@ function buildPrioritizedActions(stats: PipelineStats, language: 'fr' | 'en'): A
         ? `${STAGE_SHORT_LABELS[opp.stage]?.fr || opp.stage} — ${formatCompactCurrency(opp.estimatedValue)}`
         : `${STAGE_SHORT_LABELS[opp.stage]?.en || opp.stage} — ${formatCompactCurrency(opp.estimatedValue)}`,
       stage: opp.stage,
-      href: `/app/pipeline`,
+      href: `/app/pipeline?opp=${opp.id}`,
       icon: ArrowUpRight,
       iconBg: 'bg-green-100 dark:bg-green-950',
     });
@@ -1001,7 +1001,7 @@ export default function DashboardPage() {
                     value={opp.estimatedValue}
                     stage={opp.stage}
                     probability={opp.probability}
-                    href="/app/pipeline"
+                    href={`/app/pipeline?opp=${opp.id}`}
                   />
                 ))}
               </div>
@@ -1044,7 +1044,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-2">
                 {stats.recentWins.map((win) => (
-                  <Link key={win.id} href="/app/pipeline">
+                  <Link key={win.id} href={`/app/pipeline?opp=${win.id}`}>
                     <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${BRAND.green}15` }}>
                         <CheckCircle2 className="w-4 h-4" style={{ color: BRAND.green }} />
