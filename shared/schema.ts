@@ -277,6 +277,15 @@ export const sites = pgTable("sites", {
   hqTariffDetail: text("hq_tariff_detail"), // Detailed tariff: "G", "M", "M avec GDP", etc.
   hqConsumptionHistory: jsonb("hq_consumption_history"), // Array of {period, kWh, kW, amount} from last page table
   
+  // Meter-related fields (migrated from siteMeters table - 1 site = 1 meter)
+  hqMeterNumber: text("hq_meter_number"), // Meter number from HQ
+  subscribedPowerKw: real("subscribed_power_kw"), // Puissance souscrite
+  maxDemandKw: real("max_demand_kw"), // Max demand recorded
+  serviceAddress: text("service_address"), // Service address from HQ (may differ from site address)
+  
+  // Auto-analysis flag: set when consumption data is available but roof not yet validated
+  readyForAnalysis: boolean("ready_for_analysis").default(false),
+  
   // Lead Qualification Fields (transferred from landing page form)
   roofAgeYears: integer("roof_age_years"), // Approximate roof age in years
   ownershipType: text("ownership_type"), // "owner" | "tenant"

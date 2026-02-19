@@ -258,34 +258,44 @@ async function runJob(opts: {
         }
       }
 
-      if (siteId && contract.meterId) {
+      if (siteId) {
         try {
-          const existingMeters = await storage.getSiteMeters(siteId);
-          const existing = existingMeters.find(m =>
-            m.hqContractNumber === contract.contractId || m.hqMeterNumber === contract.meterId
-          );
-
-          if (existing) {
-            await storage.updateSiteMeter(existing.id, {
-              hqContractNumber: contract.contractId,
-              hqMeterNumber: contract.meterId,
-              tariffCode: contract.rateCode || undefined,
-              serviceAddress: contract.address || undefined,
-            });
-          } else {
-            await storage.createSiteMeter({
-              siteId,
-              accountNumber: contract.accountId || contract.contractId,
-              label: contract.address || `Compteur ${contract.meterId}`,
-              hqContractNumber: contract.contractId,
-              hqMeterNumber: contract.meterId,
-              tariffCode: contract.rateCode || undefined,
-              serviceAddress: contract.address || undefined,
-            });
-          }
-        } catch (meterErr: any) {
-          log.warn(`Failed to update site meter for ${contract.contractId}: ${meterErr.message}`);
+          await storage.updateSite(siteId, {
+            hqContractNumber: contract.contractId,
+            hqAccountNumber: contract.accountId || undefined,
+            hqMeterNumber: contract.meterId || undefined,
+            hqTariffDetail: contract.rateCode || undefined,
+            serviceAddress: contract.address || undefined,
+          });
+        } catch (siteErr: any) {
+          log.warn(`Failed to update site meter info for ${contract.contractId}: ${siteErr.message}`);
         }
+      }
+    }
+
+    // Auto-trigger economic validation if site has consumption data
+    if (siteId && importedCsvFiles > 0) {
+      try {
+        const updatedSite = await storage.getSite(siteId);
+        if (updatedSite?.roofAreaValidated) {
+          log.info(`Auto-triggering economic validation for site ${siteId} (roof validated, ${importedCsvFiles} CSV files imported)`);
+          await storage.updateHqFetchJob(jobId, {
+            currentStage: "auto_analysis",
+            currentDetail: "Lancement automatique de la validation économique...",
+          });
+          try {
+            const { runAutoAnalysisForSite } = await import("../routes/siteAnalysisHelpers");
+            await runAutoAnalysisForSite(siteId);
+            log.info(`Auto-analysis completed for site ${siteId}`);
+          } catch (analysisErr: any) {
+            log.warn(`Auto-analysis failed for site ${siteId}: ${analysisErr.message}`);
+          }
+        } else {
+          log.info(`Site ${siteId} has consumption data but roof not yet validated — flagging as ready for analysis`);
+          await storage.updateSite(siteId, { readyForAnalysis: true });
+        }
+      } catch (autoErr: any) {
+        log.warn(`Auto-analysis check failed: ${autoErr.message}`);
       }
     }
 

@@ -1815,3 +1815,121 @@ export function runPotentialAnalysis(
     hiddenInsights,
   };
 }
+
+export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
+  const { storage } = await import("../storage");
+  const { createLogger } = await import("../lib/logger");
+  const log = createLogger("AutoAnalysis");
+
+  const site = await storage.getSite(siteId);
+  if (!site) throw new Error(`Site ${siteId} not found`);
+
+  const readings = await storage.getMeterReadingsBySite(siteId);
+  if (readings.length === 0) {
+    log.warn(`No meter readings for site ${siteId}, skipping auto-analysis`);
+    return;
+  }
+
+  const dedupResult = deduplicateMeterReadingsByHour(readings.map(r => ({
+    kWh: r.kWh,
+    kW: r.kW,
+    timestamp: new Date(r.timestamp),
+    granularity: r.granularity || undefined
+  })));
+
+  const roofDetailsScenario = site.roofAreaAutoDetails as { yearlyEnergyDcKwh?: number } | null;
+  const googleData = roofDetailsScenario?.yearlyEnergyDcKwh && (site as any).kbKwDc
+    ? { googleProductionEstimate: { yearlyEnergyAcKwh: roofDetailsScenario.yearlyEnergyDcKwh, systemSizeKw: (site as any).kbKwDc } }
+    : undefined;
+
+  const baseAssumptions = {
+    ...getDefaultAnalysisAssumptions(),
+    bifacialEnabled: (site as any).bifacialEnabled ?? false
+  };
+
+  const yieldStrategy = resolveYieldStrategyFromAnalysis(
+    baseAssumptions as AnalysisAssumptions,
+    googleData,
+    (site as any).roofColorType
+  );
+
+  const analysisAssumptions: Partial<AnalysisAssumptions> & { maxPVFromRoofKw?: number; _yieldStrategy?: YieldStrategy } = {
+    ...baseAssumptions,
+    solarYieldKWhPerKWp: yieldStrategy.effectiveYield,
+    yieldSource: yieldStrategy.yieldSource,
+    _yieldStrategy: yieldStrategy
+  };
+
+  const polygons = await storage.getRoofPolygons(siteId);
+  const solarPolygons = polygons.filter(p => {
+    if (p.color === "#f97316") return false;
+    const label = (p.label || "").toLowerCase();
+    return !label.includes("constraint") && !label.includes("contrainte") &&
+           !label.includes("hvac") && !label.includes("obstacle");
+  });
+
+  const tracedSolarAreaSqM = solarPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+  const effectiveRoofAreaSqM = tracedSolarAreaSqM > 0
+    ? tracedSolarAreaSqM
+    : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+
+  if (effectiveRoofAreaSqM <= 0) {
+    log.warn(`No roof area for site ${siteId}, skipping auto-analysis`);
+    return;
+  }
+
+  analysisAssumptions.roofAreaSqFt = effectiveRoofAreaSqM * 10.764;
+
+  const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
+  const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
+  const kbMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
+  analysisAssumptions.maxPVFromRoofKw = kbMaxPvKw;
+
+  log.info(`Auto-analysis: site=${siteId}, roofArea=${effectiveRoofAreaSqM.toFixed(0)}m², maxPV=${kbMaxPvKw.toFixed(1)}kW`);
+
+  const result = runPotentialAnalysis(
+    dedupResult.readings,
+    analysisAssumptions,
+    { preCalculatedDataSpanDays: dedupResult.dataSpanDays }
+  );
+
+  await storage.createSimulationRun({
+    siteId,
+    meterId: null,
+    type: "SCENARIO",
+    status: "completed",
+    pvSizeKW: result.pvSizeKW,
+    battEnergyKWh: result.battEnergyKWh,
+    battPowerKW: result.battPowerKW,
+    demandShavingSetpointKW: result.demandShavingSetpointKW,
+    annualConsumptionKWh: result.annualConsumptionKWh,
+    peakDemandKW: result.peakDemandKW,
+    annualEnergySavingsKWh: result.annualEnergySavingsKWh,
+    annualDemandReductionKW: result.annualDemandReductionKW,
+    selfConsumptionKWh: result.selfConsumptionKWh,
+    selfSufficiencyPercent: result.selfSufficiencyPercent,
+    totalProductionKWh: result.totalProductionKWh,
+    totalExportedKWh: result.totalExportedKWh,
+    annualSurplusRevenue: result.annualSurplusRevenue,
+    annualEnergyCostSavings: result.annualEnergyCostSavings,
+    annualDemandCostSavings: result.annualDemandCostSavings,
+    totalAnnualSavings: result.totalAnnualSavings,
+    systemCost: result.systemCost,
+    npv: result.npv,
+    irr: result.irr,
+    simplePaybackYears: result.simplePaybackYears,
+    lcoe: result.lcoe,
+    co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
+    assumptions: result.assumptions,
+    cashflows: result.cashflows,
+    breakdown: result.breakdown,
+    hourlyProfile: result.hourlyProfile,
+    peakWeekData: result.peakWeekData,
+    sensitivity: result.sensitivity,
+    interpolatedMonths: result.interpolatedMonths,
+    label: "Auto-analyse (import HQ)",
+  } as any);
+
+  await storage.updateSite(siteId, { readyForAnalysis: false });
+  log.info(`Auto-analysis saved for site ${siteId}`);
+}
