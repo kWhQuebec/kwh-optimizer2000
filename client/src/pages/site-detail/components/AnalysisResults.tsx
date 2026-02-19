@@ -1682,11 +1682,7 @@ export function AnalysisResults({
             const googleProdDc = maxConfig.yearlyEnergyDcKwh || 0;
             const googleProdAc = googleProdDc * 0.85;
 
-            const hourlyProfile = simulation.hourlyProfile as HourlyProfileEntry[] | null;
-            let ourAnnualProd = 0;
-            if (hourlyProfile && hourlyProfile.length > 0) {
-              ourAnnualProd = hourlyProfile.reduce((sum, h) => sum + (h.production || 0), 0);
-            }
+            const ourAnnualProd = displayedScenario.totalProductionKWh || simulation.totalProductionKWh || 0;
 
             const googleYield = googleMaxPvKw > 0 ? googleProdAc / googleMaxPvKw : 0;
             const ourYield = ourPvKw > 0 ? ourAnnualProd / ourPvKw : 0;
