@@ -302,6 +302,12 @@ export const siteMeters = pgTable("site_meters", {
   procurationStatus: text("procuration_status").default("none"),
   procurationSentAt: timestamp("procuration_sent_at"),
   procurationSignedAt: timestamp("procuration_signed_at"),
+  hqContractNumber: text("hq_contract_number"),
+  hqMeterNumber: text("hq_meter_number"),
+  tariffCode: text("tariff_code"), // "G", "M", "LG", etc.
+  subscribedPowerKw: real("subscribed_power_kw"),
+  maxDemandKw: real("max_demand_kw"),
+  serviceAddress: text("service_address"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -335,6 +341,33 @@ export const meterReadings = pgTable("meter_readings", {
   kWh: real("kwh"),
   kW: real("kw"),
 });
+
+export const hqFetchJobs = pgTable("hq_fetch_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").references(() => sites.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"), // "pending" | "authenticating" | "fetching" | "importing" | "completed" | "failed"
+  totalContracts: integer("total_contracts").default(0),
+  completedContracts: integer("completed_contracts").default(0),
+  totalCsvFiles: integer("total_csv_files").default(0),
+  importedCsvFiles: integer("imported_csv_files").default(0),
+  totalReadings: integer("total_readings").default(0),
+  currentStage: text("current_stage"), // Human-readable current activity
+  currentDetail: text("current_detail"), // e.g. "Contract 0312780390: period 5/25"
+  errorMessage: text("error_message"),
+  contractsData: jsonb("contracts_data"), // Array of { contractId, meterId, address, rateCode, accountId, tariff, subscribedPower, maxDemand }
+  billHistory: jsonb("bill_history"), // Array of { contractId, period, kWh, kW, amount, startDate, endDate }
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  startedById: varchar("started_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertHqFetchJobSchema = createInsertSchema(hqFetchJobs).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertHqFetchJob = z.infer<typeof insertHqFetchJobSchema>;
+export type HqFetchJob = typeof hqFetchJobs.$inferSelect;
 
 export const simulationRuns = pgTable("simulation_runs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

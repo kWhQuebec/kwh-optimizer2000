@@ -21,6 +21,7 @@ import * as supplierRepo from "./repositories/supplierRepo";
 import * as cacheRepo from "./repositories/cacheRepo";
 import * as benchmarkRepo from "./repositories/benchmarkRepo";
 import * as siteMeterRepo from "./repositories/siteMeterRepo";
+import * as hqFetchJobRepo from "./repositories/hqFetchJobRepo";
 
 export class DatabaseStorage implements IStorage {
   async initializeDefaultData(): Promise<void> {
@@ -134,6 +135,13 @@ export class DatabaseStorage implements IStorage {
   createSiteMeter = siteMeterRepo.createSiteMeter;
   updateSiteMeter = siteMeterRepo.updateSiteMeter;
   deleteSiteMeter = siteMeterRepo.deleteSiteMeter;
+
+  // HQ Fetch Jobs
+  getHqFetchJob = hqFetchJobRepo.getHqFetchJob;
+  getHqFetchJobsBySite = hqFetchJobRepo.getHqFetchJobsBySite;
+  getActiveHqFetchJob = hqFetchJobRepo.getActiveHqFetchJob;
+  createHqFetchJob = hqFetchJobRepo.createHqFetchJob;
+  updateHqFetchJob = hqFetchJobRepo.updateHqFetchJob;
 
   // Simulation Runs
   getSimulationRuns = simulationRepo.getSimulationRuns;

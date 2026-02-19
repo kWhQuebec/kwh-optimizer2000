@@ -42,6 +42,7 @@ import type {
   CompetitorProposalAnalysis, InsertCompetitorProposalAnalysis,
   RoofPolygon, InsertRoofPolygon,
   SiteMeter, InsertSiteMeter,
+  HqFetchJob, InsertHqFetchJob,
   Benchmark, InsertBenchmark,
   PricingComponent, InsertPricingComponent,
   Supplier, InsertSupplier,
@@ -129,6 +130,13 @@ export interface IStorage {
   getMeterReadings(meterFileId: string): Promise<MeterReading[]>;
   getMeterReadingsBySite(siteId: string): Promise<MeterReading[]>;
   createMeterReadings(readings: InsertMeterReading[]): Promise<MeterReading[]>;
+
+  // HQ Fetch Jobs
+  getHqFetchJob(id: string): Promise<HqFetchJob | undefined>;
+  getHqFetchJobsBySite(siteId: string): Promise<HqFetchJob[]>;
+  getActiveHqFetchJob(): Promise<HqFetchJob | undefined>;
+  createHqFetchJob(job: InsertHqFetchJob): Promise<HqFetchJob>;
+  updateHqFetchJob(id: string, updates: Partial<HqFetchJob>): Promise<HqFetchJob | undefined>;
 
   // Simulation Runs
   getSimulationRuns(): Promise<(SimulationRun & { site: Site & { client: Client } })[]>;

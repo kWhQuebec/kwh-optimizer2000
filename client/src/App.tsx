@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { AIChatWidget } from "@/components/ai-chat-widget";
 import { CookieConsent, getCookieConsent } from "@/components/cookie-consent";
+import { HQJobNotifier } from "@/components/HQJobNotifier";
 
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
@@ -716,6 +717,7 @@ function App() {
           <TooltipProvider>
             <ScrollToTop />
             <CookieConsent onAccept={initAnalytics} />
+            <HQJobNotifier />
             <Toaster />
             <AppRoutes />
           </TooltipProvider>

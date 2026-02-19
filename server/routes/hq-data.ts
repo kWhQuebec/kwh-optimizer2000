@@ -4,22 +4,35 @@ import path from "path";
 import { authMiddleware, requireAdmin, AuthRequest } from "../middleware/auth";
 import { asyncHandler, BadRequestError } from "../middleware/errorHandler";
 import { createLogger } from "../lib/logger";
-import { HQDataFetcher, HQProgress, HQDownloadResult } from "../services/hqDataFetcher";
+import { HQDownloadResult } from "../services/hqDataFetcher";
+import { startBackgroundFetch, getRunningJobId } from "../services/hqBackgroundJobRunner";
 import { storage } from "../storage";
 import { parseHydroQuebecCSV } from "../routes/siteAnalysisHelpers";
 
 const log = createLogger("HQ-Data");
 const router = Router();
 
-// POST /api/admin/hq-data/fetch
-// SSE endpoint - streams progress events, then final results
-// Body: { username, password, filterAccountNumbers?, filterContractNumbers? }
-router.post("/api/admin/hq-data/fetch", authMiddleware, requireAdmin, async (req: AuthRequest, res) => {
-  const { username, password, filterAccountNumbers, filterContractNumbers } = req.body;
-  
+// POST /api/admin/hq-data/start-job
+// Starts a background HQ data fetch job and returns immediately
+router.post("/api/admin/hq-data/start-job", authMiddleware, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { username, password, siteId, filterAccountNumbers, filterContractNumbers, notifyEmail } = req.body;
+
   if (!username || !password) {
-    res.status(400).json({ error: "Username and password required" });
-    return;
+    throw new BadRequestError("Username and password required");
+  }
+
+  const runningJobId = getRunningJobId();
+  if (runningJobId) {
+    const runningJob = await storage.getHqFetchJob(runningJobId);
+    if (runningJob && ["pending", "authenticating", "fetching", "importing"].includes(runningJob.status)) {
+      res.json({
+        error: "already_running",
+        jobId: runningJobId,
+        message: "Un processus de récupération est déjà en cours.",
+        job: runningJob,
+      });
+      return;
+    }
   }
 
   const accountFilters = Array.isArray(filterAccountNumbers)
@@ -29,42 +42,58 @@ router.post("/api/admin/hq-data/fetch", authMiddleware, requireAdmin, async (req
     ? filterContractNumbers.filter((v: any) => typeof v === "string" && v.trim())
     : undefined;
 
-  if (accountFilters?.length) {
-    log.info(`Filtering fetch by account numbers: ${accountFilters.join(", ")}`);
-  }
-  if (contractFilters?.length) {
-    log.info(`Filtering fetch by contract numbers: ${contractFilters.join(", ")}`);
-  }
-
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-  res.flushHeaders();
-
-  const fetcher = new HQDataFetcher((progress: HQProgress) => {
-    res.write(`data: ${JSON.stringify({ type: "progress", ...progress })}\n\n`);
+  const job = await storage.createHqFetchJob({
+    siteId: siteId || null,
+    status: "pending",
+    startedById: req.user?.id,
+    startedAt: new Date(),
   });
 
-  try {
-    const results = await fetcher.downloadAllData(
-      username,
-      password,
-      accountFilters,
-      contractFilters,
-    );
-    
-    res.write(`data: ${JSON.stringify({ type: "complete", results })}\n\n`);
-    res.end();
-  } catch (error: any) {
-    log.error("HQ data fetch failed:", error);
-    res.write(`data: ${JSON.stringify({ type: "error", message: error.message || "Unknown error" })}\n\n`);
-    res.end();
+  startBackgroundFetch({
+    jobId: job.id,
+    siteId: siteId || undefined,
+    username,
+    password,
+    filterAccountNumbers: accountFilters,
+    filterContractNumbers: contractFilters,
+    notifyEmail,
+    startedById: req.user?.id,
+  });
+
+  log.info(`Started background HQ fetch job ${job.id} for site ${siteId || "all"}`);
+
+  res.json({ jobId: job.id, status: "started" });
+}));
+
+// GET /api/admin/hq-data/jobs/:jobId
+// Poll job status
+router.get("/api/admin/hq-data/jobs/:jobId", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { jobId } = req.params;
+  const job = await storage.getHqFetchJob(jobId);
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
   }
-});
+  res.json(job);
+}));
+
+// GET /api/admin/hq-data/active-job
+// Check if there's an active job running
+router.get("/api/admin/hq-data/active-job", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const job = await storage.getActiveHqFetchJob();
+  res.json({ job: job || null });
+}));
+
+// GET /api/sites/:siteId/hq-jobs
+// Get all HQ fetch jobs for a site
+router.get("/api/sites/:siteId/hq-jobs", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId } = req.params;
+  const jobs = await storage.getHqFetchJobsBySite(siteId);
+  res.json(jobs);
+}));
 
 // POST /api/sites/:siteId/import-hq-data
-// Bulk-import HQ download results into a site
+// Legacy bulk-import endpoint (kept for fallback)
 router.post("/api/sites/:siteId/import-hq-data", authMiddleware, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
   const { siteId } = req.params;
   const { results } = req.body as { results: HQDownloadResult[]; siteId: string };

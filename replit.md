@@ -39,6 +39,14 @@ The site detail page uses a compact numbered stepper (1-9) to mirror the solar p
 
 Steps 1-3 are visible to all roles; steps 4-9 are staff-only. The "Compare" sub-view and "Activities" history are accessible from within the workflow but are not numbered steps. The stepper shows status indicators: green (complete), blue (available), gray (pending).
 
+### Hydro-Québec Background Job System
+The HQ data fetch runs as an asynchronous background job rather than a synchronous SSE stream. Key components:
+-   **Schema**: `hqFetchJobs` table tracks job state (status, progress counts, contract metadata, timestamps). `siteMeters` has fields for HQ metadata (hqContractNumber, hqMeterNumber, tariffCode, subscribedPowerKw, maxDemandKw, serviceAddress).
+-   **Backend**: `server/services/hqBackgroundJobRunner.ts` runs the fetch asynchronously with incremental CSV import (each file saved immediately after download). Progress is updated in DB at each step. Only one job can run at a time.
+-   **API**: `POST /api/admin/hq-data/start-job` starts a job and returns immediately. `GET /api/admin/hq-data/jobs/:jobId` polls status. `GET /api/admin/hq-data/active-job` checks for running jobs. Job stages use machine codes ("login", "fetching_accounts", "fetching_contracts", "downloading", "completed") mapped to bilingual labels in the frontend.
+-   **Frontend**: `HQDataFetchInline.tsx` polls job status every 2 seconds with elapsed timer, progress bars, ETA, and contract details. Survives page navigation (checks for active job on mount). `HQJobNotifier.tsx` provides global toast notifications when jobs complete/fail from any page.
+-   **Notifications**: Toast notification on completion (global, visible from any page). Optional email notification for large batches.
+
 ### Error Handling
 The backend uses a centralized error handling system with custom `AppError` classes (e.g., `NotFoundError`, `ValidationError`) and an `asyncHandler` wrapper for route handlers, providing consistent `{error: string, details?: array}` responses.
 
