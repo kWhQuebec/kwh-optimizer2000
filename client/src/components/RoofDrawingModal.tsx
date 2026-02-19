@@ -381,7 +381,7 @@ export function RoofDrawingModal({
       const map = new google.maps.Map(mapContainerRef.current, {
         center: { lat: latitude, lng: longitude },
         zoom: 19,
-        mapTypeId: google.maps.MapTypeId.SATELLITE,
+        mapTypeId: google.maps.MapTypeId.HYBRID,
         tilt: 0,
         mapTypeControl: false,
         streetViewControl: false,
