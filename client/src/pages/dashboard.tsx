@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Target,
   ArrowRight,
+  ArrowDown,
   Play,
   Package,
   CheckCircle2,
@@ -25,7 +26,12 @@ import {
   Car,
   Hammer,
   Activity,
-  FileSignature
+  FileSignature,
+  Phone,
+  Search,
+  Send,
+  Handshake,
+  ChevronDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +43,10 @@ import {
   STAGE_SHORT_LABELS,
   STAGE_CHART_COLORS,
   STAGE_TAILWIND,
+  STAGE_PROBABILITIES,
+  ACTIVE_STAGES,
   getPhaseColor,
+  getPhaseForStage,
 } from "@shared/stageLabels";
 
 interface PipelineStats {
@@ -129,6 +138,240 @@ function formatCapacity(mw: number): string {
   if (mw >= 1000) return `${(mw / 1000).toFixed(1)} GW`;
   if (mw >= 1) return `${mw.toFixed(1)} MW`;
   return `${(mw * 1000).toFixed(0)} kW`;
+}
+
+// ============================================
+// INPUT KPIs — "Remplir l'entonnoir"
+// Derived from stageBreakdown counts
+// ============================================
+
+function InputKPIs({ stats, language, isLoading }: { stats?: PipelineStats; language: 'fr' | 'en'; isLoading: boolean }) {
+  const getStageCount = (stage: string) =>
+    stats?.stageBreakdown?.find(s => s.stage === stage)?.count || 0;
+
+  const inputs = [
+    {
+      label: language === 'fr' ? 'Nouveaux prospects' : 'New Prospects',
+      value: getStageCount('prospect'),
+      icon: UserPlus,
+      color: 'text-gray-600 dark:text-gray-400',
+      bgColor: 'bg-gray-100 dark:bg-gray-800',
+    },
+    {
+      label: language === 'fr' ? 'En contact' : 'Contacted',
+      value: getStageCount('contacted'),
+      icon: Phone,
+      color: 'text-gray-700 dark:text-gray-300',
+      bgColor: 'bg-gray-100 dark:bg-gray-800',
+    },
+    {
+      label: language === 'fr' ? 'Analyses à faire' : 'Analyses Pending',
+      value: (stats?.pendingTasksCount?.runAnalysis || 0) + getStageCount('qualified'),
+      icon: Search,
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-950',
+    },
+    {
+      label: language === 'fr' ? 'Propositions envoyées' : 'Proposals Sent',
+      value: getStageCount('epc_proposal_sent') + getStageCount('negotiation'),
+      icon: Send,
+      color: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-amber-50 dark:bg-amber-950',
+    },
+  ];
+
+  return (
+    <div className="relative">
+      {/* Section title */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+          <ArrowDown className="w-3.5 h-3.5 text-gray-500" />
+        </div>
+        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          {language === 'fr' ? 'Remplir l\'entonnoir' : 'Fill the Funnel'}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {inputs.map((inp, i) => (
+          <Card key={i} className="border-dashed">
+            <CardContent className="p-3">
+              {isLoading ? (
+                <Skeleton className="h-14 w-full" />
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${inp.bgColor}`}>
+                    <inp.icon className={`w-5 h-5 ${inp.color}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-foreground truncate">{inp.label}</p>
+                    <p className="text-2xl font-bold font-mono">{inp.value}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// VISUAL FUNNEL — True funnel shape with SVG
+// ============================================
+
+function VisualFunnel({ data, stats, language, isLoading }: {
+  data: PipelineStats['stageBreakdown'];
+  stats?: PipelineStats;
+  language: 'fr' | 'en';
+  isLoading: boolean;
+}) {
+  // Only active pipeline stages (not won/lost/disqualified)
+  const activeStages = ACTIVE_STAGES.map(stageKey => {
+    const found = data.find(s => s.stage === stageKey);
+    return {
+      stage: stageKey,
+      count: found?.count || 0,
+      totalValue: found?.totalValue || 0,
+      weightedValue: found?.weightedValue || 0,
+    };
+  });
+
+  const totalActiveCount = activeStages.reduce((sum, s) => sum + s.count, 0);
+  const totalActiveValue = activeStages.reduce((sum, s) => sum + s.totalValue, 0);
+
+  // Funnel dimensions
+  const funnelWidth = 600;
+  const funnelHeight = 400;
+  const topWidth = funnelWidth * 0.95;  // Wide at top
+  const bottomWidth = funnelWidth * 0.18; // Narrow at bottom
+  const stageCount = activeStages.length;
+  const stageHeight = funnelHeight / stageCount;
+  const padding = 0;
+
+  // Calculate trapezoid widths for each stage level
+  const getWidthAtLevel = (level: number) => {
+    const t = level / stageCount;
+    return topWidth - (topWidth - bottomWidth) * t;
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Skeleton className="h-[420px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
+        <div>
+          <CardTitle className="text-lg">
+            {language === 'fr' ? 'Entonnoir de ventes' : 'Sales Funnel'}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {totalActiveCount} {language === 'fr' ? 'opportunités actives' : 'active opportunities'} — {formatCompactCurrency(totalActiveValue)}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="inline-block w-2 h-2 rounded-full bg-gray-400" /> {language === 'fr' ? 'Exploration' : 'Exploration'}
+          <span className="inline-block w-2 h-2 rounded-full bg-blue-500 ml-2" /> {language === 'fr' ? 'Conception' : 'Design'}
+          <span className="inline-block w-2 h-2 rounded-full bg-amber-500 ml-2" /> {language === 'fr' ? 'Réalisation' : 'Delivery'}
+        </div>
+      </CardHeader>
+      <CardContent className="px-2 pb-4 pt-0">
+        <div className="w-full overflow-hidden" style={{ maxWidth: '100%' }}>
+          <svg
+            viewBox={`0 0 ${funnelWidth} ${funnelHeight}`}
+            className="w-full h-auto"
+            preserveAspectRatio="xMidYMid meet"
+            style={{ maxHeight: '420px' }}
+          >
+            {activeStages.map((stage, i) => {
+              const y = i * stageHeight + padding;
+              const topW = getWidthAtLevel(i);
+              const botW = getWidthAtLevel(i + 1);
+              const topX = (funnelWidth - topW) / 2;
+              const botX = (funnelWidth - botW) / 2;
+              const chartColor = STAGE_CHART_COLORS[stage.stage] || '#9CA3AF';
+              const phase = getPhaseForStage(stage.stage);
+              const phaseColor = getPhaseColor(stage.stage);
+              const gap = 2; // Gap between stages
+
+              // Trapezoid points
+              const points = [
+                `${topX},${y + gap / 2}`,
+                `${topX + topW},${y + gap / 2}`,
+                `${botX + botW},${y + stageHeight - gap / 2}`,
+                `${botX},${y + stageHeight - gap / 2}`,
+              ].join(' ');
+
+              // Fill proportion based on count (visual weight)
+              const fillOpacity = stage.count > 0 ? 0.85 : 0.25;
+              const label = STAGE_SHORT_LABELS[stage.stage]?.[language] || stage.stage;
+              const midY = y + stageHeight / 2;
+              const prob = STAGE_PROBABILITIES[stage.stage] || 0;
+
+              return (
+                <g key={stage.stage}>
+                  {/* Trapezoid background */}
+                  <polygon
+                    points={points}
+                    fill={chartColor}
+                    opacity={fillOpacity}
+                    stroke="white"
+                    strokeWidth="1"
+                    className="transition-all duration-300"
+                  />
+                  {/* Stage label (left) */}
+                  <text
+                    x={funnelWidth / 2}
+                    y={midY - 6}
+                    textAnchor="middle"
+                    className="fill-current"
+                    style={{
+                      fontSize: stageHeight > 50 ? '13px' : '11px',
+                      fontWeight: 600,
+                      fill: fillOpacity > 0.5 ? '#FFFFFF' : '#6B7280',
+                    }}
+                  >
+                    {label}
+                  </text>
+                  {/* Count + Value (center) */}
+                  <text
+                    x={funnelWidth / 2}
+                    y={midY + 12}
+                    textAnchor="middle"
+                    style={{
+                      fontSize: stageHeight > 50 ? '12px' : '10px',
+                      fontWeight: 500,
+                      fill: fillOpacity > 0.5 ? 'rgba(255,255,255,0.85)' : '#9CA3AF',
+                    }}
+                  >
+                    {stage.count > 0
+                      ? `${stage.count} opp. — ${formatCompactCurrency(stage.totalValue)} (${prob}%)`
+                      : `— (${prob}%)`
+                    }
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Arrow pointing down at bottom */}
+            <polygon
+              points={`${funnelWidth / 2 - 12},${funnelHeight - 2} ${funnelWidth / 2 + 12},${funnelHeight - 2} ${funnelWidth / 2},${funnelHeight + 10}`}
+              fill="#10B981"
+              opacity="0.6"
+            />
+          </svg>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 // ============================================
@@ -301,129 +544,115 @@ function CommandCenter({ stats, language, isLoading }: { stats?: PipelineStats; 
 }
 
 // ============================================
-// KPI STRIP (compact, 5 KPIs)
+// OUTPUT KPIs — "Les résultats"
 // ============================================
 
-function KPIStrip({ stats, language, isLoading }: { stats?: PipelineStats; language: 'fr' | 'en'; isLoading: boolean }) {
-  const [, setLocation] = useLocation();
+function OutputKPIs({ stats, vpp, language, isLoading, vppLoading }: {
+  stats?: PipelineStats;
+  vpp?: VirtualPowerPlant;
+  language: 'fr' | 'en';
+  isLoading: boolean;
+  vppLoading: boolean;
+}) {
+  const getStageData = (stageKey: string) => {
+    if (!stats?.stageBreakdown) return { count: 0, totalValue: 0 };
+    return stats.stageBreakdown.find(s => s.stage === stageKey) || { count: 0, totalValue: 0 };
+  };
 
-  const kpis = [
+  const wonToDeliver = getStageData('won_to_be_delivered');
+  const wonConstruction = getStageData('won_in_construction');
+  const wonDelivered = getStageData('won_delivered');
+  const totalWonCount = wonToDeliver.count + wonConstruction.count + wonDelivered.count;
+  const totalWonValue = wonToDeliver.totalValue + wonConstruction.totalValue + wonDelivered.totalValue;
+
+  const totalMW = vpp?.totalInstalledMW || 0;
+  const totalKWh = vpp?.totalKWhProduced || 0;
+  const co2Tonnes = vpp?.totalCO2AvoidedTonnes || (totalMW * 1000 * 1030 * 0.0004);
+
+  const loading = isLoading || vppLoading;
+
+  const outputs = [
     {
-      label: language === 'fr' ? 'Prospects' : 'Prospects',
-      value: stats?.stageBreakdown?.find(s => s.stage === 'prospect')?.count || 0,
-      format: 'number' as const,
-      icon: UserPlus,
-      color: 'text-gray-600',
-      onClick: () => setLocation("/app/pipeline?stage=prospect"),
+      label: language === 'fr' ? 'Contrats signés' : 'Contracts Signed',
+      value: formatCompactCurrency(totalWonValue),
+      sub: `${totalWonCount} ${language === 'fr' ? 'projets' : 'projects'}`,
+      icon: Handshake,
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-950',
     },
     {
-      label: language === 'fr' ? 'Pipeline actif' : 'Active Pipeline',
-      value: stats?.totalPipelineValue || 0,
-      format: 'currency' as const,
-      icon: TrendingUp,
-      color: 'text-blue-600',
-      subtitle: `${stats?.activeOpportunityCount || 0} opp.`,
-    },
-    {
-      label: language === 'fr' ? 'Valeur pondérée' : 'Weighted Value',
-      value: stats?.weightedPipelineValue || 0,
-      format: 'currency' as const,
-      icon: DollarSign,
-      color: 'text-green-600',
-    },
-    {
-      label: language === 'fr' ? 'Livraison' : 'Delivery',
-      value: stats?.deliveryBacklogValue || 0,
-      format: 'currency' as const,
-      icon: Package,
-      color: 'text-amber-600',
-      subtitle: `${stats?.deliveryBacklogCount || 0} ${language === 'fr' ? 'projets' : 'projects'}`,
-    },
-    {
-      label: language === 'fr' ? 'Total gagné' : 'Total Won',
-      value: stats?.wonValue || 0,
-      format: 'currency' as const,
-      icon: Trophy,
+      label: language === 'fr' ? 'Capacité installée' : 'Installed Capacity',
+      value: formatCapacity(totalMW),
+      sub: `${vpp?.totalPanelCount?.toLocaleString() || 0} ${language === 'fr' ? 'panneaux' : 'panels'}`,
+      icon: Sun,
       color: 'text-[#FFB005]',
+      bgColor: 'bg-amber-100 dark:bg-amber-950',
+    },
+    {
+      label: language === 'fr' ? 'Production annuelle' : 'Annual Production',
+      value: formatEnergy(totalKWh),
+      sub: `${(vpp?.totalProjectsCompleted || 0)} ${language === 'fr' ? 'systèmes actifs' : 'active systems'}`,
+      icon: Zap,
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-950',
+    },
+    {
+      label: language === 'fr' ? 'CO₂ évité' : 'CO₂ Avoided',
+      value: co2Tonnes >= 1000 ? `${(co2Tonnes / 1000).toFixed(1)}k t` : `${Math.round(co2Tonnes)} t`,
+      sub: `≈ ${(vpp?.equivalentHomesP || Math.round(totalKWh / 20000)).toLocaleString()} ${language === 'fr' ? 'maisons' : 'homes'}`,
+      icon: Leaf,
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-100 dark:bg-emerald-950',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-      {kpis.map((kpi, i) => (
-        <Card key={i} className={kpi.onClick ? 'hover:bg-muted/50 cursor-pointer' : ''} onClick={kpi.onClick}>
-          <CardContent className="p-3">
-            {isLoading ? (
-              <Skeleton className="h-12 w-full" />
-            ) : (
-              <div className="flex items-center gap-2.5">
-                <kpi.icon className={`w-4 h-4 shrink-0 ${kpi.color}`} />
-                <div className="min-w-0">
-                  <p className="text-[11px] text-muted-foreground truncate">{kpi.label}</p>
-                  <p className="text-base font-bold font-mono truncate">
-                    {kpi.format === 'currency' ? formatCompactCurrency(kpi.value) : kpi.value}
-                  </p>
-                  {kpi.subtitle && <p className="text-[10px] text-muted-foreground">{kpi.subtitle}</p>}
+    <div className="relative">
+      {/* Section title */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-6 h-6 rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center">
+          <Trophy className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+        </div>
+        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          {language === 'fr' ? 'Les résultats' : 'Results'}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {outputs.map((out, i) => (
+          <Card key={i} className="bg-gradient-to-br from-green-50/30 to-transparent dark:from-green-950/10">
+            <CardContent className="p-3">
+              {loading ? (
+                <Skeleton className="h-14 w-full" />
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${out.bgColor}`}>
+                    <out.icon className={`w-5 h-5 ${out.color}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-foreground truncate">{out.label}</p>
+                    <p className="text-xl font-bold font-mono truncate">{out.value}</p>
+                    {out.sub && <p className="text-[10px] text-muted-foreground truncate">{out.sub}</p>}
+                  </div>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
 
 // ============================================
-// FUNNEL CHART (nomenclature + couleurs 4 phases)
+// SIGNED PROJECTS BREAKDOWN
 // ============================================
 
-function FunnelChart({ data, language }: { data: PipelineStats['stageBreakdown']; language: 'fr' | 'en' }) {
-  const activeStages = data.filter(s => !isWonStage(s.stage) && s.stage !== 'lost' && s.stage !== 'disqualified');
-  const maxValue = Math.max(...activeStages.map(s => s.totalValue), 1);
-
-  return (
-    <div className="space-y-3">
-      {activeStages.map((stage) => {
-        const widthPercent = maxValue > 0 ? Math.max((stage.totalValue / maxValue) * 100, 15) : 15;
-        const chartColor = STAGE_CHART_COLORS[stage.stage];
-        return (
-          <div key={stage.stage} className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: chartColor }} />
-                <span className="font-medium">{STAGE_SHORT_LABELS[stage.stage]?.[language] || stage.stage}</span>
-                <Badge variant="secondary" className="text-xs">{stage.count}</Badge>
-              </div>
-              <span className="font-mono text-muted-foreground">{formatCompactCurrency(stage.totalValue)}</span>
-            </div>
-            <div className="relative h-6 bg-muted/50 rounded overflow-hidden">
-              <div
-                className="absolute left-0 top-0 h-full transition-all duration-500 rounded"
-                style={{ width: `${widthPercent}%`, backgroundColor: chartColor }}
-              />
-              <div className="absolute inset-0 flex items-center justify-end pr-2">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {stage.count > 0 ? `${Math.round((stage.weightedValue / stage.totalValue) * 100) || 0}%` : ''}
-                </span>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ============================================
-// PROJETS SIGNÉS — 3 stages won avec détails
-// ============================================
-
-function SignedProjectsCard({ stats, language, isLoading }: { stats?: PipelineStats; language: 'fr' | 'en'; isLoading: boolean }) {
+function SignedProjectsBreakdown({ stats, language, isLoading }: { stats?: PipelineStats; language: 'fr' | 'en'; isLoading: boolean }) {
   const wonStagesData = [
     {
       stage: 'won_to_be_delivered',
-      label: language === 'fr' ? 'À livrer' : 'To Deliver',
+      label: language === 'fr' ? 'Contrat signé — à livrer' : 'Contract Signed — To Deliver',
       icon: FileSignature,
       color: 'text-amber-600',
       bgColor: 'bg-amber-100 dark:bg-amber-950',
@@ -431,7 +660,7 @@ function SignedProjectsCard({ stats, language, isLoading }: { stats?: PipelineSt
     },
     {
       stage: 'won_in_construction',
-      label: language === 'fr' ? 'En installation' : 'In Construction',
+      label: language === 'fr' ? 'Permis & installation' : 'Permits & Installation',
       icon: Hammer,
       color: 'text-green-600',
       bgColor: 'bg-green-100 dark:bg-green-950',
@@ -452,34 +681,26 @@ function SignedProjectsCard({ stats, language, isLoading }: { stats?: PipelineSt
     return stats.stageBreakdown.find(s => s.stage === stageKey) || { count: 0, totalValue: 0 };
   };
 
-  const totalWonCount = wonStagesData.reduce((sum, ws) => sum + getStageData(ws.stage).count, 0);
-  const totalWonValue = wonStagesData.reduce((sum, ws) => sum + getStageData(ws.stage).totalValue, 0);
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
-        <div>
-          <CardTitle className="text-lg">
-            {language === 'fr' ? 'Projets signés' : 'Signed Projects'}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {totalWonCount} {language === 'fr' ? 'projets' : 'projects'} — {formatCompactCurrency(totalWonValue)}
-          </p>
-        </div>
+        <CardTitle className="text-base">
+          {language === 'fr' ? 'Projets signés — détails' : 'Signed Projects — Details'}
+        </CardTitle>
         <Trophy className="w-4 h-4 text-[#FFB005]" />
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {wonStagesData.map((ws) => {
               const data = getStageData(ws.stage);
               return (
                 <div key={ws.stage} className={`flex items-center gap-3 p-3 rounded-lg border-l-4 ${ws.borderColor} bg-muted/30`}>
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${ws.bgColor}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${ws.bgColor}`}>
                     <ws.icon className={`w-4 h-4 ${ws.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -488,95 +709,10 @@ function SignedProjectsCard({ stats, language, isLoading }: { stats?: PipelineSt
                       {data.count} {language === 'fr' ? 'projet' : 'project'}{data.count !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold font-mono">{formatCompactCurrency(data.totalValue)}</p>
-                  </div>
+                  <p className="text-sm font-bold font-mono shrink-0">{formatCompactCurrency(data.totalValue)}</p>
                 </div>
               );
             })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// ============================================
-// IMPACT ÉNERGÉTIQUE — MW installés, kWh, CO2
-// ============================================
-
-function EnergyImpactCard({ vpp, language, isLoading }: { vpp?: VirtualPowerPlant; language: 'fr' | 'en'; isLoading: boolean }) {
-  const totalMW = vpp?.totalInstalledMW || 0;
-  const totalKWh = vpp?.totalKWhProduced || 0;
-  const co2Tonnes = vpp?.totalCO2AvoidedTonnes || (totalMW * 1000 * 1030 * 0.0004);
-  const eqHomes = vpp?.equivalentHomesP || Math.round(totalKWh / 20000);
-  const eqCars = vpp?.equivalentCarsRemoved || Math.round(co2Tonnes / 4.6);
-  const panelCount = vpp?.totalPanelCount || 0;
-  const projectsCompleted = vpp?.totalProjectsCompleted || 0;
-
-  const metrics = [
-    {
-      label: language === 'fr' ? 'Capacité installée' : 'Installed Capacity',
-      value: formatCapacity(totalMW),
-      icon: Sun,
-      color: 'text-[#FFB005]',
-      bgColor: 'bg-amber-100 dark:bg-amber-950',
-    },
-    {
-      label: language === 'fr' ? 'Production annuelle' : 'Annual Production',
-      value: formatEnergy(totalKWh),
-      icon: Zap,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100 dark:bg-blue-950',
-    },
-    {
-      label: language === 'fr' ? 'CO₂ évité' : 'CO₂ Avoided',
-      value: co2Tonnes >= 1000 ? `${(co2Tonnes / 1000).toFixed(1)}k t` : `${Math.round(co2Tonnes)} t`,
-      icon: Leaf,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-950',
-    },
-    {
-      label: language === 'fr' ? 'Maisons alimentées' : 'Homes Powered',
-      value: eqHomes.toLocaleString(),
-      icon: Home,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-100 dark:bg-indigo-950',
-    },
-  ];
-
-  return (
-    <Card className="bg-gradient-to-br from-green-50/50 to-blue-50/30 dark:from-green-950/20 dark:to-blue-950/10">
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
-        <div>
-          <CardTitle className="text-lg">
-            {language === 'fr' ? 'Impact énergétique' : 'Energy Impact'}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {projectsCompleted} {language === 'fr' ? 'systèmes en opération' : 'systems in operation'}
-            {panelCount > 0 && ` — ${panelCount.toLocaleString()} ${language === 'fr' ? 'panneaux' : 'panels'}`}
-          </p>
-        </div>
-        <Sun className="w-5 h-5 text-[#FFB005]" />
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20 w-full" />)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {metrics.map((m, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-background/60 dark:bg-background/30">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${m.bgColor}`}>
-                  <m.icon className={`w-4 h-4 ${m.color}`} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] text-muted-foreground truncate">{m.label}</p>
-                  <p className="text-lg font-bold font-mono">{m.value}</p>
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </CardContent>
@@ -625,6 +761,7 @@ function OpportunityRow({
 
 // ============================================
 // MAIN DASHBOARD PAGE
+// Flow: Inputs → Funnel → Outputs
 // ============================================
 
 export default function DashboardPage() {
@@ -659,45 +796,45 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Section 1: Command Center */}
+      {/* Section 1: Command Center — priorités */}
       <CommandCenter stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
 
-      {/* Section 2: KPI Strip */}
-      <KPIStrip stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
+      {/* ========================================= */}
+      {/* FLOW: INPUTS → FUNNEL → OUTPUTS          */}
+      {/* ========================================= */}
 
-      {/* Section 3: Entonnoir + Top Opportunités */}
+      {/* Section 2: Input KPIs — "Remplir l'entonnoir" */}
+      <InputKPIs stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
+
+      {/* Visual connector */}
+      <div className="flex justify-center -my-3">
+        <div className="w-px h-6 bg-gradient-to-b from-gray-300 to-amber-400 dark:from-gray-600 dark:to-amber-500" />
+      </div>
+
+      {/* Section 3: FUNNEL + Top Opportunités */}
       <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg">
-              {language === 'fr' ? 'Entonnoir de ventes' : 'Sales Funnel'}
-            </CardTitle>
-            <BarChart3 className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="space-y-2">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-6 w-full" />
+        <div className="lg:col-span-2">
+          {stats?.stageBreakdown ? (
+            <VisualFunnel data={stats.stageBreakdown} stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                {isLoading ? (
+                  <Skeleton className="h-[420px] w-full" />
+                ) : (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <BarChart3 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>{language === 'fr' ? 'Aucune donnée de pipeline' : 'No pipeline data'}</p>
                   </div>
-                ))}
-              </div>
-            ) : stats?.stageBreakdown ? (
-              <FunnelChart data={stats.stageBreakdown} language={language as 'fr' | 'en'} />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <BarChart3 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>{language === 'fr' ? 'Aucune donnée de pipeline' : 'No pipeline data'}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg">
+            <CardTitle className="text-base">
               {language === 'fr' ? 'Top opportunités' : 'Top Opportunities'}
             </CardTitle>
             <DollarSign className="w-4 h-4 text-muted-foreground" />
@@ -740,45 +877,54 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Section 4: Projets signés + Impact énergétique */}
-      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
-        <SignedProjectsCard stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
-        <EnergyImpactCard vpp={vpp} language={language as 'fr' | 'en'} isLoading={vppLoading} />
+      {/* Visual connector */}
+      <div className="flex justify-center -my-3">
+        <div className="w-px h-6 bg-gradient-to-b from-amber-400 to-green-500 dark:from-amber-500 dark:to-green-400" />
       </div>
 
-      {/* Section 5: Gains récents */}
-      {stats?.recentWins && stats.recentWins.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg">
-              {language === 'fr' ? 'Gains récents' : 'Recent Wins'}
-            </CardTitle>
-            <Trophy className="w-4 h-4 text-[#FFB005]" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {stats.recentWins.map((win) => (
-                <Link key={win.id} href="/app/pipeline">
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border">
-                    <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-950 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+      {/* Section 4: Output KPIs — "Les résultats" */}
+      <OutputKPIs stats={stats} vpp={vpp} language={language as 'fr' | 'en'} isLoading={isLoading} vppLoading={vppLoading} />
+
+      {/* Section 5: Détails projets signés + Gains récents (2 colonnes) */}
+      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
+        <SignedProjectsBreakdown stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
+
+        {/* Gains récents */}
+        {stats?.recentWins && stats.recentWins.length > 0 ? (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+              <CardTitle className="text-base">
+                {language === 'fr' ? 'Gains récents' : 'Recent Wins'}
+              </CardTitle>
+              <Trophy className="w-4 h-4 text-[#FFB005]" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {stats.recentWins.map((win) => (
+                  <Link key={win.id} href="/app/pipeline">
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border">
+                      <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-950 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate text-sm">{win.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{win.clientName || '—'}</p>
+                      </div>
+                      {win.estimatedValue && (
+                        <span className="font-mono text-sm font-bold text-green-600 dark:text-green-400 shrink-0">
+                          {formatCompactCurrency(win.estimatedValue)}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate text-sm">{win.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{win.clientName || '—'}</p>
-                    </div>
-                    {win.estimatedValue && (
-                      <span className="font-mono text-sm font-bold text-green-600 dark:text-green-400 shrink-0">
-                        {formatCompactCurrency(win.estimatedValue)}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div /> /* Empty space when no recent wins */
+        )}
+      </div>
     </div>
   );
 }
