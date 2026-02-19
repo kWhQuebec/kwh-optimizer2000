@@ -660,7 +660,7 @@ function L10Tab({ language }: { language: string }) {
 // ─── GAMIFICATION TAB ────────────────────────────────────────
 function GamificationTab({ language }: { language: string }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold">
           {language === "fr" ? "Gamification & Centrale Virtuelle" : "Gamification & Virtual Power Plant"}
@@ -672,84 +672,9 @@ function GamificationTab({ language }: { language: string }) {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-yellow-500" />
-              {language === "fr" ? "Panneau Gamification" : "Gamification Panel"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              {language === "fr"
-                ? "Le panneau de gamification sera connecté aux endpoints API existants (/api/gamification/*)."
-                : "The gamification panel will be connected to existing API endpoints (/api/gamification/*)."}
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-yellow-500" />
-                  <span className="text-sm font-medium">kWh Points</span>
-                </div>
-                <span className="text-lg font-bold">0</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-medium">{language === "fr" ? "Niveau" : "Level"}</span>
-                </div>
-                <Badge>Bronze</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm font-medium">Badges</span>
-                </div>
-                <span className="text-lg font-bold">0/12</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <GamificationPanel />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Zap className="w-5 h-5 text-green-500" />
-              {language === "fr" ? "Centrale Virtuelle" : "Virtual Power Plant"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              {language === "fr"
-                ? "Chaque deal fermé ajoute des panneaux à la centrale virtuelle collective."
-                : "Every closed deal adds panels to the collective virtual power plant."}
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "MW", value: "0.0", icon: "⚡" },
-                { label: language === "fr" ? "Systèmes" : "Systems", value: "0", icon: "🏭" },
-                { label: "CO₂", value: "0 t", icon: "🌱" },
-                { label: language === "fr" ? "Maisons" : "Homes", value: "0", icon: "🏠" },
-              ].map((stat) => (
-                <div key={stat.label} className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="text-2xl mb-1">{stat.icon}</div>
-                  <div className="text-lg font-bold">{stat.value}</div>
-                  <div className="text-xs text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-dashed">
-        <CardContent className="p-4 text-center text-sm text-muted-foreground">
-          {language === "fr"
-            ? "Les composants GamificationPanel et VirtualPowerPlant seront connectés une fois les tables créées (drizzle-kit push)."
-            : "GamificationPanel and VirtualPowerPlant components will be connected once tables are created (drizzle-kit push)."}
-        </CardContent>
-      </Card>
+      <VirtualPowerPlant />
     </div>
   );
 }
