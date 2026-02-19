@@ -95,6 +95,7 @@ export default function SiteDetailPage() {
   const { isStaff, isClient, token } = useAuth();
   const [activeTab, setActiveTab] = useState("quick-analysis");
   const initialTabSetRef = useRef(false);
+  const prevSiteIdRef = useRef<string | undefined>(undefined);
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
   const assumptionsInitializedRef = useRef(false);
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
@@ -732,6 +733,13 @@ export default function SiteDetailPage() {
     { value: "permits", label: language === "fr" ? "Permis et installation" : "Permits & Installation", stepNum: 8 },
     { value: "operations", label: language === "fr" ? "O&M" : "O&M", stepNum: 9 },
   ];
+
+  useEffect(() => {
+    if (prevSiteIdRef.current !== id) {
+      prevSiteIdRef.current = id;
+      initialTabSetRef.current = false;
+    }
+  }, [id]);
 
   useEffect(() => {
     if (initialTabSetRef.current || isLoading || !site) return;
