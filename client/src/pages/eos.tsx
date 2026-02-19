@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { GamificationPanel } from "@/components/GamificationPanel";
 import { VirtualPowerPlant } from "@/components/VirtualPowerPlant";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -661,6 +660,15 @@ function L10Tab({ language }: { language: string }) {
 
 // ─── GAMIFICATION TAB ────────────────────────────────────────
 function GamificationTab({ language }: { language: string }) {
+  const { data: leaderboard = [] } = useQuery({
+    queryKey: ["/api/gamification/leaderboard"],
+    queryFn: async () => {
+      const res = await fetch("/api/gamification/leaderboard");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -674,9 +682,81 @@ function GamificationTab({ language }: { language: string }) {
         </p>
       </div>
 
-      <GamificationPanel />
-
+      {/* Virtual Power Plant - global view */}
       <VirtualPowerPlant />
+
+      {/* Leaderboard */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-yellow-500" />
+            {language === "fr" ? "Classement" : "Leaderboard"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {leaderboard.length > 0 ? (
+            <div className="space-y-2">
+              {leaderboard.map((entry: any, i: number) => (
+                <div key={i} className="flex items-center gap-3 p-2 rounded hover:bg-muted/30">
+                  <span className="text-lg font-bold w-8 text-center">
+                    {i === 0 ? "\u{1F947}" : i === 1 ? "\u{1F948}" : i === 2 ? "\u{1F949}" : `${i + 1}`}
+                  </span>
+                  <div className="flex-1">
+                    <span className="text-sm font-medium">{entry.name || entry.entityId}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Zap className="w-4 h-4 text-yellow-500" />
+                    <span className="text-sm font-bold">{entry.totalPoints?.toLocaleString() || 0}</span>
+                  </div>
+                  <Badge>{entry.level || "Bronze"}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Trophy className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">
+                {language === "fr"
+                  ? "Le classement apparaîtra quand des opportunités progresseront dans le pipeline."
+                  : "The leaderboard will appear when opportunities progress through the pipeline."}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Quick stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Zap className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+            <div className="text-2xl font-bold">0</div>
+            <div className="text-xs text-muted-foreground">kWh Points</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Star className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+            <div className="text-2xl font-bold">0/12</div>
+            <div className="text-xs text-muted-foreground">Badges</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Target className="w-8 h-8 mx-auto mb-2 text-green-500" />
+            <div className="text-2xl font-bold">0</div>
+            <div className="text-xs text-muted-foreground">{language === "fr" ? "Missions actives" : "Active Missions"}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-dashed">
+        <CardContent className="p-4 text-center text-sm text-muted-foreground">
+          {language === "fr"
+            ? "Le panneau de gamification détaillé par opportunité est accessible depuis chaque fiche opportunité dans le Pipeline."
+            : "The detailed gamification panel per opportunity is accessible from each opportunity card in the Pipeline."}
+        </CardContent>
+      </Card>
     </div>
   );
 }
