@@ -720,6 +720,10 @@ export default function SiteDetailPage() {
         setActiveTab(step.value);
         return;
       }
+      if (step.value === "analysis" && status === "complete") {
+        setActiveTab("analysis");
+        return;
+      }
     }
     setActiveTab(stepsToCheck[stepsToCheck.length - 1]?.value ?? "quick-analysis");
   }, [isLoading, site, isStaff, getStepStatus]);
