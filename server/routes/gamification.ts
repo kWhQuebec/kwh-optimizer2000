@@ -5,7 +5,7 @@
  */
 
 import { Router, Request, Response } from "express";
-import { db } from "./db";
+import { db } from "../db";
 import { eq, and } from "drizzle-orm";
 import {
   gamificationProfiles,
@@ -14,13 +14,13 @@ import {
   gamificationBadges,
   gamificationEvents,
   virtualPowerPlant,
-} from "../shared/schema";
+} from "@shared/schema";
 import {
   getOrCreateProfile,
   awardPoints,
   updateVirtualPowerPlant,
   createMissionsForOpportunity,
-} from "./gamificationEngine";
+} from "../gamificationEngine";
 
 const router = Router();
 

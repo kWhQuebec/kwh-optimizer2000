@@ -94,6 +94,7 @@ export default function SiteDetailPage() {
   const { toast } = useToast();
   const { isStaff, isClient, token } = useAuth();
   const [activeTab, setActiveTab] = useState("quick-analysis");
+  const initialTabSetRef = useRef(false);
   const [customAssumptions, setCustomAssumptions] = useState<Partial<AnalysisAssumptions>>({});
   const assumptionsInitializedRef = useRef(false);
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
@@ -731,6 +732,22 @@ export default function SiteDetailPage() {
     { value: "permits", label: language === "fr" ? "Permis et installation" : "Permits & Installation", stepNum: 8 },
     { value: "operations", label: language === "fr" ? "O&M" : "O&M", stepNum: 9 },
   ];
+
+  useEffect(() => {
+    if (initialTabSetRef.current || isLoading || !site) return;
+    initialTabSetRef.current = true;
+    const stepsToCheck = isStaff
+      ? workflowSteps
+      : workflowSteps.filter(s => ["quick-analysis", "consumption", "analysis"].includes(s.value));
+    for (const step of stepsToCheck) {
+      const status = getStepStatus(step.value);
+      if (status !== "complete") {
+        setActiveTab(step.value);
+        return;
+      }
+    }
+    setActiveTab(stepsToCheck[stepsToCheck.length - 1]?.value ?? "quick-analysis");
+  }, [isLoading, site, isStaff, getStepStatus]);
 
   if (isLoading) {
     return (
