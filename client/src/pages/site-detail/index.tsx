@@ -140,6 +140,9 @@ export default function SiteDetailPage() {
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
     queryKey: ["/api/sites", id],
     enabled: !!id,
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
 
   // Query to fetch existing roof polygons
@@ -644,6 +647,10 @@ export default function SiteDetailPage() {
   // Auto-fetch full simulation data when viewing analysis tab
   useEffect(() => {
     if (activeTab === "analysis") {
+      if (site && site.analysisAvailable && (!site.simulationRuns || site.simulationRuns.length === 0)) {
+        refetch();
+      }
+
       const targetSimId = selectedSimulationId && selectedSimulationId !== "__latest__"
         ? selectedSimulationId
         : (mostRecentSimulationFromAll?.id || site?.simulationRuns?.[0]?.id || null);
@@ -652,7 +659,7 @@ export default function SiteDetailPage() {
         fetchFullSimulation(targetSimId);
       }
     }
-  }, [activeTab, selectedSimulationId, mostRecentSimulationFromAll?.id, site?.simulationRuns, fullSimulationRuns, fetchFullSimulation]);
+  }, [activeTab, selectedSimulationId, mostRecentSimulationFromAll?.id, site?.simulationRuns, fullSimulationRuns, fetchFullSimulation, site, refetch]);
 
   // Get full simulation with heavy data (merges lightweight + full data)
   const getFullSimulation = useCallback((simId: string): SimulationRun | null => {
