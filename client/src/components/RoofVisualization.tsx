@@ -695,9 +695,19 @@ export function RoofVisualization({
 
   const visiblePanelArrays = useMemo(() => {
     const visiblePanels = allPanelPositions.slice(0, panelsToShow);
+    const rowNeighborCounts = new Map<string, number>();
+    for (const p of visiblePanels) {
+      const key = `${p.polygonId}:${p.rowIndex}`;
+      rowNeighborCounts.set(key, (rowNeighborCounts.get(key) || 0) + 1);
+    }
+    const MIN_ROW_NEIGHBORS = 3;
+    const filteredPanels = visiblePanels.filter(p => {
+      const key = `${p.polygonId}:${p.rowIndex}`;
+      return (rowNeighborCounts.get(key) || 0) >= MIN_ROW_NEIGHBORS;
+    });
     const MIN_ARRAY_PANELS = 6;
     const arrayStats = new Map<string, { panels: PanelPosition[]; polygonId: string; localArrayId: number }>();
-    for (const panel of visiblePanels) {
+    for (const panel of filteredPanels) {
       if (panel.arrayId !== undefined) {
         const compositeKey = `${panel.polygonId}:${panel.arrayId}`;
         if (!arrayStats.has(compositeKey)) {
@@ -1065,7 +1075,9 @@ export function RoofVisualization({
           }
 
           const polygonBonus = polygonScoreMap[id] || 50;
-          const intraPriority = (edgeScore * 0.3 + southBiasNorm * 0.5 + 0.2) * (1 - shadowPenalty);
+          const WIND_SETBACK_M = 2.5;
+          const windSetbackPenalty = distToEdge < WIND_SETBACK_M ? 0.4 * (1 - distToEdge / WIND_SETBACK_M) : 0;
+          const intraPriority = (edgeScore * 0.3 + southBiasNorm * 0.5 + 0.2) * (1 - shadowPenalty) * (1 - windSetbackPenalty);
           const priority = polygonBonus * 1000 + Math.round(intraPriority * 999);
           
           // Calculate array ID based on fire corridor positions
@@ -1112,6 +1124,19 @@ export function RoofVisualization({
     }
     
     console.log(`[RoofVisualization] UNIFIED TOTAL: ${totalAccepted} panels, ${totalRejectedByRoof} outside roof, ${totalRejectedByConstraint} in constraints`);
+    
+    const rowCounts = new Map<string, number>();
+    for (const panel of allPanels) {
+      const key = `${panel.polygonId}:${panel.rowIndex}`;
+      rowCounts.set(key, (rowCounts.get(key) || 0) + 1);
+    }
+    const maxRowCount = Math.max(...Array.from(rowCounts.values()), 1);
+    for (const panel of allPanels) {
+      const key = `${panel.polygonId}:${panel.rowIndex}`;
+      const count = rowCounts.get(key) || 0;
+      const rowDensityBonus = (count / maxRowCount) * 200;
+      panel.priority = (panel.priority || 0) + Math.round(rowDensityBonus);
+    }
     
     return { panels: allPanels, orientationAngle: unifiedAxisAngle, orientationSource: orientationSourceLabel };
   }, []);
@@ -1622,7 +1647,16 @@ export function RoofVisualization({
     panelPolygonsRef.current.forEach(p => p.setMap(null));
     panelPolygonsRef.current = [];
 
-    const panelsToRender = allPanelPositions.slice(0, panelsToShow);
+    const slicedPanels = allPanelPositions.slice(0, panelsToShow);
+    const renderRowCounts = new Map<string, number>();
+    for (const p of slicedPanels) {
+      const key = `${p.polygonId}:${p.rowIndex}`;
+      renderRowCounts.set(key, (renderRowCounts.get(key) || 0) + 1);
+    }
+    const panelsToRender = slicedPanels.filter(p => {
+      const key = `${p.polygonId}:${p.rowIndex}`;
+      return (renderRowCounts.get(key) || 0) >= 3;
+    });
 
     for (let i = 0; i < panelsToRender.length; i++) {
       const panel = panelsToRender[i];

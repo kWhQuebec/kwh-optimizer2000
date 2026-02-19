@@ -1008,7 +1008,7 @@ export function RoofDrawingModal({
                   title={language === 'fr' ? 'Détecter automatiquement les obstacles du toit' : 'Auto-detect roof obstacles'}
                 >
                   {isSuggestingConstraints ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
-                  {language === 'fr' ? 'Détecter' : 'Detect'}
+                  {language === 'fr' ? 'Auto-détection' : 'Auto-detect'}
                 </Button>
                 {suggestedPolygonIds.size > 0 && (
                   <>

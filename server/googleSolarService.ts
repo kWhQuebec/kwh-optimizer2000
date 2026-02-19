@@ -4,7 +4,10 @@ import { detectRoofConstraints } from "./roofConstraintDetector";
 
 const log = createLogger("GoogleSolar");
 
-const GOOGLE_SOLAR_API_KEY = process.env.GOOGLE_SOLAR_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+function getGoogleSolarApiKey(): string | undefined {
+  return process.env.GOOGLE_SOLAR_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+}
+
 const GOOGLE_SOLAR_API_BASE = "https://solar.googleapis.com/v1";
 const GOOGLE_GEOCODING_API_BASE = "https://maps.googleapis.com/maps/api/geocode/json";
 
@@ -160,7 +163,7 @@ export interface RoofEstimateResult {
 }
 
 export async function geocodeAddress(address: string): Promise<GeoLocation | null> {
-  if (!GOOGLE_SOLAR_API_KEY) {
+  if (!getGoogleSolarApiKey()) {
     log.error("GOOGLE_SOLAR_API_KEY not configured");
     return null;
   }
@@ -168,7 +171,7 @@ export async function geocodeAddress(address: string): Promise<GeoLocation | nul
   try {
     log.info(`Starting geocode for address: ${address}`);
     const encodedAddress = encodeURIComponent(address);
-    const url = `${GOOGLE_GEOCODING_API_BASE}?address=${encodedAddress}&key=${GOOGLE_SOLAR_API_KEY}`;
+    const url = `${GOOGLE_GEOCODING_API_BASE}?address=${encodedAddress}&key=${getGoogleSolarApiKey()}`;
     
     const response = await fetchWithTimeout(url);
     const data = await response.json();
@@ -191,7 +194,7 @@ export async function geocodeAddress(address: string): Promise<GeoLocation | nul
 }
 
 export async function getBuildingInsights(location: GeoLocation, storage?: IStorage): Promise<BuildingInsights | null> {
-  if (!GOOGLE_SOLAR_API_KEY) {
+  if (!getGoogleSolarApiKey()) {
     log.error("GOOGLE_SOLAR_API_KEY not configured");
     return null;
   }
@@ -230,7 +233,7 @@ export async function getBuildingInsights(location: GeoLocation, storage?: IStor
 
     // Call Google Solar API
     log.info(`Starting API request for lat=${location.latitude}, lng=${location.longitude}`);
-    const url = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=HIGH&key=${GOOGLE_SOLAR_API_KEY}`;
+    const url = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=HIGH&key=${getGoogleSolarApiKey()}`;
     
     const response = await fetchWithTimeout(url);
     
@@ -242,7 +245,7 @@ export async function getBuildingInsights(location: GeoLocation, storage?: IStor
       
       if (response.status === 404) {
         log.info("Trying MEDIUM quality...");
-        const mediumQualityUrl = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=MEDIUM&key=${GOOGLE_SOLAR_API_KEY}`;
+        const mediumQualityUrl = `${GOOGLE_SOLAR_API_BASE}/buildingInsights:findClosest?location.latitude=${location.latitude}&location.longitude=${location.longitude}&requiredQuality=MEDIUM&key=${getGoogleSolarApiKey()}`;
         const mediumResponse = await fetchWithTimeout(mediumQualityUrl);
         
         if (mediumResponse.ok) {
@@ -449,7 +452,7 @@ export async function estimateRoofFromLocation(location: GeoLocation, storage?: 
 }
 
 export function isGoogleSolarConfigured(): boolean {
-  return !!GOOGLE_SOLAR_API_KEY;
+  return !!getGoogleSolarApiKey();
 }
 
 /**
@@ -461,7 +464,7 @@ export function getSatelliteImageUrl(location: GeoLocation, options?: {
   height?: number;
   zoom?: number;
 }): string | null {
-  if (!GOOGLE_SOLAR_API_KEY) {
+  if (!getGoogleSolarApiKey()) {
     return null;
   }
   
@@ -469,7 +472,7 @@ export function getSatelliteImageUrl(location: GeoLocation, options?: {
   const height = options?.height || 300;
   const zoom = options?.zoom || 18; // Zoom 18 for good roof detail
   
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}&zoom=${zoom}&size=${width}x${height}&maptype=satellite&key=${GOOGLE_SOLAR_API_KEY}`;
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}&zoom=${zoom}&size=${width}x${height}&maptype=satellite&key=${getGoogleSolarApiKey()}`;
 }
 
 /**
@@ -485,7 +488,7 @@ export function getRoofVisualizationUrl(
     zoom?: number;
   }
 ): string | null {
-  if (!GOOGLE_SOLAR_API_KEY) {
+  if (!getGoogleSolarApiKey()) {
     return null;
   }
   
@@ -521,7 +524,7 @@ export function getRoofVisualizationUrl(
     url += `&path=fillcolor:${fillColor}|color:${strokeColor}|weight:${strokeWeight}|${pathCoords}`;
   });
   
-  url += `&key=${GOOGLE_SOLAR_API_KEY}`;
+  url += `&key=${getGoogleSolarApiKey()}`;
   
   return url;
 }
@@ -573,7 +576,7 @@ export interface DataLayersResult {
 }
 
 export async function getDataLayers(location: GeoLocation, radiusMeters: number = 50): Promise<DataLayersResult> {
-  if (!GOOGLE_SOLAR_API_KEY) {
+  if (!getGoogleSolarApiKey()) {
     return {
       success: false,
       error: "GOOGLE_SOLAR_API_KEY not configured"
@@ -587,7 +590,7 @@ export async function getDataLayers(location: GeoLocation, radiusMeters: number 
       "radiusMeters": radiusMeters.toString(),
       "view": "IMAGERY_AND_ANNUAL_FLUX_LAYERS",
       "requiredQuality": "HIGH",
-      "key": GOOGLE_SOLAR_API_KEY
+      "key": getGoogleSolarApiKey() || ""
     });
 
     const url = `${GOOGLE_SOLAR_API_BASE}/dataLayers:get?${params}`;
@@ -606,7 +609,7 @@ export async function getDataLayers(location: GeoLocation, radiusMeters: number 
           "radiusMeters": radiusMeters.toString(),
           "view": "IMAGERY_AND_ANNUAL_FLUX_LAYERS",
           "requiredQuality": "MEDIUM",
-          "key": GOOGLE_SOLAR_API_KEY
+          "key": getGoogleSolarApiKey() || ""
         });
         const mediumUrl = `${GOOGLE_SOLAR_API_BASE}/dataLayers:get?${mediumParams}`;
         const mediumResponse = await fetchWithTimeout(mediumUrl);
@@ -709,7 +712,7 @@ export interface SolarMockupData {
 }
 
 export async function getSolarMockupData(location: GeoLocation, panelCount?: number): Promise<SolarMockupData> {
-  if (!GOOGLE_SOLAR_API_KEY) {
+  if (!getGoogleSolarApiKey()) {
     return {
       success: false,
       buildingCenter: location,
@@ -827,7 +830,7 @@ export interface RoofColorResult {
 // Analyze roof color from RGB imagery URL
 // Returns color classification based on average brightness of roof pixels
 export async function analyzeRoofColor(location: GeoLocation): Promise<RoofColorResult> {
-  if (!GOOGLE_SOLAR_API_KEY) {
+  if (!getGoogleSolarApiKey()) {
     return {
       success: false,
       colorType: "unknown",
@@ -857,7 +860,7 @@ export async function analyzeRoofColor(location: GeoLocation): Promise<RoofColor
     // Add API key to the URL if not already present
     const rgbUrlWithKey = dataLayers.rgbUrl.includes('key=') 
       ? dataLayers.rgbUrl 
-      : `${dataLayers.rgbUrl}&key=${GOOGLE_SOLAR_API_KEY}`;
+      : `${dataLayers.rgbUrl}&key=${getGoogleSolarApiKey()}`;
     
     log.info("RoofColor fetching RGB imagery...");
     const response = await fetchWithTimeout(rgbUrlWithKey, 30000); // 30s for image download
