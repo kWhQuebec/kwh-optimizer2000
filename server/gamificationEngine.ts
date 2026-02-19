@@ -88,7 +88,7 @@ export const BADGE_DEFINITIONS = {
 export const MISSION_TEMPLATES = [
   {
     missionNumber: 1,
-    title: "Découverte Énergétique",
+    title: "Analyse rapide du potentiel",
     stage: "qualified",
     pointsReward: 250,
     clientTasks: [
@@ -106,7 +106,7 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 2,
-    title: "Mandat de Conception",
+    title: "Validation technique",
     stage: "design_mandate_signed",
     pointsReward: 750,
     clientTasks: [
@@ -124,7 +124,7 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 3,
-    title: "Design & VC0",
+    title: "Ingénierie, plans & devis",
     stage: "epc_proposal_sent",
     pointsReward: 500,
     clientTasks: [
@@ -142,7 +142,7 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 4,
-    title: "Proposition & Négociation",
+    title: "Contrat signé",
     stage: "won_to_be_delivered",
     pointsReward: 1000,
     clientTasks: [
@@ -160,7 +160,7 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 5,
-    title: "Construction",
+    title: "Permis & installation",
     stage: "won_in_construction",
     pointsReward: 2000,
     clientTasks: [
@@ -180,7 +180,7 @@ export const MISSION_TEMPLATES = [
   },
   {
     missionNumber: 6,
-    title: "Ambassadeur Solaire",
+    title: "Monitoring & performance",
     stage: "won_delivered",
     pointsReward: 2000,
     clientTasks: [

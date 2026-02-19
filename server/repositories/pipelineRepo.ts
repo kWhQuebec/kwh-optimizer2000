@@ -377,7 +377,7 @@ export async function getPipelineStats(): Promise<{
   const STAGE_PROBABILITIES: Record<string, number> = {
     prospect: 5,
     contacted: 10,
-    qualified: 20,
+    qualified: 15,
     analysis_done: 25,
     design_mandate_signed: 50,
     epc_proposal_sent: 75,

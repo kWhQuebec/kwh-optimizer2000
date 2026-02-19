@@ -1548,18 +1548,18 @@ export const opportunities = pgTable("opportunities", {
   description: text("description"),
   
   // Pipeline stage with probability mapping:
-  // "prospect" (5%) - Nouveau lead entrant ou identifié, pas encore contacté
-  // "contacted" (10%) - Premier contact réalisé, en cours d'évaluation
-  // "qualified" (20%) - Lead vert, projet solaire viable confirmé
-  // "analysis_done" (25%) - Analyse détaillée de consommation et simulation complétée
-  // "design_mandate_signed" (50%) - Client a signé le mandat de conception préliminaire
-  // "epc_proposal_sent" (75%) - Proposition EPC complète soumise au client
-  // "negotiation" (90%) - Négociation finale du contrat de construction
-  // "won_to_be_delivered" (100%) - Contrat signé, en attente de construction
-  // "won_in_construction" (100%) - Construction en cours
-  // "won_delivered" (100%) - Projet complété et livré
-  // "lost" (0%) - Opportunité fermée sans succès
-  // "disqualified" (0%) - Lead non qualifié
+  // "prospect" (5%) — Nouveau prospect | Exploration
+  // "contacted" (10%) — Premier contact | Exploration
+  // "qualified" (15%) — Analyse rapide du potentiel | Exploration
+  // "analysis_done" (25%) — Validation économique | Conception
+  // "design_mandate_signed" (50%) — Validation technique | Conception
+  // "epc_proposal_sent" (75%) — Ingénierie, plans & devis | Réalisation
+  // "negotiation" (90%) — Négociation EPC | Réalisation
+  // "won_to_be_delivered" (100%) — Contrat signé | Réalisation
+  // "won_in_construction" (100%) — Permis & installation | Opération
+  // "won_delivered" (100%) — En opération | Opération
+  // "lost" (0%) — Perdu
+  // "disqualified" (0%) — Non qualifié
   stage: text("stage").notNull().default("prospect"),
   probability: integer("probability").default(5), // % likelihood to close - auto-set by stage
   

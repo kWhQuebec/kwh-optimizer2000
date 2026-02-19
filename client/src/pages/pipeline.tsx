@@ -69,9 +69,9 @@ const STAGES = ["prospect", "contacted", "qualified", "analysis_done", "design_m
 type Stage = typeof STAGES[number];
 
 const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
-  prospect: { fr: "Prospect (5%)", en: "Prospect (5%)" },
-  contacted: { fr: "Contacté (10%)", en: "Contacted (10%)" },
-  qualified: { fr: "Qualifié (20%)", en: "Qualified (20%)" },
+  prospect: { fr: "Nouveau prospect (5%)", en: "New Prospect (5%)" },
+  contacted: { fr: "Premier contact (10%)", en: "First Contact (10%)" },
+  qualified: { fr: "Analyse rapide du potentiel (15%)", en: "Quick Potential Analysis (15%)" },
   analysis_done: { fr: "Validation économique (25%)", en: "Economic Validation (25%)" },
   design_mandate_signed: { fr: "Validation technique (50%)", en: "Technical Validation (50%)" },
   epc_proposal_sent: { fr: "Ingénierie, plans & devis (75%)", en: "Engineering, Plans & Quotes (75%)" },
@@ -85,8 +85,8 @@ const STAGE_LABELS: Record<string, { fr: string; en: string }> = {
 
 const STAGE_SHORT_LABELS: Record<string, { fr: string; en: string }> = {
   prospect: { fr: "Prospect", en: "Prospect" },
-  contacted: { fr: "Contacté", en: "Contacted" },
-  qualified: { fr: "Qualifié", en: "Qualified" },
+  contacted: { fr: "Contact", en: "Contacted" },
+  qualified: { fr: "Potentiel", en: "Qualified" },
   analysis_done: { fr: "Valid. économique", en: "Econ. Validation" },
   design_mandate_signed: { fr: "Valid. technique", en: "Tech. Validation" },
   epc_proposal_sent: { fr: "Plans & devis", en: "Plans & Quotes" },
@@ -100,11 +100,11 @@ const STAGE_SHORT_LABELS: Record<string, { fr: string; en: string }> = {
 
 const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
   prospect: {
-    fr: "Nouveau lead entrant ou identifié, pas encore contacté",
+    fr: "Nouveau lead entrant — pas encore contacté",
     en: "New incoming or identified lead, not yet contacted"
   },
   contacted: {
-    fr: "Premier contact réalisé, en cours de qualification",
+    fr: "Premier contact réalisé — en cours de qualification",
     en: "First contact made, qualification in progress"
   },
   qualified: {
@@ -152,7 +152,7 @@ const STAGE_DESCRIPTIONS: Record<string, { fr: string; en: string }> = {
 const STAGE_PROBABILITIES: Record<Stage, number> = {
   prospect: 5,
   contacted: 10,
-  qualified: 20,
+  qualified: 15,
   analysis_done: 25,
   design_mandate_signed: 50,
   epc_proposal_sent: 75,
