@@ -30,6 +30,7 @@ interface QuickInfoFormProps {
   site: SiteWithDetails;
   language: "fr" | "en";
   onSaved: () => void;
+  onGoToNextStep?: () => void;
 }
 
 const SQ_FT_TO_SQ_M = 0.092903;
@@ -51,7 +52,7 @@ const ROOF_TYPES = [
 
 const FLOOR_OPTIONS = [1, 2, 3, 4, 5];
 
-export function QuickInfoForm({ site, language, onSaved }: QuickInfoFormProps) {
+export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: QuickInfoFormProps) {
   const fr = language === "fr";
 
   const [buildingType, setBuildingType] = useState<string | null>(site.buildingType || null);
@@ -381,15 +382,27 @@ export function QuickInfoForm({ site, language, onSaved }: QuickInfoFormProps) {
 
       {(hasMinimumData || site.quickInfoCompletedAt) && (
         <div
-          className="flex items-start gap-3 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-4"
+          className={`flex items-center gap-3 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-4 ${onGoToNextStep ? 'cursor-pointer hover-elevate' : ''}`}
           data-testid="banner-quick-info-complete"
+          onClick={onGoToNextStep}
         >
-          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-green-700 dark:text-green-300">
+          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+          <p className="text-sm text-green-700 dark:text-green-300 flex-1">
             {fr
               ? "Informations de base enregistr\u00e9es. Passez \u00e0 l'\u00e9tape suivante pour importer vos donn\u00e9es de consommation."
               : "Basic information saved. Move to the next step to import your consumption data."}
           </p>
+          {onGoToNextStep && (
+            <Button
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={(e) => { e.stopPropagation(); onGoToNextStep(); }}
+              data-testid="button-go-to-step-2"
+            >
+              {fr ? "\u00c9tape suivante" : "Next step"}
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       )}
     </div>

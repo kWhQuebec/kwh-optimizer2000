@@ -1435,6 +1435,7 @@ export default function SiteDetailPage() {
             site={site}
             language={language}
             onSaved={() => refetch()}
+            onGoToNextStep={() => setActiveTab("consumption")}
           />
 
           {isStaff && !site.roofAreaValidated && (
