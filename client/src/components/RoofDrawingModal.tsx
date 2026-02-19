@@ -359,10 +359,17 @@ export function RoofDrawingModal({
     });
 
     customDrawingDblClickListenerRef.current = map.addListener('dblclick', (e: google.maps.MapMouseEvent) => {
-      if (customDrawingVerticesRef.current.length >= 3) {
+      const vertices = customDrawingVerticesRef.current;
+      if (vertices.length >= 3) {
         e.stop?.();
-        // The 2nd click of the double-click already added a duplicate vertex via the click handler — remove it
-        customDrawingVerticesRef.current.pop();
+        if (vertices.length >= 2) {
+          const last = vertices[vertices.length - 1];
+          const secondLast = vertices[vertices.length - 2];
+          const isNearDuplicate = isNearStartVertex(last, secondLast);
+          if (isNearDuplicate) {
+            vertices.pop();
+          }
+        }
         completeCustomPolygonDrawingRef.current();
       }
     });
