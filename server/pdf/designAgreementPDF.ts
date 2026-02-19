@@ -69,7 +69,7 @@ export function generateDesignAgreementPDF(
   doc.fontSize(24).fillColor(COLORS.white).font("Helvetica-Bold");
   doc.text("kWh Québec", margin, 35, { width: contentWidth });
   doc.fontSize(16).font("Helvetica");
-  doc.text(t("Mandat de conception préliminaire - Étape 3", "Preliminary Design Mandate - Step 3"), margin, 65, { width: contentWidth });
+  doc.text(t("Mandat de conception préliminaire - Étape 4", "Preliminary Design Mandate - Step 4"), margin, 65, { width: contentWidth });
   doc.fontSize(10);
   doc.text(t("Votre première étape vers un projet solaire", "Your first step toward a solar project"), margin, 90, { width: contentWidth });
 
@@ -111,47 +111,24 @@ export function generateDesignAgreementPDF(
   doc.text(t("Détail des coûts", "Cost Breakdown"), margin, y);
   y += 25;
 
-  doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
-  doc.text(t("Visite technique et évaluation:", "Technical Visit & Evaluation:"), margin, y);
-  y += 20;
-
-  const siteVisit = agreement.quotedCosts?.siteVisit;
   doc.font("Helvetica").fontSize(10);
 
-  const costLines: Array<{ label: string; value: number | undefined }> = [];
-
-  if (siteVisit?.travel && siteVisit.travel > 0) {
-    costLines.push({ label: t("Frais de déplacement", "Travel costs"), value: siteVisit.travel });
-  }
-  costLines.push({ label: t("Visite sur site", "Site visit"), value: siteVisit?.visit });
-  costLines.push({ label: t("Évaluation technique", "Technical evaluation"), value: siteVisit?.evaluation });
-  costLines.push({ label: t("Dessins techniques", "Technical drawings"), value: siteVisit?.diagrams });
-  if (siteVisit?.sldSupplement && siteVisit.sldSupplement > 0) {
-    costLines.push({ label: t("Supplément schéma unifilaire", "SLD supplement"), value: siteVisit.sldSupplement });
-  }
-
-  costLines.forEach(line => {
-    doc.text(line.label, margin + 20, y);
-    doc.text(formatCurrency(line.value), margin + contentWidth - 120, y, { width: 100, align: "right" });
-    y += 18;
-  });
+  doc.font("Helvetica-Bold");
+  doc.text(t("Forfait conception préliminaire", "Preliminary design fee"), margin + 20, y);
+  doc.text(formatCurrency(2500), margin + contentWidth - 120, y, { width: 100, align: "right" });
+  y += 18;
 
   y += 10;
   doc.rect(margin + 20, y, contentWidth - 40, 1).fill(COLORS.lightGray);
   y += 15;
 
-  doc.font("Helvetica-Bold");
-  doc.text(t("Sous-total", "Subtotal"), margin + 20, y);
-  doc.text(formatCurrency(agreement.quotedCosts?.subtotal), margin + contentWidth - 120, y, { width: 100, align: "right" });
-  y += 18;
-
   doc.font("Helvetica").fillColor(COLORS.mediumGray);
   doc.text(t("TPS (5%)", "GST (5%)"), margin + 20, y);
-  doc.text(formatCurrency(agreement.quotedCosts?.taxes?.gst), margin + contentWidth - 120, y, { width: 100, align: "right" });
+  doc.text(formatCurrency(125), margin + contentWidth - 120, y, { width: 100, align: "right" });
   y += 18;
 
   doc.text(t("TVQ (9.975%)", "QST (9.975%)"), margin + 20, y);
-  doc.text(formatCurrency(agreement.quotedCosts?.taxes?.qst), margin + contentWidth - 120, y, { width: 100, align: "right" });
+  doc.text(formatCurrency(249.38), margin + contentWidth - 120, y, { width: 100, align: "right" });
   y += 18;
 
   y += 5;
@@ -160,7 +137,7 @@ export function generateDesignAgreementPDF(
 
   doc.fontSize(13).fillColor(COLORS.blue).font("Helvetica-Bold");
   doc.text(t("TOTAL", "TOTAL"), margin + 20, y);
-  doc.text(formatCurrency(agreement.totalCad), margin + contentWidth - 120, y, { width: 100, align: "right" });
+  doc.text(formatCurrency(2874.38), margin + contentWidth - 120, y, { width: 100, align: "right" });
   y += 40;
 
   doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
@@ -189,7 +166,7 @@ export function generateDesignAgreementPDF(
 
   doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
   doc.text(
-    agreement.paymentTerms || t("50% à la signature, 50% à la livraison des dessins", "50% at signing, 50% at drawing delivery"),
+    agreement.paymentTerms || t("100% payable à la signature — créditable intégralement sur votre contrat EPC", "100% payable at signing — fully creditable toward your EPC contract"),
     margin + 20, y, { width: contentWidth - 40 }
   );
   y += 40;

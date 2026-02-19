@@ -1295,97 +1295,29 @@ router.get("/:siteId/design-agreement", authMiddleware, asyncHandler(async (req:
 
 router.post("/:siteId/generate-design-agreement", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   const { siteId } = req.params;
-  const { siteVisitId, additionalFees = [], paymentTerms, pricingConfig } = req.body;
 
-  const visit = siteVisitId ? await storage.getSiteVisit(siteVisitId) : null;
-  const siteVisitCost = visit?.estimatedCost || null;
+  const subtotal = 2500;
+  const gst = 125;
+  const qst = 249.375;
+  const total = 2874.375;
 
-  let subtotal: number;
-  let gst: number;
-  let qst: number;
-  let total: number;
-  interface SiteQuotedCosts {
-    designFees?: {
-      numBuildings: number;
-      baseFee: number;
-      pvSizeKW: number;
-      pvFee: number;
-      battEnergyKWh: number;
-      batteryFee: number;
-      travelDays: number;
-      travelFee: number;
-    };
-    engineeringStamps?: {
-      structural: number;
-      electrical: number;
-    };
-    siteVisit: unknown;
-    additionalFees: Array<{ description?: string; amount: number }>;
-    subtotal: number;
-    taxes: { gst: number; qst: number };
-    total: number;
-  }
-
-  let quotedCosts: SiteQuotedCosts;
-
-  if (pricingConfig) {
-    subtotal = pricingConfig.subtotal || 0;
-    gst = pricingConfig.gst || subtotal * 0.05;
-    qst = pricingConfig.qst || subtotal * 0.09975;
-    total = pricingConfig.total || (subtotal + gst + qst);
-
-    quotedCosts = {
-      designFees: {
-        numBuildings: pricingConfig.numBuildings || 1,
-        baseFee: pricingConfig.baseFee || 0,
-        pvSizeKW: pricingConfig.pvSizeKW || 0,
-        pvFee: pricingConfig.pvFee || 0,
-        battEnergyKWh: pricingConfig.battEnergyKWh || 0,
-        batteryFee: pricingConfig.batteryFee || 0,
-        travelDays: pricingConfig.travelDays || 0,
-        travelFee: pricingConfig.travelFee || 0,
-      },
-      engineeringStamps: {
-        structural: pricingConfig.includeStructuralStamp ? pricingConfig.structuralFee : 0,
-        electrical: pricingConfig.includeElectricalStamp ? pricingConfig.electricalFee : 0,
-      },
-      siteVisit: siteVisitCost,
-      additionalFees,
-      subtotal,
-      taxes: { gst, qst },
-      total,
-    };
-  } else {
-    const additionalTotal = Array.isArray(additionalFees)
-      ? additionalFees.reduce((sum: number, fee: { amount: number }) => sum + (fee.amount || 0), 0)
-      : 0;
-    const siteVisitTotal = (siteVisitCost as { total?: number } | null)?.total || 0;
-    subtotal = siteVisitTotal + additionalTotal;
-
-    gst = subtotal * 0.05;
-    qst = subtotal * 0.09975;
-    total = subtotal + gst + qst;
-
-    quotedCosts = {
-      siteVisit: siteVisitCost,
-      additionalFees,
-      subtotal,
-      taxes: { gst, qst },
-      total,
-    };
-  }
+  const quotedCosts = {
+    subtotal,
+    taxes: { gst, qst },
+    total,
+  };
 
   const validUntil = new Date();
   validUntil.setDate(validUntil.getDate() + 30);
 
   const agreement = await storage.createDesignAgreement({
     siteId,
-    siteVisitId: siteVisitId || null,
+    siteVisitId: null,
     status: "draft",
     quotedCosts,
     totalCad: total,
     currency: "CAD",
-    paymentTerms: paymentTerms || "50% à la signature, 50% à la livraison des dessins",
+    paymentTerms: "100% payable à la signature — créditable intégralement sur votre contrat EPC",
     validUntil,
     quotedBy: req.userId,
     quotedAt: new Date(),
