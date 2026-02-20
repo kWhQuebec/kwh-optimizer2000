@@ -64,10 +64,6 @@ interface SiteData {
   readyForAnalysis?: boolean | null;
   analysisAvailable?: boolean | null;
   quickAnalysisCompletedAt?: string | null;
-  // Step 2+ fields
-  procurationStatus?: string | null;
-  procurationSentAt?: string | null;
-  procurationSignedAt?: string | null;
   // Step 4
   engineeringOutcome?: string | null;
   // Nested data
@@ -90,6 +86,25 @@ interface DetectionContext {
   site: SiteData | null;
   designAgreement: DesignAgreementData | null;
   opportunityStage: string;
+  hasProcurationSigned: boolean;
+}
+
+const STAGE_ORDER = ["prospect", "contacted", "qualified", "analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
+
+const STEP_MIN_STAGE: Record<number, string> = {
+  1: "prospect",
+  2: "analysis_done",
+  3: "design_mandate_signed",
+  4: "epc_proposal_sent",
+  5: "won_to_be_delivered",
+  6: "won_delivered",
+};
+
+function stageReached(currentStage: string, minStage: string): boolean {
+  const currentIdx = STAGE_ORDER.indexOf(currentStage);
+  const minIdx = STAGE_ORDER.indexOf(minStage);
+  if (currentIdx === -1 || minIdx === -1) return false;
+  return currentIdx >= minIdx;
 }
 
 const TASK_DETECTORS: Record<string, TaskDetector> = {
@@ -114,11 +129,7 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
   s1_complete_call: () => false, // Needs activity log — future
 
   // ── Step 2: Validation économique ──
-  s2_read_proposal: ({ site }) =>
-    !!(site?.analysisAvailable), // Implicit: if analysis is available, proposal was readable
-  s2_ask_question: () => false, // Needs activity log — future
-  s2_sign_procuration: ({ site }) =>
-    site?.procurationStatus === "signed" || !!site?.procurationSignedAt,
+  s2_sign_procuration: ({ hasProcurationSigned }) => hasProcurationSigned,
   s2_sign_mandate: ({ designAgreement }) =>
     designAgreement?.status === "accepted" && !!designAgreement?.depositPaidAt,
   s2_run_analysis: ({ site }) =>
@@ -132,8 +143,7 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
   s3_site_access: () => false, // Needs activity log — future
   s3_roof_plans: () => false, // Needs document upload tracking — future
   s3_review_vc0: () => false, // Needs activity log — future
-  s3_validate_production: ({ site }) =>
-    (site?.simulationRuns?.length ?? 0) > 0,
+  s3_validate_production: () => false,
   s3_coordinate_visit: ({ site }) => {
     const visits = site?.siteVisits ?? [];
     return visits.some(v => v.status === "completed" || v.status === "scheduled");
@@ -146,8 +156,7 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
     const visits = site?.siteVisits ?? [];
     return visits.some(v => v.status === "completed" && v.notes);
   },
-  s3_calibrate_cashflow: ({ site }) =>
-    (site?.simulationRuns?.length ?? 0) > 0 && !!(site?.simulationRuns?.[0]?.assumptions),
+  s3_calibrate_cashflow: () => false,
 
   // ── Step 4: Ingénierie & design final ──
   s4_receive_epc: ({ opportunityStage }) => {
@@ -198,6 +207,15 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
 function isTaskCompleted(taskKey: string, ctx: DetectionContext): boolean {
   const detector = TASK_DETECTORS[taskKey];
   if (!detector) return false;
+
+  const taskDef = WORKFLOW_TASKS.find(t => t.key === taskKey);
+  if (taskDef) {
+    const minStage = STEP_MIN_STAGE[taskDef.stepNum];
+    if (minStage && !stageReached(ctx.opportunityStage, minStage)) {
+      return false;
+    }
+  }
+
   try {
     return detector(ctx);
   } catch {
@@ -293,17 +311,20 @@ export function useWorkflowProgress({
   designAgreement,
   opportunityStage = "prospect",
   viewMode = "am",
+  hasProcurationSigned = false,
 }: {
   site: SiteData | null;
   designAgreement?: DesignAgreementData | null;
   opportunityStage?: string;
   viewMode?: "client" | "am";
+  hasProcurationSigned?: boolean;
 }): WorkflowProgress {
   return useMemo(() => {
     const ctx: DetectionContext = {
       site,
       designAgreement: designAgreement ?? null,
       opportunityStage,
+      hasProcurationSigned,
     };
 
     const steps: StepProgress[] = WORKFLOW_STEPS.map((step) => {
@@ -348,5 +369,5 @@ export function useWorkflowProgress({
       maxTotalPoints,
       currentPhase,
     };
-  }, [site, designAgreement, opportunityStage, viewMode]);
+  }, [site, designAgreement, opportunityStage, viewMode, hasProcurationSigned]);
 }

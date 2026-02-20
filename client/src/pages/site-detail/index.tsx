@@ -730,6 +730,12 @@ export default function SiteDetailPage() {
     { value: "operations", label: language === "fr" ? "O&M" : "O&M", stepNum: 9 },
   ];
 
+  const { data: clientProcurations } = useQuery<any[]>({
+    queryKey: ["/api/clients", site?.clientId, "procurations"],
+    enabled: !!site?.clientId && !isClient,
+  });
+  const hasProcurationSigned = (clientProcurations ?? []).some((p: any) => p.status === "signed");
+
   // Unified workflow progress (new 6-step model)
   const opportunityStage = opportunities.length > 0 ? opportunities[0].stage : "prospect";
   const workflowProgress = useWorkflowProgress({
@@ -737,6 +743,7 @@ export default function SiteDetailPage() {
     designAgreement,
     opportunityStage,
     viewMode: isClient ? "client" : "am",
+    hasProcurationSigned,
   });
 
   // Map from unified step click to the appropriate tab

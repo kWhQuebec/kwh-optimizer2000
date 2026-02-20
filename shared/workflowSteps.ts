@@ -119,7 +119,7 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateEn: "Design mandate signed + deposit received",
     isHardBlock: true,
     tabs: ["consumption", "analysis", "design-agreement"],
-    maxPoints: 650,
+    maxPoints: 550,
   },
   {
     id: "technical-validation",
@@ -205,8 +205,6 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s1_complete_call", stepNum: 1, assignedTo: "account_manager", titleFr: "Compléter l'appel dans les 48h", titleEn: "Complete call within 48h", points: 50, optional: false },
 
   // ── Step 2: Validation économique ──
-  { key: "s2_read_proposal", stepNum: 2, assignedTo: "client", titleFr: "Lire la proposition préliminaire", titleEn: "Read preliminary proposal", points: 50, optional: true },
-  { key: "s2_ask_question", stepNum: 2, assignedTo: "client", titleFr: "Poser au moins 1 question", titleEn: "Ask at least 1 question", points: 50, optional: true },
   { key: "s2_sign_procuration", stepNum: 2, assignedTo: "client", titleFr: "Signer la procuration Hydro-Québec", titleEn: "Sign Hydro-Québec proxy", points: 100, optional: false },
   { key: "s2_sign_mandate", stepNum: 2, assignedTo: "client", titleFr: "Signer le mandat + verser le dépôt", titleEn: "Sign mandate + pay deposit", points: 200, optional: false },
   { key: "s2_run_analysis", stepNum: 2, assignedTo: "account_manager", titleFr: "Lancer l'analyse détaillée", titleEn: "Run detailed analysis", points: 100, optional: false },
