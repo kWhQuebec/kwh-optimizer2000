@@ -676,6 +676,17 @@ export function RoofVisualization({
   const [buildingAlignedAngle, setBuildingAlignedAngle] = useState(0);
   const [trueSouthAngle, setTrueSouthAngle] = useState(0);
   const [selectedOrientation, setSelectedOrientation] = useState<"building" | "south">("building");
+  const orientationInitializedRef = useRef(false);
+  const prevSiteIdRef = useRef(siteId);
+  const onGeometryCalculatedRef = useRef(onGeometryCalculated);
+  onGeometryCalculatedRef.current = onGeometryCalculated;
+
+  if (prevSiteIdRef.current !== siteId) {
+    prevSiteIdRef.current = siteId;
+    orientationInitializedRef.current = false;
+  }
+
+  const prevPolygonCountRef = useRef(0);
 
   const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
     queryKey: ["/api/sites", siteId, "roof-polygons"],
@@ -1494,12 +1505,18 @@ export function RoofVisualization({
         setTrueSouthAngle(0);
         
         // Auto-select OPTIMAL orientation based on estimated annual production (panels × yield factor)
+        // Only auto-select on first initialization or when polygon data actually changes — don't override user's manual selection on re-renders
         const buildingYieldFactor = calculateOrientationYieldFactor(buildingResult.orientationAngle).factor;
         const southYieldFactor = calculateOrientationYieldFactor(0).factor; // True south = 0 radians = optimal
         const buildingProduction = sortedBuildingPanels.length * PANEL_KW * buildingYieldFactor;
         const southProduction = sortedSouthPanels.length * PANEL_KW * southYieldFactor;
         const optimalOrientation = southProduction > buildingProduction ? "south" : "building";
-        setSelectedOrientation(optimalOrientation);
+        const currentPolygonCount = solarPolygonDataForUnified.length;
+        if (!orientationInitializedRef.current || prevPolygonCountRef.current !== currentPolygonCount) {
+          setSelectedOrientation(optimalOrientation);
+          orientationInitializedRef.current = true;
+          prevPolygonCountRef.current = currentPolygonCount;
+        }
         console.log(`[RoofVisualization] Yield comparison: Building=${(buildingYieldFactor*100).toFixed(1)}% (${sortedBuildingPanels.length}×${PANEL_KW}kW×${buildingYieldFactor.toFixed(2)}=${buildingProduction.toFixed(0)}kWh), South=${(southYieldFactor*100).toFixed(1)}% (${sortedSouthPanels.length}×${PANEL_KW}kW×${southYieldFactor.toFixed(2)}=${southProduction.toFixed(0)}kWh)`);
         
         // Use optimal orientation as default
@@ -1607,8 +1624,8 @@ export function RoofVisualization({
 
         console.log(`[RoofVisualization] Total panels generated: ${sortedPanels.length}, capacity: ${Math.round(sortedPanels.length * PANEL_KW)} kWc, zones: ${Object.keys(zoneStats).length}, arrays: ${arrays.length}`);
 
-        if (onGeometryCalculated && sortedPanels.length > 0) {
-          onGeometryCalculated({
+        if (onGeometryCalculatedRef.current && sortedPanels.length > 0) {
+          onGeometryCalculatedRef.current({
             maxCapacityKW: Math.round(sortedPanels.length * PANEL_KW),
             panelCount: sortedPanels.length,
             realisticCapacityKW: Math.round(sortedPanels.length * PANEL_KW * 0.9),
@@ -1647,7 +1664,7 @@ export function RoofVisualization({
     };
 
     initMap();
-  }, [latitude, longitude, roofPolygons, language, generateUnifiedPanelPositions, sortPanelsByRowPriority, onGeometryCalculated, retryKey]);
+  }, [latitude, longitude, roofPolygons, language, generateUnifiedPanelPositions, sortPanelsByRowPriority, retryKey]);
 
   useEffect(() => {
     if (!mapRef.current || allPanelPositions.length === 0) return;
@@ -1719,15 +1736,15 @@ export function RoofVisualization({
     
     // Notify parent of capacity change when orientation switches
     // Note: Only send panel count/capacity - arrays are recalculated on render, not per-orientation
-    if (onGeometryCalculated && newPanels.length > 0) {
-      onGeometryCalculated({
+    if (onGeometryCalculatedRef.current && newPanels.length > 0) {
+      onGeometryCalculatedRef.current({
         maxCapacityKW: Math.round(newPanels.length * PANEL_KW),
         panelCount: newPanels.length,
         realisticCapacityKW: Math.round(newPanels.length * PANEL_KW * 0.9),
         constraintAreaSqM: constraintArea
       });
     }
-  }, [selectedOrientation, buildingAlignedPanels, trueSouthPanels, buildingAlignedAngle, trueSouthAngle, onGeometryCalculated, constraintArea]);
+  }, [selectedOrientation, buildingAlignedPanels, trueSouthPanels, buildingAlignedAngle, trueSouthAngle, constraintArea]);
 
   const handleFullscreen = useCallback(() => {
     if (mapContainerRef.current) {
@@ -1913,6 +1930,7 @@ export function RoofVisualization({
                 onClick={() => {
                   setMapError(null);
                   setIsLoading(true);
+                  orientationInitializedRef.current = false;
                   setRetryKey(k => k + 1);
                 }}
                 data-testid="button-retry-map"
