@@ -3,7 +3,7 @@ import { syncOpportunityChanges } from "../workflowSync";
 import { db } from "../db";
 import {
   opportunities, activities, partnerships, clients, sites,
-  simulationRuns, portfolioSites,
+  simulationRuns, portfolioSites, meterFiles, roofPolygons,
 } from "@shared/schema";
 import type {
   Opportunity, InsertOpportunity,
@@ -222,6 +222,51 @@ export async function updateOpportunityStage(id: string, stage: string, probabil
   }
 
   return result;
+}
+
+// ==================== AUTO-STAGE ADVANCEMENT ====================
+
+const STAGE_PROBABILITIES_MAP: Record<string, number> = {
+  prospect: 5, contacted: 10, qualified: 15, analysis_done: 25,
+  design_mandate_signed: 50, epc_proposal_sent: 75, negotiation: 90,
+  won_to_be_delivered: 100, won_in_construction: 100, won_delivered: 100,
+};
+
+const STAGE_ORDER_LIST = [
+  "prospect", "contacted", "qualified", "analysis_done",
+  "design_mandate_signed", "epc_proposal_sent", "negotiation",
+  "won_to_be_delivered", "won_in_construction", "won_delivered",
+];
+
+export async function autoAdvanceStage(siteId: string): Promise<{ advanced: boolean; from?: string; to?: string }> {
+  const siteOpps = await db.select().from(opportunities).where(eq(opportunities.siteId, siteId));
+  if (siteOpps.length === 0) return { advanced: false };
+
+  const opp = siteOpps[0];
+
+  const step1Stages = ["prospect", "contacted", "qualified"];
+  if (!step1Stages.includes(opp.stage)) return { advanced: false };
+
+  const [site] = await db.select().from(sites).where(eq(sites.id, siteId));
+  if (!site) return { advanced: false };
+
+  const parsedFiles = await db.select({ id: meterFiles.id }).from(meterFiles)
+    .where(and(eq(meterFiles.siteId, siteId), eq(meterFiles.status, "PARSED")))
+    .limit(1);
+  const hasCsv = parsedFiles.length > 0;
+
+  const polygons = await db.select({ id: roofPolygons.id }).from(roofPolygons).where(eq(roofPolygons.siteId, siteId)).limit(1);
+  const hasRoofDrawing = polygons.length > 0 || !!(site.roofAreaSqM || site.roofAreaAutoSqM);
+
+  if (hasCsv && hasRoofDrawing) {
+    const newStage = "analysis_done";
+    const prob = STAGE_PROBABILITIES_MAP[newStage] ?? 25;
+    await updateOpportunityStage(opp.id, newStage, prob);
+    console.log(`[AutoAdvance] Site ${siteId}: ${opp.stage} → ${newStage}`);
+    return { advanced: true, from: opp.stage, to: newStage };
+  }
+
+  return { advanced: false };
 }
 
 // ==================== GLOBAL SEARCH ====================

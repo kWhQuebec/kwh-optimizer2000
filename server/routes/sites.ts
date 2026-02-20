@@ -33,6 +33,7 @@ import {
 import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-engine";
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError, ConflictError, ValidationError } from "../middleware/errorHandler";
 import { sendHqProcurationEmail } from "../emailService";
+import { autoAdvanceStage } from "../repositories/pipelineRepo";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("Sites");
@@ -682,6 +683,8 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
     }
   }
 
+  autoAdvanceStage(siteId).catch(err => log.error(`Auto-advance failed for site ${siteId}:`, err));
+
   res.json({ files: results });
 }));
 
@@ -821,6 +824,8 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
     quickAnalysisConstraintFactor: constraintFactor,
     quickAnalysisCompletedAt: new Date(),
   });
+
+  autoAdvanceStage(siteId).catch(err => log.error(`Auto-advance failed for site ${siteId}:`, err));
 
   res.json({
     success: true,
@@ -1376,6 +1381,8 @@ router.post("/:siteId/roof-polygons", authMiddleware, asyncHandler(async (req: A
     }
   }
 
+  autoAdvanceStage(siteId).catch(err => log.error(`Auto-advance failed for site ${siteId}:`, err));
+
   res.status(201).json(polygon);
 }));
 
@@ -1612,6 +1619,8 @@ router.post("/:siteId/generate-synthetic-profile", authMiddleware, requireStaff,
 
   log.info(`Synthetic profile created: ${readings.length} readings, peak ${result.metadata.estimatedPeakKW} kW`);
 
+  autoAdvanceStage(siteId).catch(err => log.error(`Auto-advance failed for site ${siteId}:`, err));
+
   res.json({
     meterFile: { ...meterFile, status: "PARSED" },
     metadata: result.metadata,
@@ -1650,6 +1659,7 @@ router.post("/:siteId/analyze-company-website", authMiddleware, requireStaff, as
 }));
 
 router.get("/:siteId/opportunities", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  await autoAdvanceStage(req.params.siteId).catch(err => log.error(`Auto-advance check failed:`, err));
   const opportunities = await storage.getOpportunitiesBySiteId(req.params.siteId);
   res.json(opportunities);
 }));
