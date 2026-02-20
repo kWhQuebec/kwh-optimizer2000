@@ -119,7 +119,7 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateEn: "Design mandate signed + deposit received",
     isHardBlock: true,
     tabs: ["consumption", "analysis", "design-agreement"],
-    maxPoints: 750,
+    maxPoints: 650,
   },
   {
     id: "technical-validation",
@@ -209,10 +209,8 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s2_ask_question", stepNum: 2, assignedTo: "client", titleFr: "Poser au moins 1 question", titleEn: "Ask at least 1 question", points: 50, optional: true },
   { key: "s2_sign_procuration", stepNum: 2, assignedTo: "client", titleFr: "Signer la procuration Hydro-Québec", titleEn: "Sign Hydro-Québec proxy", points: 100, optional: false },
   { key: "s2_sign_mandate", stepNum: 2, assignedTo: "client", titleFr: "Signer le mandat + verser le dépôt", titleEn: "Sign mandate + pay deposit", points: 200, optional: false },
-  { key: "s2_send_proposal", stepNum: 2, assignedTo: "account_manager", titleFr: "Envoyer la proposition < 3 jours", titleEn: "Send proposal within 3 days", points: 100, optional: false },
-  { key: "s2_answer_questions", stepNum: 2, assignedTo: "account_manager", titleFr: "Répondre aux questions < 24h", titleEn: "Answer questions within 24h", points: 50, optional: false },
-  { key: "s2_submit_procuration", stepNum: 2, assignedTo: "account_manager", titleFr: "Soumettre procuration à HQ", titleEn: "Submit proxy to HQ", points: 50, optional: false },
-  { key: "s2_confirm_crm", stepNum: 2, assignedTo: "account_manager", titleFr: "Confirmer réception + créer fiche CRM", titleEn: "Confirm receipt + create CRM record", points: 50, optional: false },
+  { key: "s2_run_analysis", stepNum: 2, assignedTo: "account_manager", titleFr: "Lancer l'analyse détaillée", titleEn: "Run detailed analysis", points: 100, optional: false },
+  { key: "s2_present_results", stepNum: 2, assignedTo: "account_manager", titleFr: "Présenter les résultats au client", titleEn: "Present results to client", points: 150, optional: false },
 
   // ── Step 3: Validation technique ──
   { key: "s3_site_access", stepNum: 3, assignedTo: "client", titleFr: "Donner accès au site", titleEn: "Provide site access", points: 50, optional: false },

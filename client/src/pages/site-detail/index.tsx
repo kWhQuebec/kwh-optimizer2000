@@ -305,15 +305,16 @@ export default function SiteDetailPage() {
       };
       delete (mergedAssumptions as any).yieldSource;
 
-      const result = await apiRequest<{ id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { 
+      const result = await apiRequest<{ simulationId?: string; id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { 
         assumptions: mergedAssumptions,
       });
       return result;
     },
     onSuccess: (data) => {
       setIsTransitioningSimulation(true);
-      if (data?.id) {
-        pendingNewSimulationIdRef.current = data.id;
+      const newSimId = data?.simulationId || data?.id;
+      if (newSimId) {
+        pendingNewSimulationIdRef.current = newSimId;
       } else {
         pendingNewSimulationIdRef.current = "__latest__";
       }
@@ -643,10 +644,27 @@ export default function SiteDetailPage() {
     return site.simulationRuns;
   }, [site?.simulationRuns]);
 
-  // The simulation to display
-  const latestSimulation = selectedSimulationId && selectedSimulationId !== "__latest__"
-    ? filteredSimulations.find(s => s.id === selectedSimulationId) || site?.simulationRuns?.find(s => s.id === selectedSimulationId)
-    : (filteredSimulations.find(s => s.type === "SCENARIO") || filteredSimulations[0] || null);
+  // The simulation to display - with self-healing for stale selectedSimulationId
+  const latestSimulation = useMemo(() => {
+    if (selectedSimulationId && selectedSimulationId !== "__latest__") {
+      const found = filteredSimulations.find(s => s.id === selectedSimulationId) 
+        || site?.simulationRuns?.find(s => s.id === selectedSimulationId);
+      if (found) return found;
+    }
+    return filteredSimulations.find(s => s.type === "SCENARIO") || filteredSimulations[0] || null;
+  }, [selectedSimulationId, filteredSimulations, site?.simulationRuns]);
+
+  useEffect(() => {
+    if (selectedSimulationId && selectedSimulationId !== "__latest__" && filteredSimulations.length > 0) {
+      const exists = filteredSimulations.some(s => s.id === selectedSimulationId);
+      if (!exists) {
+        const fallback = filteredSimulations.find(s => s.type === "SCENARIO") || filteredSimulations[0];
+        if (fallback) {
+          setSelectedSimulationId(fallback.id);
+        }
+      }
+    }
+  }, [selectedSimulationId, filteredSimulations]);
 
   // Auto-fetch full simulation data when viewing analysis tab
   useEffect(() => {

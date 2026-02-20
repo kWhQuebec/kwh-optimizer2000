@@ -121,14 +121,11 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
     site?.procurationStatus === "signed" || !!site?.procurationSignedAt,
   s2_sign_mandate: ({ designAgreement }) =>
     designAgreement?.status === "accepted" && !!designAgreement?.depositPaidAt,
-  s2_send_proposal: ({ site }) =>
-    !!(site?.analysisAvailable), // Proposal sent = analysis available to client
-  s2_answer_questions: () => false, // Needs activity log — future
-  s2_submit_procuration: ({ site }) =>
-    !!site?.procurationSentAt || site?.procurationStatus === "sent" || site?.procurationStatus === "signed",
-  s2_confirm_crm: ({ opportunityStage }) => {
-    const crmStages = ["design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
-    return crmStages.includes(opportunityStage);
+  s2_run_analysis: ({ site }) =>
+    !!(site?.analysisAvailable),
+  s2_present_results: ({ opportunityStage }) => {
+    const presentedStages = ["design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
+    return presentedStages.includes(opportunityStage);
   },
 
   // ── Step 3: Validation technique ──
