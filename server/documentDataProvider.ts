@@ -374,6 +374,19 @@ export function applyOptimalScenario(
     merged.annualCostAfter = Math.max(0, (simulation.annualCostBefore ?? 0) - (optimal.annualSavings ?? 0));
     merged.annualEnergySavingsKWh = scenarioBreakdown.annualEnergySavingsKWh ?? simulation.annualEnergySavingsKWh;
 
+    if (scenarioBreakdown.hourlyProfileSummary && scenarioBreakdown.hourlyProfileSummary.length > 0) {
+      const summaryAsHourly: HourlyProfileEntry[] = scenarioBreakdown.hourlyProfileSummary.map((s: any) => ({
+        hour: parseInt(s.hour),
+        month: 0,
+        consumption: s.consumptionBefore,
+        production: s.consumptionBefore - s.consumptionAfter,
+        peakBefore: s.peakBefore,
+        peakAfter: s.peakAfter,
+        batterySOC: 0,
+      }));
+      merged.hourlyProfile = summaryAsHourly;
+    }
+
     if (scenarioBreakdown.cashflows && scenarioBreakdown.cashflows.length > 0) {
       let cumulative = -(merged.capexNet ?? merged.capexGross ?? 0);
       merged.cashflows = scenarioBreakdown.cashflows.map((cf, i) => {

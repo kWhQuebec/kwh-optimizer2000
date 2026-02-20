@@ -203,6 +203,10 @@ function PresentationPage() {
       merged.totalExportedKWh = bd.totalExportedKWh ?? (sim as any).totalExportedKWh;
       merged.annualSurplusRevenue = bd.annualSurplusRevenue ?? (sim as any).annualSurplusRevenue;
 
+      if (bd.hourlyProfileSummary && bd.hourlyProfileSummary.length > 0) {
+        merged._scenarioHourlyProfileSummary = bd.hourlyProfileSummary;
+      }
+
       if (bd.cashflows && bd.cashflows.length > 0) {
         let cumulative = -(merged.capexNet ?? merged.capexGross ?? 0);
         merged.cashflows = bd.cashflows.map((cf: any, i: number) => {
@@ -664,6 +668,11 @@ function BillComparisonSlide({ simulation, language }: { simulation: SimulationR
 
 function EnergyProfileSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
   const hourlyProfileData = useMemo(() => {
+    const scenarioProfile = (simulation as any)?._scenarioHourlyProfileSummary;
+    if (scenarioProfile && scenarioProfile.length > 0) {
+      return scenarioProfile;
+    }
+
     const rawProfile = simulation?.hourlyProfile as HourlyProfileEntry[] | null;
     if (!rawProfile || rawProfile.length === 0) return null;
 
@@ -706,7 +715,7 @@ function EnergyProfileSlide({ simulation, language }: { simulation: SimulationRu
       }
     }
     return result;
-  }, [simulation?.hourlyProfile]);
+  }, [simulation?.hourlyProfile, (simulation as any)?._scenarioHourlyProfileSummary]);
 
   if (!hourlyProfileData || hourlyProfileData.length === 0) {
     return (
