@@ -306,6 +306,7 @@ interface AnalysisResult {
   annualDemandReductionKW: number;
   selfConsumptionKWh: number;
   selfSufficiencyPercent: number;
+  totalProductionKWh: number;
   annualCostBefore: number;
   annualCostAfter: number;
   annualSavings: number;
@@ -841,6 +842,7 @@ export function runPotentialAnalysis(
     annualDemandReductionKW,
     selfConsumptionKWh,
     selfSufficiencyPercent,
+    totalProductionKWh,
     annualCostBefore,
     annualCostAfter,
     annualSavings,

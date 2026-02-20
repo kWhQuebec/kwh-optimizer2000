@@ -33,7 +33,6 @@ import {
   estimateAnnualConsumption,
   type BuildingSubType,
   type OperatingSchedule,
-  BASELINE_YIELD,
 } from "../analysis";
 import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-engine";
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError, ConflictError, ValidationError } from "../middleware/errorHandler";
@@ -1025,7 +1024,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     annualDemandReductionKW: result.annualDemandReductionKW,
     selfConsumptionKWh: result.selfConsumptionKWh,
     selfSufficiencyPercent: result.selfSufficiencyPercent,
-    totalProductionKWh: result.pvSizeKW * (result.assumptions?.solarYieldKWhPerKWp || BASELINE_YIELD),
+    totalProductionKWh: result.totalProductionKWh,
     annualCostBefore: result.annualCostBefore,
     annualCostAfter: result.annualCostAfter,
     annualSavings: result.annualSavings,

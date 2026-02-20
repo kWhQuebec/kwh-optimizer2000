@@ -19,9 +19,9 @@ import {
 } from "../analysis/potentialAnalysis";
 
 export const SNOW_LOSS_FLAT_ROOF: number[] = [
-  1.00, // Jan - 100% loss
-  1.00, // Feb - 100% loss
-  0.70, // Mar - 70% loss
+  0.70, // Jan - 70% loss (heavy snow cover on flat roof, minimal clearing)
+  0.50, // Feb - 50% loss (persistent snow, some melting begins mid-month)
+  0.20, // Mar - 20% loss (spring thaw, intermittent coverage)
   0.00, // Apr
   0.00, // May
   0.00, // Jun
@@ -30,7 +30,7 @@ export const SNOW_LOSS_FLAT_ROOF: number[] = [
   0.00, // Sep
   0.00, // Oct
   0.00, // Nov
-  0.50, // Dec - 50% loss
+  0.40, // Dec - 40% loss (snow accumulation begins, short days)
 ];
 
 const BASELINE_CAPACITY_FACTOR = 0.645;
@@ -149,7 +149,7 @@ export function runHourlySimulation(
     const { hour, month, consumption, peak } = hourlyData[i];
 
     const bell = Math.exp(-Math.pow(hour - 13, 2) / 8);
-    const season = 1 - 0.4 * Math.cos((month - 6) * 2 * Math.PI / 12);
+    const season = 1 + 0.4 * Math.cos((month - 6) * 2 * Math.PI / 12);
     const isDaytime = hour >= 5 && hour <= 20;
 
     let dcProduction = pvSizeKW * bell * season * BASELINE_CAPACITY_FACTOR * solarYieldFactor * (isDaytime ? 1 : 0);

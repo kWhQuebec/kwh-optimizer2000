@@ -81,7 +81,9 @@ Specific color conventions apply to charts (waterfall, cashflow), CRM pipeline s
 -   **Build Tools**: `vite`, `esbuild`, `typescript`.
 
 ## Recent Changes
-- **Feb 2026**: Fixed +68% yield inflation bug — production now uses hourly simulation results (with all losses/clipping), not simple pvSizeKW × effectiveYield
+- **Feb 2026**: Fixed yield inflation bug — `totalProductionKWh` stored in DB now uses actual hourly simulation result (with snow losses, clipping, temperature correction, system derates) instead of simple `pvSizeKW × effectiveYield` formula. Both main sim and sensitivity analysis now produce consistent yield per kWp.
+- **Feb 2026**: Fixed inverted seasonal curve in `runHourlySimulation` — changed `1 - 0.4*cos(...)` to `1 + 0.4*cos(...)` so solar production correctly peaks in summer (~11% in May/June) and is lowest in winter (~5.5% in Dec/Jan), matching Quebec latitude ~46°N patterns.
+- **Feb 2026**: Updated `SNOW_LOSS_FLAT_ROOF` profile to realistic values (Jan 70%, Feb 50%, Mar 20%, Dec 40%) yielding ~11.5% annual loss. Previous values (Jan/Feb 100%, Mar 70%) caused 34% annual loss due to interaction with the formerly inverted seasonal curve.
 - **Feb 2026**: Roof capacity single-source-of-truth — RoofVisualization saves kbKwDc/kbPanelCount to site DB, analysis engine prefers this over formula
 - **Feb 2026**: Sensitivity analysis caps at 100% roof capacity (was 110%)
 - **Feb 2026**: "Meilleur TRI" optimization tab always visible (falls back to bestNPV data when bestIRR is null)
