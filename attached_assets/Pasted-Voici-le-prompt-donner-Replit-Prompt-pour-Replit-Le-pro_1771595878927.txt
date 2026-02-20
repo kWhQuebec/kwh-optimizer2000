@@ -1,0 +1,58 @@
+Voici le prompt à donner à Replit :
+
+---
+
+**Prompt pour Replit :**
+
+> Le profil de perte neige (`SNOW_LOSS_FLAT_ROOF` dans `server/routes/siteAnalysisHelpers.ts`) est irréaliste. Janvier et février sont à 100% de perte (zéro production), mais les données PVGIS montrent qu'un système à 10° à Montréal produit encore 57 kWh/kWp en janvier et 76 kWh/kWp en février. Les panneaux chauffent et dégagent partiellement la neige même sur toit plat.
+>
+> Remplace le profil actuel par ces valeurs basées sur la comparaison PVGIS avec neige vs sans neige pour Montréal (45.5°N, 10° tilt) :
+>
+> ```
+> const SNOW_LOSS_FLAT_ROOF: number[] = [
+>   0.55, // Jan - 55% loss
+>   0.45, // Feb - 45% loss
+>   0.30, // Mar - 30% loss
+>   0.05, // Apr - 5% (fonte rapide, dernières traces)
+>   0.00, // May
+>   0.00, // Jun
+>   0.00, // Jul
+>   0.00, // Aug
+>   0.00, // Sep
+>   0.00, // Oct
+>   0.10, // Nov - 10% (premières neiges)
+>   0.40, // Dec - 40% loss
+> ];
+> ```
+>
+> Ajoute aussi un profil pour les toits inclinés (>15°) où la neige glisse plus facilement :
+>
+> ```
+> const SNOW_LOSS_TILTED: number[] = [
+>   0.30, // Jan
+>   0.25, // Feb
+>   0.15, // Mar
+>   0.02, // Apr
+>   0.00, // May
+>   0.00, // Jun
+>   0.00, // Jul
+>   0.00, // Aug
+>   0.00, // Sep
+>   0.00, // Oct
+>   0.05, // Nov
+>   0.20, // Dec
+> ];
+> ```
+>
+> Dans `runHourlySimulation()`, change la logique de sélection du profil neige :
+> - Si `snowLossProfile === 'flat_roof'` → utilise `SNOW_LOSS_FLAT_ROOF`
+> - Si `snowLossProfile === 'tilted'` → utilise `SNOW_LOSS_TILTED`
+> - Si `snowLossProfile === 'none'` ou absent → pas de perte neige (cas Google Solar API avec données locales mesurées, ou sites hors Québec)
+>
+> **Important** : quand `yieldSource === 'google'`, le snow loss DOIT toujours être appliqué car Google Solar API exclut explicitement la neige de ses calculs. Assure-toi que le snow profile est forcé à `'flat_roof'` par défaut quand la source est Google et que le site est au Québec, sauf si le toit a une inclinaison >15° (alors utilise `'tilted'`).
+>
+> Finalement, relance les simulations existantes pour tous les sites en BD avec le nouveau profil neige pour mettre à jour les résultats. Si c'est trop lourd, au minimum flag les simulations existantes comme `outdated: true` pour qu'on sache qu'elles utilisent l'ancien profil.
+
+---
+
+**Point de vigilance** : les valeurs que je propose sont dérivées de la comparaison PVGIS (sans neige) vs données réelles terrain. Si tu as des données de production réelle de tes installations existantes, compare-les aux prédictions — c'est la meilleure calibration possible. Un seul hiver de données réelles vaut plus que n'importe quel modèle théorique.
