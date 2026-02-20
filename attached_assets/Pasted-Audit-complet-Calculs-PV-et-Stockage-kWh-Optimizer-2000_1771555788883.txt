@@ -1,0 +1,372 @@
+Audit complet — Calculs PV et Stockage kWh Optimizer 2000
+
+Éléments 100% crédibles / alignés avec les références
+
+Incitations et règles fiscales
+
+
+
+
+
+Subvention HQ : 1 000 $/kW, plafonnée à 40 % du CAPEX et limitée à 1 MW — cohérente dans cashflowEngine.ts, siteAnalysisHelpers.ts, sites.ts, routes.ts
+
+
+
+ITC fédérale 30 % : appliquée sur (CAPEX − subvention HQ) — formule correcte partout sauf dans leads.ts (voir section suivante)
+
+
+
+Formule LCOE : dégradation, O&M, production sur 25 ans — logique correcte dans runPotentialAnalysis
+
+Modèle de production horaire
+
+
+
+
+
+Courbe Gaussienne : pic à 13h, jour 5h–20h, facteur saisonnier (été ≈ 1,4, hiver ≈ 0,6) — cohérent dans les implémentations actives
+
+
+
+BASELINE_CAPACITY_FACTOR = 0,645 : calé pour ~1150 kWh/kWp/an dans siteAnalysisHelpers.ts et routes.ts (correction janvier 2026)
+
+
+
+Correction température : -0,4 %/°C au-dessus de 25 °C — appliquée uniquement pour le yield par défaut (pas pour Google/manuel)
+
+
+
+Toit manuel : les polygones tracés manuellement sont la source de vérité, pas l’API Google (documenté dans sites.ts)
+
+Stockage / Peak shaving
+
+
+
+
+
+Dispatch batterie : priorité aux pics quotidiens, look-ahead 6h, réserve 50 % pour pics non prioritaires — même logique dans siteAnalysisHelpers et routes.ts
+
+
+
+Clipping onduleur : ILR 1,45, limite AC déduite correctement
+
+
+
+HQ tariffs : tarifs G/M/L (énergie + demande) alignés avec la grille HQ avril 2025
+
+Moteur financier partagé
+
+
+
+
+
+shared/finance/cashflowEngine.ts : référence pour Cash/Lease/PPA dans Market Intelligence
+
+
+
+NPV / IRR : formules standard (Newton-Raphson pour IRR)
+
+
+
+Remplacement batterie : années 10, 20, 30 ; facteur de remplacement 60 %, baisse des prix 5 %/an
+
+Sources de données centralisées
+
+
+
+
+
+BASELINE_YIELD : exporté depuis potentialAnalysis.ts (1150 kWh/kWp)
+
+
+
+QUEBEC_MONTHLY_TEMPS : défini dans potentialAnalysis.ts
+
+
+
+Bilan PVSyst : wire 3 %, LID 1 %, mismatch 2 %, etc. — documenté dans .agents/skills/kwh-roof-capacity-consistency/SKILL.md et kwh-solar-specs/SKILL.md
+
+
+
+Éléments non 100 % fiables
+
+1. Incohérences de constantes
+
+
+
+
+
+
+
+Élément
+
+
+
+Valeur A
+
+
+
+Valeur B
+
+
+
+Emplacement
+
+
+
+
+
+Perte câblage
+
+
+
+3 %
+
+
+
+2 %
+
+
+
+Schema / siteAnalysisHelpers vs sites.ts, leads.ts, landing.tsx
+
+
+
+
+
+Boost bifacial
+
+
+
+15 %
+
+
+
+8 %
+
+
+
+potentialAnalysis vs analyse rapide sites.ts
+
+
+
+
+
+QUEBEC_MONTHLY_TEMPS
+
+
+
+[-10,5 ; 21]
+
+
+
+[-10 ; 21]
+
+
+
+potentialAnalysis.ts vs routes.ts (légère différence)
+
+2. Code obsolète encore présent
+
+
+
+
+
+potentialAnalysis.runSolarBatterySimulation : utilise 0,75 (≈1338 kWh/kWp) au lieu de 0,645
+
+
+
+Marqué @deprecated mais toujours importé dans routes.ts (risque d’utilisation accidentelle)
+
+
+
+Pas d’appel trouvé dans le code actif → code mort mais source possible de confusion
+
+3. Erreurs de calcul
+
+
+
+
+
+leads.ts L175 : ITC appliquée sur le CAPEX brut au lieu de (CAPEX − subvention HQ) → surestimation de l’ITC pour les leads
+
+
+
+Tarif G : demande à 0 $/kW dans peakShavingAnalysis.ts — à vérifier pour les clients tarif G
+
+4. Outils de présentation — valeurs figées
+
+Production kWh basée sur 1035 (ou 1150) au lieu du résultat de simulation :
+
+
+
+
+
+
+
+Fichier
+
+
+
+Valeur utilisée
+
+
+
+À préférer
+
+
+
+
+
+server/pdf/sections/kpiResults.ts
+
+
+
+pvSizeKW * 1035
+
+
+
+simulation.totalProductionKWh
+
+
+
+
+
+server/pdf/sections/projectSnapshot.ts
+
+
+
+pvSizeKW * 1035
+
+
+
+idem
+
+
+
+
+
+server/pptxGenerator.ts / pptxGeneratorV2.ts
+
+
+
+pvSizeKW * 1035
+
+
+
+idem
+
+
+
+
+
+client/presentation.tsx
+
+
+
+fallback pvSizeKW * 1035
+
+
+
+idem
+
+
+
+
+
+documentDataProvider.ts
+
+
+
+pvSizeKW * 1150 (réf. clipping)
+
+
+
+peut rester ou passer au rendement effectif
+
+5. Divergences méthodologiques
+
+
+
+
+
+LCOE : la méthodologie décrit un LCOE avec O&M et production actualisées ; le code utilise O&M et production non actualisés → formulation différente
+
+
+
+site-detail Quick Summary : NPV/IRR recalculés côté client avec taux 6 % au lieu du 7 % par défaut du schéma
+
+6. Données synthétiques sans référence
+
+
+
+
+
+syntheticProfile.ts : MONTHLY_FACTORS et ARCHETYPES (intensityKwhPerSqFt) — benchmarks C&I standards, aucune référence externe documentée
+
+
+
+Formule KB Racking : 0,660 kW/panneau (et non 0,625 kW) — à confirmer avec la doc KB
+
+7. Duplication de code
+
+
+
+
+
+Deux implémentations de runHourlySimulation : siteAnalysisHelpers.ts et routes.ts
+
+
+
+Deux implémentations de runPotentialAnalysis : même situation
+
+
+
+Risque de divergence si une seule est mise à jour
+
+8. Chargement batterie sur le réseau
+
+
+
+
+
+siteAnalysisHelpers : charge la batterie à 22h si SOC < max et retourne totalGridChargingKWh pour déduire du bénéfice
+
+
+
+routes.ts : même logique de charge à 22h mais ne calcule pas (ni ne retourne) le coût de cette charge
+
+
+
+potentialAnalysis.runSolarBatterySimulation : aucun chargement réseau, seulement surplus solaire
+
+
+
+Synthèse des actions recommandées
+
+
+
+
+
+Priorité haute : corriger l’ITC dans leads.ts (base = CAPEX − subvention HQ).
+
+
+
+Priorité haute : unifier perte câblage et boost bifacial entre analyse rapide et détaillée.
+
+
+
+Priorité moyenne : faire utiliser totalProductionKWh du backend aux générateurs PDF/PPTX au lieu de 1035.
+
+
+
+Priorité moyenne : supprimer ou corriger runSolarBatterySimulation (0,75 → 0,645) ou le retirer.
+
+
+
+Priorité basse : centraliser runPotentialAnalysis et runHourlySimulation dans un seul module.
+
+
+
+Priorité basse : aligner LCOE code vs méthodologie (actualisation ou documentation explicite).
+
