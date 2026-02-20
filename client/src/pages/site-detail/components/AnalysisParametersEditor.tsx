@@ -357,7 +357,7 @@ export function AnalysisParametersEditor({
                   </Label>
                   <select
                     value={merged.snowLossProfile || "none"}
-                    onChange={(e) => onChange({ ...value, snowLossProfile: e.target.value as 'none' | 'flat_roof' })}
+                    onChange={(e) => onChange({ ...value, snowLossProfile: e.target.value as 'none' | 'flat_roof' | 'tilted' })}
                     disabled={disabled}
                     className="h-8 text-sm rounded-md border border-input bg-background px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
                     data-testid="select-snow-loss-profile"
@@ -365,16 +365,21 @@ export function AnalysisParametersEditor({
                     <option value="none">{language === "fr" ? "Aucun" : "None"}</option>
                     <option value="flat_roof">
                       {language === "fr"
-                        ? "Toit plat (jan-f\u00E9v 100%, mars 70%, d\u00E9c 50%)"
-                        : "Flat roof (Jan-Feb 100%, Mar 70%, Dec 50%)"}
+                        ? "Toit plat (PVGIS: jan 55%, f\u00E9v 45%, mars 30%, d\u00E9c 40%)"
+                        : "Flat roof (PVGIS: Jan 55%, Feb 45%, Mar 30%, Dec 40%)"}
+                    </option>
+                    <option value="tilted">
+                      {language === "fr"
+                        ? "Toit inclin\u00E9 >15\u00B0 (jan 30%, f\u00E9v 25%, mars 15%, d\u00E9c 20%)"
+                        : "Tilted roof >15\u00B0 (Jan 30%, Feb 25%, Mar 15%, Dec 20%)"}
                     </option>
                   </select>
                 </div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Info className="w-3 h-3" />
                   {language === "fr"
-                    ? "Appliquer un profil de pertes saisonni\u00E8res dues \u00E0 la neige. D\u00E9sactiv\u00E9 par d\u00E9faut (la plupart des syst\u00E8mes C&I \u00E9vacuent la neige efficacement)."
-                    : "Apply seasonal snow loss profile. Off by default (most C&I systems shed snow effectively)."}
+                    ? "Profil de pertes saisonni\u00E8res dues \u00E0 la neige (calibr\u00E9 PVGIS Montr\u00E9al). Forc\u00E9 automatiquement si la source de rendement est Google Solar API."
+                    : "Seasonal snow loss profile (PVGIS-calibrated for Montreal). Automatically forced when yield source is Google Solar API."}
                 </p>
               </div>
             </div>

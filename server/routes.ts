@@ -799,7 +799,12 @@ function runPotentialAnalysis(
     moduleQualityGainPercent: h.moduleQualityGainPercent ?? 0.0075,
   };
   
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
+  let effectiveSnowProfile = h.snowLossProfile;
+  if (currentYieldSource === 'google' && (!effectiveSnowProfile || effectiveSnowProfile === 'none')) {
+    effectiveSnowProfile = 'flat_roof';
+  }
+
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, effectiveSnowProfile);
   
   // Extract metrics from simulation
   const selfConsumptionKWh = simResult.totalSelfConsumption;
@@ -1086,7 +1091,7 @@ function runPotentialAnalysis(
     const optDemandShavingSetpointKW = Math.round(peakKW * 0.90);
     
     // Run simulation with optimal sizing
-    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
+    const optSimResult = runHourlySimulation(hourlyData, optPvSizeKW, optBattEnergyKWh, optBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, effectiveSnowProfile);
     
     // Recalculate all financials with optimal sizing
     const optSelfConsumptionKWh = optSimResult.totalSelfConsumption;
@@ -1340,7 +1345,7 @@ function runPotentialAnalysis(
       const finalBattPowerKW = regenOptimal.battPowerKW;
       
       // Run full simulation with the truly optimal sizing
-      const finalSimResult = runHourlySimulation(hourlyData, finalPvSizeKW, finalBattEnergyKWh, finalBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
+      const finalSimResult = runHourlySimulation(hourlyData, finalPvSizeKW, finalBattEnergyKWh, finalBattPowerKW, optDemandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, effectiveSnowProfile);
       
       // Quick recalculate NPV for the truly optimal sizing
       const finalResult = runScenarioWithSizing(
@@ -1750,7 +1755,7 @@ function runHourlySimulation(
   solarYieldFactor: number = 1.0,
   systemParams: SystemModelingParams = { inverterLoadRatio: 1.45, temperatureCoefficient: -0.004, wireLossPercent: 0.03, skipTempCorrection: false, lidLossPercent: 0.01, mismatchLossPercent: 0.02, mismatchStringsLossPercent: 0.0015, moduleQualityGainPercent: 0.0075 },
   yieldSource: 'google' | 'manual' | 'default' = 'default',
-  snowLossProfile?: 'none' | 'flat_roof'
+  snowLossProfile?: 'none' | 'flat_roof' | 'tilted'
 ) {
   return centralRunHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, threshold, solarYieldFactor, systemParams, yieldSource, snowLossProfile);
 }

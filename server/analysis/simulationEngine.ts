@@ -19,18 +19,33 @@ import {
 } from "../analysis/potentialAnalysis";
 
 export const SNOW_LOSS_FLAT_ROOF: number[] = [
-  0.70, // Jan - 70% loss (heavy snow cover on flat roof, minimal clearing)
-  0.50, // Feb - 50% loss (persistent snow, some melting begins mid-month)
-  0.20, // Mar - 20% loss (spring thaw, intermittent coverage)
-  0.00, // Apr
+  0.55, // Jan - 55% loss (PVGIS-calibrated, panels partially self-clear via heating)
+  0.45, // Feb - 45% loss (persistent snow, some melting mid-month)
+  0.30, // Mar - 30% loss (spring thaw begins, intermittent coverage)
+  0.05, // Apr - 5% loss (rapid melt, last traces)
   0.00, // May
   0.00, // Jun
   0.00, // Jul
   0.00, // Aug
   0.00, // Sep
   0.00, // Oct
-  0.00, // Nov
-  0.40, // Dec - 40% loss (snow accumulation begins, short days)
+  0.10, // Nov - 10% loss (first snowfalls)
+  0.40, // Dec - 40% loss (snow accumulation, short days)
+];
+
+export const SNOW_LOSS_TILTED: number[] = [
+  0.30, // Jan - snow slides off tilted panels (>15°)
+  0.25, // Feb
+  0.15, // Mar
+  0.02, // Apr
+  0.00, // May
+  0.00, // Jun
+  0.00, // Jul
+  0.00, // Aug
+  0.00, // Sep
+  0.00, // Oct
+  0.05, // Nov
+  0.20, // Dec
 ];
 
 const BASELINE_CAPACITY_FACTOR = 0.645;
@@ -93,7 +108,7 @@ export function runHourlySimulation(
   solarYieldFactor: number = 1.0,
   systemParams: SystemModelingParams = { inverterLoadRatio: 1.45, temperatureCoefficient: -0.004, wireLossPercent: 0.03, skipTempCorrection: false, lidLossPercent: 0.01, mismatchLossPercent: 0.02, mismatchStringsLossPercent: 0.0015, moduleQualityGainPercent: 0.0075 },
   yieldSource: 'google' | 'manual' | 'default' = 'default',
-  snowLossProfile?: 'none' | 'flat_roof'
+  snowLossProfile?: 'none' | 'flat_roof' | 'tilted'
 ): HourlySimulationResult {
   const hourlyProfile: HourlyProfileEntry[] = [];
   let soc = battEnergyKWh * 0.5;
@@ -172,6 +187,8 @@ export function runHourlySimulation(
 
     if (snowLossProfile === 'flat_roof') {
       dcProduction *= (1 - SNOW_LOSS_FLAT_ROOF[month - 1]);
+    } else if (snowLossProfile === 'tilted') {
+      dcProduction *= (1 - SNOW_LOSS_TILTED[month - 1]);
     }
 
     let acProduction = dcProduction;
@@ -450,7 +467,12 @@ export function runScenarioWithSizing(
     moduleQualityGainPercent: h.moduleQualityGainPercent ?? 0.0075,
   };
 
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource, h.snowLossProfile);
+  let effectiveSnowProfile = h.snowLossProfile;
+  if (scenarioYieldSource === 'google' && (!effectiveSnowProfile || effectiveSnowProfile === 'none')) {
+    effectiveSnowProfile = 'flat_roof';
+  }
+
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource, effectiveSnowProfile);
 
   const byHourAgg = new Map<number, { consumptionSum: number; productionSum: number; peakBeforeSum: number; peakAfterSum: number; count: number }>();
   for (const entry of simResult.hourlyProfile) {

@@ -2398,7 +2398,7 @@ export interface AnalysisAssumptions {
   // NOT client's energy tariff rate - HQ compensates at cost of supply after 24-month bank reset
   hqSurplusCompensationRate?: number;  // $/kWh - default 0.0460 (4.60¢/kWh)
 
-  snowLossProfile?: 'none' | 'flat_roof'; // Optional snow loss profile for flat roof/shed configs
+  snowLossProfile?: 'none' | 'flat_roof' | 'tilted'; // Snow loss profile: flat_roof (PVGIS-calibrated), tilted (>15° slope), none
 
   // EPC gross margin applied to catalog cost prices for sell pricing
   epcMargin?: number; // Gross margin (default 0.35 = 35%) — sellPrice = cost / (1 - margin)

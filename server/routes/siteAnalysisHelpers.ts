@@ -575,7 +575,12 @@ export function runPotentialAnalysis(
     moduleQualityGainPercent: h.moduleQualityGainPercent ?? 0.0075,
   };
   
-  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, h.snowLossProfile);
+  let effectiveSnowProfile = h.snowLossProfile;
+  if (currentYieldSource === 'google' && (!effectiveSnowProfile || effectiveSnowProfile === 'none')) {
+    effectiveSnowProfile = 'flat_roof';
+  }
+
+  const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, effectiveSnowProfile);
   
   const selfConsumptionKWh = simResult.totalSelfConsumption;
   const totalProductionKWh = simResult.totalProductionKWh;
