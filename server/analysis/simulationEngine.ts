@@ -1017,6 +1017,7 @@ export function runSensitivityAnalysis(
         peakDemandAfterKW: result.peakAfterKW,
         annualEnergySavingsKWh: result.selfConsumptionKWh,
         cashflows: result.cashflows,
+        hourlyProfileSummary: result.hourlyProfileSummary,
       },
     };
   };

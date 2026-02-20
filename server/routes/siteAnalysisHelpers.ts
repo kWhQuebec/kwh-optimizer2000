@@ -908,9 +908,20 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
     granularity: r.granularity || undefined
   })));
 
-  const roofDetailsScenario = site.roofAreaAutoDetails as { yearlyEnergyDcKwh?: number } | null;
-  const googleData = roofDetailsScenario?.yearlyEnergyDcKwh && (site as any).kbKwDc
-    ? { googleProductionEstimate: { yearlyEnergyAcKwh: roofDetailsScenario.yearlyEnergyDcKwh, systemSizeKw: (site as any).kbKwDc } }
+  const roofDetailsScenario = site.roofAreaAutoDetails as { yearlyEnergyDcKwh?: number; maxSunshineHoursPerYear?: number } | null;
+  const googleData: { googleProductionEstimate?: { yearlyEnergyAcKwh: number; systemSizeKw: number }; maxSunshineHoursPerYear?: number } | undefined =
+    (roofDetailsScenario?.yearlyEnergyDcKwh && (site as any).kbKwDc) || roofDetailsScenario?.maxSunshineHoursPerYear
+    ? {
+        ...(roofDetailsScenario?.yearlyEnergyDcKwh && (site as any).kbKwDc ? {
+          googleProductionEstimate: {
+            yearlyEnergyAcKwh: roofDetailsScenario.yearlyEnergyDcKwh,
+            systemSizeKw: (site as any).kbKwDc
+          }
+        } : {}),
+        ...(roofDetailsScenario?.maxSunshineHoursPerYear ? {
+          maxSunshineHoursPerYear: roofDetailsScenario.maxSunshineHoursPerYear
+        } : {})
+      }
     : undefined;
 
   const baseAssumptions = {

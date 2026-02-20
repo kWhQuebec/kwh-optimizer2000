@@ -1747,6 +1747,11 @@ export function AnalysisResults({
                     <div className="text-center p-4 bg-muted/30 rounded-lg">
                       <p className="text-xs text-muted-foreground mb-1">
                         {language === "fr" ? "Notre rendement" : "Our Yield"}
+                        {assumptions?.yieldSource && assumptions.yieldSource !== 'default' && (
+                          <span className="ml-1 text-[10px] text-primary">
+                            ({assumptions.yieldSource === 'google' ? 'Google' : language === "fr" ? 'Manuel' : 'Manual'})
+                          </span>
+                        )}
                       </p>
                       <p className="text-2xl font-bold font-mono">{Math.round(ourYield)}</p>
                       <p className="text-xs text-muted-foreground">kWh/kWp</p>
@@ -2327,8 +2332,8 @@ export function AnalysisResults({
                                 </span>
                                 <span className="text-amber-600 dark:text-amber-300 ml-1">
                                   {language === "fr"
-                                    ? `Si Hydro-Québec augmente de +6%/an au lieu de +${((assumptions.electricityEscalation || 0.035) * 100).toFixed(1).replace('.0', '')}%/an, la rentabilité s'améliore significativement.`
-                                    : `If Hydro-Québec increases +6%/year instead of +${((assumptions.electricityEscalation || 0.035) * 100).toFixed(1).replace('.0', '')}%/year, profitability improves significantly.`}
+                                    ? `Si Hydro-Québec augmente de +6%/an au lieu de +${((assumptions.inflationRate || 0.035) * 100).toFixed(1).replace('.0', '')}%/an, la rentabilité s'améliore significativement.`
+                                    : `If Hydro-Québec increases +6%/year instead of +${((assumptions.inflationRate || 0.035) * 100).toFixed(1).replace('.0', '')}%/year, profitability improves significantly.`}
                                 </span>
                               </div>
                             </div>

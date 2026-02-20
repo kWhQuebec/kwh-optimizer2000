@@ -2545,8 +2545,8 @@ export interface FrontierPoint {
   isOptimal: boolean;
   
   // Sweep source for hybrid points (for visual distinction)
-  // 'pvSweep' = varies PV at fixed battery, 'battSweep' = varies battery at fixed PV
-  sweepSource?: 'pvSweep' | 'battSweep';
+  // 'pvSweep' = varies PV at fixed battery, 'battSweep' = varies battery at fixed PV, 'hybridGrid' = 2D grid search
+  sweepSource?: 'pvSweep' | 'battSweep' | 'hybridGrid';
   
   // Extended KPI fields (populated only for optimal scenario)
   annualSavings?: number;

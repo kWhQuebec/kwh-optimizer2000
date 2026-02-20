@@ -906,15 +906,22 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     granularity: r.granularity || undefined
   })));
 
-  const roofDetailsScenario = site.roofAreaAutoDetails as { yearlyEnergyDcKwh?: number } | null;
+  const roofDetailsScenario = site.roofAreaAutoDetails as { yearlyEnergyDcKwh?: number; maxSunshineHoursPerYear?: number } | null;
 
   // Build googleData object for resolveYieldStrategy
-  const googleData = roofDetailsScenario?.yearlyEnergyDcKwh && site.kbKwDc
+  // Include both production estimate (PRIORITY 1) and sunshine hours fallback (PRIORITY 2)
+  const googleData: { googleProductionEstimate?: { yearlyEnergyAcKwh: number; systemSizeKw: number }; maxSunshineHoursPerYear?: number } | undefined =
+    (roofDetailsScenario?.yearlyEnergyDcKwh && site.kbKwDc) || roofDetailsScenario?.maxSunshineHoursPerYear
     ? {
-        googleProductionEstimate: {
-          yearlyEnergyAcKwh: roofDetailsScenario.yearlyEnergyDcKwh,
-          systemSizeKw: site.kbKwDc
-        }
+        ...(roofDetailsScenario?.yearlyEnergyDcKwh && site.kbKwDc ? {
+          googleProductionEstimate: {
+            yearlyEnergyAcKwh: roofDetailsScenario.yearlyEnergyDcKwh,
+            systemSizeKw: site.kbKwDc
+          }
+        } : {}),
+        ...(roofDetailsScenario?.maxSunshineHoursPerYear ? {
+          maxSunshineHoursPerYear: roofDetailsScenario.maxSunshineHoursPerYear
+        } : {})
       }
     : undefined;
 
