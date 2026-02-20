@@ -269,7 +269,7 @@ export const BRAND_CONTENT = {
     peakDemand: { labelFr: "Demande de pointe", labelEn: "Peak demand", unit: "kW" },
     currentTariff: { labelFr: "Tarif Hydro-Québec actuel", labelEn: "Current Hydro-Québec tariff", unit: "" },
     estimatedProduction: { labelFr: "Production solaire an 1", labelEn: "Year-1 solar production", unit: "kWh" },
-    selfConsumptionRate: { labelFr: "Taux d'autoconsommation", labelEn: "Self-consumption rate", unit: "%" },
+    selfConsumptionRate: { labelFr: "Couverture énergétique", labelEn: "Energy Coverage", unit: "%" },
     solarCapacity: { labelFr: "Puissance solaire proposée", labelEn: "Proposed solar capacity", unit: "kWc" },
     batteryCapacity: { labelFr: "Stockage proposé", labelEn: "Proposed storage", unit: "kWh" },
   },
