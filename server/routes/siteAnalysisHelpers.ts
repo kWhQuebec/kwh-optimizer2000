@@ -535,21 +535,12 @@ export function runPotentialAnalysis(
     ? (h as AnalysisAssumptions & { maxPVFromRoofKw?: number }).maxPVFromRoofKw!
     : ((h.roofAreaSqFt / 10.764) * h.roofUtilizationRatio / 3.71) * 0.660;
   
+  // Use _yieldStrategy (set by resolveYieldStrategy) as SINGLE source of truth for yield
+  // This ensures bifacial boost matches roof color analysis (5%/10%/15%) and avoids hard-coded 1.15
   const storedYieldStrategy = (h as AnalysisAssumptions & { _yieldStrategy?: YieldStrategy })._yieldStrategy;
-  let effectiveYield: number;
-  
-  if (storedYieldStrategy) {
-    effectiveYield = storedYieldStrategy.effectiveYield;
-  } else if (h.yieldSource === 'google') {
-    const googleBaseYield = h.solarYieldKWhPerKWp || 1079;
-    const bifacialMultiplier = h.bifacialEnabled === true ? 1.15 : 1.0;
-    effectiveYield = googleBaseYield * bifacialMultiplier;
-  } else {
-    const baseYield = h.solarYieldKWhPerKWp || 1150;
-    const orientationFactor = Math.max(0.6, Math.min(1.0, h.orientationFactor || 1.0));
-    const bifacialMultiplier = h.bifacialEnabled === true ? 1.15 : 1.0;
-    effectiveYield = baseYield * orientationFactor * bifacialMultiplier;
-  }
+  const effectiveYield = storedYieldStrategy
+    ? storedYieldStrategy.effectiveYield
+    : h.solarYieldKWhPerKWp || BASELINE_YIELD;
   const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
   
   const pvSizeKW = forcedSizing?.forcePvSize !== undefined 

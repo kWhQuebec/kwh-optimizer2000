@@ -188,8 +188,11 @@ export function resolveYieldStrategy(
     yieldSource = 'google';
   }
   // PRIORITY 2: Google sunshine hours fallback
+  // Use 1.0 factor — maxSunshineHoursPerYear already represents peak sun hours (kWh/m²/year ÷ 1kW/m²)
+  // which directly equals kWh/kWp before system losses. All derate losses (wire, LID, mismatch,
+  // temperature, clipping) are applied later in runHourlySimulation(), not here.
   else if (googleData?.maxSunshineHoursPerYear && !useManualYield) {
-    baseYield = Math.round(googleData.maxSunshineHoursPerYear * 0.85);
+    baseYield = Math.round(googleData.maxSunshineHoursPerYear);
     yieldSource = 'google';
   }
   // PRIORITY 3: Manual yield override (explicit flag OR custom yield value)

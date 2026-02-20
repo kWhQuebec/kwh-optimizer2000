@@ -423,24 +423,22 @@ export function runScenarioWithSizing(
 ): RunScenarioResult {
   const h = assumptions;
 
-  let effectiveYield: number;
-  if (h.yieldSource === 'google') {
-    const googleBaseYield = h.solarYieldKWhPerKWp || 1079;
-    effectiveYield = googleBaseYield * (h.bifacialEnabled ? 1.15 : 1.0);
-  } else {
-    const baseYield = h.solarYieldKWhPerKWp || 1150;
-    const orientationFactor = Math.max(0.6, Math.min(1.0, h.orientationFactor || 1.0));
-    effectiveYield = baseYield * orientationFactor * (h.bifacialEnabled ? 1.15 : 1.0);
-  }
+  // Use _yieldStrategy (set by resolveYieldStrategy) as SINGLE source of truth for yield
+  // This eliminates redundant recalculation and ensures bifacial boost matches roof color analysis
+  const storedStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
+  const effectiveYield = storedStrategy
+    ? storedStrategy.effectiveYield
+    : h.solarYieldKWhPerKWp || BASELINE_YIELD;
 
-  const yieldFactor = effectiveYield / 1150;
+  const yieldFactor = effectiveYield / BASELINE_YIELD;
   const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
 
-  const storedStrategy = (h as any)._yieldStrategy as YieldStrategy | undefined;
   const skipTempCorrection = storedStrategy
     ? storedStrategy.skipTempCorrection
     : (h.yieldSource === 'google' || h.yieldSource === 'manual');
-  const scenarioYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
+  const scenarioYieldSource: 'google' | 'manual' | 'default' = storedStrategy
+    ? storedStrategy.yieldSource
+    : ((h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default');
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.45,
     temperatureCoefficient: h.temperatureCoefficient || -0.004,
