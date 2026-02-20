@@ -133,7 +133,7 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
   s2_sign_mandate: ({ designAgreement }) =>
     designAgreement?.status === "accepted" && !!designAgreement?.depositPaidAt,
   s2_run_analysis: ({ site }) =>
-    !!(site?.analysisAvailable),
+    !!(site?.analysisAvailable || (site?.simulationRuns?.length ?? 0) > 0),
   s2_present_results: ({ opportunityStage }) => {
     const presentedStages = ["design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
     return presentedStages.includes(opportunityStage);
