@@ -93,7 +93,7 @@ const STAGE_ORDER = ["prospect", "contacted", "qualified", "analysis_done", "des
 
 const STEP_MIN_STAGE: Record<number, string> = {
   1: "prospect",
-  2: "analysis_done",
+  2: "prospect",
   3: "design_mandate_signed",
   4: "epc_proposal_sent",
   5: "won_to_be_delivered",
