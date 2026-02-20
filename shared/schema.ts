@@ -2461,7 +2461,7 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   // After 24-month bank reset, surplus kWh compensated at this rate (NOT client tariff)
   hqSurplusCompensationRate: 0.0460, // 4.60¢/kWh (HQ cost of supply April 2025)
 
-  snowLossProfile: 'none' as const,
+  snowLossProfile: 'flat_roof' as const,
 
   // EPC gross margin — sellPrice = cost / (1 - 0.35)
   epcMargin: 0.35, // 35% gross margin
