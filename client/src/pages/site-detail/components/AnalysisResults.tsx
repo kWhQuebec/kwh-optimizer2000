@@ -215,20 +215,24 @@ export function AnalysisResults({
         co2AvoidedTonnesPerYear: optScenarios.bestNPV.co2AvoidedTonnesPerYear,
         scenarioBreakdown: optScenarios.bestNPV.scenarioBreakdown,
       } : null,
-      irr: optScenarios.bestIRR ? {
-        pvSizeKW: optScenarios.bestIRR.pvSizeKW,
-        battEnergyKWh: optScenarios.bestIRR.battEnergyKWh,
-        battPowerKW: optScenarios.bestIRR.battPowerKW,
-        npv25: optScenarios.bestIRR.npv25,
-        irr25: optScenarios.bestIRR.irr25,
-        selfSufficiencyPercent: optScenarios.bestIRR.selfSufficiencyPercent,
-        simplePaybackYears: optScenarios.bestIRR.simplePaybackYears,
-        capexNet: optScenarios.bestIRR.capexNet,
-        annualSavings: optScenarios.bestIRR.annualSavings,
-        totalProductionKWh: optScenarios.bestIRR.totalProductionKWh,
-        co2AvoidedTonnesPerYear: optScenarios.bestIRR.co2AvoidedTonnesPerYear,
-        scenarioBreakdown: optScenarios.bestIRR.scenarioBreakdown,
-      } : null,
+      irr: (() => {
+        const src = optScenarios.bestIRR || optScenarios.bestNPV;
+        if (!src) return null;
+        return {
+          pvSizeKW: src.pvSizeKW,
+          battEnergyKWh: src.battEnergyKWh,
+          battPowerKW: src.battPowerKW,
+          npv25: src.npv25,
+          irr25: src.irr25,
+          selfSufficiencyPercent: src.selfSufficiencyPercent,
+          simplePaybackYears: src.simplePaybackYears,
+          capexNet: src.capexNet,
+          annualSavings: src.annualSavings,
+          totalProductionKWh: src.totalProductionKWh,
+          co2AvoidedTonnesPerYear: src.co2AvoidedTonnesPerYear,
+          scenarioBreakdown: src.scenarioBreakdown,
+        };
+      })(),
       selfSufficiency: optScenarios.maxSelfSufficiency ? {
         pvSizeKW: optScenarios.maxSelfSufficiency.pvSizeKW,
         battEnergyKWh: optScenarios.maxSelfSufficiency.battEnergyKWh,

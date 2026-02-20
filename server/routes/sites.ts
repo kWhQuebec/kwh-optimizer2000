@@ -3,8 +3,10 @@ import { z } from "zod";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import { eq, ne, and, desc } from "drizzle-orm";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
+import { db } from "../db";
 import * as googleSolar from "../googleSolarService";
 import { sanitizeFilename, validatePathWithinBase } from "../lib/pathValidation";
 import {
@@ -14,6 +16,8 @@ import {
   insertSimulationRunSchema,
   insertRoofPolygonSchema,
   defaultAnalysisAssumptions,
+  sites as sitesTable,
+  roofPolygons as roofPolygonsTable,
   type AnalysisAssumptions,
   type Site,
 } from "@shared/schema";
@@ -1736,6 +1740,81 @@ router.post("/:siteId/send-hq-procuration", authMiddleware, requireStaff, asyncH
   }
 
   res.json({ success: true });
+}));
+
+router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const currentSite = await storage.getSite(req.params.id);
+  if (!currentSite) {
+    throw new NotFoundError("Site");
+  }
+
+  if (!currentSite.address) {
+    res.json({ copied: false });
+    return;
+  }
+
+  const existingPolygons = await storage.getRoofPolygons(req.params.id);
+  if (existingPolygons.length > 0) {
+    res.json({ copied: false });
+    return;
+  }
+
+  const siblingPolygons = await db.select({
+    polygonId: roofPolygonsTable.id,
+    siteId: roofPolygonsTable.siteId,
+    label: roofPolygonsTable.label,
+    coordinates: roofPolygonsTable.coordinates,
+    areaSqM: roofPolygonsTable.areaSqM,
+    color: roofPolygonsTable.color,
+    orientation: roofPolygonsTable.orientation,
+    tiltDegrees: roofPolygonsTable.tiltDegrees,
+  })
+    .from(roofPolygonsTable)
+    .innerJoin(sitesTable, eq(roofPolygonsTable.siteId, sitesTable.id))
+    .where(
+      and(
+        eq(sitesTable.address, currentSite.address),
+        ne(sitesTable.id, req.params.id)
+      )
+    )
+    .orderBy(desc(sitesTable.updatedAt));
+
+  if (siblingPolygons.length === 0) {
+    res.json({ copied: false });
+    return;
+  }
+
+  const sourceSiteId = siblingPolygons[0].siteId;
+
+  const sourcePolygons = siblingPolygons.filter(p => p.siteId === sourceSiteId);
+
+  for (const polygon of sourcePolygons) {
+    await storage.createRoofPolygon({
+      siteId: req.params.id,
+      label: polygon.label,
+      coordinates: polygon.coordinates,
+      areaSqM: polygon.areaSqM,
+      color: polygon.color || undefined,
+      orientation: polygon.orientation || undefined,
+      tiltDegrees: polygon.tiltDegrees || undefined,
+    });
+  }
+
+  const sourceSite = await storage.getSite(sourceSiteId);
+  if (sourceSite && (sourceSite.kbKwDc || sourceSite.kbPanelCount)) {
+    await storage.updateSite(req.params.id, {
+      kbKwDc: sourceSite.kbKwDc,
+      kbPanelCount: sourceSite.kbPanelCount,
+    });
+  }
+
+  log.info(`Copied ${sourcePolygons.length} roof polygons from site ${sourceSiteId} to site ${req.params.id} (same address: "${currentSite.address}")`);
+
+  res.json({
+    copied: true,
+    sourceId: sourceSiteId,
+    polygonCount: sourcePolygons.length,
+  });
 }));
 
 export default router;

@@ -150,10 +150,32 @@ export default function SiteDetailPage() {
   });
 
   // Query to fetch existing roof polygons
-  const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
+  const { data: roofPolygons = [], isSuccess: roofPolygonsLoaded } = useQuery<RoofPolygon[]>({
     queryKey: ['/api/sites', id, 'roof-polygons'],
     enabled: !!id
   });
+
+  const roofCopyAttemptedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!site || !id || !roofPolygonsLoaded) return;
+    if (roofPolygons.length > 0) return;
+    if (roofCopyAttemptedRef.current === id) return;
+    roofCopyAttemptedRef.current = id;
+
+    apiRequest<{ copied: boolean; sourceId?: string; polygonCount?: number }>(
+      "GET", `/api/sites/${id}/copy-roof-from-address`
+    ).then((result) => {
+      if (result.copied) {
+        queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'roof-polygons'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/sites', id] });
+        toast({
+          title: language === "fr"
+            ? "Dessin de toit copié d'un autre site à la même adresse"
+            : "Roof drawing copied from another site at the same address",
+        });
+      }
+    }).catch(() => {});
+  }, [site, id, roofPolygonsLoaded, roofPolygons.length, language, toast]);
 
   // Fetch design agreement status for the site
   const { data: designAgreement } = useQuery<{ id: string; status: string } | null>({

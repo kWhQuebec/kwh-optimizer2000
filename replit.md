@@ -79,3 +79,13 @@ Specific color conventions apply to charts (waterfall, cashflow), CRM pipeline s
 -   **Backend**: `express`, `drizzle-orm`, `drizzle-kit`, `@neondatabase/serverless`, `bcrypt`, `jsonwebtoken`, `multer`, `zod`.
 -   **Frontend**: `react`, `react-dom`, `wouter`, `@tanstack/react-query`, `react-hook-form`, `@hookform/resolvers`, `recharts`, `@radix-ui/*`, `tailwindcss`, `clsx`, `tailwind-merge`.
 -   **Build Tools**: `vite`, `esbuild`, `typescript`.
+
+## Recent Changes
+- **Feb 2026**: Fixed +68% yield inflation bug — production now uses hourly simulation results (with all losses/clipping), not simple pvSizeKW × effectiveYield
+- **Feb 2026**: Roof capacity single-source-of-truth — RoofVisualization saves kbKwDc/kbPanelCount to site DB, analysis engine prefers this over formula
+- **Feb 2026**: Sensitivity analysis caps at 100% roof capacity (was 110%)
+- **Feb 2026**: "Meilleur TRI" optimization tab always visible (falls back to bestNPV data when bestIRR is null)
+- **Feb 2026**: Roof drawing sharing by address — sites at the same address auto-copy roof polygons to avoid redrawing
+
+## TODO / Future Work
+- **Option B: Parent site with sub-meters** — Restructure so a single "building" entity owns the roof drawing, with multiple meter/compteur sub-entities attached. This replaces the current address-matching copy approach with a proper parent-child relationship. Priority: medium-term.
