@@ -261,7 +261,7 @@ export function SingleBillEstimator({ onEstimate }: SingleBillEstimatorProps) {
   
   const calculateEstimate = () => {
     const monthlyBill = billAmount / billingPeriod;
-    const energyRate = HQ_ENERGY_RATES[tariffCode] || 0.06;
+    const energyRate = HQ_ENERGY_RATES[tariffCode] || 0.06061; // Default to M tariff
     const estimatedMonthlyKWh = (monthlyBill * 0.7) / energyRate;
     const annualKWh = estimatedMonthlyKWh * 12;
     setEstimatedAnnual(annualKWh);
@@ -588,7 +588,7 @@ export function SyntheticProfileGenerator({ siteId, buildingSqFt, clientWebsite,
       return sqFt * (ENERGY_INTENSITY[buildingSubType] || 18);
     }
     if (inputMode === "bill" && billAmount > 0) {
-      const rate = HQ_ENERGY_RATES[tariffCode] || 0.06;
+      const rate = HQ_ENERGY_RATES[tariffCode] || 0.06061; // Default to M tariff
       const monthlyKWh = ((billAmount / billingPeriod) * 0.7) / rate;
       return Math.round(monthlyKWh * 12);
     }

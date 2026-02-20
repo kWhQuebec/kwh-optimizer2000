@@ -414,12 +414,13 @@ export async function generatePresentationPPTX(
   {
     const act1 = getNarrativeAct("act1_challenge", lang);
     const snapLabels = getProjectSnapshotLabels(lang);
+    const totalProductionKWhSnapshot = (simulation as any).totalProductionKWh || Math.round(simulation.annualConsumptionKWh * simulation.selfSufficiencyPercent / 100);
     const snapItems = [
       { label: snapLabels.annualConsumption.label, value: formatSmartEnergy(simulation.annualConsumptionKWh || 0, lang) },
       { label: snapLabels.peakDemand.label, value: formatSmartPower(simulation.peakDemandKW || 0, lang, 'kW') },
       { label: snapLabels.solarCapacity.label, value: formatSmartPower(simulation.pvSizeKW, lang) },
       { label: snapLabels.batteryCapacity.label, value: simulation.battEnergyKWh > 0 ? `${formatSmartEnergy(simulation.battEnergyKWh, lang)} / ${formatSmartPower(simulation.battPowerKW, lang, 'kW')}` : "0 kWh" },
-      { label: snapLabels.estimatedProduction.label, value: formatSmartEnergy((simulation.pvSizeKW * 1035) || 0, lang) },
+      { label: snapLabels.estimatedProduction.label, value: formatSmartEnergy(totalProductionKWhSnapshot || 0, lang) },
       { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
     ];
 
@@ -887,10 +888,11 @@ export async function generatePresentationPPTX(
       return "NW";
     };
 
+    const totalProductionKWhRoof = (simulation as any).totalProductionKWh || Math.round(simulation.annualConsumptionKWh * simulation.selfSufficiencyPercent / 100);
     const roofSummary = [
       { label: t("Puissance solaire", "Solar capacity"), value: formatSmartPower(simulation.pvSizeKW, lang) },
       { label: t("Stockage", "Storage"), value: simulation.battEnergyKWh > 0 ? formatSmartEnergy(simulation.battEnergyKWh, lang) : t("Non inclus", "N/A") },
-      { label: t("Production An 1", "Year-1 production"), value: formatSmartEnergy((simulation.pvSizeKW * 1035) || 0, lang) },
+      { label: t("Production An 1", "Year-1 production"), value: formatSmartEnergy(totalProductionKWhRoof || 0, lang) },
       { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
     ];
 

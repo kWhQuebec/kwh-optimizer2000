@@ -29,6 +29,7 @@ import {
   estimateAnnualConsumption,
   type BuildingSubType,
   type OperatingSchedule,
+  BASELINE_YIELD,
 } from "../analysis";
 import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-engine";
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError, ConflictError, ValidationError } from "../middleware/errorHandler";
@@ -755,11 +756,11 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
 
   // Resolve yield strategy respecting manual yield and bifacial settings
   // Use unified methodology: BASELINE_YIELD=1150 with loss factors = ~1035 kWh/kWp effective
-  const BASELINE_YIELD = 1150;
+  // (BASELINE_YIELD is imported from ../analysis/potentialAnalysis.ts)
   const tempCoeff = -0.004;
   const avgSummerTempDelta = 10; // Average summer temp above 25°C
   const tempLoss = 1 + (tempCoeff * avgSummerTempDelta); // ~0.96
-  const wireLoss = 0.98; // 2% wire losses
+  const wireLoss = 0.97; // 3% wire losses (canonical value)
   const inverterEff = 0.96; // 96% inverter efficiency
 
   // Check for manual yield override or bifacial bonus
@@ -771,16 +772,16 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
     yieldSource = 'manual';
   }
 
-  // Apply bifacial gain if enabled
+  // Apply bifacial gain if enabled (canonical value: 15% gain)
   const bifacialEnabled = assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? false;
-  const bifacialGain = bifacialEnabled ? 1.08 : 1.0; // 8% gain for bifacial
+  const bifacialGain = bifacialEnabled ? 1.15 : 1.0; // 15% gain for bifacial (canonical from potentialAnalysis.ts)
 
   const effectiveYield = Math.round(baseYield * tempLoss * wireLoss * inverterEff * bifacialGain);
 
   const yieldStrategy = {
     baseYield,
     effectiveYield,
-    bifacialGain: bifacialEnabled ? 0.08 : 0,
+    bifacialGain: bifacialEnabled ? 0.15 : 0,
     yieldSource,
     skipTempCorrection: false,
   };
@@ -996,7 +997,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     annualDemandReductionKW: result.annualDemandReductionKW,
     selfConsumptionKWh: result.selfConsumptionKWh,
     selfSufficiencyPercent: result.selfSufficiencyPercent,
-    totalProductionKWh: result.pvSizeKW * (result.assumptions?.solarYieldKWhPerKWp || 1150),
+    totalProductionKWh: result.pvSizeKW * (result.assumptions?.solarYieldKWhPerKWp || BASELINE_YIELD),
     annualCostBefore: result.annualCostBefore,
     annualCostAfter: result.annualCostAfter,
     annualSavings: result.annualSavings,

@@ -1,6 +1,7 @@
 import type { IStorage } from "./storage";
 import type { SimulationRun, Site, Client, CashflowEntry, FinancialBreakdown, HourlyProfileEntry, PeakWeekEntry, SensitivityAnalysis, OptimalScenario } from "@shared/schema";
 import { createLogger } from "./lib/logger";
+import { BASELINE_YIELD } from "./analysis/potentialAnalysis";
 
 const log = createLogger("DocumentData");
 
@@ -125,7 +126,7 @@ export function computeHiddenInsights(sim: DocumentSimulationData): HiddenInsigh
     : 0;
 
   // Clipping loss estimate (simplified: if PV > consumption ratio is high)
-  const pvProductionEstimate = sim.pvSizeKW * 1150; // ~1150 kWh/kWp in Quebec
+  const pvProductionEstimate = sim.pvSizeKW * BASELINE_YIELD; // Quebec baseline yield
   const actualProduction = totalProductionApprox + sim.totalExportedKWh;
   const clippingLossPercent = pvProductionEstimate > 0
     ? Math.max(0, ((pvProductionEstimate - actualProduction) / pvProductionEstimate) * 100)

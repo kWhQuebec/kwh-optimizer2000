@@ -78,7 +78,8 @@ export function renderProjectSnapshot(ctx: PDFContext) {
   // Bottom row: 4 compact metrics (LCOE, CO2, Year-1 production, Solar self-sufficiency)
   const lcoe = simulation.lcoe || 0;
   const co2 = simulation.co2AvoidedTonnesPerYear || 0;
-  const yearOneProduction = Math.round(((simulation.pvSizeKW || 0) * 1035) || 0);
+  const totalProductionKWh = (simulation as any).totalProductionKWh || Math.round(simulation.annualConsumptionKWh * simulation.selfSufficiencyPercent / 100);
+  const yearOneProduction = Math.round(totalProductionKWh || 0);
   const selfSufficiency = (simulation.selfSufficiencyPercent || 0).toFixed(0);
 
   const compactCardWidth = (contentWidth - 30) / 4;

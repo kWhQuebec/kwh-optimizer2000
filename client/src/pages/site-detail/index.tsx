@@ -1617,7 +1617,7 @@ export default function SiteDetailPage() {
                   const displayedFederalItc = Math.round((displayedCapex - displayedHqIncentive) * 0.30);
                   const displayedNetCapex = displayedCapex - displayedHqIncentive - displayedFederalItc;
 
-                  const energyRate = 0.06;
+                  const energyRate = 0.06061; // Default M tariff rate ($/kWh)
                   const displayedAnnualSavings = Math.round(displayedProductionKWh * energyRate);
                   const displayedPaybackYears = displayedAnnualSavings > 0 ? displayedNetCapex / displayedAnnualSavings : 0;
 
@@ -1678,7 +1678,7 @@ export default function SiteDetailPage() {
                       </div>
 
                       {displayedNetCapex > 0 && displayedAnnualSavings > 0 && (() => {
-                        const discountRate = 0.06;
+                        const discountRate = 0.07; // 7% WACC (matches server-side defaultAnalysisAssumptions)
                         const years = 25;
                         let npv = -displayedNetCapex;
                         for (let y = 1; y <= years; y++) {
@@ -1701,7 +1701,7 @@ export default function SiteDetailPage() {
                           <div className="flex gap-6 mt-3 pt-3 border-t border-border/50">
                             <div className="space-y-0.5">
                               <div className="text-xs text-muted-foreground">
-                                {language === "fr" ? "VAN 25 ans (6%)" : "NPV 25 yrs (6%)"}
+                                {language === "fr" ? "VAN 25 ans (7%)" : "NPV 25 yrs (7%)"}
                               </div>
                               <div className={`text-lg font-bold ${npv >= 0 ? "text-green-600" : "text-red-600"}`}>
                                 {formatSmartCurrency(npv, language)}

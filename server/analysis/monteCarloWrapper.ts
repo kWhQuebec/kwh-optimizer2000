@@ -121,7 +121,7 @@ export function createSimplifiedScenarioRunner(
     const tempCoeff = h.temperatureCoefficient || -0.004;
     const avgTempDelta = 15; // Average operating temp above STC (25°C)
     const tempLoss = Math.abs(tempCoeff) * avgTempDelta;
-    const wireLoss = h.wireLossPercent || 0.02;
+    const wireLoss = h.wireLossPercent || 0.03; // Canonical wire loss value (3%)
     const inverterEff = 0.96;
     const effectiveYield = baseYield * (1 - tempLoss) * (1 - wireLoss) * inverterEff;
     

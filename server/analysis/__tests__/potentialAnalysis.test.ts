@@ -156,13 +156,13 @@ describe("buildSystemParams", () => {
       {
         inverterLoadRatio: 1.3,
         temperatureCoefficient: -0.003,
-        wireLossPercent: 0.02,
+        wireLossPercent: 0.03,
       },
       yieldStrategy
     );
     expect(params.inverterLoadRatio).toBe(1.3);
     expect(params.temperatureCoefficient).toBe(-0.003);
-    expect(params.wireLossPercent).toBe(0.02);
+    expect(params.wireLossPercent).toBe(0.03);
   });
 
   it("derives skipTempCorrection from yield strategy", () => {

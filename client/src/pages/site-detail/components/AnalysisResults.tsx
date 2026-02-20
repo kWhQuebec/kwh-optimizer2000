@@ -246,7 +246,7 @@ export function AnalysisResults({
   }, [simulation.sensitivity]);
 
   const displayedScenario = useMemo(() => {
-    const estimatedAnnualBillFallback = (simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06);
+    const estimatedAnnualBillFallback = (simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06061);
     const fallbackScenario: DisplayedScenarioType = {
       pvSizeKW: simulation.pvSizeKW || 0,
       battEnergyKWh: simulation.battEnergyKWh || 0,
@@ -291,7 +291,7 @@ export function AnalysisResults({
 
   const annualBillInfo = useMemo(() => {
     const simulationEstimate = displayedScenario.scenarioBreakdown?.estimatedAnnualBillBefore
-      || ((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06));
+      || ((simulation.annualConsumptionKWh || 0) * (assumptions.tariffEnergy || 0.06061));
     return computeAnnualBillFromHQ(
       site?.hqConsumptionHistory as HqHistoryEntry[] | null,
       site?.meterFiles,

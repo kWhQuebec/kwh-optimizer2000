@@ -121,12 +121,12 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   // System losses (simplified annual average, matching detailed analysis)
   // - Temperature coefficient: -0.4%/°C above 25°C STC
   // - Quebec annual average cell temp ~35°C (ambient + cell rise)
-  // - Wire losses: ~2%
+  // - Wire losses: ~3% (canonical value from potentialAnalysis.ts)
   // - Inverter efficiency: ~96%
   const TEMP_COEFF = -0.004; // -0.4%/°C
   const AVERAGE_CELL_TEMP = 35; // °C (annual average including cell rise)
   const STC_CELL_TEMP = 25; // °C
-  const WIRE_LOSS_PERCENT = 0.02;
+  const WIRE_LOSS_PERCENT = 0.03; // Canonical wire loss value
   const INVERTER_EFFICIENCY = 0.96;
 
   // Combined system efficiency factor
@@ -145,8 +145,8 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   const HQ_MW_LIMIT = 1000; // Only first 1000 kW eligible for Net Metering
 
   // Federal Investment Tax Credit (ITC): 30% of eligible project cost
-  // For simplicity, applied to gross CAPEX (before HQ subsidy) as per CRA guidelines
-  // In practice, interaction with provincial grants can reduce eligible base
+  // Applied to net CAPEX (after HQ subsidy), per Canadian tax law
+  // The ITC basis is reduced by any provincial grants/incentives received
   const FEDERAL_ITC_RATE = 0.30;
 
   // System lifetime for LCOE calculation
@@ -171,8 +171,9 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
     const hqIncentiveRaw = eligibleKW * HQ_INCENTIVE_PER_KW;
     const hqIncentive = Math.min(hqIncentiveRaw, grossCAPEX * HQ_INCENTIVE_MAX_PERCENT);
 
-    // Federal ITC: 30% of gross CAPEX (before provincial subsidies)
-    const federalITC = Math.round(grossCAPEX * FEDERAL_ITC_RATE);
+    // Federal ITC: 30% of net CAPEX (after HQ subsidy), per Canadian tax law
+    const itcBasis = grossCAPEX - hqIncentive;
+    const federalITC = Math.round(itcBasis * FEDERAL_ITC_RATE);
 
     // Total direct incentives
     const totalIncentives = hqIncentive + federalITC;
@@ -787,7 +788,7 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
           if (Array.isArray(history) && history.length > 0) {
             const totalKwh = history.reduce((sum: number, m: any) => sum + (parseFloat(m.kwh) || 0), 0);
             if (totalKwh > 0) {
-              estimatedSizeKW = Math.round(totalKwh / 1035 * 10) / 10;
+              estimatedSizeKW = Math.round(totalKwh / EFFECTIVE_YIELD * 10) / 10;
             }
           }
         } catch (e) { /* ignore parse errors */ }

@@ -247,7 +247,7 @@ export function renderKPIResults(ctx: PDFContext) {
   doc.y = summaryY + 30;
   ensureFits(ctx, 70);
   const co2Tonnes = simulation.co2AvoidedTonnesPerYear || 0;
-  const totalProductionKWh = simulation.pvSizeKW * 1035;
+  const totalProductionKWh = (simulation as any).totalProductionKWh || Math.round(simulation.annualConsumptionKWh * simulation.selfSufficiencyPercent / 100);
   const co2TonnesDisplay = totalProductionKWh > 0 ? (totalProductionKWh * 0.002) / 1000 : co2Tonnes;
   const treesPlanted = Math.max(1, Math.round(co2TonnesDisplay * 45));
   const carsRemoved = co2TonnesDisplay / 4.6;
