@@ -31,6 +31,7 @@ import { RoofVisualization } from "@/components/RoofVisualization";
 import { CreateVariantDialog } from "./CreateVariantDialog";
 import { FinancingCalculator } from "./FinancingCalculator";
 import { PriceBreakdownSection } from "./PriceBreakdownSection";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SiteWithDetails, VariantPreset, DisplayedScenarioType } from "../types";
 
 const MONTH_NAMES_FR = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -735,6 +736,16 @@ export function AnalysisResults({
             onGeometryCalculated={(data) => {
               if (data.maxCapacityKW != null && data.maxCapacityKW > 0 && !isNaN(data.maxCapacityKW)) {
                 setRoofGeometryCapacityKW(data.maxCapacityKW);
+                const savedKw = site.kbKwDc;
+                const newKw = Math.round(data.maxCapacityKW);
+                if (!savedKw || Math.abs(savedKw - newKw) > 1) {
+                  apiRequest("PATCH", `/api/sites/${site.id}`, {
+                    kbPanelCount: data.panelCount,
+                    kbKwDc: newKw
+                  }).then(() => {
+                    queryClient.invalidateQueries({ queryKey: ['/api/sites', site.id] });
+                  }).catch(err => console.error('Failed to save roof capacity:', err));
+                }
               }
               visualizationCaptureRef.current = null;
             }}

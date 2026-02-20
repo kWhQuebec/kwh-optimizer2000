@@ -1783,7 +1783,21 @@ export default function SiteDetailPage() {
               longitude={site.longitude}
               roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764}
               maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
-              onGeometryCalculated={setGeometryCapacity}
+              onGeometryCalculated={(data) => {
+                setGeometryCapacity(data);
+                if (data.maxCapacityKW != null && data.maxCapacityKW > 0 && !isNaN(data.maxCapacityKW)) {
+                  const savedKw = site?.kbKwDc;
+                  const newKw = Math.round(data.maxCapacityKW);
+                  if (!savedKw || Math.abs(savedKw - newKw) > 1) {
+                    apiRequest("PATCH", `/api/sites/${id}`, {
+                      kbPanelCount: data.panelCount,
+                      kbKwDc: newKw
+                    }).then(() => {
+                      queryClient.invalidateQueries({ queryKey: ['/api/sites', id] });
+                    }).catch(err => console.error('Failed to save roof capacity:', err));
+                  }
+                }
+              }}
               onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
             />
           )}

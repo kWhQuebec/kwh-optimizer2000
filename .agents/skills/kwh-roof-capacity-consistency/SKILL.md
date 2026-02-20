@@ -15,9 +15,13 @@ The platform displays roof capacity in multiple places (visualization tags, conf
 
 ## Capacity Source Hierarchy
 
-1. **Roof geometry capacity** (`roofGeometryCapacityKW`): Calculated from drawn polygons — `panelCount × panelWattage / 1000`. This is the most accurate.
-2. **Formula-based estimate** (`maxPVFromRoof`): `(usableRoofSqM / panelAreaSqM) × panelKW`. Used when no roof drawing exists.
+1. **RoofVisualization panel layout** (`site.kbKwDc`, `site.kbPanelCount`): Panel-by-panel placement with setbacks, shadows, and constraint exclusions. Auto-saved to the site record via API when the visualization calculates a layout. This is the SINGLE SOURCE OF TRUTH when available.
+2. **Formula-based estimate** (`maxPVFromRoof`): `(usableRoofSqM / 3.71) × 0.660`. Fallback only when `kbKwDc` is null (no roof visualization has run yet).
 3. **Google Solar API**: Only used for yield (kWh/kWp), NOT for capacity sizing.
+
+## Critical: Backend Hard Cap
+
+The analysis engine (`sites.ts`) uses `site.kbKwDc` as `maxPVFromRoofKw` when available, falling back to the formula. The sensitivity analysis (`simulationEngine.ts`) caps `solarMax` at `maxPVFromRoof * 1.0` (strict physical limit, NO 110% overflow).
 
 ## Key Variables and Their Meaning
 

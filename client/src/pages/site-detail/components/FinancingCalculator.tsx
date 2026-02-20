@@ -61,8 +61,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const selfConsumptionKWh = scenarioBreakdown?.annualEnergySavingsKWh || simulation.annualEnergySavingsKWh || 0;
 
   const pvSizeKW = displayedScenario.pvSizeKW || 0;
-  const solarYield = assumptions?.solarYieldKWhPerKWp || 1150;
-  const totalAnnualProductionKWh = pvSizeKW * solarYield;
+  const totalAnnualProductionKWh = displayedScenario.totalProductionKWh || simulation.totalProductionKWh || 0;
 
   const hqSolar = scenarioBreakdown?.actualHQSolar || 0;
   const hqBattery = scenarioBreakdown?.actualHQBattery || 0;

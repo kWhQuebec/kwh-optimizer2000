@@ -990,12 +990,13 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   // maxPV = (usable_area / 3.71 m²) × 0.660 kW per panel
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
-  const kbMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
-  (analysisAssumptions as any).maxPVFromRoofKw = kbMaxPvKw; // Keep as float for precision
+  const formulaMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
+  const kbMaxPvKw = site.kbKwDc && site.kbKwDc > 0 ? site.kbKwDc : formulaMaxPvKw;
+  (analysisAssumptions as any).maxPVFromRoofKw = kbMaxPvKw;
 
   log.info(`Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
     `tracedArea=${tracedSolarAreaSqM.toFixed(0)}m², effectiveArea=${effectiveRoofAreaSqM.toFixed(0)}m², ` +
-    `maxPV=${kbMaxPvKw.toFixed(1)}kW (KB Racking formula)`);
+    `maxPV=${kbMaxPvKw.toFixed(1)}kW (${site.kbKwDc && site.kbKwDc > 0 ? 'RoofVisualization' : 'KB Racking formula'})`);
 
   const result = runPotentialAnalysis(
     dedupResult.readings,

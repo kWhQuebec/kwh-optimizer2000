@@ -620,11 +620,12 @@ export function runScenarioWithSizing(
   const irr10 = calculateIRR(cashflowValues.slice(0, 11));
   const irr30 = calculateIRR(cashflowValues.slice(0, 31));
 
+  const baseYearProduction = simResult.totalProductionKWh;
   let totalProduction25Scenario = 0;
   let totalProduction30Scenario = 0;
   for (let y = 1; y <= 30; y++) {
     const degFactor = Math.pow(1 - degradationRate, y - 1);
-    const yearProd = pvSizeKW * effectiveYield * degFactor;
+    const yearProd = baseYearProduction * degFactor;
     if (y <= 25) totalProduction25Scenario += yearProd;
     totalProduction30Scenario += yearProd;
   }
@@ -635,7 +636,7 @@ export function runScenarioWithSizing(
 
   const cashflows = cashflowValues.map((netCashflow, index) => ({ year: index, netCashflow }));
 
-  const totalProductionKWh = pvSizeKW * effectiveYield;
+  const totalProductionKWh = simResult.totalProductionKWh;
   const selfSufficiencyPercent = annualConsumptionKWh > 0
     ? (selfConsumptionKWh / annualConsumptionKWh) * 100
     : 0;
@@ -735,7 +736,7 @@ export function runSensitivityAnalysis(
   const solarSteps = 20;
   const solarMax = Math.min(
     Math.max(configuredPvSizeKW * 1.5, maxPVFromRoof * 0.5),
-    maxPVFromRoof * 1.1
+    maxPVFromRoof
   );
   const solarStep = Math.max(5, Math.round(solarMax / solarSteps / 5) * 5);
 
