@@ -145,7 +145,6 @@ export default function SiteDetailPage() {
   const { data: site, isLoading, refetch } = useQuery<SiteWithDetails>({
     queryKey: ["/api/sites", id],
     enabled: !!id,
-    staleTime: 10000,
     refetchOnWindowFocus: true,
     refetchOnMount: "always",
   });
@@ -637,7 +636,7 @@ export default function SiteDetailPage() {
     if (site && mostRecentSimulationFromAll && !selectedSimulationId) {
       setSelectedSimulationId(mostRecentSimulationFromAll.id);
     }
-  }, [site, mostRecentSimulationFromAll, selectedSimulationId]);
+  }, [site, mostRecentSimulationFromAll, selectedSimulationId, id]);
 
   const filteredSimulations = useMemo(() => {
     if (!site?.simulationRuns) return [];
@@ -731,6 +730,11 @@ export default function SiteDetailPage() {
     if (prevSiteIdRef.current !== id) {
       prevSiteIdRef.current = id;
       initialTabSetRef.current = false;
+      // Reset simulation selection when switching sites
+      setSelectedSimulationId(null);
+      pendingNewSimulationIdRef.current = null;
+      autoAnalysisTriggeredRef.current = false;
+      assumptionsInitializedRef.current = false;
     }
   }, [id]);
 
