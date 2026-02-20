@@ -207,7 +207,7 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   // ── Step 2: Validation économique ──
   { key: "s2_sign_procuration", stepNum: 2, assignedTo: "client", titleFr: "Signer la procuration Hydro-Québec", titleEn: "Sign Hydro-Québec proxy", points: 100, optional: false },
   { key: "s2_sign_mandate", stepNum: 2, assignedTo: "client", titleFr: "Signer le mandat + verser le dépôt", titleEn: "Sign mandate + pay deposit", points: 200, optional: false },
-  { key: "s2_run_analysis", stepNum: 2, assignedTo: "account_manager", titleFr: "Lancer l'analyse détaillée", titleEn: "Run detailed analysis", points: 100, optional: false },
+  { key: "s2_run_analysis", stepNum: 2, assignedTo: "account_manager", titleFr: "Lancer la validation économique", titleEn: "Run economic validation", points: 100, optional: false },
   { key: "s2_present_results", stepNum: 2, assignedTo: "account_manager", titleFr: "Présenter les résultats au client", titleEn: "Present results to client", points: 150, optional: false },
 
   // ── Step 3: Validation technique ──
