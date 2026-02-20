@@ -747,7 +747,12 @@ export default function SiteDetailPage() {
   });
 
   // Map from unified step click to the appropriate tab
+  // If user is already on a tab belonging to the clicked step, don't navigate away
   const handleStepClick = (stepId: string, firstTab: string) => {
+    const clickedStep = WORKFLOW_STEPS.find(s => s.id === stepId);
+    if (clickedStep && clickedStep.tabs.includes(activeTab)) {
+      return;
+    }
     setActiveTab(firstTab);
   };
 
