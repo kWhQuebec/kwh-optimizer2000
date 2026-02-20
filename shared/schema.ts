@@ -2324,12 +2324,12 @@ export interface RematekCostBreakdown {
 
 // Analysis input parameters (matching Streamlit script)
 export interface AnalysisAssumptions {
-  // Tariff selection
-  tariffCode?: string;       // HQ tariff code: D, G, M, L, etc. - auto-detected if not set
+  // Tariff selection — auto-detected from HQ data (bill parsing or meter import), never assumed
+  tariffCode?: string;       // HQ tariff code: D, G, M, L, etc. - set by propagateTariffToSite()
   
-  // Tariffs (can be overridden or auto-populated from tariffCode)
-  tariffEnergy: number;      // $/kWh - default 0.057 (M tariff tier 1)
-  tariffPower: number;       // $/kW/month - default 17.57 (M tariff)
+  // Tariffs — set automatically when tariffCode is detected via propagateTariffToSite()
+  tariffEnergy: number;      // $/kWh - 0 until tariff detected
+  tariffPower: number;       // $/kW/month - 0 until tariff detected (0 for tariff G)
   
   // Solar production parameters
   solarYieldKWhPerKWp: number; // kWh/kWp/year - default 1100, based on racking config
@@ -2406,9 +2406,9 @@ export interface AnalysisAssumptions {
 
 // Default analysis assumptions
 export const defaultAnalysisAssumptions: AnalysisAssumptions = {
-  tariffCode: "M", // Default to Medium Power tariff
-  tariffEnergy: 0.06061, // Tarif M 2025: 6.061¢/kWh (tier 1)
-  tariffPower: 17.573, // Tarif M 2025: $17.573/kW
+  // tariffCode intentionally omitted — must be auto-detected from HQ data, never assumed
+  tariffEnergy: 0, // Set automatically when tariff is detected
+  tariffPower: 0, // Set automatically when tariff is detected
   solarYieldKWhPerKWp: 1150, // Quebec baseline: 1150 kWh/kWp (matches BASELINE_YIELD constant)
   orientationFactor: 1.0, // 1.0 = optimal south-facing, reduced for E/W orientations
   

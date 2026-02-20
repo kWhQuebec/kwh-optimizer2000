@@ -34,6 +34,7 @@ import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-e
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError, ConflictError, ValidationError } from "../middleware/errorHandler";
 import { sendHqProcurationEmail } from "../emailService";
 import { autoAdvanceStage } from "../repositories/pipelineRepo";
+import { propagateTariffToSite } from "../repositories/siteRepo";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("Sites");
@@ -684,6 +685,7 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
   }
 
   autoAdvanceStage(siteId).catch(err => log.error(`Auto-advance failed for site ${siteId}:`, err));
+  propagateTariffToSite(siteId).catch(err => log.error(`Tariff propagation failed for site ${siteId}:`, err));
 
   res.json({ files: results });
 }));

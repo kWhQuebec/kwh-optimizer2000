@@ -64,6 +64,7 @@ interface SiteData {
   readyForAnalysis?: boolean | null;
   analysisAvailable?: boolean | null;
   quickAnalysisCompletedAt?: string | null;
+  analysisAssumptions?: Record<string, unknown> | null;
   // Step 4
   engineeringOutcome?: string | null;
   // Nested data
@@ -127,6 +128,10 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
   s1_prepare_analysis: ({ site }) =>
     !!(site?.readyForAnalysis || site?.analysisAvailable || site?.quickAnalysisCompletedAt),
   s1_complete_call: () => false, // Needs activity log — future
+  s1_confirm_tariff: ({ site }) => {
+    const assumptions = site?.analysisAssumptions as any;
+    return !!(assumptions?.tariffCode);
+  },
 
   // ── Step 2: Validation économique ──
   s2_sign_procuration: ({ hasProcurationSigned }) => hasProcurationSigned,

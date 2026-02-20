@@ -4,14 +4,17 @@ import {
   sites, clients, meterFiles, meterReadings, simulationRuns, designs, bomItems,
   designAgreements, siteVisits, constructionAgreements, constructionProjects,
   activities, emailLogs, competitorProposalAnalysis, opportunities,
-  omContracts, omVisits, omPerformanceSnapshots, roofPolygons,
+  omContracts, omVisits, omPerformanceSnapshots, roofPolygons, siteMeters,
+  defaultAnalysisAssumptions,
 } from "@shared/schema";
 import type {
   Site, InsertSite, Client, MeterFile, InsertMeterFile,
   MeterReading, InsertMeterReading, SimulationRunSummary,
   SimulationRun,
   RoofPolygon, InsertRoofPolygon,
+  AnalysisAssumptions,
 } from "@shared/schema";
+import { getSimplifiedRates } from "../hqTariffs";
 
 // ==================== SITES ====================
 
@@ -434,4 +437,46 @@ export async function getSiteCascadeCounts(siteId: string): Promise<{ simulation
 
 export async function cascadeDeleteSite(siteId: string): Promise<boolean> {
   return deleteSite(siteId);
+}
+
+// ==================== TARIFF PROPAGATION ====================
+
+export async function propagateTariffToSite(siteId: string): Promise<void> {
+  const meters = await db.select().from(siteMeters).where(eq(siteMeters.siteId, siteId));
+  const meterWithTariff = meters.find(m => m.tariffCode);
+  if (!meterWithTariff || !meterWithTariff.tariffCode) return;
+
+  await applyTariffToSite(siteId, meterWithTariff.tariffCode);
+}
+
+export async function applyTariffToSite(siteId: string, tariffCode: string): Promise<void> {
+  const normalizedCode = tariffCode.toUpperCase().trim().charAt(0);
+  if (!normalizedCode) return;
+
+  let energyRate: number;
+  let demandRate: number;
+  try {
+    const rates = getSimplifiedRates(normalizedCode);
+    energyRate = rates.energyRate;
+    demandRate = normalizedCode === "G" || normalizedCode === "D" ? 0 : rates.demandRate;
+  } catch {
+    return;
+  }
+
+  const [site] = await db.select().from(sites).where(eq(sites.id, siteId)).limit(1);
+  if (!site) return;
+
+  const existing = (site.analysisAssumptions as AnalysisAssumptions | null) || defaultAnalysisAssumptions;
+  const updated: AnalysisAssumptions = {
+    ...existing,
+    tariffCode: normalizedCode,
+    tariffEnergy: energyRate,
+    tariffPower: demandRate,
+  };
+
+  await db.update(sites).set({
+    analysisAssumptions: updated,
+    hqTariffDetail: tariffCode,
+    updatedAt: new Date(),
+  }).where(eq(sites.id, siteId));
 }

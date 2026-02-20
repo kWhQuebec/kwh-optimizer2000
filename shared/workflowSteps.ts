@@ -102,7 +102,7 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateEn: "Consumption CSV available",
     isHardBlock: true,
     tabs: ["quick-analysis"],
-    maxPoints: 325,
+    maxPoints: 375,
   },
   {
     id: "economic-validation",
@@ -203,6 +203,7 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s1_qualify_lead", stepNum: 1, assignedTo: "account_manager", titleFr: "Qualifier le lead (4 portes)", titleEn: "Qualify lead (4 gates)", points: 50, optional: false },
   { key: "s1_prepare_analysis", stepNum: 1, assignedTo: "account_manager", titleFr: "Préparer l'analyse préliminaire", titleEn: "Prepare preliminary analysis", points: 25, optional: false },
   { key: "s1_complete_call", stepNum: 1, assignedTo: "account_manager", titleFr: "Compléter l'appel dans les 48h", titleEn: "Complete call within 48h", points: 50, optional: false },
+  { key: "s1_confirm_tariff", stepNum: 1, assignedTo: "account_manager", titleFr: "Confirmer le tarif Hydro-Québec", titleEn: "Confirm Hydro-Québec tariff", points: 50, optional: false },
 
   // ── Step 2: Validation économique ──
   { key: "s2_sign_procuration", stepNum: 2, assignedTo: "client", titleFr: "Signer la procuration Hydro-Québec", titleEn: "Sign Hydro-Québec proxy", points: 100, optional: false },

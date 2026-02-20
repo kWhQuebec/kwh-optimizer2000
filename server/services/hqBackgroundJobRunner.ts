@@ -3,6 +3,7 @@ import { HQDataFetcher, HQContract, HQDownloadResult } from "./hqDataFetcher";
 import { parseHydroQuebecCSV } from "../routes/siteAnalysisHelpers";
 import { sendEmail } from "../emailService";
 import { createLogger } from "../lib/logger";
+import { applyTariffToSite } from "../repositories/siteRepo";
 import fs from "fs";
 import path from "path";
 
@@ -267,6 +268,10 @@ async function runJob(opts: {
             hqTariffDetail: contract.rateCode || undefined,
             serviceAddress: contract.address || undefined,
           });
+          if (contract.rateCode) {
+            await applyTariffToSite(siteId, contract.rateCode);
+            log.info(`Propagated tariff ${contract.rateCode} to site ${siteId}`);
+          }
         } catch (siteErr: any) {
           log.warn(`Failed to update site meter info for ${contract.contractId}: ${siteErr.message}`);
         }

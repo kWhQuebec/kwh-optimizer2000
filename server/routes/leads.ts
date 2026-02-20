@@ -18,6 +18,7 @@ import { createLogger } from "../lib/logger";
 import { scheduleNurtureSequence } from "../emailScheduler";
 import { sendSMSNotification, formatHotLeadMessage } from "../smsService";
 import { sanitizeFilename, sanitizeReferenceId, validatePathWithinBase } from "../lib/pathValidation";
+import { applyTariffToSite } from "../repositories/siteRepo";
 
 const log = createLogger("Leads");
 
@@ -852,6 +853,16 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
         hqConsumptionHistory: parsedConsumptionHistory,
       });
 
+      const detectedTariff = hqTariffDetail || tariffCode;
+      if (detectedTariff) {
+        try {
+          await applyTariffToSite(site.id, detectedTariff);
+          log.info(`Propagated tariff ${detectedTariff} to site ${site.id}`);
+        } catch (tariffErr: any) {
+          log.warn(`Failed to propagate tariff to site ${site.id}: ${tariffErr.message}`);
+        }
+      }
+
       if (createdOpportunityId) {
         await storage.updateOpportunity(createdOpportunityId, {
           clientId: client.id,
@@ -927,6 +938,12 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
               hqTariffDetail: bill.tariffDetail || bill.tariffCode || null,
               hqConsumptionHistory: billConsumptionHistory,
             });
+            const billTariff = bill.tariffDetail || bill.tariffCode;
+            if (billTariff) {
+              try {
+                await applyTariffToSite(additionalSite.id, billTariff);
+              } catch {}
+            }
             log.info(`Created additional site ${additionalSite.id} for account ${billAccountKey}`);
           } catch (siteError) {
             log.error(`Failed to create additional site for account ${billAccountKey}:`, siteError);
