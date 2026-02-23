@@ -82,7 +82,6 @@ import {
   getEquipmentTechnicalSummary,
   getTimeline,
   getAllStats,
-  getFirstTestimonial,
   getContactString,
   getProjectSnapshotLabels,
   getDesignFeeCovers,
@@ -2315,15 +2314,26 @@ function FitScoreSlide({ simulation, language }: { simulation: SimulationRun | n
 function CredibilitySlide({ language }: { language: string }) {
   const lang = language as "fr" | "en";
   const stats = getAllStats(lang);
-  const testimonial = getFirstTestimonial(lang);
   const contact = getContactString();
   const currentLogo = language === 'fr' ? logoFr : logoEn;
+
+  const credDesc = language === 'fr'
+    ? "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011."
+    : "Our team has been supporting businesses across Canada in renewable energy projects since 2011.";
+
+  const valuesData = language === 'fr'
+    ? [{ label: "Simplicité" }, { label: "Fiabilité" }, { label: "Longévité" }, { label: "Fierté" }]
+    : [{ label: "Simplicity" }, { label: "Reliability" }, { label: "Longevity" }, { label: "Pride" }];
+
+  const benefitsData = language === 'fr'
+    ? ["Licence RBQ", "Financement flexible", "Garantie 25 ans", "Partout au Québec"]
+    : ["RBQ Licensed", "Flexible Financing", "25-Year Warranty", "Across Quebec"];
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-5xl w-full text-center">
         <SlideTitle>
-          {language === 'fr' ? 'Ils nous font confiance' : 'They Trust Us'}
+          {language === 'fr' ? 'Pourquoi kWh Québec' : 'Why kWh Québec'}
         </SlideTitle>
 
         <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap mb-12">
@@ -2335,11 +2345,20 @@ function CredibilitySlide({ language }: { language: string }) {
           ))}
         </div>
 
-        <div className="rounded-2xl p-6 md:p-8 mb-10 max-w-3xl mx-auto shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
-          <p className="text-lg md:text-xl italic mb-4" style={{ color: '#4B5563' }}>
-            &laquo; {testimonial.quote} &raquo;
-          </p>
-          <p style={{ color: '#9CA3AF' }}>&mdash; {testimonial.author}</p>
+        <p className="text-base md:text-lg mb-8 max-w-3xl mx-auto" style={{ color: '#4B5563' }}>{credDesc}</p>
+
+        <div className="flex items-center justify-center gap-4 md:gap-6 flex-wrap mb-8">
+          {valuesData.map((v, i) => (
+            <div key={i} className="rounded-xl px-6 py-3" style={{ backgroundColor: '#F7F9FC' }}>
+              <p className="font-bold text-base" style={{ color: BRAND_COLORS.primaryBlue }}>{v.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-center gap-3 flex-wrap mb-10">
+          {benefitsData.map((b, i) => (
+            <span key={i} className="text-sm px-4 py-2 rounded-md" style={{ border: '1px solid #E5E7EB', color: '#6B7280' }}>{b}</span>
+          ))}
         </div>
 
         <div

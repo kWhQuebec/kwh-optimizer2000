@@ -1,14 +1,13 @@
 import type { PDFContext } from "../types";
 import { COLORS } from "../types";
 import { drawRoundedRect, drawPageFooter } from "../helpers";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString } from "@shared/brandContent";
+import { getAllStats, getTitle, getContactString, getValues, getCredibilityDescription, getCredibilityBenefits } from "@shared/brandContent";
 
 export function renderCredibility(ctx: PDFContext) {
   const { doc, t, margin, contentWidth, pageWidth, pageHeight } = ctx;
 
   doc.addPage();
 
-  // Header bleu
   doc.rect(0, 0, pageWidth, 80).fillColor(COLORS.blue).fill();
   doc.rect(0, 80, pageWidth, 4).fillColor(COLORS.gold).fill();
 
@@ -18,7 +17,6 @@ export function renderCredibility(ctx: PDFContext) {
 
   let refY = 120;
 
-  // Credibility stats
   const credibilityStats = getAllStats(ctx.lang);
   const statColWidth = credibilityStats.length > 0 ? contentWidth / credibilityStats.length : contentWidth;
 
@@ -32,36 +30,30 @@ export function renderCredibility(ctx: PDFContext) {
 
   refY += 100;
 
-  // Gold accent line below stats
   doc.rect(margin + contentWidth * 0.3, refY, contentWidth * 0.4, 2).fillColor(COLORS.gold).fill();
   refY += 25;
 
-  // Styled testimonial card
-  const testimonial = getFirstTestimonial(ctx.lang);
-  const cardPad = 20;
-  const cardWidth = contentWidth - 80;
-  const cardX = margin + 40;
-  const cardH = 80;
+  doc.fontSize(12).fillColor(COLORS.darkGray).font("Helvetica");
+  doc.text(getCredibilityDescription(ctx.lang), margin, refY, { width: contentWidth, align: "center" });
+  refY += 30;
 
-  drawRoundedRect(doc, cardX, refY, cardWidth, cardH, 8, "#F7F9FC");
-  // Blue left border accent
-  doc.rect(cardX, refY + 4, 4, cardH - 8).fillColor(COLORS.blue).fill();
+  const values = getValues(ctx.lang);
+  const valColWidth = contentWidth / values.length;
+  values.forEach((val, i) => {
+    const valX = margin + i * valColWidth;
+    doc.fontSize(13).fillColor(COLORS.blue).font("Helvetica-Bold");
+    doc.text(val.label, valX, refY, { width: valColWidth, align: "center" });
+    doc.fontSize(9).fillColor(COLORS.mediumGray).font("Helvetica");
+    doc.text(val.description, valX + 5, refY + 18, { width: valColWidth - 10, align: "center" });
+  });
 
-  doc.fontSize(13).fillColor(COLORS.darkGray).font("Helvetica-Oblique");
-  doc.text(`« ${testimonial.quote} »`, cardX + cardPad, refY + 14, { width: cardWidth - cardPad * 2, align: "center" });
+  refY += 60;
 
-  doc.fontSize(11).fillColor(COLORS.mediumGray).font("Helvetica");
-  doc.text(`— ${testimonial.author}`, cardX + cardPad, refY + cardH - 22, { width: cardWidth - cardPad * 2, align: "center" });
+  const benefits = getCredibilityBenefits(ctx.lang);
+  doc.fontSize(10).fillColor(COLORS.mediumGray).font("Helvetica");
+  doc.text(benefits.join("  •  "), margin, refY, { width: contentWidth, align: "center" });
+  refY += 30;
 
-  refY += cardH + 40;
-
-  // Client logos placeholder row
-  doc.fontSize(10).fillColor(COLORS.mediumGray);
-  doc.text(t("Nos clients incluent des entreprises dans les secteurs manufacturier, institutionnel et commercial.",
-    "Our clients include companies in manufacturing, institutional, and commercial sectors."), margin, refY, { width: contentWidth, align: "center" });
-  refY += 25;
-
-  // Call to action
   doc.fontSize(18).fillColor(COLORS.blue).font("Helvetica-Bold");
   doc.text(getTitle("nextStep", ctx.lang), margin, refY, { width: contentWidth, align: "center" });
 

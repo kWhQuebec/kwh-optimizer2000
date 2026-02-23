@@ -17,7 +17,7 @@ import type {
 } from "@shared/schema";
 import { defaultAnalysisAssumptions, getBifacialConfigFromRoofColor } from "@shared/schema";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartNumber, formatSmartPercent } from "@shared/formatters";
-import { getAssumptions, getExclusions, getEquipment, getTimeline, getAllStats, getFirstTestimonial, getNarrativeAct, getNarrativeTransition, getDesignFeeCovers, getClientProvides, getClientReceives } from "@shared/brandContent";
+import { getAssumptions, getExclusions, getEquipment, getTimeline, getAllStats, getNarrativeAct, getNarrativeTransition, getDesignFeeCovers, getClientProvides, getClientReceives } from "@shared/brandContent";
 import { TIMELINE_GRADIENT } from "@shared/colors";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -1655,19 +1655,19 @@ export function AnalysisResults({
             ))}
           </div>
 
-          {(() => {
-            const testimonial = getFirstTestimonial(language as "fr" | "en");
-            return (
-              <blockquote className="border-l-4 border-primary/30 pl-4 py-2 bg-muted/30 rounded-r-lg">
-                <p className="text-sm italic text-foreground/80">
-                  &laquo; {testimonial.quote} &raquo;
-                </p>
-                <footer className="mt-2 text-xs text-muted-foreground">
-                  &mdash; {testimonial.author}
-                </footer>
-              </blockquote>
-            );
-          })()}
+          <p className="text-sm text-muted-foreground text-center mb-4">
+            {language === "fr"
+              ? "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011."
+              : "Our team has been supporting businesses across Canada in renewable energy projects since 2011."}
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            {(language === "fr"
+              ? ["Simplicité", "Fiabilité", "Longévité", "Fierté"]
+              : ["Simplicity", "Reliability", "Longevity", "Pride"]
+            ).map((val, i) => (
+              <span key={i} className="text-xs font-semibold text-primary px-3 py-1 bg-primary/5 rounded-md">{val}</span>
+            ))}
+          </div>
         </CardContent>
       </Card>
 

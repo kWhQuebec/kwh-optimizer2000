@@ -630,7 +630,7 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.5 }}
           >
             <p className="text-sm text-white/50 mb-4">
-              {language === "fr" ? "Ils nous font confiance" : "They trust us"}
+              {language === "fr" ? "Nos partenaires" : "Our partners"}
             </p>
             <div className="flex flex-wrap items-center gap-12" data-testid="hero-partner-logos">
               <img
@@ -1789,7 +1789,7 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-      {/* ========== CREDIBILITY SECTION (Merged: Values + Team + Testimonials) ========== */}
+      {/* ========== CREDIBILITY SECTION (Values + Team) ========== */}
       <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-credibility">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -1803,8 +1803,8 @@ export default function LandingPage() {
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               {language === "fr"
-                ? "Notre équipe accompagne les entreprises dans leurs projets d'énergie renouvelable depuis 2011. En tant que Québécois, nous sommes fiers de vous offrir des solutions solaires maintenant rentables ici au Québec."
-                : "We've been supporting businesses in renewable energy projects since 2011. As Quebecers, we're proud to offer solar solutions that are now profitable here in Quebec."
+                ? "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011. En tant que Québécois, nous sommes fiers de vous offrir des solutions solaires maintenant rentables ici au Québec."
+                : "Our team has been supporting businesses across Canada in renewable energy projects since 2011. As Quebecers, we're proud to offer solar solutions that are now profitable here in Quebec."
               }
             </p>
           </motion.div>
@@ -2024,83 +2024,6 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Select Testimonials (1-2) from Social Proof */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-8"
-          >
-            <h3 className="text-lg sm:text-xl font-bold mb-6">
-              {language === "fr" ? "Ils nous font confiance" : "Client success stories"}
-            </h3>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-6" data-testid="container-testimonials">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0 }}
-            >
-              <Card className="p-6 h-full" data-testid="card-testimonial-1">
-                <div className="flex flex-col h-full">
-                  <div className="flex gap-1 mb-4">
-                    {[1,2,3,4,5].map(i => (
-                      <Zap key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    ))}
-                  </div>
-                  <blockquote className="text-sm text-muted-foreground flex-1 mb-4">
-                    "{language === "fr"
-                      ? "L'analyse détaillée nous a permis de prendre une décision éclairée. Le retour sur investissement prévu s'est avéré exact à 2% près après la première année d'opération."
-                      : "The detailed analysis allowed us to make an informed decision. The projected ROI proved accurate within 2% after the first year."
-                    }"
-                  </blockquote>
-                  <div className="flex items-center gap-3 pt-4 border-t">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">L. Hodgkinson</p>
-                      <p className="text-xs text-muted-foreground">Dream Industrial REIT</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card className="p-6 h-full" data-testid="card-testimonial-2">
-                <div className="flex flex-col h-full">
-                  <div className="flex gap-1 mb-4">
-                    {[1,2,3,4,5].map(i => (
-                      <Zap key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    ))}
-                  </div>
-                  <blockquote className="text-sm text-muted-foreground flex-1 mb-4">
-                    "{language === "fr"
-                      ? "Service professionnel du début à la fin. L'équipe a géré toutes les démarches avec Hydro-Québec et nous avons économisé 35% sur notre facture d'électricité dès la première année."
-                      : "Professional service from start to finish. The team handled all steps with Hydro-Québec and we saved 35% on our electricity bill in the first year."
-                    }"
-                  </blockquote>
-                  <div className="flex items-center gap-3 pt-4 border-t">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{language === "fr" ? "Propriétaire" : "Owner"}</p>
-                      <p className="text-xs text-muted-foreground">{language === "fr" ? "Centre de distribution" : "Distribution center"}</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          </div>
         </div>
       </section>
       {/* ========== CONTACT SECTION (Merged: Expert + Final Contact) ========== */}

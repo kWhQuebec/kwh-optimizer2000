@@ -268,7 +268,7 @@ const translations: Translations = {
   "analysis.equipment": { fr: "Équipement et garanties", en: "Equipment & Warranties" },
   "analysis.timeline": { fr: "Échéancier type", en: "Typical Timeline" },
   "analysis.timeline.note": { fr: "Délais sujets à approbation Hydro-Québec", en: "Timelines subject to Hydro-Québec approval" },
-  "analysis.credibility": { fr: "Ils nous font confiance", en: "They Trust Us" },
+  "analysis.credibility": { fr: "Pourquoi kWh Québec", en: "Why kWh Québec" },
   "analysis.equipment.note": { fr: "Équipement indicatif — marques et modèles confirmés dans la soumission forfaitaire", en: "Indicative equipment — brands and models confirmed in the firm quote" },
 
   // Presentation slides (interactive HTML)
@@ -281,7 +281,7 @@ const translations: Translations = {
   "presentation.equipment": { fr: "Équipement et garanties", en: "Equipment & Warranties" },
   "presentation.timeline": { fr: "Échéancier type", en: "Typical Timeline" },
   "presentation.nextSteps": { fr: "Prochaines étapes", en: "Next Steps" },
-  "presentation.credibility": { fr: "Ils nous font confiance", en: "They Trust Us" },
+  "presentation.credibility": { fr: "Pourquoi kWh Québec", en: "Why kWh Québec" },
   "presentation.costOfInaction": { fr: "Coût de l'inaction sur 25 ans", en: "Cost of inaction over 25 years" },
   "presentation.sizingSummary": { fr: "Dimensionnement", en: "Sizing Summary" },
 
@@ -1002,29 +1002,17 @@ const translations: Translations = {
     en: "Talk directly with a C&I solar engineer. No fees, no commitment."
   },
 
-  // Testimonials Section
-  "testimonials.title": { fr: "Ils nous font confiance", en: "They trust us" },
-  "testimonials.subtitle": { fr: "Ce que nos clients disent de leur expérience", en: "What our clients say about their experience" },
-  "testimonials.item1.name": { fr: "Martin Tremblay", en: "Martin Tremblay" },
-  "testimonials.item1.role": { fr: "Directeur des opérations", en: "Operations Director" },
-  "testimonials.item1.company": { fr: "Entrepôts Québec Inc.", en: "Entrepôts Québec Inc." },
-  "testimonials.item1.text": { fr: "En 6 mois, notre facture d'énergie a baissé de 38%. Le retour sur investissement est même meilleur que ce que kWh Québec avait projeté.", en: "In 6 months, our energy bill dropped 38%. The ROI is even better than what kWh Québec projected." },
-  "testimonials.item1.savings": { fr: "$42,000/an", en: "$42,000/year" },
-  "testimonials.item1.system": { fr: "185 kW", en: "185 kW" },
-
-  "testimonials.item2.name": { fr: "Sophie Lavoie", en: "Sophie Lavoie" },
-  "testimonials.item2.role": { fr: "Propriétaire", en: "Owner" },
-  "testimonials.item2.company": { fr: "Centre Commercial Rive-Sud", en: "Centre Commercial Rive-Sud" },
-  "testimonials.item2.text": { fr: "Le processus était transparent du début à la fin. L'équipe de kWh Québec a géré les incitatifs, la procuration Hydro-Québec, tout. On n'a presque rien eu à faire.", en: "The process was transparent from start to finish. The kWh Québec team handled incentives, Hydro-Québec procuration, everything. We barely had to do anything." },
-  "testimonials.item2.savings": { fr: "$67,000/an", en: "$67,000/year" },
-  "testimonials.item2.system": { fr: "320 kW", en: "320 kW" },
-
-  "testimonials.item3.name": { fr: "Jean-François Bouchard", en: "Jean-François Bouchard" },
-  "testimonials.item3.role": { fr: "VP Finance", en: "VP Finance" },
-  "testimonials.item3.company": { fr: "Industries Beauce Ltée", en: "Industries Beauce Ltée" },
-  "testimonials.item3.text": { fr: "Le stockage combiné au solaire nous a permis de réduire notre appel de puissance de 22%. C'est un impact direct sur la facture que je n'avais pas anticipé.", en: "Combined storage and solar allowed us to reduce our peak demand by 22%. That's a direct bill impact I hadn't anticipated." },
-  "testimonials.item3.savings": { fr: "$89,000/an", en: "$89,000/year" },
-  "testimonials.item3.system": { fr: "450 kW + 200 kWh", en: "450 kW + 200 kWh" },
+  // Why kWh Québec Section
+  "whykwh.title": { fr: "Pourquoi kWh Québec", en: "Why kWh Québec" },
+  "whykwh.subtitle": { fr: "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011.", en: "Our team has been supporting businesses across Canada in renewable energy projects since 2011." },
+  "whykwh.value1": { fr: "Simplicité", en: "Simplicity" },
+  "whykwh.value2": { fr: "Fiabilité", en: "Reliability" },
+  "whykwh.value3": { fr: "Longévité", en: "Longevity" },
+  "whykwh.value4": { fr: "Fierté", en: "Pride" },
+  "whykwh.benefit1": { fr: "Licence RBQ", en: "RBQ Licensed" },
+  "whykwh.benefit2": { fr: "Financement flexible", en: "Flexible Financing" },
+  "whykwh.benefit3": { fr: "Garantie 25 ans", en: "25-Year Warranty" },
+  "whykwh.benefit4": { fr: "Partout au Québec", en: "Across Quebec" },
 
   // Referral Program Section
   "referral.title": { fr: "Référez un collègue, gagnez 1,000$", en: "Refer a colleague, earn $1,000" },

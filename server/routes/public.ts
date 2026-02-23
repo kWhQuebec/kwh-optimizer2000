@@ -352,7 +352,7 @@ router.get("/api/public/portfolio/:id", asyncHandler(async (req, res) => {
     visualizationUrl: visualizationUrl,
     constructionStart: { fr: "Printemps/Été 2028", en: "Spring/Summer 2028" },
     developer: { fr: "Scale Cleantech et kWh Québec", en: "Scale Cleantech and kWh Québec" },
-    buildingSponsor: { fr: "Dream Industrial Solar", en: "Dream Industrial Solar" },
+    buildingSponsor: { fr: "À déterminer", en: "TBD" },
     electricityOfftake: { fr: "Hydro-Québec", en: "Hydro-Québec" },
   });
 }));

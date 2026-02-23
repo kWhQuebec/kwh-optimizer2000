@@ -441,12 +441,13 @@ function buildAboutPage(
       </div>
     </div>
     <div class="section">
-      <h3>${t("Ils nous font confiance", "They Trust Us")}</h3>
+      <h3>${t("Pourquoi kWh Qu&eacute;bec", "Why kWh Qu&eacute;bec")}</h3>
+      <p style="text-align: center; font-size: 9pt; color: #4a5568; margin-bottom: 3mm;">${t("Notre &eacute;quipe accompagne les entreprises partout au Canada dans leurs projets d'&eacute;nergie renouvelable depuis 2011.", "Our team has been supporting businesses across Canada in renewable energy projects since 2011.")}</p>
       <div class="logo-grid">
-        ${partnerLogos?.dreamIndustrialLogoBase64 ? `<div class="logo-item"><img src="${partnerLogos.dreamIndustrialLogoBase64}" style="max-height: 14mm; max-width: 90%; object-fit: contain;" /></div>` : `<div class="logo-item" style="font-size: 10pt; color: #1a2744;"><span style="font-weight: 800;">dream</span> <span style="font-weight: 400;">Industrial REIT</span></div>`}
-        ${partnerLogos?.labspaceLogoBase64 ? `<div class="logo-item"><img src="${partnerLogos.labspaceLogoBase64}" style="max-height: 14mm; max-width: 90%; object-fit: contain;" /></div>` : `<div class="logo-item" style="font-size: 10pt; color: #1a365d;"><span style="font-weight: 800;">LAB</span><span style="font-weight: 400; color: #4a5568;">Space</span></div>`}
-        ${partnerLogos?.scaleCleantechLogoBase64 ? `<div class="logo-item"><img src="${partnerLogos.scaleCleantechLogoBase64}" style="max-height: 14mm; max-width: 90%; object-fit: contain;" /></div>` : `<div class="logo-item" style="font-size: 10pt;"><span style="font-weight: 800; color: #003DA6;">Scale</span><span style="font-weight: 700; color: #16a34a;">Cleantech</span></div>`}
-        ${partnerLogos?.hydroQuebecLogoBase64 ? `<div class="logo-item"><img src="${partnerLogos.hydroQuebecLogoBase64}" style="max-height: 14mm; max-width: 90%; object-fit: contain;" /></div>` : `<div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">Hydro-Qu&eacute;bec</div>`}
+        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">15+ ${t("ans", "yrs")}</div>
+        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">120 MW</div>
+        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">25+ ${t("projets C&amp;I", "C&amp;I projects")}</div>
+        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">${t("Licence RBQ", "RBQ Licensed")}</div>
       </div>
     </div>
     <div class="two-column">

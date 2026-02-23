@@ -308,7 +308,7 @@ export async function getVelocityMetrics(userId: string) {
 
 /**
  * Calculate savings realized per completed project
- * Used in impact calculations and client testimonials
+ * Used in impact calculations and credibility metrics
  */
 export async function calculateProjectSavings(opportunityId: string) {
   const opp = await db

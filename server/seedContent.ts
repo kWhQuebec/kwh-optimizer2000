@@ -5,47 +5,35 @@ const log = createLogger("ContentSeed");
 
 const DEFAULT_CONTENT = [
   {
-    contentKey: "testimonials",
+    contentKey: "why_kwh",
     contentType: "json",
-    label: "Témoignages clients",
+    label: "Pourquoi kWh Québec",
     category: "social_proof",
     sortOrder: 1,
     isActive: true,
-    value: [
-      {
-        name: "Martin Tremblay",
-        role: { fr: "Directeur des opérations", en: "Operations Director" },
-        company: "Entrepôts Québec Inc.",
-        text: {
-          fr: "En 6 mois, notre facture d'énergie a baissé de 38%. Le retour sur investissement est même meilleur que ce que kWh Québec avait projeté.",
-          en: "In 6 months, our energy bill dropped 38%. The ROI is even better than what kWh Québec projected."
-        },
-        savings: "$42,000/an",
-        system: "185 kW"
+    value: {
+      description: {
+        fr: "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011.",
+        en: "Our team has been supporting businesses across Canada in renewable energy projects since 2011."
       },
-      {
-        name: "Sophie Lavoie",
-        role: { fr: "Propriétaire", en: "Owner" },
-        company: "Centre Commercial Rive-Sud",
-        text: {
-          fr: "Le processus était transparent du début à la fin. L'équipe de kWh Québec a géré les incitatifs, la procuration Hydro-Québec, tout. On n'a presque rien eu à faire.",
-          en: "The process was transparent from start to finish. The kWh Québec team handled incentives, Hydro-Québec procuration, everything. We barely had to do anything."
-        },
-        savings: "$67,000/an",
-        system: "320 kW"
-      },
-      {
-        name: "Jean-François Bouchard",
-        role: { fr: "VP Finance", en: "VP Finance" },
-        company: "Industries Beauce Ltée",
-        text: {
-          fr: "Le stockage combiné au solaire nous a permis de réduire notre appel de puissance de 22%. C'est un impact direct sur la facture que je n'avais pas anticipé.",
-          en: "Combined storage and solar allowed us to reduce our peak demand by 22%. That's a direct bill impact I hadn't anticipated."
-        },
-        savings: "$89,000/an",
-        system: "450 kW + 200 kWh"
-      }
-    ],
+      stats: [
+        { value: "15+", label: { fr: "Années d'expérience", en: "Years of experience" } },
+        { value: "120", label: { fr: "MW installés", en: "MW installed" } },
+        { value: "25+", label: { fr: "Projets C&I", en: "C&I Projects" } }
+      ],
+      values: [
+        { label: { fr: "Simplicité", en: "Simplicity" } },
+        { label: { fr: "Fiabilité", en: "Reliability" } },
+        { label: { fr: "Longévité", en: "Longevity" } },
+        { label: { fr: "Fierté", en: "Pride" } }
+      ],
+      benefits: [
+        { label: { fr: "Licence RBQ", en: "RBQ Licensed" } },
+        { label: { fr: "Financement flexible", en: "Flexible Financing" } },
+        { label: { fr: "Garantie 25 ans", en: "25-Year Warranty" } },
+        { label: { fr: "Partout au Québec", en: "Across Quebec" } }
+      ]
+    },
   },
   {
     contentKey: "faq",

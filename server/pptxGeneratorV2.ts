@@ -3,7 +3,7 @@ const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getBatteryEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap } from "@shared/brandContent";
+import { getAllStats, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getBatteryEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap } from "@shared/brandContent";
 import { computeFitScore } from "@shared/fitScore";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
@@ -1125,11 +1125,22 @@ export async function generatePresentationPPTX(
     `, slideOpts));
   }
 
-  // ========== SLIDE 16: THEY TRUST US ==========
+  // ========== SLIDE 16: WHY kWh QUÉBEC ==========
   {
     const credStats = getAllStats(lang);
-    const testimonial = getFirstTestimonial(lang);
     const contact = getContactString();
+    const credDesc = lang === "fr"
+      ? "Notre &eacute;quipe accompagne les entreprises partout au Canada dans leurs projets d'&eacute;nergie renouvelable depuis 2011."
+      : "Our team has been supporting businesses across Canada in renewable energy projects since 2011.";
+    const valuesData = [
+      { fr: "Simplicit&eacute;", en: "Simplicity" },
+      { fr: "Fiabilit&eacute;", en: "Reliability" },
+      { fr: "Long&eacute;vit&eacute;", en: "Longevity" },
+      { fr: "Fiert&eacute;", en: "Pride" },
+    ];
+    const benefitsData = lang === "fr"
+      ? ["Licence RBQ", "Financement flexible", "Garantie 25 ans", "Partout au Qu&eacute;bec"]
+      : ["RBQ Licensed", "Flexible Financing", "25-Year Warranty", "Across Quebec"];
 
     slideHtmls.push(wrapSlide(`
       <h2>${getTitle("trustUs", lang)}</h2>
@@ -1140,14 +1151,17 @@ export async function generatePresentationPPTX(
             <div style="font-size:16px;color:var(--gray);">${stat.label}</div>
           </div>`).join('')}
       </div>
-      <div style="background:#F7F9FC;border-radius:12px;padding:32px 40px;margin-top:32px;position:relative;">
-        <div style="position:absolute;left:0;top:16px;bottom:16px;width:5px;background:var(--primary);border-radius:3px;"></div>
-        <div style="font-size:22px;font-style:italic;color:var(--dark);text-align:center;line-height:1.5;">
-          &laquo; ${testimonial.quote} &raquo;
-        </div>
-        <div style="font-size:16px;color:var(--gray);text-align:center;margin-top:12px;">
-          — ${testimonial.author}
-        </div>
+      <div style="font-size:18px;color:var(--dark);text-align:center;margin-top:24px;line-height:1.5;">
+        ${credDesc}
+      </div>
+      <div style="display:flex;justify-content:center;gap:48px;margin-top:28px;">
+        ${valuesData.map(v => `
+          <div style="text-align:center;padding:16px 24px;background:#F7F9FC;border-radius:10px;min-width:160px;">
+            <div style="font-size:20px;font-weight:700;color:var(--primary);">${lang === "fr" ? v.fr : v.en}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:center;gap:24px;margin-top:24px;flex-wrap:wrap;">
+        ${benefitsData.map(b => `<div style="font-size:14px;color:var(--gray);padding:8px 16px;border:1px solid #E5E7EB;border-radius:6px;">${b}</div>`).join('')}
       </div>
       <div style="background:var(--primary);border-radius:8px;padding:20px;text-align:center;margin-top:32px;">
         <div style="font-size:20px;font-weight:700;color:var(--accent);">${contact}</div>

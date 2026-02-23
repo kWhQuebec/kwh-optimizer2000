@@ -81,7 +81,7 @@ export function generateProfessionalPDF(
   renderFitScore(ctx);                     // P11: Desktop Screening / Fit Score
   renderTimeline(ctx);
   renderNextSteps(ctx);                    // P13: Next Steps
-  renderCredibility(ctx);                  // P14: They Trust Us
+  renderCredibility(ctx);                  // P14: Why kWh Québec
 
   // === APPENDIX ===
 

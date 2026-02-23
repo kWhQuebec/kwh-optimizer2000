@@ -257,13 +257,13 @@ export default function ThankYouPage() {
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <Users className="w-6 h-6 text-primary" />
                   <h3 className="text-xl font-bold">
-                    {language === "fr" ? "Ils nous font confiance" : "They trust us"}
+                    {language === "fr" ? "Pourquoi kWh Québec" : "Why kWh Québec"}
                   </h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {language === "fr"
-                    ? "Des entreprises québécoises de toutes tailles nous font confiance"
-                    : "Quebec businesses of all sizes trust us"}
+                    ? "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011."
+                    : "Our team has been supporting businesses across Canada in renewable energy projects since 2011."}
                 </p>
               </div>
 

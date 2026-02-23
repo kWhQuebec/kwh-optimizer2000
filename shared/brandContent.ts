@@ -11,22 +11,26 @@ export const BRAND_CONTENT = {
     projectsCI: { value: "25+", labelFr: "Projets C&I", labelEn: "C&I Projects" },
   },
 
-  // === TÉMOIGNAGES ===
-  testimonials: [
-    {
-      id: "manufacturing-director",
-      quoteFr: "L'analyse détaillée nous a permis de prendre une décision éclairée. Le retour sur investissement prévu s'est avéré exact à 2% près.",
-      quoteEn: "The detailed analysis allowed us to make an informed decision. The expected ROI proved accurate within 2%.",
-      authorFr: "L. Hodgkinson — dream Industrial REIT",
-      authorEn: "L. Hodgkinson — dream Industrial REIT",
-    },
-    {
-      id: "warehouse-manager", 
-      quoteFr: "Réduction de 35% de notre facture énergétique dès la première année.",
-      quoteEn: "35% reduction in our energy bill from the first year.",
-      authorFr: "Gestionnaire d'entrepôt, Logistique Québec",
-      authorEn: "Warehouse Manager, Quebec Logistics",
-    },
+  // === POURQUOI kWh QUÉBEC — VALEURS ===
+  values: [
+    { id: "simplicite", labelFr: "Simplicité", labelEn: "Simplicity", descFr: "Un interlocuteur unique, du premier appel à la mise en service.", descEn: "A single point of contact, from first call to commissioning." },
+    { id: "fiabilite", labelFr: "Fiabilité", labelEn: "Reliability", descFr: "Licence RBQ, équipe certifiée CCQ & CNESST, ingénierie scellée.", descEn: "RBQ licensed, CCQ & CNESST certified team, sealed engineering." },
+    { id: "longevite", labelFr: "Longévité", labelEn: "Longevity", descFr: "Garantie 25 ans sur les panneaux, suivi de performance continu.", descEn: "25-year panel warranty, continuous performance monitoring." },
+    { id: "fierte", labelFr: "Fierté", labelEn: "Pride", descFr: "Entreprise québécoise engagée dans la transition énergétique.", descEn: "Quebec company committed to the energy transition." },
+  ],
+
+  // === CREDIBILITY DESCRIPTION ===
+  credibilityDescription: {
+    fr: "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011.",
+    en: "Our team has been supporting businesses across Canada in renewable energy projects since 2011.",
+  },
+
+  // === CREDIBILITY BENEFITS ===
+  credibilityBenefits: [
+    { labelFr: "Licence RBQ", labelEn: "RBQ Licensed" },
+    { labelFr: "Financement flexible", labelEn: "Flexible Financing" },
+    { labelFr: "Garantie 25 ans", labelEn: "25-Year Warranty" },
+    { labelFr: "Partout au Québec", labelEn: "Across Quebec" },
   ],
 
   // === CONTACT ===
@@ -49,7 +53,7 @@ export const BRAND_CONTENT = {
 
   // === TITRES DE SECTIONS ===
   sectionTitles: {
-    trustUs: { fr: "ILS NOUS FONT CONFIANCE", en: "THEY TRUST US" },
+    trustUs: { fr: "POURQUOI kWh QUÉBEC", en: "WHY kWh QUÉBEC" },
     nextStep: { fr: "PROCHAINE ÉTAPE", en: "NEXT STEP" },
     freeVisit: { 
       fr: "Contactez-nous pour planifier votre visite de site gratuite", 
@@ -656,20 +660,28 @@ export function getAllStats(lang: Lang) {
   }));
 }
 
-export function getTestimonial(id: string, lang: Lang) {
-  const t = BRAND_CONTENT.testimonials.find(item => item.id === id);
-  if (!t) return null;
-  return {
-    quote: lang === "fr" ? t.quoteFr : t.quoteEn,
-    author: lang === "fr" ? t.authorFr : t.authorEn,
-  };
+export function getValues(lang: Lang) {
+  return BRAND_CONTENT.values.map(v => ({
+    id: v.id,
+    label: lang === "fr" ? v.labelFr : v.labelEn,
+    description: lang === "fr" ? v.descFr : v.descEn,
+  }));
+}
+
+export function getCredibilityDescription(lang: Lang): string {
+  return BRAND_CONTENT.credibilityDescription[lang];
+}
+
+export function getCredibilityBenefits(lang: Lang) {
+  return BRAND_CONTENT.credibilityBenefits.map(b => (lang === "fr" ? b.labelFr : b.labelEn));
 }
 
 export function getFirstTestimonial(lang: Lang) {
-  const t = BRAND_CONTENT.testimonials[0];
   return {
-    quote: lang === "fr" ? t.quoteFr : t.quoteEn,
-    author: lang === "fr" ? t.authorFr : t.authorEn,
+    quote: lang === "fr"
+      ? BRAND_CONTENT.credibilityDescription.fr
+      : BRAND_CONTENT.credibilityDescription.en,
+    author: "kWh Québec",
   };
 }
 

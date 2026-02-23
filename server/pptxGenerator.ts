@@ -2,7 +2,7 @@ import PptxGenJSModule from "pptxgenjs";
 const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import fs from "fs";
 import path from "path";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes } from "@shared/brandContent";
+import { getAllStats, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes } from "@shared/brandContent";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
 import type { DocumentSimulationData } from "./documentDataProvider";
@@ -1394,7 +1394,7 @@ export async function generatePresentationPPTX(
     });
   }
 
-  // ================= LAST SLIDE: THEY TRUST US =================
+  // ================= LAST SLIDE: WHY kWh QUÉBEC =================
   const slideRef = pptx.addSlide({ masterName: "KWHMAIN" });
 
   slideRef.addText(getTitle("trustUs", lang), {
@@ -1425,37 +1425,46 @@ export async function generatePresentationPPTX(
     });
   });
 
-  const testimonialPptx = getFirstTestimonial(lang);
-  const quoteLines = Math.ceil(testimonialPptx.quote.length / 70);
-  const quoteH = Math.max(0.6, quoteLines * 0.3);
+  const credDesc = lang === "fr"
+    ? "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011."
+    : "Our team has been supporting businesses across Canada in renewable energy projects since 2011.";
 
-  slideRef.addShape("roundRect", {
-    x: 1, y: 3.15, w: 8, h: quoteH + 0.55,
-    fill: { color: "F7F9FC" },
-    rectRadius: 0.1
+  slideRef.addText(credDesc, {
+    x: 1.2, y: 3.0, w: 7.6, h: 0.5,
+    fontSize: 13, color: COLORS.darkGray, align: "center", valign: "middle"
   });
+
+  const valueLabels = lang === "fr"
+    ? ["Simplicité", "Fiabilité", "Longévité", "Fierté"]
+    : ["Simplicity", "Reliability", "Longevity", "Pride"];
+  valueLabels.forEach((val, i) => {
+    const xPos = 1.0 + i * 2.0;
+    slideRef.addShape("roundRect", {
+      x: xPos, y: 3.6, w: 1.8, h: 0.5,
+      fill: { color: "F7F9FC" },
+      rectRadius: 0.08
+    });
+    slideRef.addText(val, {
+      x: xPos, y: 3.6, w: 1.8, h: 0.5,
+      fontSize: 13, bold: true, color: COLORS.blue, align: "center", valign: "middle"
+    });
+  });
+
+  const benefitLabels = lang === "fr"
+    ? ["Licence RBQ", "Financement flexible", "Garantie 25 ans", "Partout au Québec"]
+    : ["RBQ Licensed", "Flexible Financing", "25-Year Warranty", "Across Quebec"];
+  slideRef.addText(benefitLabels.join("  •  "), {
+    x: 1.2, y: 4.25, w: 7.6, h: 0.35,
+    fontSize: 10, color: COLORS.mediumGray, align: "center"
+  });
+
   slideRef.addShape("rect", {
-    x: 1, y: 3.2, w: 0.06, h: quoteH + 0.4,
-    fill: { color: COLORS.blue }
-  });
-
-  slideRef.addText(`« ${testimonialPptx.quote} »`, {
-    x: 1.2, y: 3.25, w: 7.6, h: quoteH,
-    fontSize: 16, italic: true, color: COLORS.darkGray, align: "center", valign: "middle"
-  });
-
-  slideRef.addText(`— ${testimonialPptx.author}`, {
-    x: 1.2, y: 3.25 + quoteH, w: 7.6, h: 0.35,
-    fontSize: 11, color: COLORS.mediumGray, align: "center"
-  });
-
-  slideRef.addShape("rect", {
-    x: 2.5, y: 4.6, w: 5, h: 0.65,
+    x: 2.5, y: 4.7, w: 5, h: 0.65,
     fill: { color: COLORS.blue }
   });
 
   slideRef.addText(getContactString(), {
-    x: 2.5, y: 4.72, w: 5, h: 0.4,
+    x: 2.5, y: 4.82, w: 5, h: 0.4,
     fontSize: 14, bold: true, color: COLORS.gold, align: "center"
   });
 
