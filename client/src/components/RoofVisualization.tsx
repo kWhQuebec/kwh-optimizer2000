@@ -1082,9 +1082,10 @@ export function RoofVisualization({
             }
           }
           
-          // Priority: SOUTH-FIRST placement — solar best practice
-          // Panels further south on the roof get highest priority (best irradiance)
-          // Absolute latitude is the dominant factor, not polygon-relative position
+          // Priority: obstacle shadow avoidance + edge distance + mild south tiebreaker
+          // At roof scale (tens of meters), south vs north irradiance difference is negligible.
+          // What matters is: avoid obstacle shadows, prefer interior positions (wind safety),
+          // and use south as a tiebreaker for same-quality positions.
           const globalRowIdx = Math.round(gridY / panelPitchY);
           const globalColIdx = Math.round(gridX / panelPitchX);
           
@@ -1095,7 +1096,7 @@ export function RoofVisualization({
           let shadowPenalty = 0;
           for (const shadowPoly of shadowZones) {
             if (google.maps.geometry.poly.containsLocation(panelCenter, shadowPoly)) {
-              shadowPenalty = 0.5;
+              shadowPenalty = 1.0;
               break;
             }
           }
@@ -1103,16 +1104,17 @@ export function RoofVisualization({
           const WIND_SETBACK_M = 2.5;
           const windSetbackPenalty = distToEdge < WIND_SETBACK_M ? 0.4 * (1 - distToEdge / WIND_SETBACK_M) : 0;
 
-          // South priority within THIS polygon (not global — each polygon fills independently)
-          // Lower latitude = further south = higher priority
-          // Uses local centroid so priority is relative within each polygon
-          const absoluteSouthScore = Math.round((localCentroid.lat - panelCenterLat) * 1e7);
+          // Main score: shadow-free + away from edges (0-10000 range, dominates)
+          const qualityScore = Math.round((1 - shadowPenalty * 0.7) * 5000 + edgeScore * 3000 + (1 - windSetbackPenalty) * 2000);
           
-          // Secondary score: edge distance + shadow avoidance (0-999 range)
-          const secondaryScore = Math.round((edgeScore * 0.6 + 0.4) * (1 - shadowPenalty) * (1 - windSetbackPenalty) * 999);
+          // Tiebreaker: mild south preference within polygon (0-499 range)
+          // Uses row index relative to polygon grid — no division by near-zero values
+          // Only matters when two panels have similar quality scores
+          const rowRange = yPositions.length || 1;
+          const rowFraction = rowIdx / rowRange;
+          const southTiebreaker = Math.round((1 - rowFraction) * 499);
           
-          // South score dominates (millions range), secondary breaks ties within same row
-          const priority = absoluteSouthScore + secondaryScore;
+          const priority = qualityScore + southTiebreaker;
           
           // Calculate array ID based on fire corridor positions
           // Arrays are numbered 1, 2, 3... like KB Racking
@@ -1356,12 +1358,13 @@ export function RoofVisualization({
     return panels;
   }, []);
 
-  // Sort panels with PROPORTIONAL PER-POLYGON allocation (industry-standard EPC layout)
-  // Each polygon (roof section) fills independently — like real installations where each
-  // roof section gets its own racking array. South-first priority applies WITHIN each polygon.
-  // When capacity is reduced, panels are removed proportionally from all polygons.
+  // Sort panels with SEQUENTIAL POLYGON FILLING (realistic EPC approach)
+  // Fill the largest/easiest polygon first (most panels = most open area),
+  // then move to the next one. Within each polygon, panels away from obstacle
+  // shadows are prioritized. This mimics how a real EPC would stage installation:
+  // start with the biggest open section, then work on smaller/constrained sections.
   const sortPanelsByRowPriority = useCallback((panels: PanelPosition[]): PanelPosition[] => {
-    // Step 1: Group panels by polygon and sort each group by priority (south-first within polygon)
+    // Step 1: Group panels by polygon and sort each group internally by priority
     const byPolygon = new Map<string, PanelPosition[]>();
     for (const p of panels) {
       const pid = p.polygonId || "default";
@@ -1369,40 +1372,30 @@ export function RoofVisualization({
       byPolygon.get(pid)!.push(p);
     }
     
-    // Sort each polygon's panels by priority (highest first = south-first within that polygon)
+    // Sort each polygon's panels by priority (best positions first within that polygon)
     byPolygon.forEach((group) => {
       group.sort((a: PanelPosition, b: PanelPosition) => (b.priority || 0) - (a.priority || 0));
     });
     
     const polygonGroups = Array.from(byPolygon.entries());
-    const totalPanels = panels.length;
     
     if (polygonGroups.length <= 1) {
-      // Single polygon — simple sort is fine
       const sorted = polygonGroups.length === 1 ? polygonGroups[0][1] : [];
       console.log(`[RoofVisualization] Sorted ${sorted.length} panels (single polygon)`);
       return sorted;
     }
     
-    // Step 2: True proportional interleaving using normalized rank keys
-    // Each panel gets a key = (rank_within_polygon + 0.5) / polygon_total_count
-    // Sorting all panels by this key ensures any prefix slice(0, N) gives each
-    // polygon ~N × (polygon_count / total_count) panels — truly proportional.
-    // Example: polygon A (100 panels) and B (50 panels) → at 75 panels shown,
-    // A gets ~50, B gets ~25 (proportional to 100:50 = 2:1 ratio)
-    const sorted: { panel: PanelPosition; key: number }[] = [];
-    for (const [, group] of polygonGroups) {
-      const groupLen = group.length;
-      for (let i = 0; i < groupLen; i++) {
-        sorted.push({ panel: group[i], key: (i + 0.5) / groupLen });
-      }
+    // Step 2: Rank polygons by ease/size — largest (most panels) first
+    // More accepted panels = bigger usable area = fewer constraints relative to size
+    polygonGroups.sort((a, b) => b[1].length - a[1].length);
+    
+    // Step 3: Concatenate — fill best polygon completely, then next, etc.
+    const result: PanelPosition[] = [];
+    for (const [pid, group] of polygonGroups) {
+      result.push(...group);
     }
-    // Sort by normalized rank — panels at similar fill ratios across polygons interleave
-    sorted.sort((a, b) => a.key - b.key);
     
-    const result = sorted.map(s => s.panel);
-    
-    console.log(`[RoofVisualization] Sorted ${result.length} panels proportionally across ${polygonGroups.length} polygon(s): ${polygonGroups.map(([pid, g]) => `${pid.slice(0,8)}=${g.length}`).join(", ")}`);
+    console.log(`[RoofVisualization] Sorted ${result.length} panels sequentially across ${polygonGroups.length} polygon(s): ${polygonGroups.map(([pid, g]) => `${pid.slice(0,8)}=${g.length}`).join(" → ")}`);
     
     return result;
   }, []);
