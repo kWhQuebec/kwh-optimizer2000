@@ -5,6 +5,7 @@ import { publicApiLimiter } from "../middleware/rateLimiter";
 import { storage } from "../storage";
 import { asyncHandler, NotFoundError, BadRequestError } from "../middleware/errorHandler";
 import { runNewsFetchJob } from "../services/newsJobRunner";
+import { sendNewsCollectionNotification } from "../services/newsNotificationService";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("News");
@@ -31,6 +32,7 @@ router.get("/api/admin/news", authMiddleware, requireStaff, asyncHandler(async (
 router.post("/api/admin/news/fetch", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   log.info(`News fetch triggered by user ${req.userId}`);
   const result = await runNewsFetchJob(storage);
+  sendNewsCollectionNotification(result).catch(err => log.error("Notification email failed:", err));
   res.json(result);
 }));
 

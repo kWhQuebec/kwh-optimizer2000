@@ -189,19 +189,55 @@ app.use((req, res, next) => {
   });
   serverLog.info("Email scheduler initialized");
 
-  // Start daily news fetch scheduler (every 6 hours)
+  // Start daily news fetch scheduler at 16:00 Montreal time
   const { runNewsFetchJob } = await import("./services/newsJobRunner");
-  const NEWS_FETCH_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
-  setInterval(async () => {
-    try {
-      serverLog.info("Running scheduled news fetch...");
-      const result = await runNewsFetchJob(storage);
-      serverLog.info(`Scheduled news fetch complete: ${result.newArticles} new, ${result.analyzed} analyzed`);
-    } catch (error) {
-      serverLog.error("Scheduled news fetch failed:", error);
+  const { sendNewsCollectionNotification } = await import("./services/newsNotificationService");
+
+  const { fromZonedTime } = await import("date-fns-tz");
+
+  function scheduleNextNewsFetch() {
+    const tz = "America/Montreal";
+    const now = new Date();
+
+    const montrealFmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+    const p = montrealFmt.formatToParts(now);
+    const g = (t: string) => p.find(x => x.type === t)?.value || "0";
+    const y = parseInt(g("year")), m = parseInt(g("month")), d = parseInt(g("day"));
+    const h = parseInt(g("hour")), min = parseInt(g("minute"));
+
+    let targetDay = d;
+    if (h > 16 || (h === 16 && min >= 0)) targetDay++;
+
+    const montrealTarget = new Date(y, m - 1, targetDay, 16, 0, 0, 0);
+    const targetUtc = fromZonedTime(montrealTarget, tz);
+
+    let msUntilTarget = targetUtc.getTime() - now.getTime();
+    if (msUntilTarget <= 0) {
+      const nextDay = new Date(y, m - 1, targetDay + 1, 16, 0, 0, 0);
+      const nextUtc = fromZonedTime(nextDay, tz);
+      msUntilTarget = nextUtc.getTime() - now.getTime();
+      serverLog.info(`Next news fetch scheduled in ${Math.round(msUntilTarget / 60000)} minutes (16:00 Montreal time, target UTC: ${nextUtc.toISOString()})`);
+    } else {
+      serverLog.info(`Next news fetch scheduled in ${Math.round(msUntilTarget / 60000)} minutes (16:00 Montreal time, target UTC: ${targetUtc.toISOString()})`);
     }
-  }, NEWS_FETCH_INTERVAL);
-  serverLog.info("News fetch scheduler initialized (every 6h)");
+
+    setTimeout(async () => {
+      try {
+        serverLog.info("Running scheduled news fetch (16:00 Montreal)...");
+        const result = await runNewsFetchJob(storage);
+        serverLog.info(`Scheduled news fetch complete: ${result.newArticles} new, ${result.analyzed} analyzed`);
+        await sendNewsCollectionNotification(result);
+      } catch (error) {
+        serverLog.error("Scheduled news fetch failed:", error);
+      }
+      scheduleNextNewsFetch();
+    }, msUntilTarget);
+  }
+  scheduleNextNewsFetch();
+  serverLog.info("News fetch scheduler initialized (daily at 16:00 Montreal time)");
 
   // Seed default CMS content if empty
   await seedDefaultContent();
