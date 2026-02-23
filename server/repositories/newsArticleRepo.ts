@@ -7,9 +7,9 @@ export async function getNewsArticles(status?: string): Promise<NewsArticle[]> {
   if (status) {
     return db.select().from(newsArticles)
       .where(eq(newsArticles.status, status))
-      .orderBy(desc(newsArticles.publishedAt));
+      .orderBy(desc(newsArticles.aiRelevanceScore), desc(newsArticles.publishedAt));
   }
-  return db.select().from(newsArticles).orderBy(desc(newsArticles.publishedAt));
+  return db.select().from(newsArticles).orderBy(desc(newsArticles.aiRelevanceScore), desc(newsArticles.publishedAt));
 }
 
 export async function getNewsArticle(id: string): Promise<NewsArticle | undefined> {
