@@ -120,7 +120,6 @@ const SLIDES = [
   'systemElements',
   'deliveryAssurance',
   'fitScore',
-  'equipment',
   'nextSteps',
   'timeline',
   'credibility',
@@ -357,7 +356,6 @@ function PresentationPage() {
     systemElements: <SystemElementsSlide simulation={displaySim} language={language} />,
     deliveryAssurance: <DeliveryAssuranceSlide language={language} />,
     fitScore: <FitScoreSlide simulation={displaySim} language={language} />,
-    equipment: <EquipmentSlide language={language} />,
     timeline: <TimelineSlide language={language} />,
     nextSteps: <NextStepsSlide simulation={displaySim} language={language} isSyntheticData={!displaySim?.hourlyProfile || (displaySim.hourlyProfile as any[]).length === 0} />,
     credibility: <CredibilitySlide language={language} />,
@@ -1664,97 +1662,6 @@ function AssumptionsSlide({ language, isSyntheticData }: { language: string; isS
   );
 }
 
-function EquipmentSlide({ language }: { language: string }) {
-  const lang = language as "fr" | "en";
-  const equipment = getEquipment(lang);
-  const techSummary = getEquipmentTechnicalSummary(lang);
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
-      <div className="max-w-6xl w-full">
-        <SlideTitle>
-          {language === 'fr' ? 'Équipement et garanties' : 'Equipment & Warranties'}
-        </SlideTitle>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {equipment.map((eq, i) => (
-            <div key={i} className="rounded-xl text-center p-6 shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
-              <div
-                className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: 'rgba(255,176,5,0.1)' }}
-              >
-                <Shield className="h-7 w-7" style={{ color: BRAND_COLORS.accentGold }} />
-              </div>
-              <p className="font-semibold text-sm min-h-[2.5rem] mb-1" style={{ color: '#374151' }}>{eq.label}</p>
-              {eq.specs && (
-                <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>{eq.specs}</p>
-              )}
-              {eq.weightKg && (
-                <p className="text-xs mb-2" style={{ color: '#9CA3AF' }}>{eq.weightKg} kg</p>
-              )}
-              {eq.dimensionsMm && (
-                <p className="text-xs mb-2" style={{ color: '#9CA3AF' }}>{eq.dimensionsMm}</p>
-              )}
-              <p className="text-2xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{eq.warranty}</p>
-              <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>{language === 'fr' ? 'garantie' : 'warranty'}</p>
-              {eq.certifications && eq.certifications.length > 0 && (
-                <div className="flex flex-wrap gap-1 justify-center mt-3">
-                  {eq.certifications.map((cert: string, ci: number) => (
-                    <span key={ci} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,61,166,0.08)', color: BRAND_COLORS.primaryBlue }}>
-                      {cert}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 rounded-xl p-5" style={{ backgroundColor: 'rgba(0,61,166,0.04)', border: '1px solid rgba(0,61,166,0.12)' }}>
-          <h3 className="text-sm font-bold mb-4" style={{ color: BRAND_COLORS.primaryBlue }}>
-            {language === 'fr' ? 'Données structurelles pour évaluation de toiture' : 'Structural Data for Roof Evaluation'}
-          </h3>
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-baseline gap-6 justify-center">
-              <div className="text-center" data-testid="text-total-weight-metric">
-                <p className="text-xs mb-1" style={{ color: '#6B7280' }}>{language === 'fr' ? 'Charge totale du système' : 'Total System Load'}</p>
-                <p className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightKgPerM2.value} <span className="text-sm font-normal">kg/m²</span></p>
-              </div>
-              <span className="text-muted-foreground text-lg font-light">/</span>
-              <div className="text-center" data-testid="text-total-weight-imperial">
-                <p className="text-xs mb-1" style={{ color: '#6B7280' }}>{language === 'fr' ? 'Charge totale (impérial)' : 'Total Load (imperial)'}</p>
-                <p className="text-2xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightPsfPerSf.value} <span className="text-sm font-normal">{language === 'fr' ? 'lb/p²' : 'lb/sf'}</span></p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground" data-testid="text-weight-breakdown">
-              {language === 'fr'
-                ? `(Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m² + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m²)`
-                : `(Panels ${techSummary.panelWeightKgPerM2.value} kg/m² + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m²)`
-              }
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-4 justify-center mt-3">
-            <span className="text-xs flex items-center gap-1" style={{ color: '#6B7280' }}>
-              <CheckCircle2 className="h-3 w-3" style={{ color: BRAND_COLORS.positive }} />
-              {techSummary.windLoadDesign}
-            </span>
-            <span className="text-xs flex items-center gap-1" style={{ color: '#6B7280' }}>
-              <CheckCircle2 className="h-3 w-3" style={{ color: BRAND_COLORS.positive }} />
-              {techSummary.snowLoadNote}
-            </span>
-          </div>
-        </div>
-
-        <p className="text-center text-xs mt-4" style={{ color: '#9CA3AF' }}>
-          {language === 'fr'
-            ? 'Équipement indicatif — marques et modèles confirmés dans la soumission forfaitaire'
-            : 'Indicative equipment — brands and models confirmed in the firm quote'}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function TimelineSlide({ language }: { language: string }) {
   const lang = language as "fr" | "en";
   const timeline = getTimeline(lang);
@@ -2075,6 +1982,7 @@ function SystemElementsSlide({ simulation, language }: { simulation: SimulationR
   const lang = language as "fr" | "en";
   const t = (fr: string, en: string) => lang === "fr" ? fr : en;
   const equipment = getEquipment(lang);
+  const techSummary = getEquipmentTechnicalSummary(lang);
   const hasBattery = (simulation?.battEnergyKWh ?? 0) > 0;
   const battEq = hasBattery ? getBatteryEquipment(lang) : null;
 
@@ -2101,66 +2009,123 @@ function SystemElementsSlide({ simulation, language }: { simulation: SimulationR
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
-        <SlideTitle>{t("Éléments du système", "System Elements")}</SlideTitle>
+        <SlideTitle>{t("Système et équipement", "System & Equipment")}</SlideTitle>
 
         {/* Flow diagram */}
-        <div className="flex items-center justify-center gap-2 md:gap-3 flex-wrap mb-8">
+        <div className="flex items-center justify-center gap-2 md:gap-3 flex-wrap mb-6">
           {flowBoxes.map((box, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="rounded-xl px-4 py-3 md:px-6 md:py-4 text-center min-w-[100px] md:min-w-[140px]" style={{ backgroundColor: box.bg, color: box.text }}>
-                <p className="font-bold text-sm md:text-base">{box.label}</p>
-                <p className="text-xs md:text-sm opacity-85">{box.detail}</p>
+              <div className="rounded-xl px-4 py-3 md:px-5 md:py-3 text-center min-w-[90px] md:min-w-[130px]" style={{ backgroundColor: box.bg, color: box.text }}>
+                <p className="font-bold text-xs md:text-sm">{box.label}</p>
+                <p className="text-[10px] md:text-xs opacity-85">{box.detail}</p>
               </div>
               {i < flowBoxes.length - 1 && (
-                <ArrowRight className="h-5 w-5 flex-shrink-0" style={{ color: BRAND_COLORS.accentGold }} />
+                <ArrowRight className="h-4 w-4 flex-shrink-0" style={{ color: BRAND_COLORS.accentGold }} />
               )}
             </div>
           ))}
         </div>
 
-        {/* Component table */}
-        <div className="overflow-x-auto mb-8">
+        {/* Component table with warranty + certifications */}
+        <div className="overflow-x-auto mb-5">
           <table className="w-full text-sm">
             <thead>
               <tr style={{ backgroundColor: BRAND_COLORS.primaryBlue }}>
-                <th className="text-left text-white font-semibold px-4 py-2 rounded-tl-lg">{t("Composant", "Component")}</th>
-                <th className="text-left text-white font-semibold px-4 py-2">{t("Fabricant", "Manufacturer")}</th>
-                <th className="text-left text-white font-semibold px-4 py-2">{t("Spécification", "Specification")}</th>
-                <th className="text-left text-white font-semibold px-4 py-2 rounded-tr-lg">{t("Garantie", "Warranty")}</th>
+                <th className="text-left text-white font-semibold px-3 py-2 rounded-tl-lg">{t("Composant", "Component")}</th>
+                <th className="text-left text-white font-semibold px-3 py-2">{t("Fabricant", "Manufacturer")}</th>
+                <th className="text-left text-white font-semibold px-3 py-2">{t("Spécification", "Specification")}</th>
+                <th className="text-left text-white font-semibold px-3 py-2">{t("Garantie", "Warranty")}</th>
+                <th className="text-left text-white font-semibold px-3 py-2 rounded-tr-lg">{t("Certifications", "Certifications")}</th>
               </tr>
             </thead>
             <tbody>
               {equipment.map((eq, i) => (
                 <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
-                  <td className="px-4 py-2 font-medium">{eq.label}</td>
-                  <td className="px-4 py-2 text-gray-600">{eq.manufacturer}</td>
-                  <td className="px-4 py-2 text-gray-600 text-xs">{eq.specs || "—"}</td>
-                  <td className="px-4 py-2 font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{eq.warranty}</td>
+                  <td className="px-3 py-2 font-medium">{eq.label}</td>
+                  <td className="px-3 py-2 text-gray-600">{eq.manufacturer}</td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">{eq.specs || "—"}</td>
+                  <td className="px-3 py-2 font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{eq.warranty}</td>
+                  <td className="px-3 py-2">
+                    {eq.certifications && eq.certifications.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {eq.certifications.map((cert: string, ci: number) => (
+                          <span key={ci} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,61,166,0.08)', color: BRAND_COLORS.primaryBlue }}>
+                            {cert}
+                          </span>
+                        ))}
+                      </div>
+                    ) : "—"}
+                  </td>
                 </tr>
               ))}
               {battEq && (
                 <tr className={equipment.length % 2 === 0 ? 'bg-gray-50' : ''}>
-                  <td className="px-4 py-2 font-medium">{battEq.label}</td>
-                  <td className="px-4 py-2 text-gray-600">{battEq.manufacturer}</td>
-                  <td className="px-4 py-2 text-gray-600 text-xs">{battEq.specs || "—"}</td>
-                  <td className="px-4 py-2 font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{battEq.warranty}</td>
+                  <td className="px-3 py-2 font-medium">{battEq.label}</td>
+                  <td className="px-3 py-2 text-gray-600">{battEq.manufacturer}</td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">{battEq.specs || "—"}</td>
+                  <td className="px-3 py-2 font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{battEq.warranty}</td>
+                  <td className="px-3 py-2">—</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Operating modes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {modes.map((mode, i) => (
-            <div key={i} className="rounded-xl p-4" style={{ backgroundColor: '#f3f4f6', border: '1px solid #E5E7EB' }}>
-              <div className="flex items-center gap-2 mb-2" style={{ color: BRAND_COLORS.primaryBlue }}>
-                {mode.icon}
-                <span className="font-bold text-sm">{mode.title}</span>
-              </div>
-              <p className="text-xs" style={{ color: '#6B7280' }}>{mode.desc}</p>
+        {/* Operating modes + Structural data side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Operating modes */}
+          <div>
+            <h3 className="text-sm font-bold mb-3" style={{ color: BRAND_COLORS.primaryBlue }}>
+              {t("Modes d'opération", "Operating Modes")}
+            </h3>
+            <div className="flex flex-col gap-3">
+              {modes.map((mode, i) => (
+                <div key={i} className="rounded-xl p-3" style={{ backgroundColor: '#f3f4f6', border: '1px solid #E5E7EB' }}>
+                  <div className="flex items-center gap-2 mb-1" style={{ color: BRAND_COLORS.primaryBlue }}>
+                    {mode.icon}
+                    <span className="font-bold text-sm">{mode.title}</span>
+                  </div>
+                  <p className="text-xs" style={{ color: '#6B7280' }}>{mode.desc}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Structural data */}
+          <div className="rounded-xl p-5" style={{ backgroundColor: 'rgba(0,61,166,0.04)', border: '1px solid rgba(0,61,166,0.12)' }}>
+            <h3 className="text-sm font-bold mb-3" style={{ color: BRAND_COLORS.primaryBlue }}>
+              {t("Données structurelles", "Structural Data")}
+            </h3>
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-baseline gap-4 justify-center">
+                <div className="text-center" data-testid="text-total-weight-metric">
+                  <p className="text-xs mb-1" style={{ color: '#6B7280' }}>{t("Charge totale", "Total Load")}</p>
+                  <p className="text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightKgPerM2.value} <span className="text-sm font-normal">kg/m²</span></p>
+                </div>
+                <span className="text-muted-foreground text-lg font-light">/</span>
+                <div className="text-center" data-testid="text-total-weight-imperial">
+                  <p className="text-xs mb-1" style={{ color: '#6B7280' }}>{t("Impérial", "Imperial")}</p>
+                  <p className="text-xl font-bold" style={{ color: BRAND_COLORS.accentGold }}>{techSummary.totalSystemWeightPsfPerSf.value} <span className="text-sm font-normal">{t('lb/p²', 'lb/sf')}</span></p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground" data-testid="text-weight-breakdown">
+                {t(
+                  `(Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m² + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m²)`,
+                  `(Panels ${techSummary.panelWeightKgPerM2.value} kg/m² + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m²)`
+                )}
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center mt-1">
+                <span className="text-xs flex items-center gap-1" style={{ color: '#6B7280' }}>
+                  <CheckCircle2 className="h-3 w-3" style={{ color: BRAND_COLORS.positive }} />
+                  {techSummary.windLoadDesign}
+                </span>
+                <span className="text-xs flex items-center gap-1" style={{ color: '#6B7280' }}>
+                  <CheckCircle2 className="h-3 w-3" style={{ color: BRAND_COLORS.positive }} />
+                  {techSummary.snowLoadNote}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <p className="text-center text-xs mt-4" style={{ color: '#9CA3AF' }}>

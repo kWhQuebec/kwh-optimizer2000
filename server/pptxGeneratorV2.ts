@@ -769,82 +769,7 @@ export async function generatePresentationPPTX(
     `, slideOpts));
   }
 
-  // ========== SLIDE 12: EQUIPMENT & WARRANTIES ==========
-  {
-    const dynamicEquip = options?.catalogEquipment;
-    const techSummary = getEquipmentTechnicalSummary(lang);
-
-    let equipTable: string;
-    if (dynamicEquip && dynamicEquip.length > 0) {
-      equipTable = `
-        <table class="data-table">
-          <thead><tr>
-            <th>${t("Équipement", "Equipment")}</th>
-            <th>${t("Fabricant", "Manufacturer")}</th>
-            <th>${t("Spéc.", "Spec")}</th>
-            <th>${t("Garantie", "Warranty")}</th>
-          </tr></thead>
-          <tbody>
-            ${dynamicEquip.map(eq => `<tr>
-              <td>${eq.name}</td>
-              <td>${eq.manufacturer}</td>
-              <td>${eq.spec}</td>
-              <td style="font-weight:600;color:var(--primary);">${eq.warranty}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>`;
-    } else {
-      const equipment = getEquipment(lang);
-      equipTable = `
-        <table class="data-table">
-          <thead><tr>
-            <th>${t("Composant", "Component")}</th>
-            <th>${t("Spécification", "Specification")}</th>
-            <th>${t("Poids", "Weight")}</th>
-            <th>${t("Garantie", "Warranty")}</th>
-          </tr></thead>
-          <tbody>
-            ${equipment.map(eq => `<tr>
-              <td>${eq.label}</td>
-              <td>${eq.specs || "—"}</td>
-              <td>${eq.weightKg ? `${eq.weightKg} kg` : "—"}</td>
-              <td style="font-weight:600;color:var(--primary);">${eq.warranty}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>`;
-    }
-
-    slideHtmls.push(wrapSlide(`
-      <h2>${t("ÉQUIPEMENT ET GARANTIES", "EQUIPMENT & WARRANTIES")}</h2>
-      ${equipTable}
-      <div style="font-size:13px;color:var(--gray);text-align:center;margin-top:12px;">
-        ${t("Équipement indicatif — marques et modèles finaux confirmés dans la soumission forfaitaire",
-          "Indicative equipment — final brands and models confirmed in the firm quote")}
-      </div>
-      <div style="background:var(--light-gray);border-radius:8px;padding:20px;margin-top:16px;">
-        <div style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:12px;">
-          ${t("DONNÉES STRUCTURELLES POUR ÉVALUATION DE TOITURE", "STRUCTURAL DATA FOR ROOF EVALUATION")}
-        </div>
-        <div style="display:flex;gap:24px;">
-          <div>
-            <span style="font-weight:600;">${t("Charge totale du système", "Total System Load")}:</span>
-            <span style="font-weight:700;color:var(--accent);margin-left:8px;">${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit} / ${techSummary.totalSystemWeightPsfPerSf.value} ${t(techSummary.totalSystemWeightPsfPerSf.unitFr, techSummary.totalSystemWeightPsfPerSf.unitEn)}</span>
-          </div>
-          <div>
-            <span style="font-size:14px;color:var(--gray);">
-              ${t(`Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m² + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m²`,
-                `Panels ${techSummary.panelWeightKgPerM2.value} kg/m² + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m²`)}
-            </span>
-          </div>
-        </div>
-        <div style="font-size:12px;color:var(--gray);margin-top:8px;">
-          ${techSummary.windLoadDesign} | ${techSummary.snowLoadNote}
-        </div>
-      </div>
-    `, slideOpts));
-  }
-
-  // ========== SLIDE 13: TIMELINE ==========
+  // ========== SLIDE 12: TIMELINE ==========
   {
     const dynamicTimeline = options?.constructionTimeline;
     const timelineItems = (dynamicTimeline && dynamicTimeline.length > 0)
@@ -875,10 +800,11 @@ export async function generatePresentationPPTX(
     `, slideOpts));
   }
 
-  // ========== SLIDE 14: SYSTEM ELEMENTS ==========
+  // ========== SLIDE 14: SYSTEM & EQUIPMENT (merged) ==========
   {
     const hasBattery = simulation.battEnergyKWh > 0;
     const eqList = getEquipment(lang);
+    const techSummary2 = getEquipmentTechnicalSummary(lang);
     const battEq = hasBattery ? getBatteryEquipment(lang) : null;
 
     // Flow diagram boxes
@@ -895,55 +821,77 @@ export async function generatePresentationPPTX(
     );
 
     const flowHtml = flowBoxes.map((b, i) => {
-      const arrow = i < flowBoxes.length - 1 ? `<div style="font-size:32px;color:var(--accent);margin:0 8px;">&#9654;</div>` : '';
-      return `<div style="background:${b.color};border-radius:12px;padding:16px 20px;text-align:center;min-width:140px;">
-        <div style="font-size:16px;font-weight:700;color:${b.textColor};">${b.label}</div>
-        <div style="font-size:13px;color:${b.textColor};opacity:0.85;margin-top:4px;">${b.detail}</div>
+      const arrow = i < flowBoxes.length - 1 ? `<div style="font-size:28px;color:var(--accent);margin:0 6px;">&#9654;</div>` : '';
+      return `<div style="background:${b.color};border-radius:10px;padding:12px 16px;text-align:center;min-width:120px;">
+        <div style="font-size:14px;font-weight:700;color:${b.textColor};">${b.label}</div>
+        <div style="font-size:11px;color:${b.textColor};opacity:0.85;margin-top:2px;">${b.detail}</div>
       </div>${arrow}`;
     }).join('');
 
-    // Component table
-    const allEquip = [...eqList.map(e => ({ name: e.label, mfg: e.manufacturer, spec: e.specs || "—", warranty: e.warranty }))];
+    // Component table with certifications
+    const allEquip = [...eqList.map(e => ({ name: e.label, mfg: e.manufacturer, spec: e.specs || "—", warranty: e.warranty, certs: e.certifications || [] }))];
     if (battEq) {
-      allEquip.push({ name: battEq.label, mfg: battEq.manufacturer, spec: battEq.specs || "—", warranty: battEq.warranty });
+      allEquip.push({ name: battEq.label, mfg: battEq.manufacturer, spec: battEq.specs || "—", warranty: battEq.warranty, certs: [] });
     }
 
     const eqRows = allEquip.map(e => `<tr>
       <td>${e.name}</td><td>${e.mfg}</td><td>${e.spec}</td>
       <td style="font-weight:700;color:var(--primary);">${e.warranty}</td>
+      <td>${e.certs.length > 0 ? e.certs.map(c => `<span style="background:rgba(0,61,166,0.08);color:var(--primary);font-size:10px;padding:2px 6px;border-radius:10px;margin-right:4px;">${c}</span>`).join('') : '—'}</td>
     </tr>`).join('');
 
     // Operating modes
     const modes = [
-      { icon: "&#9728;", title: t("Autoconsommation", "Self-consumption"), desc: t("Production solaire → charges directement", "Solar production → loads directly") },
+      { icon: "&#9728;", title: t("Autoconsommation", "Self-consumption"), desc: t("Production → charges", "Production → loads") },
     ];
     if (hasBattery) {
-      modes.push({ icon: "&#128267;", title: t("Écrêtage de pointe", "Peak Shaving"), desc: t("Batterie réduit la demande de pointe", "Battery reduces peak demand") });
+      modes.push({ icon: "&#128267;", title: t("Écrêtage", "Peak Shaving"), desc: t("Batterie réduit la pointe", "Battery reduces peak") });
     }
-    modes.push({ icon: "&#128228;", title: t("Injection surplus", "Surplus Export"), desc: t("Surplus → réseau HQ (mesurage net)", "Surplus → HQ grid (net metering)") });
+    modes.push({ icon: "&#128228;", title: t("Injection", "Export"), desc: t("Surplus → HQ", "Surplus → HQ grid") });
 
     slideHtmls.push(wrapSlide(`
-      <h2>${t("ÉLÉMENTS DU SYSTÈME", "SYSTEM ELEMENTS")}</h2>
-      <div style="display:flex;align-items:center;justify-content:center;margin-top:20px;gap:0;">
+      <h2>${t("SYSTÈME ET ÉQUIPEMENT", "SYSTEM & EQUIPMENT")}</h2>
+      <div style="display:flex;align-items:center;justify-content:center;margin-top:12px;gap:0;">
         ${flowHtml}
       </div>
-      <table class="data-table" style="margin-top:24px;font-size:14px;">
+      <table class="data-table" style="margin-top:16px;font-size:13px;">
         <thead><tr>
           <th>${t("Composant", "Component")}</th>
           <th>${t("Fabricant", "Manufacturer")}</th>
           <th>${t("Spécification", "Specification")}</th>
           <th>${t("Garantie", "Warranty")}</th>
+          <th>${t("Certifications", "Certifications")}</th>
         </tr></thead>
         <tbody>${eqRows}</tbody>
       </table>
-      <div style="display:flex;gap:20px;margin-top:20px;">
-        ${modes.map(m => `
-          <div style="flex:1;background:var(--light-gray);border-radius:8px;padding:16px;">
-            <div style="font-size:16px;font-weight:700;color:var(--primary);margin-bottom:4px;">${m.icon} ${m.title}</div>
-            <div style="font-size:13px;color:var(--gray);">${m.desc}</div>
-          </div>`).join('')}
+      <div style="display:flex;gap:16px;margin-top:14px;">
+        <div style="flex:1;">
+          <div style="display:flex;gap:12px;">
+            ${modes.map(m => `
+              <div style="flex:1;background:var(--light-gray);border-radius:8px;padding:12px;">
+                <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:2px;">${m.icon} ${m.title}</div>
+                <div style="font-size:11px;color:var(--gray);">${m.desc}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div style="flex:1;background:rgba(0,61,166,0.04);border:1px solid rgba(0,61,166,0.12);border-radius:8px;padding:14px;">
+          <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px;">
+            ${t("Données structurelles", "Structural Data")}
+          </div>
+          <div style="font-size:14px;">
+            <span style="font-weight:600;">${t("Charge totale", "Total Load")}:</span>
+            <span style="font-weight:700;color:var(--accent);margin-left:6px;">${techSummary2.totalSystemWeightKgPerM2.value} kg/m² / ${techSummary2.totalSystemWeightPsfPerSf.value} ${t('lb/p²', 'lb/sf')}</span>
+          </div>
+          <div style="font-size:11px;color:var(--gray);margin-top:4px;">
+            ${t(`Panneaux ${techSummary2.panelWeightKgPerM2.value} kg/m² + Structure ${techSummary2.rackingWeightKgPerM2.value} kg/m²`,
+              `Panels ${techSummary2.panelWeightKgPerM2.value} kg/m² + Racking ${techSummary2.rackingWeightKgPerM2.value} kg/m²`)}
+          </div>
+          <div style="font-size:11px;color:var(--gray);margin-top:4px;">
+            ${techSummary2.windLoadDesign} | ${techSummary2.snowLoadNote}
+          </div>
+        </div>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--gray);">
+      <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--gray);">
         ${t("Équipement indicatif — confirmé dans la soumission forfaitaire", "Indicative equipment — confirmed in the firm quote")}
       </div>
     `, slideOpts));

@@ -10,7 +10,7 @@ import { renderInvestmentBreakdown } from "./sections/investmentBreakdown";
 import { renderRoofConfiguration } from "./sections/roofConfiguration";
 import { renderFinancialProjections } from "./sections/financialProjections";
 import { renderFinancingComparison } from "./sections/financingComparison";
-import { renderEquipment } from "./sections/equipment";
+// renderEquipment removed — merged into renderSystemElements
 import { renderTimeline } from "./sections/timeline";
 import { renderAssumptions } from "./sections/assumptions";
 import { renderNextSteps } from "./sections/nextSteps";
@@ -76,10 +76,9 @@ export function generateProfessionalPDF(
   renderFinancialProjections(ctx);         // P6: Financial Projections
   renderFinancingComparison(ctx);          // P7: Financing Options (conditional)
   renderAssumptions(ctx);                  // P8: Assumptions & Exclusions
-  renderSystemElements(ctx);               // P9: System Elements (architecture + components)
+  renderSystemElements(ctx);               // P9: System & Equipment (merged — flow + table + structural data)
   renderDeliveryAssurance(ctx);            // P10: Project Delivery Assurance
   renderFitScore(ctx);                     // P11: Desktop Screening / Fit Score
-  renderEquipment(ctx);                    // P12: Equipment & Timeline (shared page)
   renderTimeline(ctx);
   renderNextSteps(ctx);                    // P13: Next Steps
   renderCredibility(ctx);                  // P14: They Trust Us
