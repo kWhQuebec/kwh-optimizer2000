@@ -172,14 +172,17 @@ function StepDetail({
         <XCircle className="w-3 h-3" /> {fr ? "Résiliation" : "Cancelled"}
       </Badge>
     );
-    if (isActive && gateStatus === "blocked" && step.isHardBlock) return (
-      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-orange-300 text-orange-700 gap-1">
-        <Lock className="w-3 h-3" /> {gateLabel}
-      </Badge>
-    );
+    if (isActive && gateStatus === "blocked" && step.isHardBlock) {
+      const blockedLabel = fr ? (step.gateBlockedFr || gateLabel) : (step.gateBlockedEn || gateLabel);
+      return (
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-orange-300 text-orange-700 gap-1">
+          <Lock className="w-3 h-3" /> {blockedLabel}
+        </Badge>
+      );
+    }
     if (isActive && gateStatus === "passed") return (
       <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-300 text-green-700 gap-1">
-        <CheckCircle2 className="w-3 h-3" /> Gate ✓
+        <CheckCircle2 className="w-3 h-3" /> {gateLabel}
       </Badge>
     );
     if (isLocked) return (

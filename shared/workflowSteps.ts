@@ -24,9 +24,12 @@ export interface WorkflowStepDef {
   activeStages: string[];
   /** Pipeline stages that mean this step is "completed" */
   completedStages: string[];
-  /** Gate description */
+  /** Gate description (shown when gate is passed) */
   gateFr: string;
   gateEn: string;
+  /** Gate blocked description (shown when gate is blocked — "requis" instead of "disponible") */
+  gateBlockedFr?: string;
+  gateBlockedEn?: string;
   /** Whether this gate is a hard block (cannot proceed without it) */
   isHardBlock: boolean;
   /** Tabs in site-detail that belong to this step */
@@ -100,6 +103,8 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     completedStages: ["analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"],
     gateFr: "CSV de consommation disponible",
     gateEn: "Consumption CSV available",
+    gateBlockedFr: "CSV de consommation requis",
+    gateBlockedEn: "Consumption CSV required",
     isHardBlock: true,
     tabs: ["quick-analysis"],
     maxPoints: 375,
@@ -117,6 +122,8 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     completedStages: ["design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"],
     gateFr: "Mandat de conception signé + dépôt reçu",
     gateEn: "Design mandate signed + deposit received",
+    gateBlockedFr: "Mandat + dépôt requis",
+    gateBlockedEn: "Mandate + deposit required",
     isHardBlock: true,
     tabs: ["consumption", "analysis", "design-agreement"],
     maxPoints: 550,
