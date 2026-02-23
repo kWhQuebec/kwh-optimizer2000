@@ -77,9 +77,12 @@ export async function runNewsFetchJob(storage: IStorage): Promise<{
         }
       );
 
+      const AUTO_REJECT_THRESHOLD = 40;
+      let autoRejected = 0;
       for (const result of results) {
         if (result) {
           try {
+            const shouldReject = result.analysis.relevanceScore < AUTO_REJECT_THRESHOLD;
             await storage.updateNewsArticle(result.articleId, {
               aiRelevanceScore: result.analysis.relevanceScore,
               aiSummaryFr: result.analysis.summaryFr,
@@ -89,12 +92,17 @@ export async function runNewsFetchJob(storage: IStorage): Promise<{
               aiTags: result.analysis.tags,
               aiProcessedAt: new Date(),
               category: result.analysis.category,
+              ...(shouldReject ? { status: "rejected" } : {}),
             });
             analyzed++;
+            if (shouldReject) autoRejected++;
           } catch (error) {
             log.error(`Failed to update article ${result.articleId} with AI results:`, error);
           }
         }
+      }
+      if (autoRejected > 0) {
+        log.info(`Auto-rejected ${autoRejected} articles with relevance score < ${AUTO_REJECT_THRESHOLD}`);
       }
     } catch (error) {
       log.error("Batch AI analysis failed:", error);

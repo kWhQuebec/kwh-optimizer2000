@@ -5,6 +5,7 @@ import { publicApiLimiter } from "../middleware/rateLimiter";
 import { storage } from "../storage";
 import { asyncHandler, NotFoundError, BadRequestError } from "../middleware/errorHandler";
 import { runNewsFetchJob } from "../services/newsJobRunner";
+import { runNewsBackfillJob } from "../services/newsBackfillService";
 import { sendNewsCollectionNotification } from "../services/newsNotificationService";
 import { createLogger } from "../lib/logger";
 
@@ -12,6 +13,7 @@ const log = createLogger("News");
 const router = Router();
 
 const VALID_STATUSES = ["pending", "approved", "rejected", "published"] as const;
+const AUTO_REJECT_THRESHOLD = 40;
 
 const newsUpdateSchema = z.object({
   status: z.enum(VALID_STATUSES).optional(),
@@ -34,6 +36,12 @@ router.post("/api/admin/news/fetch", authMiddleware, requireStaff, asyncHandler(
   const result = await runNewsFetchJob(storage);
   sendNewsCollectionNotification(result).catch(err => log.error("Notification email failed:", err));
   res.json(result);
+}));
+
+router.post("/api/admin/news/backfill", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  log.info(`News AI backfill triggered by user ${req.userId}`);
+  res.json({ message: "Backfill started", status: "running" });
+  runNewsBackfillJob(storage, AUTO_REJECT_THRESHOLD).catch((err: unknown) => log.error("Backfill job failed:", err));
 }));
 
 router.patch("/api/admin/news/:id", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
