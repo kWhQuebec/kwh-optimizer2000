@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "../db";
 import { newsArticles } from "@shared/schema";
 import type { NewsArticle, InsertNewsArticle } from "@shared/schema";
@@ -33,6 +33,17 @@ export async function updateNewsArticle(id: string, updates: Partial<NewsArticle
     .where(eq(newsArticles.id, id))
     .returning();
   return result;
+}
+
+export async function getNewsArticleBySlug(slug: string): Promise<NewsArticle | undefined> {
+  const result = await db.select().from(newsArticles).where(eq(newsArticles.slug, slug)).limit(1);
+  return result[0];
+}
+
+export async function incrementNewsViewCount(id: string): Promise<void> {
+  await db.update(newsArticles)
+    .set({ viewCount: sql`COALESCE(${newsArticles.viewCount}, 0) + 1` })
+    .where(eq(newsArticles.id, id));
 }
 
 export async function deleteNewsArticle(id: string): Promise<boolean> {

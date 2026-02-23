@@ -16,6 +16,7 @@ const newsUpdateSchema = z.object({
   status: z.enum(VALID_STATUSES).optional(),
   editedCommentFr: z.string().optional(),
   editedSocialPostFr: z.string().optional(),
+  category: z.string().optional(),
 }).strict();
 
 router.get("/api/admin/news", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
@@ -60,6 +61,15 @@ router.delete("/api/admin/news/:id", authMiddleware, requireStaff, asyncHandler(
     throw new NotFoundError("News article");
   }
   res.json({ success: true });
+}));
+
+router.get("/api/public/news/:slug", publicApiLimiter, asyncHandler(async (req: AuthRequest, res) => {
+  const article = await storage.getNewsArticleBySlug(req.params.slug);
+  if (!article || article.status !== "published") {
+    throw new NotFoundError("News article");
+  }
+  storage.incrementNewsViewCount(article.id).catch(() => {});
+  res.json(article);
 }));
 
 router.get("/api/public/news", publicApiLimiter, asyncHandler(async (req: AuthRequest, res) => {

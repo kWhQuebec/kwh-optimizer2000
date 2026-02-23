@@ -385,7 +385,9 @@ export class DatabaseStorage implements IStorage {
   getNewsArticles = newsArticleRepo.getNewsArticles;
   getNewsArticle = newsArticleRepo.getNewsArticle;
   getNewsArticleByUrl = newsArticleRepo.getNewsArticleByUrl;
+  getNewsArticleBySlug = newsArticleRepo.getNewsArticleBySlug;
   createNewsArticle = newsArticleRepo.createNewsArticle;
   updateNewsArticle = newsArticleRepo.updateNewsArticle;
   deleteNewsArticle = newsArticleRepo.deleteNewsArticle;
+  incrementNewsViewCount = newsArticleRepo.incrementNewsViewCount;
 }

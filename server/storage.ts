@@ -524,9 +524,11 @@ export interface IStorage {
   getNewsArticles(status?: string): Promise<NewsArticle[]>;
   getNewsArticle(id: string): Promise<NewsArticle | undefined>;
   getNewsArticleByUrl(url: string): Promise<NewsArticle | undefined>;
+  getNewsArticleBySlug(slug: string): Promise<NewsArticle | undefined>;
   createNewsArticle(article: InsertNewsArticle): Promise<NewsArticle>;
   updateNewsArticle(id: string, updates: Partial<NewsArticle>): Promise<NewsArticle | undefined>;
   deleteNewsArticle(id: string): Promise<boolean>;
+  incrementNewsViewCount(id: string): Promise<void>;
 }
 
 

@@ -76,6 +76,7 @@ const ConversionDashboardPage = lazy(() => import("@/pages/conversion-dashboard"
 const LcoeComparisonPage = lazy(() => import("@/pages/lcoe-comparison"));
 const EOSPage = lazy(() => import("@/pages/eos"));
 const AdminNewsPage = lazy(() => import("@/pages/admin-news"));
+const NouvelleDetailPage = lazy(() => import("@/pages/nouvelle-detail"));
 
 import NouvellesPage from "@/pages/nouvelles";
 
@@ -234,6 +235,11 @@ function AppRoutes() {
       <Route path="/ressources/calculateur-roi-solaire" component={CalculateurROIPage} />
       <Route path="/blog" component={BlogPage} />
       <Route path="/blog/:slug" component={BlogArticlePage} />
+      <Route path="/nouvelles/:slug">
+        <Suspense fallback={<PageLoader />}>
+          <NouvelleDetailPage />
+        </Suspense>
+      </Route>
       <Route path="/nouvelles" component={NouvellesPage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/autorisation-hq" component={AutorisationHQPage} />

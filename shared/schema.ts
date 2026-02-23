@@ -3193,6 +3193,9 @@ export const newsArticles = pgTable("news_articles", {
 
   imageUrl: text("image_url"),
   language: text("language").default("fr"),
+  category: text("category"),
+  slug: text("slug"),
+  viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

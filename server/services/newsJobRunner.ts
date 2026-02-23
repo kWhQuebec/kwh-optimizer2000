@@ -6,6 +6,19 @@ import type { IStorage } from "../storage";
 
 const log = createLogger("NewsJob");
 
+function generateSlug(title: string): string {
+  const base = title
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .substring(0, 80);
+  const suffix = Math.random().toString(36).substring(2, 8);
+  return `${base}-${suffix}`;
+}
+
 export async function runNewsFetchJob(storage: IStorage): Promise<{
   fetched: number;
   newArticles: number;
@@ -37,6 +50,7 @@ export async function runNewsFetchJob(storage: IStorage): Promise<{
         imageUrl: item.imageUrl || null,
         language: item.language,
         status: "pending",
+        slug: generateSlug(item.title),
       });
       savedArticles.push({ article, raw: item });
     } catch (error) {
@@ -74,6 +88,7 @@ export async function runNewsFetchJob(storage: IStorage): Promise<{
               aiSocialPostEn: result.analysis.socialPostEn,
               aiTags: result.analysis.tags,
               aiProcessedAt: new Date(),
+              category: result.analysis.category,
             });
             analyzed++;
           } catch (error) {

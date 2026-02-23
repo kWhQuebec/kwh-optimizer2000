@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
@@ -14,9 +15,27 @@ import type { NewsArticle } from "@shared/schema";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
+const CATEGORY_LABELS: Record<string, { fr: string; en: string }> = {
+  politique: { fr: "Politique", en: "Policy" },
+  technologie: { fr: "Technologie", en: "Technology" },
+  financement: { fr: "Financement", en: "Financing" },
+  "marché": { fr: "Marché", en: "Market" },
+  "réglementation": { fr: "Réglementation", en: "Regulation" },
+};
+
+const CATEGORY_FILTERS = [
+  { value: "", fr: "Tout", en: "All" },
+  { value: "politique", fr: "Politique", en: "Policy" },
+  { value: "technologie", fr: "Technologie", en: "Technology" },
+  { value: "financement", fr: "Financement", en: "Financing" },
+  { value: "marché", fr: "Marché", en: "Market" },
+  { value: "réglementation", fr: "Réglementation", en: "Regulation" },
+];
+
 function NewsCard({ article }: { article: NewsArticle }) {
   const { language } = useI18n();
   const comment = article.editedCommentFr || article.aiCommentFr;
+  const catLabel = article.category ? CATEGORY_LABELS[article.category] : null;
 
   return (
     <motion.div
@@ -40,6 +59,11 @@ function NewsCard({ article }: { article: NewsArticle }) {
             <Badge variant="secondary" className="text-xs" data-testid={`badge-source-${article.id}`}>
               {article.sourceName}
             </Badge>
+            {catLabel && (
+              <Badge variant="outline" className="text-xs" data-testid={`badge-category-${article.id}`}>
+                {language === "fr" ? catLabel.fr : catLabel.en}
+              </Badge>
+            )}
             {article.publishedAt && (
               <span className="text-sm text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
@@ -51,21 +75,29 @@ function NewsCard({ article }: { article: NewsArticle }) {
             )}
           </div>
 
-          <a
-            href={article.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group"
-            data-testid={`link-news-${article.id}`}
-          >
-            <h3
-              className="text-lg font-semibold mb-2 group-hover:underline inline-flex items-start gap-1"
-              data-testid={`text-news-title-${article.id}`}
+          <div className="flex items-start gap-2 mb-2">
+            <Link
+              href={`/nouvelles/${article.slug}`}
+              className="group flex-1"
+              data-testid={`link-news-${article.id}`}
             >
-              {article.originalTitle}
-              <ExternalLink className="w-4 h-4 flex-shrink-0 mt-1" />
-            </h3>
-          </a>
+              <h3
+                className="text-lg font-semibold group-hover:underline"
+                data-testid={`text-news-title-${article.id}`}
+              >
+                {article.originalTitle}
+              </h3>
+            </Link>
+            <Button size="icon" variant="ghost" asChild data-testid={`link-external-${article.id}`}>
+              <a
+                href={article.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </Button>
+          </div>
 
           {comment && (
             <p className="text-muted-foreground text-sm mb-3 line-clamp-4" data-testid={`text-news-comment-${article.id}`}>
@@ -91,10 +123,15 @@ function NewsCard({ article }: { article: NewsArticle }) {
 export default function NouvellesPage() {
   const { t, language } = useI18n();
   const currentLogo = language === "fr" ? logoFr : logoEn;
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const { data: articles, isLoading } = useQuery<NewsArticle[]>({
     queryKey: ["/api/public/news"],
   });
+
+  const filteredArticles = selectedCategory
+    ? articles?.filter((a) => a.category === selectedCategory)
+    : articles;
 
   const title = language === "fr" ? "Nouvelles de l'industrie" : "Industry News";
   const subtitle = language === "fr"
@@ -139,21 +176,21 @@ export default function NouvellesPage() {
               />
             </Link>
             <nav className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost" data-testid="link-home">
+              <Button variant="ghost" asChild data-testid="link-home">
+                <Link href="/">
                   {language === "fr" ? "Accueil" : "Home"}
-                </Button>
-              </Link>
-              <Link href="/blog">
-                <Button variant="ghost" data-testid="link-blog">
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild data-testid="link-blog">
+                <Link href="/blog">
                   {language === "fr" ? "Ressources" : "Resources"}
-                </Button>
-              </Link>
-              <Link href="/nouvelles">
-                <Button variant="ghost" className="bg-accent/50" data-testid="link-news">
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild className="bg-accent/50" data-testid="link-news">
+                <Link href="/nouvelles">
                   {language === "fr" ? "Nouvelles" : "News"}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
               <LanguageToggle />
               <ThemeToggle />
             </nav>
@@ -175,6 +212,20 @@ export default function NouvellesPage() {
             </p>
           </motion.div>
 
+          <div className="flex flex-wrap gap-2 mb-8 justify-center">
+            {CATEGORY_FILTERS.map((cat) => (
+              <Button
+                key={cat.value}
+                variant="outline"
+                className={selectedCategory === cat.value ? "toggle-elevate toggle-elevated" : "toggle-elevate"}
+                onClick={() => setSelectedCategory(cat.value)}
+                data-testid={`filter-category-${cat.value || "all"}`}
+              >
+                {language === "fr" ? cat.fr : cat.en}
+              </Button>
+            ))}
+          </div>
+
           {isLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
@@ -188,9 +239,9 @@ export default function NouvellesPage() {
                 </Card>
               ))}
             </div>
-          ) : articles && articles.length > 0 ? (
+          ) : filteredArticles && filteredArticles.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {articles.map((article) => (
+              {filteredArticles.map((article) => (
                 <NewsCard key={article.id} article={article} />
               ))}
             </div>
@@ -221,12 +272,12 @@ export default function NouvellesPage() {
                 ? "Obtenez une analyse gratuite de votre potentiel d'économie avec l'énergie solaire."
                 : "Get a free analysis of your savings potential with solar energy."}
             </p>
-            <Link href="/#contact">
-              <Button size="lg" data-testid="button-cta">
+            <Button size="lg" asChild data-testid="button-cta">
+              <Link href="/#contact">
                 {language === "fr" ? "Demander une analyse" : "Request an analysis"}
                 <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </motion.div>
         </main>
 

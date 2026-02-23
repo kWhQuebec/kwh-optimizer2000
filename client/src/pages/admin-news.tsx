@@ -2,18 +2,28 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Newspaper, RefreshCw, Loader2, ExternalLink, Check, X, Send, Trash2, Shield } from "lucide-react";
+import { Newspaper, RefreshCw, Loader2, ExternalLink, Check, X, Send, Trash2, Shield, Eye } from "lucide-react";
+import { SiLinkedin } from "react-icons/si";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { NewsArticle } from "@shared/schema";
+
+const CATEGORY_OPTIONS = [
+  { value: "politique", label: "Politique" },
+  { value: "technologie", label: "Technologie" },
+  { value: "financement", label: "Financement" },
+  { value: "marché", label: "Marché" },
+  { value: "réglementation", label: "Réglementation" },
+] as const;
 
 function RelevanceBadge({ score }: { score: number | null }) {
   if (score === null || score === undefined) {
@@ -34,6 +44,7 @@ function ArticleCard({ article, onUpdate, onDelete }: {
 }) {
   const [editedComment, setEditedComment] = useState(article.editedCommentFr || article.aiCommentFr || "");
   const [editedSocialPost, setEditedSocialPost] = useState(article.editedSocialPostFr || article.aiSocialPostFr || "");
+  const [selectedCategory, setSelectedCategory] = useState(article.category || "");
 
   return (
     <Card className="mb-4" data-testid={`card-news-${article.id}`}>
@@ -59,7 +70,15 @@ function ArticleCard({ article, onUpdate, onDelete }: {
                   {format(new Date(article.publishedAt), "d MMM yyyy", { locale: fr })}
                 </span>
               )}
+              <span className="text-sm text-muted-foreground inline-flex items-center gap-1" data-testid={`text-views-${article.id}`}>
+                <Eye className="w-3 h-3" /> {article.viewCount || 0}
+              </span>
               <RelevanceBadge score={article.aiRelevanceScore} />
+              {article.category && (
+                <Badge variant="outline" data-testid={`badge-category-${article.id}`}>
+                  {CATEGORY_OPTIONS.find(c => c.value === article.category)?.label || article.category}
+                </Badge>
+              )}
               <Badge variant="outline">{article.language?.toUpperCase()}</Badge>
             </div>
           </div>
@@ -118,6 +137,24 @@ function ArticleCard({ article, onUpdate, onDelete }: {
           </div>
         )}
 
+        <div className="mb-4">
+          <label className="text-xs font-medium text-muted-foreground block mb-1">
+            Catégorie
+          </label>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory} data-testid={`select-category-${article.id}`}>
+            <SelectTrigger className="w-48" data-testid={`select-category-trigger-${article.id}`}>
+              <SelectValue placeholder="Choisir une catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORY_OPTIONS.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value} data-testid={`select-category-item-${cat.value}-${article.id}`}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           {article.status === "pending" && (
             <>
@@ -127,6 +164,7 @@ function ArticleCard({ article, onUpdate, onDelete }: {
                   status: "approved",
                   editedCommentFr: editedComment,
                   editedSocialPostFr: editedSocialPost,
+                  category: selectedCategory || null,
                 })}
                 data-testid={`button-approve-${article.id}`}
               >
@@ -140,6 +178,7 @@ function ArticleCard({ article, onUpdate, onDelete }: {
                   status: "published",
                   editedCommentFr: editedComment,
                   editedSocialPostFr: editedSocialPost,
+                  category: selectedCategory || null,
                 })}
                 data-testid={`button-publish-${article.id}`}
               >
@@ -165,6 +204,7 @@ function ArticleCard({ article, onUpdate, onDelete }: {
                 status: "published",
                 editedCommentFr: editedComment,
                 editedSocialPostFr: editedSocialPost,
+                category: selectedCategory || null,
               })}
               data-testid={`button-publish-${article.id}`}
             >
@@ -179,12 +219,27 @@ function ArticleCard({ article, onUpdate, onDelete }: {
               onUpdate(article.id, {
                 editedCommentFr: editedComment,
                 editedSocialPostFr: editedSocialPost,
+                category: selectedCategory || null,
               });
             }}
             data-testid={`button-save-${article.id}`}
           >
             Sauvegarder
           </Button>
+          {(article.status === "approved" || article.status === "published") && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                const socialPost = article.editedSocialPostFr || article.aiSocialPostFr || "";
+                const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(article.sourceUrl)}&summary=${encodeURIComponent(socialPost)}`;
+                window.open(url, "_blank");
+              }}
+              data-testid={`button-linkedin-${article.id}`}
+            >
+              <SiLinkedin className="w-4 h-4" />
+            </Button>
+          )}
           <Button
             size="icon"
             variant="ghost"

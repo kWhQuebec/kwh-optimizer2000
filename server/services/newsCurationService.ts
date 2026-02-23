@@ -19,6 +19,7 @@ export interface ArticleAnalysis {
   socialPostFr: string;
   socialPostEn: string;
   tags: string[];
+  category: string;
 }
 
 export async function analyzeArticleRelevance(article: RawNewsItem): Promise<ArticleAnalysis> {
@@ -45,7 +46,8 @@ Réponds UNIQUEMENT en JSON valide avec cette structure exacte (pas de markdown,
   "commentFr": "<commentaire expert kWh Québec, 2-3 phrases, perspective d'affaires pour les entreprises québécoises>",
   "socialPostFr": "<post LinkedIn en français, max 200 caractères, avec hashtags>",
   "socialPostEn": "<LinkedIn post in English, max 200 chars, with hashtags>",
-  "tags": ["<tag1>", "<tag2>", "<tag3>"]
+  "tags": ["<tag1>", "<tag2>", "<tag3>"],
+  "category": "<une seule catégorie parmi: politique, technologie, financement, marché, réglementation>"
 }`;
 
   try {
@@ -65,6 +67,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure exacte (pas de markdown,
       socialPostFr: String(result.socialPostFr || "").substring(0, 300),
       socialPostEn: String(result.socialPostEn || "").substring(0, 300),
       tags: Array.isArray(result.tags) ? result.tags.map(String).slice(0, 10) : [],
+      category: String(result.category || "marché"),
     };
   } catch (error) {
     log.error(`Failed to analyze article "${article.title}":`, error);
@@ -75,6 +78,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure exacte (pas de markdown,
       socialPostFr: "",
       socialPostEn: "",
       tags: [],
+      category: "marché",
     };
   }
 }
