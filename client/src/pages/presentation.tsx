@@ -78,6 +78,7 @@ import {
   getAssumptions,
   getExclusions,
   getEquipment,
+  getBatteryEquipment,
   getEquipmentTechnicalSummary,
   getTimeline,
   getAllStats,
@@ -92,8 +93,12 @@ import {
   getDesignMandatePrice,
   getDesignMandateIncludes,
   getMessagingLane,
+  getDeliveryAssurance,
+  getDeliveryPartners,
+  getWarrantyRoadmap,
   type BusinessDriver,
 } from "@shared/brandContent";
+import { computeFitScore } from "@shared/fitScore";
 
 interface SiteWithDetails extends Site {
   client: Client;
@@ -112,6 +117,9 @@ const SLIDES = [
   'financing',
   'surplusCredits',
   'assumptions',
+  'systemElements',
+  'deliveryAssurance',
+  'fitScore',
   'equipment',
   'nextSteps',
   'timeline',
@@ -346,6 +354,9 @@ function PresentationPage() {
     surplusCredits: <SurplusCreditsSlide simulation={displaySim} language={language} />,
     financing: <FinancingSlide simulation={displaySim} language={language} />,
     assumptions: <AssumptionsSlide language={language} isSyntheticData={!fullSimulation?.hourlyProfile || (fullSimulation.hourlyProfile as any[]).length === 0} />,
+    systemElements: <SystemElementsSlide simulation={displaySim} language={language} />,
+    deliveryAssurance: <DeliveryAssuranceSlide language={language} />,
+    fitScore: <FitScoreSlide simulation={displaySim} language={language} />,
     equipment: <EquipmentSlide language={language} />,
     timeline: <TimelineSlide language={language} />,
     nextSteps: <NextStepsSlide simulation={displaySim} language={language} isSyntheticData={!displaySim?.hourlyProfile || (displaySim.hourlyProfile as any[]).length === 0} />,
@@ -2053,6 +2064,313 @@ function WhySolarNowSlide({ language }: { language: string }) {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== SYSTEM ELEMENTS SLIDE ==========
+function SystemElementsSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+  const lang = language as "fr" | "en";
+  const t = (fr: string, en: string) => lang === "fr" ? fr : en;
+  const equipment = getEquipment(lang);
+  const hasBattery = (simulation?.battEnergyKWh ?? 0) > 0;
+  const battEq = hasBattery ? getBatteryEquipment(lang) : null;
+
+  const flowBoxes = [
+    { label: t("Panneaux solaires", "Solar Panels"), detail: formatSmartPower(simulation?.pvSizeKW ?? 0, lang), bg: BRAND_COLORS.accentGold, text: '#1a1a1a' },
+    { label: t("Onduleur(s)", "Inverter(s)"), detail: "DC → AC", bg: BRAND_COLORS.primaryBlue, text: '#fff' },
+  ];
+  if (hasBattery) {
+    flowBoxes.push({ label: t("Batterie BESS", "BESS Battery"), detail: formatSmartEnergy(simulation?.battEnergyKWh ?? 0, lang), bg: '#059669', text: '#fff' });
+  }
+  flowBoxes.push(
+    { label: t("Charges", "Loads"), detail: formatSmartEnergy(simulation?.annualConsumptionKWh ?? 0, lang) + t("/an", "/yr"), bg: '#374151', text: '#fff' },
+    { label: t("Réseau HQ", "HQ Grid"), detail: t("Surplus / Appoint", "Surplus / Backup"), bg: '#d1d5db', text: '#374151' },
+  );
+
+  const modes = [
+    { icon: <Sun className="h-5 w-5" />, title: t("Autoconsommation", "Self-consumption"), desc: t("Production solaire → charges directement", "Solar → loads directly") },
+  ];
+  if (hasBattery) {
+    modes.push({ icon: <Battery className="h-5 w-5" />, title: t("Écrêtage de pointe", "Peak Shaving"), desc: t("Batterie réduit la demande de pointe", "Battery reduces peak demand") });
+  }
+  modes.push({ icon: <Zap className="h-5 w-5" />, title: t("Injection surplus", "Surplus Export"), desc: t("Surplus → réseau HQ (mesurage net)", "Surplus → HQ grid (net metering)") });
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+      <div className="max-w-6xl w-full">
+        <SlideTitle>{t("Éléments du système", "System Elements")}</SlideTitle>
+
+        {/* Flow diagram */}
+        <div className="flex items-center justify-center gap-2 md:gap-3 flex-wrap mb-8">
+          {flowBoxes.map((box, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="rounded-xl px-4 py-3 md:px-6 md:py-4 text-center min-w-[100px] md:min-w-[140px]" style={{ backgroundColor: box.bg, color: box.text }}>
+                <p className="font-bold text-sm md:text-base">{box.label}</p>
+                <p className="text-xs md:text-sm opacity-85">{box.detail}</p>
+              </div>
+              {i < flowBoxes.length - 1 && (
+                <ArrowRight className="h-5 w-5 flex-shrink-0" style={{ color: BRAND_COLORS.accentGold }} />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Component table */}
+        <div className="overflow-x-auto mb-8">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ backgroundColor: BRAND_COLORS.primaryBlue }}>
+                <th className="text-left text-white font-semibold px-4 py-2 rounded-tl-lg">{t("Composant", "Component")}</th>
+                <th className="text-left text-white font-semibold px-4 py-2">{t("Fabricant", "Manufacturer")}</th>
+                <th className="text-left text-white font-semibold px-4 py-2">{t("Spécification", "Specification")}</th>
+                <th className="text-left text-white font-semibold px-4 py-2 rounded-tr-lg">{t("Garantie", "Warranty")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {equipment.map((eq, i) => (
+                <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
+                  <td className="px-4 py-2 font-medium">{eq.label}</td>
+                  <td className="px-4 py-2 text-gray-600">{eq.manufacturer}</td>
+                  <td className="px-4 py-2 text-gray-600 text-xs">{eq.specs || "—"}</td>
+                  <td className="px-4 py-2 font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{eq.warranty}</td>
+                </tr>
+              ))}
+              {battEq && (
+                <tr className={equipment.length % 2 === 0 ? 'bg-gray-50' : ''}>
+                  <td className="px-4 py-2 font-medium">{battEq.label}</td>
+                  <td className="px-4 py-2 text-gray-600">{battEq.manufacturer}</td>
+                  <td className="px-4 py-2 text-gray-600 text-xs">{battEq.specs || "—"}</td>
+                  <td className="px-4 py-2 font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{battEq.warranty}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Operating modes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {modes.map((mode, i) => (
+            <div key={i} className="rounded-xl p-4" style={{ backgroundColor: '#f3f4f6', border: '1px solid #E5E7EB' }}>
+              <div className="flex items-center gap-2 mb-2" style={{ color: BRAND_COLORS.primaryBlue }}>
+                {mode.icon}
+                <span className="font-bold text-sm">{mode.title}</span>
+              </div>
+              <p className="text-xs" style={{ color: '#6B7280' }}>{mode.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center text-xs mt-4" style={{ color: '#9CA3AF' }}>
+          {t("Équipement indicatif — confirmé dans la soumission forfaitaire", "Indicative equipment — confirmed in the firm quote")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ========== DELIVERY ASSURANCE SLIDE ==========
+function DeliveryAssuranceSlide({ language }: { language: string }) {
+  const lang = language as "fr" | "en";
+  const t = (fr: string, en: string) => lang === "fr" ? fr : en;
+  const milestones = getDeliveryAssurance(lang);
+  const partners = getDeliveryPartners(lang);
+  const roadmap = getWarrantyRoadmap(lang);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+      <div className="max-w-6xl w-full">
+        <SlideTitle>{t("Assurance de livraison", "Project Delivery Assurance")}</SlideTitle>
+
+        {/* Milestones table */}
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ backgroundColor: BRAND_COLORS.primaryBlue }}>
+                <th className="text-left text-white font-semibold px-3 py-2 rounded-tl-lg">{t("Phase", "Phase")}</th>
+                <th className="text-left text-white font-semibold px-3 py-2">{t("Durée", "Duration")}</th>
+                <th className="text-left text-white font-semibold px-3 py-2">{t("Livrables", "Deliverables")}</th>
+                <th className="text-left text-white font-semibold px-3 py-2 rounded-tr-lg">{t("Contrôle qualité", "QA Checkpoint")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {milestones.map((m, i) => (
+                <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
+                  <td className="px-3 py-2 font-semibold" style={{ color: BRAND_COLORS.primaryBlue }}>{m.phase}</td>
+                  <td className="px-3 py-2 text-gray-600">{m.duration}</td>
+                  <td className="px-3 py-2 text-gray-600 text-xs">{m.deliverables.join(", ")}</td>
+                  <td className="px-3 py-2 text-xs font-semibold" style={{ color: BRAND_COLORS.positive }}>
+                    <CheckCircle2 className="h-3 w-3 inline mr-1" />{m.qaCheckpoint}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Delivery team */}
+        <h3 className="text-sm font-bold mb-3" style={{ color: BRAND_COLORS.primaryBlue }}>
+          {t("ÉQUIPE DE LIVRAISON", "DELIVERY TEAM")}
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          {partners.map((p, i) => (
+            <div key={i} className="rounded-lg p-3 text-center" style={{ backgroundColor: '#f3f4f6', border: '1px solid #E5E7EB' }}>
+              <p className="font-bold text-xs" style={{ color: BRAND_COLORS.primaryBlue }}>{p.role}</p>
+              <p className="text-xs text-gray-700 mt-1">{p.name}</p>
+              <p className="text-[10px] text-gray-400 mt-1">{p.qualification}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Warranty roadmap */}
+        <h3 className="text-sm font-bold mb-3" style={{ color: BRAND_COLORS.primaryBlue }}>
+          {t("PLAN DE SUPPORT ET GARANTIES", "WARRANTY & SUPPORT ROADMAP")}
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {roadmap.map((r, i) => {
+            const isLast = i === roadmap.length - 1;
+            return (
+              <div key={i} className="rounded-lg p-3 text-center" style={{
+                backgroundColor: isLast ? BRAND_COLORS.primaryBlue : '#f3f4f6',
+                border: isLast ? 'none' : '1px solid #E5E7EB',
+              }}>
+                <p className="font-bold text-sm" style={{ color: isLast ? BRAND_COLORS.accentGold : BRAND_COLORS.primaryBlue }}>{r.period}</p>
+                <div className="mt-2 space-y-1">
+                  {r.items.map((item, j) => (
+                    <p key={j} className="text-[11px]" style={{ color: isLast ? 'rgba(255,255,255,0.9)' : '#6B7280' }}>{item}</p>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* HQ interconnection note */}
+        <div className="rounded-lg p-3" style={{ backgroundColor: '#FFF3CD', border: '1px solid #FBBF24' }}>
+          <p className="text-xs" style={{ color: '#856404' }}>
+            <span className="font-bold">{t("INTERCONNEXION HQ", "HQ INTERCONNECTION")}:</span>{" "}
+            {t(
+              "kWh gère le processus complet. Délai typique: 8-16 semaines. Risque faible pour systèmes < 1 MW.",
+              "kWh manages the complete process. Typical delay: 8-16 weeks. Low risk for systems < 1 MW."
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== FIT SCORE SLIDE ==========
+function FitScoreSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+  const lang = language as "fr" | "en";
+  const t = (fr: string, en: string) => lang === "fr" ? fr : en;
+
+  const fitResult = computeFitScore({
+    simplePaybackYears: simulation?.simplePaybackYears ?? null,
+    irr25: simulation?.irr25 ?? null,
+    annualSavings: simulation?.annualSavings ?? null,
+    annualCostBefore: simulation?.annualCostBefore ?? null,
+    selfSufficiencyPercent: simulation?.selfSufficiencyPercent ?? null,
+    capexNet: simulation?.capexNet ?? null,
+  });
+
+  // Individual factor scores for display
+  const factors = [];
+
+  // Payback
+  const payback = simulation?.simplePaybackYears ?? 0;
+  let paybackScore = 0;
+  if (payback > 0) {
+    paybackScore = payback <= 4 ? 35 : payback <= 6 ? 30 : payback <= 8 ? 22 : payback <= 10 ? 15 : payback <= 14 ? 8 : 3;
+  }
+  factors.push({ label: t("Retour simple", "Simple Payback"), value: payback > 0 ? `${payback.toFixed(1)} ${t("ans", "yrs")}` : "—", score: paybackScore, max: 35 });
+
+  // IRR
+  const irr = simulation?.irr25 ?? null;
+  let irrScore = 0;
+  if (irr != null) {
+    const irrPct = irr * 100;
+    irrScore = irrPct >= 20 ? 25 : irrPct >= 15 ? 22 : irrPct >= 10 ? 18 : irrPct >= 7 ? 12 : irrPct >= 4 ? 6 : 2;
+  }
+  factors.push({ label: t("TRI 25 ans", "25yr IRR"), value: irr != null ? `${(irr * 100).toFixed(1)}%` : "—", score: irrScore, max: 25 });
+
+  // Savings ratio
+  const savings = simulation?.annualSavings ?? 0;
+  const costBefore = simulation?.annualCostBefore ?? 0;
+  let savingsScore = 0;
+  const savingsRatio = costBefore > 0 ? savings / costBefore : 0;
+  if (costBefore > 0) {
+    savingsScore = savingsRatio >= 0.5 ? 20 : savingsRatio >= 0.35 ? 16 : savingsRatio >= 0.2 ? 12 : savingsRatio >= 0.1 ? 7 : 3;
+  }
+  factors.push({ label: t("Ratio économies", "Savings Ratio"), value: costBefore > 0 ? `${(savingsRatio * 100).toFixed(0)}%` : "—", score: savingsScore, max: 20 });
+
+  // Self-sufficiency
+  const selfSuff = simulation?.selfSufficiencyPercent ?? 0;
+  let selfScore = 0;
+  if (selfSuff > 0) {
+    selfScore = selfSuff >= 60 ? 20 : selfSuff >= 40 ? 15 : selfSuff >= 25 ? 10 : selfSuff >= 15 ? 6 : 2;
+  }
+  factors.push({ label: t("Autosuffisance", "Self-sufficiency"), value: `${selfSuff.toFixed(0)}%`, score: selfScore, max: 20 });
+
+  const fitLabel = lang === "fr" ? fitResult.labelFr : fitResult.labelEn;
+  const verdictText = (fitResult.level === "excellent" || fitResult.level === "bon")
+    ? t(
+        "Ce bâtiment présente un potentiel solaire favorable. Nous recommandons de procéder à la validation technique sur site.",
+        "This building shows favorable solar potential. We recommend proceeding with on-site technical validation."
+      )
+    : t(
+        "Le potentiel nécessite une validation approfondie. Le projet peut rester pertinent pour des raisons non financières.",
+        "The potential requires deeper validation. The project may still be relevant for non-financial reasons."
+      );
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+      <div className="max-w-5xl w-full">
+        <SlideTitle>{t("Évaluation de faisabilité", "Feasibility Assessment")}</SlideTitle>
+
+        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start mb-8">
+          {/* Score gauge */}
+          <div className="flex-shrink-0 text-center">
+            <div
+              className="w-40 h-40 md:w-48 md:h-48 rounded-full flex flex-col items-center justify-center mx-auto"
+              style={{ border: `6px solid ${fitResult.color}` }}
+            >
+              <span className="text-5xl md:text-6xl font-bold" style={{ color: fitResult.color }}>{fitResult.score}</span>
+              <span className="text-sm text-gray-400">/ 100</span>
+            </div>
+            <p className="mt-3 text-lg md:text-xl font-bold" style={{ color: fitResult.color }}>{fitLabel}</p>
+          </div>
+
+          {/* Factor bars */}
+          <div className="flex-1 w-full">
+            <h3 className="text-sm font-bold mb-4" style={{ color: BRAND_COLORS.primaryBlue }}>
+              {t("CRITÈRES D'ÉVALUATION", "EVALUATION CRITERIA")}
+            </h3>
+            <div className="space-y-3">
+              {factors.map((f, i) => {
+                const pct = f.max > 0 ? (f.score / f.max) * 100 : 0;
+                const barColor = pct >= 70 ? BRAND_COLORS.positive : pct >= 40 ? '#F59E0B' : BRAND_COLORS.negative;
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="w-32 md:w-40 text-sm font-medium text-gray-700">{f.label}</span>
+                    <div className="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
+                    </div>
+                    <span className="w-16 text-right text-sm text-gray-500">{f.value}</span>
+                    <span className="w-12 text-right text-sm font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{f.score}/{f.max}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Verdict */}
+        <div className="rounded-xl p-5" style={{ backgroundColor: fitResult.color }}>
+          <p className="font-bold text-white text-sm mb-1">{t("VERDICT", "VERDICT")}</p>
+          <p className="text-white text-sm">{verdictText}</p>
         </div>
       </div>
     </div>
