@@ -1,5 +1,6 @@
 import { Router } from "express";
 import PDFDocument from "pdfkit";
+import archiver from "archiver";
 import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertPortfolioSchema, insertPortfolioSiteSchema } from "@shared/schema";
@@ -570,6 +571,127 @@ router.post("/api/portfolios/:id/batch-send-hq-procuration", authMiddleware, req
   }
 
   res.json({ sent, skipped, errors });
+}));
+
+router.get("/api/portfolios/:id/export-info-sheets", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const portfolio = await storage.getPortfolio(req.params.id);
+  if (!portfolio) {
+    throw new NotFoundError("Portfolio");
+  }
+
+  if (req.userRole === "client" && req.userClientId !== portfolio.clientId) {
+    throw new ForbiddenError("Access denied");
+  }
+
+  const portfolioSites = await storage.getPortfolioSites(req.params.id);
+  if (portfolioSites.length === 0) {
+    throw new BadRequestError("Portfolio has no sites");
+  }
+
+  const { generateProjectInfoSheetPDF, fetchRoofImageBuffer } = await import("../projectInfoSheetPdf");
+
+  const safePorfolioName = portfolio.name.replace(/[^a-zA-Z0-9-_]/g, "_");
+  const zipFilename = `Info_Sheets_${safePorfolioName}.zip`;
+
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="${zipFilename}"`);
+
+  const archive = archiver("zip", { zlib: { level: 5 } });
+
+  archive.on("error", (err) => {
+    log.error(`Archive error for portfolio ${portfolio.name}: ${err}`);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to create ZIP archive" });
+    }
+  });
+
+  res.on("close", () => {
+    archive.abort();
+  });
+
+  archive.pipe(res);
+
+  let pdfCount = 0;
+
+  for (const ps of portfolioSites) {
+    const site = ps.site;
+    if (!site) continue;
+
+    const roofPolygons = await storage.getRoofPolygons(site.id);
+
+    let roofImageBuffer: Buffer | null = null;
+    if (site.latitude && site.longitude) {
+      try {
+        const polygonData = roofPolygons.map((p: any) => ({
+          coordinates: p.coordinates as [number, number][],
+          color: p.color || "#3b82f6",
+          label: p.label || undefined,
+        }));
+        roofImageBuffer = await fetchRoofImageBuffer(
+          site.latitude,
+          site.longitude,
+          polygonData.length > 0 ? polygonData : undefined,
+          site.roofVisualizationImageUrl || null
+        );
+      } catch (e) {
+        log.warn(`Failed to fetch roof image for site ${site.name}: ${e}`);
+      }
+    }
+
+    const solarPolygons = roofPolygons.filter((p: any) => {
+      const isConstraint = p.label?.toLowerCase().includes("contrainte") ||
+                          p.label?.toLowerCase().includes("constraint") ||
+                          p.color === "#f97316";
+      return !isConstraint;
+    });
+    const calculatedRoofAreaSqM = solarPolygons.reduce((sum: number, p: any) => sum + (p.areaSqM || 0), 0);
+
+    const siteData = {
+      site: {
+        name: site.name,
+        address: site.address,
+        city: site.city,
+        province: site.province,
+        postalCode: site.postalCode,
+        latitude: site.latitude,
+        longitude: site.longitude,
+        kbKwDc: site.kbKwDc,
+        buildingType: site.buildingType,
+        roofType: site.roofType,
+        roofAreaSqM: site.roofAreaSqM,
+        notes: site.notes,
+        ownerName: site.ownerName,
+      },
+      roofPolygons: roofPolygons.map((p: any) => ({
+        coordinates: p.coordinates as [number, number][],
+        color: p.color || "#3b82f6",
+        label: p.label || undefined,
+      })),
+      roofImageBuffer: roofImageBuffer || undefined,
+      calculatedRoofAreaSqM: calculatedRoofAreaSqM > 0 ? calculatedRoofAreaSqM : undefined,
+    };
+
+    const safeName = site.name.replace(/[^a-zA-Z0-9-_]/g, "_");
+
+    for (const lang of ["fr", "en"] as const) {
+      try {
+        const pdfBuffer = await generateProjectInfoSheetPDF(siteData, lang);
+        archive.append(pdfBuffer, { name: `${safeName}_${lang.toUpperCase()}.pdf` });
+        pdfCount++;
+      } catch (e) {
+        log.error(`Failed to generate PDF for site ${site.name} (${lang}): ${e}`);
+      }
+    }
+  }
+
+  if (pdfCount === 0) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: "No PDFs could be generated" });
+      return;
+    }
+  }
+
+  await archive.finalize();
 }));
 
 export default router;

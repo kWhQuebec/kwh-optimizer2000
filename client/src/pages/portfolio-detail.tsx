@@ -485,6 +485,7 @@ export default function PortfolioDetailPage() {
   const { language } = useI18n();
   const { toast } = useToast();
   const [pricingOpen, setPricingOpen] = useState(true);
+  const [exportingSheets, setExportingSheets] = useState(false);
 
   // Single optimized query that fetches portfolio, sites, and pre-calculated KPIs
   const { data, isLoading } = useQuery<PortfolioFullResponse>({
@@ -836,37 +837,91 @@ export default function PortfolioDetailPage() {
                 : "Summary table of analyses by site"}
             </CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2" 
-            data-testid="button-download-pdf"
-            onClick={async () => {
-              try {
-                const token = localStorage.getItem("token");
-                const response = await fetch(`/api/portfolios/${id}/pdf?lang=${language}`, {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                });
-                if (!response.ok) throw new Error("Failed to download PDF");
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `portfolio-${portfolio.name.replace(/\s+/g, "-").toLowerCase()}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-              } catch (error) {
-                console.error("PDF download error:", error);
-              }
-            }}
-          >
-            <Download className="w-4 h-4" />
-            PDF
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2" 
+              data-testid="button-download-pdf"
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem("token");
+                  const response = await fetch(`/api/portfolios/${id}/pdf?lang=${language}`, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
+                  });
+                  if (!response.ok) throw new Error("Failed to download PDF");
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `portfolio-${portfolio.name.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                } catch (error) {
+                  console.error("PDF download error:", error);
+                }
+              }}
+            >
+              <Download className="w-4 h-4" />
+              PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={exportingSheets || portfolioSites.length === 0}
+              data-testid="button-export-info-sheets"
+              onClick={async () => {
+                setExportingSheets(true);
+                try {
+                  const token = localStorage.getItem("token");
+                  const response = await fetch(`/api/portfolios/${id}/export-info-sheets`, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
+                  });
+                  if (!response.ok) throw new Error("Failed to export info sheets");
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `Info_Sheets_${portfolio?.name?.replace(/\s+/g, "-") || "portfolio"}.zip`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                  toast({
+                    title: language === "fr" ? "Fiches exportées" : "Info sheets exported",
+                    description: language === "fr"
+                      ? `${portfolioSites.length} fiches (FR + EN) téléchargées.`
+                      : `${portfolioSites.length} sheets (FR + EN) downloaded.`,
+                  });
+                } catch (error) {
+                  console.error("Export info sheets error:", error);
+                  toast({
+                    title: language === "fr" ? "Erreur d'exportation" : "Export error",
+                    description: language === "fr"
+                      ? "Impossible d'exporter les fiches. Réessayez."
+                      : "Could not export info sheets. Please try again.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setExportingSheets(false);
+                }
+              }}
+            >
+              {exportingSheets ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4" />
+              )}
+              {language === "fr" ? "Fiches projet (ZIP)" : "Info Sheets (ZIP)"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
