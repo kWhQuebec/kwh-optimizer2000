@@ -139,22 +139,74 @@ const BALLAST_KG_PER_SQM = 30;            // Average ballast for Quebec wind zon
 // 5. Apply priority scoring (interior panels > edge panels)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Minimum rectangle dimensions to keep
-const MIN_RECT_COLS = 4;   // At least 4 panels wide (one racking rail run)
-const MIN_RECT_ROWS = 2;   // At least 2 rows deep
-const MIN_RECT_PANELS = 12; // Absolute minimum panels per rectangle
+// ─── Professional Layout Filter: Connected Components → Inscribed Rectangles ───
+// Strategy: find connected islands of panels via BFS, then iteratively extract
+// the largest inscribed rectangle from each island. This guarantees clean
+// rectangular blocks with no staircase edges by construction.
+
+const MIN_RECT_COLS = 6;    // Min width: 6 panels (~15m) — one viable racking run
+const MIN_RECT_ROWS = 3;    // Min depth: 3 rows — structural minimum for ballasted
+const MIN_RECT_PANELS = 24; // Absolute minimum: ~16 kW block
+const MIN_COMPONENT_CELLS = 12; // Skip tiny islands before even trying rectangles
 
 /**
- * Find all maximal rectangles in a boolean grid using the histogram approach.
- * Returns rectangles sorted by area (largest first).
+ * BFS flood-fill to find connected components (4-adjacent: up/down/left/right).
+ * Returns array of components, each component is a list of {r, c} cells.
  */
-function findMaximalRectangles(
+function findConnectedComponents(
   occupancy: boolean[][],
   numRows: number,
   numCols: number
-): { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] {
-  // Build height histogram: heights[r][c] = number of consecutive true cells
-  // going upward from row r at column c
+): { r: number; c: number }[][] {
+  const visited: boolean[][] = [];
+  for (let r = 0; r < numRows; r++) {
+    visited.push(new Array(numCols).fill(false));
+  }
+
+  const components: { r: number; c: number }[][] = [];
+  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+  for (let r = 0; r < numRows; r++) {
+    for (let c = 0; c < numCols; c++) {
+      if (occupancy[r][c] && !visited[r][c]) {
+        // BFS from this cell
+        const component: { r: number; c: number }[] = [];
+        const queue: { r: number; c: number }[] = [{ r, c }];
+        visited[r][c] = true;
+
+        while (queue.length > 0) {
+          const cell = queue.shift()!;
+          component.push(cell);
+
+          for (const [dr, dc] of dirs) {
+            const nr = cell.r + dr;
+            const nc = cell.c + dc;
+            if (nr >= 0 && nr < numRows && nc >= 0 && nc < numCols &&
+                occupancy[nr][nc] && !visited[nr][nc]) {
+              visited[nr][nc] = true;
+              queue.push({ r: nr, c: nc });
+            }
+          }
+        }
+
+        components.push(component);
+      }
+    }
+  }
+
+  return components;
+}
+
+/**
+ * Find the single largest rectangle inscribed in an occupancy grid.
+ * Uses the classic histogram + stack algorithm but returns only THE biggest one.
+ */
+function findLargestInscribedRectangle(
+  occupancy: boolean[][],
+  numRows: number,
+  numCols: number
+): { startRow: number; startCol: number; endRow: number; endCol: number; area: number } | null {
+  // Build height histogram
   const heights: number[][] = [];
   for (let r = 0; r < numRows; r++) {
     heights.push(new Array(numCols).fill(0));
@@ -165,12 +217,10 @@ function findMaximalRectangles(
     }
   }
 
-  const rectangles: { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] = [];
+  let best: { startRow: number; startCol: number; endRow: number; endCol: number; area: number } | null = null;
 
-  // For each row, find all maximal rectangles using the largest-rectangle-in-histogram algorithm
   for (let r = 0; r < numRows; r++) {
     const h = heights[r];
-    // Stack-based largest rectangle in histogram
     const stack: { col: number; height: number }[] = [];
 
     for (let c = 0; c <= numCols; c++) {
@@ -182,16 +232,18 @@ function findMaximalRectangles(
         startCol = top.col;
         const width = c - top.col;
         const height = top.height;
+        const area = width * height;
 
-        // Only keep rectangles meeting minimum dimensions
-        if (width >= MIN_RECT_COLS && height >= MIN_RECT_ROWS && width * height >= MIN_RECT_PANELS) {
-          rectangles.push({
-            startRow: r - height + 1,
-            startCol: top.col,
-            endRow: r,
-            endCol: c - 1,
-            area: width * height,
-          });
+        if (width >= MIN_RECT_COLS && height >= MIN_RECT_ROWS && area >= MIN_RECT_PANELS) {
+          if (!best || area > best.area) {
+            best = {
+              startRow: r - height + 1,
+              startCol: top.col,
+              endRow: r,
+              endCol: c - 1,
+              area,
+            };
+          }
         }
       }
 
@@ -199,69 +251,70 @@ function findMaximalRectangles(
     }
   }
 
-  // Sort by area descending (greedy selection picks largest first)
-  rectangles.sort((a, b) => b.area - a.area);
+  return best;
+}
+
+/**
+ * Iteratively extract inscribed rectangles from a connected component.
+ * 1. Find largest inscribed rectangle
+ * 2. Mark those cells as consumed
+ * 3. Repeat on the residual until no valid rectangle remains
+ *
+ * Returns all extracted rectangles for this component.
+ */
+function extractRectanglesFromComponent(
+  componentCells: { r: number; c: number }[],
+  globalOccupancy: boolean[][],
+  numRows: number,
+  numCols: number,
+  maxIterations: number = 8
+): { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] {
+  // Work on a local copy so we can mark consumed cells
+  const localOcc: boolean[][] = [];
+  for (let r = 0; r < numRows; r++) {
+    localOcc.push(new Array(numCols).fill(false));
+  }
+  for (const cell of componentCells) {
+    localOcc[cell.r][cell.c] = true;
+  }
+
+  const rectangles: { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] = [];
+
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const rect = findLargestInscribedRectangle(localOcc, numRows, numCols);
+    if (!rect) break;
+
+    rectangles.push(rect);
+
+    // Consume these cells so next iteration finds the next-largest rectangle
+    for (let r = rect.startRow; r <= rect.endRow; r++) {
+      for (let c = rect.startCol; c <= rect.endCol; c++) {
+        localOcc[r][c] = false;
+      }
+    }
+  }
 
   return rectangles;
 }
 
 /**
- * Greedily select non-overlapping rectangles from candidates.
- * Uses a "claimed" grid to prevent overlap. Picks largest first.
- */
-function selectNonOverlappingRectangles(
-  candidates: { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[],
-  numRows: number,
-  numCols: number
-): { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] {
-  const claimed: boolean[][] = [];
-  for (let r = 0; r < numRows; r++) {
-    claimed.push(new Array(numCols).fill(false));
-  }
-
-  const selected: typeof candidates = [];
-
-  for (const rect of candidates) {
-    // Check if this rectangle overlaps with any already-claimed cell
-    let overlapCount = 0;
-    let totalCells = 0;
-    for (let r = rect.startRow; r <= rect.endRow; r++) {
-      for (let c = rect.startCol; c <= rect.endCol; c++) {
-        totalCells++;
-        if (claimed[r][c]) overlapCount++;
-      }
-    }
-
-    // Strict: no overlap allowed (clean non-overlapping rectangles)
-    if (overlapCount > 0) continue;
-
-    // Claim this rectangle
-    for (let r = rect.startRow; r <= rect.endRow; r++) {
-      for (let c = rect.startCol; c <= rect.endCol; c++) {
-        claimed[r][c] = true;
-      }
-    }
-
-    selected.push(rect);
-  }
-
-  return selected;
-}
-
-/**
- * Master function: rectangle-first professional layout filter.
- * Replaces all previous layer-based approaches with a single coherent algorithm.
+ * Master function: Connected Components → Inscribed Rectangles filter.
  *
- * CRITICAL: Uses sparse grid (original row/col indices) to preserve physical gaps.
- * Dense indexing would make non-adjacent rows appear adjacent, creating false rectangles.
+ * Algorithm:
+ * 1. Build sparse occupancy grid per polygon (preserves physical gaps)
+ * 2. Find connected components via BFS (isolates panel islands)
+ * 3. For each component: iteratively extract largest inscribed rectangles
+ * 4. Keep only panels inside extracted rectangles
+ * 5. Apply priority scoring: larger blocks + interior panels get higher priority
+ *
+ * This eliminates staircases because each kept block is a perfect rectangle.
  */
 function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[] {
   if (panels.length === 0) return panels;
 
   const before = panels.length;
 
-  // Step 1: Build grid coordinate mapping
-  // Group by polygonId since each polygon has its own grid space
+  // Group by polygonId (each polygon has its own grid space)
   const byPolygon = new Map<string, PanelPosition[]>();
   for (const p of panels) {
     const pid = p.polygonId;
@@ -273,8 +326,7 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
   let totalRectangles = 0;
 
   byPolygon.forEach((polyPanels, polygonId) => {
-    // Use SPARSE grid: original row/col indices directly
-    // This preserves physical gaps (obstacles, setbacks) as empty cells
+    // Build SPARSE grid using original row/col indices
     let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
     for (const p of polyPanels) {
       const r = p.rowIndex ?? 0;
@@ -288,41 +340,47 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
     const numRows = maxRow - minRow + 1;
     const numCols = maxCol - minCol + 1;
 
-    // Safety: if grid is unreasonably large, fall back to keeping all panels
     if (numRows * numCols > 500000) {
-      console.warn(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: grid too large (${numRows}×${numCols}), skipping filter`);
+      console.warn(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: grid too large (${numRows}×${numCols}), skipping`);
       for (const p of polyPanels) kept.push(p);
       return;
     }
 
-    // Build sparse occupancy grid (offset to 0-based)
+    // Build occupancy grid (offset to 0-based)
     const occupancy: boolean[][] = [];
     for (let r = 0; r < numRows; r++) {
       occupancy.push(new Array(numCols).fill(false));
     }
 
-    const panelLookup = new Map<string, PanelPosition>();
     for (const p of polyPanels) {
       const r = (p.rowIndex ?? 0) - minRow;
       const c = (p.colIndex ?? 0) - minCol;
       occupancy[r][c] = true;
-      panelLookup.set(`${r}:${c}`, p);
     }
 
-    // Step 2: Find maximal rectangles
-    const candidates = findMaximalRectangles(occupancy, numRows, numCols);
+    // Step 1: Find connected components
+    const components = findConnectedComponents(occupancy, numRows, numCols);
 
-    // Step 3: Greedy selection (zero overlap — clean non-overlapping rectangles)
-    const selected = selectNonOverlappingRectangles(candidates, numRows, numCols);
+    // Step 2: For each component, iteratively extract inscribed rectangles
+    const allRects: { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] = [];
 
-    totalRectangles += selected.length;
+    for (const comp of components) {
+      // Skip tiny islands — not worth analyzing
+      if (comp.length < MIN_COMPONENT_CELLS) continue;
 
-    // Step 4: Collect panels inside selected rectangles
+      const rects = extractRectanglesFromComponent(comp, occupancy, numRows, numCols);
+      for (const rect of rects) {
+        allRects.push(rect);
+      }
+    }
+
+    totalRectangles += allRects.length;
+
+    // Step 3: Build set of kept cells + rectangle ownership
     const inRect = new Set<string>();
-    // Track which rectangle each cell belongs to for priority scoring
     const cellToRect = new Map<string, number>();
-    for (let si = 0; si < selected.length; si++) {
-      const rect = selected[si];
+    for (let si = 0; si < allRects.length; si++) {
+      const rect = allRects[si];
       for (let r = rect.startRow; r <= rect.endRow; r++) {
         for (let c = rect.startCol; c <= rect.endCol; c++) {
           if (occupancy[r][c]) {
@@ -334,7 +392,7 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
       }
     }
 
-    // Step 5: Keep only panels inside rectangles, with priority scoring
+    // Step 4: Keep only panels inside rectangles + priority scoring
     for (const p of polyPanels) {
       const r = (p.rowIndex ?? 0) - minRow;
       const c = (p.colIndex ?? 0) - minCol;
@@ -343,18 +401,18 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
       if (inRect.has(key)) {
         const rectIdx = cellToRect.get(key);
         if (rectIdx !== undefined) {
-          const rect = selected[rectIdx];
+          const rect = allRects[rectIdx];
 
-          // Distance from rectangle edge (0 = edge, higher = more interior)
+          // Distance from rectangle edge
           const distFromLeft = c - rect.startCol;
           const distFromRight = rect.endCol - c;
           const distFromTop = r - rect.startRow;
           const distFromBottom = rect.endRow - r;
           const minEdgeDist = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom);
 
-          // Rectangle size bonus (0-300): larger blocks get priority
+          // Rectangle size bonus (0-300): larger blocks = higher priority
           const sizeBonus = Math.min(rect.area / 50, 1) * 300;
-          // Interior bonus (0-200): center panels kept when slider reduces
+          // Interior bonus (0-200): center panels kept when slider reduces count
           const interiorBonus = Math.min(minEdgeDist / 3, 1) * 200;
 
           p.priority = (p.priority || 0) + Math.round(sizeBonus + interiorBonus);
@@ -364,7 +422,8 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
       }
     }
 
-    console.log(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: ${selected.length} rectangles from ${candidates.length} candidates, ${polyPanels.length} → ${inRect.size} panels`);
+    const compSummary = components.map(c => c.length).sort((a, b) => b - a).slice(0, 5).join(', ');
+    console.log(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: ${components.length} components (top sizes: ${compSummary}), ${allRects.length} rectangles, ${polyPanels.length} → ${inRect.size} panels`);
   });
 
   const removed = before - kept.length;
