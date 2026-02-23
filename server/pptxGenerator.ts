@@ -2,7 +2,7 @@ import PptxGenJSModule from "pptxgenjs";
 const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import fs from "fs";
 import path from "path";
-import { getAllStats, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes } from "@shared/brandContent";
+import { getAllStats, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes, getCredibilityDescription, getValues } from "@shared/brandContent";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
 import type { DocumentSimulationData } from "./documentDataProvider";
@@ -1425,28 +1425,28 @@ export async function generatePresentationPPTX(
     });
   });
 
-  const credDesc = lang === "fr"
-    ? "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011."
-    : "Our team has been supporting businesses across Canada in renewable energy projects since 2011.";
+  const credDesc = getCredibilityDescription(lang);
 
   slideRef.addText(credDesc, {
-    x: 1.2, y: 3.0, w: 7.6, h: 0.5,
-    fontSize: 13, color: COLORS.darkGray, align: "center", valign: "middle"
+    x: 1.2, y: 3.0, w: 7.6, h: 0.7,
+    fontSize: 12, color: COLORS.darkGray, align: "center", valign: "middle"
   });
 
-  const valueLabels = lang === "fr"
-    ? ["Simplicité", "Fiabilité", "Longévité", "Fierté"]
-    : ["Simplicity", "Reliability", "Longevity", "Pride"];
-  valueLabels.forEach((val, i) => {
+  const valuesFromBrand = getValues(lang);
+  valuesFromBrand.forEach((val, i) => {
     const xPos = 1.0 + i * 2.0;
     slideRef.addShape("roundRect", {
-      x: xPos, y: 3.6, w: 1.8, h: 0.5,
+      x: xPos, y: 3.8, w: 1.8, h: 0.8,
       fill: { color: "F7F9FC" },
       rectRadius: 0.08
     });
-    slideRef.addText(val, {
-      x: xPos, y: 3.6, w: 1.8, h: 0.5,
-      fontSize: 13, bold: true, color: COLORS.blue, align: "center", valign: "middle"
+    slideRef.addText(val.label, {
+      x: xPos, y: 3.8, w: 1.8, h: 0.35,
+      fontSize: 13, bold: true, color: COLORS.blue, align: "center", valign: "bottom"
+    });
+    slideRef.addText(val.description, {
+      x: xPos, y: 4.15, w: 1.8, h: 0.4,
+      fontSize: 8, color: COLORS.mediumGray, align: "center", valign: "top"
     });
   });
 

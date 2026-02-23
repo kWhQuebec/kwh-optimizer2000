@@ -13,8 +13,8 @@ const DEFAULT_CONTENT = [
     isActive: true,
     value: {
       description: {
-        fr: "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011.",
-        en: "Our team has been supporting businesses across Canada in renewable energy projects since 2011."
+        fr: "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011. En tant que Québécois, nous sommes fiers de vous offrir des solutions solaires maintenant rentables ici au Québec.",
+        en: "Our team has been supporting businesses across Canada in renewable energy projects since 2011. As Quebecers, we're proud to offer solar solutions that are now profitable here in Quebec."
       },
       stats: [
         { value: "15+", label: { fr: "Années d'expérience", en: "Years of experience" } },

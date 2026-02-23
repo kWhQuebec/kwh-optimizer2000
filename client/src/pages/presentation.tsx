@@ -2317,13 +2317,12 @@ function CredibilitySlide({ language }: { language: string }) {
   const contact = getContactString();
   const currentLogo = language === 'fr' ? logoFr : logoEn;
 
-  const credDesc = language === 'fr'
-    ? "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011."
-    : "Our team has been supporting businesses across Canada in renewable energy projects since 2011.";
+  const credDesc = BRAND_CONTENT.credibilityDescription[lang];
 
-  const valuesData = language === 'fr'
-    ? [{ label: "Simplicité" }, { label: "Fiabilité" }, { label: "Longévité" }, { label: "Fierté" }]
-    : [{ label: "Simplicity" }, { label: "Reliability" }, { label: "Longevity" }, { label: "Pride" }];
+  const valuesData = BRAND_CONTENT.values.map(v => ({
+    label: lang === 'fr' ? v.labelFr : v.labelEn,
+    desc: lang === 'fr' ? v.descFr : v.descEn,
+  }));
 
   const benefitsData = language === 'fr'
     ? ["Licence RBQ", "Financement flexible", "Garantie 25 ans", "Partout au Québec"]
@@ -2347,10 +2346,11 @@ function CredibilitySlide({ language }: { language: string }) {
 
         <p className="text-base md:text-lg mb-8 max-w-3xl mx-auto" style={{ color: '#4B5563' }}>{credDesc}</p>
 
-        <div className="flex items-center justify-center gap-4 md:gap-6 flex-wrap mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {valuesData.map((v, i) => (
-            <div key={i} className="rounded-xl px-6 py-3" style={{ backgroundColor: '#F7F9FC' }}>
-              <p className="font-bold text-base" style={{ color: BRAND_COLORS.primaryBlue }}>{v.label}</p>
+            <div key={i} className="rounded-xl px-5 py-4 text-center" style={{ backgroundColor: '#F7F9FC' }}>
+              <p className="font-bold text-base mb-1" style={{ color: BRAND_COLORS.primaryBlue }}>{v.label}</p>
+              <p className="text-xs" style={{ color: '#6B7280' }}>{v.desc}</p>
             </div>
           ))}
         </div>

@@ -442,7 +442,7 @@ function buildAboutPage(
     </div>
     <div class="section">
       <h3>${t("Pourquoi kWh Qu&eacute;bec", "Why kWh Qu&eacute;bec")}</h3>
-      <p style="text-align: center; font-size: 9pt; color: #4a5568; margin-bottom: 3mm;">${t("Notre &eacute;quipe accompagne les entreprises partout au Canada dans leurs projets d'&eacute;nergie renouvelable depuis 2011.", "Our team has been supporting businesses across Canada in renewable energy projects since 2011.")}</p>
+      <p style="text-align: center; font-size: 9pt; color: #4a5568; margin-bottom: 3mm;">${t("Notre &eacute;quipe accompagne les entreprises partout au Canada dans leurs projets d'&eacute;nergie renouvelable depuis 2011. En tant que Qu&eacute;b&eacute;cois, nous sommes fiers de vous offrir des solutions solaires maintenant rentables ici au Qu&eacute;bec.", "Our team has been supporting businesses across Canada in renewable energy projects since 2011. As Quebecers, we're proud to offer solar solutions that are now profitable here in Quebec.")}</p>
       <div class="logo-grid">
         <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">15+ ${t("ans", "yrs")}</div>
         <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">120 MW</div>

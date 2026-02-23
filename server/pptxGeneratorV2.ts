@@ -3,7 +3,7 @@ const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
-import { getAllStats, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getBatteryEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap } from "@shared/brandContent";
+import { getAllStats, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getBatteryEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap, getCredibilityDescription, getValues } from "@shared/brandContent";
 import { computeFitScore } from "@shared/fitScore";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
@@ -1129,15 +1129,10 @@ export async function generatePresentationPPTX(
   {
     const credStats = getAllStats(lang);
     const contact = getContactString();
-    const credDesc = lang === "fr"
-      ? "Notre &eacute;quipe accompagne les entreprises partout au Canada dans leurs projets d'&eacute;nergie renouvelable depuis 2011."
-      : "Our team has been supporting businesses across Canada in renewable energy projects since 2011.";
-    const valuesData = [
-      { fr: "Simplicit&eacute;", en: "Simplicity" },
-      { fr: "Fiabilit&eacute;", en: "Reliability" },
-      { fr: "Long&eacute;vit&eacute;", en: "Longevity" },
-      { fr: "Fiert&eacute;", en: "Pride" },
-    ];
+    const credDescRaw = getCredibilityDescription(lang);
+    const credDesc = credDescRaw.replace(/é/g, "&eacute;").replace(/è/g, "&egrave;");
+    const valuesFromBrand = getValues(lang);
+    const valuesData = valuesFromBrand.map(v => ({ label: v.label.replace(/é/g, "&eacute;").replace(/è/g, "&egrave;"), desc: v.description.replace(/é/g, "&eacute;").replace(/è/g, "&egrave;") }));
     const benefitsData = lang === "fr"
       ? ["Licence RBQ", "Financement flexible", "Garantie 25 ans", "Partout au Qu&eacute;bec"]
       : ["RBQ Licensed", "Flexible Financing", "25-Year Warranty", "Across Quebec"];
@@ -1154,10 +1149,11 @@ export async function generatePresentationPPTX(
       <div style="font-size:18px;color:var(--dark);text-align:center;margin-top:24px;line-height:1.5;">
         ${credDesc}
       </div>
-      <div style="display:flex;justify-content:center;gap:48px;margin-top:28px;">
+      <div style="display:flex;justify-content:center;gap:32px;margin-top:28px;">
         ${valuesData.map(v => `
-          <div style="text-align:center;padding:16px 24px;background:#F7F9FC;border-radius:10px;min-width:160px;">
-            <div style="font-size:20px;font-weight:700;color:var(--primary);">${lang === "fr" ? v.fr : v.en}</div>
+          <div style="text-align:center;padding:16px 24px;background:#F7F9FC;border-radius:10px;min-width:160px;max-width:220px;">
+            <div style="font-size:20px;font-weight:700;color:var(--primary);margin-bottom:6px;">${v.label}</div>
+            <div style="font-size:13px;color:#6B7280;">${v.desc}</div>
           </div>`).join('')}
       </div>
       <div style="display:flex;justify-content:center;gap:24px;margin-top:24px;flex-wrap:wrap;">
