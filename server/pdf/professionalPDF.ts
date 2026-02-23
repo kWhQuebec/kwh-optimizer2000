@@ -15,6 +15,9 @@ import { renderTimeline } from "./sections/timeline";
 import { renderAssumptions } from "./sections/assumptions";
 import { renderNextSteps } from "./sections/nextSteps";
 import { renderCredibility } from "./sections/credibility";
+import { renderSystemElements } from "./sections/systemElements";
+import { renderDeliveryAssurance } from "./sections/deliveryAssurance";
+import { renderFitScore } from "./sections/fitScore";
 
 // Appendix renderers
 import { renderScenarioComparison } from "./appendix/scenarioComparison";
@@ -73,10 +76,13 @@ export function generateProfessionalPDF(
   renderFinancialProjections(ctx);         // P6: Financial Projections
   renderFinancingComparison(ctx);          // P7: Financing Options (conditional)
   renderAssumptions(ctx);                  // P8: Assumptions & Exclusions
-  renderEquipment(ctx);                    // P9: Equipment & Timeline (shared page)
+  renderSystemElements(ctx);               // P9: System Elements (architecture + components)
+  renderDeliveryAssurance(ctx);            // P10: Project Delivery Assurance
+  renderFitScore(ctx);                     // P11: Desktop Screening / Fit Score
+  renderEquipment(ctx);                    // P12: Equipment & Timeline (shared page)
   renderTimeline(ctx);
-  renderNextSteps(ctx);                    // P10: Next Steps
-  renderCredibility(ctx);                  // P11: They Trust Us
+  renderNextSteps(ctx);                    // P13: Next Steps
+  renderCredibility(ctx);                  // P14: They Trust Us
 
   // === APPENDIX ===
 

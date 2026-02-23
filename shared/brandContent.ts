@@ -517,6 +517,132 @@ export const BRAND_CONTENT = {
       color: "#F59E0B",
     },
   },
+
+  // === ASSURANCE DE LIVRAISON (Delivery Assurance) ===
+  deliveryAssurance: [
+    {
+      phaseFr: "Pré-construction",
+      phaseEn: "Pre-construction",
+      durationFr: "2-4 semaines",
+      durationEn: "2-4 weeks",
+      deliverablesFr: ["Visite de site", "Évaluation structurelle", "Design préliminaire", "Demande HQ"],
+      deliverablesEn: ["Site visit", "Structural assessment", "Preliminary design", "HQ application"],
+      qaCheckpointFr: "Revue go/no-go avec client",
+      qaCheckpointEn: "Go/no-go review with client",
+    },
+    {
+      phaseFr: "Ingénierie",
+      phaseEn: "Engineering",
+      durationFr: "4-8 semaines",
+      durationEn: "4-8 weeks",
+      deliverablesFr: ["Plans électriques scellés", "Plans structurels", "Dossier de permis"],
+      deliverablesEn: ["Sealed electrical plans", "Structural plans", "Permit package"],
+      qaCheckpointFr: "Approbation P.Eng.",
+      qaCheckpointEn: "P.Eng. approval",
+    },
+    {
+      phaseFr: "Approvisionnement",
+      phaseEn: "Procurement",
+      durationFr: "4-6 semaines",
+      durationEn: "4-6 weeks",
+      deliverablesFr: ["Équipements commandés", "Fiches techniques confirmées", "Logistique planifiée"],
+      deliverablesEn: ["Equipment ordered", "Datasheets confirmed", "Logistics planned"],
+      qaCheckpointFr: "Inspection à réception",
+      qaCheckpointEn: "Receiving inspection",
+    },
+    {
+      phaseFr: "Installation",
+      phaseEn: "Installation",
+      durationFr: "2-6 semaines",
+      durationEn: "2-6 weeks",
+      deliverablesFr: ["Montage structure", "Câblage électrique", "Raccordements"],
+      deliverablesEn: ["Racking installation", "Electrical wiring", "Connections"],
+      qaCheckpointFr: "Inspection CNESST + ESA",
+      qaCheckpointEn: "CNESST + ESA inspection",
+    },
+    {
+      phaseFr: "Mise en service",
+      phaseEn: "Commissioning",
+      durationFr: "1-2 semaines",
+      durationEn: "1-2 weeks",
+      deliverablesFr: ["Tests de performance", "Formation opérateur", "Activation monitoring"],
+      deliverablesEn: ["Performance testing", "Operator training", "Monitoring activation"],
+      qaCheckpointFr: "Rapport de commissioning signé",
+      qaCheckpointEn: "Signed commissioning report",
+    },
+  ],
+
+  // === PARTENAIRES DE LIVRAISON ===
+  deliveryPartners: [
+    {
+      roleFr: "Direction de projet",
+      roleEn: "Project Management",
+      nameFr: "kWh Québec",
+      nameEn: "kWh Québec",
+      qualificationFr: "RBQ 1.3 | 15+ ans exp.",
+      qualificationEn: "RBQ 1.3 | 15+ yrs exp.",
+    },
+    {
+      roleFr: "Ingénierie électrique",
+      roleEn: "Electrical Engineering",
+      nameFr: "Firme d'ingénierie P.Eng.",
+      nameEn: "P.Eng. Engineering Firm",
+      qualificationFr: "OIQ | Plans scellés",
+      qualificationEn: "PEO/OIQ | Sealed plans",
+    },
+    {
+      roleFr: "Ingénierie structure",
+      roleEn: "Structural Engineering",
+      nameFr: "Firme structure P.Eng.",
+      nameEn: "P.Eng. Structural Firm",
+      qualificationFr: "OIQ | Attestation capacité portante",
+      qualificationEn: "PEO/OIQ | Load capacity cert.",
+    },
+    {
+      roleFr: "Installation électrique",
+      roleEn: "Electrical Installation",
+      nameFr: "Équipe certifiée kWh",
+      nameEn: "kWh Certified Team",
+      qualificationFr: "CCQ | CNESST | Licence C",
+      qualificationEn: "CCQ | CNESST | Class C License",
+    },
+    {
+      roleFr: "Monitoring & O&M",
+      roleEn: "Monitoring & O&M",
+      nameFr: "kWh Québec",
+      nameEn: "kWh Québec",
+      qualificationFr: "Suivi temps réel 24/7",
+      qualificationEn: "24/7 Real-time monitoring",
+    },
+  ],
+
+  // === FEUILLE DE ROUTE GARANTIES ===
+  warrantyRoadmap: [
+    {
+      periodFr: "Mois 1",
+      periodEn: "Month 1",
+      itemsFr: ["Visite post-installation", "Vérification performance", "Ajustements monitoring"],
+      itemsEn: ["Post-install visit", "Performance check", "Monitoring adjustments"],
+    },
+    {
+      periodFr: "Année 1",
+      periodEn: "Year 1",
+      itemsFr: ["Rapport performance annuel", "Inspection visuelle", "Nettoyage panneaux"],
+      itemsEn: ["Annual performance report", "Visual inspection", "Panel cleaning"],
+    },
+    {
+      periodFr: "Années 2-10",
+      periodEn: "Years 2-10",
+      itemsFr: ["Garantie main d'œuvre 10 ans", "Garantie onduleur 10-15 ans", "Support technique continu"],
+      itemsEn: ["10-yr workmanship warranty", "10-15 yr inverter warranty", "Ongoing tech support"],
+    },
+    {
+      periodFr: "Années 10-25",
+      periodEn: "Years 10-25",
+      itemsFr: ["Garantie panneaux 25-30 ans", "Garantie puissance ≥85%", "Options remplacement onduleur"],
+      itemsEn: ["25-30 yr panel warranty", "≥85% power guarantee", "Inverter replacement options"],
+    },
+  ],
 };
 
 // === HELPER FUNCTIONS ===
@@ -751,5 +877,31 @@ export function getMessagingLane(driver: BusinessDriver | null | undefined, lang
 
 export function getDesignMandateCreditPolicy(lang: Lang): string {
   return lang === "fr" ? BRAND_CONTENT.designMandate.creditPolicyFr : BRAND_CONTENT.designMandate.creditPolicyEn;
+}
+
+// === DELIVERY ASSURANCE ===
+
+export function getDeliveryAssurance(lang: Lang) {
+  return BRAND_CONTENT.deliveryAssurance.map(d => ({
+    phase: lang === "fr" ? d.phaseFr : d.phaseEn,
+    duration: lang === "fr" ? d.durationFr : d.durationEn,
+    deliverables: lang === "fr" ? d.deliverablesFr : d.deliverablesEn,
+    qaCheckpoint: lang === "fr" ? d.qaCheckpointFr : d.qaCheckpointEn,
+  }));
+}
+
+export function getDeliveryPartners(lang: Lang) {
+  return BRAND_CONTENT.deliveryPartners.map(p => ({
+    role: lang === "fr" ? p.roleFr : p.roleEn,
+    name: lang === "fr" ? p.nameFr : p.nameEn,
+    qualification: lang === "fr" ? p.qualificationFr : p.qualificationEn,
+  }));
+}
+
+export function getWarrantyRoadmap(lang: Lang) {
+  return BRAND_CONTENT.warrantyRoadmap.map(w => ({
+    period: lang === "fr" ? w.periodFr : w.periodEn,
+    items: lang === "fr" ? w.itemsFr : w.itemsEn,
+  }));
 }
 

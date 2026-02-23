@@ -3,7 +3,8 @@ const PptxGenJS = (PptxGenJSModule as any).default || PptxGenJSModule;
 import puppeteer from "puppeteer";
 import fs from "fs";
 import path from "path";
-import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes } from "@shared/brandContent";
+import { getAllStats, getFirstTestimonial, getTitle, getContactString, getKpiLabel, isKpiHighlighted, getAssumptions, getExclusions, getEquipment, getBatteryEquipment, getEquipmentTechnicalSummary, getTimeline, getProjectSnapshotLabels, getDesignFeeCovers, getClientProvides, getClientReceives, getNarrativeAct, getNarrativeTransition, getWhySolarNow, getDesignMandatePrice, getDesignMandateIncludes, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap } from "@shared/brandContent";
+import { computeFitScore } from "@shared/fitScore";
 import { formatSmartPower, formatSmartEnergy, formatSmartCurrency, formatSmartCurrencyFull } from "@shared/formatters";
 import { TIMELINE_GRADIENT_PPTX } from "@shared/colors";
 import type { DocumentSimulationData } from "./documentDataProvider";
@@ -874,7 +875,219 @@ export async function generatePresentationPPTX(
     `, slideOpts));
   }
 
-  // ========== SLIDE 14: ROOF CONFIGURATION ==========
+  // ========== SLIDE 14: SYSTEM ELEMENTS ==========
+  {
+    const hasBattery = simulation.battEnergyKWh > 0;
+    const eqList = getEquipment(lang);
+    const battEq = hasBattery ? getBatteryEquipment(lang) : null;
+
+    // Flow diagram boxes
+    const flowBoxes = [
+      { label: t("Panneaux solaires", "Solar Panels"), detail: formatSmartPower(simulation.pvSizeKW, lang), color: "var(--accent)", textColor: "var(--dark)" },
+      { label: t("Onduleur(s)", "Inverter(s)"), detail: "DC → AC", color: "var(--primary)", textColor: "white" },
+    ];
+    if (hasBattery) {
+      flowBoxes.push({ label: t("Batterie BESS", "BESS Battery"), detail: `${formatSmartEnergy(simulation.battEnergyKWh, lang)}`, color: "#059669", textColor: "white" });
+    }
+    flowBoxes.push(
+      { label: t("Charges", "Building Loads"), detail: formatSmartEnergy(simulation.annualConsumptionKWh, lang) + t("/an", "/yr"), color: "var(--dark)", textColor: "white" },
+      { label: t("Réseau HQ", "HQ Grid"), detail: t("Surplus / Appoint", "Surplus / Backup"), color: "#d1d5db", textColor: "var(--dark)" },
+    );
+
+    const flowHtml = flowBoxes.map((b, i) => {
+      const arrow = i < flowBoxes.length - 1 ? `<div style="font-size:32px;color:var(--accent);margin:0 8px;">&#9654;</div>` : '';
+      return `<div style="background:${b.color};border-radius:12px;padding:16px 20px;text-align:center;min-width:140px;">
+        <div style="font-size:16px;font-weight:700;color:${b.textColor};">${b.label}</div>
+        <div style="font-size:13px;color:${b.textColor};opacity:0.85;margin-top:4px;">${b.detail}</div>
+      </div>${arrow}`;
+    }).join('');
+
+    // Component table
+    const allEquip = [...eqList.map(e => ({ name: e.label, mfg: e.manufacturer, spec: e.specs || "—", warranty: e.warranty }))];
+    if (battEq) {
+      allEquip.push({ name: battEq.label, mfg: battEq.manufacturer, spec: battEq.specs || "—", warranty: battEq.warranty });
+    }
+
+    const eqRows = allEquip.map(e => `<tr>
+      <td>${e.name}</td><td>${e.mfg}</td><td>${e.spec}</td>
+      <td style="font-weight:700;color:var(--primary);">${e.warranty}</td>
+    </tr>`).join('');
+
+    // Operating modes
+    const modes = [
+      { icon: "&#9728;", title: t("Autoconsommation", "Self-consumption"), desc: t("Production solaire → charges directement", "Solar production → loads directly") },
+    ];
+    if (hasBattery) {
+      modes.push({ icon: "&#128267;", title: t("Écrêtage de pointe", "Peak Shaving"), desc: t("Batterie réduit la demande de pointe", "Battery reduces peak demand") });
+    }
+    modes.push({ icon: "&#128228;", title: t("Injection surplus", "Surplus Export"), desc: t("Surplus → réseau HQ (mesurage net)", "Surplus → HQ grid (net metering)") });
+
+    slideHtmls.push(wrapSlide(`
+      <h2>${t("ÉLÉMENTS DU SYSTÈME", "SYSTEM ELEMENTS")}</h2>
+      <div style="display:flex;align-items:center;justify-content:center;margin-top:20px;gap:0;">
+        ${flowHtml}
+      </div>
+      <table class="data-table" style="margin-top:24px;font-size:14px;">
+        <thead><tr>
+          <th>${t("Composant", "Component")}</th>
+          <th>${t("Fabricant", "Manufacturer")}</th>
+          <th>${t("Spécification", "Specification")}</th>
+          <th>${t("Garantie", "Warranty")}</th>
+        </tr></thead>
+        <tbody>${eqRows}</tbody>
+      </table>
+      <div style="display:flex;gap:20px;margin-top:20px;">
+        ${modes.map(m => `
+          <div style="flex:1;background:var(--light-gray);border-radius:8px;padding:16px;">
+            <div style="font-size:16px;font-weight:700;color:var(--primary);margin-bottom:4px;">${m.icon} ${m.title}</div>
+            <div style="font-size:13px;color:var(--gray);">${m.desc}</div>
+          </div>`).join('')}
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--gray);">
+        ${t("Équipement indicatif — confirmé dans la soumission forfaitaire", "Indicative equipment — confirmed in the firm quote")}
+      </div>
+    `, slideOpts));
+  }
+
+  // ========== SLIDE 15: DELIVERY ASSURANCE ==========
+  {
+    const milestones = getDeliveryAssurance(lang);
+    const partners = getDeliveryPartners(lang);
+    const roadmap = getWarrantyRoadmap(lang);
+
+    const milestoneRows = milestones.map(m => `<tr>
+      <td style="font-weight:600;color:var(--primary);">${m.phase}</td>
+      <td>${m.duration}</td>
+      <td style="font-size:13px;">${m.deliverables.join(", ")}</td>
+      <td style="color:var(--green);font-weight:600;">&#10003; ${m.qaCheckpoint}</td>
+    </tr>`).join('');
+
+    const partnerCards = partners.map(p => `
+      <div style="flex:1;background:var(--light-gray);border-radius:8px;padding:14px;text-align:center;">
+        <div style="font-size:14px;font-weight:700;color:var(--primary);">${p.role}</div>
+        <div style="font-size:13px;color:var(--dark);margin-top:4px;">${p.name}</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px;">${p.qualification}</div>
+      </div>`).join('');
+
+    const roadmapCards = roadmap.map((r, i) => {
+      const isLast = i === roadmap.length - 1;
+      return `<div style="flex:1;background:${isLast ? 'var(--primary)' : 'var(--light-gray)'};border-radius:8px;padding:14px;text-align:center;">
+        <div style="font-size:16px;font-weight:700;color:${isLast ? 'var(--accent)' : 'var(--primary)'};">${r.period}</div>
+        <div style="font-size:11px;color:${isLast ? 'rgba(255,255,255,0.9)' : 'var(--gray)'};margin-top:6px;line-height:1.5;">${r.items.join('<br/>')}</div>
+      </div>`;
+    }).join('');
+
+    slideHtmls.push(wrapSlide(`
+      <h2>${t("ASSURANCE DE LIVRAISON", "PROJECT DELIVERY ASSURANCE")}</h2>
+      <table class="data-table" style="font-size:13px;margin-top:12px;">
+        <thead><tr>
+          <th>${t("Phase", "Phase")}</th>
+          <th>${t("Durée", "Duration")}</th>
+          <th>${t("Livrables", "Deliverables")}</th>
+          <th>${t("Contrôle qualité", "QA Checkpoint")}</th>
+        </tr></thead>
+        <tbody>${milestoneRows}</tbody>
+      </table>
+      <div style="margin-top:16px;">
+        <div style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:8px;">${t("ÉQUIPE DE LIVRAISON", "DELIVERY TEAM")}</div>
+        <div style="display:flex;gap:12px;">${partnerCards}</div>
+      </div>
+      <div style="margin-top:16px;">
+        <div style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:8px;">${t("PLAN DE SUPPORT ET GARANTIES", "WARRANTY & SUPPORT ROADMAP")}</div>
+        <div style="display:flex;gap:12px;">${roadmapCards}</div>
+      </div>
+      <div style="background:#FFF3CD;border-radius:8px;padding:12px;margin-top:12px;">
+        <span style="font-weight:700;color:#856404;">${t("INTERCONNEXION HQ", "HQ INTERCONNECTION")}:</span>
+        <span style="color:#856404;font-size:13px;"> ${t("kWh gère le processus complet. Délai typique: 8-16 semaines. Risque faible pour systèmes < 1 MW.", "kWh manages the complete process. Typical delay: 8-16 weeks. Low risk for systems < 1 MW.")}</span>
+      </div>
+    `, slideOpts));
+  }
+
+  // ========== SLIDE 16: FIT SCORE / FEASIBILITY ==========
+  {
+    const fitResult = computeFitScore({
+      simplePaybackYears: simulation.simplePaybackYears,
+      irr25: simulation.irr25,
+      annualSavings: simulation.annualSavings,
+      annualCostBefore: simulation.annualCostBefore,
+      selfSufficiencyPercent: simulation.selfSufficiencyPercent,
+      capexNet: simulation.capexNet,
+    });
+
+    // Individual factor bars
+    const factors = [
+      { label: t("Retour simple", "Simple Payback"), value: simulation.simplePaybackYears ? `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "yrs")}` : "—", score: 0, max: 35 },
+      { label: t("TRI 25 ans", "25yr IRR"), value: simulation.irr25 ? `${(simulation.irr25 * 100).toFixed(1)}%` : "—", score: 0, max: 25 },
+      { label: t("Ratio économies", "Savings Ratio"), value: simulation.annualCostBefore > 0 ? `${((simulation.annualSavings / simulation.annualCostBefore) * 100).toFixed(0)}%` : "—", score: 0, max: 20 },
+      { label: t("Autosuffisance", "Self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`, score: 0, max: 20 },
+    ];
+
+    // Recalculate individual scores for display
+    if (simulation.simplePaybackYears > 0) {
+      const p = simulation.simplePaybackYears;
+      factors[0].score = p <= 4 ? 35 : p <= 6 ? 30 : p <= 8 ? 22 : p <= 10 ? 15 : p <= 14 ? 8 : 3;
+    }
+    if (simulation.irr25 != null) {
+      const i = simulation.irr25 * 100;
+      factors[1].score = i >= 20 ? 25 : i >= 15 ? 22 : i >= 10 ? 18 : i >= 7 ? 12 : i >= 4 ? 6 : 2;
+    }
+    if (simulation.annualSavings && simulation.annualCostBefore > 0) {
+      const r = simulation.annualSavings / simulation.annualCostBefore;
+      factors[2].score = r >= 0.5 ? 20 : r >= 0.35 ? 16 : r >= 0.2 ? 12 : r >= 0.1 ? 7 : 3;
+    }
+    if (simulation.selfSufficiencyPercent) {
+      const s = simulation.selfSufficiencyPercent;
+      factors[3].score = s >= 60 ? 20 : s >= 40 ? 15 : s >= 25 ? 10 : s >= 15 ? 6 : 2;
+    }
+
+    const factorBars = factors.map(f => {
+      const pct = f.max > 0 ? (f.score / f.max) * 100 : 0;
+      const barColor = pct >= 70 ? 'var(--green)' : pct >= 40 ? '#F59E0B' : 'var(--red)';
+      return `<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+        <div style="width:180px;font-size:15px;color:var(--dark);font-weight:500;">${f.label}</div>
+        <div style="flex:1;height:24px;background:#e5e7eb;border-radius:12px;overflow:hidden;position:relative;">
+          <div style="height:100%;width:${pct}%;background:${barColor};border-radius:12px;transition:width 0.5s;"></div>
+        </div>
+        <div style="width:100px;font-size:14px;color:var(--gray);text-align:right;">${f.value}</div>
+        <div style="width:60px;font-size:14px;font-weight:700;color:var(--primary);text-align:right;">${f.score}/${f.max}</div>
+      </div>`;
+    }).join('');
+
+    const fitLabel = lang === "fr" ? fitResult.labelFr : fitResult.labelEn;
+
+    const verdictText = fitResult.level === "excellent" || fitResult.level === "bon"
+      ? t(
+          "Ce bâtiment présente un potentiel solaire favorable. Nous recommandons de procéder à la validation technique sur site.",
+          "This building shows favorable solar potential. We recommend proceeding with on-site technical validation."
+        )
+      : t(
+          "Le potentiel nécessite une validation approfondie. Le projet peut rester pertinent pour des raisons non financières.",
+          "The potential requires deeper validation. The project may still be relevant for non-financial reasons."
+        );
+
+    slideHtmls.push(wrapSlide(`
+      <h2>${t("ÉVALUATION DE FAISABILITÉ", "FEASIBILITY ASSESSMENT")}</h2>
+      <div style="display:flex;gap:40px;margin-top:16px;">
+        <div style="flex:0 0 260px;text-align:center;">
+          <div style="width:200px;height:200px;border-radius:50%;border:8px solid ${fitResult.color};display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto;">
+            <div style="font-size:64px;font-weight:700;color:${fitResult.color};">${fitResult.score}</div>
+            <div style="font-size:18px;color:var(--gray);">/ 100</div>
+          </div>
+          <div style="font-size:22px;font-weight:700;color:${fitResult.color};margin-top:12px;">${fitLabel}</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:20px;font-weight:700;color:var(--primary);margin-bottom:16px;">${t("CRITÈRES D'ÉVALUATION", "EVALUATION CRITERIA")}</div>
+          ${factorBars}
+        </div>
+      </div>
+      <div style="background:${fitResult.color};border-radius:12px;padding:20px;margin-top:20px;">
+        <div style="font-size:16px;font-weight:700;color:white;margin-bottom:4px;">${t("VERDICT", "VERDICT")}</div>
+        <div style="font-size:14px;color:white;">${verdictText}</div>
+      </div>
+    `, slideOpts));
+  }
+
+  // ========== SLIDE 17: ROOF CONFIGURATION ==========
   {
     const orientLabel = (deg: number | undefined) => {
       if (deg === undefined) return "—";
