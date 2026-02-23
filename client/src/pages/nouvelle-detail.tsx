@@ -79,9 +79,9 @@ export default function NouvelleDetailPage() {
                   {language === "fr" ? "Accueil" : "Home"}
                 </Link>
               </Button>
-              <Button variant="ghost" asChild data-testid="link-news">
-                <Link href="/nouvelles">
-                  {language === "fr" ? "Nouvelles" : "News"}
+              <Button variant="ghost" asChild data-testid="link-blog">
+                <Link href="/blog">
+                  {language === "fr" ? "Ressources" : "Resources"}
                 </Link>
               </Button>
               <LanguageToggle />
@@ -92,7 +92,7 @@ export default function NouvelleDetailPage() {
 
         <main className="container mx-auto px-4 py-8 max-w-3xl">
           <Button variant="ghost" asChild className="mb-6" data-testid="button-back">
-            <Link href="/nouvelles">
+            <Link href="/blog?tab=nouvelles">
               <ArrowLeft className="w-4 h-4 mr-2" />
               {language === "fr" ? "Retour aux nouvelles" : "Back to news"}
             </Link>
@@ -200,7 +200,7 @@ export default function NouvelleDetailPage() {
                   </a>
                 </Button>
                 <Button variant="outline" asChild data-testid="button-more-news">
-                  <Link href="/nouvelles">
+                  <Link href="/blog?tab=nouvelles">
                     {language === "fr" ? "Plus de nouvelles" : "More news"}
                   </Link>
                 </Button>
