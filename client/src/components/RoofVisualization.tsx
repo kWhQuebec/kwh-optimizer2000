@@ -922,7 +922,7 @@ export function RoofVisualization({
       
       // NEW: Use distance-based validation instead of inset polygon
       // This works correctly for L-shaped and concave polygons where inset fails
-      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: using distance-based validation (1.2m setback)`);
+      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: using 4-corner distance validation (${PERIMETER_SETBACK_M}m setback from panel edge)`);
       
       // The original polygon for containment check
       const originalPath = coords.map(([lng, lat]) => ({ lat, lng }));
@@ -1002,29 +1002,45 @@ export function RoofVisualization({
           const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
           const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
           
-          // NEW: Distance-based validation (works for L-shapes, concave polygons)
-          // Step 1: Check if panel center is inside the ORIGINAL polygon
+          // Industry-standard inset polygon validation (Aurora Solar / HelioScope / PVsyst approach):
+          // All 4 physical corners of the panel must be inside the roof polygon AND
+          // at least PERIMETER_SETBACK_M from the roof boundary. This guarantees the
+          // physical EDGE of every panel respects the wind/fire setback — not just
+          // the panel center.
+          
+          // Step 1: Check if panel center is inside the ORIGINAL polygon (fast pre-filter)
           if (!google.maps.geometry.poly.containsLocation(panelCenter, originalPolygon)) {
             rejectedByRoof++;
             continue;
           }
           
-          // Step 2: Check if panel center is at least 1.2m from polygon boundary
-          // Note: This matches original inset polygon behavior where center must be inside inset
-          // The 1.2m is measured from panel CENTER (same as original approach) for consistency
-          const distanceToBoundary = pointToPolygonDistance(panelCenterLat, panelCenterLng, coords, localCentroid.lat);
-          if (distanceToBoundary < PERIMETER_SETBACK_M) {
+          // Step 2: Check ALL 4 CORNERS are at least PERIMETER_SETBACK_M from polygon boundary
+          // This ensures the physical panel edge (not center) respects the setback
+          let cornerTooClose = false;
+          for (const corner of panelCornersGeo) {
+            const cornerDist = pointToPolygonDistance(corner.lat, corner.lng, coords, localCentroid.lat);
+            if (cornerDist < PERIMETER_SETBACK_M) {
+              cornerTooClose = true;
+              break;
+            }
+          }
+          if (cornerTooClose) {
             rejectedByRoof++;
             continue;
           }
           
-          // Check constraints (using expanded polygons for 1.2m obstacle clearance)
+          // Check constraints (using expanded polygons for obstacle clearance)
+          // Same 4-corner validation: all panel corners must be outside expanded obstacle zones
           let inConstraint = false;
           for (const constraint of expandedConstraintPolygons) {
-            if (google.maps.geometry.poly.containsLocation(panelCenter, constraint)) {
-              inConstraint = true;
-              break;
+            for (const corner of panelCornersGeo) {
+              const cornerLatLng = new google.maps.LatLng(corner.lat, corner.lng);
+              if (google.maps.geometry.poly.containsLocation(cornerLatLng, constraint)) {
+                inConstraint = true;
+                break;
+              }
             }
+            if (inConstraint) break;
           }
           
           if (inConstraint) {
@@ -1278,18 +1294,32 @@ export function RoofVisualization({
         const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
         const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
         
-        if (!google.maps.geometry.poly.containsLocation(panelCenter, validationPolygon)) {
+        // Industry-standard: all 4 corners must be inside inset polygon
+        // This ensures panel EDGES (not just center) respect the setback
+        let allCornersInside = true;
+        for (const corner of panelCornersGeo) {
+          const cornerLatLng = new google.maps.LatLng(corner.lat, corner.lng);
+          if (!google.maps.geometry.poly.containsLocation(cornerLatLng, validationPolygon)) {
+            allCornersInside = false;
+            break;
+          }
+        }
+        if (!allCornersInside) {
           rejectedByRoof++;
           continue;
         }
         
-        // Check constraints
+        // Check constraints — all 4 corners must be outside obstacle zones
         let inConstraint = false;
         for (const constraint of constraintPolygons) {
-          if (google.maps.geometry.poly.containsLocation(panelCenter, constraint)) {
-            inConstraint = true;
-            break;
+          for (const corner of panelCornersGeo) {
+            const cornerLatLng = new google.maps.LatLng(corner.lat, corner.lng);
+            if (google.maps.geometry.poly.containsLocation(cornerLatLng, constraint)) {
+              inConstraint = true;
+              break;
+            }
           }
+          if (inConstraint) break;
         }
         
         if (inConstraint) {
