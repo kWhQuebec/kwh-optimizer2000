@@ -10,6 +10,7 @@ import {
   Package,
   LogOut,
   FolderOpen,
+  FolderKanban,
   UserCog,
   FileSignature,
   Target,
@@ -90,6 +91,12 @@ export function AppSidebar() {
       url: "/app/sites",
       icon: Building2,
       tooltip: language === "fr" ? "Bâtiments à analyser pour projets solaires" : "Buildings to analyze for solar projects",
+    },
+    {
+      title: language === "fr" ? "Portfolios" : "Portfolios",
+      url: "/app/portfolios",
+      icon: FolderKanban,
+      tooltip: language === "fr" ? "Regroupements de sites pour appels d'offres" : "Site groupings for RFPs and proposals",
     },
   ];
 
