@@ -125,6 +125,258 @@ const BIFACIAL_GAIN_PERCENT = 0.08;       // ~8% additional yield for bifacial p
 // AeroGrid uses concrete pavers, weight varies by wind zone (36.75 lb factor typical)
 const BALLAST_KG_PER_SQM = 30;            // Average ballast for Quebec wind zones (q50=0.40-0.44 kPa)
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROFESSIONAL LAYOUT FILTERS — 3-layer post-processing for realistic EPC layouts
+// Eliminates impractical panel placements that a real installer would never build:
+// small fragments near obstacles, orphaned micro-clusters, and scattered panels.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Minimum consecutive panels in a row to keep (shorter runs are removed)
+const MIN_RUN_LENGTH = 4;
+// Minimum connected component size (smaller islands are removed)
+const MIN_ISLAND_SIZE = 8;
+
+/**
+ * Layer 1: Minimum run filter
+ * Scans each row in grid-space and removes runs of fewer than MIN_RUN_LENGTH
+ * consecutive panels. This eliminates the 1-2 panel fragments that squeeze
+ * between obstacles — impractical for racking and wiring.
+ */
+function filterShortRuns(panels: PanelPosition[]): PanelPosition[] {
+  // Group panels by rowIndex (each rowIndex = one horizontal row in rotated grid)
+  const byRow = new Map<number, PanelPosition[]>();
+  for (const p of panels) {
+    const row = p.rowIndex ?? 0;
+    if (!byRow.has(row)) byRow.set(row, []);
+    byRow.get(row)!.push(p);
+  }
+
+  const kept: PanelPosition[] = [];
+  let removedCount = 0;
+
+  for (const [, rowPanels] of byRow) {
+    // Sort by colIndex to find consecutive runs
+    rowPanels.sort((a, b) => (a.colIndex ?? 0) - (b.colIndex ?? 0));
+
+    // Identify runs of consecutive colIndex values
+    const runs: PanelPosition[][] = [];
+    let currentRun: PanelPosition[] = [rowPanels[0]];
+
+    for (let i = 1; i < rowPanels.length; i++) {
+      const prevCol = currentRun[currentRun.length - 1].colIndex ?? 0;
+      const curCol = rowPanels[i].colIndex ?? 0;
+
+      if (curCol === prevCol + 1) {
+        // Consecutive — extend run
+        currentRun.push(rowPanels[i]);
+      } else {
+        // Gap — start new run
+        runs.push(currentRun);
+        currentRun = [rowPanels[i]];
+      }
+    }
+    runs.push(currentRun);
+
+    // Keep only runs >= MIN_RUN_LENGTH
+    for (const run of runs) {
+      if (run.length >= MIN_RUN_LENGTH) {
+        kept.push(...run);
+      } else {
+        removedCount += run.length;
+      }
+    }
+  }
+
+  if (removedCount > 0) {
+    console.log(`[LayoutFilter] Layer 1 (short runs): removed ${removedCount} panels in runs < ${MIN_RUN_LENGTH}`);
+  }
+  return kept;
+}
+
+/**
+ * Layer 2: Orphan island elimination (flood-fill)
+ * After removing short runs, some panels may form small disconnected clusters.
+ * This layer finds connected components (adjacent in row/col grid) and removes
+ * any component smaller than MIN_ISLAND_SIZE panels.
+ * Adjacency: 4-connected (same row ±1 col, or same col ±1 row).
+ */
+function filterOrphanIslands(panels: PanelPosition[]): PanelPosition[] {
+  if (panels.length === 0) return panels;
+
+  // Build lookup: key = "row:col" → panel index
+  const gridMap = new Map<string, number>();
+  for (let i = 0; i < panels.length; i++) {
+    const key = `${panels[i].rowIndex ?? 0}:${panels[i].colIndex ?? 0}`;
+    gridMap.set(key, i);
+  }
+
+  // Flood-fill to find connected components
+  const visited = new Set<number>();
+  const components: number[][] = [];
+
+  for (let i = 0; i < panels.length; i++) {
+    if (visited.has(i)) continue;
+
+    // BFS from this panel
+    const component: number[] = [];
+    const queue: number[] = [i];
+    visited.add(i);
+
+    while (queue.length > 0) {
+      const idx = queue.shift()!;
+      component.push(idx);
+
+      const row = panels[idx].rowIndex ?? 0;
+      const col = panels[idx].colIndex ?? 0;
+
+      // Check 4 neighbors (up, down, left, right in grid space)
+      const neighbors = [
+        `${row - 1}:${col}`,
+        `${row + 1}:${col}`,
+        `${row}:${col - 1}`,
+        `${row}:${col + 1}`,
+      ];
+
+      for (const nKey of neighbors) {
+        const nIdx = gridMap.get(nKey);
+        if (nIdx !== undefined && !visited.has(nIdx)) {
+          // Same polygon check — don't connect across different roof sections
+          if (panels[nIdx].polygonId === panels[idx].polygonId) {
+            visited.add(nIdx);
+            queue.push(nIdx);
+          }
+        }
+      }
+    }
+
+    components.push(component);
+  }
+
+  // Keep only components >= MIN_ISLAND_SIZE
+  const kept: PanelPosition[] = [];
+  let removedCount = 0;
+  let removedComponents = 0;
+
+  for (const comp of components) {
+    if (comp.length >= MIN_ISLAND_SIZE) {
+      for (const idx of comp) {
+        kept.push(panels[idx]);
+      }
+    } else {
+      removedCount += comp.length;
+      removedComponents++;
+    }
+  }
+
+  if (removedCount > 0) {
+    console.log(`[LayoutFilter] Layer 2 (orphan islands): removed ${removedComponents} islands (${removedCount} panels) < ${MIN_ISLAND_SIZE} panels`);
+  }
+
+  const keptComponents = components.length - removedComponents;
+  console.log(`[LayoutFilter] Layer 2: ${keptComponents} array blocks kept, total ${kept.length} panels`);
+
+  return kept;
+}
+
+/**
+ * Layer 3: Rectangle consolidation scoring
+ * For each panel, compute a "rectangle quality" score based on how many
+ * neighbors it has in a continuous rectangular block. Panels in larger
+ * rectangles get a priority boost, making them preferentially kept when
+ * the user reduces capacity via the slider.
+ *
+ * This doesn't remove panels but ensures that when the slider reduces count,
+ * isolated/edge panels are removed first, keeping clean rectangular blocks.
+ */
+function applyRectangleConsolidationScoring(panels: PanelPosition[]): void {
+  if (panels.length === 0) return;
+
+  // Build lookup
+  const gridSet = new Set<string>();
+  const panelByKey = new Map<string, PanelPosition>();
+  for (const p of panels) {
+    const key = `${p.polygonId}:${p.rowIndex ?? 0}:${p.colIndex ?? 0}`;
+    gridSet.add(key);
+    panelByKey.set(key, p);
+  }
+
+  // For each panel, count how many panels are in its immediate neighborhood
+  // (3×3 grid centered on the panel, plus extended row run length)
+  for (const p of panels) {
+    const row = p.rowIndex ?? 0;
+    const col = p.colIndex ?? 0;
+    const pid = p.polygonId;
+
+    // Count 8-neighbors (3×3 minus center)
+    let neighborCount = 0;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        if (gridSet.has(`${pid}:${row + dr}:${col + dc}`)) {
+          neighborCount++;
+        }
+      }
+    }
+
+    // Count consecutive panels in same row (run length)
+    let runLeft = 0;
+    for (let c = col - 1; gridSet.has(`${pid}:${row}:${c}`); c--) runLeft++;
+    let runRight = 0;
+    for (let c = col + 1; gridSet.has(`${pid}:${row}:${c}`); c++) runRight++;
+    const runLength = runLeft + 1 + runRight;
+
+    // Count consecutive rows above/below at same column (column depth)
+    let depthUp = 0;
+    for (let r = row - 1; gridSet.has(`${pid}:${r}:${col}`); r--) depthUp++;
+    let depthDown = 0;
+    for (let r = row + 1; gridSet.has(`${pid}:${r}:${col}`); r++) depthDown++;
+    const colDepth = depthUp + 1 + depthDown;
+
+    // Rectangle quality score:
+    // - neighborCount (0-8): how "interior" this panel is
+    // - runLength: longer rows = better racking efficiency
+    // - colDepth: deeper blocks = more stable arrays
+    // Scale to 0-500 range to add as priority bonus
+    const interiorScore = (neighborCount / 8) * 200;     // 0-200: fully surrounded = max
+    const runScore = Math.min(runLength / 10, 1) * 150;  // 0-150: runs of 10+ = max
+    const depthScore = Math.min(colDepth / 6, 1) * 150;  // 0-150: 6+ rows deep = max
+
+    const rectangleBonus = Math.round(interiorScore + runScore + depthScore);
+    p.priority = (p.priority || 0) + rectangleBonus;
+  }
+
+  console.log(`[LayoutFilter] Layer 3 (rectangle consolidation): scored ${panels.length} panels with rectangle quality bonus`);
+}
+
+/**
+ * Master function: applies all 3 professional layout filters in sequence.
+ * Order matters:
+ *   Layer 3 (scoring) → Layer 1 (short runs) → Layer 2 (orphan islands)
+ * Layer 3 runs first because it needs the full grid to compute neighborhood scores.
+ * Layers 1 & 2 then prune impractical placements.
+ */
+function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[] {
+  if (panels.length === 0) return panels;
+
+  const before = panels.length;
+
+  // Layer 3: Score rectangle quality (before pruning, so neighborhood is complete)
+  applyRectangleConsolidationScoring(panels);
+
+  // Layer 1: Remove short runs (< MIN_RUN_LENGTH consecutive panels in a row)
+  let filtered = filterShortRuns(panels);
+
+  // Layer 2: Remove orphan islands (< MIN_ISLAND_SIZE connected component)
+  filtered = filterOrphanIslands(filtered);
+
+  const removed = before - filtered.length;
+  if (removed > 0) {
+    console.log(`[LayoutFilter] TOTAL: ${before} → ${filtered.length} panels (removed ${removed}, ${(removed / before * 100).toFixed(1)}%)`);
+  }
+
+  return filtered;
+}
+
 // Calculate yield adjustment based on panel orientation deviation from true south
 // South = 180° azimuth, East-West rows have panels facing south
 function calculateOrientationYieldFactor(panelRowAngleRad: number): { factor: number; deviationDeg: number } {
@@ -1173,8 +1425,14 @@ export function RoofVisualization({
       const rowDensityBonus = (count / maxRowCount) * 200;
       panel.priority = (panel.priority || 0) + Math.round(rowDensityBonus);
     }
-    
-    return { panels: allPanels, orientationAngle: unifiedAxisAngle, orientationSource: orientationSourceLabel };
+
+    // ═══ Professional layout filtering: eliminate impractical placements ═══
+    // Layer 3: Rectangle quality scoring (boost panels in large rectangular blocks)
+    // Layer 1: Remove short runs (< 4 consecutive panels in a row)
+    // Layer 2: Remove orphan islands (< 8 connected panels)
+    const filteredPanels = applyProfessionalLayoutFilters(allPanels);
+
+    return { panels: filteredPanels, orientationAngle: unifiedAxisAngle, orientationSource: orientationSourceLabel };
   }, []);
 
   // LEGACY: Single polygon version (kept for backward compatibility)
@@ -1354,8 +1612,9 @@ export function RoofVisualization({
     }
     
     console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: ${accepted} panels accepted, ${rejectedByRoof} outside roof, ${rejectedByConstraint} in constraints`);
-    
-    return panels;
+
+    // Apply professional layout filters (same as unified version)
+    return applyProfessionalLayoutFilters(panels);
   }, []);
 
   // Sort panels with SEQUENTIAL POLYGON FILLING (realistic EPC approach)
