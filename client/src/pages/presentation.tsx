@@ -2244,38 +2244,38 @@ function FitScoreSlide({ simulation, language }: { simulation: SimulationRun | n
   // Individual factor scores for display
   const factors = [];
 
-  // Payback
+  // Payback — Quebec calibrated: ≤7y excellent, ≤12y good
   const payback = simulation?.simplePaybackYears ?? 0;
   let paybackScore = 0;
   if (payback > 0) {
-    paybackScore = payback <= 4 ? 35 : payback <= 6 ? 30 : payback <= 8 ? 22 : payback <= 10 ? 15 : payback <= 14 ? 8 : 3;
+    paybackScore = payback <= 7 ? 35 : payback <= 9 ? 30 : payback <= 12 ? 22 : payback <= 15 ? 14 : payback <= 20 ? 7 : 3;
   }
   factors.push({ label: t("Retour simple", "Simple Payback"), value: payback > 0 ? `${payback.toFixed(1)} ${t("ans", "yrs")}` : "—", score: paybackScore, max: 35 });
 
-  // IRR
+  // IRR — Quebec calibrated: ≥12% excellent, ≥7% good
   const irr = simulation?.irr25 ?? null;
   let irrScore = 0;
   if (irr != null) {
     const irrPct = irr * 100;
-    irrScore = irrPct >= 20 ? 25 : irrPct >= 15 ? 22 : irrPct >= 10 ? 18 : irrPct >= 7 ? 12 : irrPct >= 4 ? 6 : 2;
+    irrScore = irrPct >= 12 ? 25 : irrPct >= 9 ? 22 : irrPct >= 7 ? 18 : irrPct >= 5 ? 12 : irrPct >= 3 ? 6 : 2;
   }
   factors.push({ label: t("TRI 25 ans", "25yr IRR"), value: irr != null ? `${(irr * 100).toFixed(1)}%` : "—", score: irrScore, max: 25 });
 
-  // Savings ratio
+  // Savings ratio — Quebec calibrated: ≥30% excellent, ≥12% good
   const savings = simulation?.annualSavings ?? 0;
   const costBefore = simulation?.annualCostBefore ?? 0;
   let savingsScore = 0;
   const savingsRatio = costBefore > 0 ? savings / costBefore : 0;
   if (costBefore > 0) {
-    savingsScore = savingsRatio >= 0.5 ? 20 : savingsRatio >= 0.35 ? 16 : savingsRatio >= 0.2 ? 12 : savingsRatio >= 0.1 ? 7 : 3;
+    savingsScore = savingsRatio >= 0.30 ? 20 : savingsRatio >= 0.20 ? 16 : savingsRatio >= 0.12 ? 12 : savingsRatio >= 0.06 ? 7 : 3;
   }
   factors.push({ label: t("Ratio économies", "Savings Ratio"), value: costBefore > 0 ? `${(savingsRatio * 100).toFixed(0)}%` : "—", score: savingsScore, max: 20 });
 
-  // Self-sufficiency
+  // Self-sufficiency — Quebec calibrated: ≥45% excellent, ≥20% good
   const selfSuff = simulation?.selfSufficiencyPercent ?? 0;
   let selfScore = 0;
   if (selfSuff > 0) {
-    selfScore = selfSuff >= 60 ? 20 : selfSuff >= 40 ? 15 : selfSuff >= 25 ? 10 : selfSuff >= 15 ? 6 : 2;
+    selfScore = selfSuff >= 45 ? 20 : selfSuff >= 30 ? 16 : selfSuff >= 20 ? 12 : selfSuff >= 10 ? 7 : 3;
   }
   factors.push({ label: t("Autosuffisance", "Self-sufficiency"), value: `${selfSuff.toFixed(0)}%`, score: selfScore, max: 20 });
 

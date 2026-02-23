@@ -191,16 +191,16 @@ function buildFactorBreakdown(sim: any, lang: "fr" | "en"): FactorDisplay[] {
   const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
   const factors: FactorDisplay[] = [];
 
-  // Factor 1: Payback
+  // Factor 1: Payback — Quebec calibrated: ≤7y excellent, ≤12y good
   const payback = sim.simplePaybackYears;
   let paybackScore = 0;
   let paybackAssess = "";
   if (payback != null && payback > 0) {
-    if (payback <= 4) { paybackScore = 35; paybackAssess = t("Excellent", "Excellent"); }
-    else if (payback <= 6) { paybackScore = 30; paybackAssess = t("Très bon", "Very good"); }
-    else if (payback <= 8) { paybackScore = 22; paybackAssess = t("Bon", "Good"); }
-    else if (payback <= 10) { paybackScore = 15; paybackAssess = t("Acceptable", "Acceptable"); }
-    else if (payback <= 14) { paybackScore = 8; paybackAssess = t("Long", "Long"); }
+    if (payback <= 7) { paybackScore = 35; paybackAssess = t("Excellent", "Excellent"); }
+    else if (payback <= 9) { paybackScore = 30; paybackAssess = t("Très bon", "Very good"); }
+    else if (payback <= 12) { paybackScore = 22; paybackAssess = t("Bon", "Good"); }
+    else if (payback <= 15) { paybackScore = 14; paybackAssess = t("Acceptable", "Acceptable"); }
+    else if (payback <= 20) { paybackScore = 7; paybackAssess = t("Long", "Long"); }
     else { paybackScore = 3; paybackAssess = t("Très long", "Very long"); }
   }
   factors.push({
@@ -208,21 +208,21 @@ function buildFactorBreakdown(sim: any, lang: "fr" | "en"): FactorDisplay[] {
     displayValue: payback ? `${payback.toFixed(1)} ${t("ans", "yrs")}` : "—",
     score: paybackScore,
     maxScore: 35,
-    barColor: paybackScore >= 22 ? COLORS.green : paybackScore >= 15 ? "#F59E0B" : COLORS.red,
+    barColor: paybackScore >= 22 ? COLORS.green : paybackScore >= 14 ? "#F59E0B" : COLORS.red,
     assessment: paybackAssess || "—",
   });
 
-  // Factor 2: IRR
+  // Factor 2: IRR — Quebec calibrated: ≥12% excellent, ≥7% good
   const irr = sim.irr25;
   let irrScore = 0;
   let irrAssess = "";
   if (irr != null) {
     const irrPct = irr * 100;
-    if (irrPct >= 20) { irrScore = 25; irrAssess = t("Excellent", "Excellent"); }
-    else if (irrPct >= 15) { irrScore = 22; irrAssess = t("Très bon", "Very good"); }
-    else if (irrPct >= 10) { irrScore = 18; irrAssess = t("Bon", "Good"); }
-    else if (irrPct >= 7) { irrScore = 12; irrAssess = t("Acceptable", "Acceptable"); }
-    else if (irrPct >= 4) { irrScore = 6; irrAssess = t("Faible", "Low"); }
+    if (irrPct >= 12) { irrScore = 25; irrAssess = t("Excellent", "Excellent"); }
+    else if (irrPct >= 9) { irrScore = 22; irrAssess = t("Très bon", "Very good"); }
+    else if (irrPct >= 7) { irrScore = 18; irrAssess = t("Bon", "Good"); }
+    else if (irrPct >= 5) { irrScore = 12; irrAssess = t("Acceptable", "Acceptable"); }
+    else if (irrPct >= 3) { irrScore = 6; irrAssess = t("Faible", "Low"); }
     else { irrScore = 2; irrAssess = t("Très faible", "Very low"); }
   }
   factors.push({
@@ -234,7 +234,7 @@ function buildFactorBreakdown(sim: any, lang: "fr" | "en"): FactorDisplay[] {
     assessment: irrAssess || "—",
   });
 
-  // Factor 3: Savings ratio
+  // Factor 3: Savings ratio — Quebec calibrated: ≥30% excellent, ≥12% good
   const savings = sim.annualSavings;
   const costBefore = sim.annualCostBefore;
   let savingsScore = 0;
@@ -242,10 +242,10 @@ function buildFactorBreakdown(sim: any, lang: "fr" | "en"): FactorDisplay[] {
   let savingsRatio = 0;
   if (savings != null && costBefore != null && costBefore > 0) {
     savingsRatio = savings / costBefore;
-    if (savingsRatio >= 0.5) { savingsScore = 20; savingsAssess = t("Impact majeur", "Major impact"); }
-    else if (savingsRatio >= 0.35) { savingsScore = 16; savingsAssess = t("Impact significatif", "Significant"); }
-    else if (savingsRatio >= 0.2) { savingsScore = 12; savingsAssess = t("Bon impact", "Good impact"); }
-    else if (savingsRatio >= 0.1) { savingsScore = 7; savingsAssess = t("Impact modéré", "Moderate"); }
+    if (savingsRatio >= 0.30) { savingsScore = 20; savingsAssess = t("Impact majeur", "Major impact"); }
+    else if (savingsRatio >= 0.20) { savingsScore = 16; savingsAssess = t("Impact significatif", "Significant"); }
+    else if (savingsRatio >= 0.12) { savingsScore = 12; savingsAssess = t("Bon impact", "Good impact"); }
+    else if (savingsRatio >= 0.06) { savingsScore = 7; savingsAssess = t("Impact modéré", "Moderate"); }
     else { savingsScore = 3; savingsAssess = t("Impact limité", "Limited"); }
   }
   factors.push({
@@ -257,23 +257,23 @@ function buildFactorBreakdown(sim: any, lang: "fr" | "en"): FactorDisplay[] {
     assessment: savingsAssess || "—",
   });
 
-  // Factor 4: Self-sufficiency
+  // Factor 4: Self-sufficiency — Quebec calibrated: ≥45% excellent, ≥20% good
   const selfSuff = sim.selfSufficiencyPercent;
   let selfScore = 0;
   let selfAssess = "";
   if (selfSuff != null) {
-    if (selfSuff >= 60) { selfScore = 20; selfAssess = t("Haute autonomie", "High autonomy"); }
-    else if (selfSuff >= 40) { selfScore = 15; selfAssess = t("Bonne autonomie", "Good autonomy"); }
-    else if (selfSuff >= 25) { selfScore = 10; selfAssess = t("Autonomie modérée", "Moderate"); }
-    else if (selfSuff >= 15) { selfScore = 6; selfAssess = t("Autonomie limitée", "Limited"); }
-    else { selfScore = 2; selfAssess = t("Faible autonomie", "Low autonomy"); }
+    if (selfSuff >= 45) { selfScore = 20; selfAssess = t("Haute autonomie", "High autonomy"); }
+    else if (selfSuff >= 30) { selfScore = 16; selfAssess = t("Bonne autonomie", "Good autonomy"); }
+    else if (selfSuff >= 20) { selfScore = 12; selfAssess = t("Autonomie modérée", "Moderate"); }
+    else if (selfSuff >= 10) { selfScore = 7; selfAssess = t("Autonomie limitée", "Limited"); }
+    else { selfScore = 3; selfAssess = t("Faible autonomie", "Low autonomy"); }
   }
   factors.push({
     label: t("Autosuffisance solaire", "Solar self-sufficiency"),
     displayValue: selfSuff != null ? `${selfSuff.toFixed(0)}%` : "—",
     score: selfScore,
     maxScore: 20,
-    barColor: selfScore >= 10 ? COLORS.green : selfScore >= 6 ? "#F59E0B" : COLORS.red,
+    barColor: selfScore >= 12 ? COLORS.green : selfScore >= 7 ? "#F59E0B" : COLORS.red,
     assessment: selfAssess || "—",
   });
 
