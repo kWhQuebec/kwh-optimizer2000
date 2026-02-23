@@ -154,9 +154,9 @@ function filterShortRuns(panels: PanelPosition[]): PanelPosition[] {
   const kept: PanelPosition[] = [];
   let removedCount = 0;
 
-  for (const [, rowPanels] of byRow) {
+  byRow.forEach((rowPanels) => {
     // Sort by colIndex to find consecutive runs
-    rowPanels.sort((a, b) => (a.colIndex ?? 0) - (b.colIndex ?? 0));
+    rowPanels.sort((a: PanelPosition, b: PanelPosition) => (a.colIndex ?? 0) - (b.colIndex ?? 0));
 
     // Identify runs of consecutive colIndex values
     const runs: PanelPosition[][] = [];
@@ -185,7 +185,7 @@ function filterShortRuns(panels: PanelPosition[]): PanelPosition[] {
         removedCount += run.length;
       }
     }
-  }
+  });
 
   if (removedCount > 0) {
     console.log(`[LayoutFilter] Layer 1 (short runs): removed ${removedCount} panels in runs < ${MIN_RUN_LENGTH}`);
@@ -349,11 +349,170 @@ function applyRectangleConsolidationScoring(panels: PanelPosition[]): void {
 }
 
 /**
- * Master function: applies all 3 professional layout filters in sequence.
+ * Layer 4: Rectangular edge trimming
+ * After layers 1-2, remaining panels may still form jagged/staircase edges
+ * where the rotated grid meets diagonal polygon boundaries. This layer:
+ * 1. Finds connected components (blocks)
+ * 2. For each block, computes the "consensus" column range per row
+ * 3. Trims panels that protrude beyond the rectangular envelope
+ *
+ * The algorithm uses a median-based approach: for each block, it finds the
+ * column range that contains at least 70% of rows (the "consensus rectangle"),
+ * then trims panels outside this range. This creates clean rectangular edges
+ * while preserving the overall block shape.
+ */
+function trimJaggedEdges(panels: PanelPosition[]): PanelPosition[] {
+  if (panels.length === 0) return panels;
+
+  // Step 1: Find connected components (reuse flood-fill logic)
+  const gridMap = new Map<string, number>();
+  for (let i = 0; i < panels.length; i++) {
+    const key = `${panels[i].polygonId}:${panels[i].rowIndex ?? 0}:${panels[i].colIndex ?? 0}`;
+    gridMap.set(key, i);
+  }
+
+  const visited = new Set<number>();
+  const components: number[][] = [];
+
+  for (let i = 0; i < panels.length; i++) {
+    if (visited.has(i)) continue;
+    const component: number[] = [];
+    const queue: number[] = [i];
+    visited.add(i);
+    while (queue.length > 0) {
+      const idx = queue.shift()!;
+      component.push(idx);
+      const row = panels[idx].rowIndex ?? 0;
+      const col = panels[idx].colIndex ?? 0;
+      const pid = panels[idx].polygonId;
+      for (const nKey of [
+        `${pid}:${row - 1}:${col}`, `${pid}:${row + 1}:${col}`,
+        `${pid}:${row}:${col - 1}`, `${pid}:${row}:${col + 1}`,
+      ]) {
+        const nIdx = gridMap.get(nKey);
+        if (nIdx !== undefined && !visited.has(nIdx)) {
+          visited.add(nIdx);
+          queue.push(nIdx);
+        }
+      }
+    }
+    components.push(component);
+  }
+
+  const kept: PanelPosition[] = [];
+  let totalTrimmed = 0;
+
+  for (const comp of components) {
+    if (comp.length < MIN_ISLAND_SIZE) {
+      // Too small — already handled by Layer 2, but be safe
+      continue;
+    }
+
+    // Step 2: For this block, gather row → columns mapping
+    const rowCols = new Map<number, number[]>();
+    for (const idx of comp) {
+      const row = panels[idx].rowIndex ?? 0;
+      const col = panels[idx].colIndex ?? 0;
+      if (!rowCols.has(row)) rowCols.set(row, []);
+      rowCols.get(row)!.push(col);
+    }
+
+    // Sort each row's columns
+    rowCols.forEach((cols) => {
+      cols.sort((a: number, b: number) => a - b);
+    });
+
+    const rows = Array.from(rowCols.keys()).sort((a, b) => a - b);
+    const numRows = rows.length;
+
+    if (numRows < 3) {
+      // Too few rows to trim meaningfully — keep all
+      for (const idx of comp) kept.push(panels[idx]);
+      continue;
+    }
+
+    // Step 3: Find consensus column range
+    // For each row, get [minCol, maxCol]. Then find the range that works
+    // for most rows. Use percentile approach: take the 15th and 85th
+    // percentile of minCol/maxCol across rows.
+    const minCols: number[] = [];
+    const maxCols: number[] = [];
+    for (const row of rows) {
+      const cols = rowCols.get(row)!;
+      minCols.push(cols[0]);
+      maxCols.push(cols[cols.length - 1]);
+    }
+
+    minCols.sort((a, b) => a - b);
+    maxCols.sort((a, b) => a - b);
+
+    // Consensus range: 80th percentile of minCol (generous left edge),
+    // 20th percentile of maxCol (generous right edge)
+    // This means 80% of rows start at or before this col, and 80% end at or after
+    const pctIdx80 = Math.min(Math.floor(numRows * 0.80), numRows - 1);
+    const pctIdx20 = Math.max(Math.floor(numRows * 0.20), 0);
+
+    const consensusMinCol = minCols[pctIdx80];   // Most rows start at or before here
+    const consensusMaxCol = maxCols[pctIdx20];    // Most rows end at or after here
+
+    // Sanity check: consensus range must be at least MIN_RUN_LENGTH wide
+    if (consensusMaxCol - consensusMinCol + 1 < MIN_RUN_LENGTH) {
+      // Can't form a meaningful rectangle — keep all panels in this block
+      for (const idx of comp) kept.push(panels[idx]);
+      continue;
+    }
+
+    // Step 4: For each row, trim panels outside the consensus range
+    // But allow rows to extend BEYOND consensus if they form a solid run
+    // (i.e., don't trim panels that are part of a continuous section)
+    let blockTrimmed = 0;
+    for (const idx of comp) {
+      const col = panels[idx].colIndex ?? 0;
+      const row = panels[idx].rowIndex ?? 0;
+      const rowColList = rowCols.get(row)!;
+
+      // Is this panel within the consensus range?
+      if (col >= consensusMinCol && col <= consensusMaxCol) {
+        kept.push(panels[idx]);
+        continue;
+      }
+
+      // Panel is outside consensus. Keep it ONLY if this row has a solid
+      // run that extends well beyond consensus (at least 70% of consensus width).
+      // This preserves legitimate wider sections while trimming jagged edges.
+      const rowMin = rowColList[0];
+      const rowMax = rowColList[rowColList.length - 1];
+      const rowWidth = rowMax - rowMin + 1;
+      const consensusWidth = consensusMaxCol - consensusMinCol + 1;
+
+      if (rowWidth >= consensusWidth * 0.70 && rowColList.length >= MIN_RUN_LENGTH) {
+        // This row is legitimately wide — keep the panel
+        kept.push(panels[idx]);
+      } else {
+        // Jagged edge — trim
+        blockTrimmed++;
+      }
+    }
+
+    if (blockTrimmed > 0) {
+      totalTrimmed += blockTrimmed;
+    }
+  }
+
+  if (totalTrimmed > 0) {
+    console.log(`[LayoutFilter] Layer 4 (edge trimming): trimmed ${totalTrimmed} jagged-edge panels across ${components.length} blocks`);
+  }
+
+  return kept;
+}
+
+/**
+ * Master function: applies all 4 professional layout filters in sequence.
  * Order matters:
- *   Layer 3 (scoring) → Layer 1 (short runs) → Layer 2 (orphan islands)
+ *   Layer 3 (scoring) → Layer 1 (short runs) → Layer 2 (orphan islands) → Layer 4 (edge trimming)
  * Layer 3 runs first because it needs the full grid to compute neighborhood scores.
- * Layers 1 & 2 then prune impractical placements.
+ * Layers 1 & 2 prune impractical placements. Layer 4 cleans up jagged edges.
+ * A final pass of Layer 1 + Layer 2 catches any fragments created by edge trimming.
  */
 function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[] {
   if (panels.length === 0) return panels;
@@ -367,6 +526,13 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
   let filtered = filterShortRuns(panels);
 
   // Layer 2: Remove orphan islands (< MIN_ISLAND_SIZE connected component)
+  filtered = filterOrphanIslands(filtered);
+
+  // Layer 4: Trim jagged edges to form clean rectangular blocks
+  filtered = trimJaggedEdges(filtered);
+
+  // Final cleanup pass: edge trimming may create new short runs or small islands
+  filtered = filterShortRuns(filtered);
   filtered = filterOrphanIslands(filtered);
 
   const removed = before - filtered.length;
