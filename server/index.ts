@@ -189,6 +189,20 @@ app.use((req, res, next) => {
   });
   serverLog.info("Email scheduler initialized");
 
+  // Start daily news fetch scheduler (every 6 hours)
+  const { runNewsFetchJob } = await import("./services/newsJobRunner");
+  const NEWS_FETCH_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+  setInterval(async () => {
+    try {
+      serverLog.info("Running scheduled news fetch...");
+      const result = await runNewsFetchJob(storage);
+      serverLog.info(`Scheduled news fetch complete: ${result.newArticles} new, ${result.analyzed} analyzed`);
+    } catch (error) {
+      serverLog.error("Scheduled news fetch failed:", error);
+    }
+  }, NEWS_FETCH_INTERVAL);
+  serverLog.info("News fetch scheduler initialized (every 6h)");
+
   // Seed default CMS content if empty
   await seedDefaultContent();
 

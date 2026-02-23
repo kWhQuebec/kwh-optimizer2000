@@ -75,6 +75,9 @@ const CallScriptPage = lazy(() => import("@/pages/call-script"));
 const ConversionDashboardPage = lazy(() => import("@/pages/conversion-dashboard").then(m => ({ default: m.ConversionDashboard })));
 const LcoeComparisonPage = lazy(() => import("@/pages/lcoe-comparison"));
 const EOSPage = lazy(() => import("@/pages/eos"));
+const AdminNewsPage = lazy(() => import("@/pages/admin-news"));
+
+import NouvellesPage from "@/pages/nouvelles";
 
 function PageLoader() {
   return (
@@ -231,6 +234,7 @@ function AppRoutes() {
       <Route path="/ressources/calculateur-roi-solaire" component={CalculateurROIPage} />
       <Route path="/blog" component={BlogPage} />
       <Route path="/blog/:slug" component={BlogArticlePage} />
+      <Route path="/nouvelles" component={NouvellesPage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/autorisation-hq" component={AutorisationHQPage} />
       <Route path="/merci" component={ThankYouPage} />
@@ -575,6 +579,19 @@ function AppRoutes() {
             <AppLayout>
               <Suspense fallback={<PageLoader />}>
                 <HQDataFetchPage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Admin News Curation */}
+      <Route path="/app/admin/news">
+        <ProtectedRoute>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <AdminNewsPage />
               </Suspense>
             </AppLayout>
           </StaffRoute>

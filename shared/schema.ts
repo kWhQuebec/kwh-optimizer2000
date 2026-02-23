@@ -3166,3 +3166,42 @@ export const eosVto = pgTable("eos_vto", {
 
 export const insertEosVtoSchema = createInsertSchema(eosVto);
 export type EosVto = typeof eosVto.$inferSelect;
+
+export const newsArticles = pgTable("news_articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  sourceUrl: text("source_url").notNull(),
+  sourceName: text("source_name").notNull(),
+  originalTitle: text("original_title").notNull(),
+  originalExcerpt: text("original_excerpt"),
+  publishedAt: timestamp("published_at"),
+
+  aiRelevanceScore: integer("ai_relevance_score"),
+  aiSummaryFr: text("ai_summary_fr"),
+  aiCommentFr: text("ai_comment_fr"),
+  aiSocialPostFr: text("ai_social_post_fr"),
+  aiSocialPostEn: text("ai_social_post_en"),
+  aiTags: text("ai_tags").array(),
+  aiProcessedAt: timestamp("ai_processed_at"),
+
+  status: text("status").notNull().default("pending"),
+  editedCommentFr: text("edited_comment_fr"),
+  editedSocialPostFr: text("edited_social_post_fr"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  publishedToSiteAt: timestamp("published_to_site_at"),
+
+  imageUrl: text("image_url"),
+  language: text("language").default("fr"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type NewsArticle = typeof newsArticles.$inferSelect;
+export type InsertNewsArticle = z.infer<typeof insertNewsArticleSchema>;

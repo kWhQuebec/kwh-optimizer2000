@@ -106,6 +106,7 @@ import benchmarkRouter from "./routes/benchmarks";
 import hqDataRouter from "./routes/hq-data";
 import gamificationRouter from "./routes/gamification";
 import eosRouter from "./routes/eos";
+import newsRouter from "./routes/news";
 
 const JWT_SECRET = env.SESSION_SECRET;
 const upload = multer({ 
@@ -336,6 +337,9 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
 
   // ==================== ADMIN ROUTES ====================
   app.use(adminRouter);
+
+  // ==================== NEWS ROUTES ====================
+  app.use(newsRouter);
 
   // ==================== PARTNERSHIPS ROUTES ====================
   app.use(partnershipsRouter);

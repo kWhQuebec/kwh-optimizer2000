@@ -22,6 +22,7 @@ import * as cacheRepo from "./repositories/cacheRepo";
 import * as benchmarkRepo from "./repositories/benchmarkRepo";
 import * as siteMeterRepo from "./repositories/siteMeterRepo";
 import * as hqFetchJobRepo from "./repositories/hqFetchJobRepo";
+import * as newsArticleRepo from "./repositories/newsArticleRepo";
 
 export class DatabaseStorage implements IStorage {
   async initializeDefaultData(): Promise<void> {
@@ -379,4 +380,12 @@ export class DatabaseStorage implements IStorage {
   setGoogleSolarCache = cacheRepo.setGoogleSolarCache;
   incrementCacheHitCount = cacheRepo.incrementCacheHitCount;
   cleanupExpiredCache = cacheRepo.cleanupExpiredCache;
+
+  // News Articles
+  getNewsArticles = newsArticleRepo.getNewsArticles;
+  getNewsArticle = newsArticleRepo.getNewsArticle;
+  getNewsArticleByUrl = newsArticleRepo.getNewsArticleByUrl;
+  createNewsArticle = newsArticleRepo.createNewsArticle;
+  updateNewsArticle = newsArticleRepo.updateNewsArticle;
+  deleteNewsArticle = newsArticleRepo.deleteNewsArticle;
 }

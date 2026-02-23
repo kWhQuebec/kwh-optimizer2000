@@ -28,7 +28,8 @@ import {
   BookOpen,
   FileEdit,
   Download,
-  Rocket
+  Rocket,
+  Newspaper,
 } from "lucide-react";
 import {
   Sidebar,
@@ -221,6 +222,12 @@ export function AppSidebar() {
       url: "/app/methodology",
       icon: BookOpen,
       tooltip: language === "fr" ? "Hypothèses et explications des calculs" : "Calculation assumptions and explanations",
+    },
+    {
+      title: language === "fr" ? "Nouvelles" : "News Curation",
+      url: "/app/admin/news",
+      icon: Newspaper,
+      tooltip: language === "fr" ? "Curation des nouvelles de l'industrie" : "Industry news curation",
     },
     {
       title: language === "fr" ? "Paramètres" : "Settings",

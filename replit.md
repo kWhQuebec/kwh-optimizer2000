@@ -89,5 +89,7 @@ Specific color conventions apply to charts (waterfall, cashflow), CRM pipeline s
 - **Feb 2026**: "Meilleur TRI" optimization tab always visible (falls back to bestNPV data when bestIRR is null)
 - **Feb 2026**: Roof drawing sharing by address — sites at the same address auto-copy roof polygons to avoid redrawing
 
+- **Feb 2026**: Added "Nouvelles de l'industrie" (Industry News) feature — automated RSS feed aggregation from Google News (FR+EN), Gemini AI relevance scoring and content generation, admin curation UI at `/app/admin/news`, public page at `/nouvelles`. Auto-fetches every 6h.
+
 ## TODO / Future Work
 - **Option B: Parent site with sub-meters** — Restructure so a single "building" entity owns the roof drawing, with multiple meter/compteur sub-entities attached. This replaces the current address-matching copy approach with a proper parent-child relationship. Priority: medium-term.

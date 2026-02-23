@@ -50,6 +50,7 @@ import type {
   GoogleSolarCache, InsertGoogleSolarCache,
   SiteContent, InsertSiteContent,
   SystemSettings,
+  NewsArticle, InsertNewsArticle,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -518,6 +519,14 @@ export interface IStorage {
   setGoogleSolarCache(entry: InsertGoogleSolarCache): Promise<GoogleSolarCache>;
   incrementCacheHitCount(id: string): Promise<void>;
   cleanupExpiredCache(): Promise<number>; // Returns count of deleted entries
+
+  // News Articles
+  getNewsArticles(status?: string): Promise<NewsArticle[]>;
+  getNewsArticle(id: string): Promise<NewsArticle | undefined>;
+  getNewsArticleByUrl(url: string): Promise<NewsArticle | undefined>;
+  createNewsArticle(article: InsertNewsArticle): Promise<NewsArticle>;
+  updateNewsArticle(id: string, updates: Partial<NewsArticle>): Promise<NewsArticle | undefined>;
+  deleteNewsArticle(id: string): Promise<boolean>;
 }
 
 
