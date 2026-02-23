@@ -126,421 +126,254 @@ const BIFACIAL_GAIN_PERCENT = 0.08;       // ~8% additional yield for bifacial p
 const BALLAST_KG_PER_SQM = 30;            // Average ballast for Quebec wind zones (q50=0.40-0.44 kPa)
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PROFESSIONAL LAYOUT FILTERS — 3-layer post-processing for realistic EPC layouts
-// Eliminates impractical panel placements that a real installer would never build:
-// small fragments near obstacles, orphaned micro-clusters, and scattered panels.
+// PROFESSIONAL LAYOUT FILTER — Rectangle-first approach
+// Instead of placing panels individually then trying to fix jagged edges,
+// this algorithm finds maximal rectangles in the valid grid, then only keeps
+// panels that belong to a rectangle large enough to be worth building.
+//
+// Algorithm:
+// 1. From the raw panel grid, build a 2D boolean occupancy map (row × col)
+// 2. Find all maximal rectangles using the histogram method (O(n) per row)
+// 3. Greedily select non-overlapping rectangles, largest first
+// 4. Only keep panels inside selected rectangles
+// 5. Apply priority scoring (interior panels > edge panels)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Minimum consecutive panels in a row to keep (shorter runs are removed)
-const MIN_RUN_LENGTH = 4;
-// Minimum connected component size (smaller islands are removed)
-const MIN_ISLAND_SIZE = 8;
+// Minimum rectangle dimensions to keep
+const MIN_RECT_COLS = 4;   // At least 4 panels wide (one racking rail run)
+const MIN_RECT_ROWS = 2;   // At least 2 rows deep
+const MIN_RECT_PANELS = 12; // Absolute minimum panels per rectangle
 
 /**
- * Layer 1: Minimum run filter
- * Scans each row in grid-space and removes runs of fewer than MIN_RUN_LENGTH
- * consecutive panels. This eliminates the 1-2 panel fragments that squeeze
- * between obstacles — impractical for racking and wiring.
+ * Find all maximal rectangles in a boolean grid using the histogram approach.
+ * Returns rectangles sorted by area (largest first).
  */
-function filterShortRuns(panels: PanelPosition[]): PanelPosition[] {
-  // Group panels by rowIndex (each rowIndex = one horizontal row in rotated grid)
-  const byRow = new Map<number, PanelPosition[]>();
-  for (const p of panels) {
-    const row = p.rowIndex ?? 0;
-    if (!byRow.has(row)) byRow.set(row, []);
-    byRow.get(row)!.push(p);
-  }
-
-  const kept: PanelPosition[] = [];
-  let removedCount = 0;
-
-  byRow.forEach((rowPanels) => {
-    // Sort by colIndex to find consecutive runs
-    rowPanels.sort((a: PanelPosition, b: PanelPosition) => (a.colIndex ?? 0) - (b.colIndex ?? 0));
-
-    // Identify runs of consecutive colIndex values
-    const runs: PanelPosition[][] = [];
-    let currentRun: PanelPosition[] = [rowPanels[0]];
-
-    for (let i = 1; i < rowPanels.length; i++) {
-      const prevCol = currentRun[currentRun.length - 1].colIndex ?? 0;
-      const curCol = rowPanels[i].colIndex ?? 0;
-
-      if (curCol === prevCol + 1) {
-        // Consecutive — extend run
-        currentRun.push(rowPanels[i]);
-      } else {
-        // Gap — start new run
-        runs.push(currentRun);
-        currentRun = [rowPanels[i]];
+function findMaximalRectangles(
+  occupancy: boolean[][],
+  numRows: number,
+  numCols: number
+): { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] {
+  // Build height histogram: heights[r][c] = number of consecutive true cells
+  // going upward from row r at column c
+  const heights: number[][] = [];
+  for (let r = 0; r < numRows; r++) {
+    heights.push(new Array(numCols).fill(0));
+    for (let c = 0; c < numCols; c++) {
+      if (occupancy[r][c]) {
+        heights[r][c] = r > 0 ? heights[r - 1][c] + 1 : 1;
       }
     }
-    runs.push(currentRun);
-
-    // Keep only runs >= MIN_RUN_LENGTH
-    for (const run of runs) {
-      if (run.length >= MIN_RUN_LENGTH) {
-        kept.push(...run);
-      } else {
-        removedCount += run.length;
-      }
-    }
-  });
-
-  if (removedCount > 0) {
-    console.log(`[LayoutFilter] Layer 1 (short runs): removed ${removedCount} panels in runs < ${MIN_RUN_LENGTH}`);
-  }
-  return kept;
-}
-
-/**
- * Layer 2: Orphan island elimination (flood-fill)
- * After removing short runs, some panels may form small disconnected clusters.
- * This layer finds connected components (adjacent in row/col grid) and removes
- * any component smaller than MIN_ISLAND_SIZE panels.
- * Adjacency: 4-connected (same row ±1 col, or same col ±1 row).
- */
-function filterOrphanIslands(panels: PanelPosition[]): PanelPosition[] {
-  if (panels.length === 0) return panels;
-
-  // Build lookup: key = "row:col" → panel index
-  const gridMap = new Map<string, number>();
-  for (let i = 0; i < panels.length; i++) {
-    const key = `${panels[i].rowIndex ?? 0}:${panels[i].colIndex ?? 0}`;
-    gridMap.set(key, i);
   }
 
-  // Flood-fill to find connected components
-  const visited = new Set<number>();
-  const components: number[][] = [];
+  const rectangles: { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] = [];
 
-  for (let i = 0; i < panels.length; i++) {
-    if (visited.has(i)) continue;
+  // For each row, find all maximal rectangles using the largest-rectangle-in-histogram algorithm
+  for (let r = 0; r < numRows; r++) {
+    const h = heights[r];
+    // Stack-based largest rectangle in histogram
+    const stack: { col: number; height: number }[] = [];
 
-    // BFS from this panel
-    const component: number[] = [];
-    const queue: number[] = [i];
-    visited.add(i);
+    for (let c = 0; c <= numCols; c++) {
+      const curHeight = c < numCols ? h[c] : 0;
+      let startCol = c;
 
-    while (queue.length > 0) {
-      const idx = queue.shift()!;
-      component.push(idx);
+      while (stack.length > 0 && stack[stack.length - 1].height > curHeight) {
+        const top = stack.pop()!;
+        startCol = top.col;
+        const width = c - top.col;
+        const height = top.height;
 
-      const row = panels[idx].rowIndex ?? 0;
-      const col = panels[idx].colIndex ?? 0;
-
-      // Check 4 neighbors (up, down, left, right in grid space)
-      const neighbors = [
-        `${row - 1}:${col}`,
-        `${row + 1}:${col}`,
-        `${row}:${col - 1}`,
-        `${row}:${col + 1}`,
-      ];
-
-      for (const nKey of neighbors) {
-        const nIdx = gridMap.get(nKey);
-        if (nIdx !== undefined && !visited.has(nIdx)) {
-          // Same polygon check — don't connect across different roof sections
-          if (panels[nIdx].polygonId === panels[idx].polygonId) {
-            visited.add(nIdx);
-            queue.push(nIdx);
-          }
+        // Only keep rectangles meeting minimum dimensions
+        if (width >= MIN_RECT_COLS && height >= MIN_RECT_ROWS && width * height >= MIN_RECT_PANELS) {
+          rectangles.push({
+            startRow: r - height + 1,
+            startCol: top.col,
+            endRow: r,
+            endCol: c - 1,
+            area: width * height,
+          });
         }
       }
-    }
 
-    components.push(component);
-  }
-
-  // Keep only components >= MIN_ISLAND_SIZE
-  const kept: PanelPosition[] = [];
-  let removedCount = 0;
-  let removedComponents = 0;
-
-  for (const comp of components) {
-    if (comp.length >= MIN_ISLAND_SIZE) {
-      for (const idx of comp) {
-        kept.push(panels[idx]);
-      }
-    } else {
-      removedCount += comp.length;
-      removedComponents++;
+      stack.push({ col: startCol, height: curHeight });
     }
   }
 
-  if (removedCount > 0) {
-    console.log(`[LayoutFilter] Layer 2 (orphan islands): removed ${removedComponents} islands (${removedCount} panels) < ${MIN_ISLAND_SIZE} panels`);
-  }
+  // Sort by area descending (greedy selection picks largest first)
+  rectangles.sort((a, b) => b.area - a.area);
 
-  const keptComponents = components.length - removedComponents;
-  console.log(`[LayoutFilter] Layer 2: ${keptComponents} array blocks kept, total ${kept.length} panels`);
-
-  return kept;
+  return rectangles;
 }
 
 /**
- * Layer 3: Rectangle consolidation scoring
- * For each panel, compute a "rectangle quality" score based on how many
- * neighbors it has in a continuous rectangular block. Panels in larger
- * rectangles get a priority boost, making them preferentially kept when
- * the user reduces capacity via the slider.
- *
- * This doesn't remove panels but ensures that when the slider reduces count,
- * isolated/edge panels are removed first, keeping clean rectangular blocks.
+ * Greedily select non-overlapping rectangles from candidates.
+ * Uses a "claimed" grid to prevent overlap. Picks largest first.
  */
-function applyRectangleConsolidationScoring(panels: PanelPosition[]): void {
-  if (panels.length === 0) return;
-
-  // Build lookup
-  const gridSet = new Set<string>();
-  const panelByKey = new Map<string, PanelPosition>();
-  for (const p of panels) {
-    const key = `${p.polygonId}:${p.rowIndex ?? 0}:${p.colIndex ?? 0}`;
-    gridSet.add(key);
-    panelByKey.set(key, p);
+function selectNonOverlappingRectangles(
+  candidates: { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[],
+  numRows: number,
+  numCols: number
+): { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] {
+  const claimed: boolean[][] = [];
+  for (let r = 0; r < numRows; r++) {
+    claimed.push(new Array(numCols).fill(false));
   }
 
-  // For each panel, count how many panels are in its immediate neighborhood
-  // (3×3 grid centered on the panel, plus extended row run length)
-  for (const p of panels) {
-    const row = p.rowIndex ?? 0;
-    const col = p.colIndex ?? 0;
-    const pid = p.polygonId;
+  const selected: typeof candidates = [];
 
-    // Count 8-neighbors (3×3 minus center)
-    let neighborCount = 0;
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        if (dr === 0 && dc === 0) continue;
-        if (gridSet.has(`${pid}:${row + dr}:${col + dc}`)) {
-          neighborCount++;
-        }
+  for (const rect of candidates) {
+    // Check if this rectangle overlaps with any already-claimed cell
+    let overlapCount = 0;
+    let totalCells = 0;
+    for (let r = rect.startRow; r <= rect.endRow; r++) {
+      for (let c = rect.startCol; c <= rect.endCol; c++) {
+        totalCells++;
+        if (claimed[r][c]) overlapCount++;
       }
     }
 
-    // Count consecutive panels in same row (run length)
-    let runLeft = 0;
-    for (let c = col - 1; gridSet.has(`${pid}:${row}:${c}`); c--) runLeft++;
-    let runRight = 0;
-    for (let c = col + 1; gridSet.has(`${pid}:${row}:${c}`); c++) runRight++;
-    const runLength = runLeft + 1 + runRight;
+    // Allow if less than 20% overlap (some overlap ok for adjacent rectangles)
+    if (overlapCount > totalCells * 0.20) continue;
 
-    // Count consecutive rows above/below at same column (column depth)
-    let depthUp = 0;
-    for (let r = row - 1; gridSet.has(`${pid}:${r}:${col}`); r--) depthUp++;
-    let depthDown = 0;
-    for (let r = row + 1; gridSet.has(`${pid}:${r}:${col}`); r++) depthDown++;
-    const colDepth = depthUp + 1 + depthDown;
+    // Claim this rectangle
+    for (let r = rect.startRow; r <= rect.endRow; r++) {
+      for (let c = rect.startCol; c <= rect.endCol; c++) {
+        claimed[r][c] = true;
+      }
+    }
 
-    // Rectangle quality score:
-    // - neighborCount (0-8): how "interior" this panel is
-    // - runLength: longer rows = better racking efficiency
-    // - colDepth: deeper blocks = more stable arrays
-    // Scale to 0-500 range to add as priority bonus
-    const interiorScore = (neighborCount / 8) * 200;     // 0-200: fully surrounded = max
-    const runScore = Math.min(runLength / 10, 1) * 150;  // 0-150: runs of 10+ = max
-    const depthScore = Math.min(colDepth / 6, 1) * 150;  // 0-150: 6+ rows deep = max
-
-    const rectangleBonus = Math.round(interiorScore + runScore + depthScore);
-    p.priority = (p.priority || 0) + rectangleBonus;
+    selected.push(rect);
   }
 
-  console.log(`[LayoutFilter] Layer 3 (rectangle consolidation): scored ${panels.length} panels with rectangle quality bonus`);
+  return selected;
 }
 
 /**
- * Layer 4: Rectangular edge trimming
- * After layers 1-2, remaining panels may still form jagged/staircase edges
- * where the rotated grid meets diagonal polygon boundaries. This layer:
- * 1. Finds connected components (blocks)
- * 2. For each block, computes the "consensus" column range per row
- * 3. Trims panels that protrude beyond the rectangular envelope
- *
- * The algorithm uses a median-based approach: for each block, it finds the
- * column range that contains at least 70% of rows (the "consensus rectangle"),
- * then trims panels outside this range. This creates clean rectangular edges
- * while preserving the overall block shape.
- */
-function trimJaggedEdges(panels: PanelPosition[]): PanelPosition[] {
-  if (panels.length === 0) return panels;
-
-  // Step 1: Find connected components (reuse flood-fill logic)
-  const gridMap = new Map<string, number>();
-  for (let i = 0; i < panels.length; i++) {
-    const key = `${panels[i].polygonId}:${panels[i].rowIndex ?? 0}:${panels[i].colIndex ?? 0}`;
-    gridMap.set(key, i);
-  }
-
-  const visited = new Set<number>();
-  const components: number[][] = [];
-
-  for (let i = 0; i < panels.length; i++) {
-    if (visited.has(i)) continue;
-    const component: number[] = [];
-    const queue: number[] = [i];
-    visited.add(i);
-    while (queue.length > 0) {
-      const idx = queue.shift()!;
-      component.push(idx);
-      const row = panels[idx].rowIndex ?? 0;
-      const col = panels[idx].colIndex ?? 0;
-      const pid = panels[idx].polygonId;
-      for (const nKey of [
-        `${pid}:${row - 1}:${col}`, `${pid}:${row + 1}:${col}`,
-        `${pid}:${row}:${col - 1}`, `${pid}:${row}:${col + 1}`,
-      ]) {
-        const nIdx = gridMap.get(nKey);
-        if (nIdx !== undefined && !visited.has(nIdx)) {
-          visited.add(nIdx);
-          queue.push(nIdx);
-        }
-      }
-    }
-    components.push(component);
-  }
-
-  const kept: PanelPosition[] = [];
-  let totalTrimmed = 0;
-
-  for (const comp of components) {
-    if (comp.length < MIN_ISLAND_SIZE) {
-      // Too small — already handled by Layer 2, but be safe
-      continue;
-    }
-
-    // Step 2: For this block, gather row → columns mapping
-    const rowCols = new Map<number, number[]>();
-    for (const idx of comp) {
-      const row = panels[idx].rowIndex ?? 0;
-      const col = panels[idx].colIndex ?? 0;
-      if (!rowCols.has(row)) rowCols.set(row, []);
-      rowCols.get(row)!.push(col);
-    }
-
-    // Sort each row's columns
-    rowCols.forEach((cols) => {
-      cols.sort((a: number, b: number) => a - b);
-    });
-
-    const rows = Array.from(rowCols.keys()).sort((a, b) => a - b);
-    const numRows = rows.length;
-
-    if (numRows < 3) {
-      // Too few rows to trim meaningfully — keep all
-      for (const idx of comp) kept.push(panels[idx]);
-      continue;
-    }
-
-    // Step 3: Find consensus column range
-    // For each row, get [minCol, maxCol]. Then find the range that works
-    // for most rows. Use percentile approach: take the 15th and 85th
-    // percentile of minCol/maxCol across rows.
-    const minCols: number[] = [];
-    const maxCols: number[] = [];
-    for (const row of rows) {
-      const cols = rowCols.get(row)!;
-      minCols.push(cols[0]);
-      maxCols.push(cols[cols.length - 1]);
-    }
-
-    minCols.sort((a, b) => a - b);
-    maxCols.sort((a, b) => a - b);
-
-    // Consensus range: 80th percentile of minCol (generous left edge),
-    // 20th percentile of maxCol (generous right edge)
-    // This means 80% of rows start at or before this col, and 80% end at or after
-    const pctIdx80 = Math.min(Math.floor(numRows * 0.80), numRows - 1);
-    const pctIdx20 = Math.max(Math.floor(numRows * 0.20), 0);
-
-    const consensusMinCol = minCols[pctIdx80];   // Most rows start at or before here
-    const consensusMaxCol = maxCols[pctIdx20];    // Most rows end at or after here
-
-    // Sanity check: consensus range must be at least MIN_RUN_LENGTH wide
-    if (consensusMaxCol - consensusMinCol + 1 < MIN_RUN_LENGTH) {
-      // Can't form a meaningful rectangle — keep all panels in this block
-      for (const idx of comp) kept.push(panels[idx]);
-      continue;
-    }
-
-    // Step 4: For each row, trim panels outside the consensus range
-    // But allow rows to extend BEYOND consensus if they form a solid run
-    // (i.e., don't trim panels that are part of a continuous section)
-    let blockTrimmed = 0;
-    for (const idx of comp) {
-      const col = panels[idx].colIndex ?? 0;
-      const row = panels[idx].rowIndex ?? 0;
-      const rowColList = rowCols.get(row)!;
-
-      // Is this panel within the consensus range?
-      if (col >= consensusMinCol && col <= consensusMaxCol) {
-        kept.push(panels[idx]);
-        continue;
-      }
-
-      // Panel is outside consensus. Keep it ONLY if this row has a solid
-      // run that extends well beyond consensus (at least 70% of consensus width).
-      // This preserves legitimate wider sections while trimming jagged edges.
-      const rowMin = rowColList[0];
-      const rowMax = rowColList[rowColList.length - 1];
-      const rowWidth = rowMax - rowMin + 1;
-      const consensusWidth = consensusMaxCol - consensusMinCol + 1;
-
-      if (rowWidth >= consensusWidth * 0.70 && rowColList.length >= MIN_RUN_LENGTH) {
-        // This row is legitimately wide — keep the panel
-        kept.push(panels[idx]);
-      } else {
-        // Jagged edge — trim
-        blockTrimmed++;
-      }
-    }
-
-    if (blockTrimmed > 0) {
-      totalTrimmed += blockTrimmed;
-    }
-  }
-
-  if (totalTrimmed > 0) {
-    console.log(`[LayoutFilter] Layer 4 (edge trimming): trimmed ${totalTrimmed} jagged-edge panels across ${components.length} blocks`);
-  }
-
-  return kept;
-}
-
-/**
- * Master function: applies all 4 professional layout filters in sequence.
- * Order matters:
- *   Layer 3 (scoring) → Layer 1 (short runs) → Layer 2 (orphan islands) → Layer 4 (edge trimming)
- * Layer 3 runs first because it needs the full grid to compute neighborhood scores.
- * Layers 1 & 2 prune impractical placements. Layer 4 cleans up jagged edges.
- * A final pass of Layer 1 + Layer 2 catches any fragments created by edge trimming.
+ * Master function: rectangle-first professional layout filter.
+ * Replaces all previous layer-based approaches with a single coherent algorithm.
  */
 function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[] {
   if (panels.length === 0) return panels;
 
   const before = panels.length;
 
-  // Layer 3: Score rectangle quality (before pruning, so neighborhood is complete)
-  applyRectangleConsolidationScoring(panels);
-
-  // Layer 1: Remove short runs (< MIN_RUN_LENGTH consecutive panels in a row)
-  let filtered = filterShortRuns(panels);
-
-  // Layer 2: Remove orphan islands (< MIN_ISLAND_SIZE connected component)
-  filtered = filterOrphanIslands(filtered);
-
-  // Layer 4: Trim jagged edges to form clean rectangular blocks
-  filtered = trimJaggedEdges(filtered);
-
-  // Final cleanup pass: edge trimming may create new short runs or small islands
-  filtered = filterShortRuns(filtered);
-  filtered = filterOrphanIslands(filtered);
-
-  const removed = before - filtered.length;
-  if (removed > 0) {
-    console.log(`[LayoutFilter] TOTAL: ${before} → ${filtered.length} panels (removed ${removed}, ${(removed / before * 100).toFixed(1)}%)`);
+  // Step 1: Build grid coordinate mapping
+  // Group by polygonId since each polygon has its own grid space
+  const byPolygon = new Map<string, PanelPosition[]>();
+  for (const p of panels) {
+    const pid = p.polygonId;
+    if (!byPolygon.has(pid)) byPolygon.set(pid, []);
+    byPolygon.get(pid)!.push(p);
   }
 
-  return filtered;
+  const kept: PanelPosition[] = [];
+  let totalRectangles = 0;
+
+  byPolygon.forEach((polyPanels, polygonId) => {
+    // Map row/col indices to 0-based dense indices
+    const rowSet = new Set<number>();
+    const colSet = new Set<number>();
+    for (const p of polyPanels) {
+      rowSet.add(p.rowIndex ?? 0);
+      colSet.add(p.colIndex ?? 0);
+    }
+
+    const sortedRows = Array.from(rowSet).sort((a, b) => a - b);
+    const sortedCols = Array.from(colSet).sort((a, b) => a - b);
+
+    const rowToIdx = new Map<number, number>();
+    const colToIdx = new Map<number, number>();
+    sortedRows.forEach((r, i) => rowToIdx.set(r, i));
+    sortedCols.forEach((c, i) => colToIdx.set(c, i));
+
+    const numRows = sortedRows.length;
+    const numCols = sortedCols.length;
+
+    // Build occupancy grid
+    const occupancy: boolean[][] = [];
+    for (let r = 0; r < numRows; r++) {
+      occupancy.push(new Array(numCols).fill(false));
+    }
+
+    // Also build a lookup from (denseRow, denseCol) → panel
+    const panelAt = new Map<string, PanelPosition>();
+    for (const p of polyPanels) {
+      const ri = rowToIdx.get(p.rowIndex ?? 0)!;
+      const ci = colToIdx.get(p.colIndex ?? 0)!;
+      occupancy[ri][ci] = true;
+      panelAt.set(`${ri}:${ci}`, p);
+    }
+
+    // Step 2: Find maximal rectangles
+    const candidates = findMaximalRectangles(occupancy, numRows, numCols);
+
+    // Step 3: Greedy selection
+    const selected = selectNonOverlappingRectangles(candidates, numRows, numCols);
+
+    totalRectangles += selected.length;
+
+    // Step 4: Collect panels inside selected rectangles
+    const inRect = new Set<string>();
+    for (const rect of selected) {
+      for (let r = rect.startRow; r <= rect.endRow; r++) {
+        for (let c = rect.startCol; c <= rect.endCol; c++) {
+          // Only include cells that actually have panels (occupancy = true)
+          if (occupancy[r][c]) {
+            inRect.add(`${r}:${c}`);
+          }
+        }
+      }
+    }
+
+    // Step 5: Keep only panels inside rectangles, with priority scoring
+    for (const p of polyPanels) {
+      const ri = rowToIdx.get(p.rowIndex ?? 0)!;
+      const ci = colToIdx.get(p.colIndex ?? 0)!;
+      const key = `${ri}:${ci}`;
+
+      if (inRect.has(key)) {
+        // Find which rectangle this panel belongs to (for priority scoring)
+        let bestRect: typeof selected[0] | null = null;
+        for (const rect of selected) {
+          if (ri >= rect.startRow && ri <= rect.endRow && ci >= rect.startCol && ci <= rect.endCol) {
+            bestRect = rect;
+            break;
+          }
+        }
+
+        // Priority bonus: larger rectangles get higher priority, interior panels even more
+        if (bestRect) {
+          const rectWidth = bestRect.endCol - bestRect.startCol + 1;
+          const rectHeight = bestRect.endRow - bestRect.startRow + 1;
+
+          // Distance from edge (0 = edge, higher = more interior)
+          const distFromLeft = ci - bestRect.startCol;
+          const distFromRight = bestRect.endCol - ci;
+          const distFromTop = ri - bestRect.startRow;
+          const distFromBottom = bestRect.endRow - ri;
+          const minEdgeDist = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom);
+
+          // Rectangle size bonus (0-300): larger blocks get priority
+          const sizeBonus = Math.min(bestRect.area / 50, 1) * 300;
+          // Interior bonus (0-200): center panels kept when slider reduces
+          const interiorBonus = Math.min(minEdgeDist / 3, 1) * 200;
+
+          p.priority = (p.priority || 0) + Math.round(sizeBonus + interiorBonus);
+        }
+
+        kept.push(p);
+      }
+    }
+
+    console.log(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: ${selected.length} rectangles selected from ${candidates.length} candidates, ${polyPanels.length} → ${inRect.size} panels`);
+  });
+
+  const removed = before - kept.length;
+  if (removed > 0) {
+    console.log(`[LayoutFilter] TOTAL: ${before} → ${kept.length} panels in ${totalRectangles} rectangles (removed ${removed}, ${(removed / before * 100).toFixed(1)}%)`);
+  }
+
+  return kept;
 }
 
 // Calculate yield adjustment based on panel orientation deviation from true south
